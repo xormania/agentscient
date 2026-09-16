@@ -18,28 +18,21 @@ from __future__ import annotations
 
 import re
 
+from ops.testkit import compare
+
 JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
 LAUNCH_LOG = re.compile(r"\.launcher\.[A-Za-z0-9]{6}\Z")
 
+# The two exclusions as data for World.watch: a launcher log is ignored on
+# both sides; a new job directory is tolerated, a removed one still fails.
+IGNORE = (LAUNCH_LOG,)
+TOLERATE_NEW = (JOB_DIR,)
+
 
 def normalize(before: dict, after: dict) -> tuple[dict, dict]:
-    """Return (expected, actual) with the declared exclusions applied."""
-    expected: dict = {}
-    for key, (kind, names) in before.items():
-        if kind == "dir":
-            names = tuple(n for n in names if not LAUNCH_LOG.fullmatch(n))
-        expected[key] = (kind, names)
-    actual: dict = {}
-    for key, (kind, names) in after.items():
-        if kind == "dir" and key in before and before[key][0] == "dir":
-            previous = set(before[key][1])
-            names = tuple(
-                n for n in names
-                if not LAUNCH_LOG.fullmatch(n)
-                and (n in previous or not JOB_DIR.match(n))
-            )
-        actual[key] = (kind, names)
-    return expected, actual
+    """Return (expected, actual) with the declared exclusions applied;
+    the mechanics are the kit's ``compare`` (plan slice 10)."""
+    return compare(before, after, ignore=IGNORE, tolerate_new=TOLERATE_NEW)
 
 
 def without_new_job_dirs(before: dict, after: dict) -> dict:

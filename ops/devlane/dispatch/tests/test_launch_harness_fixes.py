@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 LAUNCH = Path(__file__).resolve().parents[1] / "launch.py"
 
@@ -22,7 +22,23 @@ def _load(test):
     return ls.load_path(test, LAUNCH, "launch_under_harness_fixes")
 
 
-class ReadRolesCanExecute(ls._TempLaunch):
+class _KitLaunch(ls._TempLaunch):
+    """The shared launch fixture owns its World and tool registry."""
+
+    world: World
+
+
+class _WorldCase(unittest.TestCase):
+    """A hermetic world for the in-process launcher helpers."""
+
+    def setUp(self):
+        super().setUp()
+        self.world = World(prefix="harness-fixes-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class ReadRolesCanExecute(_KitLaunch):
     """B2: a skeptic that cannot run the suite is structural."""
 
     def test_claude_argv_preapproves_verification_commands_only(self):
@@ -83,7 +99,7 @@ class ReadRolesCanExecute(ls._TempLaunch):
         self.assertIn("cause", rec["result"])
 
 
-class SpendIsMeasuredFromTheStore(ls._TempLaunch):
+class SpendIsMeasuredFromTheStore(_KitLaunch):
     """U5: 105 of 105 records carried spend: null on 2026-08-29."""
 
     def test_a_claude_dispatch_records_its_spend_from_the_fixture_store(self):
@@ -116,7 +132,7 @@ class SpendIsMeasuredFromTheStore(ls._TempLaunch):
         self.assertNotEqual(spend.get("total"), 0)
 
 
-class GrokNeverWaitsOnAPrompt(ls._TempLaunch):
+class GrokNeverWaitsOnAPrompt(_KitLaunch):
     """B1: 111 prompts, the last cancelled after 30 s, no envelope."""
 
     def test_grok_argv_carries_always_approve_and_no_web_and_no_permission_mode(self):
@@ -145,10 +161,11 @@ class GrokNeverWaitsOnAPrompt(ls._TempLaunch):
             )
 
 
-class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
+class TheLauncherCommitsWithTheHarnessOwnMessage(_WorldCase):
     """B3: five green codex runs landed under a generic subject."""
 
     def setUp(self):
+        super().setUp()
         self.launch = _load(self)
         self.rec = {"job": "implement", "id": "20260829T000000Z-code-codex-abc123",
                     "harness": {"name": "codex"},
@@ -214,11 +231,14 @@ class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
         self.assertIn("More why.", body)
 
     def test_out_commit_msg_wins_over_the_envelope(self):
-        with tempfile.TemporaryDirectory() as td:
-            job_dir = Path(td)
-            (job_dir / "out").mkdir()
-            (job_dir / "out" / "COMMIT_MSG").write_text("infra: from the file\n\nBody from file.\n")
-            msg = self.launch._commit_message(self.rec, {"commit": {"subject": "from envelope"}}, job_dir)
+        job_dir = self.world.root / "commit-message-job"
+        self.world.plant_text(
+            job_dir / "out" / "COMMIT_MSG",
+            "infra: from the file\n\nBody from file.\n",
+        )
+        msg = self.launch._commit_message(
+            self.rec, {"commit": {"subject": "from envelope"}}, job_dir,
+        )
         self.assertTrue(msg.startswith("infra: from the file\n\nBody from file.\n"))
 
     def test_a_blank_subject_falls_back(self):
@@ -226,21 +246,19 @@ class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
         self.assertTrue(msg.startswith("implement: work of dispatch"))
 
 
-class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(unittest.TestCase):
+class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(_WorldCase):
     """B4: the record carried only 'no JSON object on stdout'."""
 
     def setUp(self):
+        super().setUp()
         self.launch = _load(self)
-        self._td = tempfile.TemporaryDirectory()
-        self.job_dir = Path(self._td.name)
-
-    def tearDown(self):
-        self._td.cleanup()
+        self.job_dir = self.world.cwd
 
     def _grok_events(self, lines):
         d = self.job_dir / "home" / "grok-stream" / "sessions" / "enc" / "sid"
-        d.mkdir(parents=True)
-        (d / "events.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+        self.world.plant_text(
+            d / "events.jsonl", "\n".join(json.dumps(x) for x in lines) + "\n",
+        )
         return d
 
     def test_a_cancelled_permission_prompt_is_named(self):
@@ -288,11 +306,17 @@ class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(unittest.TestCase):
         rec = {"harness": {"name": "grok"}, "session": {"stream": None},
                "attempts": [{"exit": 137, "tripped": True}]}
         # production shape: TRIPPED.md written by the launcher, exit 137, tripped True
-        (self.job_dir / "TRIPPED.md").write_text("timeout: harness exceeded 2700s\n")
+        self.world.plant_text(
+            self.job_dir / "TRIPPED.md", "timeout: harness exceeded 2700s\n",
+        )
         self.assertEqual(self.launch._cause(rec, self.job_dir)["reason"], "timeout")
-        (self.job_dir / "TRIPPED.md").write_text("unsupervised: no session stream within grace\n")
+        self.world.plant_text(
+            self.job_dir / "TRIPPED.md", "unsupervised: no session stream within grace\n",
+        )
         self.assertEqual(self.launch._cause(rec, self.job_dir)["reason"], "unsupervised")
-        (self.job_dir / "TRIPPED.md").write_text("trip: cap-out 500000 exceeded\n")
+        self.world.plant_text(
+            self.job_dir / "TRIPPED.md", "trip: cap-out 500000 exceeded\n",
+        )
         self.assertEqual(self.launch._cause(rec, self.job_dir)["reason"], "tripped")
         (self.job_dir / "TRIPPED.md").unlink()
         rec["attempts"] = [{"exit": 137, "tripped": False}]
@@ -316,7 +340,11 @@ class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(unittest.TestCase):
 
     def test_a_claude_stream_reports_its_last_event(self):
         stream = self.job_dir / "session.jsonl"
-        stream.write_text('{"type":"user","timestamp":"a"}\n{"type":"result","timestamp":"b"}\n')
+        self.world.plant_text(
+            stream,
+            '{"type":"user","timestamp":"a"}\n'
+            '{"type":"result","timestamp":"b"}\n',
+        )
         rec = {"harness": {"name": "claude"}, "session": {"stream": str(stream)}}
         ended = self.launch._cause(rec, self.job_dir)
         self.assertEqual(ended, {"reason": "last-event", "type": "result", "at": "b"})
@@ -326,31 +354,31 @@ class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(unittest.TestCase):
         self.assertEqual(self.launch._cause(rec, self.job_dir)["reason"], "no-session-store")
 
 
-class WhatAHarnessLeavesUncommittedIsPreserved(unittest.TestCase):
+class WhatAHarnessLeavesUncommittedIsPreserved(_WorldCase):
     """B4: the conductor diffed a dead dispatch's snapshot by hand."""
 
     def setUp(self):
+        super().setUp()
         self.launch = _load(self)
-        self._td = tempfile.TemporaryDirectory()
-        self.repo = Path(self._td.name) / "snap"
-        self.job_dir = Path(self._td.name)
-        self.repo.mkdir()
-        env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
-                   GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
-        self.env = env
-        for args in (("init", "-q"), ):
-            subprocess.run(["git", *args], cwd=self.repo, check=True, env=env)
-        (self.repo / "a.txt").write_text("one\n")
-        (self.repo / ".gitignore").write_text("__pycache__/\n")
-        subprocess.run(["git", "add", "-A"], cwd=self.repo, check=True, env=env)
-        subprocess.run(["git", "commit", "-q", "-m", "base"], cwd=self.repo, check=True, env=env)
+        self.repo = self.world.cwd
+        self.job_dir = self.world.root
+        self.env = self.world.env()
+        self.git = self.world.require("git")
+        self._git("init", "-q")
+        self.world.plant_text(self.repo / "a.txt", "one\n")
+        self.world.plant_text(self.repo / ".gitignore", "__pycache__/\n")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
 
-    def tearDown(self):
-        self._td.cleanup()
+    def _git(self, *args):
+        return run(
+            [self.git, *args], cwd=self.repo, env=self.env,
+            timeout=60, expect=0,
+        )
 
     def test_tracked_edits_and_untracked_files_land_in_residual_patch(self):
-        (self.repo / "a.txt").write_text("two\n")
-        (self.repo / "new.py").write_text("print(1)\n")
+        self.world.plant_text(self.repo / "a.txt", "two\n")
+        self.world.plant_text(self.repo / "new.py", "print(1)\n")
         salvage = self.launch._write_residual_patch(self.repo, self.job_dir)
         text = Path(salvage["path"]).read_text()
         self.assertIn("-one", text)
@@ -361,21 +389,20 @@ class WhatAHarnessLeavesUncommittedIsPreserved(unittest.TestCase):
         self.assertEqual(salvage["sha256"], ls.sha256_file(Path(salvage["path"])))
 
     def test_tool_caches_are_not_in_the_patch_either(self):
-        (self.repo / ".ruff_cache").mkdir()
-        (self.repo / ".ruff_cache" / "x").write_text("c")
-        (self.repo / "real.txt").write_text("r")
+        self.world.plant_text(self.repo / ".ruff_cache" / "x", "c")
+        self.world.plant_text(self.repo / "real.txt", "r")
         salvage = self.launch._write_residual_patch(self.repo, self.job_dir)
         text = Path(salvage["path"]).read_text()
         self.assertIn("real.txt", text)
         self.assertNotIn(".ruff_cache", text)
 
     def test_tool_caches_are_not_residual(self):
-        (self.repo / ".ruff_cache").mkdir()
-        (self.repo / ".ruff_cache" / "x").write_text("c")
-        (self.repo / "pkg" / "__pycache__").mkdir(parents=True)
-        (self.repo / "pkg" / "__pycache__" / "m.pyc").write_bytes(b"\x00")
+        self.world.plant_text(self.repo / ".ruff_cache" / "x", "c")
+        self.world.plant_bytes(
+            self.repo / "pkg" / "__pycache__" / "m.pyc", b"\x00",
+        )
         self.assertEqual(self.launch._residual(self.repo), [])
-        (self.repo / "real.txt").write_text("r")
+        self.world.plant_text(self.repo / "real.txt", "r")
         self.assertEqual([line[3:] for line in self.launch._residual(self.repo)], ["real.txt"])
 
 

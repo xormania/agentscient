@@ -5,19 +5,17 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
-import subprocess
-import sys
+import unittest
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ops.testkit import World, run
+
 CONDUCTOR = Path(__file__).resolve().parents[1]
-REPOSITORY = CONDUCTOR.parents[1]
 CONTRACT = CONDUCTOR / "contracts" / "board.cue"
 EXAMPLE = CONDUCTOR / "contracts" / "examples" / "board.json"
 FAULTS = CONDUCTOR / "contracts" / "faults"
-TODO = REPOSITORY / "ops" / "docs" / "TODO.md"
 
 EXPECTED_SECTIONS = {"branches", "prs", "decisions", "dispatches"}
 EXPECTED_OWNER_DECISIONS = {
@@ -44,30 +42,23 @@ MARKER = re.compile(
 )
 
 
-class AcceptanceFailure(RuntimeError):
-    pass
-
-
 def load(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as source:
         value = json.load(source)
     if not isinstance(value, dict):
-        raise AcceptanceFailure(f"{path}: top-level JSON value is not an object")
+        raise AssertionError(f"{path}: top-level JSON value is not an object")
     return value
 
 
-def cue_accepts(path: Path) -> tuple[bool, str]:
-    cue = shutil.which("cue")
-    if cue is None:
-        raise AcceptanceFailure("cue executable is absent; cannot exercise board.cue")
-    completed = subprocess.run(
-        [cue, "vet", str(CONTRACT), str(path), "-d", "#Board"],
-        cwd=CONDUCTOR,
-        text=True,
-        capture_output=True,
-        check=False,
+def cue_accepts(world: World, contract: Path, path: Path) -> tuple[bool, str]:
+    cue = world.require("cue")
+    completed = run(
+        [cue, "vet", str(contract), str(path), "-d", "#Board"],
+        cwd=world.cwd,
+        env=world.env(),
+        timeout=30,
     )
-    return completed.returncode == 0, completed.stderr.strip()
+    return completed.exit == 0, completed.stderr.strip()
 
 
 def timestamp(value: Any) -> datetime | None:
@@ -170,10 +161,10 @@ def relational_refusals(document: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(refusals))
 
 
-def owner_markers() -> list[str]:
+def owner_markers(todo: Path) -> list[str]:
     found: dict[str, str] = {}
     duplicate = False
-    for line in TODO.read_text(encoding="utf-8").splitlines():
+    for line in todo.read_text(encoding="utf-8").splitlines():
         match = MARKER.match(line)
         if match is None:
             continue
@@ -185,50 +176,78 @@ def owner_markers() -> list[str]:
     return []
 
 
-def require(condition: bool, detail: str) -> None:
-    if not condition:
-        raise AcceptanceFailure(detail)
+def todo_text() -> str:
+    return "".join(
+        f"- [ ] <!-- owner-decision:{decision_id} --> {question}\n"
+        for decision_id, question in EXPECTED_OWNER_DECISIONS.items()
+    )
 
 
-def main() -> int:
-    try:
-        example = load(EXAMPLE)
-        accepted, diagnostic = cue_accepts(EXAMPLE)
-        require(accepted, f"clean example failed CUE: {diagnostic}")
-        require(not relational_refusals(example), "clean example raised a relational refusal")
+CONTROLS = (
+    ("missing-command", "board.observation-command", False),
+    ("cached-without-age", "board.cache-custody", False),
+    ("unmeasured-with-items", "board.absent-is-not-none", False),
+    ("duplicate-owner-id", "board.owner-decision-id", True),
+)
+
+
+class BoardContract(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="board-contract-")
+        self.addCleanup(self.world.close)
+        self.world.require("cue")
+        self.contract = self.world.stage(CONTRACT, "board.cue")
+        self.example_path = self.world.stage(EXAMPLE, "board.json")
+        self.faults = {
+            name: self.world.stage(FAULTS / f"{name}.json", f"{name}.json")
+            for name, _, _ in CONTROLS
+        }
+        self.todo = self.world.plant_text("TODO.md", todo_text())
+
+    def test_measured_empty(self):
+        example = load(self.example_path)
+        accepted, diagnostic = cue_accepts(
+            self.world, self.contract, self.example_path,
+        )
+        self.assertTrue(accepted, diagnostic)
+        self.assertEqual(relational_refusals(example), [])
         measured_empty = any(
             section.get("state") == "measured" and section.get("items") == []
-            for section in example["sections"].values()
+            for section in example.get("sections", {}).values()
+            if isinstance(section, dict)
         )
-        require(measured_empty, "clean example has no measured empty control")
-        print("measured-empty: PASS")
+        self.assertTrue(measured_empty, "clean example has no measured empty control")
 
-        controls = (
-            ("missing-command", "board.observation-command", False),
-            ("cached-without-age", "board.cache-custody", False),
-            ("unmeasured-with-items", "board.absent-is-not-none", False),
-            ("duplicate-owner-id", "board.owner-decision-id", True),
+    def test_missing_command(self):
+        self._fault("missing-command", "board.observation-command", False)
+
+    def test_cached_without_age(self):
+        self._fault("cached-without-age", "board.cache-custody", False)
+
+    def test_unmeasured_with_items(self):
+        self._fault("unmeasured-with-items", "board.absent-is-not-none", False)
+
+    def test_duplicate_owner_id(self):
+        self._fault("duplicate-owner-id", "board.owner-decision-id", True)
+
+    def test_owner_markers(self):
+        self.assertEqual(owner_markers(self.todo), [])
+
+    def _fault(self, name: str, expected_refusal: str, cue_should_accept: bool):
+        path = self.faults[name]
+        document = load(path)
+        cue_ok, diagnostic = cue_accepts(self.world, self.contract, path)
+        self.assertEqual(
+            cue_ok,
+            cue_should_accept,
+            f"{name}: unexpected CUE result ({diagnostic or 'accepted'})",
         )
-        for name, expected_refusal, cue_should_accept in controls:
-            path = FAULTS / f"{name}.json"
-            document = load(path)
-            cue_ok, diagnostic = cue_accepts(path)
-            require(
-                cue_ok is cue_should_accept,
-                f"{name}: unexpected CUE result ({diagnostic or 'accepted'})",
-            )
-            actual = relational_refusals(document)
-            require(actual == [expected_refusal], f"{name}: expected {expected_refusal}, got {actual}")
-            print(f"{name}: {expected_refusal}")
-
-        require(not owner_markers(), "tracked owner-decision markers differ from U0 input")
-        print("owner-markers: PASS")
-        print("controls: all expected refusals drawn; clean example quiet")
-        return 0
-    except (AcceptanceFailure, OSError, json.JSONDecodeError) as error:
-        print(f"board-contract: FAIL: {error}", file=sys.stderr)
-        return 1
+        actual = relational_refusals(document)
+        self.assertEqual(
+            actual, [expected_refusal],
+            f"{name}: expected {expected_refusal}, got {actual}",
+        )
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    unittest.main()

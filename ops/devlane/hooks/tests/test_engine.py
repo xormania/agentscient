@@ -20,14 +20,14 @@ producer is absent by the owner's word.
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import support
+
+from ops.testkit import World, run
 
 HOOKS = Path(__file__).resolve().parents[1]
 ENGINE = HOOKS / "claude" / "engine.py"
@@ -44,12 +44,17 @@ def row(klass, event="PreToolUse", when=None, tools=("Bash",), escape="none", **
     return base
 
 
+def _completed(result):
+    """The kit's Result in the shape the assertions below read."""
+    return SimpleNamespace(returncode=result.exit, stdout=result.stdout, stderr=result.stderr)
+
+
 class _Engine(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="engine-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
+        self.world = World(prefix="engine-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
         self.env = support.isolated_env(self.home)
@@ -73,8 +78,8 @@ class _Engine(unittest.TestCase):
         if tool_response is not None:
             payload["tool_response"] = tool_response
         payload.update(extra or {})
-        return subprocess.run([sys.executable, str(ENGINE)], input=json.dumps(payload), cwd=str(self.repo),
-                              env=env or self.env, capture_output=True, text=True, check=False, timeout=60)
+        return _completed(run([sys.executable, str(ENGINE)], cwd=self.repo, env=env or self.env,
+                              stdin=json.dumps(payload), timeout=60))
 
     def bash(self, command, event="PreToolUse", **kw):
         return self.run_event(event, "Bash", {"command": command}, **kw)
@@ -238,12 +243,210 @@ class TheVocabularyCoversTheLaneRows(_Engine):
         self.refusal(self.bash("python3 -m unittest ops/x/tests/test_a.py"), "form")
         self.allowed(self.bash("python3 -m unittest discover -s ops/x/tests -p 'test_a.py'"))
 
+    def test_a_fast_forward_of_the_trunk_from_its_remote_is_allowed_and_a_merge_commit_is_refused(self):
+        """LD-38 (2026-09-14): nothing moved the main checkout's dev when a
+        PR landed, and this row read the fast-forward as a trunk commit with
+        no escape. A merge of origin/<trunk> into the trunk that git reports
+        as a fast-forward (--ff-only, or HEAD an ancestor of the remote ref)
+        creates no commit and passes; every other merge on the trunk is
+        refused: --no-ff, a merge of any other ref, a bare merge, and a
+        merge onto a trunk that has diverged."""
+        self.plant(row("trunk", when={"pred": "git_write_on_protected"}))
+        bare = self.tmp / "origin.git"
+        support.git(self.tmp, self.env, "clone", "-q", "--bare", str(self.repo), str(bare))
+        support.git(self.repo, self.env, "remote", "add", "origin", str(bare))
+        ahead = self.tmp / "ahead"
+        support.git(self.tmp, self.env, "clone", "-q", str(bare), str(ahead))
+        support.configure_identity(ahead, self.env)
+        support.git(ahead, self.env, "commit", "-q", "--allow-empty", "-m", "landed on the trunk")
+        support.git(ahead, self.env, "push", "-q", "origin", "dev")
+        support.git(self.repo, self.env, "fetch", "-q", "origin")
+        self.allowed(self.bash("git merge --ff-only origin/dev"))
+        self.allowed(self.bash(f"git -C {self.repo} merge --ff-only origin/dev"))
+        self.allowed(self.bash("git fetch -q origin && git merge origin/dev"))
+        reason = self.refusal(self.bash("git merge --no-ff origin/dev"), "trunk")
+        self.assertIn("git merge on dev", reason)
+        support.git(self.repo, self.env, "branch", "-q", "lane/session-x", "origin/dev")
+        self.refusal(self.bash("git merge --ff-only lane/session-x"), "trunk")
+        self.refusal(self.bash("git merge"), "trunk")
+        support.git(self.repo, self.env, "commit", "-q", "--allow-empty", "-m", "diverged")
+        self.refusal(self.bash("git merge origin/dev"), "trunk")
+        # --ff-only on a diverged trunk: git refuses it itself and no commit can result
+        self.allowed(self.bash("git merge --ff-only origin/dev"))
+
+    def test_a_file_store_under_the_state_directory_or_a_placement_declaring_file_is_refused(self):
+        """T-5 (2026-09-13): the state gate is the CI wall; this is the same
+        rule in session. State is rows in state.db through the state engine;
+        a JSON or text file written under the lane's state directory, or a
+        placement file declaring state.engine file, is refused. A tool
+        writing its own store, a .db, a read, and a file in the tree pass."""
+        self.plant(row("state", tools=("Bash", "Write", "Edit"), when={"pred": "file_state_store"}))
+        state = self.home / ".local" / "state" / "agentscient"
+        state.mkdir(parents=True)
+        reason = self.refusal(self.bash(f"echo '{{}}' > {state}/claims.json"), "state")
+        self.assertIn("claims.json", reason)
+        self.refusal(self.bash("cat > ~/.local/state/agentscient/notes.txt <<'EOF'\nx\nEOF"), "state")
+        self.refusal(self.bash(f"cp lock.json {state}/deliverable.json"), "state")
+        self.refusal(self.bash(f"tee -a {state}/threads.jsonl < row.json"), "state")
+        self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(state / "threads.jsonl"), "content": "{}"}), "state")
+        self.allowed(self.bash("python3 ops/conductor/tools/handoff.py take T-1 --branch lane/session-x"))
+        self.allowed(self.bash(f"sqlite3 {state}/state.db .tables"))
+        self.allowed(self.bash(f"cat {state}/deliverable.json"))
+        self.allowed(self.bash(f"echo x > {self.repo}/notes.json"))
+        self.allowed(self.bash(f"echo x >> {state}/graft-first.log"))
+        placement = self.repo / "ops" / "conductor" / "placement" / "new.py.json"
+        self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(placement),
+                                                            "content": '{"placement": "migrated", "state": {"engine": "file"}}'}), "state")
+        self.refusal(self.run_event("PreToolUse", "Edit", {"file_path": str(placement), "old_string": "sqlite",
+                                                           "new_string": '"engine": "file"'}), "state")
+        self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(placement),
+                                                            "content": '{"placement": "migrated", "state": {"engine": "sqlite"}}'}))
+        self.refusal(self.bash("cat > ops/conductor/placement/new.py.json <<'EOF'\n{\"state\": {\"engine\": \"file\"}}\nEOF"), "state")
+
+
+    def test_kit_import_refuses_a_new_test_module_without_the_kit_and_passes_import_exemption_and_existing_files(self):
+        """docs/tests.md rule 1 (plan slice 16): a new test module imports
+        the kit or declares its exemption; an existing file, a module that
+        imports ops.testkit, one carrying the exemption in its first ten
+        lines, and a file outside tests/ pass. On the planted registry, then
+        on the live one."""
+        tests = self.repo / "ops" / "x" / "tests"
+        tests.mkdir(parents=True)
+        (tests / "test_old.py").write_text("import unittest\n")
+        # grandfathered means tracked: a file a touch made is still new
+        support.git(self.repo, self.env, "add", "-A")
+        support.git(self.repo, self.env, "commit", "-q", "-m", "an old test module")
+        bare = "import unittest\n\nclass T(unittest.TestCase):\n    pass\n"
+        docstring = '"""\nfrom ops.testkit import World\n"""\nimport unittest\n'
+        late_import = ("\n" * 12) + "from ops.testkit import World\n"
+        with_kit = "import unittest\n\nfrom ops.testkit import World\n\nclass T(unittest.TestCase):\n    pass\n"
+        exempt = "# testkit: exempt reads a hook payload shape only\nimport unittest\n"
+        late_exempt = ("\n" * 12) + "# testkit: exempt too late\nimport unittest\n"
+        for registry in ("planted", "live"):
+            with self.subTest(registry=registry):
+                env = dict(self.env)
+                if registry == "planted":
+                    self.plant(row("kit-import", tools=("Bash", "Write", "Edit", "MultiEdit"), when={"pred": "test_file_without_kit"}))
+                else:
+                    env.pop("BOUNDARIES_PATH", None)
+                reason = self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_new.py"), "content": bare}, env=env), "kit-import")
+                self.assertIn("test_new.py", reason)
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_late.py"), "content": late_exempt}, env=env), "kit-import")
+                self.refusal(self.bash("cat > ops/x/tests/test_here.py <<'EOF'\nimport unittest\nEOF", env=env), "kit-import")
+                self.refusal(self.bash("printf 'import unittest' > ops/x/tests/test_redirect.py", env=env), "kit-import")
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_kit.py"), "content": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_exempt.py"), "content": exempt}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Edit", {"file_path": str(tests / "test_old.py"), "old_string": "import unittest", "new_string": "import unittest, os"}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "support.py"), "content": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(self.repo / "ops" / "x" / "tool.py"), "content": bare}, env=env))
+                self.allowed(self.bash("cat > ops/x/tests/test_heredoc_kit.py <<'EOF'\nfrom ops.testkit import World\nEOF", env=env))
+                # Ruled rank 6 (record 20260915T025600Z-adjudicate-codex-68d3d9):
+                # a nested tests/ path, an import quoted in a docstring, an
+                # exemption without a reason, and a touch followed by a write
+                # all slipped the row; a real import after line ten passes.
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "fakes" / "test_nested.py"), "content": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_docstring.py"), "content": docstring}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_no_reason.py"), "content": "# testkit: exempt\nimport unittest\n"}, env=env), "kit-import")
+                touched = tests / "test_touched.py"
+                touched.write_text("")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(touched), "content": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Edit", {"file_path": str(touched), "old_string": "", "new_string": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "MultiEdit", {"file_path": str(touched), "edits": [{"old_string": "", "new_string": bare}]}, env=env), "kit-import")
+                self.allowed(self.run_event("PreToolUse", "Edit", {"file_path": str(touched), "old_string": "", "new_string": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_late_import.py"), "content": late_import}, env=env))
+
+
+class TheDoneGate(_Engine):
+    """Owner, 2026-09-15: a session reported a plan's slices "all done"
+    with 210 of 226 test modules still off the kit; "whatever it says -
+    is the problem we to solve - right fucking now"; "I need confidence
+    that my orders are being carried out". No gate read a done said in
+    chat. This row reads the reply at Stop: a reply that says done,
+    complete, finished, landed, merged or solved carries one of three
+    deliverable.py lines or is sent back with the lock's target lines in
+    the reason. stop_hook_active passes; three blocks per session_id
+    and the fourth passes, the target lines logged."""
+
+    def stop(self, message, session="s1", active=False):
+        return self.run_event("Stop", tool_name=None,
+                              extra={"session_id": session, "stop_hook_active": active,
+                                     "last_assistant_message": message})
+
+    def gate(self):
+        self.plant(row("done-gate", event="Stop", tools=(), when={"pred": "reply_claims_done"}))
+
+    def test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading(self):
+        self.gate()
+        reason = self.refusal(self.stop("All 21 slices landed; the plan is done."), "done-gate", event="Stop")
+        self.assertIn("deliverable.py done", reason)
+        self.assertIn("the plan is done", reason)
+        self.assertIn("lock", reason)
+
+    def test_a_sha_or_pr_number_is_not_the_lock_reading(self):
+        """The reply that started this carried "#216 at aba8600a" and no
+        lock line; the claim law's readings do not satisfy this row."""
+        self.gate()
+        self.refusal(self.stop("The kit plan is complete: #216 merged at aba8600a1234."), "done-gate", event="Stop")
+
+    def test_the_three_deliverable_lines_pass(self):
+        self.gate()
+        for line in (
+            "done lane/session-x: modules=222 on_kit=222 exempt=0 off_kit=0",
+            "target: expected the measure to read off_kit=0; found modules=222 on_kit=15 off_kit=205; needed keep going",
+            "target lane/session-x: until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short",
+        ):
+            with self.subTest(line=line):
+                self.allowed(self.stop(f"The migration is done for this family.\n{line}\nNext family follows."))
+
+    def test_a_reply_that_claims_nothing_passes_and_a_quoted_claim_is_not_the_writers(self):
+        self.gate()
+        self.allowed(self.stop("Reading the launcher's review base now; nothing to report yet."))
+        self.allowed(self.stop('The owner said "get it done"; I have taken T-5 and started the red.'))
+
+    def lever(self, stdout):
+        """A deliverable.py stub in the repo: show prints ``stdout``."""
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        (tools / "deliverable.py").write_text(f"import sys\nsys.stdout.write({stdout!r})\n", encoding="utf-8")
+
+    def test_with_no_lock_at_all_the_pasted_no_lock_line_passes_and_with_a_lock_it_does_not(self):
+        """2026-09-15: the row blocked a session's truthful close after every
+        entry was lifted: with no lock there is no deliverable.py line to
+        paste, and the refused page's remedy (paste show's output) was one
+        the row did not honour. show's `no lock` line passes only while
+        the lock really reads no lock."""
+        self.gate()
+        self.lever("no lock\n")
+        reason = self.refusal(self.stop("Every deliverable is landed and lifted."), "done-gate", event="Stop")
+        self.assertIn("the lock reads: no lock", reason)
+        self.assertIn("no lock", reason)
+        self.allowed(self.stop("Every deliverable is landed and lifted.\nno lock\nNothing is held."))
+        self.lever("{\"branches\": [\"lane/x\"]}\ntarget lane/x: until off_kit=0; reading off_kit=5; short\n")
+        self.refusal(self.stop("Every deliverable is landed and lifted.\nno lock\n"), "done-gate", event="Stop")
+
+    def test_stop_hook_active_passes(self):
+        self.gate()
+        self.allowed(self.stop("The plan is done.", active=True))
+
+    def test_three_blocks_per_session_then_the_fourth_passes_and_another_session_still_blocks(self):
+        self.gate()
+        for _ in range(3):
+            self.refusal(self.stop("Everything is finished."), "done-gate", event="Stop")
+        self.allowed(self.stop("Everything is finished."))
+        self.refusal(self.stop("Everything is finished.", session="s2"), "done-gate", event="Stop")
+        counter = self.home / ".local" / "state" / "agentscient" / "done-gate.json"
+        self.assertTrue(counter.is_file(), "the cap is counted per session under the lane's state directory")
+        self.allowed(self.stop("done lane/x: off_kit=0"))
+        self.refusal(self.stop("Everything is finished."), "done-gate", event="Stop")
+        self.assertEqual(json.loads(counter.read_text())["s1"], 1, "a pass resets the session's count")
+
 
 class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
         self.assertEqual(data["schema"], "agentscient.boundaries/2")
-        proc = subprocess.run([sys.executable, str(ENGINE), "lint"], capture_output=True, text=True, check=False)
+        with World(prefix="engine-lint-") as world:
+            proc = _completed(run([sys.executable, str(ENGINE), "lint"], cwd=HOOKS, env=world.env(), timeout=60))
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         report = json.loads(proc.stdout)
         self.assertEqual(report["unknown_predicates"], [])

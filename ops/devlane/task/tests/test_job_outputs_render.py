@@ -22,6 +22,8 @@ import unittest
 import outputs_support as osu
 import support
 
+from ops.testkit import World
+
 envelope = support.load("envelope")
 
 CHECK_TESTS_SECTION = (
@@ -67,7 +69,14 @@ ORDERED_SECTION = (
 )
 
 
-class RenderExactNativeExamples(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="outputs-render-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class RenderExactNativeExamples(_WorldCase):
     """R1 / R4 — native jobs and a renamed equivalent share exact text."""
 
     def test_check_tests_renders_the_contract_example_exactly(self):
@@ -125,7 +134,7 @@ class RenderExactNativeExamples(unittest.TestCase):
         self.assertLess(text.find("/B.md"), text.find("/A.md"))
 
 
-class RenderOmissionAndEmpty(unittest.TestCase):
+class RenderOmissionAndEmpty(_WorldCase):
     """R3 — omission and [] are the none-grant line, not inferred keys."""
 
     def test_omission_renders_the_none_grant_line(self):
@@ -145,7 +154,7 @@ class RenderOmissionAndEmpty(unittest.TestCase):
         self.assertNotIn("artifacts[", text)
 
 
-class RenderJsonStringLiterals(unittest.TestCase):
+class RenderJsonStringLiterals(_WorldCase):
     """R2 — path and artifact substitutions are JSON string literals."""
 
     def test_paths_and_keys_are_double_quoted_json_strings(self):
@@ -178,7 +187,7 @@ class RenderJsonStringLiterals(unittest.TestCase):
         self.assertNotIn("examplé", text)
 
 
-class AppendDeclaredOutputsToPrompt(unittest.TestCase):
+class AppendDeclaredOutputsToPrompt(_WorldCase):
     """R5 — strip trailing CR/LF, then two LFs, then the section."""
 
     def test_a_prompt_without_trailing_newline_gets_two_lfs_then_section(self):
@@ -226,7 +235,7 @@ class AppendDeclaredOutputsToPrompt(unittest.TestCase):
         self.assertNotIn("JSON Schema", got)
 
 
-class RenderedHandleMustBeRepresentable(unittest.TestCase):
+class RenderedHandleMustBeRepresentable(_WorldCase):
     """R6 — a bound path that cannot be a handle refuses before use."""
 
     def test_an_overlong_absolute_handle_is_refused(self):

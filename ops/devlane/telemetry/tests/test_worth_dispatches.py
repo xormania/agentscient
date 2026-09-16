@@ -10,13 +10,21 @@ ranks dispatch rows with sessions; JSON is the same truth.
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 import test_worth as worth_contract
+
+from ops.testkit import Result, World, run
+
+
+class WorthResult(Result):
+    """Kit result retaining the legacy name used by the wiring contract."""
+
+    @property
+    def returncode(self):
+        return self.exit
 
 MARKER = "DISPATCH-LEAK-MARKER"
 WINDOW_SINCE = "2026-08-22T09:00:00.000Z"
@@ -97,16 +105,36 @@ class DispatchMeterTests(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
+        self.world = World(prefix="worth-dispatches-")
+        self.addCleanup(self.world.close)
         self.w = worth_contract.WorthContractTests(
             "test_default_window_boundaries_and_independent_edge_overrides"
         )
-        self.w.setUp()
-        self.addCleanup(self.w.doCleanups)
-        self.root = self.w.root
-        self.repo = self.w.repo
-        self.claude = self.w.claude
-        self.codex = self.w.codex
-        self.grok = self.w.grok
+        self.root = self.world.root
+        self.repo = self.world.cwd / "repo"
+        self.repo.mkdir()
+        self.claude = self.root / "claude"
+        self.codex = self.root / "codex"
+        self.grok = self.root / "grok"
+        ops_root = Path(__file__).resolve().parents[3]
+        conductor_tools = ops_root / "conductor" / "tools"
+        self.world.stage(
+            conductor_tools / "laneconf.py",
+            siblings=("instrument.py",),
+        )
+        self.subject = self.world.stage(worth_contract.WORTH)
+        self.lane_conf = self.world.stage(ops_root / "lane.conf", name="lane.conf")
+        for name, value in (
+            ("root", self.root),
+            ("repo", self.repo),
+            ("claude", self.claude),
+            ("codex", self.codex),
+            ("grok", self.grok),
+            ("_git_env", self._git_env),
+            ("_git", self._git),
+            ("_write_jsonl", self._write_jsonl),
+        ):
+            setattr(self.w, name, value)
         for name in (
             "_plant_claude",
             "_assert_key_number",
@@ -116,10 +144,59 @@ class DispatchMeterTests(unittest.TestCase):
             "_assert_plain_json_parity",
         ):
             setattr(self, name, getattr(self.w, name))
-        self.home = self.root / "home"
-        self.home.mkdir()
+        self._git("init", "-q", "-b", "dev")
+        self._git("config", "user.name", "Fixture Owner")
+        self._git("config", "user.email", "fixture@example.invalid")
+        self.world.plant_text(self.repo / "README.md", "throwaway worth fixture\n")
+        self._git("add", "-A")
+        self._git(
+            "commit", "-q", "-m", "initial fixture",
+            when="2026-08-20T10:00:00.000Z",
+        )
+        self.initial = self._git("rev-parse", "HEAD").stdout.strip()
+        self.w.initial = self.initial
+        self.home = self.world.home
         self.dispatch = self.root / "dispatch"
         self.dispatch.mkdir()
+
+    def _git_env(self, when=None):
+        extra = {"TZ": "UTC"}
+        if when is not None:
+            fixed = worth_contract.git_date(when)
+            extra.update({
+                "GIT_AUTHOR_DATE": fixed,
+                "GIT_COMMITTER_DATE": fixed,
+            })
+        return self.world.env(extra)
+
+    def _git(self, *args, when=None, check=True):
+        result = run(
+            ["git", *args],
+            cwd=self.repo,
+            env=self._git_env(when),
+            timeout=60,
+        )
+        if check:
+            self.assertEqual(
+                result.exit,
+                0,
+                f"git {' '.join(args)} failed\nstdout:\n{result.stdout}"
+                f"\nstderr:\n{result.stderr}",
+            )
+        return result
+
+    def _write_jsonl(self, path, entries):
+        self.world.plant_text(
+            path,
+            "".join(
+                json.dumps(entry, sort_keys=True) + "\n"
+                for entry in entries
+            ),
+        )
+        planted = worth_contract.json_lines(path)
+        self.assertEqual(len(planted), len(entries))
+        self.assertEqual(planted, entries)
+        return path
 
     def _json_worth(self, verb, *args, now=WINDOW_NOW, repo=None, **kwargs):
         proc = self._run_worth(
@@ -131,7 +208,7 @@ class DispatchMeterTests(unittest.TestCase):
             repo=repo,
             **kwargs,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         try:
             value = json.loads(proc.stdout)
         except ValueError as exc:
@@ -140,16 +217,15 @@ class DispatchMeterTests(unittest.TestCase):
         return value
 
     def _worth_env(self, extra=None):
-        env = os.environ.copy()
-        for key in ("DISPATCH_JOBS", "XDG_STATE_HOME"):
-            env.pop(key, None)
-        env.update({
+        env = self.world.env({
             "LC_ALL": "C",
             "TZ": "Etc/GMT+11",
-            "HOME": str(self.home),
             "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "LANE_CONF": str(self.lane_conf),
         })
+        for key in ("DISPATCH_JOBS", "XDG_STATE_HOME"):
+            env.pop(key, None)
         if extra:
             env.update(extra)
         return env
@@ -166,7 +242,7 @@ class DispatchMeterTests(unittest.TestCase):
         repo = str(repo or self.repo)
         cmd = [
             sys.executable,
-            str(worth_contract.WORTH),
+            str(self.subject),
             verb,
             *args,
             "--now",
@@ -186,13 +262,19 @@ class DispatchMeterTests(unittest.TestCase):
             env = merged
         elif dispatch_dir is not None:
             cmd.extend(["--dispatch-dir", str(dispatch_dir)])
-        return subprocess.run(
+        result = run(
             cmd,
             cwd=self.root,
             env=self._worth_env(env),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=60,
+        )
+        return WorthResult(
+            result.argv,
+            result.exit,
+            result.stdout,
+            result.stderr,
+            result.duration,
+            result.cwd,
         )
 
     def _record_payload(
@@ -284,10 +366,12 @@ class DispatchMeterTests(unittest.TestCase):
         root = Path(root or self.dispatch)
         job_dir = root / job_id
         job_dir.mkdir(parents=True)
-        prompt = job_dir / "prompt.txt"
-        prompt.write_text(f"{MARKER} brief for {job_id}\n", encoding="utf-8")
+        prompt = self.world.plant_text(
+            job_dir / "prompt.txt", f"{MARKER} brief for {job_id}\n"
+        )
         self.assertIn(MARKER, prompt.read_text(encoding="utf-8"))
-        (job_dir / "state.json").write_text(
+        self.world.plant_text(
+            job_dir / "state.json",
             json.dumps({
                 "pid": 1,
                 "pgid": 1,
@@ -295,17 +379,15 @@ class DispatchMeterTests(unittest.TestCase):
                 "stream": None,
                 "attempt": 1,
             }) + "\n",
-            encoding="utf-8",
         )
-        (job_dir / "exit").write_text(exit_text, encoding="utf-8")
+        self.world.plant_text(job_dir / "exit", exit_text)
         raw = raw_out if raw_out is not None else '{"job":"plan"}\n'
-        (job_dir / "raw.out").write_text(raw, encoding="utf-8")
+        self.world.plant_text(job_dir / "raw.out", raw)
         if record is not None:
             payload = dict(record)
-            path = job_dir / "record.json"
-            path.write_text(
+            path = self.world.plant_text(
+                job_dir / "record.json",
                 json.dumps(payload, indent=2) + "\n",
-                encoding="utf-8",
             )
             landed = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(landed["id"], job_id)
@@ -328,11 +410,10 @@ class DispatchMeterTests(unittest.TestCase):
                 self.repo / ".dev" / "records" / "dispatches"
                 / f"{job_id}.json"
             )
-            dest.parent.mkdir(parents=True, exist_ok=True)
             payload = dict(record)
-            dest.write_text(
+            self.world.plant_text(
+                dest,
                 json.dumps(payload, indent=2) + "\n",
-                encoding="utf-8",
             )
             self.assertEqual(
                 json.loads(dest.read_text(encoding="utf-8"))["id"],
@@ -342,18 +423,17 @@ class DispatchMeterTests(unittest.TestCase):
 
     def _init_other_repo(self, path, subject="foreign repository fixture"):
         path.mkdir(parents=True)
-        env = self.w._git_env("2026-08-20T11:00:00.000Z")
+        env = self._git_env("2026-08-20T11:00:00.000Z")
         for args in (
             ("git", "init", "-q", "-b", "dev"),
             ("git", "config", "user.name", "Foreign Owner"),
             ("git", "config", "user.email", "foreign@example.invalid"),
         ):
-            proc = subprocess.run(
-                args, cwd=path, env=env, capture_output=True, text=True,
-            )
-            self.assertEqual(proc.returncode, 0, proc.stderr)
-        readme = path / "README.md"
-        readme.write_text("foreign repository fixture\n", encoding="utf-8")
+            proc = run(args, cwd=path, env=env, timeout=60)
+            self.assertEqual(proc.exit, 0, proc.stderr)
+        readme = self.world.plant_text(
+            path / "README.md", "foreign repository fixture\n"
+        )
         self.assertEqual(
             readme.read_text(encoding="utf-8"),
             "foreign repository fixture\n",
@@ -362,16 +442,13 @@ class DispatchMeterTests(unittest.TestCase):
             ("git", "add", "-A"),
             ("git", "commit", "-q", "-m", subject),
         ):
-            proc = subprocess.run(
-                args, cwd=path, env=env, capture_output=True, text=True,
-            )
-            self.assertEqual(proc.returncode, 0, proc.stderr)
-        sha = subprocess.run(
+            proc = run(args, cwd=path, env=env, timeout=60)
+            self.assertEqual(proc.exit, 0, proc.stderr)
+        sha = run(
             ("git", "rev-parse", "HEAD"),
             cwd=path,
             env=env,
-            capture_output=True,
-            text=True,
+            timeout=60,
         ).stdout.strip()
         home_sha = self.w._git("rev-parse", "HEAD").stdout.strip()
         self.assertTrue(sha)
@@ -394,7 +471,7 @@ class DispatchMeterTests(unittest.TestCase):
 
     def _plain(self, verb, *extra, **kwargs):
         proc = self._run_worth(verb, *window_args(), *extra, **kwargs)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         return proc.stdout
 
     def _dispatch_block(self, data):
@@ -850,7 +927,7 @@ class DispatchMeterTests(unittest.TestCase):
         self.assertEqual(planted["session"]["spend"]["total"], 2120)
         self.assertEqual(planted["session"]["spend"]["cost_usd"], 5.16)
         proc = self._run_worth("report", *window_args())
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = self._report()
         block = self._dispatch_block(data)
         ids = [row.get("id") for row in block["rows"]]
@@ -1106,7 +1183,7 @@ class DispatchMeterTests(unittest.TestCase):
             dispatch_dir=other,
             extra_env={"DISPATCH_JOBS": str(self.dispatch)},
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(proc.stdout)
         ids = [
             row.get("id")
@@ -1162,7 +1239,7 @@ class DispatchMeterTests(unittest.TestCase):
                     dispatch_dir=None,
                     extra_env=extra_env,
                 )
-                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertEqual(proc.exit, 0, proc.stderr)
                 data = json.loads(proc.stdout)
                 ids = [
                     row.get("id")
@@ -1190,7 +1267,7 @@ class DispatchMeterTests(unittest.TestCase):
             "WALL_DEFAULT='900'\n"
             "SCOPE_CAP='1024'\n"
         )
-        conf.write_text(text, encoding="utf-8")
+        self.world.plant_text(conf, text)
         self.assertEqual(conf.read_text(encoding="utf-8"), text)
         lanex = self.home / ".local" / "state" / "lanex" / "dispatch"
         decoy = self.home / ".local" / "state" / "agentscient" / "dispatch"
@@ -1222,7 +1299,7 @@ class DispatchMeterTests(unittest.TestCase):
             dispatch_dir=None,
             extra_env={"LANE_CONF": str(conf)},
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(proc.stdout)
         ids = [
             row.get("id")

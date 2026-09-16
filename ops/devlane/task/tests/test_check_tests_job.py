@@ -18,6 +18,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 JOBS_PATH = support.APP / "jobs.json"
 
 OTHER_JOBS = (
@@ -35,7 +37,7 @@ OTHER_JOBS = (
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "d1bcaac14d7ad4d82a7cce3a5f96a3a3e6476d5933d44e839975eeb160cafd81"  # re-pinned 2026-09-13: the plan prompt forbids suite runs (token thrift #4)
+    "d9c37a956db7685a9582f5a8148a1f7727bec6490b1e7e6257cd75daa941c1e3"  # re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
 )
 
 D1_PROMPT = (
@@ -107,8 +109,8 @@ _WRITE_VERB = re.compile(
 )
 
 
-def _load_jobs() -> dict:
-    raw = JOBS_PATH.read_text(encoding="utf-8")
+def _load_jobs(path) -> dict:
+    raw = path.read_text(encoding="utf-8")
     jobs = json.loads(raw)
     if not isinstance(jobs, dict):
         raise AssertionError(f"jobs.json is not an object: {type(jobs)}")
@@ -189,8 +191,11 @@ class _JobsPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        self.jobs = _load_jobs()
+        self.world = World(prefix="check-tests-job-")
+        self.addCleanup(self.world.close)
+        self.jobs_path = self.world.stage(JOBS_PATH)
+        self.assertTrue(self.jobs_path.is_file(), f"jobs.json missing: {self.jobs_path}")
+        self.jobs = _load_jobs(self.jobs_path)
         self.assertIn("check-tests", self.jobs)
         spec = self.jobs["check-tests"]
         self.assertIsInstance(spec, dict)

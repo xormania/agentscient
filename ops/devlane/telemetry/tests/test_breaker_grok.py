@@ -2,14 +2,15 @@
 
 import ast
 import json
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, run
+
 BREAKER = Path(__file__).resolve().parents[1] / "breaker.py"
 EXIT_TRIPPED = 3
+TIMEOUT = 30
 
 
 def claude_line(mid, out, inp, cached):
@@ -113,13 +114,14 @@ def grok_reset_lines():
 
 class BreakerGrokCase(unittest.TestCase):
     def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory(prefix="breaker-grok-")
-        self.addCleanup(self.tempdir.cleanup)
-        self.stream = Path(self.tempdir.name) / "updates.jsonl"
+        self.world = World(prefix="breaker-grok-")
+        self.addCleanup(self.world.close)
+        self.breaker = self.world.stage(BREAKER, "breaker.py")
+        self.stream = self.world.path("updates.jsonl")
 
     def write_stream(self, lines):
         planted = "".join(lines)
-        self.stream.write_text(planted)
+        self.world.plant_text(self.stream, planted)
         self.assertEqual(
             self.stream.read_text(),
             planted,
@@ -127,16 +129,16 @@ class BreakerGrokCase(unittest.TestCase):
         )
 
     def run_once(self, *args):
-        return subprocess.run(
-            [sys.executable, str(BREAKER), str(self.stream), "--once", *args],
-            capture_output=True,
-            text=True,
-            check=False,
+        return run(
+            [sys.executable, str(self.breaker), str(self.stream), "--once", *args],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
         )
 
     def return_codes(self, lines, cases):
         self.write_stream(lines)
-        return tuple(self.run_once(*args).returncode for args in cases)
+        return tuple(self.run_once(*args).exit for args in cases)
 
 
 class GrokRecordSelection(BreakerGrokCase):
@@ -300,7 +302,7 @@ class GrokCumulativeRuns(BreakerGrokCase):
         proc = self.run_once("--cap", "139")
         expected_totals = "tokens : 140 total / 23 output"
         self.assertEqual(
-            (proc.returncode, expected_totals in proc.stderr),
+            (proc.exit, expected_totals in proc.stderr),
             (EXIT_TRIPPED, True),
             proc.stderr,
         )
@@ -354,7 +356,9 @@ class ExistingAccountingStaysPinned(BreakerGrokCase):
 
 class GrokWireDocumentation(unittest.TestCase):
     def test_token_wire_rows_name_grok(self):
-        docstring = ast.get_docstring(ast.parse(BREAKER.read_text()))
+        with World() as world:
+            staged = world.stage(BREAKER, "breaker.py")
+            docstring = ast.get_docstring(ast.parse(staged.read_text()))
         self.assertIsNotNone(docstring, "breaker.py lost its module docstring")
         wire_rows = {}
         for line in docstring.splitlines():

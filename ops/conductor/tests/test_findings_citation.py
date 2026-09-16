@@ -16,13 +16,12 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "findings.py"
@@ -35,6 +34,7 @@ AGENT = "Citation Tester <citation-tester@example.invalid>"
 REC = "20260901T000000Z-review-grok-aaaaaa"
 ADJ_REC = "20260901T010000Z-adjudicate-grok-bbbbbb"
 SWEEP_REC = "20260901T020000Z-sweep-codex-cccccc"
+PLAN_REC = "20260901T030000Z-plan-claude-dddddd"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 OTHER_REL = ".dev/ladder-inputs/other-scope.md"
 DISCIPLINE_REL = ".dev/ladder-inputs/scope-discipline.md"
@@ -67,24 +67,11 @@ CAP_BODY = (
     "numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, "
     "tracked in this snapshot at the ref.\n"
 )
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 RUN_CAP = 30
 
 
 def evidence_for(item: int, path: str = SCOPE_REL, why: str = "why") -> str:
     return f"contract item {item} of {path}: {why}"
-
-
-def _live_snapshot() -> tuple[str, bytes | None]:
-    if LIVE_STORE.is_file():
-        return ("file", LIVE_STORE.read_bytes())
-    if LIVE_STORE.exists():
-        return ("other", None)
-    return ("absent", None)
 
 
 def _load_findings(path: Path):
@@ -111,29 +98,27 @@ class _CitationFixture(unittest.TestCase):
 
     def setUp(self):
         self.assertTrue(TOOL.is_file(), f"{TOOL} is missing")
-        self._live_before = _live_snapshot()
-        self._tmp = tempfile.TemporaryDirectory(prefix="findings-citation-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.repo = root / "repo"
+        self.world = World(prefix="findings-citation-")
+        self._live = self.world.watch(LIVE_STORE)
+        self.home = self.world.home
+        self.scratch = self.world.tmp
+        self.repo = self.world.cwd
         self.records = self.repo / ".dev" / "records" / "dispatches"
-        self.home.mkdir()
-        self.scratch.mkdir()
         self.records.mkdir(parents=True)
         # The staged copy has no tracked conf beside its reader; the
-        # fixture names one, so the lane under HOME is the one asserted.
-        self.conf = root / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
-        self.staged = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        self.store = (
-            self.home / ".local" / "state" / "agentscient" / "findings.db"
+        # fixture names one, so the lane under XDG_STATE_HOME is the one
+        # asserted.
+        self.conf = self.world.plant_text(
+            self.world.root / "lane.conf",
+            "LANE_NAME='agentscient'\n",
         )
+        self.store = self.world.xdg_state / "agentscient" / "findings.db"
         self.scope = self.repo / SCOPE_REL
         self.other = self.repo / OTHER_REL
         self._stage_tool_bytes()
-        self._plant_bytes(self.scope, SCOPE_BODY.encode("utf-8"))
-        self._plant_bytes(self.other, OTHER_BODY.encode("utf-8"))
+        self.world.plant_text(self.scope, SCOPE_BODY)
+        self.world.plant_text(self.other, OTHER_BODY)
+        self.world.enter()
         self.mod = _load_findings(self.staged)
         self.assertIsNotNone(self.mod, "staged findings.py did not load")
         self.assertFalse(
@@ -143,54 +128,29 @@ class _CitationFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
-            self.assertEqual(
-                _live_snapshot(),
-                self._live_before,
-                f"live store mutated: {LIVE_STORE}",
-            )
+            self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
         finally:
-            self._tmp.cleanup()
+            self.world.close()
 
     def _stage_tool_bytes(self) -> None:
-        self.staged.parent.mkdir(parents=True, exist_ok=True)
+        dest = self.repo / "ops" / "conductor" / "tools" / "findings.py"
         data = TOOL.read_bytes()
-        self.staged.write_bytes(data)
-        landed = self.staged.read_bytes()
-        self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-        self.assertNotEqual(landed, ABSENT_STUB)
+        self.staged = self.world.plant_bytes(dest, data)
         for name in SIBLINGS:
             sibling = TOOL.with_name(name)
-            if sibling.is_file():
-                self.staged.with_name(name).write_bytes(sibling.read_bytes())
-
-    def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
+            self.world.plant_bytes(self.staged.with_name(name), sibling.read_bytes())
 
     def env(self, extra: dict[str, str] | None = None) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "WF_AGENT": AGENT,
-            "LANE_CONF": str(self.conf),
-        }
+        merged = {"WF_AGENT": AGENT, "LANE_CONF": str(self.conf)}
         if extra:
-            env.update(extra)
-        return env
+            merged.update(extra)
+        return self.world.env(extra=merged)
 
     def invoke(self, argv: list[str], *, extra_env: dict[str, str] | None = None):
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.staged), *argv],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.env(extra_env),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
 
@@ -249,15 +209,14 @@ class _CitationFixture(unittest.TestCase):
             }
         path = self.records / f"{rec_id}.json"
         payload = json.dumps(envelope, indent=2) + "\n"
-        self._plant_bytes(path, payload.encode("utf-8"))
-        self.assertIn(claim, path.read_text(encoding="utf-8"))
+        self.world.plant_text(path, payload, recognisable=claim)
         return path
 
     def plant_three_scope_files(self) -> None:
         discipline = self.repo / DISCIPLINE_REL
         cap = self.repo / CAP_REL
-        self._plant_bytes(discipline, DISCIPLINE_BODY.encode("utf-8"))
-        self._plant_bytes(cap, CAP_BODY.encode("utf-8"))
+        self.world.plant_text(discipline, DISCIPLINE_BODY)
+        self.world.plant_text(cap, CAP_BODY)
         names = sorted(
             p.name
             for p in (self.repo / ".dev" / "ladder-inputs").glob("scope-*.md")
@@ -279,7 +238,7 @@ class _CitationFixture(unittest.TestCase):
 
     def import_records(self):
         proc = self.invoke(["import"])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
     def store_keys(self) -> list[str]:
@@ -297,7 +256,7 @@ class _CitationFixture(unittest.TestCase):
             ["disposition", key, disposition, evidence],
             extra_env={"WF_AGENT": AGENT},
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
 
@@ -308,7 +267,15 @@ class ParseCitation(unittest.TestCase):
 
     def setUp(self):
         self.assertTrue(TOOL.is_file(), f"{TOOL} is missing")
-        self.mod = _load_findings(TOOL)
+        self.world = World(prefix="findings-citation-parse-")
+        self.addCleanup(self.world.close)
+        dest = self.world.cwd / "ops" / "conductor" / "tools" / "findings.py"
+        self.staged = self.world.plant_bytes(dest, TOOL.read_bytes())
+        for name in SIBLINGS:
+            sibling = TOOL.with_name(name)
+            self.world.plant_bytes(self.staged.with_name(name), sibling.read_bytes())
+        self.world.enter()
+        self.mod = _load_findings(self.staged)
         self.assertIsNotNone(self.mod, "findings.py did not load")
 
     def parse(self, evidence: str):
@@ -480,7 +447,7 @@ class CitationHolds(_CitationFixture):
     def test_path_outside_root_does_not_hold(self):
         ok, _ = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
         outside = self.scratch / "outside.md"
-        self._plant_bytes(outside, SCOPE_BODY.encode("utf-8"))
+        self.world.plant_text(outside, SCOPE_BODY)
         evidence = f"contract item 3 of {outside}: why"
         bad, reason = self.holds(evidence, self.repo, str(outside))
         self.assertTrue(ok, "positive neighbour must hold")
@@ -504,7 +471,7 @@ class CitationHolds(_CitationFixture):
         ok, _ = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
         mutant_rel = ".dev/ladder-inputs/mutant-scope.md"
         mutant = self.repo / mutant_rel
-        self._plant_bytes(mutant, b"# X\n3.no-space\n")
+        self.world.plant_bytes(mutant, b"# X\n3.no-space\n")
         evidence = f"contract item 3 of {mutant_rel}: why"
         bad, reason = self.holds(evidence, self.repo, mutant_rel)
         self.assertTrue(ok, "positive neighbour must hold")
@@ -526,7 +493,7 @@ class CitedVerb(_CitationFixture):
         self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.invoke(["cited", key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             proc.stderr or proc.stdout,
         )
@@ -548,8 +515,8 @@ class CitedVerb(_CitationFixture):
         self.dispose(second, "fixed", evidence_for(10, why="item 10 holds"))
         one = self.invoke(["cited", first])
         ten = self.invoke(["cited", second])
-        self.assertEqual(one.returncode, 0, one.stderr or one.stdout)
-        self.assertEqual(ten.returncode, 0, ten.stderr or ten.stdout)
+        self.assertEqual(one.exit, 0, one.stderr or one.stdout)
+        self.assertEqual(ten.exit, 0, ten.stderr or ten.stdout)
         self.assertEqual(
             (one.stdout or "").strip(),
             f"{first}\tcontract item 1 of {SCOPE_REL}",
@@ -565,7 +532,7 @@ class CitedVerb(_CitationFixture):
         key = f"{REC}#1"
         self.assertIn(key, self.store_keys())
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         self.assertEqual((proc.stdout or "").strip(), f"{key}\topen")
 
     def test_cited_of_an_uncited_disposition_exits_1_with_the_reason(self):
@@ -574,7 +541,7 @@ class CitedVerb(_CitationFixture):
         key = f"{REC}#1"
         self.dispose(key, "fixed", "fixed in tests, no item")
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -591,7 +558,7 @@ class CitedVerb(_CitationFixture):
         self.assertFalse(ok, "item 99 must not hold on the named scope")
         self.assertTrue(reason)
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -613,7 +580,7 @@ class CitedVerb(_CitationFixture):
         )
         proc = self.invoke(["cited", key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             1,
             f"item 4/9: cited is the driver's holding check; a citation "
             f"to another numbered file must not exit 0; "
@@ -636,7 +603,7 @@ class CitedVerb(_CitationFixture):
         ok, reason = self.holds(evidence, self.repo, missing_rel)
         self.assertFalse(ok, "a missing scope file does not hold")
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -651,7 +618,7 @@ class CitedVerb(_CitationFixture):
         missing = "20260901T000000Z-review-grok-ffffff#1"
         proc = self.invoke(["cited", missing])
         err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err or proc.stdout)
+        self.assertEqual(proc.exit, 2, err or proc.stdout)
         self.assertEqual((proc.stdout or "").strip(), "")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -668,13 +635,10 @@ class CitedVerb(_CitationFixture):
         env = self.env()
         env.pop("WF_AGENT", None)
         self.assertNotIn("WF_AGENT", env)
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(self.staged), "cited", key],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=env,
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
         head = (proc.stderr or "").split(":", 1)[0].strip().lower()
@@ -684,7 +648,7 @@ class CitedVerb(_CitationFixture):
             "item 9: cited is a read; identity is not required",
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             1,
             proc.stderr or proc.stdout,
         )
@@ -706,6 +670,15 @@ class ImportReviewJobs(_CitationFixture):
         self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{SWEEP_REC}#1", self.store_keys())
 
+    def test_import_takes_a_plan_record(self):
+        # A plan job's findings against the tree and against itself are
+        # findings (T-1, 2026-09-14: the six p3 findings of record
+        # 20260913T034513Z-plan-claude-892490 imported to the ledger).
+        self.plant_record(PLAN_REC, "plan", "plan-marker")
+        proc = self.import_records()
+        self.assertIn("1 finding", proc.stdout)
+        self.assertIn(f"{PLAN_REC}#1", self.store_keys())
+
 
 class CitedWorkOrderScope(_CitationFixture):
     """Items 4 and 9 — cited uses the work-order Contract, not first scope-*."""
@@ -718,7 +691,7 @@ class CitedWorkOrderScope(_CitationFixture):
         self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.invoke(["cited", key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "items 4 and 9: cited of a holding work-order citation is "
             "exit 0 when the tree also has scope-discipline.md and the "
@@ -745,7 +718,7 @@ class CitedWorkOrderScope(_CitationFixture):
         self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.invoke(["cited", key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "item 4: the first scope-* brief input must not make a "
             "work-order Contract citation uncited; "
@@ -771,7 +744,7 @@ class CitedWorkOrderScope(_CitationFixture):
         self.dispose(key, "fixed", DISCIPLINE_EVIDENCE)
         proc = self.invoke(["cited", key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             1,
             "item 4: a citation to scope-discipline.md is uncited even "
             "when that file is the first brief input; "
@@ -796,28 +769,26 @@ class CitedRecordContainment(_CitationFixture):
         self.dispose(key, "fixed", VALID_EVIDENCE)
         neighbour = self.invoke(["cited", key])
         self.assertEqual(
-            neighbour.returncode,
+            neighbour.exit,
             0,
             "positive neighbour: a holding row with a record-id still "
             f"cites; stdout={neighbour.stdout!r} stderr={neighbour.stderr!r}",
         )
         outside = self.scratch / "agentscient-probe.json"
-        self._plant_bytes(
+        self.world.plant_text(
             outside,
-            (
-                json.dumps(
-                    {
-                        "id": "escaped",
-                        "job": "adversarial-review",
-                        "brief": {
-                            "inputs": [
-                                {"path": SCOPE_REL, "sha256": "0" * 64}
-                            ]
-                        },
-                    }
-                )
-                + "\n"
-            ).encode("utf-8"),
+            json.dumps(
+                {
+                    "id": "escaped",
+                    "job": "adversarial-review",
+                    "brief": {
+                        "inputs": [
+                            {"path": SCOPE_REL, "sha256": "0" * 64}
+                        ]
+                    },
+                }
+            )
+            + "\n",
         )
         escaped = str(self.scratch / "agentscient-probe")
         con = sqlite3.connect(self.store)
@@ -839,7 +810,7 @@ class CitedRecordContainment(_CitationFixture):
         proc = self.invoke(["cited", key])
         err = proc.stderr or ""
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             2,
             "item 9: a ledger record field that is not a record id is "
             f"class key, not a read of {outside}; stdout={proc.stdout!r} "

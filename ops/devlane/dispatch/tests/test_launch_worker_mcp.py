@@ -22,12 +22,16 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import (
+    World,  # noqa: F401 - _TempLaunch owns the world
+    run,
+)
 
 REPO = Path(__file__).resolve().parents[4]
 LANE_MCP = REPO / "ops" / "conductor" / "tools" / "lane_mcp.py"
@@ -53,6 +57,7 @@ class _Wired(ls._TempLaunch):
         self._write("ops/conductor/handoff/HANDOFF-2026-01-01-fixture.md",
                     "# Handoff\n\n## Corrections to retain\n\n- keep this exact line\n\n## Next\n\nother\n")
         self._write("ops/lane.conf", "LANE_NAME='fixture'\nMODEL_GROK='m'\n")
+        self._write("docs/tests.md", "# Tests\n\n## Invariants\n\n- `testkit.world` — hermetic\n- `testkit.refusal-wire` — the wire\n")
         self.ref = self._commit("plant capabilities")
 
         os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
@@ -78,13 +83,18 @@ class TheConfigIsWrittenAndValid(_Wired):
         self.assertEqual(data["job_registry"], str(self.jobs_file))
         self.assertEqual(Path(data["dispatch_store"]), self.job_dir(rec).parent)
         self.assertIsInstance(data["job_ids"], list)
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout), {"tools": 7, "valid": True})
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg),
-                               "query", "lane_jobs", "{}"], capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg),
+             "query", "lane_jobs", "{}"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         names = {j["name"] for j in json.loads(proc.stdout)["jobs"]}
         self.assertIn("plan", names)
         mcp = rec["brief"]["mcp"]
@@ -171,9 +181,11 @@ class ARelocatedJobIsRewiredOnResume(_Wired):
         cfg = new_job / "lane-mcp.json"
         data = json.loads(cfg.read_text(encoding="utf-8"))
         self.assertEqual(Path(data["dispatch_store"]).resolve(), new_job.parent.resolve())
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout), {"tools": 7, "valid": True})
         home = Path(self.read_witness()["env"]["GROK_HOME"])
         self.assertEqual(home, new_job / "home" / "grok")
@@ -222,6 +234,8 @@ class ThePromptCarriesWhatExists(_Wired):
         self.assertIn(SERVER, text)
         self.assertIn(CLAUSE, text)
         self.assertIn(REUSE_KEY, text)
+        self.assertIn("test kit (ops/testkit): World, run, Tools, cases", text)
+        self.assertIn("testkit.refusal-wire", text)
         self.assertLess(len(text.split(BRIEF_MARK, 1)[1]), 8192, "the brief is bounded")
 
     def test_absent_sections_are_declared_not_silent(self):
@@ -235,6 +249,7 @@ class ThePromptCarriesWhatExists(_Wired):
         self.assertIn("ideas: absent", text)
         self.assertIn("corrections: absent", text)
         self.assertIn("lane.conf: absent", text)
+        self.assertIn("test kit: absent", text)
 
 
 class AWriteEnvelopeMustDeclareReuse(_Wired):

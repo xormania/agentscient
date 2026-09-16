@@ -17,6 +17,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 
 def _add_dir_values(argv, cwd):
     """Every --add-dir value, resolved the way the child would see it."""
@@ -78,8 +80,8 @@ class ClaudeAddDirValuesAreDirectories(ls._TempLaunch):
             "prompt": "diff={diff}\nAim at: {scope}",
             "constraints": ["read only"],
         }
-        self.jobs_file.write_text(
-            json.dumps(jobs, indent=2) + "\n", encoding="utf-8",
+        self.world.plant_text(
+            self.jobs_file, json.dumps(jobs, indent=2) + "\n",
         )
         self.ref = self._commit("fixture job that names diff")
 

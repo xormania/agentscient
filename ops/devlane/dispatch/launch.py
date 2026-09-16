@@ -806,6 +806,14 @@ def _what_exists(snapshot, jobs, mcp_meta):
     names = [f"{name} ({spec.get('role') or 'direct'})" for name, spec in (jobs or {}).items()
              if isinstance(spec, dict)]
     lines.append("jobs (the catalogue): " + ", ".join(names) if names else "jobs: absent")
+    contract = root / "docs" / "tests.md"
+    if contract.is_file():
+        tail = contract.read_text(encoding="utf-8", errors="replace").split("## Invariants", 1)
+        invariants = re.findall(r"^- `([\w.-]+)`", tail[1], re.MULTILINE) if len(tail) > 1 else []
+        lines.append("test kit (ops/testkit): World, run, Tools, cases; a tests job's note joins one invariant with "
+                     "reused: <name>; invariants: " + (", ".join(invariants) if invariants else "none named in docs/tests.md"))
+    else:
+        lines.append("test kit: absent")
     ideas = sorted(p.stem for p in root.glob("ops/conductor/ideas/I-*.md"))
     lines.append("ideas (ops/conductor/ideas): " + ", ".join(ideas[-40:]) if ideas else "ideas: absent")
     handoffs = sorted(root.glob("ops/conductor/handoff/HANDOFF-*.md"))
@@ -850,6 +858,19 @@ def _turns_note(harness, turns):
         return None
     return (f"{harness} offers no turn-cap flag (measured 2026-09-12: "
             f"its --help names none); caps.turns is recorded, the wall cap governs")
+
+
+def _turns_budget(turns):
+    """The turn budget as words in the brief. A harness with no turn flag
+    (codex, agy) cannot be capped by argv; every worker can be told the
+    number and what to do on reaching it. Empty where no cap is declared —
+    a budget is never guessed."""
+    if turns is None:
+        return ""
+    return (f"\n\nTurn budget: {turns} turns for this job, and the brief is "
+            f"the only place a harness without a turn flag is told.\n"
+            f"On reaching it, stop and report status short, naming in note "
+            f"what you finished and what is left; do not continue past it.")
 
 
 def _resolve_turns(job_caps):
@@ -1668,10 +1689,23 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     (job_dir / "exit").write_text(f"{code}\n")
     rec["attempts"].append({"n": len(rec["attempts"]) + 1, "launched": launched,
                             "ended": _now(), "exit": code,
-                            "tripped": (job_dir / "TRIPPED.md").exists()})
+                            "tripped": (job_dir / "TRIPPED.md").exists(),
+                            "credential": _carry_back_credentials(harness, job_dir / "home" / harness)})
     if reason:
         rec.setdefault("note", reason)
     return code
+
+
+def _carry_back_credentials(harness, home):
+    """LD-41 (2026-09-15): a credential the worker renewed inside its job
+    home goes back to the host copy, so the next launch reads the renewal
+    and not the login (isolation.carry_back). Never fails the attempt: a
+    failure is a reading in the attempt, `unresolved`."""
+    isolation = _module("isolation_carry", HARNESS_APP / "isolation.py")
+    try:
+        return isolation.carry_back(harness, home, os.environ)
+    except (isolation.NotIsolated, OSError, ValueError, KeyError) as exc:
+        return [{"unresolved": str(exc)}]
 
 
 def _read_role_write_guard(name, job):
@@ -1689,6 +1723,20 @@ def _read_role_write_guard(name, job):
         "drop the sentence, declare the output in the job's outputs array, or declare the job a write role",
     )
     return None
+
+
+def _review_base(repo, ref_sha, branch):
+    """merge-base(ref, <branch>) over the remote-tracking and local names
+    of ``branch``, the nearer one; "" when neither resolves."""
+    candidates = []
+    for anchor in (f"origin/{branch}", branch):
+        probe = _git(repo, "merge-base", ref_sha, anchor, check=False)
+        if probe.returncode == 0 and probe.stdout.strip():
+            candidate = probe.stdout.strip()
+            distance = int(_git(repo, "rev-list", "--count",
+                                f"{candidate}..{ref_sha}").stdout)
+            candidates.append((distance, candidate))
+    return min(candidates)[1] if candidates else ""
 
 
 def _launch(args):
@@ -1776,21 +1824,20 @@ def _launch(args):
     # The base a review diffs against is where the lineage left the trunk, not
     # the lineage's own tip -- merge-base(ref, lineage) is ref itself when
     # ref is the tip, and a review of an empty comparison reviews nothing.
-    candidates = []
-    for anchor in (f"origin/{lane['TRUNK_BRANCH']}", lane["TRUNK_BRANCH"]):
-        probe = _git(repo, "merge-base", ref_sha, anchor, check=False)
-        if probe.returncode == 0 and probe.stdout.strip():
-            candidate = probe.stdout.strip()
-            distance = int(_git(repo, "rev-list", "--count",
-                                f"{candidate}..{ref_sha}").stdout)
-            candidates.append((distance, candidate))
-    if candidates:
-        base_sha = min(candidates)[1]
-    else:
+    # A ref that sits on the trunk (the release review, trunk into release)
+    # has the trunk as its own base; it anchors on the release branch when
+    # one exists, so the comparison is release...trunk (LD-36, 2026-09-14).
+    base_sha = _review_base(repo, ref_sha, lane["TRUNK_BRANCH"])
+    if base_sha == ref_sha and lane["RELEASE_BRANCH"]:
+        base_sha = _review_base(repo, ref_sha, lane["RELEASE_BRANCH"])
+    if not base_sha:
         base_sha = _git(repo, "merge-base", ref_sha, lineage).stdout.strip()
     prompt_template = job.get("prompt") or ""
     takes_comparison = all(slot in prompt_template for slot in ("{base}", "{diff}"))
-    if takes_comparison and args.stage == "review" and base_sha == ref_sha:
+    # The guard reads the derived stage: the wrapper passes no --stage for a
+    # review job, and reading args.stage handed the reviewer an empty patch
+    # without a word (LD-36).
+    if takes_comparison and stage == "review" and base_sha == ref_sha:
         _refuse("empty-comparison", f"{lineage} to differ from ref {ref_sha}",
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
@@ -1850,7 +1897,11 @@ def _launch(args):
     values = {"ref": ref_sha, "base": base_sha, "diff": diff_path, "into": str(snapshot.resolve()),
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
+    turns, turns_source = _resolve_turns(job.get("caps"))
+    turns_note = _turns_note(args.harness, turns)
+    turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
+    prompt_text += _turns_budget(turns)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
     prompt_text += "\n\n" + _what_exists(snapshot, jobs, mcp_meta)
@@ -1883,8 +1934,6 @@ def _launch(args):
     session = None if args.harness == "agy" else str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
-    turns, turns_source = _resolve_turns(job.get("caps"))
-    turns_note = _turns_note(args.harness, turns)
     rec = record.build({
         "id": job_id, "lane": "dev", "stage": stage, "unit": args.unit or lineage,
         "lineage": {"branch": lineage, "base_sha": tip}, "follows": args.follows,
@@ -1915,7 +1964,11 @@ def _launch(args):
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,
-                 "turns_argv": _turns_argv(args.harness, turns),
+                 "turns_argv": turns_argv,
+                 # Declared is not applied, and says which it was: a
+                 # harness with no turn flag records the cap it was given
+                 # while nothing carried it.
+                 "turns_applied": bool(turns_argv),
                  **({"turns_note": turns_note} if turns_note else {})},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
     if args.harness == "agy":
@@ -2143,20 +2196,21 @@ def _spend(rec, stream, job_dir):
     try:
         if harness == "agy":
             root = job_dir
-            sessions = list(usage.agy_sessions(root, rec["snapshot"]["root"]))
+            sessions = list(usage.agy_sessions(
+                root, usage.Placement(rec["snapshot"]["root"])))
         elif harness == "claude":
             root = stream.parent.parent
-            sessions = list(usage.claude_sessions(root, None))
+            sessions = list(usage.claude_sessions(root, usage.Placement(None)))
         elif harness == "codex":
             root = job_dir / "home" / "codex-stream"
             if not root.exists():
                 root = job_dir / "home" / "codex"
-            sessions = list(usage.codex_sessions(root, None))
+            sessions = list(usage.codex_sessions(root, usage.Placement(None)))
         elif harness == "grok":
             root = job_dir / "home" / "grok-stream"
             if not root.exists():
                 root = job_dir / "home" / "grok"
-            sessions = list(usage.grok_sessions(root, None))
+            sessions = list(usage.grok_sessions(root, usage.Placement(None)))
         else:
             return unreachable(f"no usage parser for {harness}")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

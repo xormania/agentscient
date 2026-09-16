@@ -24,6 +24,7 @@ try:
         now,
         parse_stamp,
         refuse,
+        session,
         stamp,
     )
 except ModuleNotFoundError:
@@ -117,7 +118,7 @@ def declare(args):
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 0)""",
             (
                 stamp(now()),
-                os.environ.get("CLAUDE_SESSION_ID", "unknown"),
+                session(),
                 agent,
                 args.action,
                 args.why,

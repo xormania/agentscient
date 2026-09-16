@@ -1,21 +1,23 @@
-"""Put the harness modules on `sys.path` so a test can import them by name.
+"""Shared harness-test paths, reached from the repository root."""
 
-`unittest discover -s ops/devlane/harness/tests` inserts the START directory
-on the path, not its parent, so `import probe` fails from here without
-this. The workflow suite solves it the same way, and its import order is
-load-bearing for the same reason: `import support` must come first.
-
-This exists because of a gap in a CONTRACT, not a gap in a test. An
-independent author was handed the modules' promises and told to import
-them "the way the guide describes" — and the guide describes a RUN
-command, never an import path. Two authors of one seam, given the shape
-of the data and not the shape of the door: the same defect this app was
-built to make impossible, committed while staging the work to test it.
-"""
-
+import importlib.util
 import sys
 from pathlib import Path
 
+from ops.testkit import World  # noqa: F401 - docs/tests.md import rule
+
 HARNESS = Path(__file__).resolve().parents[1]
-if str(HARNESS) not in sys.path:
-    sys.path.insert(0, str(HARNESS))
+
+
+def load_sibling(name: str):
+    """Expose a legacy top-level subject import without changing sys.path."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, HARNESS / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+load_sibling("isolation")

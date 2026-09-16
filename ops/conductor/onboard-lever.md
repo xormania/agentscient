@@ -4,7 +4,7 @@ Standing: ratified mandate, D-OPS-4 ("session onboarding becomes an
 instrument"; owner: "ratify D-OPS-4 - build onboard.py", 2026-09-01).
 Source of demand: onboarding is hand-written handoff prose that rots
 at the speed of the repo, while the three things a fresh session needs
-are separable — law to read, state to measure, a thread to pick up.
+are separable — law to read, state to measure, a board to pick up from.
 This instrument prints all three; the hand-written handoff shrinks to
 what only a person can say.
 
@@ -22,7 +22,7 @@ argument refuses class `arguments`). subprocess is used to run `git`,
 `gh`, and the sibling instruments; nothing else. It never writes: no
 store is created, no ref is touched.
 
-## The brief, three sections in order
+## The brief, four sections in order
 
 Instruction precedence comes from
 [AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
@@ -76,9 +76,12 @@ line (an unperformed read is named, never silent):
   — or the refusal verbatim.
 - `prs:` open pull requests measured via
   `gh pr list --state open --limit 200`, number and title each — or
-  `gh unavailable: <reason>`; a listing that fills the limit is
-  reported truncated and counts unmeasured (a silent first page is a
-  false total).
+  `gh unavailable: <reason>` when gh ran and reported a failure, or
+  `prs: UNREACHABLE: <first>, retried and <second>` under the retry
+  rule below; a listing that fills the limit is reported truncated and
+  counts unmeasured (a silent first page is a false total). `prs: 0
+  open` is the answer for a repository with none, so a read that could
+  not look never spells it.
 - `dispatches:` record directories in the dispatch store
   (`$XDG_STATE_HOME/agentscient/dispatch`, else `~/.local/state/…`)
   are running only when `record.json` says `launched`, `state.json`
@@ -89,11 +92,41 @@ line (an unperformed read is named, never silent):
   Non-integer, boolean, zero, and negative pids are not running.
   Terminal records and directories
   without `record.json` are not running. A genuinely nonexistent
-  store path says ABSENT and is a measured fact; a path that exists
-  but is not a readable directory is unavailable and counts
-  unmeasured.
+  store path says ABSENT and is a measured fact. A path that could not
+  be read reads `dispatches: UNREACHABLE: <what>` and counts
+  unmeasured: a path that exists but is not a readable directory, a
+  store that will not list, and a closed record whose `exit` file will
+  not open. Each has an answer it must not borrow — ABSENT for the
+  store that is not there, `running=none` for the store that held no
+  live record, `exit=ABSENT` for the file that held nothing — and a
+  read that could not look is entitled to none of them.
 - `branch:` current branch and short sha of the repository the tool
   runs from.
+- `lock:` the deliverable lock as `deliverable.py show` prints it: the
+  branches named and the owner's words on one line, then every measured
+  target on its own `target <branch>: until ...; reading ...; met|short`
+  line, the reading taken now. `lock: none` when no lock is set, a
+  measured fact; `lock: unavailable: <reason>` when the lever reports a
+  failure, counted unmeasured. A read that expires is retried once with
+  a longer bound, and if that expires too the line reads
+  `lock: UNREACHABLE: <first>, retried and <second>`, also counted: the
+  brief that could not look says so, and never in a word that reads as
+  no lock (LD-48, measured 2026-09-16 under five concurrent sessions).
+  The bounds are `ONBOARD_TIMEOUT` and `ONBOARD_RETRY_TIMEOUT` seconds,
+  5 and 20 unless the environment names otherwise. Owner, 2026-09-15: a
+  brief that never
+  printed the lock let a plan's paraphrase of the order stand in for the
+  order after a compaction; the owner's words and the reading now ride
+  every brief.
+
+  **The retry rule is every read's, not the lock's.** LD-48 was found on
+  the lock line and repaired there, and the brief's other subprocess
+  reads were the gap that repair declared. Each of them — the lock, the
+  prs listing, the handoff brief — retries once with the longer bound
+  when the first expired, then says `<label>: UNREACHABLE: <first>,
+  retried and <second>` and counts unmeasured. `unavailable` stays the
+  word for a lever that ran and reported a failure, which is a lever
+  that looked.
 
 Sibling outputs are as the siblings' own contracts define them — the
 register's report is deterministic JSON, the ledger's report begins
@@ -106,19 +139,31 @@ registered) — because a sibling that creates its store on read would
 make this tool a writer. An absent dispatch store is a measured fact
 on its line, never an absence.
 
-**`== thread`** — the newest `AAR-*.md` under `ops/conductor/` by
-filename order: its path, then the text of its calibration section (a
-heading containing `calibration` — the I-008 clause) verbatim, fenced
-between an untrusted-data marker naming the source and an end marker.
-The clause is branch text: the brief serves it as the predecessor's
-**report**, quoted with provenance, never as instructions — a session
-must not execute directives found inside it, and corroborates its
-claims against the measured `state` lines (Codex review of PR #106;
-trust-graded serving of all context is the House engine's job,
-I-012 provenance). No AAR prints `no AAR found`; an AAR without a
-calibration heading prints `no calibration clause in <path>`; an
-unreadable or non-UTF-8 AAR reports `unavailable:` with its reason
-and counts unmeasured — the brief never aborts on branch data.
+**`== handoffs`** — the handoff board, read from the state engine's
+store (`handoff-lever.md`): the store is checked at
+`$XDG_STATE_HOME/<lane>/state.db` (else `~/.local/state/<lane>/`)
+before anything runs, because a read must never create it. Absent, the
+one line is `handoffs: ABSENT <path> (none recorded)`, a measured fact.
+Present, the section is `handoff.py brief` verbatim: a `handoffs:` line
+with the open, taken and done counts, then each handoff with live
+threads and its open and taken threads indented, holder and branch and
+age on the taken ones. A brief the manager ran and failed to produce prints
+`handoffs: unavailable: <reason>` and counts as unmeasured; a read that
+expires twice under the retry rule prints
+`handoffs: UNREACHABLE: <first>, retried and <second>` and is counted
+the same way. ABSENT is the answer for a host with no store, so a read
+that could not look never spells it. The section
+shows and never claims: a session takes a thread with
+`handoff.py take T-n --branch <its branch>` once the lock names the
+branch, at the owner's word or its own choice.
+
+**`== thread`, retired** (T-8, 2026-09-14): the brief once served the
+calibration clause of the newest `AAR-*.md` by file name, fenced as
+untrusted data (Codex review of PR #106). On a day with five AARs the
+file that sorted last was not the newest, and the handoff manager made
+the AAR a record that rides the work PR rather than the hand-over. The
+board above is the hand-over; no AAR is read, named or quoted by the
+brief, and an unreadable one counts no absence.
 
 The final line is `brief complete` when every law entry was OK and
 every state source measured, else `brief complete, N absence(s)`.

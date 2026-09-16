@@ -33,7 +33,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
+    from instrument import Refusal, emit, identity, refuse, session, stamp, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -259,7 +259,7 @@ def _event(kind):
                         (name, "project", detail, "wished", stamp(), stamp()))
         con.execute("INSERT INTO skill_events(ts, session, agent, skill,"
                     " event, detail) VALUES (?,?,?,?,?,?)",
-                    (stamp(), os.environ.get("CLAUDE_SESSION_ID", "unrecorded"),
+                    (stamp(), session("unrecorded"),
                      agent, name, kind, detail))
         con.commit()
         print(f"{kind}: {name}")

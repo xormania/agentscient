@@ -11,6 +11,8 @@ import os
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, plant_text  # noqa: F401 - GraftCase owns World
+
 import support  # noqa: F401
 import graft_support as gs
 
@@ -109,7 +111,7 @@ class PrepareWritesDescriptorAndBinding(_Prepared):
         self.assertEqual(code, 0, err)
         desc = json.loads(Path(out.strip()).read_text(encoding="utf-8"))
         cache = Path(desc["cache"]).resolve()
-        state = Path(os.environ["XDG_STATE_HOME"]).resolve()
+        state = self.world.xdg_state.resolve()
         self.assertTrue(str(cache).startswith(str(state) + os.sep), cache)
         self.assertIn("/graft/", str(cache))
         try:
@@ -133,8 +135,7 @@ class PrepareWritesDescriptorAndBinding(_Prepared):
         self.plant_fake_install()
         root = self.plant_root()
         cfg = root / ".graft" / "config.json"
-        cfg.parent.mkdir()
-        cfg.write_text('{"onlyDirs":["src"]}\n', encoding="utf-8")
+        plant_text(cfg, '{"onlyDirs":["src"]}\n')
         cache = self.home / "cache"
         code, out, err = self.cli(
             ["prepare", "--root", str(root), "--cache", str(cache)],
@@ -228,7 +229,7 @@ class FreshnessAndCorruption(_Prepared):
         self.prepare()
         target = self.root / "ops" / "lane.md"
         before = target.read_bytes()
-        target.write_text(target.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
+        plant_text(target, target.read_text(encoding="utf-8") + "edited\n")
         self.assertNotEqual(target.read_bytes(), before)
         code, out, err = self.query()
         gs.assert_refusal(self, code, out, err, "graft-stale")
@@ -244,7 +245,7 @@ class FreshnessAndCorruption(_Prepared):
 
     def test_query_does_not_repair_stale_cache(self):
         self.prepare()
-        (self.root / "ops" / "lane.md").write_text("stale-me\n", encoding="utf-8")
+        plant_text(self.root / "ops" / "lane.md", "stale-me\n")
         self.query()
         binding = json.loads((self.cache / "binding.json").read_text(encoding="utf-8"))
         code, out, err = self.query()
@@ -255,7 +256,7 @@ class FreshnessAndCorruption(_Prepared):
     def test_refresh_updates_binding_and_preserves_descriptor(self):
         desc = self.prepare()
         original = dict(desc)
-        (self.root / "ops" / "lane.md").write_text("refreshed\n", encoding="utf-8")
+        plant_text(self.root / "ops" / "lane.md", "refreshed\n")
         code, _out, err = self.cli(["refresh", "--context", str(self.descriptor_path)])
         self.assertEqual(code, 0, err)
         now = json.loads(self.descriptor_path.read_text(encoding="utf-8"))
@@ -268,7 +269,7 @@ class FreshnessAndCorruption(_Prepared):
         self.prepare()
         desc = json.loads(self.descriptor_path.read_text(encoding="utf-8"))
         desc["role"] = "read"
-        self.descriptor_path.write_text(json.dumps(desc) + "\n", encoding="utf-8")
+        plant_text(self.descriptor_path, json.dumps(desc) + "\n")
         code, out, err = self.cli(["refresh", "--context", str(self.descriptor_path)])
         gs.assert_refusal(self, code, out, err, "graft-role")
 
@@ -285,7 +286,7 @@ class FreshnessAndCorruption(_Prepared):
         self.prepare()
         desc = json.loads(self.descriptor_path.read_text(encoding="utf-8"))
         desc["role"] = "admin"
-        self.descriptor_path.write_text(json.dumps(desc) + "\n", encoding="utf-8")
+        plant_text(self.descriptor_path, json.dumps(desc) + "\n")
         code, out, err = self.query()
         gs.assert_refusal(self, code, out, err, "graft-context")
 
@@ -334,7 +335,7 @@ class FreshnessAndCorruption(_Prepared):
         self.plant_fake_install()
         root = self.plant_root()
         outside = self.home / "secret.md"
-        outside.write_text("secret\n", encoding="utf-8")
+        plant_text(outside, "secret\n")
         link = root / "ops" / "leak.md"
         link.symlink_to(outside)
         self.assertTrue(link.is_symlink())
@@ -435,7 +436,7 @@ class WorkerCustodyAtThePythonSeam(gs.GraftCase, unittest.TestCase):
         self.assertTrue(desc_path.is_file(), "ready metadata names a written descriptor")
         desc = json.loads(desc_path.read_text(encoding="utf-8"))
         desc["root"] = str(other)
-        desc_path.write_text(json.dumps(desc) + "\n", encoding="utf-8")
+        plant_text(desc_path, json.dumps(desc) + "\n")
         graft = gs.load_graft()
         self.assertTrue(callable(getattr(graft, "verify_worker", None)))
         try:

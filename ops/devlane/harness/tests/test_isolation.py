@@ -10,11 +10,11 @@ written to strip exactly those (Codex, PR #40).
 
 import importlib.util
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 HARNESS = Path(__file__).resolve().parents[1]
 
@@ -29,14 +29,14 @@ def load(name):
 class AMinimalHomeStartsEmpty(unittest.TestCase):
     def setUp(self):
         self.iso = load("isolation")
-        home = Path(tempfile.mkdtemp(prefix="fake-operator-home-"))
-        (home / ".codex").mkdir()
-        (home / ".codex" / "auth.json").write_text("{}")
-        self.env = {"HOME": str(home)}
+        self.world = World(prefix="fake-operator-home-")
+        self.addCleanup(self.world.close)
+        self.world.plant_text(self.world.home / ".codex" / "auth.json", "{}")
+        self.env = self.world.env()
 
     def test_a_reused_root_is_refused(self):
-        root = Path(tempfile.mkdtemp(prefix="reused-"))
-        (root / "hooks.json").write_text('{"SessionStart": "anything"}')
+        root = self.world.root / "reused"
+        self.world.plant_text(root / "hooks.json", '{"SessionStart": "anything"}')
         with self.assertRaises(self.iso.NotIsolated) as caught:
             self.iso.build_home("codex", root, env=self.env)
         self.assertIn("not empty", str(caught.exception))
@@ -45,7 +45,8 @@ class AMinimalHomeStartsEmpty(unittest.TestCase):
         self.assertIn("hooks.json", str(caught.exception))
 
     def test_a_fresh_empty_root_holds_only_the_credentials(self):
-        root = Path(tempfile.mkdtemp(prefix="fresh-"))
+        root = self.world.root / "fresh"
+        root.mkdir()
         home = Path(self.iso.build_home("codex", root, env=self.env))
         self.assertEqual(sorted(p.name for p in home.iterdir()),
                          ["auth.json"])
@@ -54,14 +55,15 @@ class AMinimalHomeStartsEmpty(unittest.TestCase):
         # The launcher names a path under a temp dir before creating it;
         # refusing that would make the guard unusable and it would be
         # removed, which protects nothing.
-        root = Path(tempfile.mkdtemp(prefix="parent-")) / "not-yet"
+        parent = self.world.root / "parent"
+        parent.mkdir()
+        root = parent / "not-yet"
         home = Path(self.iso.build_home("codex", root, env=self.env))
         self.assertEqual(sorted(p.name for p in home.iterdir()),
                          ["auth.json"])
 
     def test_a_root_that_is_a_file_is_refused(self):
-        path = Path(tempfile.mkdtemp(prefix="file-")) / "occupied"
-        path.write_text("not a directory")
+        path = self.world.plant_text("occupied", "not a directory")
         with self.assertRaises(self.iso.NotIsolated):
             self.iso.build_home("codex", path, env=self.env)
 
@@ -83,10 +85,13 @@ class AnExplicitEnvironmentIsNotQuietlyCompleted(unittest.TestCase):
 
     def setUp(self):
         self.iso = load("isolation")
+        self.world = World(prefix="explicit-env-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
 
     def test_an_explicit_env_naming_no_home_at_all_is_refused(self):
         with self.assertRaises(self.iso.NotIsolated) as caught:
-            self.iso.build_home("codex", tempfile.mkdtemp(prefix="fresh-"),
+            self.iso.build_home("codex", self.world.root / "fresh",
                                 env={"PATH": "/usr/bin"})
         reason = str(caught.exception)
         self.assertIn("CODEX_HOME", reason)
@@ -107,10 +112,9 @@ class AnExplicitEnvironmentIsNotQuietlyCompleted(unittest.TestCase):
         # working directory. `Path("") / ".codex"` is the RELATIVE path
         # `.codex`, so the lookup reached ambient project state — the
         # one thing an explicit environment exists to exclude.
-        work = Path(tempfile.mkdtemp(prefix="cwd-with-a-dotdir-"))
+        work = self.world.cwd
         planted = work / ".codex" / "auth.json"
-        planted.parent.mkdir()
-        planted.write_text("a credential that is not ours\n", encoding="utf-8")
+        self.world.plant_text(planted, "a credential that is not ours\n")
         self.assertTrue(planted.exists(), "the plant did not land")
 
         here = os.getcwd()
@@ -118,7 +122,7 @@ class AnExplicitEnvironmentIsNotQuietlyCompleted(unittest.TestCase):
         try:
             with self.assertRaises(self.iso.NotIsolated):
                 self.iso.build_home("codex",
-                                    tempfile.mkdtemp(prefix="fresh-"),
+                                    self.world.root / "fresh-empty",
                                     env={"HOME": ""})
             with self.assertRaises(self.iso.NotIsolated):
                 self.iso._real_home("codex", {"HOME": ""}, given=True)
@@ -143,10 +147,10 @@ class AnExplicitEnvironmentIsNotQuietlyCompleted(unittest.TestCase):
         # source made `symlink_to` point inside the minimal home, and
         # `build_home` returned a home containing a DANGLING auth.json.
         # An entry with the right name is not the credential.
-        operator = Path(tempfile.mkdtemp(prefix="operator-home-"))
-        (operator / ".codex").mkdir()
-        (operator / ".codex" / "auth.json").write_text("{}", encoding="utf-8")
-        root = Path(tempfile.mkdtemp(prefix="fresh-"))
+        operator = self.world.root / "operator"
+        self.world.plant_text(operator / ".codex" / "auth.json", "{}")
+        root = self.world.root / "fresh-link"
+        root.mkdir()
         home = Path(self.iso.build_home("codex", root,
                                         env={"HOME": str(operator)}))
         link = home / "auth.json"
@@ -161,13 +165,12 @@ class AnExplicitEnvironmentIsNotQuietlyCompleted(unittest.TestCase):
         # against the LINK's directory, not the caller's, so the home
         # ended up holding a DANGLING auth.json pointing inside itself —
         # complete-looking, and an authentication failure at dispatch.
-        work = Path(tempfile.mkdtemp(prefix="cwd-"))
-        (work / "elsewhere").mkdir()
-        (work / "elsewhere" / "auth.json").write_text("{}", encoding="utf-8")
+        work = self.world.cwd
+        self.world.plant_text(work / "elsewhere" / "auth.json", "{}")
         here = os.getcwd()
         os.chdir(work)
         try:
-            root = Path(tempfile.mkdtemp(prefix="fresh-")) / "home"
+            root = self.world.root / "relative-home"
             home = Path(self.iso.build_home(
                 "codex", root, env={"CODEX_HOME": "elsewhere"}))
             link = home / "auth.json"
@@ -196,11 +199,12 @@ class TheControlsAreGeneratedNotEdited(unittest.TestCase):
     surprise."""
 
     def test_every_control_matches_what_build_py_generates(self):
-        proc = subprocess.run(
-            [sys.executable, str(HARNESS / "controls" / "build.py"), "--check"],
-            capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0,
-                         proc.stdout + proc.stderr)
+        with World(prefix="controls-") as world:
+            result = run(
+                [sys.executable, str(HARNESS / "controls" / "build.py"), "--check"],
+                cwd=Path.cwd(), env=world.env(), timeout=60,
+            )
+        self.assertEqual(result.exit, 0, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

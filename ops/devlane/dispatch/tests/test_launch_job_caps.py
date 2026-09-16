@@ -15,25 +15,25 @@ import json
 import os
 import time
 import unittest
+from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 DEFAULT_TIMEOUT = 900.0
-POLICY_CAPS = {
-    "author-tests": 1800,
-    "check-tests": 1800,
-    "adversarial-review": 1800,
-    "security-audit": 1200,
-    "implement": 3600,
-}
 COMMIT_ON_RED = "Commit each test file as soon as its red is proven"
-POLICY_TURNS = {
-    "author-tests": 200,
-    "check-tests": 150,
-    "adversarial-review": 150,
-    "security-audit": 150,
-    "implement": 200,
-}
+# The reading discipline, 2026-09-16: the largest single tool output in
+# each of the two heaviest author-tests runs was a whole-file dump of
+# about 40 KB, one of them the law under docs/, compounding over 80 to 98
+# turns into 9 to 13M cumulative input (measured by agentscient-11).
+READING_DISCIPLINE = (
+    "do not read docs/",
+    "sed -n",
+    "tail, not its whole output",
+)
+BUDGET_HEAD = "Turn budget:"
+BUDGET_STOP = "stop and report status short"
 JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
@@ -57,8 +57,10 @@ def _caps(test, rec):
 
 def plant_job_timeout(test, job, seconds):
     """Write ``caps.timeout`` onto one job in the fixture catalog."""
+    test.assertIsInstance(test.world, World)
     path = test.jobs_file
-    before_obj = json.loads(path.read_text(encoding="utf-8"))
+    before = path.read_text(encoding="utf-8")
+    before_obj = json.loads(before)
     test.assertIsInstance(before_obj, dict)
     test.assertIn(job, before_obj)
     prior = (before_obj.get(job) or {}).get("caps")
@@ -67,22 +69,17 @@ def plant_job_timeout(test, job, seconds):
         prior_timeout, seconds,
         f"plant {job} timeout={seconds} was already the fixture",
     )
-
-    def mutate(raw):
-        jobs = json.loads(raw)
-        spec = dict(jobs[job])
-        spec["caps"] = {"timeout": seconds}
-        jobs[job] = spec
-        return (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
-
-    ls.plant_bytes(
-        path,
-        mutate,
-        expect="grow",
-        recognisable=lambda after: (
-            job.encode("utf-8") in after and b'"timeout"' in after
-        ),
-    )
+    jobs = json.loads(before)
+    spec = dict(jobs[job])
+    spec["caps"] = {"timeout": seconds}
+    jobs[job] = spec
+    content = json.dumps(jobs, indent=2) + "\n"
+    # The plant replaces caps that are already there, so the file may shrink;
+    # what it has to prove is that it changed the catalogue and landed.
+    test.assertNotEqual(content, before, "plant changed nothing")
+    test.assertIn(job, content)
+    test.assertIn('"timeout"', content)
+    test.world.plant_text(path, content, recognisable='"timeout"')
     landed = json.loads(path.read_text(encoding="utf-8"))
     test.assertEqual(landed[job]["caps"]["timeout"], seconds)
     test.assertNotEqual(landed[job].get("caps"), prior)
@@ -118,10 +115,15 @@ class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
-    """Else 900, source default — a job with no caps entry and no env."""
+    """Else 900, source default — a catalogue entry declaring no caps, and
+    no env. The capless entry is planted (strip_job_caps): every job in the
+    real catalogue declares its caps, and an absence this test needs is one
+    it makes, never one it hopes to find."""
 
     def test_no_job_cap_and_no_env_records_900_from_default(self):
+        self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -130,46 +132,85 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         self.assertEqual(caps["timeout_source"], "default")
 
 
-class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
-    """author-tests 1800, check-tests 1800, adversarial-review 1800
-    (raised from 1200 on 2026-09-11: Grok reviews ran to 19 of 20 minutes),
-    security-audit 1200, implement 3600."""
+class EveryJobDeclaresItsCaps(unittest.TestCase):
+    """Every job in the catalogue declares caps.timeout and caps.turns.
 
-    def test_exactly_five_jobs_carry_the_named_caps(self):
+    What this replaces: a pin naming five jobs and their exact numbers.
+    It said nothing about a sixth job, which is how four jobs (verify,
+    sweep, plan, adjudicate) ran uncapped while the pin was green, and it
+    had to be edited beside the catalogue whenever a number moved. The
+    contract owns the closure — a job declares what bounds it — and
+    jobs.json owns the numbers (docs/tests.md rule 3: a pin on a count
+    the contract does not own is a finding). A cap's value is a decision,
+    recorded in the commit that moves it.
+    """
+
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-catalog-")
+        self.addCleanup(self.world.close)
         self.assertTrue(ls.JOBS_PATH.is_file(), f"missing {ls.JOBS_PATH}")
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
-        self.assertIsInstance(jobs, dict)
-        self.assertGreater(len(jobs), 0, "jobs.json must name jobs")
-        carrying = {}
-        for name, spec in jobs.items():
-            self.assertIsInstance(spec, dict, f"{name} spec is not an object")
-            if "caps" not in spec:
-                continue
-            caps = spec["caps"]
-            self.assertIsInstance(caps, dict, f"{name} caps is not an object")
-            self.assertIn("timeout", caps, f"{name} caps has no timeout")
-            carrying[name] = caps["timeout"]
-        self.assertEqual(
-            len(carrying), len(POLICY_CAPS),
-            f"expected {len(POLICY_CAPS)} jobs with caps, got {carrying!r}",
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable='"timeout"',
         )
-        self.assertEqual(set(carrying), set(POLICY_CAPS))
-        self.assertEqual(carrying, POLICY_CAPS)
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
+        self.assertIsInstance(self.jobs, dict)
+        self.assertGreater(len(self.jobs), 0, "jobs.json must name jobs")
+
+    def positive_int(self, value, where):
+        self.assertIsInstance(value, int, where)
+        self.assertNotIsInstance(value, bool, where)
+        self.assertGreater(value, 0, where)
+
+    def test_every_job_carries_caps_with_turns_and_timeout(self):
+        uncapped = sorted(
+            name for name, spec in self.jobs.items()
+            if not isinstance(spec, dict)
+            or not isinstance(spec.get("caps"), dict)
+            or "timeout" not in spec["caps"] or "turns" not in spec["caps"]
+        )
+        self.assertEqual(
+            uncapped, [],
+            f"every job declares caps.timeout and caps.turns; these do not: {uncapped}",
+        )
+        for name, spec in self.jobs.items():
+            with self.subTest(job=name):
+                self.positive_int(spec["caps"]["timeout"], f"{name} caps.timeout")
+                self.positive_int(spec["caps"]["turns"], f"{name} caps.turns")
 
 
 class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
     """The author-tests prompt asks to commit each test file on proven red."""
 
-    def test_author_tests_prompt_contains_the_commit_on_red_clause(self):
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-prompt-")
+        self.addCleanup(self.world.close)
         self.assertTrue(ls.JOBS_PATH.is_file(), f"missing {ls.JOBS_PATH}")
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
-        self.assertIn("author-tests", jobs)
-        spec = jobs["author-tests"]
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable=COMMIT_ON_RED,
+        )
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
+
+    def test_author_tests_prompt_contains_the_commit_on_red_clause(self):
+        self.assertIn("author-tests", self.jobs)
+        spec = self.jobs["author-tests"]
         self.assertIsInstance(spec, dict)
         prompt = spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "author-tests prompt is empty")
         self.assertIn(COMMIT_ON_RED, prompt)
+
+    def test_author_tests_prompt_names_the_reading_discipline(self):
+        """Read the law from context, the scope's files in ranges, a run's
+        tail: the three the brief has to say, because the cost measured on
+        2026-09-16 was whole-file reading, not thinking."""
+        prompt = self.jobs["author-tests"]["prompt"]
+        self.assertIsInstance(prompt, str)
+        missing = [needle for needle in READING_DISCIPLINE if needle not in prompt]
+        self.assertEqual(missing, [], f"the author-tests brief does not say: {missing}")
 
 
 class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
@@ -201,30 +242,27 @@ class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
 
 def plant_job_turns(test, job, turns):
     """Write ``caps.turns`` (beside a timeout) onto one job in the fixture."""
+    test.assertIsInstance(test.world, World)
     path = test.jobs_file
-    before_obj = json.loads(path.read_text(encoding="utf-8"))
+    before = path.read_text(encoding="utf-8")
+    before_obj = json.loads(before)
     test.assertIn(job, before_obj)
     prior = (before_obj.get(job) or {}).get("caps")
     test.assertNotEqual(
         None if not isinstance(prior, dict) else prior.get("turns"), turns,
         f"plant {job} turns={turns} was already the fixture",
     )
-
-    def mutate(raw):
-        jobs = json.loads(raw)
-        spec = dict(jobs[job])
-        spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
-        jobs[job] = spec
-        return (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
-
-    ls.plant_bytes(
-        path,
-        mutate,
-        expect="grow",
-        recognisable=lambda after: (
-            job.encode("utf-8") in after and b'"turns"' in after
-        ),
-    )
+    jobs = json.loads(before)
+    spec = dict(jobs[job])
+    spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
+    jobs[job] = spec
+    content = json.dumps(jobs, indent=2) + "\n"
+    # The plant replaces caps that are already there, so the file may shrink;
+    # what it has to prove is that it changed the catalogue and landed.
+    test.assertNotEqual(content, before, "plant changed nothing")
+    test.assertIn(job, content)
+    test.assertIn('"turns"', content)
+    test.world.plant_text(path, content, recognisable='"turns"')
     landed = json.loads(path.read_text(encoding="utf-8"))
     test.assertEqual(landed[job]["caps"]["turns"], turns)
     test.ref = test._commit(f"plant {job} caps.turns={turns}")
@@ -300,10 +338,13 @@ class CodexHasNoTurnFlagAndTheRecordSaysSo(ls._TempLaunch):
 
 
 class NoTurnCapIsDeclaredNotInferred(ls._TempLaunch):
-    """A job with no caps.turns and no env records turns None, source none."""
+    """A catalogue entry with no caps.turns and no env records turns None,
+    source none. The capless entry is planted, as above."""
 
     def test_no_job_turns_and_no_env_records_none(self):
+        self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TURNS", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -329,22 +370,119 @@ class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
                          str(ENV_TURNS))
 
 
-class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
-    """The five capped jobs carry caps.turns: author-tests 200, implement
-    200, check-tests 150, adversarial-review 150, security-audit 150.
-    Chosen 2026-09-12 from the store's message counts (Grok author-tests:
-    median 229, p90 325, max 500 messages); the harness turn unit is not
-    the store's message unit, so the first ladder under the cap re-measures."""
+def _applied(test, caps):
+    """``turns_applied`` read as an assertion, so its absence is a failure
+    with a one-line message rather than a KeyError."""
+    test.assertIn("turns_applied", caps, f"caps carry no turns_applied: {sorted(caps)}")
+    return caps["turns_applied"]
+
+
+def _carries(test, text, needle):
+    """A membership assertion whose message names the needle and the size,
+    never the brief: a failing assertion that prints ten kilobytes of
+    prompt is the waste this change exists to cut."""
+    test.assertTrue(needle in text,
+                    f"{needle!r} absent from the {len(text)}-byte brief")
+
+
+def _prompt_text(test, rec):
+    """The composed brief, read from the job directory, so the assertion
+    holds for a harness that takes no --prompt-file."""
+    root = ((rec.get("snapshot") or {}).get("root") or "")
+    test.assertTrue(root, "record names no snapshot root")
+    prompt = Path(root).parent / "prompt.txt"
+    test.assertTrue(prompt.is_file(), f"no brief at {prompt}")
+    return prompt.read_text(encoding="utf-8")
+
+
+class TheBriefCarriesTheTurnBudget(ls._TempLaunch):
+    """Owner, 2026-09-15, on token efficiency. A harness with no turn flag
+    can still be told its budget, so the cap reaches every worker as words
+    even where it cannot reach one as argv. Belt and braces: the line is in
+    every brief, not only the flagless harnesses'."""
+
+    def test_the_grok_brief_names_the_budget_and_the_stop(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        text = _prompt_text(self, rec)
+        _carries(self, text, f"{BUDGET_HEAD} {JOB_TURNS} turns")
+        _carries(self, text, BUDGET_STOP)
+
+    def test_the_codex_brief_names_the_budget_though_no_flag_carries_it(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        self.assertEqual((rec.get("caps") or {}).get("turns_argv"), [])
+        text = _prompt_text(self, rec)
+        _carries(self, text, f"{BUDGET_HEAD} {JOB_TURNS} turns")
+        _carries(self, text, BUDGET_STOP)
+
+    def test_no_cap_means_no_budget_line_rather_than_a_guessed_one(self):
+        ls.strip_job_caps(self, "plan")
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        self.assertIsNone((rec.get("caps") or {}).get("turns"))
+        text = _prompt_text(self, rec)
+        self.assertFalse(BUDGET_HEAD in text,
+                         f"{BUDGET_HEAD!r} present in a brief with no cap "
+                         f"({len(text)} bytes)")
+
+
+class TheRecordSaysWhetherTheCapWasApplied(ls._TempLaunch):
+    """The record said ``turns: 200`` for codex when nothing capped it — a
+    claim with no reading behind it. ``turns_applied`` separates what was
+    declared from what a flag actually carried (docs/wire.md, absence is
+    declared, never inferred)."""
+
+    def test_grok_records_the_cap_as_applied(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertIs(_applied(self, caps), True)
+
+    def test_codex_records_the_cap_as_declared_but_not_applied(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertIs(_applied(self, caps), False)
+        self.assertIn("codex", caps.get("turns_note", ""))
+
+    def test_no_cap_records_applied_false_beside_turns_none(self):
+        ls.strip_job_caps(self, "plan")
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertIsNone(caps["turns"])
+        self.assertIs(_applied(self, caps), False)
+
+
+class EveryJobsTurnCapIsDeclared(unittest.TestCase):
+    """caps.turns on every job, read through the file's own text.
+
+    The numbers were chosen 2026-09-12 from the store's message counts
+    (Grok author-tests: median 229, p90 325, max 500 messages) and
+    extended to the four short jobs on 2026-09-16; the harness turn unit
+    is not the store's message unit, so a run under a cap re-measures it.
+    The values live in jobs.json, not here."""
+
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-turns-")
+        self.addCleanup(self.world.close)
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable='"turns"',
+        )
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
 
     def test_the_capped_jobs_carry_the_named_turns(self):
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
         carrying = {
             name: spec["caps"]["turns"]
-            for name, spec in jobs.items()
+            for name, spec in self.jobs.items()
             if isinstance(spec, dict) and isinstance(spec.get("caps"), dict)
             and "turns" in spec["caps"]
         }
-        self.assertEqual(carrying, POLICY_TURNS)
+        self.assertEqual(sorted(carrying), sorted(self.jobs),
+                         f"a job declares no caps.turns: {sorted(set(self.jobs) - set(carrying))}")
         for name, turns in carrying.items():
             self.assertIsInstance(turns, int, name)
             self.assertNotIsInstance(turns, bool, name)

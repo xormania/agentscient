@@ -22,15 +22,14 @@ PR"); the second producer is absent and this docstring says so.
 from __future__ import annotations
 
 import json
-import shutil
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import support
+
+from ops.testkit import World, run
 
 MATRIX = support.CLAUDE_DIR / "matrix.py"
 ENGINE = support.CLAUDE_DIR / "engine.py"  # carries test-form since the registry (2026-09-12)
@@ -44,40 +43,46 @@ AGENT = "Miss Tester <miss@example.invalid>"
 
 class _MissFixture(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="miss-log-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.repo = self.tmp / "repo"
-        self.home.mkdir()
+        self.world = World(prefix="miss-log-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
+        self.repo = self.world.root / "repo"
         (self.repo / ".git").mkdir(parents=True)
         (self.repo / "ops").mkdir()
-        (self.repo / "ops" / "lane.conf").write_text(
-            f"LANE_NAME='{LANE_NAME}'\nTRUNK_BRANCH='dev'\n", encoding="utf-8"
+        self.world.plant_text(
+            self.repo / "ops" / "lane.conf",
+            f"LANE_NAME='{LANE_NAME}'\nTRUNK_BRANCH='dev'\n",
         )
         self.lever = self.repo / "ops" / "conductor" / "tools" / "skills.py"
         self.lever.parent.mkdir(parents=True)
-        self.lever.write_bytes(SKILLS_TOOL.read_bytes())
+        self.world.plant_bytes(self.lever, SKILLS_TOOL.read_bytes())
         # The lever imports instrument.py beside itself, which loads
         # laneconf.py beside it and reads ops/lane.conf two levels up:
         # the fake repository's conf above (instrument-conventions.md).
         for sibling in ("instrument.py", "laneconf.py"):
-            (self.lever.parent / sibling).write_bytes((SKILLS_TOOL.parent / sibling).read_bytes())
-        self.env = support.isolated_env(self.home, extra={"WF_AGENT": AGENT})
+            self.world.plant_bytes(
+                self.lever.parent / sibling,
+                (SKILLS_TOOL.parent / sibling).read_bytes(),
+            )
+        self.env = self.world.env({
+            "TESTKIT_DIR": str(support.WORKTREE_ROOT / "ops" / "testkit"),
+            "WF_AGENT": AGENT,
+        })
         for name in ("refused", "deliverable"):
             self.skills("add", name, f"planted {name}")
         self.assertEqual(self.events(), [], "plant: the registry starts with no events")
 
     def skills(self, *argv):
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(self.lever), *argv],
-            cwd=str(self.repo), env=self.env, capture_output=True, text=True,
-            check=False, timeout=30,
+            cwd=self.repo, env=self.env, timeout=30,
         )
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         return proc
 
     def store(self):
-        found = list(self.home.glob(".local/state/*/skills.db"))
+        found = list(self.world.xdg_state.glob("*/skills.db"))
         self.assertEqual(len(found), 1, f"one planted registry, found {found}")
         return found[0]
 
@@ -91,10 +96,10 @@ class _MissFixture(unittest.TestCase):
             con.close()
 
     def run_hook(self, hook, payload, env=None):
-        return subprocess.run(
+        return run(
             [sys.executable, str(hook)],
-            cwd=str(self.repo), env=env or self.env, input=json.dumps(payload),
-            capture_output=True, text=True, check=False, timeout=30,
+            cwd=self.repo, env=env or self.env, stdin=json.dumps(payload),
+            timeout=30,
         )
 
     def bash(self, command):
@@ -102,7 +107,7 @@ class _MissFixture(unittest.TestCase):
                 "tool_input": {"command": command}}
 
     def assert_denied(self, proc, klass, hook="matrix"):
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(proc.stdout)
         reason = data["hookSpecificOutput"]["permissionDecisionReason"]
         self.assertEqual(data["hookSpecificOutput"]["permissionDecision"], "deny")
@@ -125,11 +130,11 @@ class MatrixRefusalsLogAMiss(_MissFixture):
         self.assertIn("ops/x.py", detail)
 
     def test_a_deliverable_refusal_logs_against_the_deliverable_skill(self):
-        lock = self.home / ".local" / "state" / LANE_NAME / "deliverable.json"
+        lock = self.world.home / ".local" / "state" / LANE_NAME / "deliverable.json"
         lock.parent.mkdir(parents=True, exist_ok=True)
-        lock.write_text(json.dumps({
+        self.world.plant_text(lock, json.dumps({
             "branches": ["lane/one"], "why": "w", "by": "Owner <o@x>",
-            "at": "2026-09-11T07:00:00Z"}) + "\n", encoding="utf-8")
+            "at": "2026-09-11T07:00:00Z"}) + "\n")
         proc = self.run_hook(MATRIX, self.bash("git checkout -b lane/other"))
         self.assert_denied(proc, "deliverable")
         rows = self.events()
@@ -138,7 +143,7 @@ class MatrixRefusalsLogAMiss(_MissFixture):
 
     def test_an_allowed_command_logs_nothing(self):
         proc = self.run_hook(MATRIX, self.bash("ls"))
-        self.assertEqual((proc.returncode, proc.stdout.strip()), (0, ""), proc.stderr)
+        self.assertEqual((proc.exit, proc.stdout.strip()), (0, ""), proc.stderr)
         self.assertEqual(self.events(), [])
 
     def test_without_an_identity_the_hook_signs_as_itself(self):
@@ -171,7 +176,7 @@ class MatrixRefusalsLogAMiss(_MissFixture):
 class TheOtherHooksLogToo(_MissFixture):
     def test_a_clipped_sweep_logs_a_miss_against_refused(self):
         proc = self.run_hook(UNSAFE, self.bash("grep -E 'alpha|beta|gamma' ops/x.py | head -5"))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         reason = json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
         self.assertIn("[clipped-sweep]", reason)
         rows = self.events()
@@ -181,7 +186,7 @@ class TheOtherHooksLogToo(_MissFixture):
     def test_a_refused_subagent_logs_a_miss_against_refused(self):
         proc = self.run_hook(NO_SUBAGENTS, {"tool_name": "Agent", "cwd": str(self.repo),
                                             "tool_input": {"prompt": "x"}})
-        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertEqual(proc.exit, 2, proc.stdout)
         self.assertIn("in-session sub-agents are off", proc.stderr)
         rows = self.events()
         self.assertEqual([(r[0], r[1]) for r in rows], [("refused", "miss")], rows)

@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
 import agy_envelope_support as frames
 import launch_support as ls
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve().parent
 
@@ -91,20 +92,16 @@ def success_result():
     )
 
 
-def dump_frames(path, rows):
-    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
-
-
 class AgyLiveTerminalSeparation(unittest.TestCase):
     def setUp(self):
         self.usage = load_usage(self)
-        self.tmpdir = tempfile.TemporaryDirectory(prefix="agy-live-term-")
-        self.addCleanup(self.tmpdir.cleanup)
-        self.raw = Path(self.tmpdir.name) / "raw.out"
+        self.world = World(prefix="agy-live-term-")
+        self.addCleanup(self.world.close)
+        self.raw = self.world.root / "raw.out"
         self.launch = ls.require_module(self, "launch")
 
     def read_raw(self, rows):
-        dump_frames(self.raw, rows)
+        frames.plant_ndjson(self.world, self.raw, *rows)
         planted = self.raw.read_text()
         for row in rows:
             self.assertIn(json.dumps(row["event"])[1:-1], planted)
@@ -114,7 +111,7 @@ class AgyLiveTerminalSeparation(unittest.TestCase):
             return {"_raised": str(exc)}
 
     def envelope_of(self, rows):
-        dump_frames(self.raw, rows)
+        frames.plant_ndjson(self.world, self.raw, *rows)
         fn = getattr(self.launch, "_envelope", None)
         self.assertTrue(callable(fn), "launch._envelope parses stdout")
         got = fn(self.raw.read_bytes(), "plan", frames.LAUNCHER_REF, harness="agy")

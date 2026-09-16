@@ -18,8 +18,16 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World
+
+LAUNCH = Path(__file__).resolve().parents[1] / "launch.py"
+# World.stage's absent stand-in exits at import, so this family uses
+# _absent_launch for red; the live subject is the tree's launch.py.
+_SUBJECT = LAUNCH
 
 NINE = (
     "job", "status", "verdict", "counts", "findings",
@@ -69,7 +77,20 @@ def _planted(job):
     }
 
 
-class _U10bLaunch(ls._TempLaunch):
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+    def load_launch(self):
+        if not Path(_SUBJECT).is_file():
+            if self.launch is None:
+                self.launch = ls._absent_launch()
+            return self.launch
+        return super().load_launch()
+
+
+class _U10bLaunch(_KitLaunch):
     def _emit(self, planted):
         body = json.dumps(planted)
         os.environ["TASK_LAUNCH_STDOUT"] = "token"
@@ -409,6 +430,67 @@ class ReviewWithNothingToCompareIsRefusedBeforeLaunch(_U10bLaunch):
             self._git("rev-parse", "HEAD").stdout.strip(), before_head,
             "a pre-launch refusal must not commit a record",
         )
+
+
+class ReviewOfTheTrunkTipIsRefusedOrAnchoredOnTheRelease(_U10bLaunch):
+    """LD-36 (2026-09-13): the wrapper never passes --stage for a review
+    job, and the empty-comparison guard read args.stage, so a review of
+    the trunk tip (the release review, dev into master) was handed an
+    empty patch without a word. Two rows: the guard reads the derived
+    stage, so the refusal fires with no --stage; and a ref on the trunk
+    anchors on the release branch when one exists, so the release review
+    diffs master...dev instead of nothing."""
+
+    def test_review_of_the_trunk_tip_with_no_stage_flag_is_refused(self):
+        self._git("branch", "dev", self.ref)
+        self.assertEqual(self._git("merge-base", "work", "dev").stdout.strip(), self.ref,
+                         "plant: the ref sits on the trunk")
+        self.assertEqual(self.job_dirs(), [], "jobs root starts empty")
+        code, out, err = self.dispatch(self.argv_for(
+            job="adversarial-review", harness="grok", stage=None,
+            ref=self.ref,
+            scope="pin the guard reading the derived stage",
+        ))
+        self.assert_refusal(
+            code, out, err, ident="empty-comparison",
+            phrases=["work", self.ref, "empty"],
+        )
+        self.assert_not_started()
+        self.assertEqual(self.job_dirs(), [], f"no job directory is minted: {self.job_dirs()}")
+
+    def test_review_of_the_trunk_tip_anchors_on_the_release_branch(self):
+        self._git("branch", "dev", self.ref)
+        self._git("branch", "master", self.root_sha)
+        self.assertEqual(self._git("merge-base", "work", "master").stdout.strip(), self.root_sha)
+        rec, witness, *_ = self.launch_ok(self.argv_for(
+            job="adversarial-review", harness="grok", stage=None,
+            ref=self.ref,
+            scope="pin the release branch as the anchor for a ref on the trunk",
+        ))
+        self.assertEqual(rec.get("status"), "closed")
+        self.assertTrue(witness["argv"], "harness started")
+        prompt = witness.get("prompt_text") or (self.the_job_dir() / "prompt.txt").read_text(
+            encoding="utf-8")
+        self.assertIn(self.root_sha, prompt, f"{{base}} is the release anchor: {prompt!r}")
+        dirs = self.job_dirs()
+        self.assertEqual(len(dirs), 1)
+        body = (dirs[0] / "diff.patch").read_text(encoding="utf-8")
+        self.assertIn("alpha v3", body, "the diff is master...dev, not empty")
+        self.assertIn("alpha v1", body)
+
+    def test_a_ref_off_the_trunk_keeps_the_trunk_as_its_anchor(self):
+        """The release anchor is for a ref on the trunk only: a lineage
+        that left the trunk still diffs from where it left."""
+        self._git("branch", "dev", self.mid_sha)
+        self._git("branch", "master", self.root_sha)
+        _rec, witness, *_ = self.launch_ok(self.argv_for(
+            job="adversarial-review", harness="grok", stage=None,
+            scope="pin the trunk anchor for a ref off the trunk",
+        ))
+        prompt = witness.get("prompt_text") or (self.the_job_dir() / "prompt.txt").read_text(
+            encoding="utf-8")
+        self.assertIn(self.mid_sha, prompt, f"{{base}} is where the lineage left the trunk: {prompt!r}")
+        self.assertNotIn(self.root_sha, prompt)
 
 
 class ReviewWithARealComparisonStillLaunches(_U10bLaunch):

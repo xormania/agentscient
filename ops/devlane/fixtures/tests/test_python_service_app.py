@@ -37,11 +37,7 @@ import importlib
 import json
 import os
 import re
-import shutil
-import stat
-import subprocess
 import sys
-import tempfile
 import tomllib
 import unittest
 from contextlib import suppress
@@ -49,12 +45,16 @@ from pathlib import Path
 
 from test_fixture_manifests import KIND_IDS, validate_manifest
 
+from ops.testkit import Timeout, World, make_executable, run
+
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
 APPS = REPO / "ops" / "devlane" / "fixtures" / "apps"
 APP = APPS / "python-service"
 MANIFEST = APP / "FAULTS.json"
 CALIBRATION = REPO / "ops" / "conductor" / "findings" / "calibration.jsonl"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+CALIBRATE_STUB = FIXTURES / "calibrate_capture.py"
 
 APP_NAME = "python-service"
 AGENT = "Python Service Fixture Tester <python-service-fixture@example.invalid>"
@@ -180,7 +180,7 @@ LAYOUT_FILES = (
 LAYOUT_DIRS = ("service", "tests")
 
 
-def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
+def _lint_the_lane_copies_under_the_lane_contract(made: Path, world: World) -> None:
     """suites.sh runs `ruff check .` since 2026-09-13, as the CI lane job
     does. The scratch holds two lint contracts: the app's own, at its root,
     whose planted faults (FAULT-KINDS.md) its calibration relies on, and
@@ -193,7 +193,7 @@ def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
     text = source.read_text(encoding="utf-8")
     if text.count('"ops/') < 1:
         raise AssertionError("the repository ruff.toml keys its rows under ops/")
-    (made / "ops" / "ruff.toml").write_text(text.replace('"ops/', '"'), encoding="utf-8")
+    world.plant_text(made / "ops" / "ruff.toml", text.replace('"ops/', '"'))
 APPARATUS_DIRS = ("probes", "fixes")
 APPARATUS_PROBES = tuple(f"probes/ps{index:02d}.py" for index in range(1, 8))
 APPARATUS_FIXES = tuple(f"fixes/ps{index:02d}.patch" for index in range(1, 8))
@@ -212,6 +212,13 @@ LANE_COPY_PATHS = (
     "ops/devlane/task/envelope.py",
     "ops/devlane/task/tests/support.py",
     "ops/devlane/task/tests/test_envelope.py",
+    # the kit the task family's support imports (docs/tests.md §Reaching it)
+    "ops/testkit/__init__.py",
+    "ops/testkit/world.py",
+    "ops/testkit/command.py",
+    "ops/testkit/fakes.py",
+    "ops/testkit/fake_program.py",
+    "ops/testkit/cases.py",
 )
 
 REC_ID = "20260904T000000Z-review-grok-psvc01"
@@ -281,36 +288,6 @@ DIRTY_LOOKALIKES = {
     ),
     "K9": "python-dotenv==9.9.9",
 }
-
-CALIBRATE_STUB = r'''#!/usr/bin/env python3
-import os
-import sys
-from pathlib import Path
-
-def refuse(cls, expected, found, needed):
-    print(
-        f"{cls}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
-
-verb = sys.argv[1] if len(sys.argv) > 1 else ""
-if verb != "calibrate":
-    refuse("arguments", "calibrate", verb or "none", "name calibrate")
-agent = os.environ.get("WF_AGENT", "")
-if "<" not in agent or ">" not in agent:
-    refuse(
-        "identity",
-        "Name <address>",
-        agent or "unset",
-        "export WF_AGENT",
-    )
-capture = os.environ.get("CALIBRATE_CAPTURE")
-if not capture:
-    refuse("calibration", "CALIBRATE_CAPTURE", "unset", "set it in tests")
-Path(capture).write_text(sys.stdin.read(), encoding="utf-8")
-'''
-
 
 def load_json_object(path: Path) -> dict:
     if not path.is_file():
@@ -470,14 +447,6 @@ def _live_findings_stores() -> list[Path]:
         seen.add(resolved)
         unique.append(path)
     return unique
-
-
-def _plant_bytes(testcase: unittest.TestCase, path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    testcase.assertEqual(landed, data, f"plant did not land intact: {path}")
-    testcase.assertEqual(len(landed), len(data))
 
 
 def _where(span: dict) -> str:
@@ -677,20 +646,21 @@ def _drop_imported_service() -> None:
 
 def _import_service(directory: Path):
     _drop_imported_service()
-    inserted = str(directory)
-    added = False
-    if inserted not in sys.path:
-        sys.path.insert(0, inserted)
-        added = True
-    try:
-        pkg = importlib.import_module("service")
-        for name in ("api", "audit", "export", "paging", "store"):
-            setattr(pkg, name, importlib.import_module(f"service.{name}"))
-        return pkg
-    finally:
-        if added:
-            with suppress(ValueError):
-                sys.path.remove(inserted)
+    package_dir = directory / "service"
+    spec = importlib.util.spec_from_file_location(
+        "service",
+        package_dir / "__init__.py",
+        submodule_search_locations=[str(package_dir)],
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError(f"service package cannot be loaded from {package_dir}")
+    pkg = importlib.util.module_from_spec(spec)
+    sys.modules["service"] = pkg
+    spec.loader.exec_module(pkg)
+    for name in ("api", "audit", "export", "paging", "store"):
+        child = importlib.import_module(f"service.{name}")
+        setattr(pkg, name, child)
+    return pkg
 
 
 class PythonServiceExists(unittest.TestCase):
@@ -1279,93 +1249,75 @@ class _RepoFreeze(unittest.TestCase):
     """Live fixture roots, findings store, calibration export, and this repo stay put."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self.assertIsNotNone(shutil.which("bash"), "INVALID: bash not on PATH")
-        self._live_before = {
-            str(path): _store_snap(path) for path in _live_fixture_roots()
-        }
-        self._findings_before = {
-            str(path): _store_snap(path) for path in _live_findings_stores()
-        }
-        self._calibration_before = _store_snap(CALIBRATION)
-        self._head_before = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
-        ).stdout
-        self._tmp = tempfile.TemporaryDirectory(
-            prefix="python-service-app-", dir="/tmp"
+        self.world = World(
+            prefix="python-service-app-",
+            ambient=(
+                "PIP_CACHE_DIR",
+                "PIP_CONFIG_FILE",
+                "PIP_INDEX_URL",
+                "PIP_EXTRA_INDEX_URL",
+                "HTTP_PROXY",
+                "HTTPS_PROXY",
+                "NO_PROXY",
+                "http_proxy",
+                "https_proxy",
+                "no_proxy",
+            ),
         )
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.home.mkdir()
-        self.conf_path = root / "copy-list.txt"
-        self.lane_conf_path = root / "lane.conf"
-        self.lane_conf_path.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.world.require("bash")
+        self._live = self.world.watch(
+            *(_live_fixture_roots() + _live_findings_stores() + [CALIBRATION]),
+            contents=False,
+        )
+        env = self.world.env()
+        self._head_before = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self._diff_before = run(
+            ["git", "diff", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.root = self.world.root
+        self.home = self.world.home
+        self.conf_path = self.root / "copy-list.txt"
+        self.lane_conf_path = self.root / "lane.conf"
+        self.world.plant_text(self.lane_conf_path, "LANE_NAME='agentscient'\n")
         listed = "".join(f"{path}\n" for path in LANE_COPY_PATHS)
-        _plant_bytes(self, self.conf_path, listed.encode("utf-8"))
+        self.world.plant_bytes(self.conf_path, listed.encode("utf-8"))
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_fixture_roots()},
-                self._live_before,
-                "live fixture state mutated",
-            )
-            self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_findings_stores()},
-                self._findings_before,
-                "live findings store mutated",
-            )
-            self.assertEqual(
-                _store_snap(CALIBRATION),
-                self._calibration_before,
-                "tracked calibration.jsonl mutated",
-            )
-            head_after = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._live.assert_unchanged(
+            self, "live fixture, findings store, or tracked calibration.jsonl mutated"
+        )
+        env = self.world.env()
+        head_after = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
+        diff_after = run(
+            ["git", "diff", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env()
 
     def env(
         self,
@@ -1373,45 +1325,26 @@ class _RepoFreeze(unittest.TestCase):
         agent: str | None = AGENT,
         extra: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
+        extra_env = {
             "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
             "LANE_CONF": str(self.lane_conf_path),
             "FIXTURE_COPY_LIST": str(self.conf_path),
         }
-        self.assertNotIn("XDG_STATE_HOME", env)
         if agent is not None:
-            env["WF_AGENT"] = agent
+            extra_env["WF_AGENT"] = agent
         if extra:
-            env.update(extra)
+            extra_env.update(extra)
+        env = self.world.env(extra_env)
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
         return env
 
     def scratch_env(self) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        env = self.world.env({"TZ": "UTC"})
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
         self.assertNotIn("LANE_CONF", env)
         self.assertNotIn("LAUNCHER_PIN", env)
-        self.assertNotIn("XDG_STATE_HOME", env)
         self.assertNotIn("WF_AGENT", env)
         return env
 
@@ -1432,16 +1365,13 @@ class PythonServiceMakeProve(_RepoFreeze):
             self.assertNotIn("WF_AGENT", env)
         lever_path = lever or LEVER
         try:
-            return subprocess.run(
+            return run(
                 [str(lever_path), *argv],
-                cwd=str(cwd or REPO),
+                cwd=cwd or REPO,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
     def make(self, target: Path):
@@ -1492,20 +1422,18 @@ class PythonServiceMakeProve(_RepoFreeze):
         target = self.root / name
         self.assertFalse(target.exists())
         proc = self.make(target)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return self.parse_dir(proc)
 
     def git(self, directory: Path, *args: str):
-        proc = subprocess.run(
+        proc = run(
             ["git", *args],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"git {args} in {directory}: {proc.stderr or proc.stdout}",
         )
@@ -1515,49 +1443,42 @@ class PythonServiceMakeProve(_RepoFreeze):
         self.assertTrue(command.strip(), "probe command is empty")
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["/bin/sh", "-c", command],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=PROBE_CAP,
             )
-        except subprocess.TimeoutExpired:
+        except Timeout:
             return "UNREACHABLE"
-        if proc.returncode in {126, 127} or proc.returncode < 0:
+        if proc.exit in {126, 127} or proc.exit < 0:
             return "UNREACHABLE"
-        return "GREEN" if proc.returncode == 0 else "RED"
+        return "GREEN" if proc.exit == 0 else "RED"
 
     def apply_fix(self, directory: Path, rel: str) -> bytes:
         patch = directory / rel
         self.assertTrue(patch.is_file(), f"fix {rel} is missing")
         data = patch.read_bytes()
         self.assertTrue(data, f"fix {rel} is empty")
-        check = subprocess.run(
+        check = run(
             ["git", "apply", "--check", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            check.returncode,
+            check.exit,
             0,
             f"git apply --check {rel}: {check.stderr or check.stdout}",
         )
-        applied = subprocess.run(
+        applied = run(
             ["git", "apply", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            applied.returncode,
+            applied.exit,
             0,
             f"git apply {rel}: {applied.stderr or applied.stdout}",
         )
@@ -1575,7 +1496,7 @@ class PythonServiceMakeProve(_RepoFreeze):
         )
         return faults
 
-    def toolchain_ready(self, directory: Path) -> subprocess.CompletedProcess:
+    def toolchain_ready(self, directory: Path):
         manifest = load_json_object(directory / "FAULTS.json")
         toolchain = (
             manifest.get("toolchain")
@@ -1589,40 +1510,19 @@ class PythonServiceMakeProve(_RepoFreeze):
             "fresh make must carry toolchain.ready before check runs",
         )
         try:
-            return subprocess.run(
+            return run(
                 ["/bin/sh", "-c", ready],
-                cwd=str(directory),
+                cwd=directory,
                 env=self.scratch_env(),
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"toolchain.ready exceeded {CHECK_CAP}s: {exc}")
 
     def install_env(self) -> dict[str, str]:
-        env = self.scratch_env()
-        for key in (
-            "PIP_CACHE_DIR",
-            "PIP_CONFIG_FILE",
-            "PIP_INDEX_URL",
-            "PIP_EXTRA_INDEX_URL",
-            "XDG_CACHE_HOME",
-            "HTTP_PROXY",
-            "HTTPS_PROXY",
-            "NO_PROXY",
-            "http_proxy",
-            "https_proxy",
-            "no_proxy",
-        ):
-            if key in os.environ:
-                env[key] = os.environ[key]
-        if "PIP_CACHE_DIR" not in env:
-            env["PIP_CACHE_DIR"] = str(Path.home() / ".cache" / "pip")
-        return env
+        return self.scratch_env()
 
-    def toolchain_install(self, directory: Path) -> subprocess.CompletedProcess:
+    def toolchain_install(self, directory: Path):
         manifest = load_json_object(directory / "FAULTS.json")
         toolchain = (
             manifest.get("toolchain")
@@ -1638,16 +1538,13 @@ class PythonServiceMakeProve(_RepoFreeze):
             "fresh make must carry toolchain.install before check runs",
         )
         try:
-            return subprocess.run(
+            return run(
                 ["/bin/sh", "-c", install],
-                cwd=str(directory),
+                cwd=directory,
                 env=self.install_env(),
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=INSTALL_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"toolchain.install exceeded {INSTALL_CAP}s: {exc}")
 
     def work_dir(self, name: str) -> Path:
@@ -1658,20 +1555,19 @@ class PythonServiceMakeProve(_RepoFreeze):
     def python_service(self, directory: Path, argv: list[str], **kwargs):
         env = kwargs.pop("env", None) or self.scratch_env()
         env = dict(env)
-        env["PYTHONPATH"] = str(directory)
         env.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+        stdin = kwargs.pop("input", None)
+        timeout = kwargs.pop("timeout", PROBE_CAP)
+        self.assertEqual(kwargs, {}, f"unsupported run options: {kwargs!r}")
         try:
-            return subprocess.run(
+            return run(
                 [sys.executable, "-m", "service", *argv],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=kwargs.pop("timeout", PROBE_CAP),
-                **kwargs,
+                stdin=stdin,
+                timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"python -m service {argv} exceeded cap: {exc}")
 
     def contract_planted(self, directory: Path, fault_id: str) -> bool:
@@ -1698,7 +1594,7 @@ class PythonServiceMakeProve(_RepoFreeze):
         work = self.work_dir("ps01-work")
         payload = work / "payload"
         payload.mkdir(exist_ok=True)
-        (payload / "item.txt").write_text("x\n", encoding="utf-8")
+        self.world.plant_text(payload / "item.txt", "x\n")
         marker = work / "INJECTED"
         if marker.exists():
             marker.unlink()
@@ -1780,26 +1676,23 @@ class PythonServiceMakeProve(_RepoFreeze):
 
     def test_scratch_runs_suites_and_dispatch_dry_run(self):
         made = self.made_app("portable")
-        _lint_the_lane_copies_under_the_lane_contract(made)
+        _lint_the_lane_copies_under_the_lane_contract(made, self.world)
         self.assertTrue((made / "ops/bin/suites.sh").is_file())
         self.assertTrue((made / "ops/bin/dispatch.sh").is_file())
         self.assertTrue((made / "ops/devlane/dispatch/launch.py").is_file())
         self.assertTrue((made / "ops/lane.conf").is_file())
         env = self.scratch_env()
         try:
-            suites = subprocess.run(
+            suites = run(
                 ["bash", str(made / "ops" / "bin" / "suites.sh")],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=SUITES_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"suites.sh in the scratch exceeded {SUITES_CAP}s: {exc}")
         self.assertEqual(
-            suites.returncode,
+            suites.exit,
             0,
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
@@ -1814,9 +1707,9 @@ class PythonServiceMakeProve(_RepoFreeze):
         self.assertGreaterEqual(int(ran.group(1)), 1, combined)
         self.assertNotIn("FAILED", combined)
         scope = self.root / "dry-run-scope.txt"
-        _plant_bytes(self, scope, b"fixture-apps slice-3 dry-run scope\n")
+        self.world.plant_bytes(scope, b"fixture-apps slice-3 dry-run scope\n")
         try:
-            dry = subprocess.run(
+            dry = run(
                 [
                     "bash",
                     str(made / "ops" / "bin" / "dispatch.sh"),
@@ -1830,17 +1723,14 @@ class PythonServiceMakeProve(_RepoFreeze):
                     str(scope),
                     "--dry-run",
                 ],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=DISPATCH_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"dispatch.sh --dry-run exceeded {DISPATCH_CAP}s: {exc}")
         self.assertEqual(
-            dry.returncode,
+            dry.exit,
             0,
             f"dispatch.sh --dry-run must resolve from the copied conf: "
             f"stdout={dry.stdout!r} stderr={dry.stderr!r}",
@@ -1896,7 +1786,7 @@ class PythonServiceMakeProve(_RepoFreeze):
         self.assertEqual(counts["unreachable"], 0, proc.stdout)
         self.assertEqual(counts["red"], len(EXPECTED_IDS), proc.stdout)
         self.assertEqual(counts["green"], 0, proc.stdout)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
     def test_prove_fixed_reports_every_probe_green(self):
         target = self.root / "prove-fixed"
@@ -1920,7 +1810,7 @@ class PythonServiceMakeProve(_RepoFreeze):
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["unreachable"], 0, proc.stdout)
         self.assertEqual(counts["green"], len(EXPECTED_IDS), proc.stdout)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
     def test_each_planted_fault_is_proved_by_its_own_probe(self):
         made = self.made_app("independent-probes")
@@ -2200,7 +2090,7 @@ class PythonServiceMakeProve(_RepoFreeze):
             # The injection string carries the marker's absolute path, so the
             # file lives under a nested directory named by it.
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text("payload\n", encoding="utf-8")
+            self.world.plant_text(target, "payload\n")
             with suppress(Exception):
                 service.export.checksum_file(target)
             self.assertFalse(
@@ -2285,23 +2175,19 @@ class PythonServiceMakeProve(_RepoFreeze):
 
     def test_ruff_check_green_on_a_fresh_make(self):
         made = self.made_app("ruff-fresh")
-        ruff = shutil.which("ruff")
-        self.assertIsNotNone(ruff, "INVALID: ruff not on PATH")
+        ruff = self.world.require("ruff")
         env = self.scratch_env()
         try:
-            lint = subprocess.run(
+            lint = run(
                 [ruff, "check", "."],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"ruff check exceeded {CHECK_CAP}s: {exc}")
         self.assertEqual(
-            lint.returncode,
+            lint.exit,
             0,
             f"ruff check . must be green on a fresh make: "
             f"stdout={lint.stdout!r} stderr={lint.stderr!r}",
@@ -2322,15 +2208,15 @@ class PythonServiceMakeProve(_RepoFreeze):
             "make copies tracked files only; a fresh scratch has no venv until install",
         )
         install = self.toolchain_install(made)
-        if install.returncode != 0:
+        if install.exit != 0:
             self.skipTest(
                 "UNREACHABLE: toolchain.install could not run "
-                f"(exit {install.returncode}): "
+                f"(exit {install.exit}): "
                 f"{(install.stderr or install.stdout or '').strip()[:400]}"
             )
         ready = self.toolchain_ready(made)
         self.assertEqual(
-            ready.returncode,
+            ready.exit,
             0,
             "toolchain.install must leave toolchain.ready green on a fresh make: "
             f"stdout={ready.stdout!r} stderr={ready.stderr!r}",
@@ -2340,20 +2226,17 @@ class PythonServiceMakeProve(_RepoFreeze):
         self.assertEqual(check, CHECK_CMD, "fresh make must carry the contract check")
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["bash", "-c", check],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"app check exceeded {CHECK_CAP}s: {exc}")
         combined = (proc.stdout or "") + (proc.stderr or "")
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"app check must be green on a fresh make when ready: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2371,7 +2254,7 @@ class PythonServiceMakeProve(_RepoFreeze):
         with self.subTest(stage="no-args"):
             proc = self.python_service(made, [])
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 2,
                 "python -m service with no verb refuses before acting",
             )
@@ -2399,10 +2282,10 @@ class PythonServiceMakeProve(_RepoFreeze):
                 input=GET_LINE + "\n",
             )
             self.assertIn(
-                proc.returncode,
+                proc.exit,
                 {0, 1},
                 "serve of a well-formed get is success or findings, not a refusal: "
-                f"exit={proc.returncode} stderr={proc.stderr!r}",
+                f"exit={proc.exit} stderr={proc.stderr!r}",
             )
             out_lines = [ln for ln in (proc.stdout or "").splitlines() if ln.strip()]
             self.assertEqual(
@@ -2423,7 +2306,7 @@ class PythonServiceMakeProve(_RepoFreeze):
             self.assertNotIn("WF_AGENT", env)
             proc = self.python_service(made, ["export", EXPORT_NAME], env=env)
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 2,
                 "export without identity refuses class identity",
             )
@@ -2444,7 +2327,7 @@ class PythonServiceMakeProve(_RepoFreeze):
             env["WF_AGENT"] = AGENT
             proc = self.python_service(made, ["export", EXPORT_NAME], env=env)
             err = proc.stderr or ""
-            if proc.returncode == 2:
+            if proc.exit == 2:
                 err_lines = [ln for ln in err.splitlines() if ln.strip()]
                 self.assertTrue(err_lines, err)
                 self.assertFalse(
@@ -2454,9 +2337,9 @@ class PythonServiceMakeProve(_RepoFreeze):
                 )
             else:
                 self.assertIn(
-                    proc.returncode,
+                    proc.exit,
                     {0, 1},
-                    f"export with identity is not an abort: exit={proc.returncode} "
+                    f"export with identity is not an abort: exit={proc.exit} "
                     f"stderr={err!r}",
                 )
 
@@ -2480,22 +2363,21 @@ class PythonServiceGrade(_RepoFreeze):
             "INVALID: ops/bin/fixture.sh missing; slice 1 must be merged",
         )
         data = LEVER.read_bytes()
-        self.staged.write_bytes(data)
-        landed = self.staged.read_bytes()
-        self.assertEqual(landed, data, "copy-lever-bytes did not land intact")
-        self.assertEqual(len(landed), len(data))
-        self.assertNotEqual(landed, ABSENT_STUB)
-        self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
+        self.world.plant_bytes(self.staged, data)
+        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
+        make_executable(self.staged)
 
     def _plant_findings_stub(self) -> None:
         path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        data = CALIBRATE_STUB.encode("utf-8")
-        _plant_bytes(self, path, data)
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        self.assertTrue(
+            CALIBRATE_STUB.is_file(),
+            f"INVALID: calibrate capture fixture missing: {CALIBRATE_STUB}",
+        )
+        body = CALIBRATE_STUB.read_text(encoding="utf-8")
+        self.world.tools.plant_executable(path, body)
 
     def _plant_lane_conf(self) -> None:
-        _plant_bytes(
-            self,
+        self.world.plant_bytes(
             self.repo / "ops" / "lane.conf",
             b"LANE_NAME='agentscient'\n",
         )
@@ -2512,7 +2394,7 @@ class PythonServiceGrade(_RepoFreeze):
         )
         if MANIFEST.is_file():
             data = MANIFEST.read_bytes()
-            _plant_bytes(self, dest, data)
+            self.world.plant_bytes(dest, data)
             self.assertEqual(dest.read_bytes(), data)
 
     def staged_manifest(self) -> Path:
@@ -2531,16 +2413,13 @@ class PythonServiceGrade(_RepoFreeze):
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         try:
-            return subprocess.run(
+            return run(
                 [str(self.staged), *argv],
-                cwd=str(self.repo),
+                cwd=self.repo,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=RUN_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {RUN_CAP}s: {exc}")
 
     def plant_record(self, findings: list[dict]) -> Path:
@@ -2553,7 +2432,7 @@ class PythonServiceGrade(_RepoFreeze):
         }
         raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
         path = self.root / f"{REC_ID}.json"
-        _plant_bytes(self, path, raw)
+        self.world.plant_bytes(path, raw)
         loaded = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(loaded["id"], REC_ID)
         self.assertEqual(len(loaded["result"]["envelope"]["findings"]), len(findings))
@@ -2638,7 +2517,7 @@ class PythonServiceGrade(_RepoFreeze):
         before = rec.read_bytes()
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score a planted review of {APP_NAME}: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2700,7 +2579,7 @@ class PythonServiceGrade(_RepoFreeze):
         rec = self.plant_record(findings)
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score independently found neighbour findings: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",

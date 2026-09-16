@@ -6,19 +6,58 @@ absent would stop every commit in a clone that merely lacks it, and
 passing a bad message would make the hook decorative.
 """
 
-import subprocess
 import unittest
+from types import SimpleNamespace
 
 # Imported as a MODULE, not `from test_hooks import HookContractTest`:
 # the from-form binds the class into this module's namespace and unittest
 # then discovers its 28 cases a second time here (44 -> 72 collected).
 import test_hooks
 
+from ops.testkit import World, run
+
 SPLIT = "subject\n\nbody.\n\nSource: original\n\nCo-Authored-By: A <a@x>\n"
 JOINED = "subject\n\nbody.\n\nSource: original\nCo-Authored-By: A <a@x>\n"
+TIMEOUT = 120
 
 
 class TheCommitMsgGate(test_hooks.HookContractTest):
+    def setUp(self):
+        self.world = World(prefix="commit-msg-gate-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
+
+    def env_for(self, wf_agent=test_hooks.WF, user="tester"):
+        extra = {}
+        if wf_agent is not None:
+            extra["WF_AGENT"] = wf_agent
+        if user is not None:
+            extra["USER"] = user
+        return self.world.env(extra)
+
+    def run_cmd(self, argv, cwd, env=None, expect=0):
+        result = run(
+            argv,
+            cwd=cwd,
+            env=env if env is not None else self.env_for(),
+            timeout=TIMEOUT,
+        )
+        if expect is not None:
+            self.assertEqual(
+                result.exit,
+                expect,
+                f"command {argv!r} in {cwd} exited {result.exit} "
+                f"(wanted {expect})\nstdout: {result.stdout}\n"
+                f"stderr: {result.stderr}",
+            )
+        return SimpleNamespace(
+            args=list(result.argv),
+            returncode=result.exit,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
+
     def prepared(self, with_checker):
         self.require_sources()
         repo = self.make_repo("gate")
@@ -33,23 +72,24 @@ class TheCommitMsgGate(test_hooks.HookContractTest):
         return repo
 
     def attempt(self, repo, message, content):
-        (repo / "f.txt").write_text(content, encoding="utf-8")
+        self.world.plant_text(repo / "f.txt", content)
         self.assertEqual((repo / "f.txt").read_text(encoding="utf-8"), content,
                          "INVALID: the change did not land")
         msg = repo / "m.txt"
-        msg.write_text(message, encoding="utf-8")
+        self.world.plant_text(msg, message)
         self.assertEqual(msg.read_text(encoding="utf-8"), message,
                          "INVALID: the message did not land")
         self.git(repo, "add", "f.txt")
-        proc = subprocess.run(
-            ["git", "commit", "-F", str(msg)], cwd=repo,
-            capture_output=True, text=True, check=False, env=self.env_for())
+        proc = self.run_cmd(
+            ["git", "commit", "-F", str(msg)], repo, env=self.env_for(), expect=None
+        )
         msg.unlink()
         return proc
 
     def count(self, repo):
-        out = subprocess.run(["git", "rev-list", "--count", "HEAD"], cwd=repo,
-                             capture_output=True, text=True, check=False)
+        out = self.run_cmd(
+            ["git", "rev-list", "--count", "HEAD"], repo, expect=None
+        )
         return int(out.stdout.strip() or 0)
 
     def test_a_split_block_is_refused(self):

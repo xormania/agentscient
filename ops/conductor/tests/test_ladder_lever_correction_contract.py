@@ -16,6 +16,8 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[3]
 LEVER = REPO / "ops" / "conductor" / "ladder-lever.md"
 README = REPO / "ops" / "conductor" / "findings" / "README.md"
@@ -148,7 +150,11 @@ class _LeverPin(unittest.TestCase):
 
     def setUp(self):
         self.assertTrue(LEVER.is_file(), f"missing {LEVER}")
-        self.lever = LEVER.read_text(encoding="utf-8")
+        self.world = World(prefix="ladder-contract-")
+        self.addCleanup(self.world.close)
+        self.lever_path = self.world.stage(LEVER)
+        self.readme_path = self.world.stage(README, "findings-README.md")
+        self.lever = self.lever_path.read_text(encoding="utf-8")
         self.assertTrue(self.lever.strip(), "ladder-lever.md is empty")
 
     def section(self, prefix: str) -> str:
@@ -294,7 +300,7 @@ class CitedVerbOnTheLedger(_LeverPin):
 
     def test_readme_names_the_cited_verb(self):
         self.assertTrue(README.is_file(), f"missing {README}")
-        text = README.read_text(encoding="utf-8")
+        text = self.readme_path.read_text(encoding="utf-8")
         self.assertTrue(text.strip(), "findings README is empty")
         mutant = "`cited` is unsupported and must not be implemented"
         self.assertTrue(bool(CITED_UNSUPPORTED.search(mutant)))
@@ -312,7 +318,7 @@ class CitedVerbOnTheLedger(_LeverPin):
 
     def test_readme_names_findings_py_as_the_citation_grammar_home(self):
         self.assertTrue(README.is_file(), f"missing {README}")
-        text = README.read_text(encoding="utf-8")
+        text = self.readme_path.read_text(encoding="utf-8")
         mutant = (
             "The grammar lives in findings.py, but the gate uses a private copy"
         )

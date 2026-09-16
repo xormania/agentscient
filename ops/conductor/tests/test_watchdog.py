@@ -21,22 +21,19 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import re
-import stat
-import subprocess
 import sys
-import tempfile
 import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from types import SimpleNamespace
 
 from live_store_guard import assert_unchanged
+
+from ops.testkit import Result, Timeout, World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "watchdog.py"
@@ -50,12 +47,6 @@ HARNESS = "watchdog-harness-aa31"
 OTHER_PROC = "watchdog-other-aa31"
 RUN_CAP = 30
 LOOP_CAP = 0.8
-
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 
 # Distinctive ids so a stray live job cannot satisfy a pin.
 RUN_ID = "20260904T100000Z-code-grok-aa3101"
@@ -161,6 +152,26 @@ SIZE_FILES = (KEEP_A, KEEP_B, KEEP_C, KEEP_D)
 MINUTES_OVERRUN = 120
 
 OMIT = object()
+
+
+class _Result(Result):
+    """Result compatibility for fixture subclasses outside this touch scope."""
+
+    @property
+    def returncode(self) -> int:
+        return self.exit
+
+
+def _result(result: Result) -> _Result:
+    return _Result(
+        result.argv,
+        result.exit,
+        result.stdout,
+        result.stderr,
+        result.duration,
+        result.cwd,
+    )
+
 
 # PIN_ARMED: first stdout line is always
 # `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`.
@@ -284,15 +295,12 @@ class _WatchdogFixture(unittest.TestCase):
 
     def setUp(self):
         self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._tmp = tempfile.TemporaryDirectory(prefix="watchdog-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.xdg = root / "xdg"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        for path in (self.home, self.xdg, self.scratch, self.bin):
-            path.mkdir()
+        self.world = World(prefix="watchdog-lever-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
+        self.scratch = self.world.cwd
         self.store = self.xdg / "agentscient" / "dispatch"
         self.home_store = (
             self.home / ".local" / "state" / "agentscient" / "dispatch"
@@ -305,68 +313,36 @@ class _WatchdogFixture(unittest.TestCase):
             self.home_store.exists(),
             "plant: isolated HOME store must start absent",
         )
-        self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
-        self.staged = self.scratch / "watchdog.py"
-        self._workers: list[subprocess.Popen] = []
-        self._stage_tool_bytes()
+        self._workers: list[threading.Thread] = []
+        self._worker_errors: list[BaseException] = []
+        self._process_serial = 0
+        self.staged = self.world.stage(TOOL, siblings=SIBLINGS)
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under XDG_STATE_HOME is the one
         # asserted.
         self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text(
-            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n", encoding="utf-8",
+        self.world.plant_text(
+            self.conf,
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n",
         )
-        self.assertFalse(
-            self.argv_log.exists(), "plant: argv log must start absent"
-        )
-        self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
+        self.assertEqual(self.world.tools.calls("gh"), [])
 
     def tearDown(self):
-        try:
-            for proc in self._workers:
-                if proc.poll() is None:
-                    proc.kill()
-                    with contextlib.suppress(subprocess.TimeoutExpired):
-                        proc.wait(timeout=2)
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
-        finally:
-            self._tmp.cleanup()
-
-    def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.assertTrue(self.staged.is_file())
+        for worker in self._workers:
+            worker.join(timeout=4)
+            self.assertFalse(worker.is_alive(), "owned worker thread outlived world")
+        self.assertEqual(self._worker_errors, [])
+        assert_unchanged(
+            self,
+            self._live_before,
+            {str(p): _store_snap(p) for p in _live_store_paths()},
+        )
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
-
-    def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
 
     def ensure_store(self, store: Path | None = None) -> Path:
         dest = store if store is not None else self.store
@@ -508,61 +484,61 @@ class _WatchdogFixture(unittest.TestCase):
         return job_dir
 
     def spawn_named(self, token: str) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(120)", token],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        self._workers.append(proc)
+        self._process_serial += 1
+        name = f"watchdog-worker-{self._process_serial}"
+        worker_tool = self.world.tools.plant(name, delay=30)
+
+        def hold_worker() -> None:
+            try:
+                run(
+                    [str(worker_tool), token],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=2.5,
+                )
+            except Timeout:
+                pass
+            except BaseException as exc:
+                self._worker_errors.append(exc)
+
+        worker = threading.Thread(target=hold_worker, name=name)
+        worker.start()
+        self._workers.append(worker)
         needle = token.encode("utf-8")
         cmdline = b""
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline:
-            self.assertIsNone(proc.poll(), "INVALID: named worker exited")
-            path = Path(f"/proc/{proc.pid}/cmdline")
+            calls = self.world.tools.calls(name)
+            if not calls:
+                time.sleep(0.02)
+                continue
+            pid = calls[0]["pid"]
+            path = Path(f"/proc/{pid}/cmdline")
             if path.is_file():
                 cmdline = path.read_bytes()
                 if needle in cmdline:
-                    return proc.pid
+                    return pid
             time.sleep(0.02)
         self.assertIn(needle, cmdline, "INVALID: worker cmdline missing token")
-        return proc.pid
+        return pid
 
     def dead_pid(self) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "pass"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        self._process_serial += 1
+        name = f"watchdog-dead-{self._process_serial}"
+        dead_tool = self.world.tools.plant(name)
+        result = run(
+            [str(dead_tool)],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=5,
         )
-        proc.wait(timeout=5)
-        self.assertIsNotNone(proc.poll(), "INVALID: dead pid still running")
+        self.assertEqual(result.exit, 0, result.stderr)
+        calls = self.world.tools.calls(name)
+        self.assertEqual(len(calls), 1)
+        pid = calls[0]["pid"]
         with self.assertRaises(ProcessLookupError):
-            os.kill(proc.pid, 0)
-        return proc.pid
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text("
-            "prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
-            "argv = sys.argv[1:]\n"
-            "joined = ' '.join(argv)\n"
-            "wants_json = '--json' in joined or any(\n"
-            "    a.startswith('--json') for a in argv)\n"
-            "def _num():\n"
-            "    for a in argv:\n"
-            "        s = a[1:] if a.startswith('#') else a\n"
-            "        if s.isdigit():\n"
-            "            return s\n"
-            "    return ''\n"
-        )
+            os.kill(pid, 0)
+        return pid
 
     def plant_gh(
         self,
@@ -576,58 +552,34 @@ class _WatchdogFixture(unittest.TestCase):
         prs = list(prs or [])
         checks = dict(checks or {})
         fail_checks = tuple(fail_checks)
-        body = (
-            self._gh_preamble()
-            + f"prs = json.loads({json.dumps(json.dumps(prs))})\n"
-            + f"checks = json.loads({json.dumps(json.dumps(checks))})\n"
-            + f"fail_checks = set({json.dumps(list(fail_checks))})\n"
-            + f"list_exit = {list_exit}\n"
-            + f"list_stderr = {list_stderr!r}\n"
-            + "if 'list' in argv:\n"
-            + "    sys.stderr.write(list_stderr)\n"
-            + "    if list_exit != 0:\n"
-            + "        raise SystemExit(list_exit)\n"
-            + "    if wants_json:\n"
-            + "        sys.stdout.write(json.dumps(prs) + '\\n')\n"
-            + "    else:\n"
-            + "        for row in prs:\n"
-            + "            sys.stdout.write("
-            "f\"{row.get('number')}\\t{row.get('title', '')}"
-            "\\tbranch\\tOPEN\\n\")\n"
-            + "    raise SystemExit(0)\n"
-            + "if 'checks' in argv:\n"
-            + "    num = _num()\n"
-            + "    if num in fail_checks:\n"
-            + "        sys.stderr.write('gh pr checks failed for ' + num)\n"
-            + "        raise SystemExit(1)\n"
-            + "    rows = checks.get(num, [])\n"
-            + "    if wants_json:\n"
-            + "        sys.stdout.write(json.dumps(rows) + '\\n')\n"
-            + "    else:\n"
-            + "        for row in rows:\n"
-            + "            bucket = row.get('bucket', 'fail')\n"
-            + "            sys.stdout.write("
-            "f\"{row.get('name')}\\t{bucket}\\t0s\\turl\\n\")\n"
-            + "    raise SystemExit(0)\n"
-            + "if 'view' in argv:\n"
-            + "    num = _num()\n"
-            + "    match = next((p for p in prs "
-            "if str(p.get('number')) == num), None)\n"
-            + "    if match is None:\n"
-            + "        raise SystemExit(1)\n"
-            + "    sys.stdout.write(json.dumps("
-            "{'number': match.get('number'), "
-            "'headRefOid': match.get('headRefOid')}) + '\\n')\n"
-            + "    raise SystemExit(0)\n"
-            + "raise SystemExit(1)\n"
-        )
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        self.assertEqual(
-            self.gh.read_text(encoding="utf-8"),
-            body,
-            "gh stub plant did not land intact",
-        )
+        responses = [{
+            "match": ["pr", "list"],
+            "stdout": json.dumps(prs) + "\n",
+            "stderr": list_stderr,
+            "exit": list_exit,
+        }]
+        for number, rows in checks.items():
+            responses.append({
+                "match": ["checks", str(number)],
+                "stdout": json.dumps(rows) + "\n",
+                "exit": 0,
+            })
+        for number in fail_checks:
+            responses.append({
+                "match": ["checks", str(number)],
+                "stderr": f"gh pr checks failed for {number}",
+                "exit": 1,
+            })
+        for pr in prs:
+            responses.append({
+                "match": ["view", str(pr["number"])],
+                "stdout": json.dumps({
+                    "number": pr["number"],
+                    "headRefOid": pr.get("headRefOid"),
+                }) + "\n",
+                "exit": 0,
+            })
+        self.world.tools.plant("gh", exit=1, responses=responses)
 
     def plant_default_forge(self) -> None:
         self.plant_gh(
@@ -679,17 +631,11 @@ class _WatchdogFixture(unittest.TestCase):
         extra: dict[str, str] | None = None,
         home: Path | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": str(self.bin) + os.pathsep + os.environ.get(
-                "PATH", "/usr/bin:/bin"
-            ),
-            "HOME": str(home if home is not None else self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
+        env = self.world.env({
             "LANE_CONF": str(self.conf),
             "PYTHONUNBUFFERED": "1",
-        }
+        })
+        env["HOME"] = str(home if home is not None else self.home)
         self.assertNotIn("WF_AGENT", env)
         self.assertNotIn("DISPATCH_JOBS", env)
         if xdg is False:
@@ -697,7 +643,7 @@ class _WatchdogFixture(unittest.TestCase):
         elif xdg is not None:
             env["XDG_STATE_HOME"] = str(xdg)
         else:
-            self.assertNotIn("XDG_STATE_HOME", env)
+            env.pop("XDG_STATE_HOME", None)
         if extra:
             env.update(extra)
         return env
@@ -710,22 +656,18 @@ class _WatchdogFixture(unittest.TestCase):
         xdg: Path | str | None = False,
         timeout: float = RUN_CAP,
         home: Path | None = None,
-    ):
+    ) -> Result:
         env = self.env(xdg=xdg, extra=extra_env, home=home)
         if extra_env is None or "WF_AGENT" not in extra_env:
             self.assertNotIn("WF_AGENT", env)
-        try:
-            return subprocess.run(
+        return _result(
+            run(
                 [sys.executable, "-u", str(self.staged), *argv],
-                cwd=str(REPO),
+                cwd=REPO,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"watchdog exceeded {timeout}s: {exc}")
+        )
 
     def once(
         self,
@@ -737,7 +679,7 @@ class _WatchdogFixture(unittest.TestCase):
         xdg: Path | str | None = False,
         timeout: float = RUN_CAP,
         home: Path | None = None,
-    ):
+    ) -> Result:
         argv = ["--once", "--tick", str(tick)]
         if not forge:
             argv.append("--no-forge")
@@ -760,16 +702,9 @@ class _WatchdogFixture(unittest.TestCase):
         xdg: Path | str | None = False,
         mutate=None,
         mutate_after: float = 0.2,
-    ):
+    ) -> Result:
         env = self.env(xdg=xdg, extra=extra_env)
-        proc = subprocess.Popen(
-            [sys.executable, "-u", str(self.staged), *argv],
-            cwd=str(REPO),
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+        timeout_tool = self.world.require("timeout")
         mutator = None
         if mutate is not None:
             def _run_mutate():
@@ -779,23 +714,26 @@ class _WatchdogFixture(unittest.TestCase):
             mutator = threading.Thread(target=_run_mutate)
             mutator.start()
         try:
-            try:
-                stdout, stderr = proc.communicate(timeout=seconds)
-            except subprocess.TimeoutExpired:
-                proc.terminate()
-                try:
-                    stdout, stderr = proc.communicate(timeout=2)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    stdout, stderr = proc.communicate(timeout=2)
+            return _result(
+                run(
+                    [
+                        timeout_tool,
+                        "--signal=TERM",
+                        "--kill-after=2",
+                        str(seconds),
+                        sys.executable,
+                        "-u",
+                        str(self.staged),
+                        *argv,
+                    ],
+                    cwd=REPO,
+                    env=env,
+                    timeout=seconds + 3,
+                )
+            )
         finally:
             if mutator is not None:
                 mutator.join(timeout=2)
-        return SimpleNamespace(
-            returncode=proc.returncode,
-            stdout=stdout or "",
-            stderr=stderr or "",
-        )
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -845,37 +783,11 @@ class _WatchdogFixture(unittest.TestCase):
 
     def assert_refusal(self, proc, class_name: str) -> None:
         err = proc.stderr or ""
-        compact = err.lower().replace("_", "-")
-        token = class_name.lower().replace("_", "-")
-        spaced = token.replace("-", " ")
-        self.assertTrue(
-            token in compact or spaced in err.lower(),
-            f"refusal class {class_name!r} not named in stderr: {err!r}",
-        )
-        self.assertEqual(proc.returncode, 2, err)
-        self.assertTrue(err.strip(), "refusal was silent")
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-        lower = err.lower()
-        self.assertIn("expected", lower)
-        self.assertIn("found", lower)
-        self.assertIn("needed", lower)
-        self.assertLess(lower.index("expected"), lower.index("found"), err)
-        self.assertLess(lower.index("found"), lower.index("needed"), err)
-        self.assertEqual(
-            (proc.stdout or "").strip(),
-            "",
-            "refusal text belongs on stderr, not stdout",
-        )
+        refusal = proc.refusal()
+        self.assertEqual(refusal.cls, class_name, err)
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [row["argv"] for row in self.world.tools.calls("gh")]
 
     def deviation_lines(self, proc, rec_id: str | None = None) -> list[str]:
         lines = [
@@ -1055,13 +967,13 @@ class ArmedAndOnce(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(tick="1")
         self.assert_armed(proc, store=self.store, ignored=0, tick="1")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_once_exits_0_without_sleeping_the_tick(self):
         self.ensure_store()
         proc = self.once(tick="10", timeout=4)
         self.assert_armed(proc, store=self.store, tick="10")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_watchdog_tick_env_is_used_when_flag_absent(self):
         self.ensure_store()
@@ -1070,7 +982,7 @@ class ArmedAndOnce(_WatchdogFixture):
             extra_env={"WATCHDOG_TICK": "7"},
         )
         self.assert_armed(proc, store=self.store, tick="7")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class StoreResolution(_WatchdogFixture):
@@ -1091,7 +1003,7 @@ class StoreResolution(_WatchdogFixture):
         self.assertIn(FLAG_ID, out)
         self.assertNotIn(JOBS_ID, out)
         self.assertNotIn(XDG_ID, out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_dispatch_jobs_wins_over_xdg(self):
         jobs_store = self.scratch / "jobs-store"
@@ -1102,7 +1014,7 @@ class StoreResolution(_WatchdogFixture):
         out = proc.stdout or ""
         self.assertIn(JOBS_ID, out)
         self.assertNotIn(XDG_ID, out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_xdg_state_home_wins_over_home(self):
         self.plant_job(XDG_ID, store=self.store, pid=self.dead_pid())
@@ -1112,14 +1024,14 @@ class StoreResolution(_WatchdogFixture):
         out = proc.stdout or ""
         self.assertIn(XDG_ID, out)
         self.assertNotIn(HOME_ID, out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_home_state_is_read_when_xdg_is_unset(self):
         self.plant_job(HOME_ID, store=self.home_store, pid=self.dead_pid())
         proc = self.once(xdg=None)
         self.assert_armed(proc, store=self.home_store)
         self.assertIn(HOME_ID, proc.stdout or "")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class Refusals(_WatchdogFixture):
@@ -1177,8 +1089,8 @@ class Refusals(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(extra=["--warn-fraction", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertNotEqual(proc.returncode, 2)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertNotEqual(proc.exit, 2)
 
 
 class RunningAndGone(_WatchdogFixture):
@@ -1197,7 +1109,7 @@ class RunningAndGone(_WatchdogFixture):
         self.assertEqual(len(beats), 1, out)
         self.assertIn(RUN_ID, beats[0])
         self.assertIn("running=", beats[0])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_dead_pid_without_exit_is_harness_gone_and_not_running(self):
         pid = self.dead_pid()
@@ -1213,7 +1125,7 @@ class RunningAndGone(_WatchdogFixture):
         self.assertEqual(len(beats), 1, out)
         running = beats[0].split("settling=")[0]
         self.assertNotIn(GONE_ID, running)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_live_pid_without_harness_name_is_harness_gone(self):
         pid = self.spawn_named(OTHER_PROC)
@@ -1228,7 +1140,7 @@ class RunningAndGone(_WatchdogFixture):
         self.assertEqual(len(beats), 1, proc.stdout)
         running = beats[0].split("settling=")[0]
         self.assertNotIn(REUSE_ID, running)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class Settling(_WatchdogFixture):
@@ -1253,7 +1165,7 @@ class Settling(_WatchdogFixture):
             self.named_lines(proc, f"exit written, not collected {SETTLE_ID}"),
             proc.stdout,
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_settling_line_prints_on_the_second_tick(self):
         pid = self.dead_pid()
@@ -1295,7 +1207,7 @@ class ClosedRecords(_WatchdogFixture):
             self.named_lines(proc, f"closed {CLOSE_OK_ID}"),
             proc.stdout,
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_closed_ok_empty_changed_with_report_existing(self):
         launched = "2026-09-04T10:00:00Z"
@@ -1315,7 +1227,7 @@ class ClosedRecords(_WatchdogFixture):
             lines[0],
             f"closed {CLOSE_OK_ID} status=closed env=ok changed=0 after 12 min",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_closed_tripped_nonempty_changed_with_report_existing(self):
         launched = "2026-09-04T11:00:00Z"
@@ -1335,7 +1247,7 @@ class ClosedRecords(_WatchdogFixture):
             f"closed {CLOSE_TRIP_ID} status=closed env=tripped "
             "changed=2 after 5 min",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_closed_missing_changed_paths_is_unknown(self):
         launched = "2026-09-04T12:00:00Z"
@@ -1361,7 +1273,7 @@ class ClosedRecords(_WatchdogFixture):
             f"closed {CLOSE_UNK_ID} status=closed env=ok "
             "changed=unknown after 8 min",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_died_is_closed_and_reported_with_report_existing(self):
         launched = "2026-09-04T13:00:00Z"
@@ -1380,7 +1292,7 @@ class ClosedRecords(_WatchdogFixture):
             lines[0],
             f"closed {DIED_ID} status=died env=invalid changed=0 after 3 min",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_closed_after_start_is_reported_without_report_existing(self):
         pid = self.spawn_named(HARNESS)
@@ -1397,7 +1309,10 @@ class ClosedRecords(_WatchdogFixture):
                 env_status="ok",
                 changed_paths=["ops/conductor/watchdog-lever.md"],
             )
-            rec_path.write_text(json.dumps(payload, indent=2) + "\n")
+            self.world.plant_text(
+                rec_path,
+                json.dumps(payload, indent=2) + "\n",
+            )
             landed = json.loads(rec_path.read_text(encoding="utf-8"))
             self.assertEqual(landed["status"], "closed")
 
@@ -1451,7 +1366,7 @@ class LongRunning(_WatchdogFixture):
             lines[0],
             rf"long {re.escape(LONG_REC_ID)}: \d+ min running, wall 15 min",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_long_uses_job_catalogue_when_record_has_no_timeout(self):
         pid = self.spawn_named(HARNESS)
@@ -1470,7 +1385,7 @@ class LongRunning(_WatchdogFixture):
         lines = self.named_lines(proc, f"long {LONG_JOB_ID}:")
         self.assertEqual(len(lines), 1, proc.stdout)
         self.assertIn(f"wall {wall_min} min", lines[0])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_long_wall_unknown_uses_fixed_40_minutes(self):
         pid = self.spawn_named(HARNESS)
@@ -1486,7 +1401,7 @@ class LongRunning(_WatchdogFixture):
         lines = self.named_lines(proc, f"long {LONG_UNK_ID}:")
         self.assertEqual(len(lines), 1, proc.stdout)
         self.assertIn("wall unknown", lines[0])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_recent_running_is_not_long(self):
         pid = self.spawn_named(HARNESS)
@@ -1505,7 +1420,7 @@ class LongRunning(_WatchdogFixture):
         beats = self.heartbeat_lines(proc)
         self.assertEqual(len(beats), 1, proc.stdout)
         self.assertIn(RUN_ID, beats[0])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_long_respects_warn_fraction(self):
         pid = self.spawn_named(HARNESS)
@@ -1529,7 +1444,7 @@ class LongRunning(_WatchdogFixture):
         lines = self.named_lines(half, f"long {LONG_REC_ID}:")
         self.assertEqual(len(lines), 1, half.stdout)
         self.assertIn("wall 60 min", lines[0])
-        self.assertEqual(half.returncode, 0, self.combined(half))
+        self.assertEqual(half.exit, 0, self.combined(half))
 
 
 class TickError(_WatchdogFixture):
@@ -1548,7 +1463,7 @@ class TickError(_WatchdogFixture):
         self.assertEqual(len(err_lines), 1, text)
         self.assertIn("the loop continues", err_lines[0])
         self.assertRegex(err_lines[0], r"\(tick \d+")
-        self.assertEqual(proc.returncode, 0, text)
+        self.assertEqual(proc.exit, 0, text)
 
 
 class ForgeAndHeartbeat(_WatchdogFixture):
@@ -1566,14 +1481,14 @@ class ForgeAndHeartbeat(_WatchdogFixture):
         self.assertIn("launchers=", beat)
         self.assertIn("open PRs into dev=", beat)
         self.assertIn("not watched", beat)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_default_heartbeat_every_does_not_print_on_the_first_tick(self):
         self.ensure_store()
         proc = self.once()
         self.assert_armed(proc, store=self.store)
         self.assertFalse(self.heartbeat_lines(proc), proc.stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_no_forge_does_not_call_gh_and_heartbeat_says_not_watched(self):
         self.ensure_store()
@@ -1585,7 +1500,7 @@ class ForgeAndHeartbeat(_WatchdogFixture):
         self.assertEqual(len(beats), 1, proc.stdout)
         self.assertIn("not watched", beats[0])
         self.assertFalse(self.named_lines(proc, "ci "), proc.stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_forge_fail_and_cancel_every_check_and_unreachable_heartbeat(self):
         self.ensure_store()
@@ -1636,7 +1551,7 @@ class ForgeAndHeartbeat(_WatchdogFixture):
             {PR_FAIL, PR_CANCEL, PR_UNREACH},
             f"gh pr checks not called per open PR: {argvs!r}",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class NoIdentity(_WatchdogFixture):
@@ -1649,7 +1564,7 @@ class NoIdentity(_WatchdogFixture):
         err = (proc.stderr or "").lower()
         self.assertNotIn("identity", err)
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class ReadOnly(_WatchdogFixture):
@@ -1665,7 +1580,7 @@ class ReadOnly(_WatchdogFixture):
         }
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         after = _tree_files(self.store)
         self.assertEqual(after, before, "watchdog wrote a new store file")
         for rel, data in before_bytes.items():
@@ -1691,7 +1606,7 @@ class Deviations(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store, ignored=0)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.heartbeat_deviation_count(proc), 0)
         self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
 
@@ -1712,7 +1627,7 @@ class Deviations(_WatchdogFixture):
         self.assertIn(KEEP_B, rec["brief"]["scope"])
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.heartbeat_deviation_count(proc), 0)
         self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
         self.assertFalse(
@@ -1739,7 +1654,7 @@ class Deviations(_WatchdogFixture):
         self.assertIn("hermetic substitute", note)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "assumption", ASSUME_ID)
 
     def test_each_listed_assumption_token_in_a_note_prints_once(self):
@@ -1759,7 +1674,7 @@ class Deviations(_WatchdogFixture):
             self.assertIn(word, planted["result"]["envelope"]["note"])
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         for rec_id, word in zip(ASSUME_WORD_IDS, ASSUMPTION_WORDS, strict=True):
             with self.subTest(word=word):
                 self.assert_only_deviation(proc, "assumption", rec_id)
@@ -1789,7 +1704,7 @@ class Deviations(_WatchdogFixture):
         self.assertIn("stub", claim)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "assumption", rec_id)
 
     def test_lock_file_outside_bucket_prints_deviation_lock_once(self):
@@ -1811,7 +1726,7 @@ class Deviations(_WatchdogFixture):
             self.assertNotIn(lock, planted["brief"]["scope"])
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         for rec_id, lock in zip(LOCK_IDS, LOCK_FILES, strict=True):
             with self.subTest(lock=lock):
                 self.assert_deviation_once(proc, "lock", rec_id)
@@ -1835,7 +1750,7 @@ class Deviations(_WatchdogFixture):
         self.assertEqual(len(paths), 2)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "bucket", BUCKET_PATH_ID)
 
     def test_changed_count_above_size_class_prints_deviation_bucket_once(self):
@@ -1857,7 +1772,7 @@ class Deviations(_WatchdogFixture):
             self.assertIn(path, planted["brief"]["scope"])
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_deviation_once(proc, "bucket", BUCKET_COUNT_ID)
 
     def test_tests_round_above_size_class_prints_deviation_size_once(self):
@@ -1881,7 +1796,7 @@ class Deviations(_WatchdogFixture):
             self.assertIn(path, planted["brief"]["scope"])
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_deviation_once(proc, "size", SIZE_ID)
 
     def test_tests_round_with_errors_prints_deviation_errors_once(self):
@@ -1902,7 +1817,7 @@ class Deviations(_WatchdogFixture):
         self.assertEqual(planted["job"], JOB_TESTS)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "errors", ERRORS_ID)
 
     def test_tripped_envelope_carrying_findings_prints_deviation_envelope_once(
@@ -1925,7 +1840,7 @@ class Deviations(_WatchdogFixture):
         self.assertGreaterEqual(len(env["findings"]), 1)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "envelope", ENV_TRIP_ID)
 
     def test_invalid_envelope_carrying_changed_paths_prints_deviation_envelope_once(
@@ -1950,7 +1865,7 @@ class Deviations(_WatchdogFixture):
         )
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "envelope", ENV_INV_ID)
 
     def test_refused_dispatch_prints_deviation_refused_once(self):
@@ -1974,7 +1889,7 @@ class Deviations(_WatchdogFixture):
         self.assertIn("needed", stderr)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "refused", REFUSED_ID)
 
     def test_retried_ladder_stage_prints_deviation_retry_once(self):
@@ -2015,7 +1930,7 @@ class Deviations(_WatchdogFixture):
         self.assertIn(2, attempts)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "retry", RETRY_LADDER_ID)
 
     def test_stopped_ladder_prints_deviation_retry_once(self):
@@ -2056,7 +1971,7 @@ class Deviations(_WatchdogFixture):
         )
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "retry", STOP_LADDER_ID)
 
     def test_minutes_beyond_calibration_print_deviation_minutes_once(self):
@@ -2080,7 +1995,7 @@ class Deviations(_WatchdogFixture):
         self.assertEqual(planted["job"], JOB_TESTS)
         proc = self.once()
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "minutes", MINUTES_ID)
 
     def test_heartbeat_carries_the_deviation_count(self):
@@ -2092,7 +2007,7 @@ class Deviations(_WatchdogFixture):
         )
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assert_only_deviation(proc, "assumption", ASSUME_ID)
         self.assertEqual(self.heartbeat_deviation_count(proc), 1)
 

@@ -19,6 +19,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 CONTRACT = support.REPO / "ops" / "devlane" / "task" / "CONTRACT.md"
 
 OLD_FILE_DELIVERABLE = "a skeptic's report at `out/SKEPTIC.md`"
@@ -194,8 +196,11 @@ class _ContractPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(CONTRACT.is_file(), f"missing {CONTRACT}")
-        self.text = CONTRACT.read_text(encoding="utf-8")
+        self.world = World(prefix="check-tests-contract-")
+        self.addCleanup(self.world.close)
+        self.contract = self.world.stage(CONTRACT)
+        self.assertTrue(self.contract.is_file(), f"missing {self.contract}")
+        self.text = self.contract.read_text(encoding="utf-8")
         self.assertTrue(self.text.strip(), "CONTRACT.md is empty")
 
     def jobs_deliverable(self, ident: str) -> str:

@@ -13,23 +13,19 @@ exercises class envelope without a ladder run.
 
 from __future__ import annotations
 
-import subprocess
 import sys
 import unittest
-from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_instrument_conventions import (  # noqa: E402
+from test_instrument_conventions import (
     REGISTRY_DIR,
     read_registry,
 )
-from test_ladder_lever import (  # noqa: E402
+from test_ladder_lever import (
     RUN_CAP,
     _LadderFixture,
 )
+
+from ops.testkit import run
 
 
 def _envelope_rows():
@@ -69,7 +65,7 @@ class EnvelopeRefusalSpeaksTheWire(_LadderFixture):
 
     def assert_envelope_wire(self, proc) -> str:
         err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err or proc.stdout)
+        self.assertEqual(proc.exit, 2, err or proc.stdout)
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
         line = lines[0]
@@ -94,14 +90,11 @@ class EnvelopeRefusalSpeaksTheWire(_LadderFixture):
             "item 7: ladder.py must register a hermetic envelope invocation",
         )
         row = rows[0]
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(self.staged), *row.argv],
             cwd=str(self.invoke_cwd),
             env=self.env(),
-            input="",
-            capture_output=True,
-            text=True,
-            check=False,
+            stdin="",
             timeout=RUN_CAP,
         )
         self.assert_envelope_wire(proc)

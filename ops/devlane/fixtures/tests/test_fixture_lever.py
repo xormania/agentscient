@@ -24,11 +24,11 @@ import json
 import os
 import re
 import shutil
-import stat
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import Result, Timeout, World, make_executable, run
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
@@ -126,15 +126,6 @@ COUNTS_RE = re.compile(
 )
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    names = tuple(sorted(p.name for p in path.iterdir()))
-    return ("dir", names)
-
-
 def _live_fixture_roots() -> list[Path]:
     paths: list[Path] = []
     xdg = os.environ.get("XDG_STATE_HOME")
@@ -186,30 +177,34 @@ def _unified_patch(relpath: str, before: str, after: str) -> str:
     return f"diff --git a/{relpath} b/{relpath}\n{body}"
 
 
+def _completed(result: Result) -> subprocess.CompletedProcess:
+    """The kit's Result in the shape the family's assertions read."""
+    return subprocess.CompletedProcess(
+        list(result.argv), result.exit, result.stdout, result.stderr
+    )
+
+
+def _as_result(proc) -> Result:
+    if isinstance(proc, Result):
+        return proc
+    return Result(
+        tuple(proc.args or ()),
+        proc.returncode,
+        proc.stdout or "",
+        proc.stderr or "",
+        0.0,
+        "",
+    )
+
+
 def assert_refusal_wire(testcase: unittest.TestCase, proc, class_name: str) -> None:
     """Pin `class: expected …; found …; needed …` as a leading token."""
-    err = proc.stderr or ""
-    testcase.assertEqual(proc.returncode, 2, err)
-    testcase.assertTrue(err.strip(), "refusal was silent")
-    lines = [ln for ln in err.splitlines() if ln.strip()]
-    testcase.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-    line = lines[0]
+    refusal = _as_result(proc).refusal()
     token = class_name.lower().replace("_", "-")
-    head = line.split(":", 1)[0].strip().lower().replace("_", "-")
     testcase.assertEqual(
-        head,
+        refusal.cls,
         token,
-        f"refusal class must be the leading token {token!r}: {line!r}",
-    )
-    lower = line.lower()
-    for word in ("expected", "found", "needed"):
-        testcase.assertIn(word, lower, err)
-    testcase.assertLess(lower.index("expected"), lower.index("found"), err)
-    testcase.assertLess(lower.index("found"), lower.index("needed"), err)
-    testcase.assertEqual(
-        (proc.stdout or "").strip(),
-        "",
-        "refusal text belongs on stderr, not stdout",
+        f"refusal class must be the leading token {token!r}: {refusal.line!r}",
     )
 
 
@@ -217,31 +212,25 @@ class _LeverFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged lever copy, live fixture roots frozen."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self.assertIsNotNone(shutil.which("bash"), "INVALID: bash not on PATH")
-        self._live_before = {
-            str(path): _store_snap(path) for path in _live_fixture_roots()
-        }
-        self._head_before = subprocess.run(
+        self.world = World(prefix="fixture-lever-")
+        self.world.require("git")
+        self.world.require("bash")
+        self._live = self.world.watch(*_live_fixture_roots(), contents=False)
+        self._head_before = run(
             ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=self.world.env(),
+            timeout=RUN_CAP,
         ).stdout
-        self._diff_before = subprocess.run(
+        self._diff_before = run(
             ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
+            cwd=REPO,
+            env=self.world.env(),
+            timeout=RUN_CAP,
         ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="fixture-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.repo = root / "repo"
-        self.home.mkdir()
-        self.repo.mkdir()
+        self.root = self.world.root
+        self.home = self.world.home
+        self.repo = self.world.cwd
         self.staged = self.repo / "ops" / "bin" / "fixture.sh"
         self._stage_lever_bytes()
         self.app_root = (
@@ -250,8 +239,10 @@ class _LeverFixture(unittest.TestCase):
         self.copy_rel = "ops/bin/copied.txt"
         self.conf_path = self.root / "lane.conf"
         # The lane conf the lever reads its lane name from, apart from the copy list.
-        self.lane_conf_path = self.root / "lane-conf.sh"
-        self.lane_conf_path.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.lane_conf_path = self.world.plant_text(
+            self.root / "lane-conf.sh",
+            "LANE_NAME='agentscient'\n",
+        )
         self.seeded = False
         self._linked = None
 
@@ -265,24 +256,19 @@ class _LeverFixture(unittest.TestCase):
                     str(self._linked),
                     check=False,
                 )
-            self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_fixture_roots()},
-                self._live_before,
-                "live fixture state mutated",
-            )
-            head_after = subprocess.run(
+            self._live.assert_unchanged(self, "live fixture state mutated")
+            head_after = run(
                 ["git", "rev-parse", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
+                cwd=REPO,
+                env=self.world.env(),
+                timeout=RUN_CAP,
             ).stdout
             self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
-            diff_after = subprocess.run(
+            diff_after = run(
                 ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
+                cwd=REPO,
+                env=self.world.env(),
+                timeout=RUN_CAP,
             ).stdout
             self.assertEqual(
                 diff_after,
@@ -290,53 +276,38 @@ class _LeverFixture(unittest.TestCase):
                 "real repo tracked files mutated",
             )
         finally:
-            self._tmp.cleanup()
+            self.world.close()
 
     def _stage_lever_bytes(self) -> None:
-        self.staged.parent.mkdir(parents=True, exist_ok=True)
+        staged = self.world.stage(LEVER, "fixture.sh")
+        data = staged.read_bytes() if LEVER.is_file() else ABSENT_STUB
+        self.staged = self.world.plant_bytes(self.staged, data)
+        make_executable(self.staged)
+        landed = self.staged.read_bytes()
+        self.assertEqual(landed, data, "copy-lever-bytes did not land intact")
+        self.assertEqual(len(landed), len(data))
         if LEVER.is_file():
-            data = LEVER.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-lever-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
+            self.assertEqual(landed, LEVER.read_bytes())
             self.assertNotEqual(landed, ABSENT_STUB)
         else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
             self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
         self.assertTrue(self.staged.is_file())
         self.assertTrue(os.access(self.staged, os.X_OK), self.staged)
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
+        self.world.plant_bytes(path, data)
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
+        """The world's environment with the scratch owner's identity."""
+        return self.world.env({
             "GIT_AUTHOR_NAME": REPO_USER,
             "GIT_AUTHOR_EMAIL": REPO_EMAIL,
             "GIT_COMMITTER_NAME": REPO_USER,
             "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = _completed(run(
             [
                 "git",
                 "-c",
@@ -347,12 +318,10 @@ class _LeverFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            timeout=RUN_CAP,
+        ))
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -368,29 +337,25 @@ class _LeverFixture(unittest.TestCase):
         lane_conf: str | bool | None = True,
         extra: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
-        self.assertNotIn("XDG_STATE_HOME", env)
+        extra_env: dict[str, str] = {"TZ": "UTC"}
         if agent is not None:
-            env["WF_AGENT"] = agent
-        env["LANE_CONF"] = str(self.lane_conf_path)
+            extra_env["WF_AGENT"] = agent
+        extra_env["LANE_CONF"] = str(self.lane_conf_path)
         if lane_conf is True:
-            env["FIXTURE_COPY_LIST"] = str(self.conf_path)
+            extra_env["FIXTURE_COPY_LIST"] = str(self.conf_path)
         elif isinstance(lane_conf, str):
-            env["FIXTURE_COPY_LIST"] = lane_conf
+            extra_env["FIXTURE_COPY_LIST"] = lane_conf
         if extra:
-            env.update(extra)
+            extra_env.update(extra)
+        env = self.world.env(extra_env)
+        # World.env always sets XDG_STATE_HOME; the lever's default DIR
+        # is under HOME when that name is unset, which this family pins.
+        if "XDG_STATE_HOME" not in extra_env:
+            env.pop("XDG_STATE_HOME", None)
+            self.assertNotIn("XDG_STATE_HOME", env)
+        # The lever's make-commit identity is WF_AGENT, not the world's.
+        for name in [k for k in env if k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))]:
+            del env[name]
         return env
 
     def invoke(
@@ -406,16 +371,13 @@ class _LeverFixture(unittest.TestCase):
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         try:
-            return subprocess.run(
+            return _completed(run(
                 [str(self.staged), *argv],
-                cwd=str(self.repo),
+                cwd=self.repo,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
-            )
-        except subprocess.TimeoutExpired as exc:
+            ))
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
     def assert_refusal(self, proc, class_name: str) -> None:
@@ -859,45 +821,23 @@ class MakeCopies(_LeverFixture):
         proc = self.make(target=target)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         made = self.parse_dir(proc)
-        author = subprocess.run(
-            ["git", "log", "-1", "--format=%an <%ae>"],
-            cwd=str(made),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        committer = subprocess.run(
-            ["git", "log", "-1", "--format=%cn <%ce>"],
-            cwd=str(made),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        author = self.git("log", "-1", "--format=%an <%ae>", cwd=made)
+        committer = self.git("log", "-1", "--format=%cn <%ce>", cwd=made)
         self.assertEqual(author.returncode, 0, author.stderr)
         self.assertEqual(committer.returncode, 0, committer.stderr)
         self.assertEqual(author.stdout.strip(), AGENT)
         self.assertEqual(committer.stdout.strip(), AGENT)
         shas = self.git("rev-list", "--count", "HEAD", cwd=made).stdout.strip()
         self.assertEqual(shas, "1", "make commits once")
-        body = subprocess.run(
-            ["git", "log", "-1", "--format=%B"],
-            cwd=str(made),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        body = self.git("log", "-1", "--format=%B", cwd=made)
         self.assertEqual(body.returncode, 0, body.stderr)
-        parsed = subprocess.run(
+        parsed = _completed(run(
             ["git", "interpret-trailers", "--parse"],
-            input=body.stdout,
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=made,
             env=self.git_env(),
-        )
+            stdin=body.stdout,
+            timeout=RUN_CAP,
+        ))
         self.assertEqual(parsed.returncode, 0, parsed.stderr)
         trailers = parsed.stdout
         self.assertRegex(

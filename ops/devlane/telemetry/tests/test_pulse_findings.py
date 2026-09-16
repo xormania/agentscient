@@ -5,11 +5,12 @@ import importlib.util
 import io
 import json
 import os
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import quote
+
+from ops.testkit import World, plant_text
 
 HERE = Path(__file__).resolve()
 PULSE = HERE.parents[1] / "pulse.py"
@@ -32,21 +33,21 @@ def load_module(testcase, path, name):
 
 
 def write_jsonl(path, entries):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+    return plant_text(
+        path,
         "".join(
             json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n"
             for entry in entries
-        )
+        ),
     )
-    return path
 
 
 class PulseFindings(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="pulse-findings-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.root = self.world.root
         self.empty_claude = self.root / "empty-claude"
         self.empty_codex = self.root / "empty-codex"
         self.empty_grok = self.root / "empty-grok"
@@ -157,9 +158,8 @@ class PulseFindings(unittest.TestCase):
         idle=10.0,
     ):
         session_dir = root / "sessions" / quote(repo, safe="") / session
-        session_dir.mkdir(parents=True, exist_ok=True)
-        summary = session_dir / "summary.json"
-        summary.write_text(
+        plant_text(
+            session_dir / "summary.json",
             json.dumps(
                 {
                     "info": {"id": session, "cwd": repo},
@@ -168,7 +168,7 @@ class PulseFindings(unittest.TestCase):
                 },
                 separators=(",", ":"),
                 sort_keys=True,
-            )
+            ),
         )
         events = write_jsonl(
             session_dir / "events.jsonl",

@@ -10,12 +10,11 @@ in the commit.
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 ROOT = Path(__file__).resolve().parents[3]
 LEVER = ROOT / "ops" / "conductor" / "tools" / "ledger.py"
@@ -24,6 +23,7 @@ DEFECTS_PAGE = Path("ops/conductor/handoff/lane-defects.md")
 DEFECTS_ROWS = Path("ops/conductor/handoff/lane-defects")
 PITFALLS_PAGE = Path("ops/conductor/handoff/pitfalls-20260911.md")
 PITFALLS_ROWS = Path("ops/conductor/handoff/pitfalls")
+IDEAS_ROWS = Path("ops/conductor/ideas")
 
 DEFECTS_TABLE = ("# Lane defects\n\n| id | observed | where | defect | repair | tests |\n|---|---|---|---|---|---|\n"
                  "| LD-1 | 2026-09-10 | `x.py` | a defect | a repair | a test |\n"
@@ -34,49 +34,125 @@ PITFALLS_TABLE = ("# Running list\n\n| # | what bit | do instead |\n|---|---|---
 
 class TheLedgerLever(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="ledger-"))
-        self.repo = self.tmp / "repo"
-        self.repo.mkdir()
-        self.env = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.tmp / "home"),
-                    "XDG_STATE_HOME": str(self.tmp / "xdg"),
-                    "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1"}
+        self.world = World(prefix="ledger-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.repo = self.world.cwd
+        self.env = self.world.env()
         self.git("init", "-q", "-b", "dev")
         for page, text in ((DEFECTS_PAGE, DEFECTS_TABLE), (PITFALLS_PAGE, PITFALLS_TABLE)):
-            (self.repo / page).parent.mkdir(parents=True, exist_ok=True)
-            (self.repo / page).write_text(text)
+            self.world.plant_text(self.repo / page, text)
 
-    def git(self, *args):
-        proc = subprocess.run(["git", "-C", str(self.repo), *args], env=self.env,
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+    def git(self, *args, cwd=None):
+        proc = run(
+            ["git", "-C", str(cwd or self.repo), *args],
+            cwd=cwd or self.repo,
+            env=self.env,
+            timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         return proc
 
     def run_lever(self, *args, lever=LEVER, identity=True):
         env = dict(self.env)
         if identity:
             env["WF_AGENT"] = "Owner <owner@example.test>"
-        return subprocess.run([sys.executable, str(lever), *args], env=env, cwd=str(self.repo),
-                              capture_output=True, text=True, check=False)
+        return run(
+            [sys.executable, str(lever), *args],
+            env=env,
+            cwd=self.repo,
+            timeout=60,
+        )
 
     def assert_wire(self, proc, klass):
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout, "")
         lines = proc.stderr.strip().splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)
         self.assertRegex(lines[0], rf"^{klass}: expected .+; found .+; needed .+$")
 
     def test_ledgers_lists_the_named_registers(self):
+        """The charge is that the verb names every register this lever
+        knows and refuses a name it does not. The pin read
+
+            self.assertEqual(names, ["defects", "pitfalls"])
+
+        until LD-53 put the ideas directory under the same next-id
+        reader. A list pinned to its own length is the finding
+        docs/tests.md rule 3 names, so the row asks for the registers it
+        is about and for nothing it is not."""
         proc = self.run_lever("ledgers", identity=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         names = [l.split()[0] for l in proc.stdout.strip().splitlines()]
-        self.assertEqual(names, ["defects", "pitfalls"])
+        for known in ("defects", "pitfalls", "ideas"):
+            self.assertIn(known, names)
+        self.assertEqual(len(names), len(set(names)), names)
         self.assert_wire(self.run_lever("next", "nowhere", identity=False), "ledger")
+
+    def plant_ideas(self, *names):
+        """Idea records, which are prose in the owner's words and never a
+        field table, so the lever only ever reads them."""
+        for name in names:
+            self.world.plant_text(self.repo / IDEAS_ROWS / name,
+                                  f"# {name[:-3]}\n\nrecorded by hand.\n")
+
+    def test_ideas_next_is_one_past_the_highest_in_the_records_own_shape(self):
+        """LD-53: two sessions minted I-029 on two branches because there
+        was no reader to ask. The ideas directory is one now, read-only:
+        the number is three digits wide, as every record in the directory
+        spells it, and I-32 would be a fourth spelling of the same id."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md", "I-031-last.md")
+        proc = self.run_lever("next", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "I-032")
+
+    def test_ideas_check_is_quiet_when_no_number_is_shared(self):
+        """The clean neighbour. A directory where every record holds its
+        own number is an answer, and the verb says so rather than saying
+        nothing, because silence is not a declaration."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md")
+        proc = self.run_lever("check", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertIn("no shared numbers", proc.stdout)
+
+    def test_ideas_check_finds_a_shared_number_and_names_every_file(self):
+        self.plant_ideas("I-001-first.md", "I-002-second.md",
+                         "I-002-minted-elsewhere.md")
+        proc = self.run_lever("check", "ideas", identity=False)
+        # A Finding, not a Rejection: the verb ran to completion and the
+        # result carries findings (docs/wire.md).
+        self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
+        self.assertIn("I-002", proc.stdout)
+        self.assertIn("I-002-second.md", proc.stdout)
+        self.assertIn("I-002-minted-elsewhere.md", proc.stdout)
+        self.assertNotIn("I-001", proc.stdout)
+
+    def test_ideas_next_still_answers_while_a_number_is_shared(self):
+        """A collision already minted says nothing about the next number,
+        and a reader that refused would leave a session with no way to
+        mint at all. The two questions are separate verbs on purpose."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md",
+                         "I-002-minted-elsewhere.md")
+        proc = self.run_lever("next", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "I-003")
+
+    def test_ideas_refuses_the_verbs_that_write_or_read_a_field_table(self):
+        """An idea is recorded by hand, in the owner's words, in the shape
+        ops/conductor/ideas/README.md gives. The lever mints its number
+        and reports collisions; it never writes one, and show and list
+        would read a field table that is not there."""
+        self.plant_ideas("I-001-first.md")
+        for argv in (("add", "ideas", "--where", "x"),
+                     ("show", "ideas", "I-001"),
+                     ("list", "ideas")):
+            self.assert_wire(self.run_lever(*argv), "ledger")
 
     def test_pitfalls_next_add_show_list(self):
         proc = self.run_lever("next", "pitfalls", identity=False)
         self.assertEqual(proc.stdout.strip(), "30", "the table ends at 29")
         proc = self.run_lever("add", "pitfalls", "--what-bit", "a grep with a head", "--do-instead", "count first")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), f"30 {PITFALLS_ROWS / '30.md'}")
         text = (self.repo / PITFALLS_ROWS / "30.md").read_text()
         self.assertTrue(text.startswith("# pitfall 30\n"), text)
@@ -141,22 +217,26 @@ class TheLedgerLever(unittest.TestCase):
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "seed")
         origin = self.tmp / "origin.git"
-        subprocess.run(["git", "init", "-q", "--bare", "-b", "dev", str(origin)], env=self.env, check=True)
+        self.git("init", "-q", "--bare", "-b", "dev", str(origin))
         self.git("remote", "add", "origin", str(origin))
         self.git("push", "-q", "origin", "dev")
         self.git("checkout", "-q", "-b", "lane/b")
         # another session lands pitfall 30 on the trunk; this branch never merges it
         other = self.tmp / "other"
-        subprocess.run(["git", "clone", "-q", str(origin), str(other)], env=self.env, check=True)
+        self.git("clone", "-q", str(origin), str(other))
         for k, v in (("user.email", "fixture@example.invalid"), ("user.name", "Fixture"), ("commit.gpgsign", "false")):
-            subprocess.run(["git", "-C", str(other), "config", k, v], env=self.env, check=True)
+            self.git("config", k, v, cwd=other)
         env = dict(self.env, WF_AGENT="Other <other@example.test>")
-        proc = subprocess.run([sys.executable, str(LEVER), "add", "pitfalls", "--what-bit", "a", "--do-instead", "b"],
-                              env=env, cwd=str(other), capture_output=True, text=True, check=False)
+        proc = run(
+            [sys.executable, str(LEVER), "add", "pitfalls", "--what-bit", "a", "--do-instead", "b"],
+            env=env,
+            cwd=other,
+            timeout=60,
+        )
         self.assertEqual(proc.stdout.split()[0], "30", proc.stderr)
-        subprocess.run(["git", "-C", str(other), "add", "-A"], env=self.env, check=True)
-        subprocess.run(["git", "-C", str(other), "commit", "-q", "-m", "other: 30"], env=self.env, check=True)
-        subprocess.run(["git", "-C", str(other), "push", "-q", "origin", "dev"], env=self.env, check=True)
+        self.git("add", "-A", cwd=other)
+        self.git("commit", "-q", "-m", "other: 30", cwd=other)
+        self.git("push", "-q", "origin", "dev", cwd=other)
         # this branch, unmerged, mints past what the trunk holds
         proc = self.run_lever("next", "pitfalls", identity=False)
         self.assertEqual(proc.stdout.strip(), "31", "the trunk's row 30 counts even though this tree lacks it")

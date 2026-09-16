@@ -102,6 +102,12 @@ ignore = [
 # task app it composes.
 "ops/devlane/dispatch/*.py" = ["S603", "S607"]
 
+# The test kit (docs/tests.md) runs subjects and planted programs through
+# one command runner and one fake registry: subprocess is the instrument,
+# and its argv is built by the caller. THIS DIRECTORY ONLY; a kit module
+# that needs another rule earns it here with its reason.
+"ops/testkit/*.py" = ["S603", "S607"]
+
 # The harness app's whole job is launching other harnesses: probe.py
 # runs `grok inspect` and `claude -p` to observe what a dispatch
 # actually loaded, which is the only check that can catch a harness
@@ -139,8 +145,21 @@ ignore = [
 # The repo-scoped skills are scripts that ASK other tools: shelling out is
 # the job, not an incident.
 ".claude/skills/*/*.py" = ["S603", "S607"]
+# The programs the conductor suites plant (moved out of test modules
+# verbatim, plan slice 8): the test-suite row, plus the formatting rules a
+# string literal never met. THIS DIRECTORY ONLY.
+"ops/conductor/tests/fakes/*.py" = [
+    "S101", "S105", "S106", "S108", "S603", "S607",
+    "PLW1510", "E741", "RUF012", "RUF015", "B007", "PLW2901",
+    "S608", "BLE001", "SIM117", "I001", "SIM108",
+]
 # Conductor and skill suites: subprocess is the subject.
 "ops/conductor/tests/*.py" = [
+    "S101", "S105", "S106", "S108", "S603", "S607",
+    "PLW1510", "E741", "RUF012", "RUF015", "B007", "PLW2901",
+    "S608", "BLE001", "SIM117",
+]
+"ops/testkit/tests/*.py" = [
     "S101", "S105", "S106", "S108", "S603", "S607",
     "PLW1510", "E741", "RUF012", "RUF015", "B007", "PLW2901",
     "S608", "BLE001", "SIM117",

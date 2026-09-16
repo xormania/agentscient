@@ -17,12 +17,71 @@ Env:
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
-import subprocess
 import sys
+import types
 from pathlib import Path
+
+
+def _kit_dir() -> Path | None:
+    """ops/testkit, named by TESTKIT_DIR when this file is copied onto PATH."""
+    env = os.environ.get("TESTKIT_DIR")
+    if env and (Path(env) / "fake_program.py").is_file():
+        return Path(env)
+    here = Path(__file__).resolve()
+    if here.parent.name == "tests":
+        candidate = here.parents[3] / "testkit"
+        if (candidate / "fake_program.py").is_file():
+            return candidate
+    return None
+
+
+def _load_kit():
+    """(run, log_call) from the kit. Suites run from the repo root import the
+    package; a copy on PATH loads the same modules by file, no sys.path insert.
+    Kit gap: Tools.plant does not put ops.testkit on a copied stub's path."""
+    try:
+        from ops.testkit import run as kit_run
+        from ops.testkit.fake_program import log_call as kit_log
+
+        return kit_run, kit_log
+    except ImportError:
+        pass
+    kit = _kit_dir()
+    if kit is None:
+        sys.stderr.write(
+            "arguments: expected TESTKIT_DIR naming ops/testkit; "
+            "found unset; needed the kit directory isolated_env sets\n"
+        )
+        sys.exit(2)
+    ops = sys.modules.setdefault("ops", types.ModuleType("ops"))
+    if not hasattr(ops, "__path__"):
+        ops.__path__ = [str(kit.parent)]
+    if "ops.testkit" not in sys.modules:
+        tk = types.ModuleType("ops.testkit")
+        tk.__path__ = [str(kit)]
+        sys.modules["ops.testkit"] = tk
+
+    def load(name: str, filename: str):
+        full = f"ops.testkit.{name}"
+        if full in sys.modules:
+            return sys.modules[full]
+        spec = importlib.util.spec_from_file_location(full, kit / filename)
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[full] = mod
+        spec.loader.exec_module(mod)
+        return mod
+
+    load("world", "world.py")
+    command = load("command", "command.py")
+    fake = load("fake_program", "fake_program.py")
+    return command.run, fake.log_call
+
+
+run, log_call = _load_kit()
 
 
 def _fail(fix: Path) -> None:
@@ -34,20 +93,22 @@ def _fail(fix: Path) -> None:
 
 
 def log(fix: Path, line: str) -> None:
-    path = fix / "calls.log"
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(line + "\n")
+    """One line appended to calls.log with a single write, as the kit's
+    recorder appends its JSON line: never a read-and-rewrite (LD-8)."""
+    fd = os.open(str(fix / "calls.log"), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, (line + "\n").encode("utf-8"))
+    finally:
+        os.close(fd)
 
 
 def bump(fix: Path) -> int:
-    path = fix / "callcount"
-    n = 0
-    if path.is_file():
-        raw = path.read_text(encoding="utf-8").strip()
-        if raw.isdigit():
-            n = int(raw)
-    n += 1
-    path.write_text(str(n) + "\n", encoding="utf-8")
+    """The call's ordinal: the kit's recorder appends the JSON line to
+    calls.jsonl, and the count is the log's length. callcount is written
+    for the tests that read it, from that length, never from itself."""
+    log_call(str(fix / "calls.jsonl"), sys.argv[1:], "")
+    n = sum(1 for ln in (fix / "calls.jsonl").read_text(encoding="utf-8").splitlines() if ln.strip())
+    (fix / "callcount").write_text(str(n) + "\n", encoding="utf-8")
     return n
 
 
@@ -231,16 +292,16 @@ def main() -> None:
         if text and not text.endswith("\n"):
             sys.stdout.write("\n")
         sys.exit(0)
-    proc = subprocess.run(
+    result = run(
         ["jq", "-r", jqexpr],
-        input=text,
-        capture_output=True,
-        text=True,
-        check=False,
+        cwd=os.getcwd(),
+        env=dict(os.environ),
+        stdin=text,
+        timeout=60,
     )
-    sys.stdout.write(proc.stdout)
-    sys.stderr.write(proc.stderr)
-    sys.exit(proc.returncode)
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    sys.exit(result.exit)
 
 
 if __name__ == "__main__":

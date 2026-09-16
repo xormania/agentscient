@@ -66,3 +66,4 @@ The lane's contracts under `ops/` are read when a task touches them.
 @docs/probes.md
 @docs/concerns.md
 @docs/verified-couplings.md
+@docs/tests.md

@@ -20,6 +20,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 ENVELOPE_PY = ls.APP.parents[0] / "task" / "envelope.py"
 
 SCHEMA_SECTION_LEAD = (

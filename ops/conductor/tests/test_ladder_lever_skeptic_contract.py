@@ -16,6 +16,8 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[3]
 LEVER = REPO / "ops" / "conductor" / "ladder-lever.md"
 
@@ -261,8 +263,11 @@ class _LeverPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
+        self.world = World(prefix="ladder-lever-skeptic-")
+        self.addCleanup(self.world.close)
         self.assertTrue(LEVER.is_file(), f"missing {LEVER}")
-        self.lever = LEVER.read_text(encoding="utf-8")
+        self.lever_path = self.world.stage(LEVER, "ladder-lever.md")
+        self.lever = self.lever_path.read_text(encoding="utf-8")
         self.assertTrue(self.lever.strip(), "ladder-lever.md is empty")
 
     def section(self, prefix: str) -> str:

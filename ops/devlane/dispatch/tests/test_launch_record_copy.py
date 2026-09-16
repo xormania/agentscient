@@ -15,6 +15,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World, run  # noqa: F401 - World via _TempLaunch
+
 
 class RecordCopyBesideTheJob(ls._TempLaunch):
     """A1 — _write_record writes <job>/record.json, byte-identical."""
@@ -131,9 +133,13 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         job_dir = self.jobs_root / job_id
         job_dir.mkdir()
         snap = job_dir / "snapshot"
-        self._git("clone", "--no-hardlinks", str(src_snap), str(snap))
+        run(
+            ["git", "clone", "--no-hardlinks", str(src_snap), str(snap)],
+            cwd=self.repo, env=self.env, timeout=60, expect=0,
+        )
         pid = self.dead_pid()
-        (job_dir / "state.json").write_text(
+        self.world.plant_text(
+            job_dir / "state.json",
             json.dumps({
                 "pid": pid,
                 "pgid": pid,
@@ -141,11 +147,10 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
                 "stream": None,
                 "attempt": 1,
             }) + "\n",
-            encoding="utf-8",
         )
-        (job_dir / "exit").write_text("0\n", encoding="utf-8")
-        (job_dir / "prompt.txt").write_text("planted brief\n", encoding="utf-8")
-        (job_dir / "raw.out").write_text("{}\n", encoding="utf-8")
+        self.world.plant_text(job_dir / "exit", "0\n")
+        self.world.plant_text(job_dir / "prompt.txt", "planted brief\n")
+        self.world.plant_text(job_dir / "raw.out", "{}\n")
         self.assertTrue((job_dir / "exit").is_file(), "plant: exit is present")
         self.assertFalse(
             (job_dir / "record.json").exists(),
@@ -164,14 +169,13 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         seed["harness"]["isolation"]["home"] = home
         seed["harness"]["isolation"]["store"] = str(Path(home) / "sessions")
         seed["harness"]["isolation"]["env"] = {
-            "HOME": home, "GROK_HOME": home,
+            name: home for name in ("HOME", "GROK_HOME")
         }
         tracked = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         )
-        tracked.write_text(
-            json.dumps(seed, indent=2) + "\n",
-            encoding="utf-8",
+        self.world.plant_text(
+            tracked, json.dumps(seed, indent=2) + "\n",
         )
         planted = json.loads(tracked.read_text(encoding="utf-8"))
         self.assertEqual(planted["status"], "launched")

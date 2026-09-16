@@ -6,131 +6,122 @@ answers are proved before the hook is asked anything.
 """
 
 import json
-import os
 import shutil
-import tempfile
 import unittest
 from pathlib import Path
 
 import support
 
+from ops.testkit import World, run
+
 HOOK = support.CLAUDE_DIR / "ruff-after-edit.sh"
-
-# A stub that answers per-file, matching the moved corpus's three plants:
-# bad.py is a lint finding, good.py is clean, fmt.py is format-dirty / lint-clean.
-CORPUS_STUB = """#!/bin/sh
-set -eu
-if [ "${1:-}" = "--version" ]; then
-    echo "ruff 0.0.0-stub"
-    exit 0
-fi
-cmd="${1:-}"
-shift || true
-file=""
-for a in "$@"; do
-    case "$a" in
-        --quiet|--check) ;;
-        *) file="$a" ;;
-    esac
-done
-base=$(basename "$file")
-case "$cmd" in
-    format)
-        if [ "$base" = "fmt.py" ]; then exit 1; fi
-        exit 0
-        ;;
-    check)
-        if [ "$base" = "bad.py" ]; then
-            printf '%s\\n' "${file}:1:1: F401 unused import"
-            exit 1
-        fi
-        exit 0
-        ;;
-    *)
-        exit 0
-        ;;
-esac
-"""
-
-# D4: --version ok, format --check rc 2, check rc 0 empty.
-D4_FORMAT_RC2_STUB = """#!/bin/sh
-if [ "${1:-}" = "--version" ]; then echo "ruff 0.0.0-stub"; exit 0; fi
-if [ "${1:-}" = "format" ]; then exit 2; fi
-if [ "${1:-}" = "check" ]; then exit 0; fi
-exit 0
-"""
-
-# D4 if the format branch is gone: check rc 2 and empty stdout → silence.
-D4_CHECK_RC2_STUB = """#!/bin/sh
-if [ "${1:-}" = "--version" ]; then echo "ruff 0.0.0-stub"; exit 0; fi
-if [ "${1:-}" = "format" ]; then exit 0; fi
-if [ "${1:-}" = "check" ]; then exit 2; fi
-exit 0
-"""
+TIMEOUT = 120
 
 
 class RuffAfterEdit(unittest.TestCase):
     def setUp(self):
-        support.require_jq()
-        self.assertTrue(HOOK.is_file(), f"INVALID: hook missing: {HOOK}")
-        self.tmp = Path(tempfile.mkdtemp(prefix="ruff-hook-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.bin = self.tmp / "bin"
-        self.bin.mkdir()
-        self.repo = self.tmp / "repo"
+        self.world = World(prefix="ruff-hook-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.world.require("jq")
+        self.hook = self._subject()
+        self.env = self.world.env()
+        self.repo = self.world.cwd
+        self._stub_kind = "corpus"
 
-    def _env(self):
-        return support.isolated_env(self.home, extra_path=self.bin)
+    def _subject(self):
+        self.assertTrue(HOOK.is_file(), f"INVALID: hook missing: {HOOK}")
+        return self.world.stage(HOOK)
 
     def _git_repo(self, *, ruff_toml: str | None = ""):
-        self.repo.mkdir()
-        env = self._env()
-        support.git(self.repo, env, "-c", "init.defaultBranch=main", "init", "-q")
-        support.configure_identity(self.repo, env)
+        self.world.git("-c", "init.defaultBranch=main", "init", "-q")
         if ruff_toml is not None:
-            support.plant_text(
+            self.world.plant_text(
                 self.repo / "ruff.toml", ruff_toml,
                 recognisable=ruff_toml or None,
             )
             if ruff_toml == "":
-                # empty file is still a config file; prove it exists and is empty
                 landed = (self.repo / "ruff.toml").read_text(encoding="utf-8")
                 self.assertEqual(landed, "", "INVALID: ruff.toml plant drifted")
-        return env
+        return self.env
 
-    def _stub(self, body: str):
-        stub = support.plant_executable(self.bin / "ruff", body)
-        which = shutil.which("ruff", path=str(self.bin) + os.pathsep + os.environ.get("PATH", ""))
+    def _stub(self, kind="corpus", *, check_out=""):
+        self._stub_kind = kind
+        if kind == "corpus":
+            self.world.tools.plant(
+                "ruff",
+                stdout="",
+                exit=0,
+                responses=[
+                    {"match": ["--version"], "stdout": "ruff 0.0.0-stub\n",
+                     "stderr": "", "exit": 0},
+                    {"match": ["format", "fmt.py"], "stdout": "", "stderr": "",
+                     "exit": 1},
+                    {"match": ["check", "bad.py"], "stdout": check_out,
+                     "stderr": "", "exit": 1},
+                ],
+            )
+        elif kind == "d4_format":
+            self.world.tools.plant(
+                "ruff",
+                stdout="",
+                exit=0,
+                responses=[
+                    {"match": ["--version"], "stdout": "ruff 0.0.0-stub\n",
+                     "stderr": "", "exit": 0},
+                    {"match": ["format"], "stdout": "", "stderr": "", "exit": 2},
+                ],
+            )
+        elif kind == "d4_check":
+            self.world.tools.plant(
+                "ruff",
+                stdout="",
+                exit=0,
+                responses=[
+                    {"match": ["--version"], "stdout": "ruff 0.0.0-stub\n",
+                     "stderr": "", "exit": 0},
+                    {"match": ["check"], "stdout": "", "stderr": "", "exit": 2},
+                ],
+            )
+        else:
+            raise AssertionError(f"INVALID: unknown ruff stub {kind!r}")
+        planted = self.world.bin / "ruff"
+        which = shutil.which("ruff", path=self.env["PATH"])
         self.assertEqual(
-            Path(which).resolve(), stub.resolve(),
-            f"INVALID: which ruff is {which}, not the stub {stub}",
+            Path(which).resolve(), planted.resolve(),
+            f"INVALID: which ruff is {which}, not the stub {planted}",
         )
-        return stub
+        return planted
 
     def _prove_stub(self, env, *, version_rc=0, check_rc=None, check_out=None,
                     format_rc=None, file="x.py"):
-        v = support.run_cmd(["ruff", "--version"], self.repo, env, expect=version_rc)
+        if self._stub_kind == "corpus" and check_out is not None:
+            self._stub("corpus", check_out=check_out)
+        v = run(
+            ["ruff", "--version"], cwd=self.repo, env=env, timeout=TIMEOUT,
+            expect=version_rc,
+        )
         self.assertIn(
             "ruff", v.stdout.lower(),
             f"INVALID: stub --version did not identify itself: {v.stdout!r}",
         )
         if format_rc is not None:
-            f = support.run_cmd(
-                ["ruff", "format", "--check", file], self.repo, env, expect=None
+            f = run(
+                ["ruff", "format", "--check", file],
+                cwd=self.repo, env=env, timeout=TIMEOUT,
             )
             self.assertEqual(
-                f.returncode, format_rc,
-                f"INVALID: stub format --check rc {f.returncode}, wanted {format_rc}",
+                f.exit, format_rc,
+                f"INVALID: stub format --check rc {f.exit}, wanted {format_rc}",
             )
         if check_rc is not None:
-            c = support.run_cmd(
-                ["ruff", "check", "--quiet", file], self.repo, env, expect=None
+            c = run(
+                ["ruff", "check", "--quiet", file],
+                cwd=self.repo, env=env, timeout=TIMEOUT,
             )
             self.assertEqual(
-                c.returncode, check_rc,
-                f"INVALID: stub check rc {c.returncode}, wanted {check_rc}",
+                c.exit, check_rc,
+                f"INVALID: stub check rc {c.exit}, wanted {check_rc}",
             )
             if check_out is not None:
                 self.assertEqual(
@@ -139,18 +130,25 @@ class RuffAfterEdit(unittest.TestCase):
                 )
 
     def _fire(self, env, payload: str):
-        return support.run_script(HOOK, payload, self.repo, env)
+        return run(
+            ["bash", str(self.hook)],
+            cwd=self.repo,
+            env=env,
+            stdin=payload,
+            timeout=TIMEOUT,
+        )
 
     def _plant_py(self, name: str, body: str, *, recognisable: str):
-        path = self.repo / name
-        support.plant_text(path, body, recognisable=recognisable)
+        path = self.world.plant_text(
+            self.repo / name, body, recognisable=recognisable,
+        )
         self.assertTrue(path.is_file(), f"INVALID: {name} missing")
         self.assertTrue(str(path).endswith(".py"), f"INVALID: {name} not .py")
         return path
 
     def test_catches_a_lint_finding(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         path = self._plant_py("bad.py", "import os\n", recognisable="import os")
         self._prove_stub(
             env, check_rc=1,
@@ -165,7 +163,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_stays_quiet_on_a_clean_py(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         path = self._plant_py("good.py", "x = 1\n", recognisable="x = 1")
         self._prove_stub(env, check_rc=0, check_out="", file=str(path))
         proc = self._fire(env, support.write_payload(file_path=str(path)))
@@ -176,7 +174,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_stays_quiet_on_format_only(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         path = self._plant_py(
             "fmt.py", 'x = {  "a":1 }\n', recognisable='"a":1'
         )
@@ -191,7 +189,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_reads_serena_relative_path(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         path = self._plant_py("bad.py", "import os\n", recognisable="import os")
         self._prove_stub(
             env, check_rc=1,
@@ -212,9 +210,11 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_ignores_a_non_py_file(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
-        path = self.repo / "pyproject.toml"
-        support.plant_text(path, "[project]\nname='x'\n", recognisable="name=")
+        self._stub("corpus")
+        path = self.world.plant_text(
+            self.repo / "pyproject.toml", "[project]\nname='x'\n",
+            recognisable="name=",
+        )
         self.assertFalse(str(path).endswith(".py"))
         proc = self._fire(env, support.write_payload(file_path=str(path)))
         self.assertFalse(
@@ -224,7 +224,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_ignores_a_file_that_is_not_there(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         gone = self.repo / "gone.py"
         self.assertFalse(gone.exists(), "INVALID: gone.py exists")
         proc = self._fire(env, support.write_payload(file_path=str(gone)))
@@ -235,7 +235,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_ignores_a_payload_with_no_path(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         proc = self._fire(env, json.dumps({"tool_input": {}}))
         self.assertFalse(
             support.has_additional_context(proc.stdout),
@@ -244,7 +244,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_ignores_junk_input(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         proc = self._fire(env, "not json at all")
         self.assertFalse(
             support.has_additional_context(proc.stdout),
@@ -253,7 +253,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_ignores_empty_input(self):
         env = self._git_repo()
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         proc = self._fire(env, "")
         self.assertFalse(
             support.has_additional_context(proc.stdout),
@@ -262,7 +262,7 @@ class RuffAfterEdit(unittest.TestCase):
 
     def test_noop_where_ruff_is_not_configured(self):
         env = self._git_repo(ruff_toml=None)
-        self._stub(CORPUS_STUB)
+        self._stub("corpus")
         path = self._plant_py(
             "bad.py", 'x = {  "a":1 }\n', recognisable='"a":1'
         )
@@ -284,7 +284,7 @@ class RuffAfterEdit(unittest.TestCase):
     def test_d4_format_check_rc_2_is_not_a_formatting_violation(self):
         """Stub: --version ok, format --check rc 2, check rc 0 → no output."""
         env = self._git_repo()
-        self._stub(D4_FORMAT_RC2_STUB)
+        self._stub("d4_format")
         path = self._plant_py("x.py", "x = 1\n", recognisable="x = 1")
         self._prove_stub(
             env, format_rc=2, check_rc=0, check_out="", file=str(path)
@@ -303,7 +303,7 @@ class RuffAfterEdit(unittest.TestCase):
     def test_d4_check_rc_2_with_empty_stdout_is_silence(self):
         """If the format branch is gone: check rc 2 + empty stdout → silence."""
         env = self._git_repo()
-        self._stub(D4_CHECK_RC2_STUB)
+        self._stub("d4_check")
         path = self._plant_py("x.py", "x = 1\n", recognisable="x = 1")
         self._prove_stub(
             env, check_rc=2, check_out="", file=str(path)

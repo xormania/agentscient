@@ -9,9 +9,10 @@ Unsupported YAML is refused rather than silently dropped.
 
 from __future__ import annotations
 
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 REPO = Path(__file__).resolve().parents[4]
 WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
@@ -36,6 +37,7 @@ LANE_STEP_NEEDLES = (
     ("term_wall", "term wall"),
     ("ruff",),
     ("suites.sh",),
+    ("ratchet",),
     ("closure",),
     ("literals",),
     ("probes.py run",),
@@ -91,16 +93,6 @@ jobs:
     steps:
       - run: echo app
 """
-
-
-def _plant_bytes(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    if landed != data:
-        raise AssertionError(f"plant did not land intact: {path}")
-    if len(landed) != len(data):
-        raise AssertionError(f"plant length drifted: {path}")
 
 
 def load_workflow(path: Path) -> dict:
@@ -676,9 +668,17 @@ def step_order_indexes(
 
 
 class CiTwoJobs(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="ci-two-jobs-")
+        self.addCleanup(self.world.close)
+        self.workflow = self.world.stage(WORKFLOW, "ci.yml")
+
+    def plant_workflow(self, name: str, text: str) -> Path:
+        return self.world.plant_bytes(name, text.encode("utf-8"))
+
     def load(self) -> dict:
-        self.assertTrue(WORKFLOW.is_file(), f"RED: workflow is absent: {WORKFLOW}")
-        return load_workflow(WORKFLOW)
+        self.assertTrue(self.workflow.is_file(), f"RED: workflow is absent: {WORKFLOW}")
+        return load_workflow(self.workflow)
 
     def jobs(self) -> dict:
         jobs = self.load().get("jobs")
@@ -734,17 +734,15 @@ class CiTwoJobs(unittest.TestCase):
             self.assertEqual(merge_branches, DEV_BRANCHES, on["merge_group"])
 
     def test_triggers_targeting_master_are_not_the_dev_set(self):
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-master-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, MASTER_TRIGGER_WORKFLOW.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertEqual(landed, MASTER_TRIGGER_WORKFLOW)
-            on = trigger_map(load_workflow(path))
-            self.assertEqual(set(on), set(TRIGGERS), set(on))
-            self.assertEqual(trigger_branches(on["pull_request"]), ["master"])
-            self.assertEqual(trigger_branches(on["push"]), ["master"])
-            self.assertNotEqual(trigger_branches(on["pull_request"]), DEV_BRANCHES)
-            self.assertNotEqual(trigger_branches(on["push"]), DEV_BRANCHES)
+        path = self.plant_workflow("master/ci.yml", MASTER_TRIGGER_WORKFLOW)
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, MASTER_TRIGGER_WORKFLOW)
+        on = trigger_map(load_workflow(path))
+        self.assertEqual(set(on), set(TRIGGERS), set(on))
+        self.assertEqual(trigger_branches(on["pull_request"]), ["master"])
+        self.assertEqual(trigger_branches(on["push"]), ["master"])
+        self.assertNotEqual(trigger_branches(on["pull_request"]), DEV_BRANCHES)
+        self.assertNotEqual(trigger_branches(on["push"]), DEV_BRANCHES)
 
     def test_workflow_has_no_paths_filter(self):
         doc = self.load()
@@ -803,44 +801,38 @@ class CiTwoJobs(unittest.TestCase):
             step_order_indexes(blobs, APP_STEP_NEEDLES)
 
     def test_planted_paths_filter_is_detected(self):
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-paths-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, TWO_JOB_WORKFLOW.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertEqual(landed, TWO_JOB_WORKFLOW)
-            doc = load_workflow(path)
-            self.assertEqual(paths_locations(doc), [])
-            on = trigger_map(doc)
-            self.assertIsInstance(on["pull_request"], dict)
-            on["pull_request"]["paths"] = ["ops/**"]
-            self.assertIn("paths", on["pull_request"])
-            self.assertEqual(
-                paths_locations({"on": on}),
-                ["on.pull_request.paths"],
-            )
+        path = self.plant_workflow("paths/ci.yml", TWO_JOB_WORKFLOW)
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, TWO_JOB_WORKFLOW)
+        doc = load_workflow(path)
+        self.assertEqual(paths_locations(doc), [])
+        on = trigger_map(doc)
+        self.assertIsInstance(on["pull_request"], dict)
+        on["pull_request"]["paths"] = ["ops/**"]
+        self.assertIn("paths", on["pull_request"])
+        self.assertEqual(
+            paths_locations({"on": on}),
+            ["on.pull_request.paths"],
+        )
 
     def test_planted_job_level_if_is_detected(self):
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-if-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, TWO_JOB_WORKFLOW.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertEqual(landed, TWO_JOB_WORKFLOW)
-            doc = load_workflow(path)
-            jobs = doc["jobs"]
-            self.assertEqual(job_ifs(jobs), [])
-            jobs["lane"]["if"] = "github.event_name == 'push'"
-            self.assertIn("if", jobs["lane"])
-            self.assertEqual(job_ifs(jobs), ["lane"])
-            self.assertNotIn("if", jobs["app"])
+        path = self.plant_workflow("if/ci.yml", TWO_JOB_WORKFLOW)
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, TWO_JOB_WORKFLOW)
+        doc = load_workflow(path)
+        jobs = doc["jobs"]
+        self.assertEqual(job_ifs(jobs), [])
+        jobs["lane"]["if"] = "github.event_name == 'push'"
+        self.assertIn("if", jobs["lane"])
+        self.assertEqual(job_ifs(jobs), ["lane"])
+        self.assertNotIn("if", jobs["app"])
 
     def test_anchor_syntax_is_refused(self):
         text = TWO_JOB_WORKFLOW + "\nextra: &anchor {run: echo}\n"
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-anchor-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            self.assertIn("&anchor", path.read_text(encoding="utf-8"))
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("anchor/ci.yml", text)
+        self.assertIn("&anchor", path.read_text(encoding="utf-8"))
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_alias_syntax_is_refused(self):
         text = (
@@ -850,14 +842,12 @@ class CiTwoJobs(unittest.TestCase):
             "    runs-on: self-hosted\n"
             "  app: *lane\n"
         )
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-alias-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertIn("&lane", landed)
-            self.assertIn("*lane", landed)
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("alias/ci.yml", text)
+        landed = path.read_text(encoding="utf-8")
+        self.assertIn("&lane", landed)
+        self.assertIn("*lane", landed)
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_merge_key_is_refused(self):
         text = (
@@ -870,48 +860,40 @@ class CiTwoJobs(unittest.TestCase):
             "    steps:\n"
             "      - run: echo\n"
         )
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-merge-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertIn("<<:", landed)
-            self.assertIn("*base", landed)
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("merge/ci.yml", text)
+        landed = path.read_text(encoding="utf-8")
+        self.assertIn("<<:", landed)
+        self.assertIn("*base", landed)
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_custom_tag_is_refused(self):
         text = TWO_JOB_WORKFLOW.replace(
             "echo lane",
             "!!python/object/apply:os.system ['true']",
         )
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-tag-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            self.assertIn("!!python/object", path.read_text(encoding="utf-8"))
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("tag/ci.yml", text)
+        self.assertIn("!!python/object", path.read_text(encoding="utf-8"))
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_second_document_is_refused_not_silently_dropped(self):
         text = TWO_JOB_WORKFLOW + "---\nname: dropped\njobs:\n  secret: {}\n"
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-docs-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            landed = path.read_text(encoding="utf-8")
-            self.assertIn("---", landed)
-            self.assertIn("secret", landed)
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("documents/ci.yml", text)
+        landed = path.read_text(encoding="utf-8")
+        self.assertIn("---", landed)
+        self.assertIn("secret", landed)
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_flow_mapping_value_is_refused(self):
         text = TWO_JOB_WORKFLOW.replace("echo app", "echo app") + (
             "extra: {runs-on: self-hosted, steps: []}\n"
         )
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-flow-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            self.assertIn("{runs-on:", path.read_text(encoding="utf-8"))
-            with self.assertRaises((AssertionError, ValueError)):
-                load_workflow(path)
+        path = self.plant_workflow("flow/ci.yml", text)
+        self.assertIn("{runs-on:", path.read_text(encoding="utf-8"))
+        with self.assertRaises((AssertionError, ValueError)):
+            load_workflow(path)
 
     def test_unquoted_on_key_is_the_string_on_not_boolean_true(self):
         text = (
@@ -925,16 +907,13 @@ class CiTwoJobs(unittest.TestCase):
             "    steps:\n"
             "      - run: echo\n"
         )
-        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-on-") as raw:
-            path = Path(raw) / "ci.yml"
-            _plant_bytes(path, text.encode("utf-8"))
-            self.assertIn("\non:\n", "\n" + path.read_text(encoding="utf-8"))
-            doc = load_workflow(path)
-            self.assertIn("on", doc)
-            self.assertNotIn(True, doc)
-            self.assertIsInstance(doc["on"], dict)
+        path = self.plant_workflow("unquoted-on/ci.yml", text)
+        self.assertIn("\non:\n", "\n" + path.read_text(encoding="utf-8"))
+        doc = load_workflow(path)
+        self.assertIn("on", doc)
+        self.assertNotIn(True, doc)
+        self.assertIsInstance(doc["on"], dict)
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -54,6 +54,22 @@ row that cannot look refuses: "could not look" is not a pass.
                     trunk or the release branch, or a push whose
                     refspec targets them; no grant escape (owner,
                     2026-09-12: "one branch per session")
+    file-state      a JSON or text store written under the lane's the path, the state
+                    state directory, or a placement file          directory, the body
+                    declaring state.engine file (engine row);
+                    no grant escape (owner, 2026-09-13: "i need
+                    to prevent future default to files")
+    kit-import      a write creating a module under a tests/       the path, the text's
+                    directory that neither imports ops.testkit    imports and its first
+                    nor declares `# testkit: exempt <reason>`     ten lines
+                    (engine row; docs/tests.md rule 1); no grant
+                    escape (D-TESTKIT-1, 2026-09-14)
+    done-gate       at Stop, a reply that says done, complete,    last_assistant_message,
+                    finished, landed, merged or solved with no    the lock's target lines
+                    deliverable.py line (engine row; three        (deliverable.py show)
+                    blocks per session, then the stop passes;
+                    owner, 2026-09-15: "I need confidence that
+                    my orders are being carried out")
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
                     laneconf.py, the hook registry, rows, engine
@@ -174,9 +190,13 @@ STATE_DIR = os.path.expanduser("~/.local/state")
 # commits (cc04f7d9, 2c983635) changed the rows under an ordinary grant and
 # said so; the wall list is extended from the enforcing checkout, so the
 # extension itself went the same way (LD-34).
+# D-TESTKIT-1 (owner, 2026-09-14): the test kit is test machinery and the
+# job catalogue carries the tests job's prompt; both are wall (docs/tests.md
+# rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
 WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
               "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
+              "ops/testkit/", "ops/devlane/task/jobs.json",
               "ops/devlane/hooks/claude/engine.py")
 
 
@@ -1280,7 +1300,6 @@ def heredoc_records(text, cwd):
     return found
 
 
-TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 
 

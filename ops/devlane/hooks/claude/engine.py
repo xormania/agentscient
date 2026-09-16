@@ -28,11 +28,13 @@ is lifted by nothing.
 unknown predicates, unknown events. Adding a condition is adding a row.
 """
 
+import ast
 import importlib.util
 import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -170,13 +172,54 @@ def _statements_with_dirs(ctx):
         yield toks, directory
 
 
+def _git_read(directory, *args):
+    """exit code of a bounded git read in ``directory``; a git that cannot
+    run reads as failure, never as a pass."""
+    try:
+        proc = subprocess.run(["git", "-C", directory, *args],  # noqa: S603,S607 - fixed argv, a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1
+    return proc.returncode
+
+
+def _fast_forward_of_the_trunk(rest, directory, branch):
+    """True for a merge on the trunk that git reports as a fast-forward of
+    the trunk's own remote-tracking ref (LD-38, 2026-09-14): exactly one
+    operand, ``<remote>/<trunk>`` that exists, no ``--no-ff``, and either
+    ``--ff-only`` (git makes no commit or refuses) or HEAD an ancestor of
+    the ref with merge.ff not false. Everything else on the trunk is the
+    trunk commit the row refuses."""
+    flags = [t for t in rest if t.startswith("-")]
+    operands = [t for t in rest if not t.startswith("-")]
+    if len(operands) != 1 or "--no-ff" in flags:
+        return False
+    ref = operands[0]
+    if not ref.endswith("/" + branch) or ref.count("/") != 1:
+        return False
+    if _git_read(directory, "rev-parse", "--verify", "--quiet", f"refs/remotes/{ref}") != 0:
+        return False
+    if "--ff-only" in flags:
+        return True
+    if _git_read(directory, "merge-base", "--is-ancestor", "HEAD", ref) != 0:
+        return False
+    try:
+        proc = subprocess.run(["git", "-C", directory, "config", "--get", "merge.ff"],  # noqa: S603,S607 - a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.stdout.strip() != "false"
+
+
 def p_git_write_on_protected(ctx):
     protected = _protected(ctx)
     for toks, cwd in _statements_with_dirs(ctx):
-        sub, _rest, directory = matrix._git_subcommand(toks, cwd)
+        sub, rest, directory = matrix._git_subcommand(toks, cwd)
         if sub in matrix.TRUNK_WRITES:
             branch = matrix.branch_of(directory)
             if branch in protected:
+                if sub == "merge" and _fast_forward_of_the_trunk(rest, directory, branch):
+                    continue
                 return f"git {sub} on {branch} in {directory}"
     return None
 
@@ -196,6 +239,52 @@ def p_git_push_to_protected(ctx):
     return None
 
 
+STORE_SUFFIXES = (".json", ".jsonl", ".ndjson", ".txt", ".md", ".csv", ".yaml", ".yml", ".toml", ".conf")
+PLACEMENT_DIR = "ops/conductor/placement/"
+DECLARES_FILE = re.compile(r'"engine"\s*:\s*"file"')
+
+
+def _state_dir(ctx):
+    return os.path.join(matrix.STATE_DIR, ctx.lane) if ctx.lane else matrix.STATE_DIR
+
+
+def _is_file_store(path, ctx):
+    absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
+    return absolute.startswith(_state_dir(ctx) + os.sep) and absolute.endswith(STORE_SUFFIXES)
+
+
+def _declares_file(path, body, ctx):
+    _, rel = matrix.relative(path, ctx.cwd)
+    return bool(rel and rel.startswith(PLACEMENT_DIR) and DECLARES_FILE.search(body or ""))
+
+
+def p_file_state_store(ctx):
+    """T-5 (owner, 2026-09-13: "i need to prevent future default to files
+    when SQLite is better option"): a JSON or text store written under the
+    lane's state directory, or a placement file declaring state.engine
+    file. A tool writing its own store is not seen here; a .db, a log, a
+    read and a file in the tree pass. The CI wall is
+    ops/conductor/tests/test_state_placement.py; this is the same rule at
+    the write."""
+    for key in ("file_path", "relative_path", "path"):
+        path = ctx.input.get(key)
+        if not path:
+            continue
+        if _is_file_store(path, ctx):
+            return f"a file store {path} under the state directory"
+        body = ctx.input.get("content") or ctx.input.get("new_string") or ""
+        if _declares_file(path, body, ctx):
+            return f'{path} declaring "engine": "file"'
+    for toks in ctx.statements:
+        for path in matrix.redirect_targets(toks) + matrix.written_paths(toks):
+            if path != "." and _is_file_store(path, ctx):
+                return f"a file store {path} under the state directory"
+    for target, body in matrix.heredoc_records(ctx.text, ctx.cwd):
+        if _declares_file(target, body, ctx):
+            return f'{target} declaring "engine": "file"'
+    return None
+
+
 def p_claim_without_reading(ctx):
     for target, body in matrix.heredoc_records(ctx.text, ctx.cwd):
         line = matrix.unmeasured_claim(body)
@@ -206,6 +295,112 @@ def p_claim_without_reading(ctx):
             line = matrix.unmeasured_claim(body)
             if line:
                 return f'in the {surface}: "{line[:140]}"'
+    return None
+
+
+# A module under a tests/ directory at any depth (ruled rank 6, record
+# 20260915T025600Z-adjudicate-codex-68d3d9: tests/fakes/ was not one).
+TEST_MODULE = re.compile(r"(^|/)tests/(?:[^/]+/)*[^/]+\.py$")
+# The line pattern is the fallback for text that does not parse; parsed
+# text is judged by its import statements, never by words in a string.
+KIT_IMPORT = re.compile(r"^\s*(from\s+ops\.testkit(\.\w+)*\s+import\b|import\s+ops\.testkit\b)", re.MULTILINE)
+# The exemption carries a reason.
+# Spaces, not any whitespace: a newline after `exempt` is no reason.
+KIT_EXEMPT = re.compile(r"^[ \t]*# testkit: exempt[ \t]+\S", re.MULTILINE)
+
+
+def _imports_kit(text):
+    """True when the text carries an import statement of ops.testkit."""
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return bool(KIT_IMPORT.search(text))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "ops.testkit" or module.startswith("ops.testkit."):
+                return True
+        elif isinstance(node, ast.Import):
+            if any(a.name == "ops.testkit" or a.name.startswith("ops.testkit.") for a in node.names):
+                return True
+    return False
+
+
+def _tracked(rel, cwd):
+    """True when git tracks rel, False when the file is untracked, None
+    when git cannot say (no repository, no git)."""
+    try:
+        proc = subprocess.run(["git", "-C", cwd, "ls-files", "--error-unmatch", "--", rel],  # noqa: S603, S607
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    return None
+
+
+def _new_test_module_without_kit(path, body, ctx, *, replaces=True):
+    """The path when it is a new module under a tests/ directory whose text
+    neither imports the kit nor declares its exemption, with a reason, in
+    its first ten lines (docs/tests.md rule 1); None otherwise. A file git
+    tracks is grandfathered; one a touch or an earlier write made is still
+    new, judged on the text it will hold: ``body`` alone when the write
+    replaces the file, the disk text plus ``body`` when it edits."""
+    _, rel = matrix.relative(path, ctx.cwd)
+    if not TEST_MODULE.search(rel or path):
+        return None
+    absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
+    text = body or ""
+    if os.path.exists(absolute):
+        tracked = _tracked(rel or path, ctx.cwd)
+        if tracked is None or tracked:
+            return None
+        if not replaces:
+            try:
+                with open(absolute, encoding="utf-8") as fh:
+                    text = fh.read() + "\n" + text
+            except (OSError, UnicodeDecodeError):
+                pass
+    head = "\n".join(text.splitlines()[:10])
+    if _imports_kit(text) or KIT_EXEMPT.search(head):
+        return None
+    return path
+
+
+def p_test_file_without_kit(ctx):
+    """A new test module that neither imports the kit nor declares its
+    exemption (docs/tests.md rule 1; plan slice 16). An existing file, a
+    module that imports ops.testkit, or one carrying `# testkit: exempt
+    <reason>` in its first ten lines passes; a module written by a
+    redirect whose text the row cannot read is refused, because could
+    not look is not a pass."""
+    for key in ("file_path", "relative_path", "path"):
+        path = ctx.input.get(key)
+        if not path:
+            continue
+        body = ctx.input.get("content")
+        replaces = body is not None
+        if body is None:
+            edits = ctx.input.get("edits")
+            if isinstance(edits, list):
+                body = "\n".join(str((e or {}).get("new_string") or "") for e in edits if isinstance(e, dict))
+            else:
+                body = ctx.input.get("new_string") or ""
+        found = _new_test_module_without_kit(path, body, ctx, replaces=replaces)
+        if found:
+            return f"a new test module {found} without the kit"
+    heredocs = [(m.group(1).strip("'\""), m.group(4)) for m in matrix.HEREDOC_WRITE.finditer(ctx.text or "")]
+    for target, body in heredocs:
+        found = _new_test_module_without_kit(target, body, ctx)
+        if found:
+            return f"a new test module {found} written by heredoc without the kit"
+    written = {target for target, _ in heredocs}
+    for toks in ctx.statements:
+        for path in matrix.redirect_targets(toks):
+            if path != "." and path not in written and _new_test_module_without_kit(path, "", ctx):
+                return f"a new test module {path} written by redirect, its text unread"
     return None
 
 
@@ -224,17 +419,118 @@ def p_unittest_path_form(ctx):
     return None
 
 
+DONE_WORDS = re.compile(
+    r"\b(all done|done|complete|completed|finished|landed|merged|solved|ready for review|implemented|verified|fixed)\b",
+    re.IGNORECASE)
+LOCK_LINES = re.compile(
+    r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\s*$)",
+    re.MULTILINE)
+NO_LOCK_LINE = re.compile(r"^no lock\s*$", re.MULTILINE)
+DONE_GATE_CAP = 3
+DONE_GATE_COUNTER = "done-gate.json"
+
+
+def _done_gate_counter(ctx):
+    return os.path.join(matrix.STATE_DIR, ctx.lane or "lane", DONE_GATE_COUNTER)
+
+
+def _done_gate_count(ctx, session, value=None):
+    """The session's consecutive blocks; sets it when ``value`` is given."""
+    path = _done_gate_counter(ctx)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            counts = json.load(fh)
+        if not isinstance(counts, dict):
+            counts = {}
+    except (OSError, ValueError):
+        counts = {}
+    if value is None:
+        return int(counts.get(session, 0) or 0)
+    counts[session] = value
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(counts, fh)
+    return value
+
+
+def _lock_reading(ctx):
+    """The lock's target lines from deliverable.py show, or what stood in
+    their place: no lock, no target, or the lever unavailable."""
+    lever = os.path.join(ctx.root, "ops", "conductor", "tools", "deliverable.py")
+    if not os.path.isfile(lever):
+        return "the lock is unavailable: no deliverable.py in this checkout"
+    try:
+        proc = subprocess.run([sys.executable, lever, "show"],  # noqa: S603 - fixed argv, a read
+                              cwd=ctx.root, capture_output=True, text=True, timeout=120, check=False)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"the lock is unavailable: {type(error).__name__}"
+    if proc.returncode != 0:
+        return f"the lock is unavailable: {proc.stderr.strip()[:160] or f'exit {proc.returncode}'}"
+    targets = [ln.strip() for ln in proc.stdout.splitlines() if ln.startswith("target ")]
+    if targets:
+        return "the lock reads: " + " | ".join(targets)
+    if proc.stdout.strip() == "no lock":
+        return "the lock reads: no lock"
+    return "the lock reads: branches named, no measured target (set one: deliverable.py add BRANCH --why ... --measure CMD --until TEXT)"
+
+
+def p_reply_claims_done(ctx):
+    """Owner, 2026-09-15 ("I need confidence that my orders are being
+    carried out"): at Stop, a reply that says done, complete, finished,
+    landed, merged or solved carries a deliverable.py line, or it is sent
+    back with the lock's target lines. A quoted span or a line opening
+    with > is not the writer's claim. stop_hook_active passes; after
+    DONE_GATE_CAP consecutive blocks for one session_id the stop passes
+    and the reading is logged, never a session bricked."""
+    if ctx.event != "Stop" or ctx.payload.get("stop_hook_active"):
+        return None
+    session = str(ctx.payload.get("session_id") or "unknown")
+    message = str(ctx.payload.get("last_assistant_message") or "")
+    if LOCK_LINES.search(message):
+        _done_gate_count(ctx, session, 0)
+        return None
+    claim = None
+    for line in message.splitlines():
+        if line.lstrip().startswith(">"):
+            continue
+        bare = matrix.QUOTED.sub("", line)
+        if DONE_WORDS.search(bare):
+            claim = line.strip()[:160]
+            break
+    if claim is None:
+        _done_gate_count(ctx, session, 0)
+        return None
+    blocks = _done_gate_count(ctx, session)
+    reading = _lock_reading(ctx)
+    if reading == "the lock reads: no lock" and NO_LOCK_LINE.search(message):
+        # No entry, no target, no deliverable.py line to paste: show's own
+        # `no lock` line, pasted, is the reading (2026-09-15: the row blocked
+        # a truthful close after every entry was lifted).
+        _done_gate_count(ctx, session, 0)
+        return None
+    if blocks >= DONE_GATE_CAP:
+        _done_gate_count(ctx, session, 0)
+        miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
+        return None
+    _done_gate_count(ctx, session, blocks + 1)
+    return (f'the reply says "{claim}" with no deliverable.py line (run python3 ops/conductor/tools/deliverable.py '
+            f'done <branch> and paste its line, or its target refusal); {reading}')
+
+
 PREDICATES = {
     "always": p_always,
+    "reply_claims_done": p_reply_claims_done,
     "tool_in": p_tool_in,
     "command_matches": p_command_matches,
     "response_matches": p_response_matches,
     "file_written_under": p_file_written_under,
     "git_write_on_protected": p_git_write_on_protected,
     "git_push_to_protected": p_git_push_to_protected,
+    "file_state_store": p_file_state_store,
     "claim_without_reading": p_claim_without_reading,
     "prune_target": p_prune_target,
     "unittest_path_form": p_unittest_path_form,
+    "test_file_without_kit": p_test_file_without_kit,
 }
 
 

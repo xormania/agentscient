@@ -2,15 +2,16 @@
 
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
 
+from ops.testkit import World, plant_text, run
+
 HERE = Path(__file__).resolve()
 PULSE = HERE.parents[1] / "pulse.py"
+RUN_CAP = 60
 
 BASE_EPOCH = 1_787_306_400
 NOW = BASE_EPOCH + 1_000
@@ -105,18 +106,17 @@ RESET_USAGE = [
 
 
 def write_jsonl(path, entries):
-    path.write_text(
-        "".join(json.dumps(entry) + "\n" for entry in entries)
+    plant_text(
+        path,
+        "".join(json.dumps(entry) + "\n" for entry in entries),
     )
 
 
 class GrokUsagePulse(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(
-            prefix="grok-usage-pulse-"
-        )
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
         self.grok = self.root / "grok"
         self.empty_claude = self.root / "empty-claude"
         self.empty_codex = self.root / "empty-codex"
@@ -148,8 +148,8 @@ class GrokUsagePulse(unittest.TestCase):
             / quote(REPO, safe="")
             / session_id
         )
-        session.mkdir(parents=True)
-        (session / "summary.json").write_text(
+        plant_text(
+            session / "summary.json",
             json.dumps(
                 {
                     "info": {"id": session_id, "cwd": REPO},
@@ -158,7 +158,7 @@ class GrokUsagePulse(unittest.TestCase):
                     "num_messages": 9,
                     "current_model_id": MODEL,
                 }
-            )
+            ),
         )
 
         updates = [
@@ -215,16 +215,16 @@ class GrokUsagePulse(unittest.TestCase):
         ]
         if json_output:
             args.append("--json")
-        return subprocess.run(
+        return run(
             args,
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=Path.cwd(),
+            env=self.world.env(),
+            timeout=RUN_CAP,
         )
 
     def json_rows(self):
         proc = self.run_pulse()
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         try:
             document = json.loads(proc.stdout)
         except json.JSONDecodeError as error:
@@ -282,7 +282,7 @@ class GrokUsagePulse(unittest.TestCase):
         self.assertEqual(set(legacy), ROW_KEYS)
 
         plain = self.run_pulse(json_output=False)
-        self.assertEqual(plain.returncode, 0, plain.stderr)
+        self.assertEqual(plain.exit, 0, plain.stderr)
         usage_lines = [
             line
             for line in plain.stdout.splitlines()
@@ -381,9 +381,8 @@ class SkepticCancelledTurns(GrokUsagePulse):
             }},
             "timestamp": BASE_EPOCH + 200,
         }
-        with updates_path.open("a") as handle:
-            handle.write(json.dumps(cancelled) + "\n")
-        planted = updates_path.read_text()
+        planted = updates_path.read_text() + json.dumps(cancelled) + "\n"
+        plant_text(updates_path, planted)
         self.assertIn('"stop_reason": "cancelled"', planted,
                       "the cancelled-turn plant did not land")
         self.set_mtime(updates_path, 10.0)

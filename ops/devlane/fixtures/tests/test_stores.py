@@ -6,13 +6,13 @@ import inspect
 import itertools
 import json
 import re
-import subprocess
 import sys
-import tempfile
 import typing
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World, run
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -148,9 +148,10 @@ def nested_keys(value):
 
 class StoreBuilderCase(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="stores-contract-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World(prefix="stores-contract-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+        self.root = self.world.cwd
 
     def stores(self):
         return load_module(self, STORES, "agentscient_fixture_stores")
@@ -806,11 +807,12 @@ class ExistingReadersRoundTripTheFixtures(StoreBuilderCase):
         artifacts = self.build_all(self.root)
         usage = load_module(self, USAGE, "agentscient_usage_for_fixture_test")
 
+        place = usage.Placement(REPO)
         claude = list(
-            usage.claude_sessions(artifacts["claude_root"], REPO)
+            usage.claude_sessions(artifacts["claude_root"], place)
         )
-        codex = list(usage.codex_sessions(artifacts["codex_root"], REPO))
-        grok = list(usage.grok_sessions(artifacts["grok_root"], REPO))
+        codex = list(usage.codex_sessions(artifacts["codex_root"], place))
+        grok = list(usage.grok_sessions(artifacts["grok_root"], place))
 
         self.assertEqual(
             claude,
@@ -924,7 +926,13 @@ class ExistingReadersRoundTripTheFixtures(StoreBuilderCase):
             grok_dir=str(artifacts["grok_root"]),
             repo=REPO,
         )
-        aggregate = json.dumps(usage.collect(args), sort_keys=True)
+        # collect returns its rows and the placement that read them;
+        # the unplaced cwds are in the leak's reach too, so both go
+        # into the text this row searches.
+        rows, place = usage.collect(args)
+        aggregate = json.dumps(
+            {"rows": rows, "unplaced": sorted(place.unplaced)},
+            sort_keys=True)
         self.assertNotIn(
             MARKER,
             aggregate,
@@ -959,7 +967,10 @@ class ReadersRefuseSnapshotRewriteInflation(StoreBuilderCase):
                              " before the growth plant")
             for key, bump in self.GROWTH.items():
                 last["message"]["usage"][key] += bump
-            stream.write_text("".join(json.dumps(e) + "\n" for e in entries))
+            self.world.plant_text(
+                stream,
+                "".join(json.dumps(e) + "\n" for e in entries),
+            )
             planted = jsonl(stream)
             self.assertNotEqual(planted[-1], planted[-2],
                                 f"the growth plant did not land in {stream}")
@@ -967,7 +978,8 @@ class ReadersRefuseSnapshotRewriteInflation(StoreBuilderCase):
 
     def usage_tokens(self):
         usage = load_module(self, USAGE, "agentscient_usage_reemit")
-        rows = list(usage.claude_sessions(self.root / "claude", REPO))
+        rows = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(REPO)))
         self.assertEqual(len(rows), 1)
         return rows[0]
 
@@ -1001,8 +1013,10 @@ class ReadersRefuseSnapshotRewriteInflation(StoreBuilderCase):
             cwd=actual, session_id=CLAUDE_SESSION, model=CLAUDE_MODEL,
             effort="high", marker=MARKER)
         usage = load_module(self, USAGE, "agentscient_usage_collision")
-        hit = list(usage.claude_sessions(self.root / "claude", actual))
-        miss = list(usage.claude_sessions(self.root / "claude", colliding))
+        hit = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(actual)))
+        miss = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(colliding)))
         self.assertEqual([len(hit), len(miss)], [1, 0],
                          "usage --repo trusted the lossy slug over the"
                          " cwd stored in the entries")
@@ -1035,7 +1049,7 @@ class BreakerConsumesTheSharedClaudeFixture(StoreBuilderCase):
             ),
         )
 
-        tripped = subprocess.run(
+        tripped = run(
             [
                 sys.executable,
                 str(BREAKER),
@@ -1044,12 +1058,12 @@ class BreakerConsumesTheSharedClaudeFixture(StoreBuilderCase):
                 "--cap",
                 str(low_cap),
             ],
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=60,
         )
         self.assertEqual(
-            tripped.returncode,
+            tripped.exit,
             3,
             (
                 f"{BREAKER} did not trip on the planted Claude spend: "
@@ -1057,7 +1071,7 @@ class BreakerConsumesTheSharedClaudeFixture(StoreBuilderCase):
             ),
         )
 
-        clean = subprocess.run(
+        clean = run(
             [
                 sys.executable,
                 str(BREAKER),
@@ -1066,12 +1080,12 @@ class BreakerConsumesTheSharedClaudeFixture(StoreBuilderCase):
                 "--cap",
                 str(spend + 1),
             ],
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=60,
         )
         self.assertEqual(
-            clean.returncode,
+            clean.exit,
             0,
             (
                 f"{BREAKER} tripped even though the Claude spend was "

@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import json
 import re
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 REPO = Path(__file__).resolve().parents[4]
 APPS = REPO / "ops" / "devlane" / "fixtures" / "apps"
@@ -57,12 +58,8 @@ ID_RE = re.compile(r"^[A-Z][A-Z0-9]*-\d{2}$")
 KIND_TOKEN = re.compile(r"\bK[1-9]\b")
 
 
-def _plant_bytes(testcase: unittest.TestCase, path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    testcase.assertEqual(landed, data, f"plant did not land intact: {path}")
-    testcase.assertEqual(len(landed), len(data))
+def _plant_bytes(world: World, path: Path, data: bytes) -> None:
+    world.plant_bytes(path, data)
 
 
 def _span_text(path: Path, lines: list[int]) -> str:
@@ -393,12 +390,12 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_manifest_missing_a_required_field_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-missing-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-missing-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             del payload["faults"][0]["finding"]
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("finding" in item for item in problems),
@@ -407,23 +404,23 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_manifest_with_an_unknown_kind_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-kind-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-kind-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["kind"] = "K99"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(any("K99" in item for item in problems), problems)
 
     def test_a_manifest_with_an_empty_quote_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-quote-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-quote-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["declared"]["text"] = "   "
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("declared" in item and "empty" in item for item in problems),
@@ -432,12 +429,12 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_quote_missing_from_its_stated_span_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-span-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-span-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["practiced"]["text"] = "THIS QUOTE IS ABSENT"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("verbatim" in item for item in problems),
@@ -446,45 +443,45 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_missing_probe_or_fix_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-probe-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-probe-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             (app / "probes" / "p01.sh").unlink()
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(any("probe" in item for item in problems), problems)
-        with tempfile.TemporaryDirectory(prefix="manifest-fix-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-fix-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             (app / "fixes" / "p01.patch").unlink()
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(any("fix" in item for item in problems), problems)
 
     def test_duplicate_ids_too_few_rows_and_too_few_kinds_are_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-ids-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-ids-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][1]["id"] = payload["faults"][0]["id"]
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(any("unique" in item for item in problems), problems)
-        with tempfile.TemporaryDirectory(prefix="manifest-count-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-count-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"] = payload["faults"][:2]
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("six to eight" in item for item in problems),
                 problems,
             )
-        with tempfile.TemporaryDirectory(prefix="manifest-kinds-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-kinds-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             for fault in payload["faults"]:
                 fault["kind"] = "K1"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("distinct kinds" in item for item in problems),
@@ -493,20 +490,20 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_span_past_eof_or_a_missing_neighbour_file_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-eof-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-eof-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["location"]["lines"] = [1, 999]
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(any("outside" in item for item in problems), problems)
-        with tempfile.TemporaryDirectory(prefix="manifest-neigh-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-neigh-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["neighbour"]["path"] = "no-such-neigh.py"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("no-such-neigh.py" in item for item in problems),
@@ -515,12 +512,12 @@ class ManifestSweep(unittest.TestCase):
 
     def test_name_must_match_the_app_directory(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-name-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-name-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["name"] = "not-the-directory-name"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("does not match directory" in item for item in problems),
@@ -529,12 +526,12 @@ class ManifestSweep(unittest.TestCase):
 
     def test_wrong_id_prefix_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-prefix-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-prefix-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["id"] = "WRONG-01"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("prefix" in item for item in problems),
@@ -543,15 +540,15 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_path_escaping_the_app_root_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-escape-") as tmp:
-            root = Path(tmp)
-            app = self._plant_valid_app(root / "tmpapp")
+        with World(prefix="manifest-escape-") as world:
+            root = world.root
+            app = self._plant_valid_app(world, root / "tmpapp")
             outside = root / "outside.py"
-            _plant_bytes(self, outside, b"OUTSIDE\n")
+            _plant_bytes(world, outside, b"OUTSIDE\n")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["location"]["path"] = "../outside.py"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("escapes the app root" in item for item in problems),
@@ -560,14 +557,14 @@ class ManifestSweep(unittest.TestCase):
 
     def test_overlapping_location_and_neighbour_are_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-overlap-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-overlap-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             loc = payload["faults"][0]["location"]
             payload["faults"][0]["neighbour"]["path"] = loc["path"]
             payload["faults"][0]["neighbour"]["lines"] = list(loc["lines"])
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("overlaps neighbour" in item for item in problems),
@@ -576,23 +573,23 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_probe_outside_probes_is_refused(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-probe-cmd-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-probe-cmd-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["probe"] = "false"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("probes/" in item for item in problems),
                 problems,
             )
-        with tempfile.TemporaryDirectory(prefix="manifest-probe-src-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-probe-src-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             payload = json.loads((app / "FAULTS.json").read_text())
             payload["faults"][0]["probe"] = "python3 src/mod.py"
             planted = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-            _plant_bytes(self, app / "FAULTS.json", planted)
+            _plant_bytes(world, app / "FAULTS.json", planted)
             problems = validate_manifest(app, kind_ids)
             self.assertTrue(
                 any("not under probes/" in item for item in problems),
@@ -601,12 +598,12 @@ class ManifestSweep(unittest.TestCase):
 
     def test_a_valid_six_row_manifest_has_no_problems(self):
         kind_ids = set(KIND_IDS)
-        with tempfile.TemporaryDirectory(prefix="manifest-ok-") as tmp:
-            app = self._plant_valid_app(Path(tmp) / "tmpapp")
+        with World(prefix="manifest-ok-") as world:
+            app = self._plant_valid_app(world, world.root / "tmpapp")
             problems = validate_manifest(app, kind_ids)
             self.assertEqual(problems, [], problems)
 
-    def _plant_valid_app(self, app: Path) -> Path:
+    def _plant_valid_app(self, world: World, app: Path) -> Path:
         readme_lines = ["# tmpapp", ""]
         src_lines = ["# src"]
         faults = []
@@ -624,8 +621,8 @@ class ManifestSweep(unittest.TestCase):
             neigh_line = len(src_lines)
             probe_rel = f"probes/p{index:02d}.sh"
             fix_rel = f"fixes/p{index:02d}.patch"
-            _plant_bytes(self, app / probe_rel, b"#!/bin/sh\nexit 1\n")
-            _plant_bytes(self, app / fix_rel, b"dummy patch\n")
+            _plant_bytes(world, app / probe_rel, b"#!/bin/sh\nexit 1\n")
+            _plant_bytes(world, app / fix_rel, b"dummy patch\n")
             faults.append(
                 {
                     "id": f"TMP-{index:02d}",
@@ -657,12 +654,12 @@ class ManifestSweep(unittest.TestCase):
                 }
             )
         _plant_bytes(
-            self,
+            world,
             app / "README.md",
             ("\n".join(readme_lines) + "\n").encode("utf-8"),
         )
         _plant_bytes(
-            self,
+            world,
             app / "src" / "mod.py",
             ("\n".join(src_lines) + "\n").encode("utf-8"),
         )
@@ -672,7 +669,7 @@ class ManifestSweep(unittest.TestCase):
             "faults": faults,
         }
         planted = (json.dumps(manifest, indent=2) + "\n").encode("utf-8")
-        _plant_bytes(self, app / "FAULTS.json", planted)
+        _plant_bytes(world, app / "FAULTS.json", planted)
         loaded = json.loads((app / "FAULTS.json").read_text(encoding="utf-8"))
         self.assertEqual(len(loaded["faults"]), 6)
         self.assertEqual(loaded["name"], app.name)

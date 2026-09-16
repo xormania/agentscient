@@ -3,17 +3,15 @@
 Contracts (only): `ops/conductor/branch-census.md` and the inherited
 `ops/conductor/instrument-conventions.md`. The tool
 `ops/conductor/tools/branches.py` is the subject and is not read here.
-Tests invoke it as a subprocess inside a scratch git repository.
+Tests invoke it through the test kit inside a scratch git repository.
 
 The live dispatch store and this repo must stay untouched — asserted
 in tearDown.
 
 The implementation lands in parallel. A missing tool file is one red
-(`test_the_tool_file_is_present`). Every other case stages a
-copy-tool-bytes stand-in so a missing file is not every test's failure:
-when the tool exists its bytes are copied and run; when it does not, a
-no-op stub (exit 0, no output) is planted so each assertion goes red on
-the contract promise rather than Python's missing-file exit 2.
+(`test_the_tool_file_is_present`). Every other case uses World.stage,
+whose absent-subject stand-in lets each assertion go red on the contract
+promise rather than Python's missing-file exit 2.
 """
 
 from __future__ import annotations
@@ -21,16 +19,12 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
-import stat
-import subprocess
 import sys
-import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from live_store_guard import assert_unchanged
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "branches.py"
@@ -61,12 +55,6 @@ REC_OPEN = "20260801T000000Z-old-open"
 GH_ERROR_L1 = "GH_ERROR_LINE1: boom"
 GH_ERROR_L2 = "GH_ERROR_LINE2: still boom"
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 STACKED_RE = re.compile(
     r"^STACKED #(\d+) base=(\S+) retarget before merge$"
 )
@@ -92,14 +80,6 @@ RETIRED_RE = re.compile(r"retired n=(\d+)")
 # table, same shape as onboard).
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
 def _live_store_paths() -> list[Path]:
     paths: list[Path] = []
     xdg = os.environ.get("XDG_STATE_HOME")
@@ -122,19 +102,6 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
-    return proc.stdout
-
-
 def days_ago(days: int) -> str:
     t = datetime.now(timezone.utc) - timedelta(days=days)
     return t.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S +0000")
@@ -144,39 +111,49 @@ class _CensusFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged tool copy, stub gh, live store frozen."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
+        self.world = World(prefix="branch-census-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self._live_watch = self.world.watch(
+            *_live_store_paths(), contents=False
+        )
+        repo_env = self.world.env()
+        self._head_before = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=repo_env,
+            timeout=RUN_CAP,
+            expect=0,
+        ).stdout.strip()
+        self._diff_before = run(
             ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
+            cwd=REPO,
+            env=repo_env,
+            timeout=RUN_CAP,
+            expect=0,
         ).stdout
-        self._dispatch_refs_before = subprocess.run(
+        self._dispatch_refs_before = run(
             ["git", "for-each-ref", "refs/dispatch"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=repo_env,
+            timeout=RUN_CAP,
+            expect=0,
         ).stdout
-        self._archive_refs_before = subprocess.run(
+        self._archive_refs_before = run(
             ["git", "for-each-ref", "refs/archive"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=repo_env,
+            timeout=RUN_CAP,
+            expect=0,
         ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="branch-census-")
-        root = Path(self._tmp.name)
+        root = self.world.root
         self.root = root
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
+        self.home = self.world.home
+        self.scratch = self.world.cwd
+        self.bin = self.world.bin
         self.repo = root / "repo"
-        self.xdg = root / "xdg"
-        for path in (self.home, self.scratch, self.bin, self.repo, self.xdg):
-            path.mkdir()
+        self.xdg = self.world.xdg_state
+        self.repo.mkdir()
         self.store = self.xdg / "agentscient" / "dispatch"
         self.home_store = (
             self.home / ".local" / "state" / "agentscient" / "dispatch"
@@ -190,12 +167,8 @@ class _CensusFixture(unittest.TestCase):
             "plant: isolated HOME store must start absent",
         )
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
-        self.staged = self.scratch / "branches.py"
         self._stage_tool_bytes()
-        self.assertFalse(
-            self.argv_log.exists(), "plant: argv log must start absent"
-        )
+        self.assertEqual(self.world.tools.calls("gh"), [])
         self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
         self.plant_gh_prs([])
         self.base = ""
@@ -204,109 +177,51 @@ class _CensusFixture(unittest.TestCase):
         self.mid_sha = ""
 
     def tearDown(self):
-        try:
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
-            self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
-                self._head_before,
-                "real repo HEAD moved",
-            )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-            refs_after = subprocess.run(
-                ["git", "for-each-ref", "refs/dispatch"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                refs_after,
-                self._dispatch_refs_before,
-                "real repo gained a dispatch ref",
-            )
-            archive_after = subprocess.run(
-                ["git", "for-each-ref", "refs/archive"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                archive_after,
-                self._archive_refs_before,
-                "real repo gained an archive ref",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._live_watch.assert_unchanged(self)
+        repo_env = self.world.env()
+        head_after = run(
+            ["git", "rev-parse", "HEAD"], cwd=REPO, env=repo_env,
+            timeout=RUN_CAP, expect=0,
+        ).stdout.strip()
+        self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
+        diff_after = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=repo_env,
+            timeout=RUN_CAP, expect=0,
+        ).stdout
+        self.assertEqual(
+            diff_after, self._diff_before, "real repo tracked files mutated"
+        )
+        refs_after = run(
+            ["git", "for-each-ref", "refs/dispatch"], cwd=REPO,
+            env=repo_env, timeout=RUN_CAP, expect=0,
+        ).stdout
+        self.assertEqual(
+            refs_after, self._dispatch_refs_before,
+            "real repo gained a dispatch ref",
+        )
+        archive_after = run(
+            ["git", "for-each-ref", "refs/archive"], cwd=REPO,
+            env=repo_env, timeout=RUN_CAP, expect=0,
+        ).stdout
+        self.assertEqual(
+            archive_after, self._archive_refs_before,
+            "real repo gained an archive ref",
+        )
 
     def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(
-                landed, ABSENT_STUB, "stub plant did not land intact"
-            )
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+        self.staged = self.world.stage(TOOL, siblings=SIBLINGS)
         self.assertTrue(self.staged.is_file())
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under XDG_STATE_HOME is the one
         # asserted.
         self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.world.plant_text(self.conf, "LANE_NAME='agentscient'\n")
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
-
-    def _plant_gh(self, body: str) -> None:
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        mode = self.gh.stat().st_mode
-        self.gh.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        landed = self.gh.read_text(encoding="utf-8")
-        self.assertEqual(landed, body, "gh stub plant did not land intact")
-        self.assertTrue(os.access(self.gh, os.X_OK), "gh stub is not executable")
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n',"
-            " encoding='utf-8')\n"
-            "argv = sys.argv[1:]\n"
-        )
 
     def plant_gh_prs(
         self,
@@ -321,39 +236,23 @@ class _CensusFixture(unittest.TestCase):
         prs = [dict(row) for row in prs]
         for row in prs:
             row.setdefault("isCrossRepository", False)
-        body = (
-            self._gh_preamble()
-            + f"fail_exit = {exit_code}\n"
-            + f"fail_stderr = {stderr!r}\n"
-            + f"prs = json.loads({json.dumps(json.dumps(prs))})\n"
-            + "if fail_exit != 0:\n"
-            + "    sys.stderr.write(fail_stderr)\n"
-            + "    raise SystemExit(fail_exit)\n"
-            + "sys.stdout.write(json.dumps(prs) + '\\n')\n"
-            + "raise SystemExit(0)\n"
+        self.world.tools.plant(
+            "gh",
+            stdout=json.dumps(prs) + "\n" if exit_code == 0 else "",
+            stderr=stderr,
+            exit=exit_code,
         )
-        self._plant_gh(body)
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
+        return self.world.env({
             "GIT_AUTHOR_NAME": REPO_USER,
             "GIT_AUTHOR_EMAIL": REPO_EMAIL,
             "GIT_COMMITTER_NAME": REPO_USER,
             "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -364,15 +263,13 @@ class _CensusFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         if check:
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 0,
                 f"git {args}: {proc.stderr or proc.stdout}",
             )
@@ -398,7 +295,7 @@ class _CensusFixture(unittest.TestCase):
         if when is not None:
             env["GIT_AUTHOR_DATE"] = when
             env["GIT_COMMITTER_DATE"] = when
-        proc = subprocess.run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -411,13 +308,11 @@ class _CensusFixture(unittest.TestCase):
                 "-m",
                 message,
             ],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=env,
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         sha = self.sha("HEAD")
         if when is not None:
             got = self.git("log", "-1", "--format=%cI", sha).stdout.strip()
@@ -430,7 +325,7 @@ class _CensusFixture(unittest.TestCase):
 
     def seed_trunks(self) -> dict[str, str]:
         init = self.git("init", "-b", "main", cwd=self.repo, check=False)
-        self.assertEqual(init.returncode, 0, init.stderr)
+        self.assertEqual(init.exit, 0, init.stderr)
         self.git("config", "user.name", REPO_USER)
         self.git("config", "user.email", REPO_EMAIL)
         name = self.git("config", "--get", "user.name").stdout.strip()
@@ -449,7 +344,7 @@ class _CensusFixture(unittest.TestCase):
         anc = self.git(
             "merge-base", "--is-ancestor", self.main_sha, "origin/dev"
         )
-        self.assertEqual(anc.returncode, 0, "plant: main is not under dev")
+        self.assertEqual(anc.exit, 0, "plant: main is not under dev")
         head = self.git("symbolic-ref", "--short", "HEAD").stdout.strip()
         self.assertEqual(head, "dev")
         self.base = self.dev_sha
@@ -475,7 +370,7 @@ class _CensusFixture(unittest.TestCase):
         self.git("checkout", "dev")
         self.git("branch", "-D", "tmp-plant")
         gone = self.git("rev-parse", "--verify", "tmp-plant", check=False)
-        self.assertNotEqual(gone.returncode, 0, "plant: tmp-plant still here")
+        self.assertNotEqual(gone.exit, 0, "plant: tmp-plant still here")
         return sha
 
     def behind_dev(self, rev: str) -> int:
@@ -484,7 +379,7 @@ class _CensusFixture(unittest.TestCase):
 
     def is_ancestor(self, commit: str, of: str) -> bool:
         proc = self.git("merge-base", "--is-ancestor", commit, of, check=False)
-        return proc.returncode == 0
+        return proc.exit == 0
 
     def patch_leftover(self, tip: str, onto: str = "origin/dev") -> list[str]:
         out = self.git(
@@ -593,25 +488,12 @@ class _CensusFixture(unittest.TestCase):
         return original
 
     def env(self, *, agent: str | None = None, path: str | None = None) -> dict[str, str]:
-        env = {
-            "PATH": path if path is not None else (
-                str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
-            ),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-            "LANE_CONF": str(self.conf),
-        }
+        extra = {"LANE_CONF": str(self.conf)}
+        if path is not None:
+            extra["PATH"] = path
         if agent is not None:
-            env["WF_AGENT"] = agent
-        return env
+            extra["WF_AGENT"] = agent
+        return self.world.env(extra)
 
     def invoke(
         self,
@@ -625,30 +507,18 @@ class _CensusFixture(unittest.TestCase):
             self.assertNotIn("WF_AGENT", env)
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *argv],
-                cwd=str(cwd or self.repo),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"branches exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [sys.executable, str(self.staged), *argv],
+            cwd=cwd or self.repo,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [row["argv"] for row in self.world.tools.calls("gh")]
 
     def line_for(self, stdout: str, name: str) -> str:
         aliases = {
@@ -702,7 +572,7 @@ class _CensusFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -777,7 +647,7 @@ class CensusRoles(_CensusFixture):
         stdout = proc.stdout or ""
         line = self.line_for(stdout, UNKNOWN)
         self.assertRegex(line, r"\bunknown\b", line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_dispatch_refs_are_not_census_unknowns(self):
         self.seed_trunks()
@@ -792,7 +662,7 @@ class CensusRoles(_CensusFixture):
             rf"\b{re.escape(REC_OLD)}\b.*\bunknown\b",
             stdout,
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class CensusStates(_CensusFixture):
@@ -909,7 +779,7 @@ class CensusStates(_CensusFixture):
         self.assertLess(i_unknown, i_active, stdout)
         self.assertLess(i_active, i_idle, stdout)
         self.assertLess(i_idle, i_merged, stdout)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_young_unit_without_pr_is_idle(self):
         self.seed_trunks()
@@ -927,7 +797,7 @@ class CensusStates(_CensusFixture):
         stdout = proc.stdout or ""
         line = self.line_for(stdout, UNIT_IDLE)
         self.assertRegex(line, r"\bidle\b", line)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class Stacked(_CensusFixture):
@@ -959,7 +829,7 @@ class Stacked(_CensusFixture):
         self.assertIsNotNone(match, stdout)
         self.assertEqual(match.group(1), "7")
         self.assertEqual(match.group(2), STACK_BASE)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         argvs = self.gh_argvs()
         self.assertTrue(argvs, "stacked did not invoke gh")
         self.assertIn("pr", argvs[0])
@@ -991,7 +861,7 @@ class Stacked(_CensusFixture):
         argvs = self.gh_argvs()
         self.assertTrue(argvs, "stacked did not invoke gh")
         self.assertNotIn("STACKED", proc.stdout or "")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_census_exits_1_when_a_stacked_row_exists(self):
         self.seed_trunks()
@@ -1010,7 +880,7 @@ class Stacked(_CensusFixture):
         stdout = proc.stdout or ""
         expected = f"STACKED #7 base={STACK_BASE} retarget before merge"
         self.assertIn(expected, stdout.splitlines(), stdout)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class Transport(_CensusFixture):
@@ -1063,7 +933,7 @@ class Transport(_CensusFixture):
         self.assertEqual(closed, 3, stdout)
         self.assertEqual(candidates, 1, stdout)
         self.assertIn(REC_OLD, stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertNotIn("identity", (proc.stderr or "").lower())
 
     def test_landed_younger_than_the_window_is_not_a_candidate(self):
@@ -1082,7 +952,7 @@ class Transport(_CensusFixture):
         )
         self.assertIsNotNone(candidates, f"no candidates count in {stdout!r}")
         self.assertEqual(candidates, 0, stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_default_retention_window_is_30_days(self):
         self.seed_trunks()
@@ -1152,19 +1022,19 @@ class Retire(_CensusFixture):
             "rev-parse", "--verify", f"refs/dispatch/{REC_OLD}", check=False
         )
         self.assertNotEqual(
-            missing.returncode,
+            missing.exit,
             0,
             "dispatch ref still present after retire",
         )
-        self.assertEqual(first.returncode, 0, self.combined(first))
+        self.assertEqual(first.exit, 0, self.combined(first))
         second = self.invoke(["retire", "--window", "30"], agent=AGENT)
         self.assertRegex(second.stdout or "", r"retired n=0", second.stdout)
         self.assertEqual(self.sha(archive), original)
         still = self.git(
             "rev-parse", "--verify", f"refs/dispatch/{REC_OLD}", check=False
         )
-        self.assertNotEqual(still.returncode, 0)
-        self.assertEqual(second.returncode, 0, self.combined(second))
+        self.assertNotEqual(still.exit, 0)
+        self.assertEqual(second.exit, 0, self.combined(second))
 
     def test_a_failed_archive_tag_skips_the_delete_and_exits_1(self):
         original = self._candidate()
@@ -1175,7 +1045,7 @@ class Retire(_CensusFixture):
         proc = self.invoke(["retire", "--window", "30"], agent=AGENT)
         text = self.combined(proc)
         self.assertIn(REC_OLD, text, f"failed tag did not name the ref: {text!r}")
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertEqual(
             self.sha(f"refs/dispatch/{REC_OLD}"),
             original,
@@ -1187,7 +1057,7 @@ class Retire(_CensusFixture):
             f"refs/archive/dispatch/{REC_OLD}",
             check=False,
         )
-        self.assertNotEqual(archive.returncode, 0, "archive ref was created")
+        self.assertNotEqual(archive.exit, 0, "archive ref was created")
 
 
 class Refusals(_CensusFixture):
@@ -1203,16 +1073,14 @@ class Refusals(_CensusFixture):
         nongit = self.root / "nongit"
         nongit.mkdir()
         self.assertFalse((nongit / ".git").exists())
-        probe = subprocess.run(
+        probe = run(
             ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=str(nongit),
+            cwd=nongit,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertNotEqual(
-            probe.returncode,
+            probe.exit,
             0,
             f"INVALID: nongit cwd is a work tree: {probe.stdout}",
         )
@@ -1252,7 +1120,7 @@ class Refusals(_CensusFixture):
             closed=True,
         )
         proc = self.invoke(["retire", "--dry-run"], agent=None)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertNotIn("identity", (proc.stderr or "").lower())
         self.assertIn("PLAN archive", proc.stdout or "", "dry-run printed no plan")
 
@@ -1275,7 +1143,7 @@ class ReviewGates(_CensusFixture):
 
     def test_census_without_a_dev_trunk_refuses_before_gh(self):
         init = self.git("init", "-b", "scratch", cwd=self.repo, check=False)
-        self.assertEqual(init.returncode, 0, init.stderr)
+        self.assertEqual(init.exit, 0, init.stderr)
         self.git("config", "user.name", REPO_USER)
         self.git("config", "user.email", REPO_EMAIL)
         self.commit_file("only.txt", "no-trunk\n", "seed scratch")
@@ -1290,7 +1158,7 @@ class ReviewGates(_CensusFixture):
         self.seed_trunks()
         self.plant_gh_prs([])
         proc = self.invoke(["census"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_census_json_matches_text_and_pins_the_shape(self):
         self.seed_trunks()
@@ -1306,9 +1174,9 @@ class ReviewGates(_CensusFixture):
             ]
         )
         text = self.invoke(["census"])
-        self.assertEqual(text.returncode, 1, self.combined(text))
+        self.assertEqual(text.exit, 1, self.combined(text))
         proc = self.invoke(["census", "--json"])
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         payload = json.loads(proc.stdout)
         self.assertEqual(set(payload), {"branches", "stacked"})
         self.assertEqual(payload["stacked"], [{"base": STACK_BASE, "number": 7}])
@@ -1325,7 +1193,7 @@ class ReviewGates(_CensusFixture):
         self.seed_trunks()
         self.plant_gh_prs([])
         proc = self.invoke(["census", "--json"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         payload = json.loads(proc.stdout)
         self.assertEqual(set(payload), {"branches", "stacked"})
         self.assertEqual(payload["stacked"], [])
@@ -1366,7 +1234,7 @@ class ReviewGates(_CensusFixture):
         ]
         self.plant_gh_prs(prs)
         proc = self.invoke(["census"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_fresh_record_on_an_old_commit_is_not_a_candidate(self):
         self.seed_trunks()
@@ -1381,7 +1249,7 @@ class ReviewGates(_CensusFixture):
         now = datetime.now(timezone.utc).timestamp()
         os.utime(rec_exit, (now, now))
         proc = self.invoke(["transport", "--window", "30"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertIn("candidates=0", proc.stdout or "")
 
     def test_cross_repo_pr_head_does_not_mask_a_stray(self):
@@ -1405,7 +1273,7 @@ class ReviewGates(_CensusFixture):
             ]
         )
         proc = self.invoke(["census"])
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         line = self.line_for(proc.stdout or "", "conductor/fork-shadow")
         self.assertIn("stray", line)
 
@@ -1430,7 +1298,7 @@ class ReviewGates(_CensusFixture):
             ]
         )
         proc = self.invoke(["census"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         line = self.line_for(proc.stdout or "", "conductor/live-unit")
         self.assertIn("active", line)
 
@@ -1484,13 +1352,13 @@ class ReviewGates(_CensusFixture):
         )
         self.git("update-ref", f"refs/archive/dispatch/{REC_OLD}", tip)
         proc = self.invoke(["retire", "--window", "30"], agent=AGENT)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertIn(f"RETIRED refs/dispatch/{REC_OLD}", proc.stdout or "")
         gone = self.git(
             "rev-parse", "--verify", "--quiet",
             f"refs/dispatch/{REC_OLD}", check=False,
         )
-        self.assertNotEqual(gone.returncode, 0, "dispatch ref survived retire")
+        self.assertNotEqual(gone.exit, 0, "dispatch ref survived retire")
         self.assertEqual(self.sha(f"refs/archive/dispatch/{REC_OLD}"), tip)
 
     def test_retire_keeps_the_ref_when_the_archive_mismatches(self):
@@ -1504,7 +1372,7 @@ class ReviewGates(_CensusFixture):
         )
         self.git("update-ref", f"refs/archive/dispatch/{REC_OLD}", self.mid_sha)
         proc = self.invoke(["retire", "--window", "30"], agent=AGENT)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("kept", self.combined(proc))
         self.assertEqual(self.sha(f"refs/dispatch/{REC_OLD}"), tip)
         self.assertEqual(

@@ -18,6 +18,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World, run  # noqa: F401 - World via _TempLaunch
+
 CONF_ENV = "LANE_CONF"
 
 REQUIRED_DEFAULTS = {
@@ -78,7 +80,7 @@ class _LaneConfLaunch(ls._TempLaunch):
         for name, value in keys.items():
             lines.append(f"{name}='{value}'\n")
         text = "".join(lines)
-        self.conf_path.write_text(text, encoding="utf-8")
+        self.world.plant_text(self.conf_path, text)
         landed = self.conf_path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, "conf plant did not land intact")
         for name, value in keys.items():
@@ -87,13 +89,20 @@ class _LaneConfLaunch(ls._TempLaunch):
         os.environ[CONF_ENV] = str(self.conf_path)
         return self.conf_path
 
+    def git(self, *args):
+        return run(
+            ["git", *args], cwd=self.repo, env=self.env, timeout=60, expect=0,
+        )
+
 
 class WallDefaultFromConf(_LaneConfLaunch):
-    """A job without caps and WALL_DEFAULT='7' records timeout 7.0
-    with timeout_source `default`."""
+    """A catalogue entry without caps and WALL_DEFAULT='7' records timeout
+    7.0 with timeout_source `default`. Every job declares its caps since
+    2026-09-16, so the capless entry is planted (ls.strip_job_caps)."""
 
     def test_wall_default_from_conf_is_recorded_as_timeout_source_default(self):
         self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         self.plant_conf(WALL_DEFAULT="7")
@@ -131,15 +140,12 @@ class LaneNameJobsRoot(_LaneConfLaunch):
     """LANE_NAME='lanex' puts the jobs root at <xdg>/lanex/dispatch."""
 
     def test_lane_name_from_conf_selects_the_xdg_jobs_root(self):
-        xdg = self.home / "xdg-state"
-        xdg.mkdir()
         os.environ.pop("DISPATCH_JOBS", None)
-        os.environ["XDG_STATE_HOME"] = str(xdg)
         self.plant_conf(LANE_NAME="lanex")
         planted = self.conf_path.read_text(encoding="utf-8")
         self.assertIn("LANE_NAME='lanex'", planted)
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
-        expected = (xdg / "lanex" / "dispatch").resolve()
+        expected = (self.world.xdg_state / "lanex" / "dispatch").resolve()
         root = Path(rec["snapshot"]["root"]).resolve()
         self.assertTrue(
             str(root).startswith(str(expected) + os.sep) or root == expected,
@@ -160,7 +166,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         self.plant_conf(TRUNK_BRANCH="trunkx", RELEASE_BRANCH="relx")
         planted = self.conf_path.read_text(encoding="utf-8")
         self.assertIn("TRUNK_BRANCH='trunkx'", planted)
-        self._git("checkout", "-b", "trunkx")
+        self.git("checkout", "-b", "trunkx")
         code, out, err = self.dispatch(
             self.argv_for(lineage="trunkx", stage="plan"),
         )
@@ -177,7 +183,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         planted = self.conf_path.read_text(encoding="utf-8")
         self.assertIn("TRUNK_BRANCH='trunkx'", planted)
         self.assertIn("RELEASE_BRANCH='relx'", planted)
-        self._git("checkout", "-b", "dev")
+        self.git("checkout", "-b", "dev")
         rec, *_ = self.launch_ok(
             self.argv_for(lineage="dev", stage="plan"),
         )
@@ -189,7 +195,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         self.plant_conf(TRUNK_BRANCH="trunkx", RELEASE_BRANCH="relx")
         planted = self.conf_path.read_text(encoding="utf-8")
         self.assertIn("RELEASE_BRANCH='relx'", planted)
-        self._git("checkout", "-b", "relx")
+        self.git("checkout", "-b", "relx")
         code, out, err = self.dispatch(
             self.argv_for(lineage="relx", stage="plan"),
         )
@@ -219,14 +225,14 @@ class RecordCommitAuthorFromConf(_LaneConfLaunch):
         rel = f".dev/records/dispatches/{rec['id']}.json"
         path = self.repo / rel
         self.assertTrue(path.is_file(), path)
-        sha = self._git("log", "-1", "--format=%H", "--", rel).stdout.strip()
+        sha = self.git("log", "-1", "--format=%H", "--", rel).stdout.strip()
         self.assertRegex(sha, r"^[0-9a-f]{40}$", rel)
-        author = self._git(
+        author = self.git(
             "log", "-1", "--format=%an <%ae>", sha,
         ).stdout.strip()
         self.assertEqual(author, ident)
         self.assertNotEqual(author, self.HARDCODED)
-        committer = self._git(
+        committer = self.git(
             "log", "-1", "--format=%cn <%ce>", sha,
         ).stdout.strip()
         self.assertEqual(committer, ident)

@@ -16,12 +16,19 @@ from __future__ import annotations
 
 import hashlib
 import os
-import subprocess
 
 import launch_support as ls
 
+from ops.testkit import World, run
 
-class PermittedDeltaToTheInvokingRepository(ls._TempLaunch):
+
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+
+class PermittedDeltaToTheInvokingRepository(_KitLaunch):
     """S1 / contract permitted delta / plan (a)."""
 
     def test_a_read_dispatch_adds_one_record_commit_and_no_dispatch_ref(self):
@@ -118,7 +125,7 @@ class PermittedDeltaToTheInvokingRepository(ls._TempLaunch):
         self.assertIn(snap_head[:8], reflog)
 
 
-class CommitOnlyLeavesUnrelatedIndexEntries(ls._TempLaunch):
+class CommitOnlyLeavesUnrelatedIndexEntries(_KitLaunch):
     """S2 / contract git commit --only."""
 
     def test_a_planted_unrelated_staged_file_stays_staged_and_uncommitted(self):
@@ -144,13 +151,13 @@ class CommitOnlyLeavesUnrelatedIndexEntries(ls._TempLaunch):
         self.assertIn(f"Co-Authored-By: {ls.AGENT}", msg)
 
 
-class FetchHeadIsNotWritten(ls._TempLaunch):
+class FetchHeadIsNotWritten(_KitLaunch):
     """S3 — collect uses --no-write-fetch-head; mint removes FETCH_HEAD."""
 
     def test_an_existing_fetch_head_is_byte_identical_after_a_write_dispatch(self):
         fetch = self.repo / ".git" / "FETCH_HEAD"
         marker = b"planted-fetch-head-marker\n"
-        fetch.write_bytes(marker)
+        self.world.plant_bytes(fetch, marker)
         self.assertEqual(fetch.read_bytes(), marker, "plant landed")
         os.environ["TASK_LAUNCH_COMMIT"] = "worker.py"
         os.environ["TASK_LAUNCH_VERDICT"] = "null"
@@ -168,7 +175,7 @@ class FetchHeadIsNotWritten(ls._TempLaunch):
         self.assertFalse(fetch.exists())
 
 
-class WholeMintGuarantees(ls._TempLaunch):
+class WholeMintGuarantees(_KitLaunch):
     """S4 / contract whole / plan (b)."""
 
     def test_head_equals_ref_sha_and_parents_are_present(self):
@@ -252,14 +259,13 @@ class WholeMintGuarantees(ls._TempLaunch):
         )
 
 
-class FilesetManifestMustNotLandInTheSnapshot(ls._TempLaunch):
+class FilesetManifestMustNotLandInTheSnapshot(_KitLaunch):
     """S5 / plan (c) — a planted FILESET.md listing receipts.py fires
     the wall; the launcher's snapshot stays clean of that file."""
 
     def test_a_planted_fileset_md_fires_the_wall_and_the_snapshot_does_not(self):
         self.assertTrue(ls.WALL_PY.is_file(), "vocabulary_wall.py must exist")
         plant_root = self.home / "wall-plant"
-        plant_root.mkdir()
         fileset = plant_root / "FILESET.md"
         self.plant_new_file(
             fileset,
@@ -271,14 +277,15 @@ class FilesetManifestMustNotLandInTheSnapshot(ls._TempLaunch):
         # it; FILESET.md at the root is the design-surface hit.
         self.plant_new_file(receipts, "# receipts fixture\n",
                             must_contain="receipts")
-        wall = subprocess.run(
-            ["python3", str(ls.WALL_PY), "--root", str(plant_root)],
-            capture_output=True, text=True,
+        python = self.world.require("python3")
+        wall = run(
+            [python, str(ls.WALL_PY), "--root", str(plant_root)],
+            cwd=self.repo, env=self.world.env(), timeout=60,
         )
         self.assertEqual(
-            wall.returncode, 1,
+            wall.exit, 1,
             "plant must make the wall fire, got "
-            f"{wall.returncode}: {wall.stdout}{wall.stderr}",
+            f"{wall.exit}: {wall.stdout}{wall.stderr}",
         )
         self.assertIn("receipts", wall.stdout.lower())
 
@@ -289,18 +296,18 @@ class FilesetManifestMustNotLandInTheSnapshot(ls._TempLaunch):
             "launcher snapshot must not carry FILESET.md at the root",
         )
         self.assertFalse((snap / "FILESET.diff").exists())
-        clean = subprocess.run(
-            ["python3", str(ls.WALL_PY), "--root", str(snap)],
-            capture_output=True, text=True,
+        clean = run(
+            [python, str(ls.WALL_PY), "--root", str(snap)],
+            cwd=self.repo, env=self.world.env(), timeout=60,
         )
         self.assertNotIn("FILESET.md", clean.stdout)
         self.assertNotEqual(
-            clean.returncode, 1,
+            clean.exit, 1,
             f"launcher snapshot must not trip the wall: {clean.stdout}",
         )
 
 
-class PromptAndBookkeepingLiveInTheJobDirectory(ls._TempLaunch):
+class PromptAndBookkeepingLiveInTheJobDirectory(_KitLaunch):
     """S6 / contract job directory / plan (m)."""
 
     def test_prompt_path_is_outside_the_snapshot_and_matches_the_cli_bytes(self):

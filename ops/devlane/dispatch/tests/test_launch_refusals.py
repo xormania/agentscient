@@ -23,11 +23,20 @@ import json
 import os
 import stat
 import unittest
+from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
 
-class IdentityRefusesBeforeAnyDirectory(ls._TempLaunch):
+
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+
+class IdentityRefusesBeforeAnyDirectory(_KitLaunch):
     """D1 / contract identity / plan (f)."""
 
     def test_unset_wf_agent_refuses_and_creates_no_job_dir(self):
@@ -76,7 +85,7 @@ class IdentityRefusesBeforeAnyDirectory(ls._TempLaunch):
         self.assertTrue(witness["argv"])
 
 
-class LiveTargetRefusesAJobsRootInsideTheRepo(ls._TempLaunch):
+class LiveTargetRefusesAJobsRootInsideTheRepo(_KitLaunch):
     """D2 / contract live-target."""
 
     def test_a_jobs_root_inside_the_invoking_repo_is_refused(self):
@@ -112,7 +121,7 @@ class LiveTargetRefusesAJobsRootInsideTheRepo(ls._TempLaunch):
         self.assertTrue(witness["argv"])
 
 
-class RefMustNameACommit(ls._TempLaunch):
+class RefMustNameACommit(_KitLaunch):
     """D3 / contract ref."""
 
     def test_an_unresolvable_ref_is_refused_and_never_launches(self):
@@ -133,7 +142,7 @@ class RefMustNameACommit(ls._TempLaunch):
         self.assertEqual(rec["snapshot"]["ref_sha"], self.ref)
 
 
-class RecordTargetMustBeTheLineageBranch(ls._TempLaunch):
+class RecordTargetMustBeTheLineageBranch(_KitLaunch):
     """D4 / contract record-target / plan (f)."""
 
     def test_detached_head_is_refused(self):
@@ -200,18 +209,17 @@ class RecordTargetMustBeTheLineageBranch(ls._TempLaunch):
         data["status"] = "launched"
         data["result"] = None
         data["at"]["closed"] = None
-        dest.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        self.world.plant_text(dest, json.dumps(data) + "\n")
         landed = dest.read_text(encoding="utf-8")
         self.assertIn(launched_id, landed)
         self.assertIn('"launched"', landed)
         self.assertNotEqual(landed, src.read_text(encoding="utf-8"))
 
         job_dir = self.jobs_root / launched_id
-        job_dir.mkdir()
-        (job_dir / "state.json").write_text(
+        self.world.plant_text(
+            job_dir / "state.json",
             json.dumps({"pid": self.dead_pid(), "pgid": 1,
                         "session": {"id": "x"}, "attempt": 1}) + "\n",
-            encoding="utf-8",
         )
         self.assertTrue((job_dir / "state.json").is_file())
 
@@ -237,7 +245,7 @@ class RecordTargetMustBeTheLineageBranch(ls._TempLaunch):
         )
 
 
-class StaleBaseIsTheOneOverridableRefusal(ls._TempLaunch):
+class StaleBaseIsTheOneOverridableRefusal(_KitLaunch):
     """D5 / contract stale-base / plan (d)(e)."""
 
     def test_a_ref_that_is_not_an_ancestor_of_lineage_is_refused(self):
@@ -312,7 +320,7 @@ class StaleBaseIsTheOneOverridableRefusal(ls._TempLaunch):
         self.assert_not_started()
 
 
-class ModelIsRequiredAndEffortReachesEveryCli(ls._TempLaunch):
+class ModelIsRequiredAndEffortReachesEveryCli(_KitLaunch):
     """D6 / contract model / plan (l)."""
 
     def _argv_list(self, witness):
@@ -446,7 +454,7 @@ class ModelIsRequiredAndEffortReachesEveryCli(ls._TempLaunch):
         data["result"] = None
         data["at"]["closed"] = None
         data["model"].pop("effort_argv", None)
-        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        self.world.plant_text(path, json.dumps(data, indent=2) + "\n")
         planted = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(planted["status"], "launched")
         self.assertNotIn("effort_argv", planted["model"])
@@ -506,7 +514,7 @@ class EffortContractDocumentsMatchTheWire(unittest.TestCase):
         )
 
 
-class ClaudeWriteIsUnadmitted(ls._TempLaunch):
+class ClaudeWriteIsUnadmitted(_KitLaunch):
     """D7 / contract write-role-unadmitted / plan (l)."""
 
     def test_a_claude_write_role_is_refused(self):
@@ -553,7 +561,7 @@ class ClaudeWriteIsUnadmitted(ls._TempLaunch):
         self.assertEqual(rec["role"], "write")
 
 
-class ScopeCapIs1024AndAdjudicateTakesNone(ls._TempLaunch):
+class ScopeCapIs1024AndAdjudicateTakesNone(_KitLaunch):
     """D8 / contract scope-cap / plan (m)(n)."""
 
     def test_a_scope_of_1025_bytes_is_refused(self):
@@ -599,7 +607,7 @@ class ScopeCapIs1024AndAdjudicateTakesNone(ls._TempLaunch):
         self.assertEqual(rec["job"], "adjudicate")
 
 
-class HistoryVersusWithheldAndModeUnavailable(ls._TempLaunch):
+class HistoryVersusWithheldAndModeUnavailable(_KitLaunch):
     """D9 / contract history-vs-withheld, mode-unavailable."""
 
     def test_withheld_and_whole_together_are_refused(self):
@@ -623,7 +631,7 @@ class HistoryVersusWithheldAndModeUnavailable(ls._TempLaunch):
         self.assert_not_started()
 
 
-class IsolationRefusesUnknownAndDirtyHomes(ls._TempLaunch):
+class IsolationRefusesUnknownAndDirtyHomes(_KitLaunch):
     """D10 / contract isolation."""
 
     def test_an_unknown_harness_is_refused(self):
@@ -675,9 +683,8 @@ class IsolationRefusesUnknownAndDirtyHomes(ls._TempLaunch):
         job_id = "20260826T000000Z-plan-codex-d1r7ee"
         self.force_id(job_id)
         dirty = self.jobs_root / job_id / "home" / "codex"
-        dirty.mkdir(parents=True)
         leftover = dirty / "hooks.json"
-        leftover.write_text("{}\n", encoding="utf-8")
+        self.world.plant_text(leftover, "{}\n")
         self.assertEqual(
             leftover.read_text(encoding="utf-8"), "{}\n",
             "plant: leftover landed in the would-be minimal home",
@@ -699,13 +706,12 @@ class IsolationRefusesUnknownAndDirtyHomes(ls._TempLaunch):
         )
         home = witness["env"].get("GROK_HOME")
         self.assertTrue(home, "isolated grok launch sets GROK_HOME")
-        from pathlib import Path
         names = sorted(p.name for p in Path(home).iterdir())
         self.assertEqual(names, ["auth.json"])
         self.assertEqual(rec["harness"]["name"], "grok")
 
 
-class MissingLineageBranchIsRefused(ls._TempLaunch):
+class MissingLineageBranchIsRefused(_KitLaunch):
     """No dedicated refusal id: contract record-target already covers
     current branch ≠ lineage. The text must name record-target and
     expected/found/satisfy, not merely exit 3 and the branch string."""

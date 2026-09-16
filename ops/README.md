@@ -141,7 +141,9 @@ anything outward; refuse when refs moved), `context-boundary.sh`
 (record and warn when the ground moves), `test-guard-hook.sh`
 (advisory: a planted fault without its proof), `ruff-after-edit.sh`
 (advisory lint at the edit), `no-subagents.py` (refuse in-session
-delegation). Present, not armed: `conductor-enforce.py` (a stricter
+delegation), `trunk-forward.py` (fast-forward the main checkout's
+trunk at every session start when it is clean, on the trunk and behind
+its remote, one line with the old and new sha, LD-38). Present, not armed: `conductor-enforce.py` (a stricter
 posture that forbids hand investigation entirely) and `pr-feedback.sh`.
 Arming either is a reviewable change to `.claude/settings.json`.
 
@@ -184,10 +186,14 @@ Named so nobody infers them from silence:
 - Work arrives as draft PRs; the owner ratifies and merges. A session
   works on one branch cut from `dev` (`lane/session-<date>-<id>`, named
   in the deliverable lock with `add`); its changes and its records
-  (`ops/conductor/` ideas, hand-offs, AARs, probes, the defect ledger
-  and the findings export) commit there, and one draft PR lands them at
-  the session's close (owner, 2026-09-12: "one branch per session -
-  lets try it"). `dispatch.sh` merges `origin/dev` forward into the
+  (`ops/conductor/` ideas, AARs, probes, the defect ledger and the
+  findings export) commit there, and one draft PR lands them at the
+  session's close (owner, 2026-09-12: "one branch per session - lets
+  try it"). The handoff itself is rows in the state engine's store
+  (`ops/conductor/handoff-lever.md`), written at close and read at
+  onboard, so no records PR trails the work (owner, 2026-09-13: "a new
+  branch/PR per session handoff is excessive"). `dispatch.sh` merges
+  `origin/dev` forward into the
   worktree before each launch and refuses `stale-base` only on a
   conflict. A dispatch's scope file is copied beside its record, so
   what was asked and what happened are one record.

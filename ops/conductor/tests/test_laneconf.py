@@ -7,10 +7,10 @@ Contracts (only): the unit 1 contract in the dispatch input
 the subject and are not read here. Tests plant a scratch conf through
 `LANE_CONF` and never write the tracked file.
 
-The implementation lands in a later run. A missing tool file is one
-red (`test_the_tool_file_is_present`); a missing tracked conf is one
-red (`test_the_tracked_conf_is_present`). Every other case invokes the
-real tool path so the contracted assertion is the red, not a skip.
+World owns HOME, the XDG roots and TMPDIR; every subprocess goes
+through run with a timeout. A copied laneconf.py needs instrument.py
+beside it. When the tool is absent a stub that exits 0 with no output
+is staged, so each assertion is the red, not a missing-file error.
 """
 
 from __future__ import annotations
@@ -19,17 +19,19 @@ import os
 import re
 import shlex
 import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import worker_conf
 
+from ops.testkit import World, run
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 TRACKED_CONF = REPO / "ops" / "lane.conf"
+# The tool imports instrument beside itself (HANDOFF-2026-09-13-wall-migration.md).
+SIBLINGS = ("instrument.py",)
 RUN_CAP = 60
 
 # PIN_CONF_OVERRIDE: tests point at a scratch conf through LANE_CONF.
@@ -165,26 +167,41 @@ class _LaneconfFixture(unittest.TestCase):
     """Scratch HOME, scratch conf via LANE_CONF, isolated from the tree."""
 
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory(prefix="laneconf-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.xdg = root / "xdg"
-        for path in (self.home, self.scratch, self.xdg):
-            path.mkdir()
+        self.world = World(prefix="laneconf-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.scratch = self.world.path("scratch")
+        self.scratch.mkdir()
         self.conf_path = self.scratch / "lane.conf"
-        self._plant_bytes(self.conf_path, conf_text().encode("utf-8"))
+        self.world.plant_text(self.conf_path, conf_text())
+        self.staged = self._stage_tool()
         self.assertFalse(
             (self.home / ".local" / "state").exists(),
             "plant: isolated HOME has no state dir",
         )
 
-    def tearDown(self):
-        self._tmp.cleanup()
+    def _stage_tool(self) -> Path:
+        siblings = SIBLINGS if TOOL.is_file() else ()
+        staged = self.world.stage(TOOL, "laneconf.py", siblings=siblings)
+        if TOOL.is_file():
+            self.assertEqual(
+                staged.read_bytes(),
+                TOOL.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
+            self.assertTrue(
+                staged.with_name("instrument.py").is_file(),
+                "instrument.py must ride beside the staged copy",
+            )
+        else:
+            # World.stage's absent stand-in exits 0, which would satisfy
+            # the exit-0 cases; a non-zero stub makes each invoke assertion
+            # the red.
+            self.world.plant_text(staged, "import sys\nsys.exit(99)\n")
+        return staged
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
@@ -192,7 +209,7 @@ class _LaneconfFixture(unittest.TestCase):
     def plant_conf(self, path: Path | None = None, **overrides: object) -> Path:
         path = path or self.conf_path
         text = conf_text(**overrides)
-        self._plant_bytes(path, text.encode("utf-8"))
+        self.world.plant_text(path, text)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, f"conf plant did not land: {path}")
         return path
@@ -200,7 +217,7 @@ class _LaneconfFixture(unittest.TestCase):
     def plant_local(self, text: str, *, beside: Path | None = None) -> Path:
         parent = (beside or self.conf_path).parent
         path = parent / LOCAL_NAME
-        self._plant_bytes(path, text.encode("utf-8"))
+        self.world.plant_text(path, text)
         self.assertEqual(path.read_text(encoding="utf-8"), text)
         return path
 
@@ -210,24 +227,20 @@ class _LaneconfFixture(unittest.TestCase):
         *,
         lane_conf: Path | str | None = "default",
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-        }
+        extra_env: dict[str, str] = {}
         if lane_conf == "default":
-            env[CONF_ENV] = str(self.conf_path)
+            extra_env[CONF_ENV] = str(self.conf_path)
         elif lane_conf is not None:
-            env[CONF_ENV] = str(lane_conf)
+            extra_env[CONF_ENV] = str(lane_conf)
+        if extra:
+            for name, value in extra.items():
+                if value is not None:
+                    extra_env[name] = value
+        env = self.world.env(extra=extra_env)
         if extra:
             for name, value in extra.items():
                 if value is None:
                     env.pop(name, None)
-                else:
-                    env[name] = value
         return env
 
     def invoke(
@@ -240,35 +253,30 @@ class _LaneconfFixture(unittest.TestCase):
         timeout: float = RUN_CAP,
     ):
         env = self.env(extra, lane_conf=lane_conf)
-        cmd = [sys.executable, str(TOOL), *argv]
-        try:
-            return subprocess.run(
-                cmd,
-                cwd=str(cwd or self.home),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=timeout,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(
-                f"laneconf exceeded {timeout}s; stdout={exc.stdout!r} "
-                f"stderr={exc.stderr!r}"
-            )
+        # Default lookup is relative to the tool file. Tree-scan cases
+        # with lane_conf is None run the tree's own path (kit gap:
+        # World.stage always lands under world.root/stage/). Scratch
+        # cases run the staged copy. An absent tool uses the staged stub.
+        tool = TOOL if lane_conf is None and TOOL.is_file() else self.staged
+        return run(
+            [sys.executable, str(tool), *argv],
+            cwd=cwd or self.home,
+            env=env,
+            timeout=timeout,
+        )
 
-    def combined(self, proc: subprocess.CompletedProcess) -> str:
+    def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
 
     def assert_refusal(
         self,
-        proc: subprocess.CompletedProcess,
+        proc,
         class_name: str,
         *,
         named: tuple[str, ...] = (),
     ) -> str:
         err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err or proc.stdout)
+        self.assertEqual(proc.exit, 2, err or proc.stdout)
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
         lower = lines[0].lower()
@@ -287,8 +295,8 @@ class _LaneconfFixture(unittest.TestCase):
             self.assertIn(item, lines[0], lines[0])
         return lines[0]
 
-    def assert_get(self, proc: subprocess.CompletedProcess, value: str) -> None:
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+    def assert_get(self, proc, value: str) -> None:
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual((proc.stderr or "").strip(), "")
         self.assertEqual((proc.stdout or "").splitlines(), [value])
 
@@ -302,21 +310,8 @@ class _LaneconfFixture(unittest.TestCase):
         self._tree_n = n
         repo = self.scratch / f"tree-{n}"
         repo.mkdir()
-        init = subprocess.run(
-            ["git", "init", "-b", "work"],
-            cwd=str(repo),
-            env={
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "HOME": str(self.home),
-                "GIT_CONFIG_GLOBAL": os.devnull,
-                "GIT_CONFIG_SYSTEM": os.devnull,
-                "GIT_CONFIG_NOSYSTEM": "1",
-            },
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(init.returncode, 0, init.stderr)
+        self.world.require("git")
+        self.world.git("init", "-b", "work", cwd=repo)
         conf = repo / "ops" / "lane.conf"
         self.plant_conf(conf, **(conf_overrides or {}))
         for rel, content in files.items():
@@ -524,21 +519,19 @@ class BashPythonParity(_LaneconfFixture):
         self.assertGreaterEqual(len(keys), len(REQUIRED_KEYS), keys)
         for name, value in keys.items():
             with self.subTest(key=name):
-                bash = subprocess.run(
+                self.world.require("bash")
+                bash = run(
                     [
                         "bash", "-c",
                         "source "
                         + shlex.quote(str(TRACKED_CONF))
                         + f'; printf %s "${{{name}}}"',
                     ],
-                    cwd=str(self.home),
+                    cwd=self.home,
                     env=self.env(lane_conf=None),
-                    capture_output=True,
-                    text=True,
-                    check=False,
                     timeout=RUN_CAP,
                 )
-                self.assertEqual(bash.returncode, 0, bash.stderr)
+                self.assertEqual(bash.exit, 0, bash.stderr)
                 self.assertEqual(bash.stdout, value, name)
                 proc = self.invoke(
                     ["get", name], lane_conf=TRACKED_CONF,
@@ -582,7 +575,7 @@ class ClosureVerb(_LaneconfFixture):
 
     def test_closure_exits_0_on_the_tree(self):
         proc = self.invoke(["closure"], lane_conf=None, cwd=REPO)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_declared_key_no_code_reads_exits_1_naming_it(self):
         orphan = "ORPHAN_KEY"
@@ -599,7 +592,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertNotIn(orphan, reader)
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(orphan, text)
 
     def test_code_reading_an_undeclared_key_exits_1_naming_key_and_file(self):
@@ -618,7 +611,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn(ghost, ghost_file.read_text(encoding="utf-8"))
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(ghost, text)
         self.assertIn(rel, text)
 
@@ -665,7 +658,7 @@ class ClosureVerb(_LaneconfFixture):
         )
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(ghost_shell, text)
         self.assertIn(rel_shell, text)
         self.assertIn(ghost_env, text)
@@ -690,7 +683,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn("\n  app:\n", yml)
         self.assertNotIn("\n  extra:\n", yml)
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_planted_third_job_exits_1_naming_the_job(self):
         repo = self.plant_scratch_repo(
@@ -709,7 +702,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn("\n  extra:\n", yml)
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn("extra", text)
 
     def test_a_planted_extra_check_name_exits_1_naming_the_name(self):
@@ -731,7 +724,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertNotIn(extra, yml)
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(extra, text)
 
     def test_same_cardinality_mismatched_name_exits_1_naming_the_name(self):
@@ -759,9 +752,64 @@ class ClosureVerb(_LaneconfFixture):
         self.assertNotEqual(set(names), {"lane", "app"})
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(extra, text)
         self.assertIn("app", text)
+
+
+class ExternalEnvKeys(_LaneconfFixture):
+    """A key the finite controller supplies to its children is read by
+    code and declared nowhere in lane.conf, and that is not a finding.
+    The fixture set: the two harness session ids and the identity
+    override as the faults the exemption must swallow, a near neighbour
+    spelled one word short as the fault it must still catch."""
+
+    ENV_READER = "ops/bin/session.py"
+
+    def read_of(self, key: str) -> dict[str, str]:
+        return {
+            "ops/conductor/tools/reads.py": reader_source(),
+            self.ENV_READER: f"import os\nos.environ.get({key!r})\n",
+        }
+
+    def closure_over_a_read_of(self, key: str):
+        repo = self.plant_scratch_repo(self.read_of(key))
+        conf = repo / "ops" / "lane.conf"
+        self.assertNotIn(key, declared_keys(conf.read_text(encoding="utf-8")))
+        self.assertIn(
+            key,
+            (repo / self.ENV_READER).read_text(encoding="utf-8"),
+            "plant: the reader does not read the key",
+        )
+        return self.invoke(["closure"], lane_conf=conf, cwd=repo)
+
+    def test_the_harness_session_id_is_external_and_closes(self):
+        proc = self.closure_over_a_read_of("CLAUDE_SESSION_ID")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_code_session_id_the_harness_supplies_is_external_and_closes(self):
+        """CLAUDE_CODE_SESSION_ID is what Claude Code puts in a child's
+        environment; the identity hook reads it and lane.conf never
+        declares it, so the closure must pass it by name."""
+        proc = self.closure_over_a_read_of("CLAUDE_CODE_SESSION_ID")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_identity_override_is_external_and_closes(self):
+        """WF_AGENT_OVERRIDE is put on the command by whoever launches a
+        child and outranks WF_AGENT, which is external already; the
+        override is read the same way and declared the same nowhere."""
+        proc = self.closure_over_a_read_of("WF_AGENT_OVERRIDE")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_near_neighbour_of_an_external_key_is_still_a_finding(self):
+        """The clean neighbour: the exemption is a list of names, not a
+        prefix and not a file the scanner skips."""
+        ghost = "CLAUDE_CODE_SESSION"
+        proc = self.closure_over_a_read_of(ghost)
+        text = self.combined(proc)
+        self.assertEqual(proc.exit, 1, text)
+        self.assertIn(ghost, text)
+        self.assertIn(self.ENV_READER, text)
 
 
 class LiteralsVerb(_LaneconfFixture):
@@ -772,7 +820,7 @@ class LiteralsVerb(_LaneconfFixture):
 
     def test_literals_exits_0_on_the_tree(self):
         proc = self.invoke(["literals"], lane_conf=None, cwd=REPO)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_benign_scratch_tree_exits_0(self):
         repo = self.plant_scratch_repo(
@@ -784,7 +832,7 @@ class LiteralsVerb(_LaneconfFixture):
         )
         conf = repo / "ops" / "lane.conf"
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_scratch_lane_file_carrying_a_forbidden_token_exits_1(self):
         configured = {
@@ -847,7 +895,7 @@ class LiteralsVerb(_LaneconfFixture):
                 self.assertIn(token, landed.splitlines()[line_no - 1])
                 proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
                 text = self.combined(proc)
-                self.assertEqual(proc.returncode, 1, text)
+                self.assertEqual(proc.exit, 1, text)
                 self.assertIn(rel, text)
                 self.assertIn(str(line_no), text)
                 self.assertIn(token, text)
@@ -864,7 +912,7 @@ class LiteralsVerb(_LaneconfFixture):
         planted = (repo / rel).read_text(encoding="utf-8")
         self.assertEqual(planted.count('"dev"'), 1)
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
         second = 'lane = "dev"\nother = "dev"\n'
         self._plant_bytes((repo / rel), second.encode("utf-8"))
@@ -872,7 +920,7 @@ class LiteralsVerb(_LaneconfFixture):
         self.assertEqual(landed.count('"dev"'), 2)
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(rel, text)
 
     def test_infra_is_skipped_and_the_skip_is_printed(self):
@@ -888,7 +936,7 @@ class LiteralsVerb(_LaneconfFixture):
         self.assertIn("agentscient", planted)
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 0, text)
+        self.assertEqual(proc.exit, 0, text)
         self.assertIn("ops/devlane/infra", text)
 
 
@@ -942,13 +990,13 @@ class PolicyProtocolLiterals(_LaneconfFixture):
 
     def assert_forbidden(
         self,
-        proc: subprocess.CompletedProcess,
+        proc,
         rel: str,
         line_no: int,
         token: str,
     ) -> str:
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         hit = f"{rel}:{line_no}: forbidden literal {token}"
         self.assertIn(hit, text)
         return text
@@ -961,7 +1009,7 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
         self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0(
             self):
@@ -974,7 +1022,7 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertEqual(landed.splitlines()[0].strip(), self.POLICY_LINE)
         self.assertIn(self.POLICY_TOKEN, landed)
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_exact_policy_schema_declaration_after_benign_lines_exits_0(self):
         benign = (
@@ -997,7 +1045,7 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertNotIn(self.POLICY_TOKEN, lines[1])
         self.assertIn(self.POLICY_TOKEN, lines[line_no - 1])
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_exact_policy_schema_declaration_at_another_path_exits_1(self):
         rel = "ops/conductor/tools/policy_decl.py"
@@ -1192,7 +1240,7 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertIn(self.POLICY_TOKEN, schema)
         self.assertIn(self.POLICY_TOKEN, server)
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class GetWithoutLaneConfUsesTrackedFile(_LaneconfFixture):
@@ -1217,23 +1265,23 @@ class TrackedConfMove(_LaneconfFixture):
     """dispatch.conf moved to ops/lane.conf; the local file is gitignored."""
 
     def test_lane_conf_is_tracked_and_dispatch_conf_is_not(self):
-        listed_new = subprocess.run(
-            ["git", "ls-files", "--", "ops/lane.conf"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+        self.world.require("git")
+        rel = TRACKED_CONF.relative_to(REPO).as_posix()
+        listed_new = run(
+            ["git", "ls-files", "--", rel],
+            cwd=REPO,
+            env=self.world.env(),
+            timeout=RUN_CAP,
         )
-        listed_old = subprocess.run(
+        listed_old = run(
             ["git", "ls-files", "--", "ops/conductor/tools/dispatch.conf"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=self.world.env(),
+            timeout=RUN_CAP,
         )
-        self.assertEqual(listed_new.returncode, 0, listed_new.stderr)
-        self.assertEqual(listed_old.returncode, 0, listed_old.stderr)
-        self.assertEqual(listed_new.stdout.strip(), "ops/lane.conf")
+        self.assertEqual(listed_new.exit, 0, listed_new.stderr)
+        self.assertEqual(listed_old.exit, 0, listed_old.stderr)
+        self.assertEqual(listed_new.stdout.strip(), rel)
         self.assertEqual(
             listed_old.stdout.strip(),
             "",
@@ -1242,15 +1290,15 @@ class TrackedConfMove(_LaneconfFixture):
         )
 
     def test_lane_local_conf_is_gitignored(self):
-        proc = subprocess.run(
+        self.world.require("git")
+        proc = run(
             ["git", "check-ignore", "-v", "--", "ops/lane.local.conf"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=self.world.env(),
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            proc.returncode, 0,
+            proc.exit, 0,
             proc.stderr or proc.stdout or "check-ignore did not match",
         )
         self.assertIn("lane.local.conf", proc.stdout)
@@ -1287,7 +1335,7 @@ class IteratedConfKeys(_LaneconfFixture):
         )
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.exit, 1, text)
         self.assertIn(ghost, text)
         self.assertIn(rel, text)
 
@@ -1333,7 +1381,7 @@ class Unit2DriverKeys(_LaneconfFixture):
             with self.subTest(key=name):
                 self.assertIn(name, src)
         proc = self.invoke(["closure"], lane_conf=None, cwd=REPO)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class _WorkerLaneconfFixture(_LaneconfFixture):
@@ -1341,11 +1389,11 @@ class _WorkerLaneconfFixture(_LaneconfFixture):
 
     def setUp(self):
         super().setUp()
-        self.bindir, self.bins = worker_conf.plant_named_bins(
-            self,
-            self.scratch,
-            worker_conf.DEFAULT_WORKERS + ("agy",),
-        )
+        names = worker_conf.DEFAULT_WORKERS + ("agy",)
+        self.bins = {
+            name: self.world.tools.plant(name, exit=0) for name in names
+        }
+        self.bindir = self.world.bin
         self.path_only = str(self.bindir)
         self.path_with_host = worker_conf.path_with(self.bindir)
 
@@ -1599,7 +1647,7 @@ class ProvisionalWorkerExecutableResolution(_WorkerLaneconfFixture):
         self.assertEqual(planted[key], "")
         proc = self.invoke_worker("grok")
         self.assert_kind_refusal(proc, "executable")
-        self.assertNotEqual(proc.returncode, 0)
+        self.assertNotEqual(proc.exit, 0)
 
     def test_missing_override_refuses_executable(self):
         missing = self.scratch / "missing" / "agy"

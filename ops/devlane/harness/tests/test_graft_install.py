@@ -11,6 +11,7 @@ import unittest
 
 import support  # noqa: F401
 import graft_support as gs
+from ops.testkit import World  # noqa: F401 - GraftCase owns one
 
 
 class InstallRefusesBeforeOverwrite(gs.GraftCase, unittest.TestCase):
@@ -26,7 +27,7 @@ class InstallRefusesBeforeOverwrite(gs.GraftCase, unittest.TestCase):
         dest = self.home / "occupied"
         dest.mkdir()
         marker = dest / "keep-me"
-        marker.write_text("original\n", encoding="utf-8")
+        self.world.plant_text(marker, "original\n")
         code, out, err = self.cli(["install", "--destination", str(dest)])
         gs.assert_refusal(
             self, code, out, err, "graft-install",
@@ -55,7 +56,9 @@ class ReceiptAndPinAreTheInstallIdentity(gs.GraftCase, unittest.TestCase):
         planted = receipt_path.read_bytes()
         receipt["pin"]["graft"]["version"] = "0.0.0"
         self.assertNotEqual(receipt["pin"]["graft"]["version"], self.pin["graft"]["version"])
-        receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        self.world.plant_text(
+            receipt_path, json.dumps(receipt, sort_keys=True, indent=2) + "\n"
+        )
         self.assertNotEqual(receipt_path.read_bytes(), planted)
         code, out, err = self.cli(["status"])
         self.assertNotEqual(
@@ -77,7 +80,9 @@ class ReceiptAndPinAreTheInstallIdentity(gs.GraftCase, unittest.TestCase):
         self.assertIn(key, receipt["files"])
         self.assertNotEqual(receipt["files"][key], bogus)
         receipt["files"][key] = bogus
-        receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        self.world.plant_text(
+            receipt_path, json.dumps(receipt, sort_keys=True, indent=2) + "\n"
+        )
         code, out, err = self.cli(["status"])
         self.assertNotEqual(
             (before_code, before_out), (code, out),
@@ -120,7 +125,7 @@ class ReceiptAndPinAreTheInstallIdentity(gs.GraftCase, unittest.TestCase):
         dest = self.plant_fake_install()
         before_code, before_out, _before_err = self.cli(["status"])
         outside = self.home / "outside.js"
-        outside.write_text("not-in-install\n", encoding="utf-8")
+        self.world.plant_text(outside, "not-in-install\n")
         link = dest / "graft" / "dist" / "escape.js"
         link.symlink_to(outside)
         self.assertTrue(link.is_symlink())

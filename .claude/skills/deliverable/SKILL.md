@@ -58,6 +58,51 @@ is what a session does so the refusal never fires.
    Several branches may be named for parallel work; unnamed work
    refuses. `show` reads it.
 
+   **The target** (owner, 2026-09-15, on a session that reported a
+   plan's slices all done with 210 of 226 test modules still off the
+   kit: "whatever it says - is the problem we to solve - right fucking
+   now"): when the owner's order is a measurable state of the tree,
+   the lock carries it as a measure command and the text its output
+   must carry, on the same `add` or `set`:
+
+   ```sh
+   python3 ops/conductor/tools/deliverable.py add <branch> --why '<the words>' \
+       --measure '<command that prints the reading>' --until '<the text the reading must carry>'
+   ```
+
+   `show` runs the measure and prints `met` or `short` beside the
+   target every time the lock is read; a measure that cannot run reads
+   `unreachable`, never met. A plan's slices are how the target is
+   reached, never the target: a plan that names a later item still
+   leaves the target short.
+
+   **Shown before the first command** (owner, 2026-09-15: the target is
+   only as good as the measure the session writes from the words; row
+   P-DONEGATE-20260915-shown-line): before any work, the session says
+   one line to the owner, with the until text and the live reading from
+   `show` in it, in this shape:
+
+       I will count this done when <until>; it reads <reading> now.
+
+   A target the owner has not seen is the session's paraphrase.
+
+   **Then the owner types `/goal`** (row P-DONEGATE-20260915-goal-line).
+   Claude Code judges a typed condition after every turn with a separate
+   small model and keeps the session working until the judge reads it
+   met (`code.claude.com/docs/en/goal`, read 2026-09-15 on 2.1.272). A
+   session cannot type it for itself, so the line above ends by asking
+   for it, in this shape:
+
+       /goal deliverable.py done <branch> prints done; paste the reading every turn
+
+   The judge reads the conversation and runs nothing, so the session
+   runs `deliverable.py done <branch>` and pastes its line every turn;
+   while short, the refusal line with the reading is the status. The
+   standing form of the same check is the prompt-based Stop hook in
+   `.claude/settings.json` (grant 237, row P-DONEGATE-20260915-stop-prompt):
+   a reply that reports the deliverable done without that line pasted is
+   sent back with the reason, until the line is there.
+
 3. **The estimate,** if one is asked for, is the measured rate from the
    records with its count, never the happy path.
 
@@ -78,11 +123,26 @@ branch, a dispatch, a ladder start or a PR.
 
 ## At the end
 
-The `close` skill first, then:
+The `close` skill first, then the reading, then the lift:
 
 ```sh
+python3 ops/conductor/tools/deliverable.py done lane/session-<date>-<id>
 python3 ops/conductor/tools/deliverable.py remove lane/session-<date>-<id>
 ```
+
+`done` prints the reading when the target is met and refuses `target`
+while it is short, naming the reading found; "done" in a record, a
+message or a PR is that line and nothing else. `remove` refuses a
+short target too, unless `--unmet '<the owner's words>'` says why the
+work stops short, and prints that reason with the lift.
+
+**One deliverable per session, then a fresh session** (T-56, measured
+2026-09-15 at dev 564ab769: two sessions spent 73% and 75% of their
+input tokens on requests above 400k context, and a 400k cap would have
+cost 77% and 78% of what they did). After `remove`, the session ends;
+the next thread is taken by a fresh session, never by this one. The
+backstop is `autoCompactWindow` in `.claude/settings.json`; the test is
+the next window's `worth.py waste` mean context under 300k.
 
 `remove` lifts this session's branches and leaves every other session's
 in place; the last branch removed lifts the lock. `clear` wipes every

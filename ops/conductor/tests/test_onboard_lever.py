@@ -18,20 +18,16 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import re
-import shutil
-import stat
-import subprocess
 import sys
-import tempfile
-import time
 import unittest
 from pathlib import Path
 
 from live_store_guard import assert_unchanged, without_new_job_dirs
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
@@ -85,6 +81,12 @@ HAND_STDOUT = (
     "status: open=2, settled=4\nrecurrence by class:\n  other=2\n"
     "debt: open=2, settled-unverified=0, settled-late=0\n"
 )
+LOCK_STDOUT = (
+    '{\n  "branches": [\n    "lane/session-a",\n    "lane/session-b"\n  ],\n'
+    '  "why": "owner 2026-09-15: every test family onto the kit",\n'
+    '  "by": "Owner <owner@example.test>",\n  "at": "2026-09-15T05:00:00Z"\n}\n'
+    "target lane/session-b: until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short\n"
+)
 PR_NUMBER = "42"
 PR_TITLE = "Onboard the lever"
 RUNNING_ID = "20260901T120000Z-run-alpha"
@@ -113,20 +115,14 @@ SIBLING_REFUSAL = (
     "id-shape: expected D-WO-N; found bad-id; needed a well-formed id"
 )
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 # PIN_SECTION_HEADERS: the contract writes `== law`, `== state`,
-# `== thread` and prints them in that order on stdout.
+# `== handoffs` and prints them in that order on stdout.
 # PIN_OK_ABSENT: `OK <path> — <one-liner>` / `ABSENT <path> — <one-liner>`.
 # PIN_FINAL: last non-empty stdout line is `brief complete` or
 # `brief complete, N absence(s)` with the (s) as written.
-# PIN_AAR_ORDER: newest AAR-*.md by filename, not mtime.
-# PIN_CALIBRATION_SECTION: text under a heading containing
-# `calibration`, not the following heading's body.
+# PIN_NO_THREAD: no `== thread` section, and nothing read from any
+# AAR-*.md (T-8, 2026-09-14: the board is `== handoffs`; the AAR that
+# sorted last by file name was not the newest on a day with five).
 # PIN_STORE: record dir named by id; closed `exit` file holds the
 # code; newest closed by id filename order.
 # PIN_RUNNING: `dispatches: running=` lists ids whose record status is
@@ -177,15 +173,9 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
+def _git_out(world: World, args: list[str], cwd: Path) -> str:
+    proc = run(args, cwd=cwd, env=world.env(), timeout=60)
+    if proc.exit != 0:
         raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
     return proc.stdout
 
@@ -223,125 +213,69 @@ class _OnboardFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged tool copy, live store frozen."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
+        self.world = World(prefix="onboard-lever-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
         self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
+        self._head_before = _git_out(self.world, ["git", "rev-parse", "HEAD"], REPO).strip()
+        self._diff_before = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=60
         ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="onboard-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        self.repo = root / "repo"
-        self.xdg = root / "xdg"
-        for path in (self.home, self.scratch, self.bin, self.repo, self.xdg):
-            path.mkdir()
+        self.root = self.world.root
+        self.home = self.world.home
+        self.scratch = self.world.tmp
+        self.bin = self.world.bin
+        self.repo = self.world.cwd
+        self.xdg = self.world.xdg_state
         self.store = self.home / ".local" / "state" / "agentscient" / "dispatch"
         self.xdg_store = self.xdg / "agentscient" / "dispatch"
         self.assertFalse(
             self.store.exists(),
             "plant: isolated store must start absent",
         )
-        self._workers: list[subprocess.Popen] = []
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
-        self.staged = self.scratch / "onboard.py"
         self._stage_tool_bytes()
-        self.assertFalse(self.argv_log.exists(), "plant: argv log must start absent")
         self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
 
     def tearDown(self):
-        try:
-            for proc in self._workers:
-                if proc.poll() is None:
-                    proc.kill()
-                    with contextlib.suppress(subprocess.TimeoutExpired):
-                        proc.wait(timeout=2)
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
-            self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
-                self._head_before,
-                "real repo HEAD moved",
-            )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        assert_unchanged(
+            self,
+            self._live_before,
+            {str(p): _store_snap(p) for p in _live_store_paths()},
+        )
+        self.assertEqual(
+            _git_out(self.world, ["git", "rev-parse", "HEAD"], REPO).strip(),
+            self._head_before,
+            "real repo HEAD moved",
+        )
+        diff_after = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=60
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
 
     def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+        self.staged = self.world.stage(TOOL, "onboard.py", siblings=SIBLINGS)
         self.assertTrue(self.staged.is_file())
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
         self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.world.plant_text(self.conf, "LANE_NAME='agentscient'\n")
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
 
-    def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
-
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_AUTHOR_NAME": REPO_USER,
-            "GIT_AUTHOR_EMAIL": REPO_EMAIL,
-            "GIT_COMMITTER_NAME": REPO_USER,
-            "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env()
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -352,15 +286,13 @@ class _OnboardFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=60,
         )
         if check:
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 0,
                 f"git {args}: {proc.stderr or proc.stdout}",
             )
@@ -370,7 +302,7 @@ class _OnboardFixture(unittest.TestCase):
         if (self.repo / ".git").exists():
             return
         init = self.git("init", "-b", BRANCH, cwd=self.repo, check=False)
-        self.assertEqual(init.returncode, 0, init.stderr)
+        self.assertEqual(init.exit, 0, init.stderr)
         self.git("config", "user.name", REPO_USER)
         self.git("config", "user.email", REPO_EMAIL)
         name = self.git("config", "--get", "user.name").stdout.strip()
@@ -406,23 +338,20 @@ class _OnboardFixture(unittest.TestCase):
                 f"INVALID: omitted law file landed: {path}",
             )
 
-    def _plant_py_stub(
+    def _plant_tool(
         self,
-        path: Path,
+        name: str,
+        paths: tuple[Path, ...],
         *,
         stdout: str = "",
         stderr: str = "",
         exit_code: int = 0,
     ) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            f"sys.stdout.write({stdout!r})\n"
-            f"sys.stderr.write({stderr!r})\n"
-            f"raise SystemExit({exit_code})\n"
+        fake = self.world.tools.plant(
+            name, stdout=stdout, stderr=stderr, exit=exit_code
         )
-        self._plant_bytes(path, body.encode("utf-8"))
-        self._make_executable(path)
+        for path in paths:
+            self._plant_bytes(path, fake.read_bytes())
 
     def plant_siblings(
         self,
@@ -433,36 +362,33 @@ class _OnboardFixture(unittest.TestCase):
         ledger_stdout: str = HAND_STDOUT,
         ledger_stderr: str = "",
         ledger_exit: int = 0,
+        lock_stdout: str = LOCK_STDOUT,
+        lock_stderr: str = "",
+        lock_exit: int = 0,
     ) -> None:
-        locations = (
-            self.scratch,
-            self.repo / "ops" / "conductor" / "tools",
-        )
+        locations = (self.staged.parent, self.repo / "ops" / "conductor" / "tools")
         for folder in locations:
             folder.mkdir(parents=True, exist_ok=True)
-            self._plant_py_stub(
-                folder / "decisions.py",
-                stdout=register_stdout,
-                stderr=register_stderr,
-                exit_code=register_exit,
-            )
-            self._plant_py_stub(
-                folder / "hand.py",
-                stdout=ledger_stdout,
-                stderr=ledger_stderr,
-                exit_code=ledger_exit,
-            )
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
+        self._plant_tool(
+            "decisions",
+            tuple(folder / "decisions.py" for folder in locations),
+            stdout=register_stdout,
+            stderr=register_stderr,
+            exit_code=register_exit,
+        )
+        self._plant_tool(
+            "hand",
+            tuple(folder / "hand.py" for folder in locations),
+            stdout=ledger_stdout,
+            stderr=ledger_stderr,
+            exit_code=ledger_exit,
+        )
+        self._plant_tool(
+            "deliverable",
+            tuple(folder / "deliverable.py" for folder in locations),
+            stdout=lock_stdout,
+            stderr=lock_stderr,
+            exit_code=lock_exit,
         )
 
     def plant_gh(
@@ -474,33 +400,14 @@ class _OnboardFixture(unittest.TestCase):
         stderr: str = "",
         rows: list | None = None,
     ) -> None:
-        table = f"{number}\t{title}\t{BRANCH}\tOPEN\n"
         payload = json.dumps(
             rows if rows is not None
             else [{"number": int(number), "title": title}]
+        ) + "\n"
+        self.world.tools.plant(
+            "gh", stdout=payload, stderr=stderr, exit=exit_code
         )
-        body = (
-            self._gh_preamble()
-            + f"stderr_text = {stderr!r}\n"
-            + "sys.stderr.write(stderr_text)\n"
-            + f"code = {exit_code}\n"
-            + "if code != 0:\n"
-            + "    raise SystemExit(code)\n"
-            + "argv = sys.argv[1:]\n"
-            + "joined = ' '.join(argv)\n"
-            + "if '--json' in joined or any(a.startswith('--json') for a in argv):\n"
-            + f"    sys.stdout.write({payload!r} + '\\n')\n"
-            + "else:\n"
-            + f"    sys.stdout.write({table!r})\n"
-            + "raise SystemExit(0)\n"
-        )
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        self.assertEqual(
-            self.gh.read_text(encoding="utf-8"),
-            body,
-            "gh stub plant did not land intact",
-        )
+        self.assertTrue(self.gh.is_file(), "gh fake did not land")
 
     def plant_dispatch(
         self,
@@ -530,35 +437,16 @@ class _OnboardFixture(unittest.TestCase):
         return dest
 
     def spawn_live(self) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(120)"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        self._workers.append(proc)
-        deadline = time.monotonic() + 2
-        while time.monotonic() < deadline:
-            self.assertIsNone(proc.poll(), "INVALID: live worker exited")
-            try:
-                os.kill(proc.pid, 0)
-                return proc.pid
-            except ProcessLookupError:
-                time.sleep(0.02)
-        self.fail("INVALID: live worker pid never became killable")
-        raise AssertionError("unreachable")
+        pid = os.getpid()
+        os.kill(pid, 0)
+        return pid
 
     def dead_pid(self) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "pass"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        proc.wait(timeout=5)
-        self.assertIsNotNone(proc.poll(), "INVALID: dead pid still running")
+        pid_max = int(Path("/proc/sys/kernel/pid_max").read_text(encoding="utf-8"))
+        pid = pid_max + 1
         with self.assertRaises(ProcessLookupError):
-            os.kill(proc.pid, 0)
-        return proc.pid
+            os.kill(pid, 0)
+        return pid
 
     def plant_record_json(
         self,
@@ -732,6 +620,9 @@ class _OnboardFixture(unittest.TestCase):
         register_exit: int = 0,
         ledger_stderr: str = "",
         ledger_exit: int = 0,
+        lock_stdout: str = LOCK_STDOUT,
+        lock_stderr: str = "",
+        lock_exit: int = 0,
     ) -> None:
         self.ensure_git()
         self.plant_law(omit=omit_law, empty=empty_law)
@@ -740,6 +631,9 @@ class _OnboardFixture(unittest.TestCase):
             register_exit=register_exit,
             ledger_stderr=ledger_stderr,
             ledger_exit=ledger_exit,
+            lock_stdout=lock_stdout,
+            lock_stderr=lock_stderr,
+            lock_exit=lock_exit,
         )
         self.plant_gh(exit_code=gh_exit, stderr=gh_stderr)
         handwork = self.store.parent / "handwork.db"
@@ -760,26 +654,12 @@ class _OnboardFixture(unittest.TestCase):
         self.commit_plant()
 
     def env(self, *, xdg: Path | str | None = None) -> dict[str, str]:
-        env = {
-            "PATH": str(self.bin) + os.pathsep + os.environ.get(
-                "PATH", "/usr/bin:/bin"
-            ),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-            "LANE_CONF": str(self.conf),
-        }
+        env = self.world.env({"LANE_CONF": str(self.conf)})
         self.assertNotIn("WF_AGENT", env)
         if xdg is not None:
-            env["XDG_STATE_HOME"] = str(xdg)
+            self.assertEqual(Path(xdg), self.world.xdg_state)
         else:
-            self.assertNotIn("XDG_STATE_HOME", env)
+            env.pop("XDG_STATE_HOME")
         return env
 
     def invoke(
@@ -794,18 +674,12 @@ class _OnboardFixture(unittest.TestCase):
         if extra_env:
             env.update(extra_env)
         self.assertNotIn("WF_AGENT", env)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *(argv or [])],
-                cwd=str(cwd or self.repo),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"onboard exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [sys.executable, str(self.staged), *(argv or [])],
+            cwd=cwd or self.repo,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -893,13 +767,7 @@ class _OnboardFixture(unittest.TestCase):
         return found[0]
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [row["argv"] for row in self.world.tools.calls("gh")]
 
     def short_sha(self) -> str:
         out = self.git("rev-parse", "--short", "HEAD").stdout.strip()
@@ -915,7 +783,7 @@ class _OnboardFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -969,7 +837,7 @@ class ExactLawTable(_OnboardFixture):
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class HappyPath(_OnboardFixture):
@@ -981,9 +849,10 @@ class HappyPath(_OnboardFixture):
         stdout = proc.stdout or ""
         law_i = self.heading_index(stdout, "== law")
         state_i = self.heading_index(stdout, "== state")
-        thread_i = self.heading_index(stdout, "== thread")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
         self.assertLess(law_i, state_i, stdout)
-        self.assertLess(state_i, thread_i, stdout)
+        self.assertLess(state_i, handoffs_i, stdout)
+        self.assertNotIn("== thread", stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
         self.assertEqual(len(LAW), 7)
@@ -1005,18 +874,118 @@ class HappyPath(_OnboardFixture):
         branch = self.labelled_line(stdout, "branch")
         self.assertIn(BRANCH, branch)
         self.assertIn(self.short_sha(), branch)
-        self.assertIn(CAL_BODY, stdout)
+        self.assertNotIn(CAL_BODY, stdout)
         self.assertNotIn(AFTER_BODY, stdout)
         self.assertNotIn(CAL_OLD, stdout)
         self.assertNotIn(DECOY_CAL, stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         argvs = self.gh_argvs()
         self.assertTrue(argvs, "gh was not invoked for the prs line")
         for argv in argvs:
             self.assertIn("pr", argv)
             self.assertIn("list", argv)
             self.assertNotIn("checks", argv)
+
+
+class TheLockLine(_OnboardFixture):
+    """Owner, 2026-09-15: a session's compaction summary froze a plan's
+    paraphrase of the order and the brief after it carried the handoff's
+    version of done, while the brief never printed the lock or its why.
+    The state section carries the lock: the branches, the owner's words,
+    and every target with its live reading, from deliverable.py show."""
+
+    def plant_lock(self) -> None:
+        lock = self.store.parent / "deliverable.json"
+        self.world.plant_text(
+            lock, '{"branches": ["lane/session-a"], "why": "planted"}\n'
+        )
+
+    def test_the_lock_prints_with_its_why_and_every_target_reading(self):
+        self.ready()
+        self.plant_lock()
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        lock = self.labelled_line(stdout, "lock")
+        self.assertIn("lane/session-a, lane/session-b", lock)
+        self.assertIn("owner 2026-09-15: every test family onto the kit", lock)
+        target = self.labelled_line(stdout, "target lane/session-b")
+        self.assertIn("until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short", target)
+        state_i = self.heading_index(stdout, "== state")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
+        lock_i = next(i for i, ln in enumerate(stdout.splitlines()) if ln.startswith("lock: "))
+        self.assertLess(state_i, lock_i)
+        self.assertLess(lock_i, handoffs_i)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_no_lock_is_a_measured_fact_and_the_lever_is_not_run(self):
+        self.ready(lock_stdout="LEVER_RAN_UNIQUE_9c1e\n")
+        self.assertFalse((self.store.parent / "deliverable.json").exists(), "INVALID: a lock was planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        self.assertEqual(self.labelled_line(stdout, "lock"), "lock: none")
+        self.assertNotIn("LEVER_RAN_UNIQUE_9c1e", stdout, "the lever is not run when the lock file is absent")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_lever_that_fails_is_unavailable_and_counts_an_absence(self):
+        self.ready(lock_stdout="", lock_stderr="tooling: expected instrument.py beside this tool; found absent; needed restore it",
+                   lock_exit=2)
+        self.plant_lock()
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "lock")
+        self.assertIn("unavailable", line)
+        self.assertIn("tooling", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def plant_slow_lock_lever(self, seconds: float) -> None:
+        """A deliverable.py that answers, but later than the first bound."""
+        fake = self.world.tools.plant(
+            "deliverable-slow", stdout=LOCK_STDOUT, exit=0, delay=seconds,
+        )
+        for folder in (self.staged.parent,
+                       self.repo / "ops" / "conductor" / "tools"):
+            self._plant_bytes(folder / "deliverable.py", fake.read_bytes())
+
+    def test_a_lock_read_that_times_out_is_retried_once_with_a_longer_bound(self):
+        """Origin LD-48: the brief printed the lock line unavailable after a
+        5s bound expired under five concurrent sessions, while
+        deliverable.py show answered on a direct retry a moment later.
+        Contention on the store read as an absent lock. The read is retried
+        once, with a longer bound, before anything is reported."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        # The fake logs every invocation before it sleeps, so the log
+        # separates a read that was retried from one that answered first
+        # time. Without the count this row passes at the base tree, where
+        # the bound is not overridable and 1.5s fits inside the standing 5s.
+        calls = self.world.tools.calls("deliverable-slow")
+        self.assertEqual(len(calls), 2,
+                         f"the lock read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "lock")
+        self.assertIn("lane/session-a", line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertNotIn("unavailable", line)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_lock_read_that_times_out_twice_is_unreachable_never_none(self):
+        """The other half of LD-48: when the longer retry expires too, the
+        line says UNREACHABLE and counts an absence. It never says none,
+        which is the answer for a lock that is not set, and it never says
+        unavailable, which is the answer for a lever that did report."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "lock")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        self.assertNotIn("lock: none", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class MissingLaw(_OnboardFixture):
@@ -1033,7 +1002,7 @@ class MissingLaw(_OnboardFixture):
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_missing_discovery_lever_counts_one_absence_in_table_order(self):
         missing = "ops/conductor/discovery-lever.md"
@@ -1046,7 +1015,7 @@ class MissingLaw(_OnboardFixture):
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class EmptyLawFile(_OnboardFixture):
@@ -1065,7 +1034,7 @@ class EmptyLawFile(_OnboardFixture):
         self.assertNotIn(ok_line(empty, one_liner), stdout)
         self.assert_exact_law_table(stdout, empty=(empty,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class GhFailure(_OnboardFixture):
@@ -1078,7 +1047,7 @@ class GhFailure(_OnboardFixture):
         prs = self.labelled_line(stdout, "prs")
         self.assertIn("gh unavailable:", prs)
         self.assertIn(GH_FAIL, prs)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
 
 
@@ -1093,7 +1062,7 @@ class DispatchStore(_OnboardFixture):
         line = self.labelled_line(stdout, "dispatches")
         self.assertIn("absent", line.lower())
         self.assert_exact_law_table(stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.last_line(stdout), "brief complete")
 
     def test_running_dispatch_is_listed_by_id(self):
@@ -1141,10 +1110,12 @@ class DispatchStore(_OnboardFixture):
         self.assertFalse(self.store.exists(), "tool created a HOME store")
 
 
-class Thread(_OnboardFixture):
-    """4. Newest AAR by filename; calibration verbatim; no AAR; no heading."""
+class NoThreadSection(_OnboardFixture):
+    """4. T-8 (2026-09-14): the `== thread` section is retired. The board
+    is `== handoffs`; no AAR is read, named or quoted, however many are
+    planted and whatever their order or their clauses say."""
 
-    def test_newest_aar_by_filename_prints_calibration_verbatim(self):
+    def test_no_aar_is_named_or_quoted_and_no_thread_heading_prints(self):
         self.ready(
             aars={
                 AAR_OLD: _aar_with_calibration(CAL_OLD, "old-after"),
@@ -1156,18 +1127,18 @@ class Thread(_OnboardFixture):
                 AAR_OLD: 2_000_000_000,
             },
         )
-        newer = self.repo / "ops" / "conductor" / AAR_NEW
-        older = self.repo / "ops" / "conductor" / AAR_OLD
-        self.assertLess(newer.stat().st_mtime, older.stat().st_mtime)
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn(str(Path("ops") / "conductor" / AAR_NEW), stdout)
-        self.assertIn(CAL_NEW, stdout)
-        self.assertNotIn(CAL_OLD, stdout)
-        self.assertNotIn(AFTER_BODY, stdout)
-        self.assertNotIn(DECOY_CAL, stdout)
+        self.assertNotIn("== thread", stdout)
+        self.assertNotIn("calibration", stdout)
+        for name in (AAR_NEW, AAR_OLD, AAR_BARE):
+            self.assertNotIn(name, stdout)
+        for marker in (CAL_NEW, CAL_OLD, AFTER_BODY, DECOY_CAL):
+            self.assertNotIn(marker, stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
-    def test_no_aar_prints_no_aar_found(self):
+    def test_no_aar_at_all_changes_nothing(self):
         self.ready(aars={DECOY_NAME: _aar_with_calibration(DECOY_CAL)})
         self.assertFalse(
             list((self.repo / "ops" / "conductor").glob("AAR-*.md")),
@@ -1175,15 +1146,17 @@ class Thread(_OnboardFixture):
         )
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn("no AAR found", stdout)
-        self.assertNotIn(DECOY_CAL, stdout)
+        self.assertNotIn("no AAR found", stdout)
+        self.assertNotIn("== thread", stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
-    def test_aar_without_heading_prints_no_calibration_clause(self):
-        rel = f"ops/conductor/{AAR_BARE}"
+    def test_an_aar_without_a_clause_prints_nothing_about_it(self):
         self.ready(aars={AAR_BARE: _aar_without_calibration()})
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn(f"no calibration clause in {rel}", stdout)
+        self.assertNotIn("no calibration clause", stdout)
+        self.assertNotIn(AAR_BARE, stdout)
 
 
 class Refusals(_OnboardFixture):
@@ -1198,29 +1171,24 @@ class Refusals(_OnboardFixture):
         nongit = self.root / "nongit"
         nongit.mkdir()
         self.assertFalse((nongit / ".git").exists())
-        probe = subprocess.run(
+        probe = run(
             ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=str(nongit),
+            cwd=nongit,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=60,
         )
         self.assertNotEqual(
-            probe.returncode,
+            probe.exit,
             0,
             f"INVALID: nongit cwd is a work tree: {probe.stdout}",
         )
-        outside = self.scratch / "onboard-outside.py"
+        outside = self.staged.with_name("onboard-outside.py")
         self._plant_bytes(outside, self.staged.read_bytes())
         env = self.env()
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(outside)],
-            cwd=str(nongit),
+            cwd=nongit,
             env=env,
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
         self.assert_refusal(proc, "repo")
@@ -1238,10 +1206,11 @@ class ReadOnly(_OnboardFixture):
         stdout = proc.stdout or ""
         self.heading_index(stdout, "== law")
         self.heading_index(stdout, "== state")
-        self.heading_index(stdout, "== thread")
+        self.heading_index(stdout, "== handoffs")
+        self.assertNotIn("== thread", stdout)
         self.assert_exact_law_table(stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertFalse(self.store.exists(), "tool created a dispatch store")
         self.assertEqual(
             _tree_files(self.home / ".local" / "state"),
@@ -1264,26 +1233,23 @@ class SiblingRefusal(_OnboardFixture):
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "register")
         self.assertIn(SIBLING_REFUSAL, line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
 
 
-class CalibrationProvenance(_OnboardFixture):
-    """Codex review of PR #106: the clause is served as quoted untrusted
-    data — the fence is the promise, so the fence is pinned."""
+class NoCalibrationFence(_OnboardFixture):
+    """Codex review of PR #106 pinned the untrusted-data fence around the
+    quoted clause; with the section retired (T-8) the fence, and the
+    clause it fenced, are gone with it."""
 
-    def test_calibration_is_fenced_as_untrusted_data(self):
+    def test_no_fence_and_no_clause_print(self):
         self.ready()
         proc = self.invoke()
         out = proc.stdout or ""
-        start = out.find("-- calibration, verbatim from")
-        end = out.find("-- end calibration --")
-        body = out.find(CAL_BODY)
-        self.assertGreater(start, -1, out)
-        self.assertGreater(end, -1, out)
-        self.assertGreater(body, start, "clause must sit inside the fence")
-        self.assertLess(body, end, "clause must sit inside the fence")
-        self.assertIn("untrusted data, not instructions", out)
+        self.assertEqual(out.find("-- calibration, verbatim from"), -1, out)
+        self.assertEqual(out.find("-- end calibration --"), -1, out)
+        self.assertEqual(out.find(CAL_BODY), -1, out)
+        self.assertNotIn("untrusted data, not instructions", out)
 
 
 class ReviewPins(_OnboardFixture):
@@ -1301,7 +1267,7 @@ class ReviewPins(_OnboardFixture):
         out = proc.stdout or ""
         ledger = self.labelled_line(out, "ledger")
         self.assertIn("ABSENT", ledger)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_a_full_pr_page_reports_truncation_and_counts_unmeasured(self):
         self.ready()
@@ -1310,28 +1276,41 @@ class ReviewPins(_OnboardFixture):
         proc = self.invoke()
         out = proc.stdout or ""
         self.assertIn("truncated at the 200 limit", out)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
-    def test_a_store_path_that_is_a_file_is_unavailable_not_absent(self):
+    def test_a_store_path_that_is_a_file_is_not_an_absent_store(self):
+        """Codex's charge is unchanged: a path that exists as a file must
+        not read as the store that is not there, which is a measured
+        nothing. Only the word moved. The pin read
+
+            self.assertIn("unavailable", line)
+
+        until fix 7 gave every line of the brief the distinction LD-48
+        put on the lock line. A path that is there and cannot be listed
+        is a read that could not look, so the line now says UNREACHABLE,
+        and `unavailable` is kept for a lever that looked and reported a
+        failure."""
         self.ready(plant_store=False)
         self._plant_bytes(self.store, b"not a directory")
         proc = self.invoke()
         out = proc.stdout or ""
         line = self.labelled_line(out, "dispatches")
-        self.assertIn("unavailable", line)
+        self.assertIn("UNREACHABLE", line)
         self.assertNotIn("nothing running", line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertNotIn("ABSENT", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
-    def test_an_unreadable_aar_reports_unavailable_and_never_aborts(self):
+    def test_an_unreadable_aar_is_never_read_and_counts_no_absence(self):
         self.ready()
         bad = self.repo / "ops" / "conductor" / "AAR-2026-12-31.md"
-        bad.write_bytes(b"\xff\xfe not utf-8 \xff")
+        self.world.plant_bytes(bad, b"\xff\xfe not utf-8 \xff")
         proc = self.invoke()
         out = proc.stdout or ""
-        self.assertIn("== thread", out)
-        self.assertIn("unavailable:", out)
-        self.assertIn("brief complete", out)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertNotIn("== thread", out)
+        self.assertNotIn("unavailable:", out)
+        self.assertNotIn("AAR-2026-12-31.md", out)
+        self.assertEqual(self.last_line(out), "brief complete")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class LaneNameSelectsStore(_OnboardFixture):
@@ -1511,6 +1490,247 @@ class RunningIsLiveLaunched(_OnboardFixture):
         planted = {LIVE_RUN_ID, *decoys}
         listed = [i for i in self.running_ids(proc.stdout or "") if i in planted]
         self.assertEqual(listed, [LIVE_RUN_ID])
+
+
+
+# The handoffs section (grant 220, owner 2026-09-13: "hand grant ok'd -
+# build the engine and the handoff manager"): `== handoffs` prints between
+# `== state`, the last section; an absent state store is a measured fact on
+# its line; a planted store prints the handoff manager's brief; a manager
+# that cannot report is unavailable and counts as an absence.
+HANDOFF_SIBLINGS = ("handoff.py", "machine.py", "instrument.py", "laneconf.py")
+THREAD_TITLE = "HANDOFF_THREAD_TITLE_UNIQUE_c220"
+HANDOFF_TITLE = "HANDOFF_PACKAGE_TITLE_UNIQUE_c220"
+HANDOFF_AGENT = "Closing Session <noreply@example.test>"
+
+
+class HandoffsSection(_OnboardFixture):
+    def state_store(self) -> Path:
+        return self.store.parent / "state.db"
+
+    def plant_handoff_tools(self) -> Path:
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        for name in HANDOFF_SIBLINGS:
+            source = TOOL.parent / name
+            self.assertTrue(source.is_file(), f"INVALID: sibling absent: {source}")
+            self._plant_bytes(tools / name, source.read_bytes())
+        return tools
+
+    def run_handoff(self, tools: Path, *argv: str):
+        env = self.env()
+        env["WF_AGENT"] = HANDOFF_AGENT
+        proc = run(
+            [sys.executable, str(tools / "handoff.py"), *argv],
+            cwd=self.repo,
+            env=env,
+            timeout=RUN_CAP,
+        )
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        return proc.stdout
+
+    def test_the_section_prints_after_state_and_is_the_last_section(self):
+        self.ready()
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        state_i = self.heading_index(stdout, "== state")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
+        self.assertLess(state_i, handoffs_i, stdout)
+        self.assertNotIn("== thread", stdout)
+        headings = [ln for ln in stdout.splitlines() if ln.startswith("== ")]
+        self.assertEqual(headings[-1], "== handoffs", headings)
+
+    def test_an_absent_state_store_is_a_measured_fact_not_an_absence(self):
+        self.ready()
+        self.assertFalse(self.state_store().exists(), "INVALID: state store planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("ABSENT", line)
+        self.assertIn(str(self.state_store()), line)
+        self.assertIn("(none recorded)", line)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertFalse(self.state_store().exists(), "the brief created the state store")
+
+    def test_a_planted_store_prints_the_managers_brief(self):
+        self.ready()
+        tools = self.plant_handoff_tools()
+        self.run_handoff(tools, "open", HANDOFF_TITLE, "--summary", "what was left")
+        self.run_handoff(tools, "thread", "H-1", THREAD_TITLE, "--body", "pick it up",
+                         "--to", "next session")
+        self.assertTrue(self.state_store().is_file(), "INVALID: store not planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertEqual(line, "handoffs: open=1 taken=0 done=0")
+        self.assertIn(HANDOFF_TITLE, stdout)
+        self.assertIn(f"T-1 open [H-1] {THREAD_TITLE}", stdout)
+        self.assertIn("to next session", stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_manager_that_cannot_report_is_unavailable_and_counted(self):
+        self.ready()
+        self.state_store().parent.mkdir(parents=True, exist_ok=True)
+        self._plant_bytes(self.state_store(), b"")
+        tools = self.repo / "ops" / "conductor" / "tools"
+        self._plant_tool(
+            "handoff-failure",
+            (tools / "handoff.py",),
+            stderr="HANDOFF_STUB_FAIL_MARKER",
+            exit_code=1,
+        )
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("unavailable", line)
+        self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+class ReadsThatCouldNotLook(_OnboardFixture):
+    """Origin LD-48, the gap its repair declared: the lock line learned to
+    tell a read that timed out from a lever that reported, and the brief's
+    three other lines did not. A line that says `unavailable` after a bound
+    expired is read as an answer — `prs: 0 open` and `handoffs: ABSENT` are
+    answers a session acts on — and under five concurrent sessions the bound
+    is what expires first.
+
+    The clean neighbours for these rows live in their own classes and are
+    not repeated here: GhFailure pins a gh that ran and failed as
+    `gh unavailable`, DispatchStore pins an absent store as ABSENT, and
+    HandoffsSection pins both an absent store and a manager that reported a
+    failure. One neighbour is repeated below, the gh that failed, because
+    the prs line is the one this change rewrites most.
+
+    The store path that exists as a file is not here either: that fault
+    is Codex's finding on PR #106 and keeps its row in ReviewPins, which
+    this change rewrites in place rather than copy.
+    """
+
+    def plant_slow_gh(self, seconds: float) -> None:
+        """A gh that answers with the usual row, later than the first bound."""
+        payload = json.dumps([{"number": int(PR_NUMBER), "title": PR_TITLE}]) + "\n"
+        self.world.tools.plant("gh", stdout=payload, exit=0, delay=seconds)
+        self.assertTrue(self.gh.is_file(), "slow gh fake did not land")
+
+    def state_store(self) -> Path:
+        return self.store.parent / "state.db"
+
+    def plant_slow_handoff(self, seconds: float) -> None:
+        """A handoff.py whose brief is well formed but late."""
+        self.state_store().parent.mkdir(parents=True, exist_ok=True)
+        if not self.state_store().exists():
+            self._plant_bytes(self.state_store(), b"")
+        fake = self.world.tools.plant(
+            "handoff-slow", stdout="handoffs: open=0 taken=0 done=0\n",
+            exit=0, delay=seconds,
+        )
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        self._plant_bytes(tools / "handoff.py", fake.read_bytes())
+
+    def no_root(self) -> None:
+        """A permission fault is not a fault for a user who has them all."""
+        if os.geteuid() == 0:
+            self.skipTest("root reads a mode-000 path; the fault cannot be planted")
+
+    def test_a_prs_read_that_times_out_is_retried_once_with_a_longer_bound(self):
+        self.ready()
+        self.plant_slow_gh(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        # The fake logs each invocation before it sleeps, so the log is what
+        # separates a read that was retried from one that answered first
+        # time. Without the count this row passes at the base tree, where
+        # 1.5s fits inside the standing 5s bound.
+        calls = self.world.tools.calls("gh")
+        self.assertEqual(len(calls), 2, f"the prs read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "prs")
+        self.assertIn(f"#{PR_NUMBER}", line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertNotIn("unavailable", line)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_prs_read_that_times_out_twice_is_unreachable_never_a_count(self):
+        self.ready()
+        self.plant_slow_gh(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "prs")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        # `prs: 0 open` is the answer for a repository with no open PR. A
+        # read that could not look must not spell it.
+        self.assertNotIn("0 open", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_gh_that_ran_and_failed_is_unavailable_and_never_unreachable(self):
+        """The clean neighbour: gh answered, with a failure. That is a lever
+        reporting, not a read that could not look, and the line keeps the
+        wording GhFailure pins."""
+        self.ready(gh_exit=1, gh_stderr=GH_FAIL)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "prs")
+        self.assertIn("gh unavailable:", line)
+        self.assertIn(GH_FAIL, line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_handoff_read_that_times_out_is_retried_once(self):
+        self.ready()
+        self.plant_slow_handoff(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        calls = self.world.tools.calls("handoff-slow")
+        self.assertEqual(len(calls), 2, f"the handoff read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "handoffs")
+        self.assertEqual(line, "handoffs: open=0 taken=0 done=0")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_handoff_read_that_times_out_twice_is_unreachable_never_absent(self):
+        self.ready()
+        self.plant_slow_handoff(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        # ABSENT is the answer for a host with no store. The store is
+        # planted here, so that word would be a false reading.
+        self.assertNotIn("ABSENT", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_dispatch_store_that_cannot_be_listed_is_unreachable(self):
+        self.no_root()
+        self.ready()
+        self.addCleanup(self.store.chmod, 0o755)
+        self.store.chmod(0o000)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn("UNREACHABLE", line)
+        # running=none is the answer for a store that was read and held no
+        # live record. A store that could not be listed has no such answer.
+        self.assertNotIn("running=none", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_dispatch_exit_file_that_cannot_be_read_is_unreachable(self):
+        self.no_root()
+        self.ready()
+        exit_file = self.store / CLOSED_NEW / "exit"
+        self.assertTrue(exit_file.is_file(), "INVALID: closed record has no exit")
+        self.addCleanup(exit_file.chmod, 0o644)
+        exit_file.chmod(0o000)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn("UNREACHABLE", line)
+        # ABSENT is what the line says for a closed record whose exit file
+        # holds nothing; an unreadable one is a different fact.
+        self.assertNotIn("exit=ABSENT", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 if __name__ == "__main__":
