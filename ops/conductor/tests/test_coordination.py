@@ -1746,3 +1746,100 @@ class TheQueueToMeNobodyHasDeliveredYet(_Scratch):
         proc = self.run_tool("undelivered", session=LEAD)
         self.assertEqual(0, proc.exit, proc.stderr)
         self.assertIn("no store", proc.stdout)
+
+
+class ARoleGivenCanBeTakenBack(_Scratch):
+    """`grant` is additive and nothing subtracted, so a store accumulated
+    authority and never shed it.
+
+    The live run found it, not a review: the trial store stands at two
+    leads because the roles were granted for a trial and could not be put
+    down afterwards. Taking a role back is a lead's, it is recorded the
+    way granting is, and it stops at the one thing the chain cannot do
+    without — a store with no lead in it has nobody who can grant
+    anything ever again, and that is unrecoverable rather than merely
+    inconvenient.
+    """
+
+    def two_leads(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        self.ok("grant", "PT-2", "--roles", "lead", session=LEAD)
+        return self.ok("participants", session=LEAD)
+
+    def test_a_lead_takes_a_role_back(self):
+        # `grant` appends, so the granted row reads `worker,lead` and
+        # `PT-2 worker` is a prefix of it rather than another row. Both
+        # assertions read to the end of the field.
+        self.assertIn("PT-2 worker,lead —", self.two_leads())
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        listed = self.ok("participants", session=LEAD)
+        self.assertIn("PT-2 worker —", listed)
+        self.assertIn("PT-1 lead,coordinator —", listed)
+
+    def test_the_revocation_says_who_took_it_and_when(self):
+        self.two_leads()
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            row = conn.execute("SELECT revoked_by, revoked_at FROM participants "
+                               "WHERE id = 2").fetchone()
+        finally:
+            conn.close()
+        self.assertEqual(1, row["revoked_by"])
+        self.assertTrue(row["revoked_at"])
+
+    def test_only_a_lead_revokes(self):
+        """A verifier is not a lead, and holding one granted role is not
+        holding the one that grants."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "coordinator",
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verifier-revokes", (), "role",
+                                 named=("lead",)), proc)
+
+    def test_a_worker_may_not_revoke_a_lead(self):
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=WORKER)
+        refusal_wire(RefusalCase("worker-revokes-lead", (), "role",
+                                 named=("lead",)), proc)
+
+    def test_the_last_lead_is_not_revocable(self):
+        """The floor: a store with no lead has nobody who can ever grant
+        one, so the check counts what is left, not what is asked for."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=LEAD)
+        refusal_wire(RefusalCase("last-lead", (), "role"), proc)
+
+    def test_the_last_lead_is_not_revocable_by_a_second_lead_either(self):
+        """Counting leads after the subtraction, whoever the subject is:
+        two leads, one revokes the other, and then neither may take the
+        last one down — including from itself."""
+        self.two_leads()
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=LEAD)
+        refusal_wire(RefusalCase("last-lead-self", (), "role"), proc)
+
+    def test_a_role_the_participant_does_not_hold_refuses(self):
+        """Absence is declared: taking back what was never given is a
+        refusal, not a silent no-op that reads as success."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-2", "--roles", "verifier", session=LEAD)
+        refusal_wire(RefusalCase("not-held", (), "role"), proc)
+
+    def test_what_is_left_is_never_nothing(self):
+        """Announcing yourself is worth worker, so a participant stripped
+        of everything stands where a fresh self-bind would, not at no
+        roles at all."""
+        self.bind_three()
+        self.ok("grant", "PT-3", "--roles", "coordinator", session=LEAD)
+        self.ok("revoke", "PT-3", "--roles", "coordinator,verifier,worker",
+                session=LEAD)
+        self.assertIn("PT-3 worker", self.ok("participants", session=LEAD))
+
+    def test_the_clean_neighbour_a_second_lead_still_leads_until_it_is_taken(self):
+        self.two_leads()
+        aid = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                      "--revision", "a1b2c3d", session=WORKER).split()[-1]
+        self.assertIn(aid, self.ok("assignments", session=LEAD))

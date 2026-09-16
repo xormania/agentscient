@@ -18,6 +18,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]
     coordination.py bind-for --session ID --roles R[,R] --for A-n [--harness H]
     coordination.py grant PT-n --roles R[,R]
+    coordination.py revoke PT-n --roles R[,R]
     coordination.py who | participants [--role R]
     coordination.py draft TITLE --outcome TEXT [--requirement REF] [--revision SHA]
                               [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]
@@ -141,7 +142,7 @@ CREATE TABLE IF NOT EXISTS participants(
     id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL UNIQUE,
     agent TEXT NOT NULL, harness TEXT, roles TEXT NOT NULL, endpoint TEXT,
     probe TEXT, bound_at TEXT NOT NULL, bound_by INTEGER, bound_for INTEGER,
-    granted_by INTEGER, granted_at TEXT);
+    granted_by INTEGER, granted_at TEXT, revoked_by INTEGER, revoked_at TEXT);
 CREATE TABLE IF NOT EXISTS assignments(
     id INTEGER PRIMARY KEY, title TEXT NOT NULL, outcome TEXT NOT NULL,
     requirement TEXT, scope TEXT, inputs TEXT, recipient TEXT, depends TEXT,
@@ -242,7 +243,8 @@ def ensure_columns(conn) -> None:
     idempotent under the guard and costs one PRAGMA on every open."""
     have = {row["name"] for row in conn.execute("PRAGMA table_info(participants)")}
     for name, kind in (("bound_by", "INTEGER"), ("bound_for", "INTEGER"),
-                       ("granted_by", "INTEGER"), ("granted_at", "TEXT")):
+                       ("granted_by", "INTEGER"), ("granted_at", "TEXT"),
+                       ("revoked_by", "INTEGER"), ("revoked_at", "TEXT")):
         if name not in have:
             conn.execute(f"ALTER TABLE participants ADD COLUMN {name} {kind}")
 
@@ -691,6 +693,56 @@ def core_grant(conn, part, *, agent, participant, roles) -> dict:
     conn.execute(
         "UPDATE participants SET roles = ?, granted_by = ?, granted_at = ? WHERE id = ?",
         (",".join(held), part["id"], stamp(), pid),
+    )
+    return participant_dict(participant_row(conn, pid))
+
+
+def core_revoke(conn, part, *, agent, participant, roles) -> dict:
+    """A role that can be given can be taken back, by a lead, on the record.
+
+    `grant` is additive and nothing in the table subtracted, so a store
+    accumulated authority and never shed it: the trial store stands at
+    two leads because the roles were granted for a trial and could not be
+    put down afterwards. Found in the live run, not in a review.
+
+    One thing it will not do. A store with no lead in it has nobody who
+    can ever grant one again — the chain's root is gone and no verb here
+    can restore it — so the count is of the leads that would be left
+    after the subtraction, whoever the subject is, the caller included. A
+    last lead taking its own lead role down is the same store either way.
+
+    What is left is never nothing: announcing yourself is worth worker,
+    so a participant stripped of everything stands where a fresh
+    self-bind would stand.
+    """
+    part = same_session(conn, part)
+    require_role(part, ("lead",))
+    named = roles_of(roles)
+    _, pid = parse_id(participant, "PT")
+    row = participant_row(conn, pid)
+    held = [role for role in row["roles"].split(",") if role]
+    taking = named.split(",")
+    absent = [role for role in taking if role not in held]
+    if absent:
+        # Taking back what was never given is a refusal, not a silent
+        # no-op that reads back as success (docs/wire.md, absence
+        # discipline).
+        refuse("role", f"roles PT-{pid} holds, {row['roles']}", ", ".join(absent),
+               "name a role the participant holds; nothing was taken")
+    left = [role for role in held if role not in taking] or ["worker"]
+    standing = conn.execute("SELECT id, roles FROM participants").fetchall()
+    leads = [other["id"] for other in standing
+             if "lead" in (left if other["id"] == pid
+                           else [role for role in (other["roles"] or "").split(",")
+                                 if role])]
+    if not leads:
+        refuse("role", "a store left holding at least one lead",
+               f"no lead at all once PT-{pid} stands at {','.join(left)}",
+               "grant lead to another participant first; a store with no "
+               "lead has nobody who can ever grant one")
+    conn.execute(
+        "UPDATE participants SET roles = ?, revoked_by = ?, revoked_at = ? WHERE id = ?",
+        (",".join(left), part["id"], stamp(), pid),
     )
     return participant_dict(participant_row(conn, pid))
 
@@ -1479,6 +1531,7 @@ def core_brief(conn, part) -> dict:
 
 CORE = {
     "bind": core_bind, "bind-for": core_bind_for, "grant": core_grant,
+    "revoke": core_revoke,
     "who": core_who,
     "participants": core_participants,
     "draft": core_draft, "offer": core_offer, "claim": core_claim,
@@ -1532,6 +1585,16 @@ def do_grant(rest):
                               participant=raw, roles=opts["roles"])
     print(f"granted {shown['roles']} to {shown['participant']} "
           f"by {shown['granted_by']}")
+
+
+def do_revoke(rest):
+    agent = identity()
+    (raw,), opts = parse(rest, 1, required=("roles",))
+    with writer() as conn:
+        shown = CORE["revoke"](conn, bound_participant(conn), agent=agent,
+                               participant=raw, roles=opts["roles"])
+    print(f"revoked {opts['roles']} from {shown['participant']}; "
+          f"{shown['roles']} left")
 
 
 def do_who(rest):
@@ -2016,6 +2079,7 @@ def do_brief(rest):
 
 VERBS = {
     "bind": do_bind, "bind-for": do_bind_for, "grant": do_grant,
+    "revoke": do_revoke,
     "who": do_who,
     "participants": do_participants,
     "draft": do_draft, "offer": do_offer, "claim": do_claim,
