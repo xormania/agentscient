@@ -37,7 +37,7 @@ OTHER_JOBS = (
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "ff31dad22e0e2a455a799075fe8c1448f53b23ec18ad20e0a3dcf3a71bfec4ae"  # re-pinned 2026-09-15: the author-tests brief names its spend discipline and target; the dated measurement lives in ops/process/token-thrift.md (T-56, grant 246)
+    "5ccb2b8e90f67e7c860495d1da31728f56721be13f9291f7704f1236bba1745c"  # re-pinned 2026-09-16 (grant 251): verify, sweep, plan and adjudicate declare caps, so every job carries turns and timeout; the pin before this was ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
 )
 
 D1_PROMPT = (

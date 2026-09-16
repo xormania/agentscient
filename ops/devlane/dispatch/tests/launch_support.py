@@ -635,6 +635,30 @@ def _absent_record():
     return mod
 
 
+def strip_job_caps(test, job):
+    """Remove ``caps`` from one job in the fixture catalog, so the layers
+    below the job can be read. Every job in the real catalogue declares
+    its caps, so the resolution order's lower layers are reached by
+    planting their condition, never by finding a job that happens to lack
+    one."""
+    test.assertIsInstance(test.world, World)
+    path = test.jobs_file
+    before = path.read_text(encoding="utf-8")
+    jobs = json.loads(before)
+    test.assertIsInstance(jobs, dict)
+    test.assertIn(job, jobs)
+    test.assertIsInstance(jobs[job].get("caps"), dict,
+                          f"{job} carried no caps to strip; the catalogue changed under this test")
+    spec = {k: v for k, v in jobs[job].items() if k != "caps"}
+    jobs[job] = spec
+    content = json.dumps(jobs, indent=2) + "\n"
+    test.assertIn(job, content)
+    test.world.plant_text(path, content, recognisable=f'"{job}"')
+    landed = json.loads(path.read_text(encoding="utf-8"))
+    test.assertNotIn("caps", landed[job])
+    test.ref = test._commit(f"strip {job} caps")
+
+
 def require_module(test, name):
     """Load ``ops/devlane/task/<name>.py``, or an empty stub if it is absent.
 

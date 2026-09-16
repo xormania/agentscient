@@ -21,21 +21,7 @@ import launch_support as ls
 from ops.testkit import World
 
 DEFAULT_TIMEOUT = 900.0
-POLICY_CAPS = {
-    "author-tests": 1800,
-    "check-tests": 1800,
-    "adversarial-review": 1800,
-    "security-audit": 1200,
-    "implement": 3600,
-}
 COMMIT_ON_RED = "Commit each test file as soon as its red is proven"
-POLICY_TURNS = {
-    "author-tests": 200,
-    "check-tests": 150,
-    "adversarial-review": 150,
-    "security-audit": 150,
-    "implement": 200,
-}
 JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
@@ -76,7 +62,9 @@ def plant_job_timeout(test, job, seconds):
     spec["caps"] = {"timeout": seconds}
     jobs[job] = spec
     content = json.dumps(jobs, indent=2) + "\n"
-    test.assertGreater(len(content), len(before), "plant claimed to grow")
+    # The plant replaces caps that are already there, so the file may shrink;
+    # what it has to prove is that it changed the catalogue and landed.
+    test.assertNotEqual(content, before, "plant changed nothing")
     test.assertIn(job, content)
     test.assertIn('"timeout"', content)
     test.world.plant_text(path, content, recognisable='"timeout"')
@@ -115,11 +103,15 @@ class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
-    """Else 900, source default — a job with no caps entry and no env."""
+    """Else 900, source default — a catalogue entry declaring no caps, and
+    no env. The capless entry is planted (strip_job_caps): every job in the
+    real catalogue declares its caps, and an absence this test needs is one
+    it makes, never one it hopes to find."""
 
     def test_no_job_cap_and_no_env_records_900_from_default(self):
         self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -128,10 +120,18 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         self.assertEqual(caps["timeout_source"], "default")
 
 
-class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
-    """author-tests 1800, check-tests 1800, adversarial-review 1800
-    (raised from 1200 on 2026-09-11: Grok reviews ran to 19 of 20 minutes),
-    security-audit 1200, implement 3600."""
+class EveryJobDeclaresItsCaps(unittest.TestCase):
+    """Every job in the catalogue declares caps.timeout and caps.turns.
+
+    What this replaces: a pin naming five jobs and their exact numbers.
+    It said nothing about a sixth job, which is how four jobs (verify,
+    sweep, plan, adjudicate) ran uncapped while the pin was green, and it
+    had to be edited beside the catalogue whenever a number moved. The
+    contract owns the closure — a job declares what bounds it — and
+    jobs.json owns the numbers (docs/tests.md rule 3: a pin on a count
+    the contract does not own is a finding). A cap's value is a decision,
+    recorded in the commit that moves it.
+    """
 
     def setUp(self):
         self.world = World(prefix="launch-job-caps-catalog-")
@@ -146,22 +146,26 @@ class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
         self.assertIsInstance(self.jobs, dict)
         self.assertGreater(len(self.jobs), 0, "jobs.json must name jobs")
 
-    def test_exactly_five_jobs_carry_the_named_caps(self):
-        carrying = {}
-        for name, spec in self.jobs.items():
-            self.assertIsInstance(spec, dict, f"{name} spec is not an object")
-            if "caps" not in spec:
-                continue
-            caps = spec["caps"]
-            self.assertIsInstance(caps, dict, f"{name} caps is not an object")
-            self.assertIn("timeout", caps, f"{name} caps has no timeout")
-            carrying[name] = caps["timeout"]
-        self.assertEqual(
-            len(carrying), len(POLICY_CAPS),
-            f"expected {len(POLICY_CAPS)} jobs with caps, got {carrying!r}",
+    def positive_int(self, value, where):
+        self.assertIsInstance(value, int, where)
+        self.assertNotIsInstance(value, bool, where)
+        self.assertGreater(value, 0, where)
+
+    def test_every_job_carries_caps_with_turns_and_timeout(self):
+        uncapped = sorted(
+            name for name, spec in self.jobs.items()
+            if not isinstance(spec, dict)
+            or not isinstance(spec.get("caps"), dict)
+            or "timeout" not in spec["caps"] or "turns" not in spec["caps"]
         )
-        self.assertEqual(set(carrying), set(POLICY_CAPS))
-        self.assertEqual(carrying, POLICY_CAPS)
+        self.assertEqual(
+            uncapped, [],
+            f"every job declares caps.timeout and caps.turns; these do not: {uncapped}",
+        )
+        for name, spec in self.jobs.items():
+            with self.subTest(job=name):
+                self.positive_int(spec["caps"]["timeout"], f"{name} caps.timeout")
+                self.positive_int(spec["caps"]["turns"], f"{name} caps.turns")
 
 
 class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
@@ -232,7 +236,9 @@ def plant_job_turns(test, job, turns):
     spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
     jobs[job] = spec
     content = json.dumps(jobs, indent=2) + "\n"
-    test.assertGreater(len(content), len(before), "plant claimed to grow")
+    # The plant replaces caps that are already there, so the file may shrink;
+    # what it has to prove is that it changed the catalogue and landed.
+    test.assertNotEqual(content, before, "plant changed nothing")
     test.assertIn(job, content)
     test.assertIn('"turns"', content)
     test.world.plant_text(path, content, recognisable='"turns"')
@@ -311,11 +317,13 @@ class CodexHasNoTurnFlagAndTheRecordSaysSo(ls._TempLaunch):
 
 
 class NoTurnCapIsDeclaredNotInferred(ls._TempLaunch):
-    """A job with no caps.turns and no env records turns None, source none."""
+    """A catalogue entry with no caps.turns and no env records turns None,
+    source none. The capless entry is planted, as above."""
 
     def test_no_job_turns_and_no_env_records_none(self):
         self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TURNS", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -341,12 +349,14 @@ class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
                          str(ENV_TURNS))
 
 
-class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
-    """The five capped jobs carry caps.turns: author-tests 200, implement
-    200, check-tests 150, adversarial-review 150, security-audit 150.
-    Chosen 2026-09-12 from the store's message counts (Grok author-tests:
-    median 229, p90 325, max 500 messages); the harness turn unit is not
-    the store's message unit, so the first ladder under the cap re-measures."""
+class EveryJobsTurnCapIsDeclared(unittest.TestCase):
+    """caps.turns on every job, read through the file's own text.
+
+    The numbers were chosen 2026-09-12 from the store's message counts
+    (Grok author-tests: median 229, p90 325, max 500 messages) and
+    extended to the four short jobs on 2026-09-16; the harness turn unit
+    is not the store's message unit, so a run under a cap re-measures it.
+    The values live in jobs.json, not here."""
 
     def setUp(self):
         self.world = World(prefix="launch-job-caps-turns-")
@@ -365,7 +375,8 @@ class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
             if isinstance(spec, dict) and isinstance(spec.get("caps"), dict)
             and "turns" in spec["caps"]
         }
-        self.assertEqual(carrying, POLICY_TURNS)
+        self.assertEqual(sorted(carrying), sorted(self.jobs),
+                         f"a job declares no caps.turns: {sorted(set(self.jobs) - set(carrying))}")
         for name, turns in carrying.items():
             self.assertIsInstance(turns, int, name)
             self.assertNotIsInstance(turns, bool, name)
