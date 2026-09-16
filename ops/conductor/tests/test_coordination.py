@@ -494,7 +494,7 @@ class TheCoreSeam(_Scratch):
         module = self.core()
         with module.writer() as conn:
             part = module.core_bind(
-                conn, None, agent=SHARED, session_id=LEAD, roles="lead,coordinator",
+                conn, None, agent=SHARED, roles="lead,coordinator",
             )
             self.assertIsInstance(part, dict)
             self.assertEqual(part["participant"], "PT-1")
@@ -511,7 +511,7 @@ class TheCoreSeam(_Scratch):
     def test_a_core_function_raises_the_refusal_with_its_three_parts(self):
         module = self.core()
         with module.writer() as conn:
-            module.core_bind(conn, None, agent=SHARED, session_id=LEAD, roles="worker")
+            module.core_bind(conn, None, agent=SHARED, roles="worker")
             part = module.bound_participant(conn)
             with self.assertRaises(module.Refusal) as caught:
                 module.CORE["draft"](
@@ -928,16 +928,6 @@ class ThePassedRowIsNotAuthority(_Scratch):
             "SELECT * FROM participants WHERE session_id = ?", (WORKER,)
         ).fetchone()
 
-    def test_every_core_function_checks_the_row_it_was_passed(self):
-        import inspect
-        module = self.core()
-        unchecked = [
-            verb for verb, fn in module.CORE.items()
-            if "same_session(part)" not in inspect.getsource(fn)
-        ]
-        self.assertEqual([], unchecked,
-                         "these functions trust the participant they are handed")
-
     def test_a_foreign_row_refuses_class_participant(self):
         self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
         self.ok("bind", "--roles", "worker", session=WORKER)
@@ -1313,3 +1303,108 @@ class EveryMoveBumpsTheGeneration(_Scratch):
         self.ok("return", aid, "--findings", "#243", "--generation", self.gen(aid),
                 session=CHECKER)
         self.assertIn("held", self.ok("show", aid, session=LEAD))
+
+
+class TheParticipantIsReadNotSupplied(_Scratch):
+    """A caller hands the participant in; nothing it hands in is believed.
+
+    Round two found the first repair had moved the boundary rather than
+    closed it. `same_session` compared the supplied mapping's own
+    `session_id` against the environment and read nothing else from the
+    store, so a mapping carrying this session's id and another
+    participant's id and roles passed and then acted as that participant
+    (Codex 834580#2, Daybreak 1833de#3). `core_bind` took the session id
+    as an argument and never called `instrument.session()` at all, so a
+    worker process minted participants for sessions that do not exist and
+    rewrote a bound lead's agent, endpoint and probe (Grok bcfee6#2).
+
+    The rule, ruled by the Lead on 2026-09-16: the mapping carries an id
+    and nothing more. The row is reloaded from the store by that id and
+    its `session_id` must be this process's; every field the function
+    then reads — the roles above all — is the store's.
+    """
+
+    def forged(self, module, **fields):
+        """A mapping shaped like a participant row and written by hand."""
+        base = {"id": 1, "session_id": WORKER, "roles": "lead,coordinator",
+                "agent": SHARED, "harness": None, "endpoint": None,
+                "probe": None, "bound_at": "2026-09-16T00:00:00Z",
+                "bound_by": None, "bound_for": None, "granted_by": None,
+                "granted_at": None}
+        base.update(fields)
+        return base
+
+    def test_a_hybrid_row_of_two_participants_refuses(self):
+        """Daybreak's mapping: this session's id, another's id and roles."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn, self.forged(module), agent=SHARED,
+                                     title="forged", outcome="opened as PT-1")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("participant:"), line)
+
+    def test_a_row_the_store_does_not_hold_refuses(self):
+        """Codex's invented id, from a session with no participant at all."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn, self.forged(module, id=999),
+                                     agent=SHARED, title="forged",
+                                     outcome="opened as nobody")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("participant:"), line)
+
+    def test_the_roles_are_the_stores_and_not_the_mappings(self):
+        """The half a session-id comparison cannot reach: the caller's own
+        row, with the roles it wishes it held."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn,
+                                     self.forged(module, id=2, session_id=WORKER,
+                                                 roles="lead,coordinator"),
+                                     agent=SHARED, title="forged",
+                                     outcome="drafted as a lead")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("role:"), line)
+
+    def test_the_clean_neighbour_the_stores_own_row_works(self):
+        self.bind_three()
+        module = self.core(LEAD)
+        with module.writer() as conn:
+            shown = module.CORE["draft"](conn, module.bound_participant(conn),
+                                         agent=SHARED, title="a real repair",
+                                         outcome="it lands")
+        self.assertTrue(shown["assignment"].startswith("A-"), shown)
+
+    def test_bind_binds_the_session_this_process_runs_under(self):
+        """Grok's mint: the session id is read, never passed."""
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            shown = module.CORE["bind"](conn, None, agent=SHARED, roles="worker")
+        self.assertEqual(WORKER, shown["session"])
+        listed = self.ok("participants", session=WORKER)
+        self.assertEqual(1, len(listed.strip().splitlines()), listed)
+
+    def test_bind_cannot_rewrite_another_participants_row(self):
+        """Grok's hijack: a worker process re-binding the lead's session,
+        rewriting its agent, its endpoint and its probe."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            module.CORE["bind"](conn, None, agent="Attacker <a@e.test>",
+                                roles="worker", endpoint="tcp://attacker:9",
+                                probe="hijacked")
+        listed = self.ok("participants", session=LEAD)
+        lead = next(line for line in listed.splitlines() if line.startswith("PT-1 "))
+        self.assertIn(f"PT-1 lead,coordinator — {SHARED}", lead)
+        self.assertNotIn("Attacker", lead)
+        self.assertNotIn("attacker:9", lead)
+        # The worker refreshing its own agent string is the declared
+        # behaviour of a re-bind, and it is the only row that moved.
+        self.assertIn("PT-2 worker — Attacker <a@e.test>", listed)

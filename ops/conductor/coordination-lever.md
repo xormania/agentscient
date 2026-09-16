@@ -21,11 +21,19 @@ checks — participant, role, holder, generation, revision, producer —
 live in those functions, so they run whoever calls them: a projection
 cannot reach the store around them, and a hook the MCP plane is blind to
 is never where authority sits. The resolved participant is an argument
-so that both projections stay thin, and every function checks that the
-row it was passed is the calling process's own — its `session_id` is
-`instrument.session()` here, or it refuses class `participant`. The
-boundary binds the effective caller; the argument carries it and never
-chooses it. Both projections are therefore thin and
+so that both projections stay thin, and what that argument carries is an
+id: every function reloads the row from `participants` by it, refuses
+class `participant` unless the loaded row's `session_id` is
+`instrument.session()`, and reads the loaded row from there on. Nothing
+else the caller passes is believed — the roles above all, because a
+mapping carrying this session's id beside another participant's id and
+roles is what a comparison on `session_id` alone admits. `bind` reads the
+session id rather than taking it, for the same reason: an argument by
+which a process names another session is an argument by which it acts as
+one. `bind-for` still takes one, because minting a participant for a
+session that cannot bind itself is what it is for, and it is a
+dispatcher's verb and records its issuer. The boundary binds the
+effective caller; the argument carries it and never chooses it. Both projections are therefore thin and
 neither holds authority of its own; the CLI verb parses argv, calls the
 function and prints, and the MCP action does the same with a result
 shape instead of a print.
