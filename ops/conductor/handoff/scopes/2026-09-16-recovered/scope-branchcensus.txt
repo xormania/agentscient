@@ -1,0 +1,19 @@
+Align the branch census with the real trunk and release.
+
+Measured: `master` appears 0 times in ops/conductor/tools/branches.py;
+`main` appears 9 times, 6 load-bearing (197, 224, 237, 249, 254, 283).
+refs/remotes/origin/main does not exist, so main_sha at 224 is always None,
+the release half of the merged test at 237 is dead, and every branch is
+classified against dev alone. A PR based on master, the real release base,
+counts STACKED at 254 and 283.
+
+Do: put master where main is assumed, in branches.py, its contract
+ops/conductor/branch-census.md, and its tests; read both permanent branches
+in the merged test; stop calling a master-based PR stacked. Add a `plan`
+verb emitting retirement candidates, machine-readable, with evidence, and
+preservation that writes a bundle, restores it to an isolated repository,
+and proves the tips.
+
+Delete, prune or force-push nothing; that is the owner's. Leave AGENTS.md
+alone. Red then green with one command. If branches.py is inside the wall's
+"closure levers", refuse on the wire and say so.

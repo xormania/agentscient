@@ -1,0 +1,98 @@
+Fall in: every session takes its place in the chain at start, and the CO
+has a drill. Owner, 2026-09-16, three words in order: "let's smooth out our
+army - either a special skill for the CO (Commanding Officer - YOU in this
+case) or can we combine role with onboard skill - i want you all to be able
+to fall in and have your agents at attention at the start of new sessions";
+"if anything - they should report to your XO"; "i'll declare CO and XO -
+the roles are up to your XO based on the models and effort"; and then, to
+the Lead, "you don't do work - you have XO delegate it - we have dispatcher
+as well". So this is a scope, not the Lead's edit: one producer, red then
+green with the command below, the second producer absent by the owner's
+word, the branch and the grant the producer's own.
+
+What exists (measured by the Lead on dev d919c982, 18:13Z-18:20Z):
+- coordination.py has `bind --roles R [--endpoint E] [--harness H]`,
+  `who`, `participants`, `entry [--role R]` (duties, state, next steps per
+  role, ENTRY table at coordination.py), `inbox`, `brief`. `participants`
+  prints no endpoint though the column exists (participant_dict carries
+  it). `who` refuses class `session` when no session id is in the
+  environment, `no store` on an absent store.
+- onboard.py prints `== law`, `== state`, `== handoffs` and never runs a
+  coordination verb; a fresh session learns nothing of who holds lead or
+  coordinator, and seven sessions today each guessed whom to report to.
+- A session's harness socket is /run/user/<uid>/cc-socks/<harness pid>.sock,
+  the harness pid is $PPID of the session's Bash tool, and SendMessage
+  accepts `uds:<that path>` as an address. So an endpoint recorded at bind
+  as `uds:/run/user/<uid>/cc-socks/<pid>.sock` gives liveness (pid alive
+  and socket present) and an address, mechanically.
+
+Build, in this order, each red then green with
+`python3 -m unittest discover -s ops/conductor/tests -p 'test_onboard_lever.py'`
+(the draft rows are in chain-tests-draft.diff beside this file, written by
+the Lead against 2a077053 and red there: 5 failures, 2 errors; take them
+as a starting shape, not as the contract):
+
+1. coordination.py `participants` appends ` endpoint <e>` when the row
+   has one; nothing else in the line moves.
+2. onboard.py: a fourth section `== chain`, last, after `== handoffs`:
+   `chain: ABSENT <store> (nobody bound)` when state.db is absent (a
+   measured fact, no absence counted); `chain: none bound` when the
+   store has no participant; else `chain: <n> bound; lead PT-n <live|dead|unrecorded>; coordinator ...; dispatcher ...`
+   then one line per participant `PT-n <roles> <live|dead|unrecorded> — <agent> endpoint <e|unrecorded>`,
+   then `this session: PT-n <roles>` or `this session: unbound`, then
+   `report to: coordinator PT-n at <endpoint>` (the live coordinator; else
+   the live lead; an unrecorded endpoint says "endpoint unrecorded: find it
+   in the harness peer list"; nobody live says so and points at
+   command-structure.md "Finding the Lead after a host fault"). Liveness:
+   endpoint `uds:...<pid>.sock`, pid alive (os.kill(pid, 0)) and the path
+   present. A participants read that fails is `chain: unavailable: ...`
+   and counts an absence; a read that expires twice is UNREACHABLE, the
+   bounded_read rule.
+3. onboard-lever.md: the `== chain` section's contract, in the shape of
+   the `== handoffs` paragraph; the title "four sections" corrected.
+4. .claude/skills/onboard/SKILL.md, a step "Fall in" after the handoffs
+   step: if `this session: unbound`, bind as worker with the endpoint
+   (`WF_AGENT='<Name <address>>' python3 ops/conductor/tools/coordination.py bind --roles worker --harness claude --endpoint uds:/run/user/$(id -u)/cc-socks/$PPID.sock`);
+   run `entry`, then `inbox` (a standing rule reaches a session through
+   the store's messages after the session that spoke it is gone; the XO's
+   point, 18:2xZ), then `brief`; send the XO one fixed line at its
+   endpoint: `<peer name> PT-n <model> session <id> endpoint <e>: bound
+   worker, branch none, holds nothing, ready`. Roles are the XO's to
+   assign from the model and the effort; a session asks the Lead for
+   nothing. No branch, no lock, no write until the XO has placed it and
+   the owner's grant word has reached its own terminal. Every reading it
+   sends carries `date -u +%H:%M:%SZ` in the same command as the
+   measurement. Self-correction before reporting: a number produced by the
+   wrong shape of command is thrown away and re-taken, never sent with a
+   caveat (three times today a worker caught its own wrong number before
+   it reached a record; the skill asks for that by name). If no XO is
+   live, report to the live lead; if nobody is live, the fault recipe.
+5. .claude/skills/co/SKILL.md, for the session the owner declares CO,
+   with a section for the session the owner declares XO. CO: bind, and
+   if no live lead holds the store the seat is written by hand on the
+   owner's word only (LD-91, the 17:05:59Z precedent); take T-88; grant
+   coordinator to the session the owner names XO and dispatcher to the
+   session the XO names; from then on grants on the XO's one line
+   without re-deciding; the CO does no work: every build, fix, reading
+   and record goes to the XO to delegate to a session or through the
+   Dispatcher; the CO decides, flips, merges, rules, and reports to the
+   owner with the lock's reading line in every reply; the day's AAR; at
+   close, release T-88 and settle the grant. XO: take T-89/T-95; roll
+   call by message to every live endpoint in the chain section; seat
+   arrivals as worker and give each its first reading; the board every
+   thirty minutes in ten lines; role requests to the CO one line each;
+   never writes the work it coordinates.
+6. ops/conductor/command-structure.md: the three owner's words above
+   added under "The owner's words"; the Owner row of the chain table
+   says the owner declares CO and XO; the Lead row says the Lead does no
+   work and grants on the XO's word; "Taking a role in a fresh session"
+   rewritten to the fall-in (bind with endpoint, entry, inbox, report to
+   the XO, roles the XO's).
+7. `python3 ops/conductor/tools/skills.py sync` registers the new skill;
+   probe rows for the section, the skill and the words, in the
+   producer's probes file; `probes.py run` clean.
+
+Not in scope: a `rebind` verb for rows bound today without an endpoint
+(they read `unrecorded`; the sessions of 2026-09-16 are told their
+endpoint by message); any change to the core's authority checks; the
+wall.
