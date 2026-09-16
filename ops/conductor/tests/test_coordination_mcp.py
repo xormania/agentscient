@@ -26,6 +26,16 @@ contract promise rather than on Python's missing-file exit 2; the
 absent entrypoint is one red of its own,
 `test_the_tool_file_is_present`.
 
+**A case that never executes the subject's behaviour is a declared gap
+wearing a pass.** Found by auditing this file's own cases on 2026-09-16
+against #242's second review round, and being added to docs/tests.md as a
+rule of its own. Six cases here failed it: five asserted something about a
+schema or a mock and one about a name, and not one of them ran the server
+and looked at what it did. Two of the six no reviewer had found. When a
+case pins a key in an inputSchema, a shape the counterparty never returns,
+or two vocabularies that cannot collide, it is a gap: rewrite it to run
+the subject, or drop it and say so.
+
 Fixture set (docs/tests.md rule 3). Planted faults it must catch: an
 unknown verb, an unknown tool, a role supplied as an argument, a
 participant supplied as an argument, an unknown argument key, a
