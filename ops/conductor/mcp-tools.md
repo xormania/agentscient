@@ -8,6 +8,7 @@ built from observed need. The conductor is the first consumer; the
 automated conductor is the second. Pattern to copy: `wf`'s MCP
 (`ops/devlane/workflow/mcp_launch.py`, `wf://status|next|agents|checks`) —
 read-only by import graph; only the launcher-handler ever appends.
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
 
 R = read (resource/tool the harnesses and conductor may call),
 W = write (launcher-handler only). Part = Agentscient part
@@ -40,7 +41,8 @@ W = write (launcher-handler only). Part = Agentscient part
   state lives in this session's context, which is what compaction destroys.
 - Everything marked R is safe to hand to any harness over MCP (read-only
   by import graph). Only #7, #8, #9, #12, #13 append, and only through the
-  launcher-handler.
+  launcher-handler. Superseded 2026-09-16 (D-MCP-1): MCP acts as well as
+  reads.
 - Existing pieces to reuse: `wf` MCP server, `.claude/skills/pr-overview/pr_overview.py`,
   `ops/devlane/dispatch/launch.py` (records), `contracts/vet.py` (the shape of
   a gate).

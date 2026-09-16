@@ -651,7 +651,8 @@ by trusted startup, never a model-selected role. Validate current binding,
 source custody and the target's closed schema/effect contract before deciding.
 
 Permit admitted custody-scoped reads, read-only MCP, authorized coordination and
-canonical dispatch/go/ladder delegation. Reads require no WF_AGENT or fresh
+canonical dispatch/go/ladder delegation. Superseded 2026-09-16 (D-MCP-1): MCP
+acts as well as reads. Reads require no WF_AGENT or fresh
 owner grant; an unavailable source is an unavailable reading. Coordination
 writes retain the existing lever authorization and owner-requested handoff/AAR
 boundary. Refuse implementation edits, Git mutations, shell/interpreter escapes,
@@ -660,7 +661,8 @@ substring or claimed classification grants nothing. The pinned normalizer must
 resolve actual native/executable identity; adapters enforce only an exact,
 current, once-consumed decision, blocking on missing/malformed/late/replayed
 responses without prompts or weaker retries. This is the policy counterpart of
-the existing tool contract, not MCP action authority. The independent read-only
+the existing tool contract, not MCP action authority. Superseded 2026-09-16
+(D-MCP-1): MCP acts as well as reads. The independent read-only
 doctor remains usable without this evaluator, startup or a vendor session.
 
 Unit1a's independent construction cases cover transport/source substitution,

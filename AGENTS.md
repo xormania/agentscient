@@ -81,6 +81,14 @@ boundary is not a declared, verifiable coupling.
 - **No vendor becomes load-bearing.** Every external capability is
   consumed through a contract, a probe, and a verified mock, and is
   removable for the cost of a configuration line.
+- **A failure pattern with a fix does not recur** (owner, 2026-09-16:
+  "just make sure we fix these stupid issues - i can't tolerate the same
+  mistakes too many times (not after we have a fix on a failure pattern)";
+  D-PATTERN-1): the fix is a mechanism, a refusal, a test with a planted
+  fault, or a record the next session reads, never a rule relayed by
+  message; a recurrence after the fix is a defect filed against the fix,
+  not against the session that hit it; the measure is the miss log and
+  the defect ledger by class after the fix's date.
 
 ## Lane boundary and precedence
 
@@ -144,9 +152,15 @@ These framework, projection and package rulings govern the prod application.
   view, an MCP resource, and an API resource, each a projection of the same
   service generated from the same contract. The wire holds on all
   four: exit classes on the CLI, problem details on the API, error
-  results on MCP, the refusal line wherever text is shown. MCP stays
-  the context-and-diagnostics plane, read-only by construction; the
-  CLI and the API act.
+  results on MCP, the refusal line wherever text is shown. MCP acts
+  as well as reads (owner, 2026-09-16: "mcp is no longer read only -
+  that's the directive"; D-MCP-1, withdrawing the 2026-09-01
+  read-only ruling): query operations stay read-only where that is
+  their purpose; action operations are typed, marked as mutations,
+  backed by the same validated domain operations and effective
+  authority as the CLI, and refuse on the wire; capability is
+  defined by operation and assignment, never one global read/write
+  label.
 - **This is a Symfony project, not a constitutional repository**
   (owner, 2026-09-03: "i don't know where the constitutional came from
   - probably bad assumptions from the other model. This is a Symfony
@@ -182,10 +196,9 @@ is the one answer to "is it green?", here and in CI. Read
 
 ## Coordination
 
-The conductor lane for this project runs from the sibling working
-repository under the same organization; sessions coordinate by
-message and by record, never by memory. When in doubt, the record
-outranks recall.
+The conductor lane lives under `ops/conductor/` in this repository;
+sessions coordinate by message and by record, never by memory, and
+the record outranks recall.
 
 The following diagnostic instructions apply to prod application work.
 Mate is not a prerequisite for operating or developing the dev lane.
