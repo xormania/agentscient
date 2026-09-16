@@ -10,7 +10,10 @@ Planner: agentscient-0d (Claude Fable 5.1), lane/session-20260916-h, at the Lead
 | S4 lock-on-the-engine | 1b | an Opus session, after S3 | S4-lock-on-the-engine.md |
 | S5 wrapper-hermetic-store | 5 | agentscient-c8 | S5-wrapper-hermetic-store.md |
 | S6 ambient-sweep | strict kit | an Opus session (driver), agentscient-c8 and an Opus session (families) | S6-ambient-sweep.md |
+| S7 rg-not-grep | 8, the tool side | agentscient-c8 after S5, by hand; the wall half is W4 | S7-rg-not-grep.md |
 
-Wall items W1 (file-state admits a job's declared outputs), W2 (MCP matchers), W3 (security audit before ready) are the Lead's wall queue; their faults and neighbours are in the plan message of 09:33Z and in S1's commit.
+Wall items W1 (file-state admits a job's declared outputs), W2 (MCP matchers, anchored: the current one is an unanchored regex, see harness-capabilities.md), W3 (security audit before ready), W4 (graft-first and clipped-sweep judge rg exactly as grep, with the hook tests for the S7 lever) are the Lead's wall queue; their faults and neighbours are in the plan message of 09:33Z and in S1's commit.
 
 Each brief carries a `## Scope` section under 1024 bytes (SCOPE_CAP) for `--scope-file`; the whole brief goes as `--input`.
+
+Dispatching from a session, measured 2026-09-16 on lane/session-20260916-h (records 20260916T094142Z-review-codex-995043 and 20260916T094152Z-review-grok-e72972): `security-audit`, `adversarial-review`, `author-tests` and `implement` are all judged dispatch-by-hand; `ALLOWED_BY_HAND` in ops/devlane/hooks/claude/matrix.py names only plan, adjudicate, sweep and verify. The row lifts only for an open unscoped grant whose id is the first token of the whole Bash text, so one dispatch per call: `HAND_GRANT=<id> WF_AGENT='Name <addr>' env -C <worktree> <worktree>/ops/bin/dispatch.sh --job <job> --harness <harness> --scope-file <absolute path> --branch <branch> --agent 'Name <addr>' --detach`. A `wc -c` or any other statement before the id hides it (the shape of pitfall 27) and the row refuses; the refused skill's row names only the two write jobs. The dispatcher stamps `--ref <head sha>`, so the review reads the pushed head and a later push voids it.

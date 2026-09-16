@@ -26,7 +26,7 @@ Fixture: `World`, `LANE_CONF` planted, `WF_AGENT` on writes only, `run` with tim
 
 ## Not covered
 
-The reason one legacy string read differently on two calls is not measured (the shape is removed rather than explained); onboard's own timeouts stay at 5 s and 20 s. The measure for the lock: `sh -c "git -C /home/scientdb/projects/uscient/agentscient fetch -q origin; git -C /home/scientdb/projects/uscient/agentscient show origin/dev:ops/conductor/tests/test_deliverable.py | grep -q measure-is-argv && echo s3=on-dev || echo s3=short"`, until `s3=on-dev`.
+The reason one legacy string read differently on two calls is not measured (the shape is removed rather than explained); onboard's own timeouts stay at 5 s and 20 s. The measure for the lock: `sh -c "git fetch -q origin; git show origin/dev:ops/conductor/tests/test_deliverable.py | rg -q measure-is-argv && echo s3=on-dev || echo s3=short"`, until `s3=on-dev`. The lock runs a measure with its cwd at the repository root; a measure never names another checkout with `-C` (codex 20260916T094142Z-review-codex-995043#1, upheld by grok 20260916T095437Z-adjudicate-grok-8c207d); once S3 lands, the same command as a JSON list.
 
 ## Scope
 
@@ -35,12 +35,12 @@ author-tests for S3 measure-as-argv. Subject: ops/conductor/tools/deliverable.py
 ## The rules every build follows
 
 - No producer owns two consecutive artifacts: the tests come from a dispatched Grok `author-tests` job, Codex `check-tests` reads them, the builder codes against the sealed tests, Grok `adversarial-review` and Codex `security-audit` read the pushed head. The builder never edits a test to reach green; a test that must change is a new tests commit by the test author, reviewed again.
-- Every test case executes the subject and asserts what it did (the rule the wall session adds to docs/tests.md on 2026-09-16); a row that pins a count the contract does not own is a finding.
+- Every test case executes the subject and asserts what it did (pending in docs/tests.md: agentscient-e0's World PR from lane/session-20260916-g adds it, in these words relayed by agentscient-11 at 09:59Z on 2026-09-16: "A case executes the subject's behaviour and asserts what it did. A case that pins a schema word, a mock's shape, a name, or an assertion that cannot fail is a declared gap wearing a pass; it is rewritten to run the subject against a planted fault, or dropped."; until it lands, the Lead's rule for these briefs; grok 20260916T094152Z-review-grok-e72972#9, partial); a row that pins a count the contract does not own is a finding.
 - Reviews and audits are dispatched against the pushed head, never an unpushed worktree commit.
 - Every subprocess in a test goes through `ops.testkit.run` with a timeout; the world is hermetic and ambient is named; a fake is planted through the registry.
 - The red is pasted, never inferred: `FAIL:` with an `AssertionError` at the base sha, `Ran N tests ... OK` at the head, the same discover command, both in the code commit's body with the base sha (the tdd skill).
 - Every commit carries `Source:` and `Co-Authored-By:`; every paragraph that claims carries its reading (the claim skill); the second producer's absence is said where the owner's hand grant stands in.
-- Draft PR into dev, body per CONTRIB.md, `## Proof` naming corpus rows under `ops/conductor/handoff/probes/`; the ready flip waits for a closed `security-audit` record on codex `gpt-daybreak-blue-latest` at the head sha with every finding disposed (CONTRIB.md ready table, owner's rule of 2026-09-16); a push after the audit voids it.
+- Draft PR into dev, body per CONTRIB.md, `## Proof` naming corpus rows under `ops/conductor/handoff/probes/`; the ready flip waits for a closed `security-audit` record on codex `gpt-daybreak-blue-latest` at the head sha with every finding disposed (CONTRIB.md ready table, owner's rule of 2026-09-16); a commit after the audit touching any path outside `.dev/records/` voids it; a record landing does not (agentscient-11's ruling, 2026-09-16 09:55Z).
 - A CHANGES verdict is a stop, ruled on by agentscient-0d (the planner), never by the builder; report each PR to agentscient-11 by message with its number, head, readings and what was not measured.
 
 ## The pipeline, as commands
