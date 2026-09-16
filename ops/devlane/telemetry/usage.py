@@ -36,6 +36,7 @@ import json
 import os
 import sys
 from pathlib import Path
+import subprocess
 from urllib.parse import quote, unquote
 
 GROK_GAP = "grok usage not yet parsed: updates.jsonl turn_completed"
@@ -190,7 +191,77 @@ def under(cwd: str | None, repo: str | None) -> bool:
     return here == root or root in here.parents
 
 
-def agy_sessions(root: Path, repo: str | None):
+UNREACHABLE = "UNREACHABLE"
+
+
+class Placement:
+    """Which sessions are this repository's work, and which could not be
+    placed at all.
+
+    The path test below answers most of the question and costs nothing.
+    It cannot answer one case: a worktree lives outside the checkout it
+    was cut from, so its cwd is under no path of this repository, and
+    every reader dropped it. What a worktree does share is the
+    repository's `.git`, which `git rev-parse --git-common-dir` names
+    for the checkout, for its subdirectories and for every worktree
+    alike. That is the question asked here, and only of a cwd the path
+    test has already refused, so the common case spawns nothing.
+
+    Three answers, not two. A cwd that is gone was not looked at, and
+    `unplaced` collects those rather than letting them read as elsewhere
+    — the distinction docs/wire.md calls looked and found nothing
+    against could not look. Each distinct cwd is asked once.
+    """
+
+    def __init__(self, repo: str | None):
+        self.repo = repo
+        self.unplaced: set[str] = set()
+        self._seen: dict[str, str | None] = {}
+        self.repo_common = self.common_dir(repo) if repo else None
+        if self.repo_common is UNREACHABLE:
+            # The repository asked about is not on disk. Nothing can be
+            # resolved against it, so the path test is the whole answer
+            # and no cwd is reported unplaced for a question never asked.
+            self.repo_common = None
+
+    @staticmethod
+    def common_dir(cwd: str) -> str | None:
+        """The shared `.git` of the checkout at `cwd`, `None` when the
+        path was read and is no checkout, `UNREACHABLE` when it could
+        not be read at all."""
+        if not os.path.isdir(cwd):
+            return UNREACHABLE
+        try:
+            proc = subprocess.run(
+                ["git", "-C", cwd, "rev-parse", "--git-common-dir"],
+                capture_output=True, text=True, timeout=10, check=False)
+        except (OSError, subprocess.SubprocessError):
+            return UNREACHABLE
+        found = proc.stdout.strip()
+        if proc.returncode != 0 or not found:
+            return None
+        # git answers relative to the directory it was run in.
+        return os.path.realpath(os.path.join(cwd, found))
+
+    def holds(self, cwd: str | None) -> bool:
+        if not self.repo:
+            return True
+        if not cwd:
+            return False
+        if under(cwd, self.repo):
+            return True
+        if self.repo_common is None:
+            return False
+        if cwd not in self._seen:
+            self._seen[cwd] = self.common_dir(cwd)
+        found = self._seen[cwd]
+        if found is UNREACHABLE:
+            self.unplaced.add(cwd)
+            return False
+        return found is not None and found == self.repo_common
+
+
+def agy_sessions(root: Path, place: "Placement"):
     """Captured job roots (raw.out), or their isolated home/agy directory.
 
     Native brain transcripts do not carry usage/model/provider. The existing
@@ -202,7 +273,7 @@ def agy_sessions(root: Path, repo: str | None):
     paths = [root / "raw.out"] if (root / "raw.out").is_file() else sorted(root.rglob("raw.out"))
     readings = [agy_read(path) for path in paths]
     for row in readings:
-        if not under(row["cwd"], repo):
+        if not place.holds(row["cwd"]):
             continue
         key = row["session"]
         if sum(other["session"] == key for other in readings) > 1:
@@ -223,24 +294,21 @@ def _read_jsonl(path: Path):
             continue
 
 
-def claude_sessions(root: Path, repo: str | None):
+def claude_sessions(root: Path, place: "Placement"):
     if not root.is_dir():
         return
+    repo = place.repo
     for project in sorted(p for p in root.iterdir() if p.is_dir()):
-        named = True
-        if repo:
-            # Claude encodes the project path with '-' separators.
-            slug = "-" + "-".join(repo.strip("/").split("/"))
-            if project.name != slug:
-                if not project.name.startswith(slug + "-"):
-                    continue
-                # The encoding flattens '/' and '-' alike, so a
-                # subdirectory of this repo and a sibling checkout whose
-                # name merely extends it spell one directory name. Admit
-                # it and let the cwd decide, which is the only exact
-                # truth available; `named` remembers that the directory
-                # name alone did not settle it.
-                named = False
+        # Claude encodes the project path with '-' separators. The name
+        # is an index, not a filter: it can settle that a directory is
+        # this repository's, and it can settle nothing else. The
+        # encoding flattens '/' and '-' alike, so a subdirectory and a
+        # sibling checkout whose name extends this one spell a single
+        # directory name; and a worktree of this repository is a
+        # different path altogether, so its own name resembles this one
+        # not at all. Every directory the name does not settle is left
+        # to the cwd in the entries, which is the only exact truth here.
+        named = bool(repo) and project.name == "-" + "-".join(repo.strip("/").split("/"))
         for f in sorted(project.glob("*.jsonl")):
             per_msg = {}
             model = None
@@ -271,14 +339,14 @@ def claude_sessions(root: Path, repo: str | None):
                 }
             if not per_msg:
                 continue
-            inside = bool(repo) and any(under(cwd, repo) for cwd in cwds)
+            inside = bool(repo) and any(place.holds(cwd) for cwd in cwds)
             if repo and cwds and not inside:
                 # Two paths can flatten to one directory slug; the cwd
                 # stored in the entries is the truth.
                 continue
             if repo and not named and not inside:
-                # The directory name only approximately matched and the
-                # entries carry no cwd under this repo, so nothing here
+                # The directory name did not settle it and the entries
+                # carry no cwd this repository holds, so nothing here
                 # places the session. Could not look is not an answer,
                 # and an unplaced session is not this repository's spend.
                 continue
@@ -291,7 +359,7 @@ def claude_sessions(root: Path, repo: str | None):
                    "tokens": tokens}
 
 
-def codex_sessions(root: Path, repo: str | None):
+def codex_sessions(root: Path, place: "Placement"):
     sessions = root / "sessions"
     if not sessions.is_dir():
         return
@@ -313,7 +381,7 @@ def codex_sessions(root: Path, repo: str | None):
                 info = payload.get("info") or {}
                 last_count = info.get("total_token_usage") or last_count
             events += 1
-        if not under(meta.get("cwd"), repo):
+        if not place.holds(meta.get("cwd")):
             continue
         tokens = None
         if last_count:
@@ -402,7 +470,7 @@ def _grok_usage_events(updates_path):
     return events
 
 
-def grok_sessions(root: Path, repo: str | None):
+def grok_sessions(root: Path, place: "Placement"):
     sessions = root / "sessions"
     if not sessions.is_dir():
         return
@@ -410,7 +478,7 @@ def grok_sessions(root: Path, repo: str | None):
         # The directory name is the url-encoded cwd, so it is decoded
         # before it is compared: encoding the repo and matching strings
         # cannot see that a subdirectory is inside it.
-        if not under(unquote(cwd_dir.name), repo):
+        if not place.holds(unquote(cwd_dir.name)):
             continue
         for sdir in sorted(p for p in cwd_dir.iterdir() if p.is_dir()):
             summary = sdir / "summary.json"
@@ -443,20 +511,40 @@ def grok_sessions(root: Path, repo: str | None):
 
 
 def collect(args):
+    """The rows, and the placement that decided which rows they are.
+
+    The placement is returned with them because what it could not look
+    at is part of the reading: a caller that printed only the rows would
+    be reporting a total it cannot vouch for.
+    """
+    place = Placement(args.repo)
     rows = []
-    rows += list(claude_sessions(Path(args.claude_dir), args.repo))
-    rows += list(codex_sessions(Path(args.codex_dir), args.repo))
-    rows += list(grok_sessions(Path(args.grok_dir), args.repo))
+    rows += list(claude_sessions(Path(args.claude_dir), place))
+    rows += list(codex_sessions(Path(args.codex_dir), place))
+    rows += list(grok_sessions(Path(args.grok_dir), place))
     if getattr(args, "agy_dir", None):
-        rows += list(agy_sessions(Path(args.agy_dir), args.repo))
+        rows += list(agy_sessions(Path(args.agy_dir), place))
     rows.sort(key=lambda r: (r.get("started") or "", r["harness"]))
-    return rows
+    return rows, place
+
+
+def unplaced_line(place) -> str:
+    """One line naming the cwds that could not be read, or nothing."""
+    if not place.unplaced:
+        return ""
+    return ("unplaced: " + str(len(place.unplaced))
+            + " cwd(s) UNREACHABLE, not counted for this repo: "
+            + ", ".join(sorted(place.unplaced)))
 
 
 def cmd_sessions(args) -> int:
-    rows = collect(args)
+    rows, place = collect(args)
     if args.json:
-        print(json.dumps({"sessions": rows}, indent=1, sort_keys=True))
+        # The key is always present: an empty list is the answer that
+        # every cwd was read, which is not the same as not saying.
+        print(json.dumps({"sessions": rows,
+                          "unplaced": sorted(place.unplaced)},
+                         indent=1, sort_keys=True))
         return 0
     for r in rows:
         t = r.get("tokens")
@@ -475,7 +563,7 @@ def cmd_sessions(args) -> int:
 
 
 def cmd_report(args) -> int:
-    rows = collect(args)
+    rows, place = collect(args)
     by = {}
     for r in rows:
         agg = by.setdefault(r["harness"], {
@@ -505,7 +593,9 @@ def cmd_report(args) -> int:
                     agg["cost_usd_ticks"] = (agg.get("cost_usd_ticks") or 0
                                              ) + r["cost_usd_ticks"]
     if args.json:
-        print(json.dumps({"by_harness": by}, indent=1, sort_keys=True))
+        print(json.dumps({"by_harness": by,
+                          "unplaced": sorted(place.unplaced)},
+                         indent=1, sort_keys=True))
         return 0
     for harness in sorted(by):
         agg = by[harness]

@@ -183,30 +183,18 @@ class TheRepoPathIsResolvedAtTheBoundary(unittest.TestCase):
         )
 
 
-class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
-    """The comparison is containment, not string equality.
+class Planters:
+    """The four session stores, planted at a cwd the row chooses.
 
-    All four readers asked whether the cwd was the repo path exactly, so
-    a session that worked from a subdirectory of the repo counted for no
-    repo at all. Measured 2026-09-16 across 243 claude sessions on this
-    host, no session is dropped by this today — every session that
-    starts at the root keeps the root in its cwd set forever. The rule
-    is still wrong, and an exact compare on a path is the kind of wrong
-    that is invisible until the day it is not.
-
-    All four readers have rows here. The agy ones arrived a commit later
-    than the rest: f60f00b0 changed that site with the other three and
-    declared the gap rather than leave one reader inconsistent, and this
-    is the gap closed.
+    Both placement classes below ask the same question of the same four
+    readers and differ only in what makes a cwd this repository's, so
+    the fixtures are here and the rows are there.
     """
 
-    SUB = REPO + "/ops/conductor"
-    SIBLING = REPO + "-other"
-
-    def setUp(self):
-        self.world = World()
-        self.addCleanup(self.world.close)
-        self.home = self.world.home
+    @staticmethod
+    def slug(cwd):
+        """Claude's own spelling of a cwd as a project directory name."""
+        return "-" + "-".join(cwd.strip("/").split("/"))
 
     def usage(self, *args):
         return run(
@@ -219,19 +207,14 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
              # with no captures, which is what the rows that plant no
              # agy capture want.
              "--agy-dir", str(self.home / "captures"),
-             "--repo", REPO, "--json"],
-            cwd=self.world.cwd, env=self.world.env(), timeout=30,
+             "--repo", self.repo_path, "--json"],
+            cwd=self.world.cwd, env=self.world.env(), timeout=60,
         )
 
     def ids(self):
         proc = self.usage("sessions")
         self.assertEqual(proc.exit, 0, proc.stderr)
         return sorted(s["session"] for s in json.loads(proc.stdout)["sessions"])
-
-    @staticmethod
-    def slug(cwd):
-        """Claude's own spelling of a cwd as a project directory name."""
-        return "-" + "-".join(cwd.strip("/").split("/"))
 
     def plant_claude(self, name, cwd):
         # The directory name matters: it is the first of the two filters,
@@ -265,7 +248,7 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
 
     def plant_agy(self, name, cwd):
         """A captured native stdout: the init frame binds the session to
-        its cwd, the result frame carries the usage. Two complete NDJSON
+        its cwd, the result frame carries the usage. Two whole NDJSON
         lines are what the reader calls terminal; a truncated last line
         is a different fact and belongs to a different row."""
         raw = (json.dumps({"event": "init", "conversation_id": name,
@@ -279,6 +262,43 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
                                                   "total_tokens": 8}}}) + "\n")
         self.world.plant_text(
             self.home / "captures" / name / "raw.out", raw)
+
+    def plant_all(self, suffix, cwd):
+        """One session per harness at the same cwd, named <harness><suffix>."""
+        self.plant_claude("claude" + suffix, cwd)
+        self.plant_codex("codex" + suffix, cwd)
+        self.plant_grok("grok" + suffix, cwd)
+        self.plant_agy("agy" + suffix, cwd)
+        return [h + suffix for h in ("claude", "codex", "grok", "agy")]
+
+
+class ACwdInsideTheRepoIsTheRepo(Planters, unittest.TestCase):
+    """The comparison is containment, not string equality.
+
+    All four readers asked whether the cwd was the repo path exactly, so
+    a session that worked from a subdirectory of the repo counted for no
+    repo at all. Measured 2026-09-16 across 243 claude sessions on this
+    host, no session is dropped by this today — every session that
+    starts at the root keeps the root in its cwd set forever. The rule
+    is still wrong, and an exact compare on a path is the kind of wrong
+    that is invisible until the day it is not.
+
+    All four readers have rows here. The agy ones arrived a commit later
+    than the rest: f60f00b0 changed that site with the other three and
+    declared the gap rather than leave one reader inconsistent, and this
+    is the gap closed.
+    """
+
+    SUB = REPO + "/ops/conductor"
+    SIBLING = REPO + "-other"
+
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        # A path, not a checkout: these rows never reach the filesystem,
+        # which is what keeps them measuring the path comparison alone.
+        self.repo_path = REPO
 
     def test_a_claude_session_run_from_a_subdirectory_counts(self):
         self.plant_claude("inside", self.SUB)
@@ -320,6 +340,113 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
         found = self.ids()
         for name in ("root", "root-c", "root-g", "root-a"):
             self.assertIn(name, found)
+
+
+class AWorktreeOfTheRepoIsTheRepo(Planters, unittest.TestCase):
+    """LD-56: a worktree is the repository's own work, and a cwd that is
+    gone is not an answer.
+
+    Measured 2026-09-16 at f9e48c35 across 243 claude sessions with
+    usage: 33 matched the repo path exactly, 0 sat under it, 2 were
+    worktrees of it and were dropped, 208 were elsewhere. Under one
+    branch per session every session moves into a worktree, so the
+    report reads lower each week for a reason that has nothing to do
+    with spend. A worktree shares the repository's `.git`, and that is
+    what these rows ask about: not the path, which says nothing, but
+    `git rev-parse --git-common-dir`, which is the same directory for
+    the checkout, its subdirectories and every worktree cut from it.
+
+    The path comparison of ACwdInsideTheRepoIsTheRepo still runs first
+    and answers without a subprocess; git is asked only about a cwd the
+    path test has already refused, so nothing here costs the common case
+    anything.
+    """
+
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.checkout = self.plant_checkout("checkout")
+        self.repo_path = str(self.checkout)
+        self.worktree = self.world.cwd / "wt" / "lane-a"
+        self.git(self.checkout, "worktree", "add", "-q",
+                 "-b", "lane-a", str(self.worktree))
+        self.assertTrue((self.worktree / ".git").exists(),
+                        "INVALID: the worktree did not land")
+
+    def git(self, cwd, *args):
+        proc = run(["git", "-C", str(cwd),
+                    "-c", "user.name=Fixture", "-c", "user.email=f@example.test",
+                    "-c", "commit.gpgsign=false", *args],
+                   cwd=self.world.cwd, env=self.world.env(), timeout=60)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        return proc
+
+    def plant_checkout(self, name):
+        """A real repository: the rows below ask git about it, so a path
+        that merely looks like one would measure nothing."""
+        root = self.world.cwd / name
+        root.mkdir(parents=True, exist_ok=True)
+        self.git(root, "init", "-q", "-b", "dev")
+        self.world.plant_text(root / "README", f"{name}\n")
+        self.git(root, "add", "README")
+        self.git(root, "commit", "-q", "-m", "seed")
+        return root
+
+    def unplaced(self):
+        proc = self.usage("sessions")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        return json.loads(proc.stdout)["unplaced"]
+
+    def test_a_session_run_from_a_worktree_of_the_repo_counts(self):
+        planted = self.plant_all("-wt", str(self.worktree))
+        found = self.ids()
+        for name in planted:
+            self.assertIn(name, found)
+
+    def test_a_worktree_of_another_repository_is_not_this_one(self):
+        other = self.plant_checkout("other")
+        stranger = self.world.cwd / "wt" / "other-lane"
+        self.git(other, "worktree", "add", "-q", "-b", "lane-b", str(stranger))
+        planted = self.plant_all("-other", str(stranger))
+        found = self.ids()
+        for name in planted:
+            self.assertNotIn(name, found)
+
+    def test_a_cwd_that_exists_and_is_no_checkout_is_simply_elsewhere(self):
+        """The clean neighbour for the row below: this path was read, and
+        what was read says it is not this repository. That is an answer,
+        so it is not reported as one that could not be taken."""
+        elsewhere = self.world.cwd / "not-a-checkout"
+        elsewhere.mkdir(parents=True, exist_ok=True)
+        planted = self.plant_all("-else", str(elsewhere))
+        found = self.ids()
+        for name in planted:
+            self.assertNotIn(name, found)
+        self.assertEqual(self.unplaced(), [])
+
+    def test_a_cwd_that_is_gone_could_not_be_looked_at(self):
+        """A worktree removed after its session ended. The path is not
+        under the repo and there is nothing left to ask git about, so the
+        session is not counted here — and the report says it could not
+        look rather than passing the silence off as elsewhere."""
+        vanished = self.world.cwd / "wt" / "vanished"
+        self.assertFalse(vanished.exists(), "INVALID: the path is still there")
+        planted = self.plant_all("-gone", str(vanished))
+        found = self.ids()
+        for name in planted:
+            self.assertNotIn(name, found)
+        self.assertEqual(self.unplaced(), [str(vanished)])
+
+    def test_the_checkout_and_a_subdirectory_still_count(self):
+        inside = self.checkout / "ops"
+        inside.mkdir(parents=True, exist_ok=True)
+        planted = self.plant_all("-root", str(self.checkout))
+        planted += self.plant_all("-sub", str(inside))
+        found = self.ids()
+        for name in planted:
+            self.assertIn(name, found)
+        self.assertEqual(self.unplaced(), [])
 
 
 class TheReportAggregates(Fixtures):
