@@ -418,8 +418,12 @@ on deleting.
    and `lane/audit-enforcement-20260910`, 12 code files each, overlapping).
    `lane/check-tests-json` is large in commits (92) but holds only 2 code files dev
    lacks; its bulk is records.
-4. **The remaining 70 hold records only.** If those records matter, they are a
-   copy-forward, not a merge.
+4. **The remaining 70 add no file dev lacks, which is not the same as holding
+   only records.** Measured 2026-09-18 while building the retirement lever: of the
+   91, exactly **3** differ from dev only under `.dev/`. The other 70 differ from
+   dev on tracked files outside `.dev/` — older or divergent versions of files dev
+   already has. Nothing is lost by archiving them, but "records only" was the wrong
+   word for them and this line is the correction.
 
 ## How this was measured
 
