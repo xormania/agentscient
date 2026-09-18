@@ -139,7 +139,9 @@ mean.
    <role>` shows the role's thread in H-17; `show T-n` prints where to
    pick it up.
 3. Name the session's branch in the lock (`deliverable.py add`, with
-   a measure when the order is a state of the tree) and cut it from
+   a measure when the order is a state of the tree) **before** cutting
+   the worktree — the matrix deliverable row refuses a `worktree add`
+   for a branch the lock does not name — then cut it from
    `origin/dev`; then `handoff.py take T-n --branch <branch>`.
 4. Bind: `WF_AGENT='Name <address>' python3
    ops/conductor/tools/coordination.py bind --roles worker`.
@@ -201,6 +203,16 @@ rows it opened are LD-91, LD-92 and LD-93.
 
 ## What is not measured
 
-No session has yet restarted into the XO or Lead role from this page
-alone; the first such restart is the reading that proves the page,
-and a probe row is written for it then.
+The first restart into a role from this page alone happened on
+2026-09-16: agentscient-09 took the XO seat from T-89, T-95 and this
+page, bound as PT-7, was granted coordinator by the Lead, and ran the
+seat. The page held. Two things it did not say, both met as refusals
+rather than as knowledge: the branch is named in the lock before the
+worktree is cut, not after (the matrix deliverable row refuses the
+other order), and a session that names branches in the lock must set
+a target on each or the done gate refuses its close. Step 3 now says
+the first; the second belongs to the lock's own contract.
+The probe rows for this restart are
+`ops/conductor/handoff/probes/probes-2026-09-16-command-structure-restart.jsonl`.
+What remains unmeasured: a restart into the Lead seat, and a restart
+into any seat by a session that has not seen the day's messages.
