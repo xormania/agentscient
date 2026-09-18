@@ -8,6 +8,7 @@ is the tool's outcome, not a refusal, and keeps its shape.
 """
 
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -159,7 +160,9 @@ def hook_entries(report, loaded):
                     continue
                 label = f"{path}:{event}[{number}]"
                 matcher = group.get("matcher")
-                if not isinstance(matcher, str) or not matcher.strip() or matcher.strip() == ".*":
+                trusted = getattr(report, "shared_hook_helper", None)
+                shared = trusted and any(command_file(str(h.get("command", ""))) == Path(trusted) for h in group.get("hooks", []) if isinstance(h, dict))
+                if (not isinstance(matcher, str) or not matcher.strip() or matcher.strip() in {".*", "*"}) and not shared:
                     report.add("Denial", "P-HOOK-2", "a matcher naming the tools it judges",
                                f"broad or absent matcher at {label}: {matcher!r}",
                                "scope the matcher to named tools; move general policy into permissions")
@@ -383,6 +386,7 @@ def probe(argv):
     report = Report()
     loaded = load_settings(report)
     permission_rules(report, loaded)
+    shared_context(report)
     hooks(report, loaded)
     control_context(report)
     levers(report)
@@ -391,6 +395,31 @@ def probe(argv):
     ledgers(report)
     print("\n".join((*report.notes, *report.lines)))
     return 2 if report.invalid else (1 if report.lines else 0)
+
+
+def shared_context(report):
+    """Inspect through the trusted profile validator; never launch or activate."""
+    selected = os.environ.get("AGENTSCIENT_HOOK_PROFILE")
+    if not selected:
+        report.note("P-HOOK-1", "shared native profile ABSENT; no active projection supplied")
+        return
+    try:
+        data = json.loads(Path(selected).read_text())
+        if data["schema"] != "shared-hook-profile/1" or data["harness"] not in {"claude", "codex", "grok", "agy"}:
+            raise ValueError("unknown profile")
+        if Path(data["source"]).resolve() != ROOT:
+            raise ValueError("profile points outside this trusted installation")
+        path = ROOT / "ops/devlane/hooks/profiles.py"
+        spec = importlib.util.spec_from_file_location("doctor_hook_profiles", path)
+        profiles = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(profiles)
+        profiles.validate(data)  # read-only, from this trusted installation
+        report.shared_hook_helper = data["helper"]
+        report.note("P-HOOK-1", f"{data['harness']} {data['mode']} shared profile bytes match; native interception and mandatory launch are separate evidence")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        report.invalid_probe("P-HOOK-1", "a complete pinned shared hook projection",
+                             "missing, malformed or changed native profile",
+                             "regenerate the reviewed profile and remeasure native interception before activation")
 
 
 def control_context(report):

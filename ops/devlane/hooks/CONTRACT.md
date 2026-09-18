@@ -1,0 +1,129 @@
+# Shared harness enforcement
+
+Owner-authorized A-218, 2026-09-18. This wall composes the existing
+`boundaries.json`, `claude/matrix.py`, `claude/engine.py`, unsafe-command,
+no-subagents and context-precheck checks. It does not activate lane-policy.json,
+conductor-enforce.py or the frozen-action control plan. Native adapters translate
+wire shapes and decisions only. Contracts: docs/wire.md, docs/verified-couplings.md,
+ops/conductor/permission-surface.md and the existing harness isolation contract.
+
+## Common decision
+
+`enforcement.evaluate(payload)` consumes a validated canonical lifecycle payload
+and returns an explicit decision: allow, deny or ask, a reason and additional
+context. Pre-tool order is no-subagents, unsafe-command (including amend), matrix,
+engine, context-precheck. First refusal wins. Every item of an edit batch/patch
+is checked before any effect. Other lifecycle events use the existing engine.
+None from a successfully completed predicate means no finding; failed imports,
+exceptions, malformed payloads, truncated/duplicate JSON or unavailable required
+readings never become that result. All evaluators use the stable installed source,
+not a snapshot's BOUNDARIES_PATH or executable selected by tool input.
+
+The shared instrument owns identity and session selection. Native terminal
+session IDs and dispatch-assignment bindings are distinct. Grant/role checks
+remain in their existing owners; no adapter implements a second authority.
+Known reads remain available without a grant. A recognized hand write reaches
+the existing matrix and its SQLite grant; unknown tools/effects refuse with an
+expected–found–needed remedy. A grant never lifts hard rows. A native adapter
+with no verified owner-approval channel converts ask to deny and preserves its
+owner-action reason; it never guesses approval or retries with weaker settings.
+
+## Native translation
+
+Claude, Codex and Grok hook envelopes normalize into tool_name/tool_input/cwd,
+with unambiguous alias handling. Codex already supplies Bash/command for shell;
+apply_patch carries patch text in command. A patch must have complete delimiters
+and every add/update/delete/move target must be enumerated; malformed or unknown
+patch forms refuse. Direct and multi-file edit tools normalize paths and content
+without dropping any target. Agy supplies toolCall.name/args, conversationId,
+workspacePaths and stepIdx; hook-process cwd is not workspace authority.
+
+Native delegation routes normalize to the existing no-subagents predicate.
+Known MCP operations use the existing server operation declarations; domain
+mutation authority remains enforced inside those operations. Unknown MCP mutation
+shapes are unresolved, never assumed reads. Continuation input is not a fresh
+shell command: a route without verified interception is disabled/refused at
+launch. Installed Codex 0.155.0 ignores unified_exec=false. The guarded profile sets
+unified_exec_tty=false: native TTY creation refuses and non-TTY write_stdin
+refuses input because stdin is closed. Polling remains available; there is no
+fictional second hook. This behavior requires its pinned native witness. Agy manage_task send_input has a native hook but
+requires a declared safe continuation binding; polling/kill remain separate.
+
+Post-tool effects cannot be undone by a hook. Missing output/final-message data
+is explicitly unavailable; it is not an empty successful reading. Unsupported
+lifecycle coverage prevents a claim of full lifecycle enforcement. Native event
+coverage and policy conformance are separate measurements.
+
+## Profiles and startup
+
+`profiles.py` derives native configuration from this source for all four harnesses.
+Generated configuration and digest bindings are replaceable projections, never
+another role/grant/state store. The source closure, registry, profile and helper
+are pinned. A missing or changed binding refuses before launching; an unavailable
+hook emits a native blocking decision. The guarded-launch route protects its
+policy/profile files from the child; permissions/sandbox/agent/config overrides
+cannot silently remove hooks. Diagnostics inspect bindings without launching.
+
+Interactive preparation generates a profile and initializes/registers the native
+terminal through the existing coordination tools. It neither creates nor requires
+a dispatch job. Dispatched installation extends the existing minimal-home seam,
+preserves credential/session custody and uses its existing assignment identity.
+Both call the same evaluator. Resume revalidates source/configuration/identity;
+no fallback to operator home, old profiles or an unguarded launch is permitted.
+No owner home/project setting is activated by source installation or testing.
+
+## Verification and activation
+
+The existing hooks, harness, dispatch and conductor conformance families own
+planted-fault/clean-neighbor cases, including a malformed/missing guard, hard-row
+denial with a grant, every patch target, delegation, MCP, continuation and profile
+tampering. Fixtures use ops.testkit and synthetic stores only. Native local
+protocol fixtures must observe both tool results and filesystem effects: harness
+exit 0 is not evidence that a tool ran or that a denied call was suppressed.
+Binary/version/config digests stamp the witness; documentation or tool discovery
+alone is not interception proof. Terminal and worker startup/resume need distinct
+witnesses. Unmeasured paths stay unadmitted. Root independently verifies the
+concrete candidate before any owner settings or terminals are activated.
+
+This dev-lane hand implementation has one producer under WALL grant 310;
+a separate test producer is absent by the owner's explicit instruction.
+
+## Current measured transport and limits
+
+Native deterministic fixtures on 2026-09-18 used Claude 2.1.276, Codex 0.155.0,
+Grok 1.0.30 and agy 1.2.5 with synthetic local protocol responses in a network
+namespace. Both worker and interactive profile modes preserved reads and own
+hand work and denied shell code writes, direct edits/patches and trunk commits.
+These headless fixtures exercise interactive identity registration, not an
+attended TUI or a provider/model call. Operational readings are in the existing
+coordination SQLite messages, including M-245; fixture apparatus is retained in
+scratch for independent reproduction. A binary digest in a generated profile
+is an integrity pin, not proof of support for an arbitrary new binary.
+
+Grok publishes equivalent event aliases in different spellings (PreToolUse and
+pre_tool_use); these normalize before conflict checking. Its final response is
+lastAssistantMessage. AGY Stop reads the final completed PLANNER_RESPONSE from
+its native transcript, inside its bound session home. Its immediate PostToolUse
+has no completed tool output. The current registry contains no engine post-tool
+row: a future post-tool requirement needs a verified transport reading and may
+not silently inherit coverage from configuration alone. Post-tool observations
+cannot undo effects; Stop has the existing engine's declared three-block cap.
+
+The launcher adds read-only mounts for the trusted policy closure and generated
+hook files while retaining the existing harness sandbox/isolation. It is not a
+new filesystem-permission policy or a separate user/SQLite security boundary.
+The existing shell predicates remain shape-based checks; this change does not
+claim complete semantic analysis of arbitrary programs. Unknown native tools,
+MCP bindings and continuation input refuse. Relevant MCP catalogues and core
+authority are reused; native interception of each enabled client/server/tool
+combination requires its own witness before activation. Never infer this from
+tool discovery alone.
+
+Interactive usage is prepare-interactive with harness, destination, cwd,
+executable and agent, then run-interactive --binding PATH -- NATIVE_ARGS.
+Preparation writes only a new requested projection directory. Launch validates
+that projection, pins and reserved native settings before exec. Worker profile
+installation is the existing isolation seam; AGY receives a separate issued
+binding UUID while its native conversation ID remains unknown until observed.
+Relocation reprojects only after verifying the retained helper/config bytes and
+unchanged policy closure; it preserves authority stores and issued identity.

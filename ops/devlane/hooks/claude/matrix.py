@@ -133,8 +133,14 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# A-218: the shared entry binds trusted source configuration and the existing
+# instrument identity; legacy standalone probes retain their fixture context.
+from contextvars import ContextVar
+
 import miss
 from command_shape import commands
+
+GUARD_CONTEXT = ContextVar("matrix_guard_context", default=None)
 
 CODE_ROOTS = (
     "ops/", ".github/", ".claude/", "docs/", "packages/", "src/", "config/",
@@ -216,7 +222,11 @@ ROLE_MACHINE = "dispatcher"
 # D-TESTKIT-1 (owner, 2026-09-14): the test kit is test machinery and the
 # job catalogue carries the tests job's prompt; both are wall (docs/tests.md
 # rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
-WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+WALL_PATHS = ("ops/devlane/hooks/", "ops/devlane/harness/isolation.py",
+              "ops/devlane/dispatch/launch.py", "ops/conductor/tools/co_doc.py",
+              "ops/conductor/permission-surface.md", "ops/conductor/harness-capabilities.md",
+              "ops/conductor/conductor-start-plan.md", "ops/conductor/lane-policy.md",
+              ".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
               "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
               "ops/testkit/", "ops/devlane/task/jobs.json",
@@ -314,7 +324,10 @@ def is_code(rel):
 
 
 def lane_conf(root):
-    """The lane conf as a dict; missing keys are the caller's defaults."""
+    """The lane conf as a dict; guarded calls use the installed source."""
+    guard = GUARD_CONTEXT.get()
+    if guard is not None:
+        return dict(guard["conf"])
     conf = {}
     path = os.path.join(root or "", "ops", "lane.conf")
     try:
@@ -338,17 +351,32 @@ def open_grant(text, lane):
     if not match:
         return None
     grant_id = int(match.group(1))
-    db = os.path.join(STATE_DIR, lane, "handwork.db")
+    guard = GUARD_CONTEXT.get()
+    db = guard["grant_db"] if guard else os.path.join(STATE_DIR, lane, "handwork.db")
     try:
         connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = connection.execute(
-            "SELECT status, scope, lever_class FROM handwork WHERE id = ?", (grant_id,)
+            "SELECT status, scope, lever_class, ts, ttl_s, session, agent FROM handwork WHERE id = ?", (grant_id,)
         ).fetchone()
         connection.close()
     except sqlite3.Error:
         return None
     if row is None or row[0] != "open":
         return None
+    if guard is not None:
+        authority = guard["instrument"]
+        try:
+            from datetime import timedelta
+            issued = authority.parse_stamp(row[3])
+            ttl = row[4]
+            if type(ttl) is not int or ttl <= 0:
+                return None
+            if not (issued <= authority.now() < issued + timedelta(seconds=ttl)):
+                return None
+            if row[5] != authority.session("") or row[6] != authority.identity():
+                return None
+        except (ValueError, TypeError, OverflowError, authority.Refusal):
+            return None
     return grant_id, (row[1] or ""), (row[2] or "other")
 
 
@@ -682,6 +710,8 @@ def written_paths(tokens):
                 continue
             files.append(token)
         return files
+    if word in ("touch", "mkdir", "rm", "rmdir", "unlink"):
+        return [t for t in rest if not t.startswith("-")]
     if word == "tee":
         return [t for t in rest if not t.startswith("-")]
     if word in COPY_WORDS:
@@ -836,20 +866,16 @@ def read_text(path):
 
 
 def harness_session():
-    """The session the harness named for this one, or "" when it named none.
-
-    Both keys are spelled literally rather than looped over a tuple of
-    names, for the same reason instrument.session() spells them: laneconf's
-    closure check matches a literal beside os.environ.get, and a read its
-    own gate cannot see is the dark coupling docs/verified-couplings.md
-    names. Blank is not a declaration and is passed over.
-    """
-    for value in (os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
-                  os.environ.get("CLAUDE_SESSION_ID", "")):
-        named = value.strip()
-        if named:
-            return named
-    return ""
+    """The shared instrument is the one native/issued session resolver."""
+    guard = GUARD_CONTEXT.get()
+    if guard is not None:
+        return guard["instrument"].session("")
+    import importlib.util
+    path = os.path.join(os.path.dirname(__file__), "../../../conductor/tools/instrument.py")
+    spec = importlib.util.spec_from_file_location("hook_instrument", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.session("")
 
 
 def dispatcher_named(lane):

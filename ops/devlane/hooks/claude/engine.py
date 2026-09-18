@@ -700,9 +700,9 @@ def emit_refusal(event, line, decision="deny"):
     return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": line}}
 
 
-def decide(payload):
+def decide(payload, *, rows=None):
     ctx = Context(payload)
-    rows = load_registry()
+    rows = load_registry() if rows is None else rows
     bound = [r for r in rows if r.get("engine") and r.get("event") == ctx.event
              and (not r.get("tools") or ctx.tool in r.get("tools"))]
     grant = matrix.open_grant(ctx.text, ctx.lane) if ctx.text else None

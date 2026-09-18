@@ -58,7 +58,11 @@ class TheDispatcherRole(unittest.TestCase):
         self.world = World(prefix="dispatch-role-")
         self.addCleanup(self.world.close)
         self.world.require("git")
-        self.hook = self.world.stage(HOOK, siblings=("miss.py", "command_shape.py"))
+        self.hook = self.world.root / "installation/ops/devlane/hooks/claude/matrix.py"
+        for name in ("matrix.py", "miss.py", "command_shape.py"):
+            self.world.plant_bytes(self.hook.parent / name, (HOOK.parent / name).read_bytes())
+        for name in ("instrument.py", "laneconf.py"):
+            self.world.plant_bytes(self.world.root / "installation/ops/conductor/tools" / name, (TOOLS / name).read_bytes())
         src = HOOK.parent.parent / "boundaries.json"
         self.world.plant_bytes(self.hook.parent.parent / "boundaries.json", src.read_bytes())
         self.repo = self.world.cwd

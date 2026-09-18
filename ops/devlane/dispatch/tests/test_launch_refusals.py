@@ -707,7 +707,7 @@ class IsolationRefusesUnknownAndDirtyHomes(_KitLaunch):
         home = witness["env"].get("GROK_HOME")
         self.assertTrue(home, "isolated grok launch sets GROK_HOME")
         names = sorted(p.name for p in Path(home).iterdir())
-        self.assertEqual(names, ["auth.json"])
+        self.assertEqual(names, ["auth.json", "hooks"])
         self.assertEqual(rec["harness"]["name"], "grok")
 
 

@@ -697,7 +697,7 @@ class MatrixHookTests(unittest.TestCase):
                  "p = Path('ops/conductor/tools/x.py'); s = p.read_text(); assert 'a' in s\n"
                  "p.write_text(s.replace('a', 'b', 1))\nPY")
         joined = ("python3 - <<'PY'\nfrom pathlib import Path\n"
-                  "wt = Path('.')\n(wt / 'ops/devlane/dispatch/launch.py').write_text('x')\nPY")
+                  "wt = Path('.')\n(wt / 'ops/devlane/task/envelope.py').write_text('x')\nPY")
         aliased = ("python3 - <<'PY'\nimport pathlib\n"
                    "target = pathlib.Path('docs/wire.md')\nout = target\nout.write_bytes(b'x')\nPY")
         for cmd in (bound, joined, aliased):
@@ -741,7 +741,7 @@ class MatrixHookTests(unittest.TestCase):
                 self.assert_allowed(self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> {target}"))
         write = self.payload_write("Write", file_path=str(self.repo / ".github" / "workflows" / "ci.yml"), content="x")
         self.assert_denied(self.run_hook(write), "wall-write")
-        proc = self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> ops/devlane/dispatch/launch.py")
+        proc = self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> ops/devlane/task/envelope.py")
         self.assert_denied(proc, "wall-write")
         self.assertIn("isolation", proc.stdout)
         self.assert_allowed(self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> ops/conductor/ideas/I-999.md"))

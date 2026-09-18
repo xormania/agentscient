@@ -1874,6 +1874,21 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                     "a non-directory entry",
                     "remove the non-directory entry and resume the job")
         env["TMPDIR"] = str(tmpdir.absolute())
+    # A-218: install the same policy projection in the existing worker home.
+    # This is worker initialization, never interactive registration or dispatch.
+    isolation = _module("guard_isolation", HARNESS_APP / "isolation.py")
+    try:
+        profile, binding = isolation.install_enforcement(
+            harness, job_dir / "enforcement", source=APP.parents[2], cwd=snapshot,
+            home=rec["harness"]["isolation"].get("home"),
+            session=_binding_session(rec), agent=rec.get("agent") or env.get("WF_AGENT"),
+            executable=argv[0], servers=[LANE_MCP_SERVER, LANE_MCP_KEY, COORD_MCP_SERVER],
+            relocated_from=relocated_from)
+        argv, env = profile.native_launch(binding, argv, env)
+    except (isolation.NotIsolated, OSError, ValueError, TypeError, KeyError) as exc:
+        _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
+                "inspect co_doc.py and the native capability evidence before resuming")
+    rec["harness"]["argv"] = argv
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -2185,17 +2200,11 @@ def _launch(args):
     turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
     prompt_text += _turns_budget(turns)
-    session = None if args.harness == "agy" else str(uuid.uuid4())
+    binding_session = str(uuid.uuid4())
+    session = None if args.harness == "agy" else binding_session
     bound = None
     if args.assignment:
-        if not session:
-            _refuse("binding",
-                    "a session id to bind the worker under",
-                    f"none, because {args.harness} is launched "
-                    f"without one",
-                    "dispatch an assignment on a harness the "
-                    "launcher mints a session for")
-        bound = _bind_worker(session, args.assignment,
+        bound = _bind_worker(binding_session, args.assignment,
                              args.harness, agent)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
@@ -2261,7 +2270,7 @@ def _launch(args):
         # participant for the session above, and None when it named no
         # assignment. A record that merely minted a session id and one
         # that bound a participant to it are different facts.
-        "session": {"id": session, "binding_id": session, "stream": None,
+        "session": {"id": session, "binding_id": binding_session, "stream": None,
                     "stream_sha256_at_close": None, "bound": bound},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,

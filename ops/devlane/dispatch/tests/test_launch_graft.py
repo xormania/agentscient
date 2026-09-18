@@ -140,7 +140,7 @@ class DisabledJobsAreByteStable(_GraftLaunch):
         env = witness.get("env") or {}
         self.assertNotIn("GRAFT_DIR", env)
         home = Path(rec["harness"]["isolation"]["home"])
-        self.assertEqual(sorted(p.name for p in home.iterdir()), ["auth.json"])
+        self.assertEqual(sorted(p.name for p in home.iterdir()), ["auth.json", "hooks"])
 
     def test_legacy_record_without_brief_graft_still_resumes_when_now_enabled(self):
         self.disable()
