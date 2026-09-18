@@ -16,6 +16,37 @@ Class 1a of the 2026-09-16 issues: state kept as a flat file, or a git row, with
 - `defects.py`, and every shim over `ledger.py`, keeps its spelling; the ideas register (handwritten) reserves through `next` the same way.
 - `highest()` keeps its bounded fetch of `origin/<trunk>`: the reservation adds same-host atomicity, the fetch keeps cross-host awareness.
 
+  Amended 2026-09-16 under CO ruling M-155, beneath the line and not over it:
+  the bounded trunk fetch is no longer the whole of the read. `highest()` now
+  also reads every ref this repository holds, after a fetch of origin, so an id
+  taken on a branch that has not merged is not offered again. The two are
+  different mechanisms closing different windows, and this slice keeps both:
+  the reservation table closes the same-host race between two live sessions,
+  which a ref read cannot see because the second session has not committed yet;
+  the ref-wide read closes the unmerged-branch window, which the table cannot
+  see because the store is host-local and the brief's own "Not covered" says so.
+  The evidence for the second window, all 2026-09-16: ten ids on this repository
+  carried two different rows, LD-81 three; at 19:25:34Z a session filed LD-81,
+  LD-82 and LD-83 on ids `next` called free, the trunk moved 21 commits and
+  landed a different LD-81 underneath, and all three were renumbered by hand at
+  20:09:44Z in commit 16cd0e38. `lane/session-20260916-09` holds nine ids with
+  no pull request in any state and a session that last wrote before 16:02Z, so
+  its ids will never reach a merge for the add/add backstop to object to. S2 as
+  briefed is unchanged and stays open, to run through its four dispatched jobs;
+  nothing in the ref-wide read narrows it.
+
+  The lane took a collision through each window on 2026-09-16, which is why
+  neither mechanism is the other's substitute. Through the unmerged-branch
+  window: LD-81, LD-82 and LD-83 above. Through the read-to-write window:
+  LD-105, where two seats took LD-103 five seconds apart -- commit 9aaf761b at
+  17:01:32-04:00 and commit d66df982 at 17:01:37-04:00 -- both having scanned
+  all 393 origin refs for the highest id, both correctly reading LD-102, and
+  both correct at the instant they read. The ref-wide read does not prevent
+  that one and does not claim to; only a mint taken in one transaction does,
+  which is this brief's `reserve()`. Recorded here so that a collision through
+  the second window is not misfiled as a recurrence against the first window's
+  repair (D-PATTERN-1: a recurrence after a fix is a defect against the fix).
+
 ## Planted faults and the clean neighbour
 
 Faults file `ops/conductor/tests/ledger_faults.py`, the shape of `ladder_faults.py` (`Mutant` from the kit; `cases.py calibrate`):
@@ -42,6 +73,58 @@ Two hosts (the store is host-local, machine-lever.md §The store). The two LD-68
 ## Scope
 
 author-tests for S2 ledger-id-reservation. Subject: ops/conductor/tools/ledger.py, its `next`, `add`, `check` verbs. Write ops/conductor/tests/test_ledger.py rows by id: next-reserves, add-after-other-next, add-uses-own-reservation, check-reports-unfiled, highest-still-reads-origin, race-never-shares, read-never-creates; and ops/conductor/tests/ledger_faults.py with mutants M-no-reserve, M-owner-blind, M-add-mints. Behaviour: ids are reserved in a ledger_reservations table in state.db in one BEGIN IMMEDIATE, owner = the harness session id else the repository root; next and add share the owner's unfiled reservation; check reports unfiled reservations. Also the one-line FILE_BACKED shrink (ledger.py) in ops/conductor/tests/test_state_placement.py. Import the kit from the repository root; every subprocess through run with a timeout; each case executes the lever and asserts what it did; prove red at the ref. The brief in --input carries the rest.
+
+## Recovery completion, 2026-09-18
+
+The owner authorized completing existing PR264 before reconciling PR263.
+Retain S2's reservation table/functions and PR264's historical reader. The
+independent review retained as M-278 defines L1–L7; these amendments close
+their seams without a second allocator or store. The historical pipeline below
+remains provenance; this dev-lane completion uses hand grant 309, one producer
+with the separate test producer absent, and independent native Daybreak review.
+
+1. Every `next`/`add`, including reuse, refreshes the declared origin heads,
+   tags and dispatch refs before the short SQLite write transaction. Local mode
+   makes no network request and says its coverage is local. Historical additions
+   include tips from the committed branch/local-branch custody indexes (the
+   branch bundle contains dispatch refs too). The runtime job census, which
+   explicitly includes jobs with no known commit, is not a commit-tip index;
+   an unreadable indexed tip refuses instead of assuming it contains no IDs.
+   An empty unborn repository is a measured empty history. Record the observed
+   high-water number on reservations so later ref retirement cannot lower it.
+   This is one host's allocation guarantee; a remote publication after the read
+   and two independent stores are outside that guarantee.
+   Preserved uncommitted records are not Git refs: `next LEDGER --archive
+   MANIFEST --sha256 HASH` verifies the existing recovery manifest, its matching
+   files.tar payloads and each ledger row digest before including those IDs.
+   Persist that manifest/hash beside the nondecreasing reservation floor. A
+   malformed or changed archive refuses before allocation. This consumes the
+   existing recovery custody format; it neither restores nor approves records.
+2. A pending reservation stays with its owner when unrelated higher IDs appear.
+   Reuse refuses if its own number is now occupied. The existing row and the
+   pending reservation remain intact. All shared session carriers continue
+   through instrument.session; no ledger-specific harness aliases are added.
+3. Before publishing a row, persist its exact path/content digest on its existing
+   reservation. Publish complete bytes exclusively, then stamp the filed receipt.
+   A retry may finish only those identical intended bytes; different bytes,
+   symlinks and another owner's reservation refuse. A failed publication retains
+   the intent and never truncates a record. Concurrent calls serialize SQLite
+   allocation/intent; exclusive publication closes the filesystem race.
+4. `complete LEDGER ID --path RELATIVE_PATH --sha256 SHA256` explicitly files a
+   handwritten or recovered row for the current owner's reservation. Verify the
+   ledger directory, ID-bearing filename, exact bytes and absence of aliases;
+   completing never writes the record. An identical filed receipt is idempotent.
+   Merely noticing a same-number file does not complete a reservation.
+5. Schema additions are idempotent columns on ledger_reservations; preserve
+   existing rows and unrelated machine history. Corrupt/locked/unreadable stores,
+   invalid numeric ranges and filesystem errors refuse on the single-line wire.
+   list/show/check remain non-creating reads; next is a reservation mutation.
+
+The required cases and mutants above remain required. Add the review's
+overwrite, retry, same-owner concurrency, explicit completion, narrow-refspec,
+dispatch-only history, archive-floor and blocked-fetch/coordination cases, plus
+negative controls for the refusal wire. Reconciliation does not start until the
+combined candidate passes these checks and its normal lane floor.
 
 ## The rules every build follows
 
