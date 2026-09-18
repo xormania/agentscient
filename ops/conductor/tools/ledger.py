@@ -2,8 +2,8 @@
 """Every appended register as one file per row, so parallel sessions' rows never touch.
 
     ledger.py ledgers                         the ledgers this lever knows, one per line
-    ledger.py next LEDGER                     print the next id
-    ledger.py check LEDGER                    findings: numbers held by more than one row
+    ledger.py next LEDGER                     reserve and print this owner's next id
+    ledger.py check LEDGER                    findings: shared or unfiled numbers
     ledger.py add LEDGER --field VALUE ...    write the row file, print "ID path"
     ledger.py show LEDGER ID                  print the row
     ledger.py list LEDGER                     one line per row: id, observed, first field
@@ -13,12 +13,11 @@ need to work in parallel. lane-defects.md conflicted on three of five
 merge-forwards since 2026-09-11 and pitfalls-20260911.md on one, each
 session appending its row at the same line of one table. A ledger here
 is a page whose table stops at a row, a directory of one file per row
-after it, an id shape and a field list. The next id is one past the
-highest in the table, the directory, and every ref this repository
-holds, so a row minted on a branch that has not merged is taken rather
-than offered again (2026-09-16, CO ruling M-155). The conflict left is a
-row written by hand, which the lever is never asked about: an add/add
-on one file that git names. defects.py is a shim over the defects ledger.
+after it, an id shape and a field list. IDs are reserved transactionally
+in the lane state store before their git row is written, while the row
+files remain the record plane. PR264's reader counts every retained ref,
+including historical additions (2026-09-16, CO ruling M-155).
+defects.py is a shim over the defects ledger.
 
 Follows instrument-conventions.md: the lever works on the repository of
 its cwd and refuses `repository` outside one; writing verbs need an
@@ -29,12 +28,25 @@ from __future__ import annotations
 
 import os
 import re
+import sqlite3
 import sys
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, conf, emit, git, identity, now, refuse
+    import machine
+    from instrument import (
+        Refusal,
+        conf,
+        emit,
+        git,
+        identity,
+        now,
+        parse_stamp,
+        refuse,
+        session,
+        stamp,
+    )
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -80,6 +92,18 @@ LEDGERS: dict[str, dict[str, object]] = {
     },
 }
 FIELD_LINE = re.compile(r"^\| ([\w-]+) \| (.*) \|$", re.MULTILINE)
+RESERVATIONS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS ledger_reservations(
+    ledger TEXT NOT NULL,
+    number INTEGER NOT NULL,
+    owner TEXT NOT NULL,
+    agent TEXT NOT NULL,
+    reserved_at TEXT NOT NULL,
+    filed_at TEXT,
+    path TEXT,
+    UNIQUE(ledger, number)
+)
+"""
 
 
 def ledger(name: str) -> dict[str, object]:
@@ -129,6 +153,195 @@ def ident(spec: dict[str, object], number: int) -> str:
     number three digits wide, so I-32 would be a second spelling of one
     id and the reader would have taught a session to mint it."""
     return f"{spec['prefix']}{number:0{int(spec.get('width') or 0)}d}"
+
+
+def reservation_ledger(spec: dict[str, object]) -> str:
+    """The stable register name stored beside a reserved number."""
+    for name, candidate in LEDGERS.items():
+        if candidate is spec or candidate == spec:
+            return name
+    refuse("ledger", "a declared ledger specification", spec, "reserve an id for a ledger this lever knows")
+
+
+def reservation_owner(root: Path) -> str:
+    """The harness session, or the worktree when no harness named one."""
+    named = session()
+    return named if named != "unknown" else str(root.resolve())
+
+
+def reservation_agent() -> str:
+    """Attribute a reservation, retaining the former identity-free `next`.
+
+    `next` was a read before it became the reservation verb. Existing
+    callers may therefore have no identity; new callers are attributed
+    through the shared identity reader, while that one legacy absence is
+    recorded explicitly rather than inferred from another environment key.
+    """
+    try:
+        return identity()
+    except Refusal as error:
+        if error.kind == "identity" and error.found == "unset":
+            return "unknown"
+        raise
+
+
+def reservation_writer() -> sqlite3.Connection:
+    conn = machine.connect(create=True)
+    conn.execute(RESERVATIONS_SCHEMA)
+    return conn
+
+
+def reservation_reader() -> sqlite3.Connection | None:
+    """Open the register without creating either the store or its table."""
+    if not machine.store_path().is_file():
+        return None
+    conn = machine.connect(create=False)
+    present = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ledger_reservations'"
+    ).fetchone()
+    if present is None:
+        conn.close()
+        return None
+    return conn
+
+
+def _reserve_locked(
+    conn: sqlite3.Connection,
+    root: Path,
+    spec: dict[str, object],
+    owner: str,
+    agent: str,
+) -> int:
+    name = reservation_ledger(spec)
+    row = conn.execute(
+        "SELECT MAX(number) AS number FROM ledger_reservations WHERE ledger = ?",
+        (name,),
+    ).fetchone()
+    reserved = int(row["number"] or 0)
+    number = max(highest(root, spec), reserved) + 1
+    conn.execute(
+        "INSERT INTO ledger_reservations"
+        "(ledger, number, owner, agent, reserved_at) VALUES (?, ?, ?, ?, ?)",
+        (name, number, owner, agent, stamp()),
+    )
+    return number
+
+
+def reserve(
+    conn: sqlite3.Connection,
+    root: Path,
+    spec: dict[str, object],
+    owner: str,
+    agent: str,
+) -> int:
+    """Reserve the next number in one immediate transaction.
+
+    `BEGIN IMMEDIATE` serializes same-host minters. The unique key remains
+    the second wall: if another SQLite client wins independently, re-read
+    the register and retry once rather than returning a shared number.
+    """
+    winner = 0
+    for attempt in range(2):
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            number = _reserve_locked(conn, root, spec, owner, agent)
+            conn.commit()
+            return number
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            row = conn.execute(
+                "SELECT MAX(number) AS number FROM ledger_reservations WHERE ledger = ?",
+                (reservation_ledger(spec),),
+            ).fetchone()
+            winner = int(row["number"] or 0)
+            if attempt == 0:
+                continue
+        except Exception:
+            if conn.in_transaction:
+                conn.rollback()
+            raise
+    refuse(
+        "reservation",
+        f"one unused number after {ident(spec, winner)}",
+        "the same number won twice",
+        "retry after the competing reservation commits",
+    )
+
+
+def own_reservation(
+    conn: sqlite3.Connection,
+    root: Path,
+    spec: dict[str, object],
+    owner: str,
+    agent: str,
+) -> int:
+    """Return this owner's open reservation, or atomically make one."""
+    name = reservation_ledger(spec)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT number FROM ledger_reservations "
+            "WHERE ledger = ? AND owner = ? AND filed_at IS NULL "
+            "ORDER BY number LIMIT 1",
+            (name, owner),
+        ).fetchone()
+        if row is not None:
+            conn.commit()
+            return int(row["number"])
+        number = _reserve_locked(conn, root, spec, owner, agent)
+        conn.commit()
+        return number
+    except sqlite3.IntegrityError:
+        if conn.in_transaction:
+            conn.rollback()
+        return reserve(conn, root, spec, owner, agent)
+    except Exception:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+
+
+def file_reservation(
+    conn: sqlite3.Connection,
+    spec: dict[str, object],
+    number: int,
+    owner: str,
+    path: Path,
+) -> None:
+    changed = conn.execute(
+        "UPDATE ledger_reservations SET filed_at = ?, path = ? "
+        "WHERE ledger = ? AND number = ? AND owner = ? AND filed_at IS NULL",
+        (stamp(), path.as_posix(), reservation_ledger(spec), number, owner),
+    ).rowcount
+    if changed != 1:
+        refuse(
+            "reservation",
+            f"one open reservation for {owner} and {ident(spec, number)}",
+            f"{changed} rows",
+            "run next for this owner before filing the row",
+        )
+
+
+def unfiled_reservations(name: str) -> list[sqlite3.Row]:
+    conn = reservation_reader()
+    if conn is None:
+        return []
+    try:
+        return conn.execute(
+            "SELECT number, owner, reserved_at FROM ledger_reservations "
+            "WHERE ledger = ? AND filed_at IS NULL ORDER BY number",
+            (name,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def reservation_age(reserved_at: str) -> str:
+    try:
+        seconds = max(0, int((now() - parse_stamp(reserved_at)).total_seconds()))
+    except (TypeError, ValueError):
+        return "unknown"
+    return f"{seconds}s"
 
 
 def by_number(root: Path, spec: dict[str, object]) -> dict[int, list[str]]:
@@ -301,12 +514,21 @@ def do_check(root: Path, name: str) -> int:
     """
     spec = ledger(name)
     shared = {n: names for n, names in by_number(root, spec).items() if len(names) > 1}
-    if not shared:
+    unfiled = unfiled_reservations(name)
+    if not shared and not unfiled:
         print(f"{name}: no shared numbers")
         return 0
     for number in sorted(shared):
         print(f"{ident(spec, number)} shared by " + ", ".join(shared[number]))
-    print(f"{name}: {len(shared)} shared number(s)")
+    for row in unfiled:
+        print(
+            f"{ident(spec, int(row['number']))} reserved and unfiled by "
+            f"{row['owner']} age={reservation_age(row['reserved_at'])}"
+        )
+    print(
+        f"{name}: {len(shared)} shared number(s), "
+        f"{len(unfiled)} reserved-and-unfiled number(s)"
+    )
     return 1
 
 
@@ -318,15 +540,30 @@ def do_add(root: Path, name: str, args: list[str]) -> int:
     observed = fields.get("observed") or now().strftime("%Y-%m-%d")
     rows = root / spec["rows"]
     contain(root, rows, spec["rows"])
-    ident = f"{spec['prefix']}{highest(root, spec) + 1}"
+    # Keep the bounded trunk refresh on every add, including when this
+    # owner already holds the number that add will consume.
+    trunk_ref(root)
+    owner = reservation_owner(root)
+    conn = reservation_writer()
+    try:
+        number = own_reservation(conn, root, spec, owner, by)
+    finally:
+        conn.close()
+    row_id = ident(spec, number)
     rows.mkdir(parents=True, exist_ok=True)
-    path = rows / f"{ident}.md"
+    path = rows / f"{row_id}.md"
     contain(root, path, spec["rows"] / path.name)
-    lines = [f"# {spec['heading']}{ident}", "", "| field | value |", "|---|---|", f"| observed | {observed} |"]
+    lines = [f"# {spec['heading']}{row_id}", "", "| field | value |", "|---|---|", f"| observed | {observed} |"]
     lines += [f"| {f} | {fields[f]} |" for f in spec["fields"]]
     lines += [f"| by | {by} |", ""]
     path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"{ident} {spec['rows'] / path.name}")
+    relative = spec["rows"] / path.name
+    conn = reservation_writer()
+    try:
+        file_reservation(conn, spec, number, owner, relative)
+    finally:
+        conn.close()
+    print(f"{row_id} {relative}")
     return 0
 
 
@@ -382,8 +619,20 @@ def main(argv: list[str]) -> int:
     if argv == ["ledgers"]:
         return do_ledgers()
     if len(argv) == 2 and argv[0] == "next":
+        root = repo_root()
         spec = ledger(argv[1])
-        return print(ident(spec, highest(repo_root(), spec) + 1)) or 0
+        conn = reservation_writer()
+        try:
+            number = own_reservation(
+                conn,
+                root,
+                spec,
+                reservation_owner(root),
+                reservation_agent(),
+            )
+        finally:
+            conn.close()
+        return print(ident(spec, number)) or 0
     if len(argv) == 2 and argv[0] == "check":
         return do_check(repo_root(), argv[1])
     if len(argv) >= 2 and argv[0] == "add":
