@@ -1,3 +1,123 @@
+# GitHub branches — where this stands, and what a new session picks up
+
+**Read this section first. The report below it was written before the cleanup and
+describes the population as it was; the numbers in it are still true of that
+moment, not of now.**
+
+## State, measured 2026-09-18T02:39:31Z on this host (128 heads on origin at that moment)
+
+| reading | value |
+|---|---:|
+| branches on `origin` | **128** (was 394) |
+| retired in the cleanup | **266** |
+| open pull requests | 7 |
+| `refs/dispatch/*` on origin | 443 |
+| `refs/backup/*` on origin | 2 |
+| commits existing only on this disk | **0** |
+
+Every retired branch is in one verified bundle, and nothing was deleted before that
+bundle was cloned and every tip looked up inside the clone.
+
+| what | where |
+|---|---|
+| the bundle | `/home/scientdb/wt-archive/agentscient-refs-20260918T015216Z.bundle` — 12,243,117 bytes, 1,339 refs, sha256 `9bdcd036ab7c6d5ebe651facc55dba1cf02550b66deceec9ce8fa34cc58407cf` |
+| the index, one row per retired branch | `ops/conductor/handoff/branch-archive-20260918T015216Z.tsv` (committed at `6c93578c`, pushed) |
+| the lever | `ops/bin/branch-retire.sh` — `--plan`, `--archive`, `--retire` |
+| the run log | `/home/scientdb/wt-archive/branch-retire-20260918T015528Z.log` |
+
+Restore everything: `git clone <bundle> <dir>`. Restore one branch:
+`git fetch <bundle> <sha>:refs/heads/<name>`, the sha from the index. Proven on
+2026-09-18: `lane/agy-accounting-acceptance-20260908` fetched out of the bundle and
+came back at `6292122fa07e`, the sha the index records.
+
+## What was kept, and why
+
+| class | branches | meaning |
+|---|---:|---|
+| `holds-changed-code` | 50 | differs from the trunk on tracked files, adds none the trunk lacks |
+| `holds-new-code` | 34 | adds files outside `.dev/` the trunk does not have |
+| `checked-out` | 31 | a local worktree has it checked out |
+| `open-pr` | 6 | an open pull request heads here |
+| `live-session` | 3 | the deliverable lock names it |
+| `unrelated-history` | 2 | no merge base with the trunk; no diff means anything |
+| `permanent` | 2 | `dev` and `master` |
+
+## What a new session picks up, in order
+
+1. **Read the 34 `holds-new-code` branches** and answer one question each: does the
+   trunk want the file, yes or no. Not long-term value — only that. Then retire them
+   the same way, `--plan` and `--archive` first. The list is below.
+2. **Stop the growth at its three sources**, largest first: the dispatcher mints a
+   branch per job record when `refs/dispatch/*` already carries the commits (80 of
+   the 266 retired existed for that reason alone); rescue sweeps push local tips into
+   `refs/heads/` instead of an archive namespace (the 2026-09-16 sweep minted about
+   149 names that way); and nothing retires a branch at session close, so one branch
+   per session accumulates for ever.
+3. **The law lines, the owner's call, deferred by them on 2026-09-17** ("get it
+   cleaned first - then we'll look at law lines"): `AGENTS.md` says "never a deleted
+   branch", which the cleanup of 2026-09-18 no longer matches. The replacement to put
+   to the owner is "never an unarchived deletion". The matching hook row lives in
+   `ops/devlane/hooks/boundaries.json`, which is wall and needs its own isolated
+   session under a `wall` grant.
+4. **`branches.py` still assumes `main`.** Its census and allowed PR bases name a
+   branch this repository does not have; the trunk is `dev` and the release is
+   `master`. Named by the Astra Max report of 2026-09-16, not yet fixed.
+5. **`ops/bin/branch-retire.sh` has no tests.** Its readings come from the live
+   remote. A second producer owes it a table: a planted branch whose tip moved
+   between plan and retire, a bundle whose sha256 does not match its index, a branch
+   with an open PR, a branch with no merge base.
+
+### The 34 branches still holding files the trunk does not have
+
+| branch | files the trunk lacks |
+|---|---|
+| `lane/check-tests-json` | 2 files outside .dev/ |
+| `lane/conduct-adapter-tests-20260906` | 3 files outside .dev/ |
+| `lane/conduct-canonical-tests-20260906` | 2 files outside .dev/ |
+| `lane/conduct-discovery-20260906` | 7 files outside .dev/ |
+| `lane/conduct-discovery-final-tests-20260906` | 7 files outside .dev/ |
+| `lane/conduct-discovery-runtime-fix-20260906` | 7 files outside .dev/ |
+| `lane/conduct-policy-code-20260906` | 1 files outside .dev/ |
+| `lane/conduct-policy-code-adjudication-20260906` | 2 files outside .dev/ |
+| `lane/conduct-policy-source-ruling-20260906` | 2 files outside .dev/ |
+| `lane/conduct-policy-tests-20260906` | 1 files outside .dev/ |
+| `lane/conduct-start-tests-20260906` | 3 files outside .dev/ |
+| `lane/conduct-start-tests-adjudication-20260906` | 3 files outside .dev/ |
+| `lane/context-contracts` | 1 files outside .dev/ |
+| `lane/effort-per-role` | 1 files outside .dev/ |
+| `lane/finding-admission-20260909` | 15 files outside .dev/ |
+| `lane/fixture-fix` | 1 files outside .dev/ |
+| `lane/fixture-fix-2` | 1 files outside .dev/ |
+| `lane/noguess` | 1 files outside .dev/ |
+| `lane/onboarding-completion-20260909` | 8 files outside .dev/ |
+| `lane/onboarding-contract-20260910` | 1 files outside .dev/ |
+| `lane/onboarding-discovery-20260910` | 7 files outside .dev/ |
+| `lane/onboarding-discovery-tests-20260910` | 7 files outside .dev/ |
+| `lane/onboarding-policy-20260910` | 1 files outside .dev/ |
+| `lane/onboarding-policy-tests-20260910` | 1 files outside .dev/ |
+| `lane/record-wall` | 1 files outside .dev/ |
+| `lane/security-resume-binding-20260904` | 1 files outside .dev/ |
+| `lane/workflow` | 630 files outside .dev/ |
+| `records/agy-closeout-20260909` | 5 files outside .dev/ |
+| `records/codex-closeout-20260905` | 3 files outside .dev/ |
+| `records/codex-machinery-20260904` | 1 files outside .dev/ |
+| `records/codex-mcp-closeout-20260905` | 5 files outside .dev/ |
+| `review/mcp-cap-quality-20260905` | 2 files outside .dev/ |
+| `review/mcp-quality-20260905` | 1 files outside .dev/ |
+| `review/mcp-security-20260905` | 1 files outside .dev/ |
+
+## Related records
+
+- `ops/conductor/handoff/worktree-archive-2026-09-17.md` and its manifest — the local
+  worktree fleet, archived the same way the day before: 670,299 inodes under a shared
+  `wt/` down to 58,384 under this lane's own `ag-wt/`.
+- `ops/conductor/handoff/lane-defects/LD-106.md` — the `lane.conf` parity row that is
+  red on this host alone.
+- The owner's supplied branch-growth recommendation by Astra Max, 2026-09-16, read at
+  `/mnt/c/Users/xorma/Downloads/CurrentDownloads/grok/agentscient-branch-growth-and-retirement-recommendation-2026-09-16 (2).md`.
+
+---
+
 # The branches on GitHub with unique commits and no pull request
 
 Measured 2026-09-18T01:34:51Z against `origin/dev` at `ee62c3d183e4`, on the host, with the
