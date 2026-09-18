@@ -82,7 +82,10 @@ class TheDefectLever(unittest.TestCase):
         (self.repo / ROWS).mkdir()
         self.world.plant_text(self.repo / ROWS / "LD-40.md", "# LD-40\n")
         proc = self.run_lever("next", identity=False)
-        self.assertEqual(proc.stdout.strip(), "LD-41", "a row file outranks the table")
+        self.assertEqual(proc.stdout.strip(), "LD-36", "S2 keeps this owner's unfiled reservation")
+        self.assertEqual(self.add().stdout.split()[0], "LD-36")
+        proc = self.run_lever("next", identity=False)
+        self.assertEqual(proc.stdout.strip(), "LD-41", "new allocation counts the later row and the table")
 
     def test_add_writes_one_file_per_row_and_prints_its_id_and_path(self):
         proc = self.add()

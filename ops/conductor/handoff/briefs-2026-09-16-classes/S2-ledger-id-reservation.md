@@ -74,6 +74,58 @@ Two hosts (the store is host-local, machine-lever.md §The store). The two LD-68
 
 author-tests for S2 ledger-id-reservation. Subject: ops/conductor/tools/ledger.py, its `next`, `add`, `check` verbs. Write ops/conductor/tests/test_ledger.py rows by id: next-reserves, add-after-other-next, add-uses-own-reservation, check-reports-unfiled, highest-still-reads-origin, race-never-shares, read-never-creates; and ops/conductor/tests/ledger_faults.py with mutants M-no-reserve, M-owner-blind, M-add-mints. Behaviour: ids are reserved in a ledger_reservations table in state.db in one BEGIN IMMEDIATE, owner = the harness session id else the repository root; next and add share the owner's unfiled reservation; check reports unfiled reservations. Also the one-line FILE_BACKED shrink (ledger.py) in ops/conductor/tests/test_state_placement.py. Import the kit from the repository root; every subprocess through run with a timeout; each case executes the lever and asserts what it did; prove red at the ref. The brief in --input carries the rest.
 
+## Recovery completion, 2026-09-18
+
+The owner authorized completing existing PR264 before reconciling PR263.
+Retain S2's reservation table/functions and PR264's historical reader. The
+independent review retained as M-278 defines L1–L7; these amendments close
+their seams without a second allocator or store. The historical pipeline below
+remains provenance; this dev-lane completion uses hand grant 309, one producer
+with the separate test producer absent, and independent native Daybreak review.
+
+1. Every `next`/`add`, including reuse, refreshes the declared origin heads,
+   tags and dispatch refs before the short SQLite write transaction. Local mode
+   makes no network request and says its coverage is local. Historical additions
+   include tips from the committed branch/local-branch custody indexes (the
+   branch bundle contains dispatch refs too). The runtime job census, which
+   explicitly includes jobs with no known commit, is not a commit-tip index;
+   an unreadable indexed tip refuses instead of assuming it contains no IDs.
+   An empty unborn repository is a measured empty history. Record the observed
+   high-water number on reservations so later ref retirement cannot lower it.
+   This is one host's allocation guarantee; a remote publication after the read
+   and two independent stores are outside that guarantee.
+   Preserved uncommitted records are not Git refs: `next LEDGER --archive
+   MANIFEST --sha256 HASH` verifies the existing recovery manifest, its matching
+   files.tar payloads and each ledger row digest before including those IDs.
+   Persist that manifest/hash beside the nondecreasing reservation floor. A
+   malformed or changed archive refuses before allocation. This consumes the
+   existing recovery custody format; it neither restores nor approves records.
+2. A pending reservation stays with its owner when unrelated higher IDs appear.
+   Reuse refuses if its own number is now occupied. The existing row and the
+   pending reservation remain intact. All shared session carriers continue
+   through instrument.session; no ledger-specific harness aliases are added.
+3. Before publishing a row, persist its exact path/content digest on its existing
+   reservation. Publish complete bytes exclusively, then stamp the filed receipt.
+   A retry may finish only those identical intended bytes; different bytes,
+   symlinks and another owner's reservation refuse. A failed publication retains
+   the intent and never truncates a record. Concurrent calls serialize SQLite
+   allocation/intent; exclusive publication closes the filesystem race.
+4. `complete LEDGER ID --path RELATIVE_PATH --sha256 SHA256` explicitly files a
+   handwritten or recovered row for the current owner's reservation. Verify the
+   ledger directory, ID-bearing filename, exact bytes and absence of aliases;
+   completing never writes the record. An identical filed receipt is idempotent.
+   Merely noticing a same-number file does not complete a reservation.
+5. Schema additions are idempotent columns on ledger_reservations; preserve
+   existing rows and unrelated machine history. Corrupt/locked/unreadable stores,
+   invalid numeric ranges and filesystem errors refuse on the single-line wire.
+   list/show/check remain non-creating reads; next is a reservation mutation.
+
+The required cases and mutants above remain required. Add the review's
+overwrite, retry, same-owner concurrency, explicit completion, narrow-refspec,
+dispatch-only history, archive-floor and blocked-fetch/coordination cases, plus
+negative controls for the refusal wire. Reconciliation does not start until the
+combined candidate passes these checks and its normal lane floor.
+
 ## The rules every build follows
 
 - No producer owns two consecutive artifacts: the tests come from a dispatched Grok `author-tests` job, Codex `check-tests` reads them, the builder codes against the sealed tests, Grok `adversarial-review` and Codex `security-audit` read the pushed head. The builder never edits a test to reach green; a test that must change is a new tests commit by the test author, reviewed again.

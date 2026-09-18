@@ -2,9 +2,10 @@
 """Every appended register as one file per row, so parallel sessions' rows never touch.
 
     ledger.py ledgers                         the ledgers this lever knows, one per line
-    ledger.py next LEDGER                     reserve and print this owner's next id
+    ledger.py next LEDGER [--archive MANIFEST --sha256 HASH]   reserve this owner's id
     ledger.py check LEDGER                    findings: shared or unfiled numbers
     ledger.py add LEDGER --field VALUE ...    write the row file, print "ID path"
+    ledger.py complete LEDGER ID --path PATH --sha256 HASH   file an existing row
     ledger.py show LEDGER ID                  print the row
     ledger.py list LEDGER                     one line per row: id, observed, first field
 
@@ -26,10 +27,16 @@ identity, reads never do; refusals are one stderr line, exit 2, stdout empty.
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import io
+import json
 import os
 import re
 import sqlite3
 import sys
+import tarfile
+import tempfile
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -121,22 +128,9 @@ def repo_root() -> Path:
 
 
 def trunk_ref(root: Path) -> str | None:
-    """origin/<trunk> after a bounded fetch, or None when the repository
-    has no such remote ref (a scratch repository, an offline host). The
-    fetch is said on stderr, never on stdout, so a caller reading the id
-    reads only the id. Owner, 2026-09-13 ("minimize parallel work
-    conflicts"): a session minting from its own tree alone re-mints an id
-    another session already pushed."""
-    trunk = conf("TRUNK_BRANCH")
-    ref = f"origin/{trunk}"
-    if git("remote", "get-url", "origin", cwd=root).returncode != 0:
-        return None
-    fetched = git("fetch", "-q", "origin", trunk, cwd=root, timeout=20)
-    if fetched.returncode == 0:
-        print(f"fetched {ref}", file=sys.stderr)
-    if git("rev-parse", "--verify", "-q", ref, cwd=root).returncode != 0:
-        return None
-    return ref
+    """Read the trunk ref already refreshed by the historical discovery."""
+    ref = f"origin/{conf('TRUNK_BRANCH')}"
+    return ref if git("rev-parse", "--verify", "-q", ref, cwd=root, timeout=20).returncode == 0 else None
 
 
 def entry_re(spec: dict[str, object]) -> re.Pattern:
@@ -187,7 +181,18 @@ def reservation_agent() -> str:
 
 def reservation_writer() -> sqlite3.Connection:
     conn = machine.connect(create=True)
-    conn.execute(RESERVATIONS_SCHEMA)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(RESERVATIONS_SCHEMA)
+        columns = {r["name"] for r in conn.execute("PRAGMA table_info(ledger_reservations)")}
+        for name, kind in (("history_floor", "INTEGER NOT NULL DEFAULT 0"), ("history_source", "TEXT"),
+                           ("intent_path", "TEXT"), ("intent_sha256", "TEXT")):
+            if name not in columns:
+                conn.execute(f"ALTER TABLE ledger_reservations ADD COLUMN {name} {kind}")
+        conn.commit()
+    except Exception:
+        conn.close()
+        raise
     return conn
 
 
@@ -196,9 +201,7 @@ def reservation_reader() -> sqlite3.Connection | None:
     if not machine.store_path().is_file():
         return None
     conn = machine.connect(create=False)
-    present = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'ledger_reservations'"
-    ).fetchone()
+    present = conn.execute("PRAGMA table_info(ledger_reservations)").fetchone()
     if present is None:
         conn.close()
         return None
@@ -211,18 +214,20 @@ def _reserve_locked(
     spec: dict[str, object],
     owner: str,
     agent: str,
+    observed: int,
+    history_source: str | None = None,
 ) -> int:
     name = reservation_ledger(spec)
     row = conn.execute(
-        "SELECT MAX(number) AS number FROM ledger_reservations WHERE ledger = ?",
+        "SELECT MAX(MAX(number, history_floor)) AS number FROM ledger_reservations WHERE ledger = ?",
         (name,),
     ).fetchone()
     reserved = int(row["number"] or 0)
-    number = max(highest(root, spec), reserved) + 1
+    number = max(observed, reserved, max(by_number(root, spec), default=0)) + 1
     conn.execute(
         "INSERT INTO ledger_reservations"
-        "(ledger, number, owner, agent, reserved_at) VALUES (?, ?, ?, ?, ?)",
-        (name, number, owner, agent, stamp()),
+        "(ledger, number, owner, agent, reserved_at, history_floor, history_source) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (name, number, owner, agent, stamp(), observed, history_source),
     )
     return number
 
@@ -233,6 +238,7 @@ def reserve(
     spec: dict[str, object],
     owner: str,
     agent: str,
+    *, observed: int | None = None, history_source: str | None = None,
 ) -> int:
     """Reserve the next number in one immediate transaction.
 
@@ -240,11 +246,13 @@ def reserve(
     the second wall: if another SQLite client wins independently, re-read
     the register and retry once rather than returning a shared number.
     """
+    if observed is None:
+        observed = highest(root, spec)
     winner = 0
     for attempt in range(2):
         try:
             conn.execute("BEGIN IMMEDIATE")
-            number = _reserve_locked(conn, root, spec, owner, agent)
+            number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
             conn.commit()
             return number
         except sqlite3.IntegrityError:
@@ -274,27 +282,50 @@ def own_reservation(
     spec: dict[str, object],
     owner: str,
     agent: str,
+    *, archived: set[int] | None = None, history_source: str | None = None,
 ) -> int:
-    """Return this owner's open reservation, or atomically make one."""
+    """Read history before the short shared-store allocation transaction."""
     name = reservation_ledger(spec)
+    occupied = observed_numbers(root, spec)
+    occupied.update(archived or ())
+    observed = max(occupied, default=0)
     try:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
-            "SELECT number FROM ledger_reservations "
+            "SELECT * FROM ledger_reservations "
             "WHERE ledger = ? AND owner = ? AND filed_at IS NULL "
             "ORDER BY number LIMIT 1",
             (name, owner),
         ).fetchone()
         if row is not None:
+            number = int(row["number"])
+            conn.execute("UPDATE ledger_reservations SET history_floor = MAX(history_floor, ?) "
+                         "WHERE ledger = ? AND number = ?", (observed, name, number))
+            if history_source:
+                previous = json.loads(row["history_source"] or "[]")
+                conn.execute("UPDATE ledger_reservations SET history_source = ? WHERE ledger = ? AND number = ?",
+                             (json.dumps(sorted(set([*previous, *json.loads(history_source)]))), name, number))
+            # A completed exact intended publication can be retried after the
+            # receipt write failed. A same-number foreign file cannot be adopted.
+            taken = number in occupied or number in by_number(root, spec)
+            matching = False
+            if row["intent_path"] and row["intent_sha256"]:
+                path = root / row["intent_path"]
+                contain(root, path, Path(row["intent_path"]))
+                matching = (path.is_file() and not path.is_symlink()
+                            and hashlib.sha256(path.read_bytes()).hexdigest() == row["intent_sha256"])
             conn.commit()
-            return int(row["number"])
-        number = _reserve_locked(conn, root, spec, owner, agent)
+            if taken and not matching:
+                refuse("reservation", f"unoccupied {ident(spec, number)} reserved by {owner}",
+                       "that number now has a record", "preserve both records; explicitly complete the owned row or reconcile the collision")
+            return number
+        number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
         conn.commit()
         return number
     except sqlite3.IntegrityError:
         if conn.in_transaction:
             conn.rollback()
-        return reserve(conn, root, spec, owner, agent)
+        return reserve(conn, root, spec, owner, agent, observed=observed, history_source=history_source)
     except Exception:
         if conn.in_transaction:
             conn.rollback()
@@ -314,6 +345,11 @@ def file_reservation(
         (stamp(), path.as_posix(), reservation_ledger(spec), number, owner),
     ).rowcount
     if changed != 1:
+        row = conn.execute("SELECT filed_at, path FROM ledger_reservations "
+                           "WHERE ledger = ? AND number = ? AND owner = ?",
+                           (reservation_ledger(spec), number, owner)).fetchone()
+        if row is not None and row["filed_at"] and row["path"] == path.as_posix():
+            return
         refuse(
             "reservation",
             f"one open reservation for {owner} and {ident(spec, number)}",
@@ -359,103 +395,127 @@ def by_number(root: Path, spec: dict[str, object]) -> dict[int, list[str]]:
     return found
 
 
-def minted_anywhere(root: Path, spec: dict[str, object]) -> tuple[int, bool]:
-    """The highest id any commit in this repository ever added, over every
-    ref, in one spawn.
-
-    `highest` read the working tree, the page's table and origin/<trunk>.
-    A row minted on a branch that has not merged is in none of the three,
-    so two sessions minting between merges are handed the same number.
-    Measured on 2026-09-16 over 1,264 refs: ten ids carry two different
-    rows, LD-81 four; at 19:25:34Z one session filed LD-81, LD-82 and
-    LD-83 on ids `next` had just called free, and at 20:09:44Z renumbered
-    all three by hand after the trunk moved 21 commits and landed a
-    different LD-81 underneath it. Twelve ids existed off the trunk and
-    were invisible here.
-
-    `--all` is every ref under refs/, so a row that only ever lived in a
-    dispatch snapshot counts too, and `--no-renames` keeps a row that was
-    renumbered away counted under the number it vacated -- an id once
-    used is never handed out a second time.
-
-    Returns what it found and whether it could look. A git that cannot
-    answer is not a zero: on `False` the caller refuses class `refs`
-    rather than minting off a silence (docs/wire.md, absence discipline).
-    An operator who sets LEDGER_REFS=local has declared that limit
-    instead, and the answer is off this repository's refs alone.
-    """
-    entry = entry_re(spec)
-    # `--all` reads only the refs this repository already holds, and trunk_ref
-    # fetches origin/<trunk> by refspec, which leaves every other branch stale
-    # or absent -- so a row another session pushed to its own branch would still
-    # be invisible, which is the collision this reader exists to close. Fetch
-    # every branch first, and say so on stderr, never on stdout.
-    if os.environ.get("LEDGER_REFS") == "local":
-        # The operator has declared the limit rather than inheriting it: the
-        # answer is off this repository's refs alone and may be low.
-        print("LEDGER_REFS=local: ids read off this repository's refs alone; "
-              "a branch pushed since the last fetch is not among them",
-              file=sys.stderr)
-    elif git("remote", "get-url", "origin", cwd=root).returncode == 0:
-        if git("fetch", "-q", "origin", cwd=root, timeout=60).returncode != 0:
-            return 0, False
-        print("fetched origin", file=sys.stderr)
-    listed = git("log", "--all", "--no-renames", "--diff-filter=A", "--format=",
-                 "--name-only", "--", f"{spec['rows'].as_posix()}/", cwd=root,
-                 timeout=30)
+def archive_tips(root: Path) -> list[str]:
+    """Traverse immutable tips named by existing committed custody indexes."""
+    listed = git("ls-files", "-z", "--",
+                 "ops/conductor/handoff/branch-archive-*.tsv",
+                 "ops/conductor/handoff/local-branches-merged-*.tsv", cwd=root, timeout=20)
     if listed.returncode != 0:
-        return 0, False
-    top = 0
-    for line in listed.stdout.splitlines():
-        m = entry.search(line.strip())
-        if m:
-            top = max(top, int(m.group(1)))
-    return top, True
+        refuse("refs", "readable committed archive indexes", "git could not list them",
+               "restore the retained index before allocating")
+    tips = set()
+    for name in filter(None, listed.stdout.split("\0")):
+        shown = git("show", f"HEAD:{name}", cwd=root, timeout=20)
+        if shown.returncode != 0:
+            refuse("refs", "a committed archive index", name,
+                   "commit or restore the archive custody index before allocating")
+        for line in shown.stdout.splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            fields = line.split("\t")
+            found = {f for f in fields if re.fullmatch(r"[0-9a-f]{40}", f)}
+            if not found and fields[0] not in {"name", "branch", "id"}:
+                refuse("refs", "an immutable commit id in each archive row", name,
+                       "repair the index from its preserved custody evidence")
+            tips.update(found)
+    return sorted(tips)
+
+
+def minted_anywhere(root: Path, spec: dict[str, object]) -> tuple[set[int], bool]:
+    """PR264 historical additions, including explicit remote and archived tips.
+
+    Discovery runs before BEGIN IMMEDIATE. The declared origin namespaces are
+    heads, tags and dispatch results regardless of configured narrow refspecs.
+    Local mode neither fetches nor claims knowledge of unpublished remote work.
+    Archived tips remain operands even after their refs disappear; unreadable
+    tips are a refusal, never an empty history. S2 persists the observed floor.
+    """
+    if os.environ.get("LEDGER_REFS") == "local":
+        print("LEDGER_REFS=local: retained local refs and committed archive tips only", file=sys.stderr)
+    elif git("remote", "get-url", "origin", cwd=root, timeout=20).returncode == 0:
+        fetched = git("fetch", "-q", "origin",
+                      "refs/heads/*:refs/remotes/origin/*",
+                      "refs/tags/*:refs/tags/*",
+                      "refs/dispatch/*:refs/remotes/origin-dispatch/*", cwd=root, timeout=60)
+        if fetched.returncode != 0:
+            return set(), False
+        print(f"fetched origin/{conf('TRUNK_BRANCH')}; origin heads, tags and dispatch history", file=sys.stderr)
+    tips = archive_tips(root)
+    listed = git("log", "--all", *tips, "--no-renames", "--diff-filter=A", "--format=",
+                 "--name-only", "--", f"{spec['rows'].as_posix()}/", cwd=root, timeout=30)
+    if listed.returncode != 0:
+        return set(), False
+    entry = entry_re(spec)
+    return {int(m.group(1)) for line in listed.stdout.splitlines()
+            if (m := entry.fullmatch(Path(line.strip()).name))}, True
+
+
+def observed_numbers(root: Path, spec: dict[str, object]) -> set[int]:
+    """One availability reading, complete before taking the state write lock."""
+    found, looked = minted_anywhere(root, spec)
+    if not looked:
+        refuse("refs", "readable origin namespaces and every indexed retained tip",
+               "history could not be refreshed or traversed",
+               "restore origin/archive custody, or explicitly use LEDGER_REFS=local for local remote coverage")
+    table = re.compile(rf"^\| {re.escape(str(spec['prefix']))}(\d+) \|", re.MULTILINE)
+    if spec['page']:
+        page = root / spec['page']
+        if page.is_file():
+            found.update(int(n) for n in table.findall(page.read_text(encoding="utf-8")))
+        ref = trunk_ref(root)
+        if ref:
+            shown = git("show", f"{ref}:{spec['page'].as_posix()}", cwd=root, timeout=20)
+            if shown.returncode == 0:
+                found.update(int(n) for n in table.findall(shown.stdout))
+    found.update(by_number(root, spec))
+    return found
 
 
 def highest(root: Path, spec: dict[str, object]) -> int:
-    """One past this is the next id: the highest over the page's table and
-    the rows directory, in the working tree, on origin/<trunk>, and on
-    every other ref this repository holds (`minted_anywhere`).
+    return max(observed_numbers(root, spec), default=0)
 
-    A register with no page (the ideas directory) is read from its rows
-    alone; a number already held by two rows does not change what the
-    next one is, so this answers whether or not `check` has findings.
-    """
-    prefix = re.escape(str(spec["prefix"]))
-    table = re.compile(rf"^\| {prefix}(\d+) \|", re.MULTILINE)
-    entry = entry_re(spec)
-    top = 0
-    page = root / spec["page"] if spec["page"] else None
-    if page is not None and page.is_file():
-        top = max([int(n) for n in table.findall(page.read_text(encoding="utf-8"))] + [top])
-    for number in by_number(root, spec):
-        top = max(top, number)
-    ref = trunk_ref(root)
-    if ref is not None:
-        if spec["page"]:
-            shown = git("show", f"{ref}:{spec['page'].as_posix()}", cwd=root)
-            if shown.returncode == 0:
-                top = max([int(n) for n in table.findall(shown.stdout)] + [top])
-        listed = git("ls-tree", "--name-only", ref, f"{spec['rows'].as_posix()}/", cwd=root)
-        if listed.returncode == 0:
-            for line in listed.stdout.splitlines():
-                m = entry.search(line.strip())
-                if m:
-                    top = max(top, int(m.group(1)))
-    everywhere, looked = minted_anywhere(root, spec)
-    if not looked:
-        # Absence is declared, never inferred (docs/wire.md). An id minted off
-        # refs that could not be refreshed is low by an unknown amount, and the
-        # caller reads stdout, so stderr alone would not reach it.
-        refuse("refs",
-               "every id this repository's refs hold, after a fetch of origin",
-               "origin could not be reached, so the refs may be stale and the "
-               "next id low",
-               "run it where origin answers, or set LEDGER_REFS=local to mint "
-               "off this repository's refs alone and say so in the row")
-    top = max(top, everywhere)
-    return top
+
+def archived_numbers(spec, manifest, expected):
+    """Verify the existing recovery custody format without extracting records."""
+    path = Path(manifest).resolve(strict=True)
+    raw = path.read_bytes()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected) or hashlib.sha256(raw).hexdigest() != expected:
+        refuse("refs", "the measured recovery manifest digest", str(path), "use the intact preserved manifest and its measured SHA256")
+    data = json.loads(raw)
+    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("dirty"), list):
+        refuse("refs", "the existing version-1 recovery custody manifest", str(path), "name the retained recovery manifest")
+    found = set()
+    for entry in data["dirty"]:
+        if not isinstance(entry, dict) or not isinstance(entry.get("files"), list):
+            refuse("refs", "typed file entries in the recovery manifest", str(path), "restore the existing custody manifest")
+        matches = []
+        for item in entry["files"]:
+            if not isinstance(item, dict):
+                refuse("refs", "a typed recovery file entry", str(path), "restore the existing custody manifest")
+            named = Path(item["path"])
+            match = entry_re(spec).fullmatch(named.name)
+            if named.parent == spec["rows"] and match:
+                matches.append((item, int(match.group(1))))
+        if not matches:
+            continue
+        payload = (path.parent / entry["directory"] / "files.tar").resolve(strict=True)
+        if not payload.is_relative_to(path.parent):
+            refuse("refs", "archive payload inside its custody directory", str(payload), "restore the original custody layout")
+        packed = payload.read_bytes()
+        if hashlib.sha256(packed).hexdigest() != entry["artifacts"]["files.tar"]:
+            refuse("refs", "the archive payload digest named by the manifest", str(payload), "restore the checksum-verified archive")
+        with tarfile.open(fileobj=io.BytesIO(packed)) as archive:
+            members = archive.getmembers()
+            for item, number in matches:
+                named = [m for m in members if m.name == item["path"]]
+                if len(named) != 1 or not named[0].isfile():
+                    refuse("refs", "one regular archived ledger row", item["path"], "restore the intact record payload")
+                with archive.extractfile(named[0]) as stream:
+                    digest = hashlib.sha256(stream.read()).hexdigest()
+                if digest != item["sha256"]:
+                    refuse("refs", "the preserved row digest", item["path"], "restore the checksum-verified row")
+                found.add(number)
+    return found, json.dumps([f"{path} sha256:{expected}"])
 
 
 def parse_fields(spec: dict[str, object], args: list[str]) -> dict[str, str]:
@@ -532,6 +592,50 @@ def do_check(root: Path, name: str) -> int:
     return 1
 
 
+def prepare_intent(conn, root, spec, number, owner, relative, sha256):
+    """Commit the intended publication before touching the filesystem."""
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
+                           (reservation_ledger(spec), number, owner)).fetchone()
+        if row is None or (row["intent_sha256"] and
+                           (row["intent_sha256"] != sha256 or row["intent_path"] != str(relative))):
+            refuse("reservation", "this owner's unchanged intended record", "absent or different intent",
+                   "retry with the original bytes or explicitly reconcile the reservation")
+        path = root / relative
+        contain(root, path, relative)
+        if ((path.exists() or path.is_symlink()) and
+                (not row["intent_sha256"] or path.is_symlink() or not path.is_file()
+                 or hashlib.sha256(path.read_bytes()).hexdigest() != sha256)):
+            refuse("reservation", "an unused target or this exact intended publication", str(relative),
+                   "preserve the existing record and reconcile the reservation")
+        conn.execute("UPDATE ledger_reservations SET intent_path = ?, intent_sha256 = ? "
+                     "WHERE ledger = ? AND number = ? AND owner = ?",
+                     (str(relative), sha256, reservation_ledger(spec), number, owner))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def publish_exclusive(root, relative, content):
+    path = root / relative
+    contain(root, path, relative)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Publish a complete fsynced inode with link's exclusive target semantics.
+    # The temporary inode is apparatus, not a second reservation/state file.
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".ledger-", delete=True) as temporary:
+        temporary.write(content)
+        temporary.flush()
+        os.fsync(temporary.fileno())
+        try:
+            os.link(temporary.name, path, follow_symlinks=False)
+        except FileExistsError:
+            if path.is_symlink() or not path.is_file() or path.read_bytes() != content:
+                refuse("reservation", "an exclusive unused target or identical intended bytes", str(relative),
+                       "preserve the existing row and reconcile the reservation")
+
+
 def do_add(root: Path, name: str, args: list[str]) -> int:
     spec = ledger(name)
     handwritten(name, spec, "add")
@@ -540,9 +644,6 @@ def do_add(root: Path, name: str, args: list[str]) -> int:
     observed = fields.get("observed") or now().strftime("%Y-%m-%d")
     rows = root / spec["rows"]
     contain(root, rows, spec["rows"])
-    # Keep the bounded trunk refresh on every add, including when this
-    # owner already holds the number that add will consume.
-    trunk_ref(root)
     owner = reservation_owner(root)
     conn = reservation_writer()
     try:
@@ -556,10 +657,12 @@ def do_add(root: Path, name: str, args: list[str]) -> int:
     lines = [f"# {spec['heading']}{row_id}", "", "| field | value |", "|---|---|", f"| observed | {observed} |"]
     lines += [f"| {f} | {fields[f]} |" for f in spec["fields"]]
     lines += [f"| by | {by} |", ""]
-    path.write_text("\n".join(lines), encoding="utf-8")
+    content = "\n".join(lines).encode("utf-8")
     relative = spec["rows"] / path.name
     conn = reservation_writer()
     try:
+        prepare_intent(conn, root, spec, number, owner, relative, hashlib.sha256(content).hexdigest())
+        publish_exclusive(root, relative, content)
         file_reservation(conn, spec, number, owner, relative)
     finally:
         conn.close()
@@ -606,21 +709,66 @@ def do_list(root: Path, name: str) -> int:
 def do_ledgers() -> int:
     for name, spec in LEDGERS.items():
         line = f"{name} {spec['rows']} "
-        line += ("(handwritten: next, check)" if spec.get("handwritten")
+        line += ("(handwritten: next reserves, complete files, check reads)" if spec.get("handwritten")
                  else " ".join("--" + f for f in spec["fields"]))
         print(line)
     return 0
 
 
-USAGE = "ledgers | next LEDGER | check LEDGER | add LEDGER --field TEXT ... | show LEDGER ID | list LEDGER"
+def do_complete(root: Path, name: str, row_id: str, args: list[str]) -> int:
+    identity()
+    spec = ledger(name)
+    if len(args) != 4 or args[0] != "--path" or args[2] != "--sha256" or not re.fullmatch(r"[0-9a-f]{64}", args[3]):
+        refuse("arguments", "complete LEDGER ID --path RELATIVE_PATH --sha256 SHA256", " ".join(args),
+               "name the exact existing row and its measured digest")
+    relative, expected = Path(args[1]), args[3]
+    match = entry_re(spec).fullmatch(relative.name)
+    if relative.is_absolute() or ".." in relative.parts or relative.parent != spec["rows"] or not match or ident(spec, int(match.group(1))) != row_id:
+        refuse("reservation", "the exact ID-bearing file under this ledger's directory", str(relative),
+               "name the owned row by its canonical ledger path and ID")
+    number = int(match.group(1))
+    path = root / relative
+    contain(root, path, relative)
+    if (path.is_symlink() or not path.is_file() or by_number(root, spec).get(number) != [path.name]
+            or hashlib.sha256(path.read_bytes()).hexdigest() != expected):
+        refuse("reservation", "one regular row with the measured digest and no ID aliases", str(relative),
+               "preserve the row, resolve aliases, and measure its current SHA256")
+    owner = reservation_owner(root)
+    conn = reservation_writer()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
+                           (name, number, owner)).fetchone()
+        if row is None or (row["intent_sha256"] and
+                           (row["intent_sha256"] != expected or row["intent_path"] != str(relative))):
+            refuse("reservation", "this owner's reservation and unchanged intended row", row_id,
+                   "use the reserving session and its exact intended bytes")
+        if row["filed_at"] and row["path"] != str(relative):
+            refuse("reservation", "the original filed path", row["path"], "retain the filed receipt")
+        conn.execute("UPDATE ledger_reservations SET intent_path = ?, intent_sha256 = ? WHERE ledger = ? AND number = ?",
+                     (str(relative), expected, name, number))
+        file_reservation(conn, spec, number, owner, relative)
+        conn.commit()
+    finally:
+        conn.close()
+    print(f"{row_id} {relative}")
+    return 0
 
 
-def main(argv: list[str]) -> int:
+USAGE = "ledgers | next LEDGER [--archive MANIFEST --sha256 HASH] | check LEDGER | add LEDGER --field TEXT ... | complete LEDGER ID --path PATH --sha256 HASH | show LEDGER ID | list LEDGER"
+
+
+def _main(argv: list[str]) -> int:
     if argv == ["ledgers"]:
         return do_ledgers()
-    if len(argv) == 2 and argv[0] == "next":
+    if len(argv) in {2, 6} and argv[0] == "next":
         root = repo_root()
         spec = ledger(argv[1])
+        archived, source = set(), None
+        if len(argv) == 6:
+            if argv[2] != "--archive" or argv[4] != "--sha256":
+                refuse("arguments", "next LEDGER --archive MANIFEST --sha256 HASH", " ".join(argv), "name exact preserved custody")
+            archived, source = archived_numbers(spec, argv[3], argv[5])
         conn = reservation_writer()
         try:
             number = own_reservation(
@@ -629,12 +777,15 @@ def main(argv: list[str]) -> int:
                 spec,
                 reservation_owner(root),
                 reservation_agent(),
+                archived=archived, history_source=source,
             )
         finally:
             conn.close()
         return print(ident(spec, number)) or 0
     if len(argv) == 2 and argv[0] == "check":
         return do_check(repo_root(), argv[1])
+    if len(argv) >= 3 and argv[0] == "complete":
+        return do_complete(repo_root(), argv[1], argv[2], argv[3:])
     if len(argv) >= 2 and argv[0] == "add":
         return do_add(repo_root(), argv[1], argv[2:])
     if len(argv) == 3 and argv[0] == "show":
@@ -642,6 +793,25 @@ def main(argv: list[str]) -> int:
     if len(argv) == 2 and argv[0] == "list":
         return do_list(repo_root(), argv[1])
     refuse("arguments", USAGE, " ".join(argv) or "nothing", "choose one verb with exactly its arguments")
+
+
+def main(argv: list[str]) -> int:
+    # Progress on stderr must not turn a later refusal into a multi-line wire.
+    progress = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(progress):
+            code = _main(argv)
+    except sqlite3.Error as exc:
+        refuse("store", "a readable writable ledger store with an available transaction",
+               " ".join(str(exc).splitlines()), "repair store access or retry after its writer completes; pending reservations remain")
+    except (OSError, UnicodeError) as exc:
+        refuse("filesystem", "readable custody and an exclusively writable row target",
+               " ".join(str(exc).splitlines()), "restore access and retry the unchanged reserved record")
+    except (OverflowError, ValueError, KeyError, TypeError, tarfile.TarError) as exc:
+        refuse("reservation", "valid bounded ledger numbers and record values",
+               " ".join(str(exc).splitlines()), "repair the named input or retained record; do not discard reservation history")
+    sys.stderr.write(progress.getvalue())
+    return code
 
 
 if __name__ == "__main__":
