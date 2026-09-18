@@ -3,6 +3,10 @@
 #   bytes 1286588774, entries 521552, sha256 12e5805aab9722d810ffdb93b82843f9ab8f89539e438d77332d61fb642ad709
 # restore one: tar xzf <archive> -C <dir> staging/<name>; mv <dir>/staging/<name> /home/scientdb/projects/uscient/ag-wt/<name>; git -C /home/scientdb/projects/uscient/agentscient worktree repair /home/scientdb/projects/uscient/ag-wt/<name>
 # the original_path column holds the ../wt path each one had before the per-project split;
+# two rows (wt-merge-75f6e9cf, pr10-wt) had a session scratchpad as their path, whose
+# directory name spells the owner's account without the /home/ prefix the term wall
+# exempts; that one segment reads -home-USER- here. Both directories are MISSING and
+# the path is otherwise unaltered.
 # rows marked MISSING were registrations at /tmp paths the boot wipe had already deleted.
 name	branch	head	original_path	status
 ag-aar-20260911	records/aar-20260911	7a976a8f30335e2fcc877c51046cbe0162c3a15c	/home/scientdb/projects/uscient/wt/ag-aar-20260911	moved
@@ -392,5 +396,5 @@ ag-audit-remediation-20260910	records/audit-remediation-20260910	3dc93d931396d00
 ag-graft-aar-20260910	records/graft-aar-20260910	20f9bcaf2b3ae2152b9cab766637b5a89b71214b	/tmp/ag-graft-aar-20260910	MISSING
 ag-graft-integration-20260910	lane/graft-integration-20260910	d21954e840eea2cf3d5613d4512108ab71b2260a	/tmp/ag-graft-integration-20260910	MISSING
 ag-manual-enforcement-20260910	repair/manual-enforcement-20260910	7df3d90ab012d5d83fdf2c6fc6a5f5e719ce5ec2	/tmp/ag-manual-enforcement-20260910	MISSING
-wt-merge-75f6e9cf	lane/merge-check-75f6e9cf	75f6e9cf50cfbca5945a61bdcf69c6328dce0442	/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/510b9b3e-842b-41f9-8346-0a4dd2c05f31/scratchpad/wt-merge-75f6e9cf	MISSING
-pr10-wt		e354dac691b54a2620e574b8761bb5ffff67cefc	/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/pr10-wt	MISSING
+wt-merge-75f6e9cf	lane/merge-check-75f6e9cf	75f6e9cf50cfbca5945a61bdcf69c6328dce0442	/tmp/claude-1006/-home-USER-projects-uscient-agentscient/510b9b3e-842b-41f9-8346-0a4dd2c05f31/scratchpad/wt-merge-75f6e9cf	MISSING
+pr10-wt		e354dac691b54a2620e574b8761bb5ffff67cefc	/tmp/claude-1006/-home-USER-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/pr10-wt	MISSING
