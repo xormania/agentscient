@@ -762,8 +762,8 @@ def _main(argv: list[str]) -> int:
     if argv == ["ledgers"]:
         return do_ledgers()
     if len(argv) in {2, 6} and argv[0] == "next":
-        root = repo_root()
         spec = ledger(argv[1])
+        root = repo_root()
         archived, source = set(), None
         if len(argv) == 6:
             if argv[2] != "--archive" or argv[4] != "--sha256":
