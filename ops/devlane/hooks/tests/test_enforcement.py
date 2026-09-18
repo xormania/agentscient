@@ -275,6 +275,26 @@ class SharedEnforcement(unittest.TestCase):
             generate.assert_called_once()
         self.assertFalse(profiles.fallback("codex", "Stop")["continue"])
 
+    def test_codex_config_spellings_and_malformed_overrides_refuse(self):
+        root = Path(__file__).resolve().parents[4]
+        binding = profiles.generate("codex", self.world.root / "argv-config", source=root,
+                                    cwd=self.repo, mode="worker", session="issued", executable="/usr/bin/true")
+        for value in ("features.hooks=false", "features={hooks=false}", '"features".hooks=false',
+                      " hooks.enabled=false", "shell_environment_policy.inherit=all", "unknown=true",
+                      "model_reasoning_effort", "model_reasoning_effort=", 'model_reasoning_effort="high"\nfeatures.hooks=false'):
+            for args in (["-c", value], ["--config", value], ["-c" + value], ["-c=" + value], ["--config=" + value]):
+                with self.subTest(args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for args in (["-c"], ["--config"], ["-c="], ["--config="], ["-c", "--model", "fixture"]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for args in (["-c", 'model_reasoning_effort="high"'], ["--config", 'model_reasoning_effort="high"'],
+                     ['-cmodel_reasoning_effort="high"'], ['-c=model_reasoning_effort="high"'],
+                     ['--config=model_reasoning_effort="high"']):
+            with self.subTest(args=args):
+                command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                self.assertEqual(command[-2:], ["-c", 'model_reasoning_effort="high"'])
+
     def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
         original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"
         command = native.bind_command(original, str(self.repo))

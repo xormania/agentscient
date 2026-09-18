@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -226,9 +227,41 @@ def relocate(binding, old_root, new_root):
     return validate(revised)
 
 
+def codex_config_args(tokens):
+    """Normalize native spellings; admit only existing launcher config fields."""
+    result = []
+    pending = iter(tokens)
+    for arg in pending:
+        if arg == "--":
+            return [*result, arg, *pending]
+        if arg in {"-c", "--config"}:
+            value = next(pending, "")
+        elif arg.startswith("--config="):
+            value = arg[len("--config="):]
+        elif arg.startswith("-c") and not arg.startswith("--"):
+            value = arg[2:].removeprefix("=")
+        else:
+            result.append(arg)
+            continue
+        key, separator, raw = value.partition("=")
+        if not separator or not re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*", key):
+            raise ValueError("malformed native configuration assignment")
+        admitted = key in {"model_reasoning_effort", "sandbox_workspace_write.writable_roots"} or re.fullmatch(
+            r"mcp_servers\.[A-Za-z0-9_-]+\.(?:command|args|env_vars|required|enabled_tools|tools\.[A-Za-z0-9_-]+\.approval_mode)", key)
+        if not admitted:
+            raise ValueError("native configuration field is not a launcher projection")
+        parsed = tomllib.loads("value=" + raw)
+        if set(parsed) != {"value"} or "\n" in raw or "\r" in raw:
+            raise ValueError("native configuration requires one TOML value")
+        result += ["-c", value]
+    return result
+
+
 def native_launch(binding, argv, env):
     """Compile a protected launch from trusted launcher-owned argv, never user overlays."""
     validate(binding)
+    if not isinstance(argv, (list, tuple)) or not argv or any(not isinstance(t, str) or "\0" in t for t in argv):
+        raise ValueError("native argv must be a nonempty string vector")
     if not binding["executable"] or str(Path(argv[0]).resolve()) != binding["executable"]:
         raise ValueError("launch executable was not pinned")
     harness = binding["harness"]
@@ -242,14 +275,8 @@ def native_launch(binding, argv, env):
     denied = ("--settings", "--setting-sources", "--bare", "--safe-mode", "--agent", "--plugin-dir", "--dangerously-bypass-hook-trust", "--enable", "--disable")
     if any(t.split("=", 1)[0] in denied for t in tokens):
         raise ValueError("native argv changes the guarded profile")
-    for value in tokens:
-        if value.startswith(("--config=", "-cfeatures", "-chooks", "-cshell_environment_policy")):
-            raise ValueError("joined native config override is not admitted")
-    for index, value in enumerate(tokens):
-        if value in {"-c", "--config"} and index + 1 < len(tokens):
-            key = tokens[index + 1].split("=", 1)[0]
-            if key.startswith(("hooks", "features.", "shell_environment_policy")):
-                raise ValueError("native argv changes hook/continuation coverage")
+    if harness == "codex":
+        tokens = codex_config_args(tokens)
     if binding["authority_environment"]["HOME"] != str(Path.home()):
         raise ValueError("authority HOME differs from the trusted launcher")
     out = dict(env)

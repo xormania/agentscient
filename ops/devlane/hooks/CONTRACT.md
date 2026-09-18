@@ -72,6 +72,13 @@ Both call the same evaluator. Resume revalidates source/configuration/identity;
 no fallback to operator home, old profiles or an unguarded launch is permitted.
 No owner home/project setting is activated by source installation or testing.
 
+Codex configuration arguments have one admitted grammar across split `-c` /
+`--config`, joined `-cKEY=VALUE`, and equals forms. The key is an unquoted
+dotted identifier and the value is one TOML value. Missing values, quoted or
+ambiguous keys, extra assignments and unknown keys refuse before launch.
+Only the existing launcher projections for reasoning effort, output custody
+and MCP registration may use this transport; hook and feature overrides refuse.
+
 ## Verification and activation
 
 The existing hooks, harness, dispatch and conductor conformance families own
