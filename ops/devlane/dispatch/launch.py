@@ -637,6 +637,9 @@ COORD_MCP_TOOLS = (
 # slice to that launch; claude and grok take their servers by other routes
 # and are named here rather than left to read as "nothing to wire".
 COORD_MCP_HARNESSES = ("codex",)
+# Shared core context, carried by each supported adapter's MCP transport.
+# The legacy session key names the issued lane binding, not a vendor role.
+COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF")
 COORD_MCP_ABSENT = {
     "unresolved": "the launcher's own tree has no "
                   "ops/conductor/tools/coordination_mcp.py"}
@@ -753,10 +756,13 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
             "server": server, "tools": list(COORD_MCP_TOOLS)}, server
 
 
-def _codex_mcp_argv(key, server):
-    """The two `-c` overrides that register one server with codex."""
-    return ["-c", f'mcp_servers.{key}.command="{server[0]}"',
-            "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+def _codex_mcp_argv(key, server, env_keys=()):
+    """Register one server and its explicit environment forwarding."""
+    tokens = ["-c", f'mcp_servers.{key}.command="{server[0]}"',
+              "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+    if env_keys:
+        tokens += ["-c", f"mcp_servers.{key}.env_vars={json.dumps(env_keys)}"]
+    return tokens
 
 
 def _mcp_argv(harness, server, job_dir, coord=None):
@@ -771,7 +777,7 @@ def _mcp_argv(harness, server, job_dir, coord=None):
     if harness == "codex":
         tokens = _codex_mcp_argv(LANE_MCP_KEY, server)
         if coord:
-            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord)
+            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord, COORD_MCP_ENV)
         return tokens
     return []
 
@@ -1168,6 +1174,12 @@ def _child_env(base, additions, job_id, session=None):
                 "GIT_EDITOR": "true", "EDITOR": "true", "PYTHONUNBUFFERED": "1",
                 "PYTHONIOENCODING": "utf-8", "LC_ALL": "C.UTF-8",
                 "WF_LANE": "dev", "DISPATCH_JOB": job_id})
+    env.update(additions)
+    # The child is initialized by dispatch, separately from interactive
+    # terminal registration. No parent/native alias may select its actor.
+    for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+                "CODEX_THREAD_ID", "CODEX_SESSION_ID"):
+        env.pop(key, None)
     # A dispatch that minted no session id leaves the key absent rather
     # than setting it empty: the server refuses class `session` on unset,
     # and an empty string would be a caller naming a session that is not
@@ -1176,8 +1188,33 @@ def _child_env(base, additions, job_id, session=None):
         env["CLAUDE_SESSION_ID"] = session
     else:
         env.pop("CLAUDE_SESSION_ID", None)
-    env.update(additions)
     return env
+
+
+def _binding_session(rec):
+    """Lane identity survives native conversation discovery and resume.
+
+    Old bound records retained the issuer's exact receipt even when their
+    session.id was replaced. Recover that declared identity, never guess
+    from a native rollout or another participant with the same model.
+    """
+    saved = rec.get("session") or {}
+    binding = saved.get("binding_id")
+    if binding:
+        if not isinstance(binding, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", binding):
+            _refuse("binding", "a valid recorded lane session id", "invalid binding_id",
+                    "restore the original dispatch binding")
+        return binding
+    receipt = saved.get("bound")
+    if receipt:
+        match = re.fullmatch(
+            r"participant PT-[1-9][0-9]* bound for session ([A-Za-z0-9][A-Za-z0-9._-]{0,127}) "
+            r"by PT-[1-9][0-9]* for A-[1-9][0-9]*", str(receipt).strip())
+        if not match:
+            _refuse("binding", "the original bind-for receipt for this retained job",
+                    "an unreadable receipt", "restore the issued binding before resuming")
+        return match.group(1)
+    return saved.get("id")
 
 
 def _bound_participant(line):
@@ -1808,7 +1845,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"],
-                     session=(rec.get("session") or {}).get("id"))
+                     session=_binding_session(rec))
     if harness == "agy":
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
@@ -2224,7 +2261,7 @@ def _launch(args):
         # participant for the session above, and None when it named no
         # assignment. A record that merely minted a session id and one
         # that bound a participant to it are different facts.
-        "session": {"id": session, "stream": None,
+        "session": {"id": session, "binding_id": session, "stream": None,
                     "stream_sha256_at_close": None, "bound": bound},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,

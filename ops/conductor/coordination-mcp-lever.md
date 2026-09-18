@@ -149,8 +149,9 @@ MCP servers registered in this repository's `.mcp.json`:
 So an interactive session needs no per-session binding file. The server
 resolves the caller by the id in its own environment:
 
-1. `instrument.session()` reads `CLAUDE_CODE_SESSION_ID` (it also admits the
-   older `CLAUDE_SESSION_ID`, which nothing here sets — LD-50).
+1. `instrument.session()` reads the common session carriers declared in
+   instrument-conventions.md: the Claude keys and native Codex thread or
+   session keys. An explicit dispatched binding has precedence.
 2. The id keys the participants row, the way `instrument.stored_identity()`
    keys `session_identity` in the lane's state store today.
 3. No row for that id refuses class `participant`, naming the id it looked
@@ -172,30 +173,28 @@ Lead ruled it out for this server, and the measurement says why. It remains
 the identity for hand-run CLI verbs, where the person running the command is
 the author.
 
-### 2.3 The declared limit of slice one
+### 2.3 Distinct interactive and dispatched initialization
 
-**Slice one serves interactive sessions.** A dispatched worker cannot be
-bound until package B carries a bind that takes an explicit session id,
-callable by a dispatcher-role participant and recording its issuer (the
-Lead's ruling, 2026-09-16, asked of package B the same day). Until that
-lands, a config binding is validated and its capability list is enforced,
-and the call then refuses class `state` naming what is missing. This is
-the declared limit, not a silence: the server says which half of itself is
-not yet reachable.
+Interactive terminals self-bind using their native session carrier; no
+dispatch record or assignment is required. Dispatched workers instead
+receive a participant from the dispatcher's `bind-for` operation. The
+issued lane binding is stable across attempts even when the harness's
+native conversation id changes. Both paths use the same participant store
+and coordination core; terminal message transport is independent of them.
 
-Slice two closes it, and the probe for each harness is already taken
-(measured 2026-09-16):
+A config-bound call resolves its participant from that store, verifies
+that its issued session matches the server environment, and applies the
+config's assignment and capabilities. The old unconditional refusal for
+all config-bound calls is withdrawn. Missing or mismatched bindings still
+refuse, including a config used by another session.
 
-- **Claude**: `claude --session-id <uuid>` exists — "Use a specific
-  session ID for the conversation (must be a valid UUID)" — and the
-  launcher already passes it (`launch.py:957`) with the uuid it mints per
-  dispatch (`launch.py:1934`). So the bound id and the id the worker's MCP
-  server inherits are the same value today, with no launcher change: what
-  is missing is only the bind before launch.
-- **Codex and Grok**: neither sets a session id in its environment. Slice
-  two sets the launcher's minted uuid as `CLAUDE_SESSION_ID`, the older
-  key `instrument.session()` already admits (LD-50), so the same
-  resolution path serves all three harnesses without a second mechanism.
+The launcher currently registers the acting server for Codex only. Its
+adapter explicitly forwards the issued `CLAUDE_SESSION_ID`, the existing
+shared-reader carrier, plus `LANE_CONF` and `XDG_STATE_HOME`. Native MCP
+environment filtering must not silently select another store or session.
+Claude, Grok and agy dispatches continue to declare acting-MCP absence;
+shared domain support does not certify an unimplemented native adapter.
+The dispatch contract owns the adapter behavior and resume checks.
 
 ### 2.4 Precedence
 
