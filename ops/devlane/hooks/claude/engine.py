@@ -423,8 +423,14 @@ def p_unittest_path_form(ctx):
 # (deliverable.py target_line), so the anchor ends at the word and allows
 # the stamp: the row demanded a line it then rejected, accepting 4 of
 # show's 21 lines and refusing the 17 that carried `(by ...)`.
+# Leading whitespace and quote markers are allowed: a session pastes a
+# reading indented, inside a fenced block or behind a `>`, and all three
+# were refused at column 0 only. Measured 2026-09-16 at 4b4de8fb: all four
+# accepted forms rejected under four spaces of indentation, including the
+# row's own `target: expected the measure to read ...` refusal, which it
+# names as a remedy. The row refused the reading it had just printed.
 LOCK_LINES = re.compile(
-    r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\b)",
+    r"^[ \t>]*(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\b)",
     re.MULTILINE)
 
 # A completion claim, not a completion word. Measured 2026-09-16 over one
