@@ -176,6 +176,11 @@ only. It requires an open, unexpired, unscoped `other` grant belonging to
 the same session and attribution. The grant is read from `hand.py`'s
 store; a missing, unreadable, settled, expired or differently bound grant
 refuses before roles change. The reason must name the recovery need.
+The hand-store lock prevents settlement during recovery. After acquiring
+the coordination write lock, recovery checks expiry again before writing;
+waiting for another writer does not extend the grant's lifetime. Invalid
+numeric IDs and dates or durations outside the supported range refuse on
+the same wire.
 
 The grant may authorize one such role recovery. A transaction records
 the grant's exact reading, prior roles, requested roles, participant and

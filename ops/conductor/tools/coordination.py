@@ -819,7 +819,8 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
         refuse("identity", "the calling session's attribution", "a different agent argument",
                "use the identity of the session invoking recovery")
     named = roles_of(roles)
-    if not str(grant).isdigit() or int(grant) < 1 or len(why.split()) < 4:
+    if (not re.fullmatch(r"[1-9][0-9]{0,18}", str(grant))
+            or int(grant) > 9223372036854775807 or len(why.split()) < 4):
         refuse("grant", "a positive grant id and a reason of at least four words",
                "invalid recovery arguments", "name the owner's declared recovery grant")
     grant_id = int(grant)
@@ -833,14 +834,19 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
         valid = (row is not None and row["status"] == "open"
                  and row["session"] == session() and row["agent"] == agent
                  and row["lever_class"] == "other" and not (row["scope"] or "").strip()
-                 and type(row["ttl_s"]) is int and row["ttl_s"] > 0
-                 and parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) > now())
+                 and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
+        deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
+        valid = valid and deadline > now()
         if not valid:
             refuse("grant", "this session's open, unexpired, unscoped other grant",
                    f"grant {grant_id} does not satisfy that binding",
                    "use the owner's recorded recovery authorization for this session")
         conn.execute("BEGIN IMMEDIATE")
         try:
+            if deadline <= now():
+                refuse("grant", "authority current at the role-changing transaction",
+                       f"grant {grant_id} expired while waiting",
+                       "use a current owner-authorized recovery grant")
             conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
                 grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
                 roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
@@ -867,7 +873,7 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
         except BaseException:
             conn.execute("ROLLBACK")
             raise
-    except (sqlite3.Error, OSError, ValueError, TypeError) as error:
+    except (sqlite3.Error, OSError, ValueError, TypeError, OverflowError) as error:
         refuse("grant", "a readable current hand grant and writable coordination store",
                type(error).__name__, "restore the stores before recovering roles")
     finally:
