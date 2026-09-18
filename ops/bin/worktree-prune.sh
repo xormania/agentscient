@@ -19,9 +19,15 @@
 #       2 refusal (expected; found; needed on stderr).
 set -uo pipefail
 
-REPO_DEFAULT='/home/scientdb/projects/uscient/agentscient'
+REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd) \
+  || { printf 'root: expected the repository root above this lever; found dirname failed; needed run the lever from its checkout\n' >&2; exit 2; }
+# LANE_NAME, TRUNK_BRANCH and RELEASE_BRANCH come from the shared conf, never
+# from a literal in a lever (laneconf.py literals).
+# shellcheck source=../lane.conf
+. "$REPO/ops/lane.conf"
+REPO_DEFAULT="$REPO"
 MANIFEST_DEFAULT='ops/conductor/handoff/worktree-archive-2026-09-17.tsv'
-LOCK_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/deliverable.json"
+LOCK_DEFAULT="${XDG_STATE_HOME:-$HOME/.local/state}/$LANE_NAME/deliverable.json"
 BACKUP_DIR_DEFAULT='/home/scientdb/wt-archive'
 
 repo="$REPO_DEFAULT"; manifest=''; lock="$LOCK_DEFAULT"; remote='origin'

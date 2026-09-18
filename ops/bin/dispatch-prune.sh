@@ -26,8 +26,13 @@
 # Exit: 0 clean, 1 findings kept for a human, 2 refusal.
 set -uo pipefail
 
-REPO='/home/scientdb/projects/uscient/agentscient'
-STORE="${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/dispatch"
+REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd) \
+  || { printf 'root: expected the repository root above this lever; found dirname failed; needed run the lever from its checkout\n' >&2; exit 2; }
+# LANE_NAME, TRUNK_BRANCH and RELEASE_BRANCH come from the shared conf, never
+# from a literal in a lever (laneconf.py literals).
+# shellcheck source=../lane.conf
+. "$REPO/ops/lane.conf"
+STORE="${XDG_STATE_HOME:-$HOME/.local/state}/$LANE_NAME/dispatch"
 STAGE='/home/scientdb/dispatch-bulk-staging-20260918'
 INDEX=''
 mode='plan'
