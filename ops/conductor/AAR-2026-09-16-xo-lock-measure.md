@@ -83,6 +83,92 @@ planted faults specified in the rows and not yet written:
   at exit 0. e3's finding, measured by e3 at 19:16Z, filed attributed
   and not re-measured by me.
 
+## Two series, and they are not the same count
+
+Two patterns ran through the day and it would be easy to merge them.
+They are counted separately on purpose.
+
+The first is a session committing the fault it had just documented:
+five instances, recorded above. The second is LD-99, a measurement
+answering about a subject other than the one asked: eight instances.
+They overlap but they are not the same series, and a count that mixed
+them would be the day's own fault wearing a summary.
+
+The eighth instance of the second series arrived last and is the one
+worth ending on. When #258 landed, agentscient-e3's lock measure read
+**met**. The reading was true and it was misleading: the measure named
+CLAIM_PREDICATION, the first three fixes, while the fourth — the
+column-0 anchor that had been refusing every pasted reading in the lane
+all evening — sat on a branch with no pull request. The lock would have
+told the board the deliverable was complete while the defect was on no
+route to dev at all.
+
+e3's sentence for it is better than mine: a measure that reads met
+while naming less than the deliverable is the same failure as a measure
+that cannot read met, pointed the other way. LD-95 said a measure reads
+once. It now also says a measure names the whole deliverable. That is
+the same row seen from the other side, and it is the more dangerous
+side, because it fails toward met.
+
+It was corrected with both arms proven before the replacement was
+installed — three runs reading not-on-dev against origin/dev, three
+reading on-dev against the branch ref, exit 0 on all six — on the
+stated ground that its author had filed this row's shape against
+another session that evening and would not install a measure it had
+only seen fail. That is LD-99's positive control, applied without being
+asked, by the session that had most recently been on the wrong end of
+its absence.
+
+## How the stranded work was actually found
+
+Two branches held finished work with no route to the trunk today:
+`lane/session-20260916-09`'s nine records, whose session died before
+16:02Z, and agentscient-e3's fourth fix, pushed to a branch whose pull
+request had merged out from under it while it was committing.
+
+The second was found because I checked the PR state of e3's branch at
+the moment e3 was about to wait on CI that would never report. It would
+be flattering and wrong to call that diligence. I ran that check because
+I had run the same one on `-09` an hour earlier and it was still the
+shape of question in my hands. The first find made the second one cheap.
+A habit transferred, not a virtue exercised — which is the argument for
+mechanisms again, since a mechanism transfers to a session that never
+had the habit.
+
+## The class underneath all of it: LD-99
+
+agentscient-f2 named it at 20:21Z, after each of us had caught our own
+instance: "the measurement answered about something other than what was
+asked", and if it recurs it is a class rather than a coincidence. It had
+already recurred. Counting the day, there are seven instances, six
+inside four hours, and they are filed as LD-99.
+
+It is not the same as LD-97. There a tool returns a silent empty answer
+where absence discipline wants an explicit marker. Here every tool
+answered honestly about what it was actually handed; the operator handed
+it the wrong subject and read the reply as the answer to a different
+question. `grep -c` counted a pattern in a file that was not there.
+`merge-tree` merged a branch against a trunk that already contained it.
+A shell expanded a measure the lever never expands. An mtime on
+`.git/index` answered a question about `~/.cache/phpactor/index`.
+
+In five of the seven the wrong answer was published to other sessions
+before anyone re-measured. In two it was caught only because the result
+was impossible — dev cannot have taken a branch whose PR is still a
+draft, and eight identical clauses cannot produce three different
+readings — and not because the measurement was checked.
+
+The repair is not care, because care is what everyone was already
+exercising. It is a positive control in the same command: a case known
+to produce the opposite answer, beside the case under test. The one
+instance today where the operator got it right the first time is
+agentscient-e3 measuring `/tmp` at 246 bytes beside `/nonexistent` at 0
+bytes, which is why its `usage.py` reading held up when everything else
+that hour did not. `docs/probes.md` already demands exactly this of
+`absent` corpus rows and self-detects a pattern that would match its own
+directory. The rule exists; it is simply not applied to measurement
+outside the corpus.
+
 ## The lesson worth keeping
 
 A reading that contradicts a peer's reading is evidence about the
@@ -123,6 +209,87 @@ One label error of mine: I addressed several seats about "M-124", which
 is my own row. Each seat has its own — 82's M-127, e3's M-128, c1's
 M-129. Each of them found theirs regardless and said so.
 
+## A fourth instance, and the first the mechanism caught
+
+Three of the day's faults were caught by a peer. The fourth was caught
+by the lock.
+
+agentscient-e3 wrote its own lock measure to `echo` only on success, so
+"this is not on dev yet" came back through `reading()` as
+`unreachable (exit 1)` — could-not-look reported where looked-and-found-
+nothing was true. That is LD-97, the row e3 itself found against
+`usage.py report` at 19:16Z and which I filed on its behalf at 19:25Z,
+reproduced by its author in its own lock entry while the row was open.
+e3 reports it corrected: the measure now prints `donegate=not-on-dev`
+and exits 0, and the `done` verb returns a refusal carrying the finding
+instead of an unreachable.
+
+    target: expected the measure to read donegate=on-dev; found
+    donegate=not-on-dev; needed keep going; done is the reading, never
+    the named slices
+
+Short, and correctly short. The distinction the wire asks for is the
+difference between those two readings, and the lever now makes it.
+
+What is worth keeping is not that a fourth session made the same class
+of mistake. It is that this one was caught by the instrument rather
+than by another session reading the report afterwards. The first three
+cost an hour of peer argument each; this one cost a minute and one
+message, and the reason is that the fault landed somewhere a mechanism
+was already looking.
+
+## The fifth instance: the row finding its own fourth defect
+
+agentscient-e3 reports, and I have not re-measured it, that
+`LOCK_LINES` anchored at column 0. All four accepted forms are rejected
+under two spaces, four spaces, a tab, a fenced block or a `>` quote. A
+session pasting a reading the way output is normally pasted was not
+seen to have pasted anything.
+
+The case that names it: the row prints
+`target: expected the measure to read ...`, lists that line as one of
+its three accepted remedies, and then refuses it when the session
+pastes it indented. e3 ran `done`, pasted its refusal in a fenced block
+exactly as instructed, and was refused for carrying no lock line. The
+remedy the row hands out did not satisfy the row.
+
+Two mechanisms in one gate were also contradicting each other. The
+model-judged layer registered beside the deterministic one publishes
+that a reading counts "inside a fenced code block, a quote or plain
+text alike". So a session complying with the published rule of one
+layer was refused by the other, with no way to satisfy both.
+
+This is the fifth instance and it has the shape of the fourth, not the
+first three. The mechanism caught it, not a peer; it cost one block
+rather than an hour of cross-session argument. What is particular about
+it is how it was found: the row refused the report of its own first
+three fixes, and that refusal was the only thing that could have
+surfaced the fourth. A defect that hides every pasted reading cannot be
+found by reading pasted readings.
+
+The count for the day is five instances of a session committing the
+fault it had just documented. Three cost an hour each and were caught
+by a peer. Two cost minutes and were caught by an instrument. That
+ratio is the whole argument for D-PATTERN-1 preferring a mechanism to a
+rule relayed by message, and the day made it without anyone arguing it.
+
+## The gate refusing the report of its own fix
+
+e3 reports that the deterministic done-gate blocked its previous reply
+although that reply carried a conforming lock line, because the main
+checkout still runs the old anchor and e3's line carried a `(by ...)`
+stamp that the old anchor does not admit. The fix for exactly that
+anchor is the change e3 was reporting at the time, in #258. The gate
+stops refusing it when #258 reaches dev.
+
+I did not see that block myself and am not reproducing its text here;
+this paragraph is e3's reading, attributed, and the verbatim refusal is
+in e3's own transcript. What I did measure is the same anchor defect
+from the other side earlier this evening: of 21 target lines in the
+lock, only the four unstamped 2026-09-15 ones satisfy the old anchor,
+and my own stop passed only because those four happened to be in the
+output I pasted.
+
 ## The id collision, found while routing another seat's stranded work
 
 `defects.py next` fetches `origin/dev` and answers with the first id
@@ -155,5 +322,112 @@ about the world by looking at one branch: LD-95 is a measure that
 reads a moving counter twice, and this is an id allocator that reads
 one ref once. The shape is the same — a reading taken where the
 answer does not live.
+
+## The evening: four rows, and the one I got wrong in public
+
+The evening produced LD-100 through LD-105 and one correction that
+matters more than any of the rows.
+
+**LD-101, and how it was wrong.** I swept the live dispatch store
+against the landed records and reported that 265 of 825 records had
+never landed, fifty of them closed carrying p1 findings, eighteen at
+heads that are on dev. I filed it, told the CO it was the most serious
+finding of the day, and told the owner it was worth hearing that night
+rather than in the morning's board.
+
+It was wrong. agentscient-86 refused it and named the cause in one
+sentence: the record I had called un-landed was landed, at ec736ffa on
+its own branch, and findings.py resolves its root from the checkout it
+runs in. My sweep compared the live store against .dev/records/dispatches
+in one worktree — mine — and reported a per-branch absence as a
+lane-wide one.
+
+Re-measured across all 393 origin refs: 832 record files exist
+somewhere, origin/dev carries 576, 256 are landed off dev, and fifty of
+those are closed carrying p1, for 116 p1 findings unreachable from the
+trunk. Nine records are landed on no ref at all.
+
+The defect is not withdrawn. It is worse stated correctly, and simpler:
+a record lands into a branch, not into the lane. That is exactly why
+#254 merged with its audit unseen — the record sat on a branch and the
+gate read dev. But the numbers I escalated were not the numbers, and I
+escalated them before anyone had checked.
+
+**What the positive control did not do.** That first sweep carried a
+positive control, deliberately, because LD-99's own repair asks for one.
+The control passed: the pass found a record at 6213c35a, so the matching
+worked. It told me nothing about whether I was matching the right trees.
+A control proves the instrument fires. It does not prove the instrument
+was pointed at the subject. That sentence is the most useful thing in
+this record and it cost an escalation to learn.
+
+The wrong reading is kept in LD-101 under a field of its own rather than
+replaced. A row about measurement discipline that quietly corrected
+itself would be the same failure a second time, in the same row.
+
+**LD-102, found by two seats and not by me.** I relayed the CO's orders
+to c1 and to 82 over the session transport. Both read their own inboxes,
+found none of the rows I was citing, and refused to act. They were six
+minutes apart and neither knew of the other's refusal. They were right:
+M-124 tells every seat to validate an order from its own inbox against
+the lead's participants row, and M-144 routes every order through the
+XO, so a seat following the discipline exactly cannot validate anything
+relayed to it. The duty to check stood; the means of checking had been
+withdrawn. I wrote the orders into the store as M-162 and M-163 so they
+could be checked, and filed the row. Two seats applying a rule carefully
+found a hole in the rules; that is the system working, and it is worth
+more than either seat's assignment that evening.
+
+**LD-105, and a five-second collision.** The hook engine reads a file
+named in a command as it stands before the command runs, so a command
+that writes a file and then consumes it is judged on text already
+replaced, and the refusal cannot be fixed by fixing the content. e3 hit
+it, I hit it independently, and then the row filing it was refused on
+its own repair field — three instances, the third being the mechanism
+refusing the record of itself.
+
+It was filed as LD-103 and renumbered to LD-105 because agentscient-86
+filed a different LD-103 five seconds later: 17:01:37-04:00 against
+17:01:32-04:00. Both of us scanned all 393 origin refs for the highest
+id before choosing. Both read LD-102. Both were correct when we read.
+
+That is the sharpest evidence the day produced for a ruling made earlier
+on design grounds: f2's ref-wide read and S2's reservation table are
+complementary. The ref-wide read closes the window where an id sits on
+an unmerged branch, which is the window that caused the earlier
+collisions. It does not close the interval between reading and writing,
+and five seconds was enough. Only a mint under one transaction closes
+the second. Had we landed the ref-wide read alone and called the class
+closed, this collision would have been filed as a recurrence against the
+fix under D-PATTERN-1, when it is a different window the fix never
+claimed.
+
+**A candidate class, named and not filed.** e3 observed that two
+mechanisms this week were each discovered by refusing their own
+description: the Stop row refused e3's report of its first three
+defects, which is how the fourth was found, and the engine refused the
+record of LD-105 on its own repair field. Two is not a class. It is
+recorded here with its count stated so that a third instance has
+somewhere to go, rather than being rediscovered from nothing.
+
+**The counts, updated.** LD-99 now stands at ten instances for the day.
+The two added tonight are both mine: a probe row checked with an
+alternation that answered by matching its other half, an hour after I
+filed LD-99; and the LD-101 sweep that answered about one worktree when
+the question was about the lane. The other series — a session committing
+the fault it had just documented — stands where it stood, with the
+addition that the session which filed the measurement-discipline row
+then published a measurement that had not been taken properly, and
+escalated it.
+
+**What the seats did that I would want repeated.** 86 refused my row and
+re-measured rather than accepting it. e3 refused twice to edit my
+paragraph or measure my absence claim for me, and read the published
+body back and diffed it rather than trusting the URL the tool returned.
+c1 and 82 refused orders they could not validate. 82 wrote its close on
+its own authority rather than waiting for an order it could not check.
+Every one of those refusals cost a round trip and every one of them
+caught something. The evening's record is better for each of them, and
+in three of the four cases the thing they caught was mine.
 
 Source: owner 2026-09-16

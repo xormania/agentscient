@@ -39,7 +39,7 @@ A condition is a row in the registry bound to an event (PreToolUse, PostToolUse,
 | `input-absent` | a `--scope-file` or `--input` missing or empty | spell the path from the worktree and check it exists before the call. |
 | `stale-base` | merging dev forward into the worktree would conflict (behind alone is merged by the dispatcher before the launch, 2026-09-12) | `git merge origin/dev` in the worktree, resolve the named files, commit, then dispatch. |
 | `test-form` | unittest given a path | `python3 -m unittest discover -s <dir> -p '<file>'`. |
-| `prune` | `rm -r` of records, state, worktrees or `.git` | never. Branches are never deleted; worktrees are listed in the handoff. |
+| `prune` | `rm -r` of records, state, worktrees or `.git` | never. A branch is retired only after its tip is inside a verified, indexed bundle, and only by the owner's hand (AGENTS.md §dev is the trunk); worktrees are listed in the handoff. |
 | `bucket-command`, `walkthrough`, `contract-vet`, `dispatch-env` | the scope names the whole suite; a write job carries no walkthrough; harness contracts do not vet; a launch without the launcher pin | read the row's needed half in the refusal; each names the exact file or token to change. |
 
 ## Command-shape and delegation hooks (`unsafe-command.py`, `no-subagents.py`)
