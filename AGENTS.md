@@ -20,7 +20,17 @@ boundary is not a declared, verifiable coupling.
   green. `master` is the default and release branch: a release is a
   draft PR from `dev` into `master`, opened by a session for a group
   of landed work and merged by the owner alone. No squash merges,
-  never a deleted branch. **One branch per session** (owner, 2026-09-12:
+  never an unarchived deletion (owner, 2026-09-18: "fix AGENTS.md"):
+  a branch is retired only after its tip is inside a
+  verified bundle whose index is committed and pushed, and the index
+  names the sha that restores it. This replaces "never a deleted
+  branch", which the retirement of 2026-09-18 stopped matching when 266
+  branches went from the remote against the bundle
+  `agentscient-refs-20260918T015216Z.bundle` and the index
+  `ops/conductor/handoff/branch-archive-20260918T015216Z.tsv`.
+  Deleting is the owner's hand, never an agent's; the matching hook row is
+  wall work and not yet built, so this line is law, not a live guard.
+  **One branch per session** (owner, 2026-09-12:
   "one branch per session - lets try it"; "as long you account for the
   fact that i'll have multiple sessions running soon"): a session cuts
   `lane/session-<date>-<id>` from `dev` at its start, names it in the
