@@ -722,7 +722,7 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     key = session("").strip()
     if not key:
         refuse("session", "a session id in the environment", "unset",
-               "run under a harness that sets CLAUDE_CODE_SESSION_ID")
+               "run under a harness that supplies a Claude or Codex session id")
     # The read that decides and the write that acts take the lock
     # together. `writer()` is autocommit, so between the count and the
     # insert two first callers both read zero and both took roles above

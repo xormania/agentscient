@@ -52,9 +52,15 @@ another; a blank override is not a declaration and is passed over. One
 reader, `instrument.identity()`. Reads need no identity. Where rows are
 stamped, `agent` is what that reader returns and `session` comes from
 the harness:
-`CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`, else `unknown` (or
+`CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`, else
+`CODEX_THREAD_ID`, else `CODEX_SESSION_ID`, else `unknown` (or
 whatever word the caller chose for its own absence, as skills.py chooses
 `unrecorded`). A blank value is not a declaration and is passed over.
+The two Codex keys identify native interactive sessions. A dispatch's
+explicit `CLAUDE_SESSION_ID` binding keeps precedence: the launcher
+binds that minted session to its participant before starting the worker.
+Native sessions with the same model attribution still bind distinct
+participants, and neither can resolve the other's participant as itself.
 One reader, `instrument.session()`; a tool that reads the environment
 for this itself is a finding (LD-50, measured 2026-09-16: the lane read
 `CLAUDE_SESSION_ID` alone, which this harness does not set, so 251

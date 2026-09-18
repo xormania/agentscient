@@ -132,7 +132,9 @@ def identity_parts() -> tuple[str, str]:
 # CLAUDE_SESSION_ID, which nothing sets here, so every row it stamped
 # recorded nobody: 251 handwork rows `unknown` and 506 skill events
 # `unrecorded` at bbdcc651 (LD-50). The older key stays admitted, because
-# a host that exports it is answering the same question.
+# a host that exports it is answering the same question. Native Codex
+# sessions supply CODEX_THREAD_ID and CODEX_SESSION_ID. A launcher's
+# explicit legacy binding retains precedence over the worker's native id.
 SESSION_UNKNOWN = "unknown"
 
 
@@ -143,7 +145,7 @@ def session(default: str = SESSION_UNKNOWN) -> str:
     so in the word the caller chose. Blank is not a declaration and is
     passed over, so an exported-but-empty key never reads as an answer.
 
-    Both keys are spelled literally here rather than looped over a tuple
+    The keys are spelled literally here rather than looped over a tuple
     of names: laneconf's closure check matches a literal beside
     `os.environ.get`, and a read its own gate cannot see is the dark
     coupling docs/verified-couplings.md names.
@@ -151,6 +153,8 @@ def session(default: str = SESSION_UNKNOWN) -> str:
     for value in (
         os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
         os.environ.get("CLAUDE_SESSION_ID", ""),
+        os.environ.get("CODEX_THREAD_ID", ""),
+        os.environ.get("CODEX_SESSION_ID", ""),
     ):
         named = value.strip()
         if named:
