@@ -4,6 +4,7 @@ Single dev-lane producer under owner WALL grant; independent verifier is root.
 """
 import json
 import os
+import shutil
 import sqlite3
 import unittest
 from datetime import timedelta
@@ -344,6 +345,57 @@ class SharedEnforcement(unittest.TestCase):
             for arg in args:
                 if arg != "project,local":
                     self.assertIn(arg, command)
+
+    def test_custody_source_is_pinned_protected_and_checked_after_child(self):
+        root = Path(__file__).resolve().parents[4]
+        source = self.world.root / "source"
+        owner_path = "ops/devlane/harness/isolation.py"
+        for original in {*profiles.source_pins(root), str(root / owner_path)}:
+            target = source / Path(original).relative_to(root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(original, target)
+        canary = self.world.root / "unvalidated-import"
+        profiles.isolation_owner.cache_clear()
+        self.addCleanup(profiles.isolation_owner.cache_clear)
+        with patch.object(profiles, "__file__", str(source / "ops/devlane/hooks/profiles.py")):
+            binding = profiles.generate("codex", self.world.root / "custody-profile", source=source,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                        credential_environment=self.world.env())
+            command, _ = profiles.native_launch(binding, ["/usr/bin/true"], self.env)
+            owner = source / owner_path
+            with self.subTest(closure=True):
+                self.assertIn(str(owner), binding["pins"])
+            with self.subTest(protection=True):
+                self.assertIn(["--ro-bind", str(owner), str(owner)],
+                              [command[i:i + 3] for i in range(len(command))])
+
+            def child_exits(*args, **kwargs):
+                owner.write_text(owner.read_text() + f"\nPath({str(canary)!r}).touch()\n")
+                return 0
+
+            with patch.object(profiles.subprocess, "call", side_effect=child_exits):
+                self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2)
+            self.assertFalse(canary.exists(), "changed custody code executed after the child")
+            with self.assertRaisesRegex(ValueError, "closure changed"):
+                profiles.validate(binding)
+
+    def test_unchanged_interactive_custody_carries_renewal_to_original_home(self):
+        root = Path(__file__).resolve().parents[4]
+        host = self.world.home / ".codex/auth.json"
+        host.parent.mkdir()
+        host.write_text('{"synthetic":"original"}')
+        os.utime(host, ns=(1, 1))
+        binding = profiles.generate("codex", self.world.root / "renewal-profile", source=root,
+                                    cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                    credential_environment=self.world.env())
+        renewed = Path(binding["home"]) / "auth.json"
+        renewed.write_text('{"synthetic":"renewed"}')
+        profiles.isolation_owner.cache_clear()
+        self.addCleanup(profiles.isolation_owner.cache_clear)
+        with patch.object(profiles.subprocess, "call", return_value=0):
+            self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 0)
+        self.assertEqual(json.loads(host.read_text()), {"synthetic": "renewed"})
+        self.assertTrue(renewed.is_symlink())
 
     def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
         original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"

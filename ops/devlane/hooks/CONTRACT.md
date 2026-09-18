@@ -90,6 +90,15 @@ consume the existing trusted dispatcher's argv, including its sandbox, issued
 identity, output paths and bound MCP registration. An interactive binding
 cannot select that worker route.
 
+Credential custody is part of the same source closure: the current isolation
+owner (`ops/devlane/harness/isolation.py`) has only standard-library runtime
+imports on the build-home/carry-back path. Its source is pinned and protected
+alongside the evaluator. Load that owner from validated source bytes before the
+child starts, without trusting a mutable bytecode cache. After child exit,
+revalidate the complete binding before any credential carry-back effect; a
+changed or missing source/configuration refuses and leaves renewed credentials
+in the native home. Error reporting never imports an unvalidated custody owner.
+
 ## Verification and activation
 
 The existing hooks, harness, dispatch and conductor conformance families own

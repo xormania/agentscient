@@ -32,7 +32,7 @@ def source_pins(source):
     files = list((hooks / "claude").glob("*.py"))
     files += [hooks / name for name in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
     files += list((source / "ops/conductor/tools").glob("*.py"))
-    files += [source / "ops/lane.conf"]
+    files += [source / "ops/lane.conf", source / "ops/devlane/harness/isolation.py"]
     if not files or any(not p.is_file() or p.is_symlink() for p in files):
         raise ValueError("unavailable stable policy closure")
     return {str(path): digest(path) for path in sorted(set(files))}
@@ -365,7 +365,7 @@ def native_launch(binding, argv, env):
     command = [bubble, "--die-with-parent", "--unshare-user", "--bind", "/", "/", "--proc", "/proc", "--dev", "/dev"]
     protected = {str(Path(binding["source"]) / "ops/devlane/hooks"),
                  str(Path(binding["source"]) / "ops/conductor/tools"),
-                 str(Path(binding["source"]) / "ops/lane.conf"), binding["helper"], binding["binding"], *binding["config_pins"]}
+                 *binding["pins"], binding["helper"], binding["binding"], *binding["config_pins"]}
     for path in sorted(protected):
         command += ["--ro-bind", path, path]
     out["AGENTSCIENT_HOOK_PROFILE"] = binding["binding"]
@@ -427,12 +427,17 @@ def initialize(binding, native_payload, *, instrument):
 
 
 @cache
-def isolation_owner():
+def isolation_owner(expected=None):
     import importlib.util
     path = Path(__file__).resolve().parents[1] / "harness/isolation.py"
+    source = path.read_bytes()
+    if expected is not None and hashlib.sha256(source).hexdigest() != expected:
+        raise ValueError("credential custody source changed before import")
     spec = importlib.util.spec_from_file_location("profile_isolation", path)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Execute exactly the checked bytes, never a writable adjacent .pyc. This
+    # owner imports only stdlib dependencies, loaded before the native child.
+    exec(compile(source, str(path), "exec"), module.__dict__)  # noqa: S102 - pinned source owner
     return module
 
 
@@ -488,10 +493,12 @@ def main(argv=None):
             if binding.get("mode") != "interactive":
                 raise ValueError("interactive launch requires an interactive projection")
             command, env = native_launch(binding, [binding["executable"], *native_args], os.environ)
+            custody = isolation_owner(binding["pins"][str(Path(binding["source"]) / "ops/devlane/harness/isolation.py")])
             try:
                 return subprocess.call(command, env=env)  # noqa: S603 - interactive lifetime; inherited terminal streams
             finally:
-                isolation_owner().carry_back(binding["harness"], binding["home"], env=binding["credential_environment"])
+                validate(binding)
+                custody.carry_back(binding["harness"], binding["home"], env=binding["credential_environment"])
         elif args.operation == "check":
             validate(read_binding(args.binding))
             print("shared hook profile: valid projection; native interception requires its measured witness")
@@ -501,7 +508,7 @@ def main(argv=None):
             binding = prepare_interactive(args.harness, args.destination, source=Path(__file__).resolve().parents[3],
                                           cwd=args.cwd, agent=args.agent, executable=args.executable)
             print(binding["binding"])
-    except (OSError, ValueError, TypeError, KeyError, isolation_owner().NotIsolated) as exc:
+    except Exception as exc:  # noqa: BLE001 - refusal must not import an unvalidated custody owner
         print(f"hook-profile: expected a complete pinned native projection; found {exc}; needed inspect co_doc.py and regenerate the reviewed profile", file=sys.stderr)
         return 2
     return 0
