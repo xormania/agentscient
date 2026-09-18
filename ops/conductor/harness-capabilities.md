@@ -1,5 +1,27 @@
 # Harness and CLI capability contract — first draft
 
+## Enforcement authority correction — A-218, owner 2026-09-18
+
+The existing [hooks matrix contract](../devlane/hooks/CONTRACT.md) owns current
+harness enforcement: boundaries.json, matrix.py and engine.py compose through
+one common entry. Claude, Codex, Grok and agy adapters translate native events;
+they do not evaluate separate permissions. References below proposing activation
+of lane-policy.json, lane_policy.py, conductor-enforce.py or a frozen-action
+control plan as the shared enforcement authority are superseded by this ruling.
+Those proposals retain historical context, not runtime authority. No undefined
+A-120 hook is created by this correction.
+
+Interactive terminal registration/profile generation and dispatch isolation
+installation are separate startup routes into that same entry. Interactive
+registration uses the native session and existing coordination SQLite lever;
+it requires no dispatch job. Workers keep their issued assignment identity and
+minimal home. Generated native settings are disposable projections, never a new
+state or grant store. Identity, roles, assignments and hand grants remain with
+the existing instrument/coordination/hand owners. co_doc diagnoses projected
+wiring; only versioned native interception witnesses establish coverage.
+Installing this source does not activate owner settings or restart terminals.
+Root independently verifies the concrete candidate before activation.
+
 Standing: PROPOSED. Born 2026-09-01 from the owner's inventory ask
 ("produce the inventory as the first contract draft - in fact -
 inventory of everything is on the docket"); the triangle it anchors

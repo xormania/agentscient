@@ -53,7 +53,7 @@ class ClaudeIsolationIsFlagsAndHomeUntouched(_KitLaunch):
         argv = [str(p) for p in witness["argv"]]
         self.assertIn("--setting-sources", argv)
         self.assertEqual(
-            argv[argv.index("--setting-sources") + 1], "project,local",
+            argv[argv.index("--setting-sources") + 1], "",  # only the explicit trusted shared settings profile is loaded
         )
         self.assertIn("--strict-mcp-config", argv)
         self.assertIn("--disable-slash-commands", argv)
@@ -94,7 +94,7 @@ class MinimalHomesHoldExactlyAuthJson(_KitLaunch):
             os.path.realpath(job_dir / "home" / "codex"),
         )
         names = sorted(p.name for p in Path(home).iterdir())
-        self.assertEqual(names, ["auth.json"])
+        self.assertEqual(names, ["auth.json", "config.toml", "hooks.json"])
         auth = Path(home) / "auth.json"
         self.assertTrue(auth.is_symlink() or auth.is_file())
         self.assertNotEqual(env.get("HOME"), home)
@@ -125,7 +125,7 @@ class MinimalHomesHoldExactlyAuthJson(_KitLaunch):
         self.assertEqual(os.path.realpath(grok_home), expected)
         self.assertEqual(os.path.realpath(home), expected)
         names = sorted(p.name for p in Path(grok_home).iterdir())
-        self.assertEqual(names, ["auth.json"])
+        self.assertEqual(names, ["auth.json", "hooks"])
         self.assertNotEqual(
             os.path.realpath(home), os.path.realpath(self.home),
             "operator HOME must not leak into the grok child",

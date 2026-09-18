@@ -615,7 +615,12 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
 COORD_MCP_SERVER = "coordination"
-COORD_MCP_REL = Path("ops/conductor/tools/coordination_mcp.py")
+# The launcher's own tree, never the worker's snapshot: this script's
+# `import coordination` resolves from `sys.path[0]`, its own directory, so
+# running it from a path the worker can write would let a worker-rewritten
+# core answer with the dispatcher's own authority (finding 1 of
+# 20260916T151749Z-review-codex-ef6db7).
+COORD_MCP_PINNED = APP.parents[1] / "conductor" / "tools" / "coordination_mcp.py"
 COORD_MCP_CONFIG_VERSION = 1
 # The capability list is declared here and proved against the server's own
 # catalogue by a case, rather than read out of the server at launch: the
@@ -632,8 +637,12 @@ COORD_MCP_TOOLS = (
 # slice to that launch; claude and grok take their servers by other routes
 # and are named here rather than left to read as "nothing to wire".
 COORD_MCP_HARNESSES = ("codex",)
+# Shared core context, carried by each supported adapter's MCP transport.
+# The legacy session key names the issued lane binding, not a vendor role.
+COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF")
 COORD_MCP_ABSENT = {
-    "unresolved": "snapshot has no ops/conductor/tools/coordination_mcp.py"}
+    "unresolved": "the launcher's own tree has no "
+                  "ops/conductor/tools/coordination_mcp.py"}
 COORD_MCP_UNBOUND = {
     "unresolved": "the dispatch named no assignment, so the core bound no "
                   "participant for this worker to act as"}
@@ -724,7 +733,7 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
         return {"unresolved": f"the acting server is wired for "
                               f"{', '.join(COORD_MCP_HARNESSES)} today; this "
                               f"dispatch is {harness}"}, None
-    tool = Path(snapshot) / COORD_MCP_REL
+    tool = COORD_MCP_PINNED
     if not tool.is_file():
         return dict(COORD_MCP_ABSENT), None
     if not participant:
@@ -747,10 +756,23 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
             "server": server, "tools": list(COORD_MCP_TOOLS)}, server
 
 
-def _codex_mcp_argv(key, server):
-    """The two `-c` overrides that register one server with codex."""
-    return ["-c", f'mcp_servers.{key}.command="{server[0]}"',
-            "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+def _codex_mcp_argv(key, server, env_keys=(), *, capabilities=None):
+    """Project native transport permissions from the issued capability list.
+
+    Required acting-server startup and per-tool approval admit the client call
+    under approval_policy=never (native M-233). They grant no domain authority:
+    the same issued config, participant, role and generation checks still run.
+    """
+    tokens = ["-c", f'mcp_servers.{key}.command="{server[0]}"',
+              "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+    if env_keys:
+        tokens += ["-c", f"mcp_servers.{key}.env_vars={json.dumps(env_keys)}"]
+    if capabilities is not None:
+        tokens += ["-c", f"mcp_servers.{key}.required=true",
+                   "-c", f"mcp_servers.{key}.enabled_tools={json.dumps(list(capabilities))}"]
+        for name in capabilities:
+            tokens += ["-c", f'mcp_servers.{key}.tools.{name}.approval_mode="approve"']
+    return tokens
 
 
 def _mcp_argv(harness, server, job_dir, coord=None):
@@ -765,7 +787,8 @@ def _mcp_argv(harness, server, job_dir, coord=None):
     if harness == "codex":
         tokens = _codex_mcp_argv(LANE_MCP_KEY, server)
         if coord:
-            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord)
+            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord, COORD_MCP_ENV,
+                                    capabilities=COORD_MCP_TOOLS)
         return tokens
     return []
 
@@ -799,9 +822,23 @@ def _relocate_coordination(rec, job_dir, relocated_from):
     job_dir = Path(job_dir)
     cfg = job_dir / "coordination-mcp.json"
     prior = Path(coord["config"])
-    if prior != cfg and prior.is_file() and not cfg.exists():
+    # A whole job directory moved by shutil already carries this file to
+    # `cfg`; `prior`, the path the record wrote at dispatch time, is gone.
+    # Only a config that reached the new job by some other route is copied
+    # here — either way the JSON below is read from `cfg`, never `prior`,
+    # so its `worktree` field is rebased whichever way it arrived.
+    if not cfg.is_file() and prior != cfg and prior.is_file():
         cfg.write_text(prior.read_text(encoding="utf-8"), encoding="utf-8")
     if cfg.is_file():
+        try:
+            data = json.loads(cfg.read_text(encoding="utf-8"))
+        except ValueError:
+            data = None
+        if (isinstance(data, dict)
+                and isinstance(data.get("worktree"), str) and relocated_from):
+            data["worktree"] = data["worktree"].replace(
+                relocated_from, str(job_dir))
+            cfg.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
         coord["config"] = str(cfg.resolve())
         coord["sha256"] = _sha(cfg)
     server = coord.get("server")
@@ -1148,6 +1185,12 @@ def _child_env(base, additions, job_id, session=None):
                 "GIT_EDITOR": "true", "EDITOR": "true", "PYTHONUNBUFFERED": "1",
                 "PYTHONIOENCODING": "utf-8", "LC_ALL": "C.UTF-8",
                 "WF_LANE": "dev", "DISPATCH_JOB": job_id})
+    env.update(additions)
+    # The child is initialized by dispatch, separately from interactive
+    # terminal registration. No parent/native alias may select its actor.
+    for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+                "CODEX_THREAD_ID", "CODEX_SESSION_ID"):
+        env.pop(key, None)
     # A dispatch that minted no session id leaves the key absent rather
     # than setting it empty: the server refuses class `session` on unset,
     # and an empty string would be a caller naming a session that is not
@@ -1156,8 +1199,33 @@ def _child_env(base, additions, job_id, session=None):
         env["CLAUDE_SESSION_ID"] = session
     else:
         env.pop("CLAUDE_SESSION_ID", None)
-    env.update(additions)
     return env
+
+
+def _binding_session(rec):
+    """Lane identity survives native conversation discovery and resume.
+
+    Old bound records retained the issuer's exact receipt even when their
+    session.id was replaced. Recover that declared identity, never guess
+    from a native rollout or another participant with the same model.
+    """
+    saved = rec.get("session") or {}
+    binding = saved.get("binding_id")
+    if binding:
+        if not isinstance(binding, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", binding):
+            _refuse("binding", "a valid recorded lane session id", "invalid binding_id",
+                    "restore the original dispatch binding")
+        return binding
+    receipt = saved.get("bound")
+    if receipt:
+        match = re.fullmatch(
+            r"participant PT-[1-9][0-9]* bound for session ([A-Za-z0-9][A-Za-z0-9._-]{0,127}) "
+            r"by PT-[1-9][0-9]* for A-[1-9][0-9]*", str(receipt).strip())
+        if not match:
+            _refuse("binding", "the original bind-for receipt for this retained job",
+                    "an unreadable receipt", "restore the issued binding before resuming")
+        return match.group(1)
+    return saved.get("id")
 
 
 def _bound_participant(line):
@@ -1788,7 +1856,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"],
-                     session=(rec.get("session") or {}).get("id"))
+                     session=_binding_session(rec))
     if harness == "agy":
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
@@ -1817,6 +1885,24 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                     "a non-directory entry",
                     "remove the non-directory entry and resume the job")
         env["TMPDIR"] = str(tmpdir.absolute())
+    # A-218: install the same policy projection in the existing worker home.
+    # This is worker initialization, never interactive registration or dispatch.
+    isolation = _module("guard_isolation", HARNESS_APP / "isolation.py")
+    try:
+        profile, binding = isolation.install_enforcement(
+            harness, job_dir / "enforcement", source=APP.parents[2], cwd=snapshot,
+            home=rec["harness"]["isolation"].get("home"),
+            session=_binding_session(rec), agent=rec.get("agent") or env.get("WF_AGENT"),
+            executable=argv[0], servers=[LANE_MCP_SERVER, LANE_MCP_KEY, COORD_MCP_SERVER],
+            relocated_from=relocated_from)
+        argv, env = profile.native_launch(binding, argv, env)
+        # Capture this attempt's directories and checked custody bytes before
+        # the worker; resume captures its current (possibly relocated) home.
+        custody = profile.capture_custody(binding)
+    except (isolation.NotIsolated, OSError, ValueError, TypeError, KeyError) as exc:
+        _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
+                "inspect co_doc.py and the native capability evidence before resuming")
+    rec["harness"]["argv"] = argv
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -1916,21 +2002,31 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     rec["attempts"].append({"n": len(rec["attempts"]) + 1, "launched": launched,
                             "ended": _now(), "exit": code,
                             "tripped": (job_dir / "TRIPPED.md").exists(),
-                            "credential": _carry_back_credentials(harness, job_dir / "home" / harness)})
+                            "credential": _carry_back_credentials(
+                                harness, binding["home"], profile=profile, binding=binding, custody=custody)})
     if reason:
         rec.setdefault("note", reason)
     return code
 
 
-def _carry_back_credentials(harness, home):
+def _carry_back_credentials(harness, home, *, profile=None, binding=None, custody=None):
     """LD-41 (2026-09-15): a credential the worker renewed inside its job
     home goes back to the host copy, so the next launch reads the renewal
     and not the login (isolation.carry_back). Never fails the attempt: a
-    failure is a reading in the attempt, `unresolved`."""
-    isolation = _module("isolation_carry", HARNESS_APP / "isolation.py")
+    failure is a reading in the attempt, `unresolved`. The caller must retain
+    the worker's pre-child profile and custody capture; never construct a
+    post-child capture or import current source as a fallback.
+    """
     try:
-        return isolation.carry_back(harness, home, os.environ)
-    except (isolation.NotIsolated, OSError, ValueError, KeyError) as exc:
+        if profile is None or not isinstance(binding, dict) or custody is None:
+            raise ValueError("worker credential custody requires its admitted profile, binding and pre-child capture")
+        profile.validate(binding)
+        if binding["mode"] != "worker" or binding["harness"] != harness:
+            raise ValueError("credential custody differs from the admitted worker")
+        if Path(home).resolve(strict=True) != Path(binding["home"]).resolve(strict=True):
+            raise ValueError("credential home differs from the admitted worker")
+        return custody(binding, env=os.environ)
+    except Exception as exc:  # noqa: BLE001 - retain unresolved reading without loading a fallback owner
         return [{"unresolved": str(exc)}]
 
 
@@ -2128,17 +2224,11 @@ def _launch(args):
     turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
     prompt_text += _turns_budget(turns)
-    session = None if args.harness == "agy" else str(uuid.uuid4())
+    binding_session = str(uuid.uuid4())
+    session = None if args.harness == "agy" else binding_session
     bound = None
     if args.assignment:
-        if not session:
-            _refuse("binding",
-                    "a session id to bind the worker under",
-                    f"none, because {args.harness} is launched "
-                    f"without one",
-                    "dispatch an assignment on a harness the "
-                    "launcher mints a session for")
-        bound = _bind_worker(session, args.assignment,
+        bound = _bind_worker(binding_session, args.assignment,
                              args.harness, agent)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
@@ -2204,7 +2294,7 @@ def _launch(args):
         # participant for the session above, and None when it named no
         # assignment. A record that merely minted a session id and one
         # that bound a participant to it are different facts.
-        "session": {"id": session, "stream": None,
+        "session": {"id": session, "binding_id": binding_session, "stream": None,
                     "stream_sha256_at_close": None, "bound": bound},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,

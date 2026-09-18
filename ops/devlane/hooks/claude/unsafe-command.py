@@ -444,23 +444,15 @@ def check(cmd: str):
     return None
 
 
-if __name__ == "__main__":
-    import sys
-    if "--test" in sys.argv:
-        print("corpus moved to ops/devlane/hooks/tests/", file=sys.stderr)
-        sys.exit(2)
-    try:
-        payload = json.load(sys.stdin)
-        cmd = ((payload.get("tool_input") or {}).get("command") or "")[:4000]
-    except Exception:
-        logging.exception("failed to read hook payload from stdin")
-        sys.exit(0)
+def decide(payload):
+    """Shared callable entry; complete command bytes, no CLI truncation."""
+    cmd = payload["tool_input"]["command"]
     hit = check(cmd)
 
     # An amend rewrites rather than adds. Both of its failure modes are answerable from
     # local git state alone, so this costs nothing and runs first.
     if not hit and is_amend(cmd):
-        acwd = os.getcwd()
+        acwd = payload.get("cwd") or os.getcwd()
         published = head_already_published(acwd)
         if published:
             hit = ("amend-published",
@@ -476,7 +468,7 @@ if __name__ == "__main__":
         else:
             n, tops = staged_summary(acwd)
             if n > AMEND_STAGED_LIMIT:
-                print(json.dumps({"hookSpecificOutput": {
+                return ({"hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
                     "permissionDecision": "ask",
                     "permissionDecisionReason": (
@@ -486,16 +478,37 @@ if __name__ == "__main__":
                         "twice in one session that turned 7 files into 56, then 13 into 61. "
                         "Confirm the staged set is what you mean:\n"
                         "    git diff --cached --name-only"),
-                }}))
-                sys.exit(0)
+                }})
 
     if hit:
-        print(json.dumps({"hookSpecificOutput": {
+        return ({"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": f"[{hit[0]}] {hit[1]}",
-        }}))
-        # Owner, 2026-09-11: a refusal logs a miss against the `refused`
-        # page; best effort, after the refusal is on stdout.
-        import miss
-        miss.log_miss(payload.get("cwd"), hit[0], hit[1], hook="unsafe-command")
+        }})
+
+    return None
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+        result = decide(payload)
+    except (ValueError, TypeError, KeyError) as exc:
+        result = {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                  "permissionDecision": "deny", "permissionDecisionReason":
+                  f"hook-input: expected complete shell input; found {type(exc).__name__}; needed repair the native adapter"}}
+    if result:
+        print(json.dumps(result))
+        output = result.get("hookSpecificOutput", {})
+        if output.get("permissionDecision") == "deny":
+            import miss
+            reason = output.get("permissionDecisionReason", "")
+            hit = re.match(r"\[([^]]+)\] (.*)", reason, re.DOTALL)
+            if hit:
+                miss.log_miss(payload.get("cwd"), hit[1], hit[2], hook="unsafe-command")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
