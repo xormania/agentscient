@@ -1,0 +1,99 @@
+{
+  "id": "20260918T222623Z-native-audit-codex-01a0b3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260918-enforcement-01a0b31e",
+  "lineage": {
+    "branch": "lane/session-20260918-enforcement-01a0b31e",
+    "base_sha": "e12440f18c81636ffe6b47562eba523c1f2be1d8"
+  },
+  "follows": [
+    "20260918T220256Z-native-audit-codex-01a0b3"
+  ],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": null,
+  "at": "2026-09-18T22:18:15.759Z",
+  "snapshot": {
+    "mode": "whole",
+    "root": "/tmp/agentscient-a304-verify-01a0b32d",
+    "ref_sha": "134e959b1e5ff87b6e5338c48e2e79de4003e97f",
+    "origin": "native reviewer isolated clone; not a dispatched snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "execution": "native-terminal",
+    "argv": null,
+    "containment": "policy",
+    "isolation": {
+      "observed": {
+        "unresolved": "Native terminal launch isolation was not measured. Reviewer used a separate scratch clone; no dispatched worker or OS containment is claimed."
+      }
+    }
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl:662",
+    "measured_at": "2026-09-18T22:04:01.821Z",
+    "effort_requested": null,
+    "effort_argv": [],
+    "note": "Owner selected an existing Daybreak terminal. Actual model read from its native turn_context, not a dispatch request."
+  },
+  "session": {
+    "id": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+    "participant": "PT-19",
+    "assignment": "A-320",
+    "execution": "native-terminal"
+  },
+  "brief": {
+    "source": "M-315 correction verification; M-323 native receipt",
+    "receipt": "M-323",
+    "scope": "Three previous findings and their correction seams; original whole-delta audit retained in follows."
+  },
+  "caps": null,
+  "overrides": {},
+  "attempts": [],
+  "result": {
+    "head": "134e959b1e5ff87b6e5338c48e2e79de4003e97f",
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/launch.py:1998-2016; ops/devlane/hooks/profiles.py:29-38,366-370",
+          "claim": "The correction closes post-child custody drift for run-interactive, but dispatched _run_attempt still calls _carry_back_credentials after the child and that function imports the current isolation.py without validating the worker binding or using prevalidated bytes. In the reproduction, the worker binding and bwrap set correctly pin/protect isolation.py and validation rejects its changed bytes, yet the dispatch carry-back path executes those same changed bytes and writes the canary. This retains the post-child credential-custody integrity failure on the worker path and can execute source outside the job at host-credential authority.",
+          "reproduce": "d=$(mktemp -d /tmp/a304-worker-custody-XXXXXX)\ngit archive HEAD | tar -x -C \"$d\"\npython3 - \"$d\" <<'PY1'\nimport importlib.util, json, os, sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]); sys.path.insert(0,str(root/'ops/devlane/dispatch')); import launch\ndef load(name,path):\n s=importlib.util.spec_from_file_location(name,path); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); return m\np=load('verify_worker_custody_profiles',root/'ops/devlane/hooks/profiles.py')\nwork=root.parent/(root.name+'-work'); work.mkdir(); operator=work/'operator'; host=operator/'.codex/auth.json'; host.parent.mkdir(parents=True); host.write_text('{\"synthetic\":\"original\"}'); os.utime(host,ns=(1,1)); job=work/'job-home'; job.mkdir(); (job/'auth.json').write_text('{\"synthetic\":\"renewed\"}')\nprior=dict(os.environ)\ntry:\n os.environ.clear(); os.environ.update({'HOME':str(operator),'PATH':prior.get('PATH','/usr/bin:/bin')})\n print('positive_unchanged=',launch._carry_back_credentials('codex',job))\nfinally:\n os.environ.clear(); os.environ.update(prior)\nassert json.loads(host.read_text())=={'synthetic':'renewed'} and (job/'auth.json').is_symlink()\nb=p.generate('codex',work/'binding',source=root,cwd=root,mode='worker',session='issued',executable='/usr/bin/true')\ncommand,_=p.native_launch(b,['/usr/bin/true','exec','--sandbox','workspace-write','--model','fixture','--json','-'],{})\nisolation=root/'ops/devlane/harness/isolation.py'; assert str(isolation) in b['pins']; assert ['--ro-bind',str(isolation),str(isolation)] in [command[i:i+3] for i in range(len(command))]\ncanary=work/'mutated-worker-carryback'\nisolation.write_text(isolation.read_text()+f\"\\ndef carry_back(*args, **kwargs):\\n Path({str(canary)!r}).write_text('executed')\\n return []\\n\")\ntry: p.validate(b)\nexcept ValueError as e: print('binding_refusal=',e)\nelse: raise SystemExit('worker binding accepted changed custody source')\nprint('launch_carry_result=',launch._carry_back_credentials('codex',job))\nprint('mutated_canary=',canary.read_text() if canary.exists() else 'absent')\nassert canary.read_text()=='executed'\nPY1"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "134e959b1e5ff87b6e5338c48e2e79de4003e97f",
+        "started": "2026-09-18T22:18:15.759Z",
+        "ended": "2026-09-18T22:26:23.658434Z"
+      },
+      "note": "Incremental native security correction review following 20260918T220256Z-native-audit-codex-01a0b3; original whole delta review is retained, not replaced. This envelope projects the exact reviewer-authored M-323 finding and positive controls through the existing constructor. No new dispatched execution or full re-audit is asserted. Complete correction receipt: {\"assignment\": \"A-304\", \"audited_original_head\": \"74a754e8840610e0a4444be36420e502dfd5e6c2\", \"correction_head\": \"134e959b1e5ff87b6e5338c48e2e79de4003e97f\", \"corrections\": [{\"finding\": \"M-301#1\", \"reading\": \"The exact '-c=features.hooks=false', split -c, and --config forms now refuse before launch; installed Codex 0.155.0 still positively confirms both hooks=false and hooks=true are valid native config states.\", \"status\": \"corrected\"}, {\"finding\": \"M-301#2\", \"reading\": \"The exact approval/sandbox bypass, -C /tmp, and --add-dir / forms now refuse in interactive mode. Documented model, one-argument prompt, and native resume/continue forms remain admitted for Codex, Claude, Grok, and Agy.\", \"status\": \"corrected\"}, {\"finding\": \"M-301#3\", \"reading\": \"isolation.py is pinned and read-only bound; run-interactive loads checked bytes before the child, revalidates after it, blocks a planted post-child mutation without executing its canary, and unchanged synthetic renewal carries back and restores the symlink.\", \"status\": \"corrected-interactive\"}], \"findings\": [{\"claim\": \"The correction closes post-child custody drift for run-interactive, but dispatched _run_attempt still calls _carry_back_credentials after the child and that function imports the current isolation.py without validating the worker binding or using prevalidated bytes. In the reproduction, the worker binding and bwrap set correctly pin/protect isolation.py and validation rejects its changed bytes, yet the dispatch carry-back path executes those same changed bytes and writes the canary. This retains the post-child credential-custody integrity failure on the worker path and can execute source outside the job at host-credential authority.\", \"reproduce\": \"d=$(mktemp -d /tmp/a304-worker-custody-XXXXXX)\\ngit archive HEAD | tar -x -C \\\"$d\\\"\\npython3 - \\\"$d\\\" <<'PY1'\\nimport importlib.util, json, os, sys\\nfrom pathlib import Path\\nroot=Path(sys.argv[1]); sys.path.insert(0,str(root/'ops/devlane/dispatch')); import launch\\ndef load(name,path):\\n s=importlib.util.spec_from_file_location(name,path); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); return m\\np=load('verify_worker_custody_profiles',root/'ops/devlane/hooks/profiles.py')\\nwork=root.parent/(root.name+'-work'); work.mkdir(); operator=work/'operator'; host=operator/'.codex/auth.json'; host.parent.mkdir(parents=True); host.write_text('{\\\"synthetic\\\":\\\"original\\\"}'); os.utime(host,ns=(1,1)); job=work/'job-home'; job.mkdir(); (job/'auth.json').write_text('{\\\"synthetic\\\":\\\"renewed\\\"}')\\nprior=dict(os.environ)\\ntry:\\n os.environ.clear(); os.environ.update({'HOME':str(operator),'PATH':prior.get('PATH','/usr/bin:/bin')})\\n print('positive_unchanged=',launch._carry_back_credentials('codex',job))\\nfinally:\\n os.environ.clear(); os.environ.update(prior)\\nassert json.loads(host.read_text())=={'synthetic':'renewed'} and (job/'auth.json').is_symlink()\\nb=p.generate('codex',work/'binding',source=root,cwd=root,mode='worker',session='issued',executable='/usr/bin/true')\\ncommand,_=p.native_launch(b,['/usr/bin/true','exec','--sandbox','workspace-write','--model','fixture','--json','-'],{})\\nisolation=root/'ops/devlane/harness/isolation.py'; assert str(isolation) in b['pins']; assert ['--ro-bind',str(isolation),str(isolation)] in [command[i:i+3] for i in range(len(command))]\\ncanary=work/'mutated-worker-carryback'\\nisolation.write_text(isolation.read_text()+f\\\"\\\\ndef carry_back(*args, **kwargs):\\\\n Path({str(canary)!r}).write_text('executed')\\\\n return []\\\\n\\\")\\ntry: p.validate(b)\\nexcept ValueError as e: print('binding_refusal=',e)\\nelse: raise SystemExit('worker binding accepted changed custody source')\\nprint('launch_carry_result=',launch._carry_back_credentials('codex',job))\\nprint('mutated_canary=',canary.read_text() if canary.exists() else 'absent')\\nassert canary.read_text()=='executed'\\nPY1\", \"severity\": \"p1\", \"where\": \"ops/devlane/dispatch/launch.py:1998-2016; ops/devlane/hooks/profiles.py:29-38,366-370\"}], \"kind\": \"correction-verification/1\", \"limits\": [\"No provider/model call or live native resume was made; installed --help and Codex features list supplied grammar/config readings only.\", \"No full-suite claim was made; producer full suite remains separate.\", \"No source/index/ref/settings write outside disposable /tmp archives; no activation, report file, audit replacement, or dispatch.\"], \"positive_controls\": [\"Fresh and resume argv produced by launch._argv remained accepted for all four worker harnesses; every launcher token except the intentionally replaced Claude project,local setting remained present, including Codex sandbox writable root and coordination MCP approvals.\", \"Interactive model, prompt, resume/continue grammar remained accepted for all four harnesses; Codex resume SESSION, resume --last, and resume SESSION -- PROMPT remained accepted.\", \"Unchanged interactive and worker synthetic Codex credentials carried renewed auth.json to the synthetic operator home and restored the job-home symlink.\"], \"provenance\": {\"ended\": \"2026-09-18T22:26:23.658434Z\", \"execution\": \"native-terminal\", \"harness\": \"codex\", \"model\": \"gpt-daybreak-blue-latest\", \"participant\": \"PT-19\", \"scratch\": \"/tmp/agentscient-a304-verify-01a0b32d\", \"session\": \"01a0b32d-e3c8-7ef0-85b0-d24bd04ed089\", \"started\": \"2026-09-18T22:18:15.759Z\"}, \"source_audit\": \"M-301\", \"status\": \"changes\", \"tests\": {\"diff_check\": \"passed\", \"launch_binding_recovery\": \"6 passed\", \"launch_coordination_mcp\": \"13 passed\", \"launch_isolation\": \"22 passed\", \"shared_enforcement\": \"27 passed\", \"total_unique\": \"68 passed\"}}"
+    },
+    "native_receipt": {
+      "message": "M-323",
+      "assignment": "A-320",
+      "provenance": "Reviewer-authored correction findings and controls exported from SQLite; native terminal, no worker execution claim."
+    }
+  },
+  "status": "closed"
+}

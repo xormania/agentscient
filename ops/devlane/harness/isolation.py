@@ -577,6 +577,42 @@ def isolated(harness, root, env=None):
     return dispatch_env(harness, home, env), dispatch_flags(harness)
 
 
+def install_enforcement(harness, root, *, source, cwd, home, session, agent,
+                        executable, servers=(), relocated_from=None):
+    """Worker-only hook projection after minimal-home construction.
+
+    Interactive terminals use profiles.generate(mode="interactive") directly;
+    this route requires the launcher's existing issued session. Authentication
+    leaves and session stores remain owned by build_home/dispatch_env.
+    """
+    import importlib.util
+    path = Path(source).resolve() / "ops/devlane/hooks/profiles.py"
+    spec = importlib.util.spec_from_file_location("worker_hook_profile", path)
+    profiles = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(profiles)
+    destination = Path(root).absolute()
+    binding_path = destination / "binding.json"
+    try:
+        if binding_path.exists():
+            binding = profiles.read_binding(binding_path)
+            if relocated_from:
+                binding = profiles.relocate(binding, relocated_from, destination.parent)
+            expected = {"harness": harness, "source": str(Path(source).resolve()),
+                        "cwd": str(Path(cwd).resolve()), "mode": "worker", "session": session,
+                        "home": str(Path(home).resolve()) if home else str(destination),
+                        "servers": list(servers)}
+            if any(binding.get(key) != value for key, value in expected.items()):
+                raise ValueError("resumed worker hook binding changed")
+            profiles.validate(binding)
+        else:
+            binding = profiles.generate(harness, destination, source=source, cwd=cwd,
+                                        home=home, mode="worker", session=session, agent=agent,
+                                        executable=executable, servers=servers)
+        return profiles, binding
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise NotIsolated(f"{harness}: shared enforcement unavailable: {exc}") from exc
+
+
 def report():
     """What is known about each harness, as JSON. For the record, and
     for a check that wants to notice an entry going stale."""
