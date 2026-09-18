@@ -19,7 +19,7 @@ import sys
 import time
 import urllib.parse
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import record
@@ -154,6 +154,17 @@ def _refuse(ident, expected, found, satisfy):
 
 def _now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_stamp(text):
+    """A UTC stamp `_now` wrote, back to an aware datetime.
+
+    Records from 2026-08 carry fractional seconds and records since do not,
+    so both are accepted; anything else raises and its caller keeps the job.
+    """
+    if not isinstance(text, str) or not text.endswith("Z"):
+        raise ValueError(f"not a UTC stamp: {text!r}")
+    return datetime.fromisoformat(text[:-1]).replace(tzinfo=timezone.utc)
 
 
 def mint_id(stage, harness):
@@ -2656,6 +2667,134 @@ def _residual(snapshot):
     return [_display_residual(entry) for entry in _residual_entries(snapshot)]
 
 
+RECLAIMABLE = ("snapshot", "home")
+
+
+def _reclaim_conf():
+    """The sweep's two keys, read with their names written out.
+
+    `_lane_values` passes a key through a variable, which laneconf.py's closure
+    verb cannot follow when it looks for a declaration's reader, so a key read
+    only that way reports as an unread declaration. These literal gets are this
+    file's evidence that it reads them. The refusal is the one `_lane_values`
+    raises, on the same wire.
+    """
+    try:
+        return (LANECONF.get("DISPATCH_RECLAIM"),
+                LANECONF.get("DISPATCH_RECLAIM_DAYS"))
+    except LANECONF.ConfigError as exc:
+        kind = "conf-key" if exc.kind == "key" else exc.kind
+        raise Refused(exc.line(kind)) from exc
+
+
+def _reclaim_candidate(rec, job_dir, repo, cutoff):
+    """Whether one closed job's bulk may go, and the reading if it may not.
+
+    Returns (True, None) or (False, reason). Every refusal is a reading, so a
+    job that stays says why on the sweep's record rather than being skipped in
+    silence.
+    """
+    closed = (rec.get("at") or {}).get("closed")
+    if not closed:
+        return False, "not closed"
+    try:
+        when = _parse_stamp(closed)
+    except (ValueError, TypeError):
+        return False, f"unreadable closed stamp {closed!r}"
+    if when > cutoff:
+        return False, "younger than the retention window"
+    # `resume` reads snapshot/ and home/ for a job whose envelope was invalid.
+    result = rec.get("result") or {}
+    if (result.get("envelope") or {}).get("status") != "ok":
+        return False, "envelope is resumable"
+    head = result.get("head")
+    if not head or _git(repo, "cat-file", "-e", f"{head}^{{commit}}",
+                        check=False).returncode:
+        return False, f"head {head!r} is not in this repository"
+    if (result.get("residual_paths") or []) and not result.get("residual_patch"):
+        return False, "residual paths with no patch"
+    if not any((job_dir / name).is_dir() for name in RECLAIMABLE):
+        return False, "already reclaimed"
+    return True, None
+
+
+def _drop_bulk(job_dir):
+    """Remove one job's snapshot/ and home/, lifting the harness's seal."""
+    removed = []
+    for name in RECLAIMABLE:
+        target = job_dir / name
+        if not target.is_dir():
+            continue
+        # The harness seals a finished snapshot 555 through the whole tree, and
+        # rmtree cannot unlink from a directory it cannot write to (measured
+        # 2026-09-18: 9,145 sealed directories in one hand sweep).
+        for path in (target, *target.rglob("*")):
+            if path.is_dir():
+                with contextlib.suppress(OSError):
+                    path.chmod(path.stat().st_mode | 0o700)
+        try:
+            shutil.rmtree(target)
+            removed.append(name)
+        except OSError:
+            pass
+    return removed
+
+
+def _reclaim_store(repo, exclude_id):
+    """Drop the reproducible bulk of jobs that closed outside the window.
+
+    `snapshot/` is a git checkout whose head refs/dispatch/<id> holds; `home/`
+    is the harness isolation directory. The evidence -- record.json,
+    diff.patch, out/, context/, the streams -- is never touched.
+
+    The sweep runs at a close and never touches the job that just closed:
+    a fresh snapshot is what `resume` resumes from, what a reviewer opens, and
+    what the launcher's own suite inspects after a run. Only the backlog goes.
+
+    Measured 2026-09-18 before this existed: 845 job directories held
+    1,556,838 inodes, 44% of this host, and snapshot/ plus home/ were
+    1,525,881 of them, accumulating since 2026-09-03 because nothing swept a
+    store that lives outside the repository.
+    """
+    setting, window = _reclaim_conf()
+    if (setting or "").strip() != "on":
+        return {"swept": False, "reason": "DISPATCH_RECLAIM is not 'on'"}
+    try:
+        days = int((window or "").strip())
+        if days < 1:
+            raise ValueError(days)
+    except (TypeError, ValueError):
+        return {"swept": False,
+                "reason": f"DISPATCH_RECLAIM_DAYS={window!r} is not a positive integer"}
+
+    root = _jobs_root()
+    if not root.is_dir():
+        return {"swept": False, "reason": "no dispatch store"}
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    reclaimed, kept = [], {}
+    for job_dir in sorted(root.iterdir()):
+        if not job_dir.is_dir() or job_dir.name == exclude_id:
+            continue
+        record_path = job_dir / "record.json"
+        if not record_path.is_file():
+            kept[job_dir.name] = "no record in the store"
+            continue
+        try:
+            rec = json.loads(record_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            kept[job_dir.name] = f"unreadable record: {exc}"
+            continue
+        ok, why = _reclaim_candidate(rec, job_dir, repo, cutoff)
+        if not ok:
+            if why != "already reclaimed":
+                kept[job_dir.name] = why
+            continue
+        if _drop_bulk(job_dir):
+            reclaimed.append(job_dir.name)
+    return {"swept": True, "days": days, "reclaimed": len(reclaimed),
+            "kept": len(kept), "ids": reclaimed[:20]}
+
+
 def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
     """Collect the snapshot's state, finalize the record, commit it."""
     job_dir, snapshot = _bound_snapshot(rec)
@@ -2724,6 +2863,13 @@ def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
         env["note"] = f"{env['note']}; cause: {json.dumps(cause, sort_keys=True)}"
     rec["at"]["closed"] = _now()
     rec["status"] = "closed"
+    # The backlog sweep, never this job: a fresh snapshot is what resume
+    # resumes from and what a reviewer opens. A failure here never fails a
+    # close -- the job is settled either way.
+    try:
+        rec["result"]["store_sweep"] = _reclaim_store(repo, rec["id"])
+    except Exception as exc:  # noqa: BLE001 - a sweep never fails a close
+        rec["result"]["store_sweep"] = {"swept": False, "reason": str(exc)}
     _write_record(repo, rec)
     _commit_record(repo, record_path, rec, subject=subject)
 
