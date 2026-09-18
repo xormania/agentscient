@@ -79,6 +79,17 @@ ambiguous keys, extra assignments and unknown keys refuse before launch.
 Only the existing launcher projections for reasoning effort, output custody
 and MCP registration may use this transport; hook and feature overrides refuse.
 
+Interactive native arguments use a finite per-client grammar measured from the
+installed help. Model, effort, output, prompt and same-session resume options
+are admitted; unknown options, option clusters and missing values refuse.
+Configuration, workspace, sandbox, permission, agent, plugin and remote-client
+selectors are not interactive overlays. Supply a positional prompt as one
+argument after native `--`; Codex's only admitted subcommand is `resume`.
+This admission runs before profile flags are inserted. Worker profiles instead
+consume the existing trusted dispatcher's argv, including its sandbox, issued
+identity, output paths and bound MCP registration. An interactive binding
+cannot select that worker route.
+
 ## Verification and activation
 
 The existing hooks, harness, dispatch and conductor conformance families own

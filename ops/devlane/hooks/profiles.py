@@ -257,23 +257,77 @@ def codex_config_args(tokens):
     return result
 
 
+def interactive_args(harness, tokens):
+    """Admit session UI arguments, never alternate native authority/configuration."""
+    groups = {
+        "codex": {"value": "--model -m", "flag": "--no-alt-screen --strict-config --help -h --version -V"},
+        "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd",
+                   "optional": "--resume -r", "flag": "--continue -c --print -p --verbose --include-partial-messages --include-hook-events --help -h --version -v"},
+        "grok": {"value": "--model -m --reasoning-effort --effort --output-format --max-turns",
+                 "prompt": "--single -p", "optional": "--resume -r",
+                 "flag": "--continue -c --minimal --fullscreen --no-alt-screen --include-partial-messages --help -h --version -v"},
+        "agy": {"value": "--model --effort --output-format --input-format --print-timeout --conversation",
+                "prompt": "--print --prompt -p --prompt-interactive -i", "flag": "--continue -c --help -h"},
+    }
+    grammar = {name: kind for kind, names in groups[harness].items() for name in names.split()}
+    result, index, resume, session = [], 0, False, False
+    while index < len(tokens):
+        arg = tokens[index]
+        index += 1
+        if arg == "--":
+            if len(tokens[index:]) != 1:
+                raise ValueError("native prompt requires one argument after --")
+            return [*result, arg, *tokens[index:]]
+        if not arg.startswith("-"):
+            if harness == "codex" and arg == "resume" and not resume:
+                resume = True
+                grammar.update({name: "flag" for name in ("--last", "--all", "--include-non-interactive")})
+            elif harness == "codex" and resume and not session and arg:
+                session = True
+            else:
+                raise ValueError("unknown native command; supply prompt after --")
+            result.append(arg)
+            continue
+        name, equals, value = arg.partition("=")
+        if not arg.startswith("--") and len(arg) > 2:
+            name, equals, value = arg[:2], "=", arg[2:].removeprefix("=")
+        kind = grammar.get(name)
+        if kind is None or (kind == "flag" and equals):
+            raise ValueError("native interactive option is not admitted: " + name)
+        if kind == "flag":
+            result.append(name)
+            continue
+        if not equals:
+            if kind == "optional" and (index == len(tokens) or tokens[index].startswith("-")):
+                result.append(name)
+                continue
+            if index == len(tokens):
+                raise ValueError("native option requires a value: " + name)
+            value = tokens[index]
+            index += 1
+        if value.startswith("-") or (not value and kind != "prompt"):
+            raise ValueError("native option has an ambiguous or missing value: " + name)
+        result += [name, value]
+    return result
+
+
 def native_launch(binding, argv, env):
-    """Compile a protected launch from trusted launcher-owned argv, never user overlays."""
+    """Keep interactive argument admission separate from issued worker startup."""
     validate(binding)
     if not isinstance(argv, (list, tuple)) or not argv or any(not isinstance(t, str) or "\0" in t for t in argv):
         raise ValueError("native argv must be a nonempty string vector")
     if not binding["executable"] or str(Path(argv[0]).resolve()) != binding["executable"]:
         raise ValueError("launch executable was not pinned")
     harness = binding["harness"]
-    # This function is called after normal launcher construction. These flags
-    # are reserved transport, not an arbitrary forwarded-argv interface.
     tokens = list(argv[1:])
-    if harness == "claude":
+    if binding["mode"] == "interactive":
+        tokens = interactive_args(harness, tokens)
+    if harness == "claude" and binding["mode"] == "worker":
         for index in range(len(tokens) - 1, -1, -1):
             if tokens[index:index + 2] == ["--setting-sources", "project,local"]:
                 del tokens[index:index + 2]
     denied = ("--settings", "--setting-sources", "--bare", "--safe-mode", "--agent", "--plugin-dir", "--dangerously-bypass-hook-trust", "--enable", "--disable")
-    if any(t.split("=", 1)[0] in denied for t in tokens):
+    if binding["mode"] == "worker" and any(t.split("=", 1)[0] in denied for t in tokens):
         raise ValueError("native argv changes the guarded profile")
     if harness == "codex":
         tokens = codex_config_args(tokens)

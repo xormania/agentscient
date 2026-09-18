@@ -295,6 +295,56 @@ class SharedEnforcement(unittest.TestCase):
                 command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
                 self.assertEqual(command[-2:], ["-c", 'model_reasoning_effort="high"'])
 
+    def test_interactive_argv_refuses_authority_overlays_and_unknown_grammar(self):
+        root = Path(__file__).resolve().parents[4]
+        attacks = {
+            "codex": [["--dangerously-bypass-approvals-and-sandbox"], ["-C", "/tmp"], ["-C/tmp"],
+                      ["--cd=/tmp"], ["--add-dir", "/"], ["-pother"], ["--profile=other"],
+                      ["-s", "danger-full-access"], ["--ask-for-approval=never"],
+                      ["-c", 'model_reasoning_effort="high"'], ["--ignore-user-config"],
+                      ["resume", "same", "--remote=unix:///tmp/server"], ["exec", "--model", "fixture"]],
+            "claude": [["--permission-mode=bypassPermissions"], ["--dangerously-skip-permissions"],
+                       ["--agent=other"], ["--agents", "{}"], ["--plugin-url=url"], ["-wother"],
+                       ["--setting-sources", "project,local"], ["--mcp-config={}"], ["--bare"]],
+            "grok": [["--sandbox=none"], ["--always-approve"], ["--cwd=/tmp"], ["--allow=*"],
+                     ["--agent=other"], ["--session-id=foreign"], ["--worktree"], ["--fork-session"]],
+            "agy": [["--dangerously-skip-permissions"], ["--add-dir=/"], ["--agent=other"],
+                    ["--project=other"], ["--new-project=x"], ["--mode=accept-edits"], ["--remote-control"]],
+        }
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("interactive-args-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            for args in [*attacks[harness], ["--unknown"], ["--model"], ["--model="],
+                         ["--model", "--help"], ["mcp"], ["--help=true"], ["-hm"], ["--", "one", "two"]]:
+                with self.subTest(harness=harness, args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+            resume = {"codex": ["resume", "same"], "claude": ["--resume", "same"],
+                      "grok": ["-r", "same"], "agy": ["--conversation", "same"]}[harness]
+            for args in (["--model", "fixture"], ["--model=fixture"], resume, ["--", "A plain prompt"]):
+                with self.subTest(harness=harness, args=args):
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                    self.assertIn("/usr/bin/true", command)
+
+    def test_worker_argv_preserves_launcher_sandbox_identity_and_mcp(self):
+        root = Path(__file__).resolve().parents[4]
+        arguments = {
+            "codex": ["exec", "--sandbox", "workspace-write", "--model", "fixture", "-c",
+                      'sandbox_workspace_write.writable_roots=["/out"]', "-c", 'mcp_servers.coordination.required=true',
+                      "-c", 'mcp_servers.coordination.tools.coord_claim.approval_mode="approve"', "--json", "-"],
+            "claude": ["--setting-sources", "project,local", "--session-id", "issued", "--permission-mode",
+                       "acceptEdits", "--add-dir", "/out", "--mcp-config", "server.json", "--print"],
+            "grok": ["--always-approve", "--model", "fixture", "--prompt-file", "prompt.txt"],
+            "agy": ["--print=", "--dangerously-skip-permissions", "--add-dir", "/out", "--conversation", "issued"],
+        }
+        for harness, args in arguments.items():
+            binding = profiles.generate(harness, self.world.root / ("worker-args-" + harness), source=root,
+                                        cwd=self.repo, mode="worker", session="issued", executable="/usr/bin/true")
+            command, env = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+            self.assertEqual(env["CLAUDE_SESSION_ID"], "issued")
+            for arg in args:
+                if arg != "project,local":
+                    self.assertIn(arg, command)
+
     def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
         original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"
         command = native.bind_command(original, str(self.repo))
