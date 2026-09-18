@@ -49,6 +49,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+[ "$(id -u)" != 0 ] \
+  || refuse identity 'the lever run as the user that owns the store' \
+       'running as root (sudo sets HOME=/root, so the store path resolves there)' \
+       'run it as yourself, without sudo; every file it touches is already yours'
+
 top=$(git -C "$REPO" rev-parse --show-toplevel 2>/dev/null) \
   || refuse repo 'a git repository' "$REPO" 'pass --repo PATH'
 REPO="$top"
@@ -182,6 +187,14 @@ remove)
     || refuse evidence 'every pruned job still holding its record and diff in the store' \
          "$short job(s) short" 'restore from the staging directory and investigate before removing'
   before=$(du -s --inodes "$STAGE" 2>/dev/null | cut -f1)
+  # The harness seals a finished snapshot 555 through the whole tree; rm cannot
+  # unlink from a directory it cannot write to, so lift the seal recursively.
+  chmod -R u+w "$STAGE" 2>/dev/null
+  sealed=$(find "$STAGE" -type d ! -perm -u+w 2>/dev/null | wc -l)
+  [ "$sealed" = 0 ] \
+    || refuse sealed 'every staged directory writable by its owner' \
+         "$sealed directory(ies) still sealed" \
+         'chmod -R u+w the staging directory by hand, then run --remove again'
   rm -rf "$STAGE" || refuse remove 'the staging directory deleted' "rm -rf $STAGE failed" 'check permissions and run again'
   printf 'removed %s: %s inodes reclaimed\n' "$STAGE" "${before:-unknown}"
   ;;
