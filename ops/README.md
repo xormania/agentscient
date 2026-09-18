@@ -179,7 +179,9 @@ Named so nobody infers them from silence:
 ## The rules the lane binds
 
 - One line of work, one worktree (`../wt/ag-<slug>`); the main
-  checkout belongs to nobody but records; branches are never deleted.
+  checkout belongs to nobody but records; a branch is retired only after
+  its tip is inside a verified, indexed bundle, and never by an agent's
+  hand (AGENTS.md §dev is the trunk).
 - Workers commit with `Source:` and `Co-Authored-By:` trailers naming
   the model that actually ran; a dispatch never names a model on its
   own — the owner supplies one in `dispatch.conf`, and the run records
