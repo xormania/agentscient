@@ -22,6 +22,8 @@ and the config.
   C5  a dispatch that binds no participant declares that and wires nothing
   C6  the brief names the acting tools, so the worker knows it has them
   C7  the harnesses not wired today are named as such, not left silent
+  C8  the native client requires the acting server and approves exactly the
+      capabilities in its issued config; the core still owns authority
 
 One producer by hand under grant 277 at the Lead's assignment relayed by
 agentscient-09 (PT-7); the second producer is absent by the owner's word.
@@ -229,6 +231,28 @@ class EachHarnessCarriesTheActingServerOrSaysItDoesNot(_Acting):
             f for f in flags if f.startswith(f"mcp_servers.{SERVER}.args="))
         self.assertEqual(json.loads(args_flag.split("=", 1)[1]),
                          self.acting(rec)["server"][1:])
+
+    def test_codex_client_permissions_match_the_issued_capabilities(self):
+        """M-233/A-270: discovery alone cannot admit a native acting call.
+
+        Red: the actual generated argv omits required/enabled/per-tool flags.
+        Negative neighbors below retain no acting registration when unbound,
+        and the real server still refuses a foreign issued-session binding.
+        """
+        rec, witness, _aid = self.dispatched()
+        argv = [str(arg) for arg in witness["argv"]]
+        flags = dict(argv[index + 1].split("=", 1)
+                     for index, token in enumerate(argv) if token == "-c")
+        self.assertEqual(flags.get(f"mcp_servers.{SERVER}.required"), "true")
+        enabled = json.loads(flags[f"mcp_servers.{SERVER}.enabled_tools"])
+        capabilities = self.written(rec)["capabilities"]
+        self.assertEqual(enabled, capabilities)
+        approvals = {key: value for key, value in flags.items()
+                     if "approval_mode" in key}
+        self.assertEqual(approvals, {
+            f"mcp_servers.{SERVER}.tools.{name}.approval_mode": '"approve"'
+            for name in capabilities})
+        self.assertNotIn("*", enabled)
 
     def test_a_harness_this_does_not_wire_yet_is_named_not_silent(self):
         """C7. Absence is declared, never inferred from silence."""

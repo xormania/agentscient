@@ -756,12 +756,22 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
             "server": server, "tools": list(COORD_MCP_TOOLS)}, server
 
 
-def _codex_mcp_argv(key, server, env_keys=()):
-    """Register one server and its explicit environment forwarding."""
+def _codex_mcp_argv(key, server, env_keys=(), *, capabilities=None):
+    """Project native transport permissions from the issued capability list.
+
+    Required acting-server startup and per-tool approval admit the client call
+    under approval_policy=never (native M-233). They grant no domain authority:
+    the same issued config, participant, role and generation checks still run.
+    """
     tokens = ["-c", f'mcp_servers.{key}.command="{server[0]}"',
               "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
     if env_keys:
         tokens += ["-c", f"mcp_servers.{key}.env_vars={json.dumps(env_keys)}"]
+    if capabilities is not None:
+        tokens += ["-c", f"mcp_servers.{key}.required=true",
+                   "-c", f"mcp_servers.{key}.enabled_tools={json.dumps(list(capabilities))}"]
+        for name in capabilities:
+            tokens += ["-c", f'mcp_servers.{key}.tools.{name}.approval_mode="approve"']
     return tokens
 
 
@@ -777,7 +787,8 @@ def _mcp_argv(harness, server, job_dir, coord=None):
     if harness == "codex":
         tokens = _codex_mcp_argv(LANE_MCP_KEY, server)
         if coord:
-            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord, COORD_MCP_ENV)
+            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord, COORD_MCP_ENV,
+                                    capabilities=COORD_MCP_TOOLS)
         return tokens
     return []
 
