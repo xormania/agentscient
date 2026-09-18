@@ -103,6 +103,14 @@ same post-child check. Missing, invalid, changed or mismatched custody context
 produces the existing `credential: [{"unresolved": ...}]` reading with no host
 credential effect; it does not replace the child's exit status. Resume and
 relocation use the current validated worker binding and its native home.
+Both callers capture directory identities in parent memory before each child:
+the native home and parents of the isolation owner's declared credential files
+must retain their device/inode identity and remain directories before carry-back.
+Copying the pinned config bytes into a replacement home does not restore custody.
+Credential files may still be atomically renewed. This capture is per attempt,
+not durable profile state: a relocated resume validates its projection and then
+captures its current directories before the resumed child. A failed check keeps
+the original and substituted artifacts intact and makes no host credential write.
 
 ## Verification and activation
 

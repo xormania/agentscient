@@ -397,6 +397,89 @@ class SharedEnforcement(unittest.TestCase):
         self.assertEqual(json.loads(host.read_text()), {"synthetic": "renewed"})
         self.assertTrue(renewed.is_symlink())
 
+    def test_native_protected_set_home_replacement_refuses_interactive_carryback(self):
+        root = Path(__file__).resolve().parents[4]
+        host = self.world.home / ".codex/auth.json"
+        host.parent.mkdir()
+        for changed_config in (False, True):
+            with self.subTest(changed_config=changed_config):
+                host.write_text('{"synthetic":"original"}')
+                os.utime(host, ns=(1, 1))
+                home = self.world.root / ("native-home-" + str(changed_config))
+                home.mkdir()
+                saved = home.with_name(home.name + ".before")
+                (home / "auth.json").write_text('{"synthetic":"renewed"}')
+                binding = profiles.generate("codex", self.world.root / ("native-profile-" + str(changed_config)),
+                                            source=root, cwd=self.repo, home=home, mode="interactive",
+                                            executable="/usr/bin/true", credential_environment=self.world.env())
+                original_inode = home.stat().st_ino
+
+                def child(command, *, changed_config=changed_config, home=home, saved=saved,
+                          original_inode=original_inode, binding=binding, **kwargs):
+                    # M-332: use exactly the generated protected mounts, with
+                    # an inert shell in place of the installed model client.
+                    prefix = command[:command.index("--") + 1]
+                    script = ('mv "$1" "$2"; mkdir "$1"; '
+                              'for name in hooks.json config.toml; do cat "$2/$name" > "$1/$name"; done; '
+                              'printf %s "$3" > "$1/auth.json"')
+                    if changed_config:
+                        script += '; printf "\\n# changed\\n" >> "$1/config.toml"'
+                    result = run([*prefix, "/bin/sh", "-ec", script, "fixture", str(home), str(saved),
+                                  '{"synthetic":"substituted"}'], cwd=self.repo, env=self.env)
+                    self.assertEqual(result.exit, 0, result.stderr)
+                    self.assertNotEqual(home.stat().st_ino, original_inode)
+                    if not changed_config:
+                        profiles.validate(binding)  # Same bytes alone still match.
+                    return result.exit
+
+                with patch.object(profiles.subprocess, "call", side_effect=child):
+                    self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2)
+                self.assertEqual(json.loads(host.read_text()), {"synthetic": "original"})
+                self.assertEqual(json.loads((saved / "auth.json").read_text()), {"synthetic": "renewed"})
+                self.assertFalse((home / "auth.json").is_symlink())
+
+    def test_nested_credential_parent_identity_refuses_substitution_but_allows_renewal(self):
+        root = Path(__file__).resolve().parents[4]
+        leaf = Path(".gemini/antigravity-cli/antigravity-oauth-token")
+        host = self.world.home / leaf
+        host.parent.mkdir(parents=True)
+        for fault in ("replaced", "missing", "symlink", None):
+            with self.subTest(fault=fault):
+                host.write_text('{"synthetic":"original"}')
+                os.utime(host, ns=(1, 1))
+                home = self.world.root / ("agy-home-" + str(fault))
+                job = home / leaf
+                job.parent.mkdir(parents=True)
+                job.write_text('{"synthetic":"renewed"}')
+                binding = profiles.generate("agy", self.world.root / ("agy-profile-" + str(fault)), source=root,
+                                            cwd=self.repo, home=home, mode="interactive", executable="/usr/bin/true",
+                                            credential_environment=self.world.env())
+
+                def child(*args, fault=fault, job=job, binding=binding, **kwargs):
+                    if fault:
+                        saved = job.parent.with_name("auth.before")
+                        job.parent.rename(saved)
+                        if fault == "symlink":
+                            job.parent.symlink_to(saved, target_is_directory=True)
+                        elif fault == "replaced":
+                            job.parent.mkdir()
+                            job.write_text('{"synthetic":"substituted"}')
+                        profiles.validate(binding)
+                    else:
+                        staged = job.with_suffix(".renewed")
+                        staged.write_text('{"synthetic":"renewed-again"}')
+                        staged.replace(job)
+                    return 7
+
+                with patch.object(profiles.subprocess, "call", side_effect=child):
+                    self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2 if fault else 7)
+                self.assertEqual(json.loads(host.read_text()), {"synthetic": "original" if fault else "renewed-again"})
+                if fault:
+                    self.assertEqual(json.loads((job.parent.with_name("auth.before") / leaf.name).read_text()),
+                                     {"synthetic": "renewed"})
+                else:
+                    self.assertTrue(job.is_symlink())
+
     def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
         original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"
         command = native.bind_command(original, str(self.repo))

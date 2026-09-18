@@ -96,6 +96,32 @@ class AnAgedGrokCredentialIsRefusedBeforeTheMint(ls._TempLaunch):
     def test_changed_binding_after_worker_exit_keeps_renewal_unresolved(self):
         self.check_post_child_binding_fault(missing=False)
 
+    def test_replaced_worker_home_retains_both_artifacts_without_host_effect(self):
+        self.plant_credential(20)
+        host = self.home / ".grok/auth.json"
+        original = host.read_bytes()
+        os.environ["TASK_LAUNCH_RENEW_AUTH"] = json.dumps({"https://auth.x.ai::client": {
+            "key": "k2", "refresh_token": "renewed", "create_time": _stamp(0)}})
+        carry = self.load_launch()._carry_back_credentials
+
+        def after_child(harness, home, **kwargs):
+            home = Path(home)
+            saved = home.with_name(home.name + ".before")
+            home.rename(saved)
+            shutil.copytree(saved, home, symlinks=True)
+            (home / "auth.json").write_text(json.dumps({"https://auth.x.ai::client": {
+                "key": "wrong", "refresh_token": "substituted", "create_time": _stamp(0)}}))
+            return carry(harness, home, **kwargs)
+
+        with patch.object(self.launch, "_carry_back_credentials", side_effect=after_child):
+            rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        self.assertEqual(rec["attempts"][-1]["exit"], 0)
+        self.assertIn("unresolved", rec["attempts"][-1]["credential"][0])
+        self.assertEqual(host.read_bytes(), original)
+        job_home = self.jobs_root / rec["id"] / "home/grok"
+        self.assertIn("substituted", (job_home / "auth.json").read_text())
+        self.assertIn("renewed", (job_home.with_name("grok.before") / "auth.json").read_text())
+
 
 class WorkerCustodySource(unittest.TestCase):
     def setUp(self):
@@ -131,25 +157,29 @@ class WorkerCustodySource(unittest.TestCase):
             binding = profiles.generate("codex", self.world.root / "profile", source=source,
                                         cwd=self.world.cwd, home=self.home, mode="worker",
                                         session="issued", executable="/usr/bin/true")
-            for fault in ("changed", "missing", "binding", "home", "harness", "error"):
+            custody = profiles.capture_custody(binding)
+            loaded = profiles.isolation_owner(binding["pins"][str(owner)])
+            for fault in ("changed", "missing", "binding", "home", "harness", "capture", "error"):
                 with self.subTest(fault=fault):
                     if fault == "changed":
                         owner.write_text(owner.read_text() + f"\nPath({str(canary)!r}).touch()\n")
                     elif fault == "missing":
                         owner.unlink()
                     context = {} if fault == "binding" else binding
-                    with patch.object(profiles, "isolation_owner", side_effect=RuntimeError("custody unavailable")) as loader:
+                    with (patch.object(profiles, "isolation_owner", side_effect=AssertionError("late custody import")) as loader,
+                          patch.object(loaded, "carry_back", side_effect=RuntimeError("custody unavailable")) as effect):
                         result = self.launch._carry_back_credentials(
                             "grok" if fault == "harness" else "codex",
                             self.world.home if fault == "home" else self.home,
-                            profile=profiles, binding=context)
+                            profile=profiles, binding=context, custody=None if fault == "capture" else custody)
                     self.assertIn("unresolved", result[0])
+                    loader.assert_not_called()
                     if fault != "error":
-                        loader.assert_not_called()
+                        effect.assert_not_called()
                     self.assertEqual(json.loads(self.host.read_text()), {"synthetic": "original"})
                     self.assertFalse(canary.exists())
                     owner.write_bytes(pristine)
-            result = self.launch._carry_back_credentials("codex", self.home, profile=profiles, binding=binding)
+            result = self.launch._carry_back_credentials("codex", self.home, profile=profiles, binding=binding, custody=custody)
             self.assertEqual(result, [{"file": "auth.json", "outcome": "carried"}])
             self.assertEqual(json.loads(self.host.read_text()), {"synthetic": "renewed"})
             self.assertTrue((self.home / "auth.json").is_symlink())

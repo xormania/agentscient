@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tomllib
@@ -441,6 +442,39 @@ def isolation_owner(expected=None):
     return module
 
 
+def capture_custody(binding):
+    """Retain this attempt's validated owner and credential directory identities."""
+    validate(binding)
+    owner = isolation_owner(binding["pins"][str(Path(binding["source"]) / "ops/devlane/harness/isolation.py")])
+    admitted = canonical(binding)
+    home = Path(binding["home"])
+    directories = {home}
+    for name in owner.HARNESSES[binding["harness"]]["auth_files"]:
+        leaf = Path(name)
+        if leaf.is_absolute() or ".." in leaf.parts or not leaf.name:
+            raise ValueError("credential custody requires a declared relative leaf")
+        directories.update(home / parent for parent in leaf.parents)
+
+    def identity(path):
+        current = path.lstat()
+        if not stat.S_ISDIR(current.st_mode):
+            raise ValueError(f"credential custody directory is not a real directory: {path}")
+        return current.st_dev, current.st_ino
+
+    retained = tuple((path, identity(path)) for path in sorted(directories))
+
+    def carry_back(current_binding, env=None):
+        validate(current_binding)
+        if canonical(current_binding) != admitted:
+            raise ValueError("credential custody binding differs from the pre-child capture")
+        for path, before in retained:
+            if identity(path) != before:
+                raise ValueError(f"credential custody directory changed after launch: {path}")
+        return owner.carry_back(current_binding["harness"], home, env=env)
+
+    return carry_back
+
+
 def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
@@ -493,12 +527,11 @@ def main(argv=None):
             if binding.get("mode") != "interactive":
                 raise ValueError("interactive launch requires an interactive projection")
             command, env = native_launch(binding, [binding["executable"], *native_args], os.environ)
-            custody = isolation_owner(binding["pins"][str(Path(binding["source"]) / "ops/devlane/harness/isolation.py")])
+            custody = capture_custody(binding)
             try:
                 return subprocess.call(command, env=env)  # noqa: S603 - interactive lifetime; inherited terminal streams
             finally:
-                validate(binding)
-                custody.carry_back(binding["harness"], binding["home"], env=binding["credential_environment"])
+                custody(binding, env=binding["credential_environment"])
         elif args.operation == "check":
             validate(read_binding(args.binding))
             print("shared hook profile: valid projection; native interception requires its measured witness")
