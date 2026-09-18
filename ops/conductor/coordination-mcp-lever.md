@@ -258,7 +258,7 @@ silently applied. A tool schema that omits it would make every MCP caller a
 stale holder waiting to happen.
 
 Not projected in slice one, and named so the omission is visible rather than
-discovered: `bind`, `bind-for`, `who`, `participants`, `grant`, `revoke`,
+discovered: `bind`, `bind-for`, `who`, `participants`, `grant`, `revoke`, `recover-roles`,
 `reassign`, `reopen`, `supersede`, `deliver`, `undelivered`, `withdraw`,
 `observations`, `ask`, `answer`, `decide`, `decision`, `decisions`,
 `reserve`, `free`, `resources`, `coverage`, `entry`. Decision support and
