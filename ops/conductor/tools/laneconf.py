@@ -95,6 +95,7 @@ SOURCE_SUFFIXES = {".py", ".sh"}
 EXTERNAL_ENV_KEYS = {
     # Supplied by the finite controller to children and the read-only doctor.
     "CONTROL_STATE",
+    "AGENTSCIENT_HOOK_PROFILE",
     "AGENTSCIENT_ORG",
     "AGENTSCIENT_ROOT",
     "AGENTSCIENT_SIBLINGS",
@@ -106,6 +107,8 @@ EXTERNAL_ENV_KEYS = {
     "CLAUDE_PROJECT_DIR",
     "CLAUDE_SESSION_ID",
     "CODEX_HOME",
+    "CODEX_SESSION_ID",
+    "CODEX_THREAD_ID",
     "DETACH",
     "DETACH_WAIT",
     "DISPATCH_CONF",
@@ -121,6 +124,7 @@ EXTERNAL_ENV_KEYS = {
     "GATE_TAIL",
     "GITHUB_EVENT_PATH",
     "GROK_HOME",
+    "GROK_SESSION_ID",
     "HARNESS",
     "HOME",
     "ISO_ENV",
@@ -475,6 +479,10 @@ def _literal_exempt(rel: str, line: str, needle: str) -> bool:
     stripped = line.strip()
     if needle == "agentscient":
         return (rel, stripped) in {
+            ("ops/devlane/hooks/enforcement.py", 'if server in {"agentscient-lane", "agentscient_lane"}:'),
+            ("ops/devlane/hooks/enforcement.py", 'if registry.get("schema") != "agentscient.boundaries/2" or not isinstance(rows, list) or not rows:'),
+            ("ops/devlane/hooks/profiles.py", 'configs[native_home / ".gemini/config/hooks.json"] = canonical({"agentscient-shared": {"enabled": True, **event_groups}})'),
+            ("ops/devlane/hooks/profiles.py", 'configs[native_home / "hooks/agentscient.json"] = canonical({"hooks": event_groups})'),
             (
                 "ops/devlane/dispatch/record.py",
                 'POLICY_SCHEMA = "agentscient.lane-policy/v1"',

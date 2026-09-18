@@ -1,0 +1,242 @@
+{
+  "id": "20260918T070730Z-code-codex-561385",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "recovery-native-session-closure",
+  "lineage": {
+    "branch": "lane/session-20260918-recovery-01a0b2dd",
+    "base_sha": "7bfaf4f322aac90fc68c299ee3c229938987418e"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-18T07:07:30Z",
+    "closed": "2026-09-18T07:10:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7bfaf4f322aac90fc68c299ee3c229938987418e",
+    "ref_sha": "7bfaf4f322aac90fc68c299ee3c229938987418e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/ag-wt/ag-session-20260918-recovery-01a0b2dd/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/lane-mcp.json\", \"serve\"]",
+      "-c",
+      "mcp_servers.coordination.command=\"python3\"",
+      "-c",
+      "mcp_servers.coordination.args=[\"-B\", \"/home/scientdb/projects/uscient/ag-wt/ag-session-20260918-recovery-01a0b2dd/ops/conductor/tools/coordination_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/coordination-mcp.json\", \"serve\"]",
+      "-c",
+      "mcp_servers.coordination.env_vars=[\"CLAUDE_SESSION_ID\", \"XDG_STATE_HOME\", \"LANE_CONF\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex-stream/sessions/2026/09/18/rollout-2026-09-18T03-07-31-01a0b357-8241-7e73-961c-68f0671828c2.jsonl"
+  },
+  "session": {
+    "id": "01a0b357-8241-7e73-961c-68f0671828c2",
+    "binding_id": "789ab4dc-4745-4e80-85d0-d79775b5b66a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex-stream/sessions/2026/09/18/rollout-2026-09-18T03-07-31-01a0b357-8241-7e73-961c-68f0671828c2.jsonl",
+    "stream_sha256_at_close": "a99a20e2fcb7c57355a50557dc11022b76e204fe63319af1898606c619f55c0f",
+    "bound": "participant PT-17 bound for session 789ab4dc-4745-4e80-85d0-d79775b5b66a by PT-16 for A-214",
+    "spend": {
+      "input": 1101459,
+      "cached": 1047424,
+      "output": 6441,
+      "total": 1107900,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex-stream/sessions/2026/09/18/rollout-2026-09-18T03-07-31-01a0b357-8241-7e73-961c-68f0671828c2.jsonl",
+      "messages": 241
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/ag-wt/ag-session-20260918-recovery-01a0b2dd/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "python3 ops/conductor/tools/laneconf.py closure\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/in/wall-closure-brief.md",
+        "sha256": "cb072b855732c0d70cce82982f0e2bad25cf14ac15ea2c70811f45a98822704c"
+      }
+    ],
+    "sha256": "a8d088a5af9189cd46814232e815e6a74bd71d9505c883023279f19181a10f97",
+    "bytes": 11006,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/lane-mcp.json",
+      "sha256": "2aaa6824f8d3c48333ca034f9e1055dec1c02502450ce8ec4a5221f255b41e52",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "coordination": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/coordination-mcp.json",
+      "sha256": "51e3ab87b61a1b4455bf10b75dc4844168c0595c3b607655fe12f78f605f9399",
+      "participant": "PT-17",
+      "assignment": "A-214",
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/projects/uscient/ag-wt/ag-session-20260918-recovery-01a0b2dd/ops/conductor/tools/coordination_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/coordination-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "coord_accept",
+        "coord_ack",
+        "coord_assignments",
+        "coord_brief",
+        "coord_claim",
+        "coord_draft",
+        "coord_inbox",
+        "coord_observe",
+        "coord_offer",
+        "coord_outstanding",
+        "coord_release",
+        "coord_resolve",
+        "coord_return",
+        "coord_send",
+        "coord_show",
+        "coord_submit",
+        "coord_verify"
+      ]
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-18T07:07:31Z",
+      "ended": "2026-09-18T07:10:19Z",
+      "exit": -15,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "b5a4e1e6d329f28fafbcfe026050d76d9f93cb00",
+    "changed_paths": [
+      "ops/conductor/tools/laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "7bfaf4f322aac90fc68c299ee3c229938987418e"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260918T070730Z-code-codex-561385/home/codex-stream/sessions/2026/09/18/rollout-2026-09-18T03-07-31-01a0b357-8241-7e73-961c-68f0671828c2.jsonl"
+    },
+    "reuse": "undeclared",
+    "cause": {
+      "reason": "harness-cli:-15"
+    },
+    "store_sweep": {
+      "swept": false,
+      "reason": "DISPATCH_RECLAIM is not 'on'"
+    }
+  },
+  "status": "closed"
+}

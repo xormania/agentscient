@@ -428,3 +428,17 @@ class TestPLev1(DoctorFixture):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSharedNativeProfile(DoctorFixture):
+    """A-218 same dev-lane WALL producer; root independently verifies."""
+    def test_unknown_or_foreign_profile_is_invalid_and_never_activated(self):
+        for data in ({"schema": "unknown"}, {"schema": "shared-hook-profile/1", "harness": "codex", "source": str(self.scratch / "foreign")}):
+            path = self.world.plant_text("native-profile.json", json.dumps(data))
+            before = path.read_bytes()
+            proc = run([sys.executable, str(self.tool)], cwd=str(self.repo),
+                       env=self.world.env(extra={"WF_AGENT": AGENT, "AGENTSCIENT_HOOK_PROFILE": str(path)}), timeout=30)
+            self.assertEqual(proc.exit, 2, proc.stdout + proc.stderr)
+            self.assertIn("P-HOOK-1", proc.stdout)
+            self.assertIn("missing, malformed or changed native profile", proc.stdout)
+            self.assertEqual(path.read_bytes(), before)

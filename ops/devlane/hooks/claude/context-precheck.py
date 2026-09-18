@@ -137,7 +137,7 @@ def selected_repo(cmd):
     return []
 
 
-def clone_git_dir(selected):
+def clone_git_dir(selected, *, strict=False):
     """The SHARED git directory of the repository `selected` names.
 
     Not a linked worktree's private one. `FETCH_HEAD` is a per-worktree file:
@@ -158,22 +158,31 @@ def clone_git_dir(selected):
         proc = subprocess.run(["git", *selected, "rev-parse", "--git-common-dir"],  # noqa: S603, S607 — PATH git; the arguments are options this hook just read out of the command
                               capture_output=True, text=True, timeout=10, check=False)
     except Exception:
+        if strict:
+            raise
         logging.exception("could not resolve the selected repository")
         return None
     out = proc.stdout.strip()
     if proc.returncode != 0 or not out:
+        if strict:
+            raise OSError("selected repository unavailable")
         return None
     return os.path.abspath(os.path.join(base, out))
 
 
-def tracked_refs(git_dir):
+def tracked_refs(git_dir, *, strict=False):
     """Remote-tracking refs and where they point, so movement can be named exactly."""
     try:
-        out = subprocess.run(["git", "--git-dir", git_dir,  # noqa: S603, S607 — PATH git; git_dir is a path git itself resolved
+        proc = subprocess.run(["git", "--git-dir", git_dir,  # noqa: S603, S607 — PATH git; git_dir is a path git itself resolved
                               "for-each-ref", "--format=%(refname:short) %(objectname)",
                               "refs/remotes/"], capture_output=True, text=True, timeout=10,
-                             check=False).stdout
+                             check=False)
+        if strict and proc.returncode:
+            raise OSError("required remote-ref reading failed")
+        out = proc.stdout
     except Exception:
+        if strict:
+            raise
         logging.exception("could not list remote-tracking refs")
         return {}
     refs = {}
@@ -256,36 +265,35 @@ def relevant_refs(cmd, selected, refs):
     return wanted
 
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-        cmd = ((payload.get("tool_input") or {}).get("command") or "")[:2000]
-    except Exception:
-        logging.exception("failed to read hook payload from stdin")
-        sys.exit(0)
-
+def decide(payload, *, strict=False):
+    """Existing context check, callable by the shared guard."""
+    cmd = payload["tool_input"]["command"]
     if not is_consequential(cmd):
-        sys.exit(0)
+        return None
 
-    git_dir = clone_git_dir(selected_repo(cmd))
+    git_dir = clone_git_dir(selected_repo(cmd), strict=strict)
     if git_dir is None:
-        sys.exit(0)              # the command names nothing this hook can compare
+        return None              # the command names nothing this hook can compare
 
-    before = tracked_refs(git_dir)
-    if os.environ.get("CLAUDE_PRECHECK_NO_FETCH") != "1":
+    before = tracked_refs(git_dir, strict=strict)
+    if strict or os.environ.get("CLAUDE_PRECHECK_NO_FETCH") != "1":
         try:
-            subprocess.run(["git", "--git-dir", git_dir, "fetch", "--all", "--quiet"],  # noqa: S603, S607 — PATH git; git_dir is a path git itself resolved
+            fetched = subprocess.run(["git", "--git-dir", git_dir, "fetch", "--all", "--quiet"],  # noqa: S603, S607 — PATH git; git_dir is a path git itself resolved
                            capture_output=True, timeout=45, check=False)
+            if strict and fetched.returncode:
+                raise OSError("required fetch failed")
         except Exception:
+            if strict:
+                raise
             logging.exception("git fetch failed")
-            sys.exit(0)          # offline or slow: never block work over it
-    after = tracked_refs(git_dir)
+            return None          # offline or slow: never block work over it
+    after = tracked_refs(git_dir, strict=strict)
 
     relevant = relevant_refs(cmd, selected_repo(cmd), set(before) & set(after))
     moved = [(r, before[r], after[r]) for r in sorted(relevant)
              if before[r] != after[r]]
     if not moved:
-        sys.exit(0)              # fetched, nothing changed, carry on — no interruption
+        return None              # fetched, nothing changed, carry on — no interruption
 
     lines = []
     for ref, a, b in moved:
@@ -305,11 +313,21 @@ def main():
         "before now was computed against the older refs. Re-take whatever this command "
         "depends on, then run it again — it will pass."
     )
-    print(json.dumps({"hookSpecificOutput": {
+    return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
         "permissionDecisionReason": reason,
-    }}))
+    }}
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+        result = decide(payload)
+    except (ValueError, TypeError, KeyError):
+        return
+    if result:
+        print(json.dumps(result))
 
 
 if __name__ == "__main__":

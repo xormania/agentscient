@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from instrument import (
         Refusal,
+        authority_home,
         emit,
         identity,
         lane_name,
@@ -63,7 +64,7 @@ RECURRENCE = "a recurring absence is a lever demanding to be built."
 
 def database_path():
     return (
-        Path.home()
+        authority_home()
         / ".local/state"
         / lane_name()
         / "handwork.db"
