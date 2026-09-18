@@ -127,3 +127,49 @@ installation is the existing isolation seam; AGY receives a separate issued
 binding UUID while its native conversation ID remains unknown until observed.
 Relocation reprojects only after verifying the retained helper/config bytes and
 unchanged policy closure; it preserves authority stores and issued identity.
+
+The Codex adapter fixes shell command origin to the verified profile cwd with
+native updatedInput, grouping the original command after a successful quoted
+cd. It evaluates the original command at that verified cwd before emitting the
+transport prefix, preserving leading grant declarations and explicit directory
+changes for the existing checks. Native hidden workdir cannot select another checkout.
+
+Interactive hook registration associates the native session with its derived
+profile through the existing participant endpoint field. The shared instrument
+resolves that association for subsequent CLI/MCP callers, including AGY which
+does not export a native session variable. A profile admits one native terminal
+session (including resume); another session requires another projection. Missing,
+ambiguous or conflicting associations refuse. The validated projection supplies
+the original authority HOME/state root to the instrument; a minimal harness
+home is never a new authority store. Worker bindings retain their issued session.
+Native inherited aliases are cleared at launch. Invalid explicit profiles refuse
+instead of falling back to those aliases. Ordinary unprofiled session reads keep
+their existing absent-session behavior. Guard failure at Stop terminates clients
+with a verified continue:false channel; it never requests an unbounded retry.
+AGY 1.2.5 has a different native channel: unavailable-guard Stop returns continue,
+which the installed client caps at ten continuations (root M-257: eleven final
+responses, exit 0, no timeout or additional tool effect in the deterministic
+fixture). This is bounded retry, not immediate termination or successful policy
+evaluation. PreToolUse remains denied throughout an unavailable guard.
+
+Interactive preparation reuses isolation.build_home's declared credential leaves;
+the foreground launcher carries renewed credentials back with isolation.carry_back.
+Existing native MCP registrations are projected from Codex/Grok config.toml,
+Claude account/project MCP definitions, and AGY's installed documented global
+`.gemini/config/mcp_config.json`. Their server definitions remain intact, with
+explicit shared-profile environment propagation and stale session aliases removed.
+Codex model/provider preferences are retained; old hooks/features are not copied.
+The original settings are read only. Unknown MCP operations still refuse at the
+shared entry; projection alone does not prove native tool interception.
+
+Example (from the reviewed stable installation, after root permits activation):
+
+```sh
+python3 ops/devlane/hooks/profiles.py prepare-interactive --harness codex --destination /absolute/new-profile --cwd /absolute/session-worktree --executable /absolute/installed/codex --agent 'Actual Model <noreply@vendor>'
+python3 ops/devlane/hooks/profiles.py check --binding /absolute/new-profile/profile/binding.json
+python3 ops/devlane/hooks/profiles.py run-interactive --binding /absolute/new-profile/profile/binding.json --
+```
+
+Use that same binding with the harness's native resume arguments to resume its
+registered session. A new session needs a fresh projection. Worker startup/resume
+continues through dispatch and isolation, without this interactive command.

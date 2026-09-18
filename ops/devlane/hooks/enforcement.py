@@ -184,7 +184,6 @@ def main(argv=None):
         if args.harness == "codex" and args.event == "PreToolUse" and len(items) == 1 and items[0].get("tool_name") == "Bash":
             rewritten = native.bind_command(items[0]["tool_input"]["command"], binding["cwd"])
             items[0]["cwd"] = binding["cwd"]
-            items[0]["tool_input"]["command"] = rewritten
         result = decision()
         for payload in items:
             result = evaluate(payload, servers=binding.get("servers", ()))

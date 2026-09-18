@@ -224,6 +224,8 @@ ROLE_MACHINE = "dispatcher"
 # rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
 WALL_PATHS = ("ops/devlane/hooks/", "ops/devlane/harness/isolation.py",
               "ops/devlane/dispatch/launch.py", "ops/conductor/tools/co_doc.py",
+              "ops/conductor/tools/instrument.py", "ops/conductor/tools/hand.py",
+              "ops/conductor/instrument-conventions.md",
               "ops/conductor/permission-surface.md", "ops/conductor/harness-capabilities.md",
               "ops/conductor/conductor-start-plan.md", "ops/conductor/lane-policy.md",
               ".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",

@@ -5,7 +5,6 @@ Single dev-lane producer under owner WALL grant; independent verifier is root.
 import json
 import os
 import sqlite3
-import subprocess
 import unittest
 from datetime import timedelta
 from pathlib import Path
@@ -14,7 +13,7 @@ from unittest.mock import patch
 import support
 
 from ops.devlane.hooks import enforcement, native, profiles
-from ops.testkit import World
+from ops.testkit import World, run
 
 
 class SharedEnforcement(unittest.TestCase):
@@ -172,8 +171,8 @@ class SharedEnforcement(unittest.TestCase):
         root = Path(__file__).resolve().parents[4]
         binding = profiles.generate("agy", self.world.root / "missing-case", source=root, cwd=self.repo, mode="interactive")
         Path(next(iter(binding["config_pins"]))).unlink()
-        proc = subprocess.run(["/bin/sh", binding["helper"], "PreToolUse"], input="{}", text=True, capture_output=True, check=False)
-        self.assertEqual(proc.returncode, 0)
+        proc = run(["/bin/sh", binding["helper"], "PreToolUse"], cwd=self.repo, env=self.env, stdin="{}")
+        self.assertEqual(proc.exit, 0)
         self.assertEqual(json.loads(proc.stdout)["decision"], "deny")
 
     def test_native_grok_aliases_agree_after_event_translation(self):
@@ -249,3 +248,58 @@ class SharedEnforcement(unittest.TestCase):
             self.assertEqual(participant["harness"], "codex")
             self.assertEqual(conn.execute("SELECT count(*) FROM assignments").fetchone()[0], 0)
             self.assertNotIn("CLAUDE_CODE_SESSION_ID", os.environ)
+
+    def test_interactive_profile_reaches_cli_identity_and_original_stores(self):
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_profile_coordination", root / "ops/conductor/tools/coordination.py")
+        with core.writer():
+            pass
+        caller = World(prefix="shared-native-caller-")
+        self.addCleanup(caller.close)
+        binding = profiles.generate("agy", self.world.root / "interactive-agy", source=root, cwd=self.repo,
+                                    mode="interactive", home=caller.home, agent="Fixture <fixture@example.invalid>")
+        os.environ["WF_AGENT_OVERRIDE"] = "Fixture <fixture@example.invalid>"
+        profiles.initialize(binding, {"conversationId": "actual-agy"}, instrument=enforcement.instrument)
+        with patch.dict(os.environ, caller.env({"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}), clear=True):
+            self.assertEqual(enforcement.instrument.session(), "actual-agy")
+            self.assertEqual(enforcement.instrument.state_root(), Path(binding["authority_environment"]["XDG_STATE_HOME"]))
+            self.assertEqual(enforcement.hand.database_path(), self.world.home / ".local/state/agentscient/handwork.db")
+            with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "foreign-parent"}):
+                with self.assertRaises(enforcement.instrument.Refusal):
+                    enforcement.instrument.session()
+
+    def test_native_cli_verb_first_and_bounded_stop_failure(self):
+        with patch.object(profiles, "prepare_interactive", return_value={"binding": "fixture"}) as generate:
+            self.assertEqual(profiles.main(["prepare-interactive", "--harness", "codex", "--destination", "new",
+                                           "--cwd", str(self.repo), "--executable", "/usr/bin/true", "--agent", "Fixture <f@invalid>"]), 0)
+            generate.assert_called_once()
+        self.assertFalse(profiles.fallback("codex", "Stop")["continue"])
+
+    def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
+        original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"
+        command = native.bind_command(original, str(self.repo))
+        proc = run(["/bin/sh", "-c", command], cwd=self.world.home, env=self.env)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout, str(self.repo) + "\nsynthetic\n")
+        self.assertEqual(self.evaluate(command=native.bind_command("git commit -m blocked", str(self.repo)))["outcome"], "deny")
+
+    def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
+        import tomllib
+        root = Path(__file__).resolve().parents[4]
+        original = self.world.home / ".codex"
+        original.mkdir()
+        (original / "auth.json").write_text('{"synthetic":true}')
+        (original / "config.toml").write_text('model = "fixture"\n[features]\nhooks=false\n[mcp_servers.agentscient_lane]\ncommand="python3"\nargs=["stable.py"]\n[mcp_servers.agentscient_lane.env]\nCLAUDE_SESSION_ID="old-parent"\n')
+        binding = profiles.prepare_interactive("codex", self.world.root / "prepared", source=root, cwd=self.repo,
+                                               agent="Fixture <f@invalid>", executable="/usr/bin/true")
+        profiles.validate(profiles.read_binding(binding["binding"]))
+        self.assertEqual((Path(binding["home"]) / "auth.json").resolve(), original / "auth.json")
+        config = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())
+        self.assertTrue(config["features"]["hooks"])
+        self.assertFalse(config["features"]["unified_exec_tty"])
+        self.assertEqual(config["model"], "fixture")
+        server = config["mcp_servers"]["agentscient_lane"]
+        self.assertEqual(server["args"], ["stable.py"])
+        self.assertEqual(server["env"], {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]})
+        self.assertEqual(binding["servers"], ["agentscient_lane"])
+        self.assertIn('hooks=false', (original / "config.toml").read_text())

@@ -124,6 +124,7 @@ EXTERNAL_ENV_KEYS = {
     "GATE_TAIL",
     "GITHUB_EVENT_PATH",
     "GROK_HOME",
+    "GROK_SESSION_ID",
     "HARNESS",
     "HOME",
     "ISO_ENV",

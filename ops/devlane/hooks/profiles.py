@@ -7,7 +7,10 @@ import json
 import os
 import shlex
 import shutil
+import subprocess
 import sys
+import tomllib
+from functools import cache
 from pathlib import Path
 
 HARNESSES = ("claude", "codex", "grok", "agy")
@@ -40,6 +43,8 @@ def fallback(harness, event):
         return {"decision": "continue" if event == "Stop" else "deny", "reason": reason}
     if event == "PreToolUse":
         return {"hookSpecificOutput": {"hookEventName": event, "permissionDecision": "deny", "permissionDecisionReason": reason}}
+    if event == "Stop":
+        return {"continue": False, "stopReason": reason}
     return {"decision": "block", "reason": reason}
 
 
@@ -63,8 +68,25 @@ def helper_text(binding):
     return "\n".join(lines)
 
 
-def configuration(harness, native_home, helper, cwd):
+def toml_value(value):
+    if isinstance(value, dict):
+        return "{" + ", ".join(json.dumps(k) + " = " + toml_value(v) for k, v in sorted(value.items())) + "}"
+    if isinstance(value, list):
+        return "[" + ", ".join(toml_value(v) for v in value) + "]"
+    if not isinstance(value, (str, bool, int, float)):
+        raise ValueError("unsupported native configuration value")
+    return json.dumps(value, allow_nan=False)
+
+
+def configuration(harness, native_home, helper, cwd, settings=None):
     configs = {}
+    settings = json.loads(json.dumps(settings or {}))
+    servers = settings.get("mcp_servers", {})
+    for server in servers.values():
+        environment = server.setdefault("env", {})
+        for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
+            environment.pop(key, None)
+        environment["AGENTSCIENT_HOOK_PROFILE"] = str(helper.parent / "binding.json")
     events = EVENTS if harness != "agy" else ("PreToolUse", "PostToolUse", "Stop", "PreInvocation")
     event_groups = {}
     for event in events:
@@ -78,19 +100,26 @@ def configuration(harness, native_home, helper, cwd):
         for event in ("Stop", "PreInvocation"):
             event_groups[event] = event_groups[event][0]["hooks"]
         configs[native_home / ".gemini/config/hooks.json"] = canonical({"agentscient-shared": {"enabled": True, **event_groups}})
+        if servers:
+            configs[native_home / ".gemini/config/mcp_config.json"] = canonical({"mcpServers": servers})
     elif harness == "claude":
         configs[helper.parent / "settings.json"] = canonical({"hooks": event_groups})
+        if servers:
+            configs[helper.parent / "mcp.json"] = canonical({"mcpServers": servers})
     elif harness == "codex":
         configs[native_home / "hooks.json"] = canonical({"hooks": event_groups})
-        configs[native_home / "config.toml"] = ('[features]\nhooks = true\nunified_exec_tty = false\nshell_snapshot = false\nplugins = false\napps = false\nmulti_agent = false\n'
+        prefix = "".join(json.dumps(key) + " = " + toml_value(value) + "\n" for key, value in sorted(settings.items()))
+        configs[native_home / "config.toml"] = (prefix + '[features]\nhooks = true\nunified_exec_tty = false\nshell_snapshot = false\nplugins = false\napps = false\nmulti_agent = false\n'
              '\n[projects.' + json.dumps(str(cwd)) + ']\ntrust_level = "trusted"\n')
     else:
         configs[native_home / "hooks/agentscient.json"] = canonical({"hooks": event_groups})
+        if servers:
+            configs[native_home / "config.toml"] = 'mcp_servers = ' + toml_value(servers) + '\n'
     return configs
 
 
 def generate(harness, destination, *, source, cwd, mode, home=None, session=None,
-             agent=None, servers=(), executable=None):
+             agent=None, servers=(), executable=None, native_settings=None, credential_environment=None):
     if harness not in HARNESSES or mode not in {"interactive", "worker"}:
         raise ValueError("unknown harness or startup mode")
     if mode == "worker" and not session:
@@ -101,7 +130,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     native_home = Path(home).resolve(strict=True) if home else dest
     helper = dest / "guard.sh"
-    configs = configuration(harness, native_home, helper, cwd)
+    configs = configuration(harness, native_home, helper, cwd, native_settings)
     for path, content in configs.items():
         if path.exists() or path.is_symlink():
             raise ValueError(f"refusing to replace existing native configuration: {path}")
@@ -116,6 +145,8 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "helper": str(helper), "binding": str(dest / "binding.json"),
                "python": str(Path(sys.executable).resolve()), "session": session,
                "servers": list(servers), "authority_environment": authority,
+               "native_settings": native_settings or {},
+               "credential_environment": credential_environment or {},
                "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
@@ -146,7 +177,7 @@ def validate(binding):
     registry = json.loads((Path(binding["source"]) / "ops/devlane/hooks/boundaries.json").read_text())
     if binding["harness"] == "agy" and any(row.get("engine") and row.get("event") in {"PostToolUse", "SessionStart"} for row in registry["rows"]):
         raise ValueError("agy lacks a verified immediate post-tool/start decision channel for these required rows")
-    expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]))
+    expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected_pins = {str(path): hashlib.sha256(content.encode()).hexdigest() for path, content in expected_configs.items()}
     if expected_pins != binding["config_pins"]:
         raise ValueError("profile does not project the shared guard")
@@ -173,7 +204,7 @@ def relocate(binding, old_root, new_root):
     def moved(path):
         p = Path(path)
         return str(new_root / p.relative_to(old_root)) if p.is_relative_to(old_root) else str(p)
-    configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]))
+    configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     if expected != binding["config_pins"]:
         raise ValueError("relocated configuration is not a shared projection")
@@ -185,7 +216,7 @@ def relocate(binding, old_root, new_root):
     revised = {**binding}
     for key in ("cwd", "home", "helper", "binding"):
         revised[key] = moved(binding[key])
-    configs = configuration(revised["harness"], Path(revised["home"]), Path(revised["helper"]), Path(revised["cwd"]))
+    configs = configuration(revised["harness"], Path(revised["home"]), Path(revised["helper"]), Path(revised["cwd"]), revised.get("native_settings"))
     revised["config_pins"] = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     revised["helper_sha256"] = hashlib.sha256(helper_text(revised).encode()).hexdigest()
     for path, content in configs.items():
@@ -222,6 +253,8 @@ def native_launch(binding, argv, env):
     if binding["authority_environment"]["HOME"] != str(Path.home()):
         raise ValueError("authority HOME differs from the trusted launcher")
     out = dict(env)
+    if binding["authority_environment"].get("WF_AGENT_OVERRIDE"):
+        out["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
         out.pop(key, None)
     if binding["mode"] == "worker":
@@ -230,6 +263,10 @@ def native_launch(binding, argv, env):
         out.pop(key, None)
     if harness == "claude":
         tokens = ["--setting-sources", "", "--settings", str(Path(binding["helper"]).parent / "settings.json"), *tokens]
+        if binding.get("native_settings", {}).get("mcp_servers"):
+            if "--mcp-config" in tokens:
+                raise ValueError("interactive MCP configuration is already projected")
+            tokens = ["--strict-mcp-config", "--mcp-config", str(Path(binding["helper"]).parent / "mcp.json"), *tokens]
     elif harness == "codex":
         tokens = [x for x in tokens if x != "--ignore-user-config"]
         tokens.insert(1 if tokens and tokens[0] == "exec" else 0, "--dangerously-bypass-hook-trust")
@@ -280,6 +317,10 @@ def initialize(binding, native_payload, *, instrument):
     spec.loader.exec_module(core)
     conn = core.reader()
     try:
+        if binding["mode"] == "interactive" and conn.execute(
+                "SELECT 1 FROM participants WHERE endpoint = ? AND session_id != ?",
+                ("hook-profile:" + binding["binding"], session)).fetchone():
+            raise ValueError("profile already belongs to another native terminal; resume it or prepare a new profile")
         participant = core.maybe_participant(conn)
         if participant is not None:
             core.require_role(participant, core.ROLES)
@@ -304,6 +345,49 @@ def initialize(binding, native_payload, *, instrument):
     return session
 
 
+@cache
+def isolation_owner():
+    import importlib.util
+    path = Path(__file__).resolve().parents[1] / "harness/isolation.py"
+    spec = importlib.util.spec_from_file_location("profile_isolation", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
+    """Reuse credential custody and project existing registered MCP definitions."""
+    isolation = isolation_owner()
+    dest = Path(destination).absolute()
+    if dest.exists() and (not dest.is_dir() or any(dest.iterdir())):
+        raise ValueError("interactive destination must be new or empty")
+    env = dict(os.environ)
+    settings = {}
+    if harness in {"codex", "grok"}:
+        config = isolation._real_home(harness, env) / "config.toml"
+        if config.is_file():
+            existing = tomllib.loads(config.read_text())
+            keys = ("mcp_servers", "model", "model_provider", "model_providers", "model_reasoning_effort", "service_tier") if harness == "codex" else ("mcp_servers",)
+            settings = {key: existing[key] for key in keys if key in existing}
+    else:
+        files = ([Path(env["HOME"]) / ".claude.json", Path(cwd) / ".mcp.json"] if harness == "claude"
+                 else [Path(env["HOME"]) / ".gemini/config/mcp_config.json"])
+        servers = {}
+        for config in files:
+            if config.is_file():
+                existing = json.loads(config.read_text())
+                servers.update(existing.get("mcpServers", {}))
+                if harness == "claude":
+                    servers.update(existing.get("projects", {}).get(str(Path(cwd).resolve()), {}).get("mcpServers", {}))
+        if servers:
+            settings["mcp_servers"] = servers
+    # Use exactly the existing credential leaves and renewal-custody mechanism.
+    home = isolation.build_home(harness, dest / "home", env=env)
+    return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
+                    agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
+                    credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env})
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("operation", choices=("prepare-interactive", "run-interactive", "check"))
@@ -313,26 +397,30 @@ def main(argv=None):
     parser.add_argument("--cwd")
     parser.add_argument("--executable")
     parser.add_argument("--agent")
-    parser.add_argument("native_args", nargs=argparse.REMAINDER)
-    args = parser.parse_args(argv)
+    tokens = list(sys.argv[1:] if argv is None else argv)
+    split = tokens.index("--") if "--" in tokens else len(tokens)
+    native_args = tokens[split + 1:]
+    args = parser.parse_args(tokens[:split])
     try:
         if args.operation == "run-interactive":
             binding = read_binding(args.binding)
             if binding.get("mode") != "interactive":
                 raise ValueError("interactive launch requires an interactive projection")
-            native_args = args.native_args[1:] if args.native_args[:1] == ["--"] else args.native_args
             command, env = native_launch(binding, [binding["executable"], *native_args], os.environ)
-            os.execve(command[0], command, env)  # noqa: S606 - validated executable and token vector
+            try:
+                return subprocess.call(command, env=env)  # noqa: S603 - interactive lifetime; inherited terminal streams
+            finally:
+                isolation_owner().carry_back(binding["harness"], binding["home"], env=binding["credential_environment"])
         elif args.operation == "check":
             validate(read_binding(args.binding))
             print("shared hook profile: valid projection; native interception requires its measured witness")
         else:
             if not all((args.harness, args.destination, args.cwd, args.executable, args.agent)):
                 raise ValueError("interactive preparation requires harness, destination, cwd, executable and agent")
-            binding = generate(args.harness, args.destination, source=Path(__file__).resolve().parents[3],
-                               cwd=args.cwd, mode="interactive", agent=args.agent, executable=args.executable)
+            binding = prepare_interactive(args.harness, args.destination, source=Path(__file__).resolve().parents[3],
+                                          cwd=args.cwd, agent=args.agent, executable=args.executable)
             print(binding["binding"])
-    except (OSError, ValueError, TypeError, KeyError) as exc:
+    except (OSError, ValueError, TypeError, KeyError, isolation_owner().NotIsolated) as exc:
         print(f"hook-profile: expected a complete pinned native projection; found {exc}; needed inspect co_doc.py and regenerate the reviewed profile", file=sys.stderr)
         return 2
     return 0

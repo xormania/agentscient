@@ -40,8 +40,6 @@ SETTINGS = (
     ROOT / ".claude" / "settings.local.json",
     Path.home() / ".claude" / "settings.json",
 )
-STATE = state_root()
-DBS = (STATE / "agentscient" / "handwork.db", STATE / "agentscient" / "skills.db")
 ABSOLUTE = re.compile(r"(?<![\w$])(/[^\s)'\";,]+)")
 
 
@@ -346,7 +344,13 @@ def stale_grants(connection):
 
 
 def ledgers(report):
-    for path in DBS:
+    try:
+        state = state_root()
+    except Refusal as error:
+        report.invalid_probe("P-DB-1", "a validated authority state root", str(error),
+                             "repair the native profile before reading authority ledgers")
+        return
+    for path in (state / "agentscient" / "handwork.db", state / "agentscient" / "skills.db"):
         if not path.exists():
             report.add("Finding", "P-DB-1", f"read-only ledger at {path}", "ABSENT",
                        f"initialize {path} with its owning tool before relying on the ledger")
