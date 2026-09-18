@@ -1896,6 +1896,9 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
             executable=argv[0], servers=[LANE_MCP_SERVER, LANE_MCP_KEY, COORD_MCP_SERVER],
             relocated_from=relocated_from)
         argv, env = profile.native_launch(binding, argv, env)
+        # Load the same checked custody bytes before the worker. The profile
+        # owner caches them; carry-back still revalidates after the child.
+        profile.isolation_owner(binding["pins"][str(HARNESS_APP / "isolation.py")])
     except (isolation.NotIsolated, OSError, ValueError, TypeError, KeyError) as exc:
         _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
                 "inspect co_doc.py and the native capability evidence before resuming")
@@ -1999,21 +2002,32 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     rec["attempts"].append({"n": len(rec["attempts"]) + 1, "launched": launched,
                             "ended": _now(), "exit": code,
                             "tripped": (job_dir / "TRIPPED.md").exists(),
-                            "credential": _carry_back_credentials(harness, job_dir / "home" / harness)})
+                            "credential": _carry_back_credentials(
+                                harness, binding["home"], profile=profile, binding=binding)})
     if reason:
         rec.setdefault("note", reason)
     return code
 
 
-def _carry_back_credentials(harness, home):
+def _carry_back_credentials(harness, home, *, profile=None, binding=None):
     """LD-41 (2026-09-15): a credential the worker renewed inside its job
     home goes back to the host copy, so the next launch reads the renewal
     and not the login (isolation.carry_back). Never fails the attempt: a
-    failure is a reading in the attempt, `unresolved`."""
-    isolation = _module("isolation_carry", HARNESS_APP / "isolation.py")
+    failure is a reading in the attempt, `unresolved`. The caller must retain
+    the worker's pre-child profile; never import current source as a fallback.
+    """
     try:
-        return isolation.carry_back(harness, home, os.environ)
-    except (isolation.NotIsolated, OSError, ValueError, KeyError) as exc:
+        if profile is None or not isinstance(binding, dict):
+            raise ValueError("worker credential custody requires its admitted profile and binding")
+        profile.validate(binding)
+        if binding["mode"] != "worker" or binding["harness"] != harness:
+            raise ValueError("credential custody differs from the admitted worker")
+        if Path(home).resolve(strict=True) != Path(binding["home"]).resolve(strict=True):
+            raise ValueError("credential home differs from the admitted worker")
+        owner = Path(binding["source"]) / "ops/devlane/harness/isolation.py"
+        custody = profile.isolation_owner(binding["pins"][str(owner)])
+        return custody.carry_back(harness, home, os.environ)
+    except Exception as exc:  # noqa: BLE001 - retain unresolved reading without loading a fallback owner
         return [{"unresolved": str(exc)}]
 
 

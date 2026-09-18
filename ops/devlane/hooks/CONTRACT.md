@@ -98,6 +98,11 @@ child starts, without trusting a mutable bytecode cache. After child exit,
 revalidate the complete binding before any credential carry-back effect; a
 changed or missing source/configuration refuses and leaves renewed credentials
 in the native home. Error reporting never imports an unvalidated custody owner.
+The worker attempt carries its already-admitted profile and binding into the
+same post-child check. Missing, invalid, changed or mismatched custody context
+produces the existing `credential: [{"unresolved": ...}]` reading with no host
+credential effect; it does not replace the child's exit status. Resume and
+relocation use the current validated worker binding and its native home.
 
 ## Verification and activation
 
