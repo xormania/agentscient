@@ -27,7 +27,11 @@ class Environment(unittest.TestCase):
             leaked = {k for k in os.environ if k in env and env[k] == os.environ[k]
                       and k != "PATH" and not k.startswith("GIT_")}
             self.assertEqual(leaked, set(), f"host values reached the world: {sorted(leaked)}")
-            self.assertTrue(env["PATH"].startswith(str(world.bin) + os.pathsep))
+        # Origin: LD-72, PR #241. The strict world's PATH is bin alone.
+        # The default carries the host's after it until the sweep lands;
+        # test_world_path.py pins both values of host_path.
+        with World(host_path=False) as strict:
+            self.assertEqual(strict.env()["PATH"], str(strict.bin))
 
     def test_home_xdg_tmpdir_cwd_are_under_the_root(self):
         with World() as world:
@@ -103,6 +107,40 @@ class Plants(unittest.TestCase):
             self.assertTrue(world.require("python3"))
             with self.assertRaises(PlantFailed):
                 world.require("no-such-tool-in-this-world")
+
+
+class ToolNames(unittest.TestCase):
+    """A world places its tools on its own bin and nowhere else.
+
+    Origin: 20260916T122524Z-review-codex-05a9f5#3 at aea65bb9 — a name
+    carrying `..` resolved against the caller's directory while the wrapper
+    was placed against the world's bin, so an executable landed outside the
+    world and survived its close.
+    """
+
+    ESCAPES = ("../escaped", "../../escaped", "a/b", "/tmp/escaped", "..", ".")
+
+    def test_a_tool_name_that_leaves_the_world_is_invalid(self):
+        for name in self.ESCAPES:
+            with self.subTest(name=name, origin="05a9f5#3"):
+                with World(host_path=False) as world:
+                    with self.assertRaises(PlantFailed):
+                        world.ambient_tool(name)
+                    with self.assertRaises(PlantFailed):
+                        world.tools.plant(name, stdout="x\n")
+
+    def test_a_planted_tool_lands_on_the_worlds_bin(self):
+        """The clean neighbour: an ordinary name still works, and lands
+        inside the world."""
+        with World(host_path=False) as world:
+            placed = world.tools.plant("mytool", stdout="x\n")
+            self.assertEqual(placed.parent.resolve(), world.bin.resolve())
+            self.assertTrue(placed.resolve().is_relative_to(world.root.resolve()))
+
+    def test_an_ambient_tool_lands_on_the_worlds_bin(self):
+        with World(host_path=False) as world:
+            placed = world.ambient_tool("git")
+            self.assertEqual(placed.parent.resolve(), world.bin.resolve())
 
 
 class Children(unittest.TestCase):

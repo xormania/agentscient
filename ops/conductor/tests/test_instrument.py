@@ -262,7 +262,8 @@ class TheSessionId(unittest.TestCase):
     looking at a key nothing sets.
     """
 
-    KEYS = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")
+    KEYS = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+            "CODEX_THREAD_ID", "CODEX_SESSION_ID")
 
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
@@ -329,7 +330,8 @@ class TheSessionIdentityStore(unittest.TestCase):
     def env(self, **keys):
         base = {k: v for k, v in os.environ.items()
                 if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE",
-                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")}
+                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+                             "CODEX_THREAD_ID", "CODEX_SESSION_ID")}
         base["LANE_CONF"] = str(self.conf)
         base.update({k: v for k, v in keys.items() if v is not None})
         return mock.patch.dict(os.environ, base, clear=True)
@@ -403,7 +405,8 @@ class TheSessionIdentityStore(unittest.TestCase):
         # able to name its agent.
         base = {k: v for k, v in os.environ.items()
                 if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE", "LANE_CONF",
-                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")}
+                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+                             "CODEX_THREAD_ID", "CODEX_SESSION_ID")}
         base["WF_AGENT"] = AGENT
         base["CLAUDE_CODE_SESSION_ID"] = self.SESSION
         with mock.patch.dict(os.environ, base, clear=True):

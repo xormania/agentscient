@@ -19,7 +19,7 @@ import sys
 import time
 import urllib.parse
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import record
@@ -30,6 +30,15 @@ APP = Path(__file__).resolve().parent
 JOBS_PATH = APP.parent / "task" / "jobs.json"
 HARNESS_APP = APP.parent / "harness"
 TELEMETRY_APP = APP.parent / "telemetry"
+# The conductor lane's coordination core, reached as a lever run as a
+# subprocess and never imported. The dev lane already names ops/conductor
+# only as paths it points a worker at; an import would put the core's
+# module state and the lane's state store inside every case of this app's
+# suite, and would make a conductor refusal raise here instead of arriving
+# on the wire. The edge is the lever's CLI and its refusal wire, which the
+# conductor's conformance registry already asserts.
+COORDINATION = APP.parents[1] / "conductor" / "tools" / "coordination.py"
+BIND_TIMEOUT = 60
 REFUSAL = 3
 STAGES = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
 OWNER_NAME = "xormania"
@@ -145,6 +154,17 @@ def _refuse(ident, expected, found, satisfy):
 
 def _now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_stamp(text):
+    """A UTC stamp `_now` wrote, back to an aware datetime.
+
+    Records from 2026-08 carry fractional seconds and records since do not,
+    so both are accepted; anything else raises and its caller keeps the job.
+    """
+    if not isinstance(text, str) or not text.endswith("Z"):
+        raise ValueError(f"not a UTC stamp: {text!r}")
+    return datetime.fromisoformat(text[:-1]).replace(tzinfo=timezone.utc)
 
 
 def mint_id(stage, harness):
@@ -594,6 +614,38 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
                   "lane_record", "lane_alerts", "lane_usage")
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
+COORD_MCP_SERVER = "coordination"
+# The launcher's own tree, never the worker's snapshot: this script's
+# `import coordination` resolves from `sys.path[0]`, its own directory, so
+# running it from a path the worker can write would let a worker-rewritten
+# core answer with the dispatcher's own authority (finding 1 of
+# 20260916T151749Z-review-codex-ef6db7).
+COORD_MCP_PINNED = APP.parents[1] / "conductor" / "tools" / "coordination_mcp.py"
+COORD_MCP_CONFIG_VERSION = 1
+# The capability list is declared here and proved against the server's own
+# catalogue by a case, rather than read out of the server at launch: the
+# launcher reaches ops/conductor as a lever and never as an import, so a
+# drift between the two is caught by a test and not by a worker.
+COORD_MCP_TOOLS = (
+    "coord_accept", "coord_ack", "coord_assignments", "coord_brief",
+    "coord_claim", "coord_draft", "coord_inbox", "coord_observe",
+    "coord_offer", "coord_outstanding", "coord_release", "coord_resolve",
+    "coord_return", "coord_send", "coord_show", "coord_submit",
+    "coord_verify",
+)
+# Codex today. The A-87 trial is a codex worker and the Lead scoped this
+# slice to that launch; claude and grok take their servers by other routes
+# and are named here rather than left to read as "nothing to wire".
+COORD_MCP_HARNESSES = ("codex",)
+# Shared core context, carried by each supported adapter's MCP transport.
+# The legacy session key names the issued lane binding, not a vendor role.
+COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF")
+COORD_MCP_ABSENT = {
+    "unresolved": "the launcher's own tree has no "
+                  "ops/conductor/tools/coordination_mcp.py"}
+COORD_MCP_UNBOUND = {
+    "unresolved": "the dispatch named no assignment, so the core bound no "
+                  "participant for this worker to act as"}
 BRIEF_MARK = "== what exists (measured at launch) =="
 BRIEF_CAP = 8000
 REUSE_RE = re.compile(r"reused:\s*(.+)", re.DOTALL)
@@ -607,6 +659,26 @@ REUSE_CLAUSE = (
     "(owner, 2026-09-12: \"stop you or other agents from going outside the "
     "architecture, duplicating, or worse - ignoring\")."
 )
+
+
+def _acting_clause(meta):
+    """What a wired worker is told it holds.
+
+    A registered server the brief never names is what the A-87 trial
+    already proved insufficient: the worker reached for a shell it could
+    not write from and the assignment stayed unclaimed.
+    """
+    return (
+        f"The acting MCP server `{COORD_MCP_SERVER}` carries this lane's "
+        f"coordination verbs (tools: {', '.join(COORD_MCP_TOOLS)}). You are "
+        f"bound to it as participant {meta['participant']}, dispatched for "
+        f"assignment {meta['assignment']}. Read `coord_brief` first, then "
+        f"`coord_claim` the assignment before you work it and `coord_submit` "
+        f"the evidence when you are done; `coord_release` it instead if you "
+        f"stop short. These are the only verbs that move the assignment: a "
+        f"shell cannot, and work reported anywhere else is work the lane "
+        f"cannot see."
+    )
 
 
 def _same_unit_records(repo, unit, exclude):
@@ -648,8 +720,63 @@ def _lane_mcp(job_dir, snapshot, job_id, repo, unit, follows):
             "server": server, "tools": list(LANE_MCP_TOOLS)}, server
 
 
-def _mcp_argv(harness, server, job_dir):
-    """The argv tokens that hand a harness the lane MCP server; [] for none."""
+def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
+                      assignment, branch, stamp):
+    """Write the acting config for this dispatch; return (meta, server argv).
+
+    Every absence is declared with the reason, because the three that can
+    happen here read alike from the record otherwise: a harness this slice
+    does not wire, a snapshot without the tool, and a dispatch that bound
+    no participant.
+    """
+    if harness not in COORD_MCP_HARNESSES:
+        return {"unresolved": f"the acting server is wired for "
+                              f"{', '.join(COORD_MCP_HARNESSES)} today; this "
+                              f"dispatch is {harness}"}, None
+    tool = COORD_MCP_PINNED
+    if not tool.is_file():
+        return dict(COORD_MCP_ABSENT), None
+    if not participant:
+        return dict(COORD_MCP_UNBOUND), None
+    cfg = Path(job_dir) / "coordination-mcp.json"
+    cfg.write_text(json.dumps({
+        "version": COORD_MCP_CONFIG_VERSION,
+        "participant": participant,
+        "assignment": assignment,
+        "branch": branch,
+        "worktree": str(Path(snapshot).resolve()),
+        "record": job_id,
+        "capabilities": list(COORD_MCP_TOOLS),
+        "issued_at": stamp,
+    }, indent=1) + "\n", encoding="utf-8")
+    server = ["python3", "-B", str(tool.resolve()),
+              "--config", str(cfg.resolve()), "serve"]
+    return {"config": str(cfg.resolve()), "sha256": _sha(cfg),
+            "participant": participant, "assignment": assignment,
+            "server": server, "tools": list(COORD_MCP_TOOLS)}, server
+
+
+def _codex_mcp_argv(key, server, env_keys=(), *, capabilities=None):
+    """Project native transport permissions from the issued capability list.
+
+    Required acting-server startup and per-tool approval admit the client call
+    under approval_policy=never (native M-233). They grant no domain authority:
+    the same issued config, participant, role and generation checks still run.
+    """
+    tokens = ["-c", f'mcp_servers.{key}.command="{server[0]}"',
+              "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+    if env_keys:
+        tokens += ["-c", f"mcp_servers.{key}.env_vars={json.dumps(env_keys)}"]
+    if capabilities is not None:
+        tokens += ["-c", f"mcp_servers.{key}.required=true",
+                   "-c", f"mcp_servers.{key}.enabled_tools={json.dumps(list(capabilities))}"]
+        for name in capabilities:
+            tokens += ["-c", f'mcp_servers.{key}.tools.{name}.approval_mode="approve"']
+    return tokens
+
+
+def _mcp_argv(harness, server, job_dir, coord=None):
+    """The argv tokens that hand a harness its MCP servers; [] for none."""
     if not server:
         return []
     if harness == "claude":
@@ -658,8 +785,11 @@ def _mcp_argv(harness, server, job_dir):
             "command": server[0], "args": server[1:]}}}, indent=1) + "\n", encoding="utf-8")
         return ["--mcp-config", str(path.resolve())]
     if harness == "codex":
-        return ["-c", f'mcp_servers.{LANE_MCP_KEY}.command="{server[0]}"',
-                "-c", f"mcp_servers.{LANE_MCP_KEY}.args={json.dumps(server[1:])}"]
+        tokens = _codex_mcp_argv(LANE_MCP_KEY, server)
+        if coord:
+            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord, COORD_MCP_ENV,
+                                    capabilities=COORD_MCP_TOOLS)
+        return tokens
     return []
 
 
@@ -678,6 +808,46 @@ def _grok_mcp_config(home, server):
     return str(path)
 
 
+def _relocate_coordination(rec, job_dir, relocated_from):
+    """The acting config, rebased onto the bound job.
+
+    Same defect class as the lane config's (Codex review of PR #158,
+    2026-09-12): the config names the store it was written in, and the
+    server argv names the config, so a resumed worker would be handed a
+    path that moved. `record` is the job id and does not move with it.
+    """
+    coord = (rec.get("brief") or {}).get("coordination")
+    if not isinstance(coord, dict) or not coord.get("config"):
+        return
+    job_dir = Path(job_dir)
+    cfg = job_dir / "coordination-mcp.json"
+    prior = Path(coord["config"])
+    # A whole job directory moved by shutil already carries this file to
+    # `cfg`; `prior`, the path the record wrote at dispatch time, is gone.
+    # Only a config that reached the new job by some other route is copied
+    # here — either way the JSON below is read from `cfg`, never `prior`,
+    # so its `worktree` field is rebased whichever way it arrived.
+    if not cfg.is_file() and prior != cfg and prior.is_file():
+        cfg.write_text(prior.read_text(encoding="utf-8"), encoding="utf-8")
+    if cfg.is_file():
+        try:
+            data = json.loads(cfg.read_text(encoding="utf-8"))
+        except ValueError:
+            data = None
+        if (isinstance(data, dict)
+                and isinstance(data.get("worktree"), str) and relocated_from):
+            data["worktree"] = data["worktree"].replace(
+                relocated_from, str(job_dir))
+            cfg.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+        coord["config"] = str(cfg.resolve())
+        coord["sha256"] = _sha(cfg)
+    server = coord.get("server")
+    if isinstance(server, list) and relocated_from:
+        coord["server"] = [
+            token.replace(relocated_from, str(job_dir))
+            if isinstance(token, str) else token for token in server]
+
+
 def _relocate_mcp(rec, job_dir, relocated_from):
     """A retained job moved to another dispatch store keeps an MCP config on
     disk that names the old store, so a resumed server reports prior records
@@ -685,6 +855,7 @@ def _relocate_mcp(rec, job_dir, relocated_from):
     2026-09-12). Rewrite lane-mcp.json, the record's server argv and grok's
     config.toml to the bound job; the record's own paths were rebased by
     _bind_record."""
+    _relocate_coordination(rec, job_dir, relocated_from)
     mcp = (rec.get("brief") or {}).get("mcp")
     if not isinstance(mcp, dict) or not mcp.get("config"):
         return
@@ -895,12 +1066,12 @@ def _resolve_turns(job_caps):
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
           project_allow=(), project_deny=(), writable_out=False, executable=None,
-          turns=None, mcp=None):
+          turns=None, mcp=None, coord=None):
     if mcp and name == "claude":
         project_allow = (*project_allow, f"mcp__{LANE_MCP_SERVER}")
     argv = _argv_base(name, model, effort, session, prompt, flags, sandbox, resume,
                       project_allow, project_deny, writable_out, executable)
-    extra = _mcp_argv(name, mcp, Path(prompt).parent)
+    extra = _mcp_argv(name, mcp, Path(prompt).parent, coord)
     if name == "codex" and argv and argv[-1] == "-":
         argv = [*argv[:-1], *extra, "-"]
     else:
@@ -994,7 +1165,17 @@ def _argv_base(name, model, effort, session, prompt, flags, sandbox, resume=Fals
     return argv
 
 
-def _child_env(base, additions, job_id):
+def _child_env(base, additions, job_id, session=None):
+    """The environment a dispatched child runs under.
+
+    `session` is the uuid this dispatch minted. It goes in as
+    CLAUDE_SESSION_ID, the key instrument.session() already admits, so a
+    worker of any harness can resolve the participant the launcher bound
+    for it. A claude child also gets it on its argv as --session-id; the
+    two are the same value on purpose, because a worker acting under one
+    id and recorded under the other would leave the store pointing at a
+    session that never ran.
+    """
     env = dict(base)
     for key in ("CLICOLOR_FORCE", "FORCE_COLOR", "CLAUDE_CONFIG_DIR"):
         env.pop(key, None)
@@ -1005,7 +1186,113 @@ def _child_env(base, additions, job_id):
                 "PYTHONIOENCODING": "utf-8", "LC_ALL": "C.UTF-8",
                 "WF_LANE": "dev", "DISPATCH_JOB": job_id})
     env.update(additions)
+    # The child is initialized by dispatch, separately from interactive
+    # terminal registration. No parent/native alias may select its actor.
+    for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
+                "CODEX_THREAD_ID", "CODEX_SESSION_ID"):
+        env.pop(key, None)
+    # A dispatch that minted no session id leaves the key absent rather
+    # than setting it empty: the server refuses class `session` on unset,
+    # and an empty string would be a caller naming a session that is not
+    # one.
+    if session:
+        env["CLAUDE_SESSION_ID"] = session
+    else:
+        env.pop("CLAUDE_SESSION_ID", None)
     return env
+
+
+def _binding_session(rec):
+    """Lane identity survives native conversation discovery and resume.
+
+    Old bound records retained the issuer's exact receipt even when their
+    session.id was replaced. Recover that declared identity, never guess
+    from a native rollout or another participant with the same model.
+    """
+    saved = rec.get("session") or {}
+    binding = saved.get("binding_id")
+    if binding:
+        if not isinstance(binding, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", binding):
+            _refuse("binding", "a valid recorded lane session id", "invalid binding_id",
+                    "restore the original dispatch binding")
+        return binding
+    receipt = saved.get("bound")
+    if receipt:
+        match = re.fullmatch(
+            r"participant PT-[1-9][0-9]* bound for session ([A-Za-z0-9][A-Za-z0-9._-]{0,127}) "
+            r"by PT-[1-9][0-9]* for A-[1-9][0-9]*", str(receipt).strip())
+        if not match:
+            _refuse("binding", "the original bind-for receipt for this retained job",
+                    "an unreadable receipt", "restore the issued binding before resuming")
+        return match.group(1)
+    return saved.get("id")
+
+
+def _bound_participant(line):
+    """The participant id out of bind-for's line, or None.
+
+    The lever's line is prose around the id; the acting config takes the
+    id alone, and the server refuses class `config` on anything that is
+    not PT-n, so a line this cannot read is a wiring fault and not a
+    participant.
+    """
+    found = re.search(r"\bPT-[1-9][0-9]*\b", line or "")
+    return found.group(0) if found else None
+
+
+def _bind_worker(session, assignment, harness, agent):
+    """Mint the worker's participant before the worker exists.
+
+    A dispatched worker has no harness session id of its own, so without
+    this it holds no participant and every coordination mutation it makes
+    refuses class `participant`. `bind-for` is the only verb that mints one
+    for a session that cannot bind itself, and it records who issued it and
+    for which assignment, so a participant nobody dispatched is visible as
+    such.
+
+    It runs before the child starts, never after: a bind that failed while
+    the worker ran would leave exactly the unbound worker this exists to
+    prevent. A refusal from the core is handed on with its own class and
+    its own three parts, because a launcher that renamed a conductor
+    refusal would make one fault read as two different things depending on
+    which surface met it.
+    """
+    env = dict(os.environ)
+    env["WF_AGENT"] = agent
+    # The lever runs as the dispatcher, which is this process's own
+    # session, so its session id is inherited and never set here. The
+    # worker's id is the --session argument: it is the subject of the verb,
+    # not the caller. Setting it in the environment made the lever resolve
+    # the caller as the worker's own unbound session and refuse class
+    # `participant` naming the uuid it had just minted.
+    try:
+        done = subprocess.run(
+            [sys.executable, str(COORDINATION), "bind-for",
+             "--session", session, "--roles", "worker",
+             "--for", assignment, "--harness", harness],
+            capture_output=True, text=True, timeout=BIND_TIMEOUT,
+            cwd=str(COORDINATION.parents[3]), env=env, check=False)
+    except subprocess.TimeoutExpired:
+        _refuse("binding", f"the coordination lever to answer within "
+                           f"{BIND_TIMEOUT}s",
+                "no answer at all",
+                "the lane's state store is held by another writer; retry once "
+                "it is free")
+    if done.returncode == 0:
+        return (done.stdout or "").strip()
+    line = (done.stderr or "").strip().splitlines()
+    wire = line[-1] if line else ""
+    match = re.match(r"(\w[\w-]*): expected (.*); found (.*); needed (.*)",
+                     wire)
+    if match:
+        # The core's own class and its own three parts, unrenamed.
+        _refuse(match.group(1), match.group(2), match.group(3), match.group(4))
+    _refuse("binding",
+            f"a wire refusal from {COORDINATION.name} bind-for, or exit 0",
+            f"exit {done.returncode} saying {wire!r}" if wire
+            else f"exit {done.returncode} and nothing on stderr",
+            "run the lever by hand with the same arguments and read what it "
+            "says; a worker is never launched unbound")
 
 
 def _attempt_state(job_dir, *, required=False):
@@ -1556,13 +1843,20 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"),
                  turns=(rec.get("caps") or {}).get("turns"),
-                 mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"))
+                 # The run path rebuilds the argv from the record and
+                 # overwrites what record.build put there, so a server named
+                 # only at build time never reaches the child. Both planes
+                 # are taken from the record here for that reason.
+                 mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"),
+                 coord=((rec.get("brief") or {}).get("coordination")
+                        or {}).get("server"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
-    env = _child_env(os.environ, iso_env, rec["id"])
+    env = _child_env(os.environ, iso_env, rec["id"],
+                     session=_binding_session(rec))
     if harness == "agy":
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
@@ -1591,6 +1885,24 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                     "a non-directory entry",
                     "remove the non-directory entry and resume the job")
         env["TMPDIR"] = str(tmpdir.absolute())
+    # A-218: install the same policy projection in the existing worker home.
+    # This is worker initialization, never interactive registration or dispatch.
+    isolation = _module("guard_isolation", HARNESS_APP / "isolation.py")
+    try:
+        profile, binding = isolation.install_enforcement(
+            harness, job_dir / "enforcement", source=APP.parents[2], cwd=snapshot,
+            home=rec["harness"]["isolation"].get("home"),
+            session=_binding_session(rec), agent=rec.get("agent") or env.get("WF_AGENT"),
+            executable=argv[0], servers=[LANE_MCP_SERVER, LANE_MCP_KEY, COORD_MCP_SERVER],
+            relocated_from=relocated_from)
+        argv, env = profile.native_launch(binding, argv, env)
+        # Capture this attempt's directories and checked custody bytes before
+        # the worker; resume captures its current (possibly relocated) home.
+        custody = profile.capture_custody(binding)
+    except (isolation.NotIsolated, OSError, ValueError, TypeError, KeyError) as exc:
+        _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
+                "inspect co_doc.py and the native capability evidence before resuming")
+    rec["harness"]["argv"] = argv
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -1690,21 +2002,31 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     rec["attempts"].append({"n": len(rec["attempts"]) + 1, "launched": launched,
                             "ended": _now(), "exit": code,
                             "tripped": (job_dir / "TRIPPED.md").exists(),
-                            "credential": _carry_back_credentials(harness, job_dir / "home" / harness)})
+                            "credential": _carry_back_credentials(
+                                harness, binding["home"], profile=profile, binding=binding, custody=custody)})
     if reason:
         rec.setdefault("note", reason)
     return code
 
 
-def _carry_back_credentials(harness, home):
+def _carry_back_credentials(harness, home, *, profile=None, binding=None, custody=None):
     """LD-41 (2026-09-15): a credential the worker renewed inside its job
     home goes back to the host copy, so the next launch reads the renewal
     and not the login (isolation.carry_back). Never fails the attempt: a
-    failure is a reading in the attempt, `unresolved`."""
-    isolation = _module("isolation_carry", HARNESS_APP / "isolation.py")
+    failure is a reading in the attempt, `unresolved`. The caller must retain
+    the worker's pre-child profile and custody capture; never construct a
+    post-child capture or import current source as a fallback.
+    """
     try:
-        return isolation.carry_back(harness, home, os.environ)
-    except (isolation.NotIsolated, OSError, ValueError, KeyError) as exc:
+        if profile is None or not isinstance(binding, dict) or custody is None:
+            raise ValueError("worker credential custody requires its admitted profile, binding and pre-child capture")
+        profile.validate(binding)
+        if binding["mode"] != "worker" or binding["harness"] != harness:
+            raise ValueError("credential custody differs from the admitted worker")
+        if Path(home).resolve(strict=True) != Path(binding["home"]).resolve(strict=True):
+            raise ValueError("credential home differs from the admitted worker")
+        return custody(binding, env=os.environ)
+    except Exception as exc:  # noqa: BLE001 - retain unresolved reading without loading a fallback owner
         return [{"unresolved": str(exc)}]
 
 
@@ -1902,9 +2224,20 @@ def _launch(args):
     turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
     prompt_text += _turns_budget(turns)
+    binding_session = str(uuid.uuid4())
+    session = None if args.harness == "agy" else binding_session
+    bound = None
+    if args.assignment:
+        bound = _bind_worker(binding_session, args.assignment,
+                             args.harness, agent)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
+    coord_meta, coord_server = _coordination_mcp(
+        job_dir, snapshot, args.harness, job_id,
+        _bound_participant(bound), args.assignment, lineage, stamp)
     prompt_text += "\n\n" + _what_exists(snapshot, jobs, mcp_meta)
+    if coord_server:
+        prompt_text += "\n\n" + _acting_clause(coord_meta)
     # Dispatch names its copies even when the shared template omits inputs.
     if copied:
         prompt_text += "\n\nInput files: " + values["inputs"]
@@ -1931,7 +2264,6 @@ def _launch(args):
     project_allow = project_deny = ()
     if args.harness == "claude":
         permissions, project_allow, project_deny = _project_permissions(snapshot)
-    session = None if args.harness == "agy" else str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
     rec = record.build({
@@ -1953,14 +2285,24 @@ def _launch(args):
                                   project_allow, project_deny,
                                   writable_out=role == "read",
                                   executable=worker["executable"],
-                                  turns=turns, mcp=mcp_server)},
+                                  turns=turns, mcp=mcp_server,
+                                  coord=coord_server)},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
-        "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
+        # `bound` is the lever's own line when this dispatch bound a
+        # participant for the session above, and None when it named no
+        # assignment. A record that merely minted a session id and one
+        # that bound a participant to it are different facts.
+        "session": {"id": session, "binding_id": binding_session, "stream": None,
+                    "stream_sha256_at_close": None, "bound": bound},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
                   "mcp": mcp_meta,
+                  # The acting plane, beside the read plane. A dispatch
+                  # that wired nothing says which of the three reasons
+                  # it was, never an empty object.
+                  "coordination": coord_meta,
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,
@@ -2415,6 +2757,134 @@ def _residual(snapshot):
     return [_display_residual(entry) for entry in _residual_entries(snapshot)]
 
 
+RECLAIMABLE = ("snapshot", "home")
+
+
+def _reclaim_conf():
+    """The sweep's two keys, read with their names written out.
+
+    `_lane_values` passes a key through a variable, which laneconf.py's closure
+    verb cannot follow when it looks for a declaration's reader, so a key read
+    only that way reports as an unread declaration. These literal gets are this
+    file's evidence that it reads them. The refusal is the one `_lane_values`
+    raises, on the same wire.
+    """
+    try:
+        return (LANECONF.get("DISPATCH_RECLAIM"),
+                LANECONF.get("DISPATCH_RECLAIM_DAYS"))
+    except LANECONF.ConfigError as exc:
+        kind = "conf-key" if exc.kind == "key" else exc.kind
+        raise Refused(exc.line(kind)) from exc
+
+
+def _reclaim_candidate(rec, job_dir, repo, cutoff):
+    """Whether one closed job's bulk may go, and the reading if it may not.
+
+    Returns (True, None) or (False, reason). Every refusal is a reading, so a
+    job that stays says why on the sweep's record rather than being skipped in
+    silence.
+    """
+    closed = (rec.get("at") or {}).get("closed")
+    if not closed:
+        return False, "not closed"
+    try:
+        when = _parse_stamp(closed)
+    except (ValueError, TypeError):
+        return False, f"unreadable closed stamp {closed!r}"
+    if when > cutoff:
+        return False, "younger than the retention window"
+    # `resume` reads snapshot/ and home/ for a job whose envelope was invalid.
+    result = rec.get("result") or {}
+    if (result.get("envelope") or {}).get("status") != "ok":
+        return False, "envelope is resumable"
+    head = result.get("head")
+    if not head or _git(repo, "cat-file", "-e", f"{head}^{{commit}}",
+                        check=False).returncode:
+        return False, f"head {head!r} is not in this repository"
+    if (result.get("residual_paths") or []) and not result.get("residual_patch"):
+        return False, "residual paths with no patch"
+    if not any((job_dir / name).is_dir() for name in RECLAIMABLE):
+        return False, "already reclaimed"
+    return True, None
+
+
+def _drop_bulk(job_dir):
+    """Remove one job's snapshot/ and home/, lifting the harness's seal."""
+    removed = []
+    for name in RECLAIMABLE:
+        target = job_dir / name
+        if not target.is_dir():
+            continue
+        # The harness seals a finished snapshot 555 through the whole tree, and
+        # rmtree cannot unlink from a directory it cannot write to (measured
+        # 2026-09-18: 9,145 sealed directories in one hand sweep).
+        for path in (target, *target.rglob("*")):
+            if path.is_dir():
+                with contextlib.suppress(OSError):
+                    path.chmod(path.stat().st_mode | 0o700)
+        try:
+            shutil.rmtree(target)
+            removed.append(name)
+        except OSError:
+            pass
+    return removed
+
+
+def _reclaim_store(repo, exclude_id):
+    """Drop the reproducible bulk of jobs that closed outside the window.
+
+    `snapshot/` is a git checkout whose head refs/dispatch/<id> holds; `home/`
+    is the harness isolation directory. The evidence -- record.json,
+    diff.patch, out/, context/, the streams -- is never touched.
+
+    The sweep runs at a close and never touches the job that just closed:
+    a fresh snapshot is what `resume` resumes from, what a reviewer opens, and
+    what the launcher's own suite inspects after a run. Only the backlog goes.
+
+    Measured 2026-09-18 before this existed: 845 job directories held
+    1,556,838 inodes, 44% of this host, and snapshot/ plus home/ were
+    1,525,881 of them, accumulating since 2026-09-03 because nothing swept a
+    store that lives outside the repository.
+    """
+    setting, window = _reclaim_conf()
+    if (setting or "").strip() != "on":
+        return {"swept": False, "reason": "DISPATCH_RECLAIM is not 'on'"}
+    try:
+        days = int((window or "").strip())
+        if days < 1:
+            raise ValueError(days)
+    except (TypeError, ValueError):
+        return {"swept": False,
+                "reason": f"DISPATCH_RECLAIM_DAYS={window!r} is not a positive integer"}
+
+    root = _jobs_root()
+    if not root.is_dir():
+        return {"swept": False, "reason": "no dispatch store"}
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    reclaimed, kept = [], {}
+    for job_dir in sorted(root.iterdir()):
+        if not job_dir.is_dir() or job_dir.name == exclude_id:
+            continue
+        record_path = job_dir / "record.json"
+        if not record_path.is_file():
+            kept[job_dir.name] = "no record in the store"
+            continue
+        try:
+            rec = json.loads(record_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            kept[job_dir.name] = f"unreadable record: {exc}"
+            continue
+        ok, why = _reclaim_candidate(rec, job_dir, repo, cutoff)
+        if not ok:
+            if why != "already reclaimed":
+                kept[job_dir.name] = why
+            continue
+        if _drop_bulk(job_dir):
+            reclaimed.append(job_dir.name)
+    return {"swept": True, "days": days, "reclaimed": len(reclaimed),
+            "kept": len(kept), "ids": reclaimed[:20]}
+
+
 def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
     """Collect the snapshot's state, finalize the record, commit it."""
     job_dir, snapshot = _bound_snapshot(rec)
@@ -2483,6 +2953,13 @@ def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
         env["note"] = f"{env['note']}; cause: {json.dumps(cause, sort_keys=True)}"
     rec["at"]["closed"] = _now()
     rec["status"] = "closed"
+    # The backlog sweep, never this job: a fresh snapshot is what resume
+    # resumes from and what a reviewer opens. A failure here never fails a
+    # close -- the job is settled either way.
+    try:
+        rec["result"]["store_sweep"] = _reclaim_store(repo, rec["id"])
+    except Exception as exc:  # noqa: BLE001 - a sweep never fails a close
+        rec["result"]["store_sweep"] = {"swept": False, "reason": str(exc)}
     _write_record(repo, rec)
     _commit_record(repo, record_path, rec, subject=subject)
 
@@ -2981,6 +3458,11 @@ def _launch_parser():
     p.add_argument("--scope")
     p.add_argument("--input", action="append", default=[])
     p.add_argument("--follows", action="append", default=[])
+    # The assignment this dispatch is work on, if it is work on
+    # one. Naming it binds the worker to it; leaving it out is a
+    # dispatch with no assignment, which most reviews are, and
+    # changes nothing.
+    p.add_argument("--for", dest="assignment")
     p.add_argument("--answers", action="append", default=[])
     p.add_argument("--override", action="append", default=[])
     return p

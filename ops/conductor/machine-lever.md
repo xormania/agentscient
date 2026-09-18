@@ -44,6 +44,13 @@ any update or delete). The store is host-local; a second host is a
 second store, and the shared backend for that day is a ruling for the
 register, not a change to this contract.
 
+Concurrent first writers can meet SQLite's immediate BUSY response while
+establishing WAL mode, before its normal busy handler waits. `connect` retries
+that initialization within the same five-second budget, using the existing
+state owner and store. An expired budget or a different database error closes
+the incomplete connection and propagates to the calling instrument's refusal
+wire; it never leaves an extra connection holding the initialization lock.
+
 ## The library
 
 An instrument declares its machine as data and calls the engine:

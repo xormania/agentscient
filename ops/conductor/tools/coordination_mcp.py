@@ -466,20 +466,27 @@ def resolve_binding(config, tool: Tool):
     if config is not None:
         # The row must exist before anything else is said about it: a
         # config naming a participant the core does not hold is a
-        # different fault from the slice-one bind gap, and reads as one.
+        # different fault from a session mismatch, and reads as one.
         core = _core()
+        conn = _store(core, tool)
         named = config["participant"]
-        if _row_named(_participant_rows(core, _store(core, tool)), named) is None:
+        row = _row_named(_participant_rows(core, conn), named)
+        if row is None:
             refuse("participant", f"a participant row for {named}",
                    "the core holds none",
                    "bind the participant before issuing this config")
-        # The core binds a participant to the calling session alone, so a
-        # config naming another session's participant cannot yet be
-        # resolved (contract section 9, divergence 1).
-        refuse("state", "a core verb binding a participant for another session",
-               f"config names {named}",
-               "land the dispatcher-issued bind of package B, then bind this "
-               "worker's session id before launch")
+        # The core binds a participant to the calling session alone
+        # (contract section 9, divergence 1): a config's participant
+        # resolves only when this call is running under the session
+        # bind-for bound it to; package B's core verb landed at
+        # b1d868b0, so this is checked rather than refused outright.
+        key = session("")
+        if row["session"] != key:
+            refuse("state", "a participant row bound to this call's session",
+                   f"{named} bound to session {row['session']!r}",
+                   "bind this worker's minted session id before launch, "
+                   "per section 2.3")
+        return conn, row
     # The session id is read before the core is reached: an unbound
     # session is a fault of this server's own boundary, and a core that
     # happens to be absent must not turn it into a different class.

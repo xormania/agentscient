@@ -41,7 +41,7 @@ ENGINES = ("sqlite", "none", "file")
 # The file-backed tools as measured on 2026-09-13 (the census in the
 # commit that carries this file). Moving one onto the engine removes it
 # here in the same change; adding one is a reviewable diff of this line.
-FILE_BACKED = frozenset({"control.py", "deliverable.py", "ladder.py", "ledger.py"})
+FILE_BACKED = frozenset({"control.py", "deliverable.py", "ladder.py"})
 WRITE_ATTRS = frozenset({
     "write_text", "write_bytes", "dump", "rename", "copyfile", "copy2",
     "unlink", "rmtree", "touch", "symlink_to",

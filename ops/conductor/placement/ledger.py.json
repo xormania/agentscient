@@ -1,1 +1,1 @@
-{"placement": "migrated", "state": {"engine": "file", "files": "one file per ledger row under ops/conductor/handoff/, the git record plane; the third machine on the engine, a later session's grant; pinned 2026-09-13"}}
+{"placement": "migrated", "state": {"engine": "sqlite", "files": "one file per ledger row under ops/conductor/handoff/, the git record plane, written from a reservation in state.db"}}

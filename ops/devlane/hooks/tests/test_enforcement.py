@@ -1,0 +1,510 @@
+"""A-218: shared policy transport faults and clean neighbors.
+
+Single dev-lane producer under owner WALL grant; independent verifier is root.
+"""
+import json
+import os
+import shutil
+import sqlite3
+import unittest
+from datetime import timedelta
+from pathlib import Path
+from unittest.mock import patch
+
+import support
+
+from ops.devlane.hooks import enforcement, native, profiles
+from ops.testkit import World, run
+
+
+class SharedEnforcement(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="shared-enforcement-")
+        self.addCleanup(self.world.close)
+        self.repo = self.world.root / "repo"
+        self.repo.mkdir()
+        self.env = support.isolated_env(self.world.home)
+        support.git(self.repo, self.env, "init", "-q", "-b", "dev")
+        support.configure_identity(self.repo, self.env)
+        (self.repo / "ops").mkdir()
+        (self.repo / "ops/lane.conf").write_text(
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\nRELEASE_BRANCH='master'\n")
+        (self.repo / "README.txt").write_text("read control\n")
+        support.git(self.repo, self.env, "add", ".")
+        support.git(self.repo, self.env, "commit", "-qm", "fixture")
+        self.environment = patch.dict(os.environ, self.env, clear=True)
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
+    def canonical(self, tool="Bash", **args):
+        return {"hook_event_name": "PreToolUse", "cwd": str(self.repo),
+                "session_id": "fixture-session", "tool_name": tool, "tool_input": args}
+
+    def evaluate(self, tool="Bash", **args):
+        return enforcement.evaluate(self.canonical(tool, **args))
+
+    def test_existing_matrix_engine_and_unsafe_faults_have_clean_neighbors(self):
+        for command, expected in [("git commit -m fixture", "deny"),
+                                  ("python3 -m pytest | tail -2", "deny"),
+                                  ("git push --force origin topic", "ask"),
+                                  ("touch ops/new.py", "deny"),
+                                  ("touch scratch.txt", "allow"),
+                                  ("git status --porcelain", "allow"),
+                                  ("cat README.txt", "allow")]:
+            with self.subTest(command=command):
+                self.assertEqual(self.evaluate(command=command)["outcome"], expected)
+        self.assertEqual(self.evaluate("Write", file_path=str(self.repo / "ops/a.py"), content="x")["outcome"], "deny")
+        self.assertEqual(self.evaluate("Write", file_path=str(self.repo / "scratch.txt"), content="x")["outcome"], "allow")
+        self.assertEqual(self.evaluate("Agent", prompt="synthetic")["outcome"], "deny")
+        self.assertEqual(self.evaluate("Read", file_path=str(self.repo / "README.txt"))["outcome"], "allow")
+        self.assertEqual(self.evaluate("Read", file_path=str(self.repo / "ops/lane.conf"))["outcome"], "allow")
+
+    def test_missing_malformed_and_unknown_inputs_never_allow(self):
+        for payload in [None, [], {}, self.canonical("MysteryWrite", path="x"),
+                        self.canonical("Bash", command=[]), self.canonical("Edit")]:
+            with self.subTest(payload=payload):
+                self.assertEqual(enforcement.evaluate(payload)["outcome"], "deny")
+        with patch.object(enforcement.matrix, "decide", side_effect=OSError("unavailable")):
+            self.assertEqual(self.evaluate(command="touch scratch.txt")["outcome"], "deny")
+
+    def test_snapshot_registry_override_cannot_disable_hard_rows(self):
+        registry = self.world.root / "fake-boundaries.json"
+        registry.write_text('{"schema":"agentscient.boundaries/2","rows":[]}')
+        with patch.dict(os.environ, {"BOUNDARIES_PATH": str(registry)}):
+            self.assertEqual(self.evaluate(command="git commit -m bypass")["outcome"], "deny")
+
+    def test_each_adapter_reaches_the_same_hard_row_and_preserves_reads(self):
+        for harness in ("claude", "codex", "grok", "agy"):
+            for command, outcome in [("git commit -m blocked", "deny"), ("git status", "allow")]:
+                canonical = self.canonical(command=command)
+                payload = canonical if harness != "agy" else {
+                    "conversationId": "fixture-session", "workspacePaths": [str(self.repo)],
+                    "toolCall": {"name": "run_command", "args": {"CommandLine": command, "Cwd": str(self.repo)}}}
+                if harness == "grok":
+                    payload = {**canonical, "tool_name": "run_terminal_command"}
+                with self.subTest(harness=harness, command=command):
+                    items = native.normalize(harness, payload, event="PreToolUse")
+                    self.assertEqual(enforcement.evaluate(items[0])["outcome"], outcome)
+            blocked = native.respond(harness, {"outcome": "ask", "reason": "owner decision required", "context": ""}, "PreToolUse")
+            self.assertIn("deny", json.dumps(blocked))
+            self.assertIn("owner", json.dumps(blocked))
+
+    def test_patch_targets_and_moves_all_reach_policy_before_effect(self):
+        payload = self.canonical("apply_patch", command="*** Begin Patch\n*** Add File: scratch.txt\n+ok\n*** Update File: ops/a.py\n*** Move to: ops/b.py\n@@\n-x\n+y\n*** Delete File: .github/workflows/ci.yml\n*** End Patch")
+        items = native.normalize("codex", payload)
+        self.assertEqual({x["tool_input"]["file_path"] for x in items},
+                         {"scratch.txt", "ops/a.py", "ops/b.py", ".github/workflows/ci.yml"})
+        self.assertTrue(any(enforcement.evaluate(x)["outcome"] == "deny" for x in items))
+        for broken in ("", "*** Begin Patch\n*** Mystery: x\n*** End Patch", "*** Begin Patch\n*** Add File: a\n+x"):
+            with self.subTest(patch=broken), self.assertRaises(ValueError):
+                native.normalize("codex", self.canonical("apply_patch", command=broken))
+
+    def test_direct_multi_edit_cannot_hide_second_target(self):
+        payload = self.canonical("MultiEdit", edits=[{"file_path": "scratch.txt", "old_string": "x", "new_string": "y"},
+                                                    {"file_path": "ops/a.py", "old_string": "x", "new_string": "y"}])
+        items = native.normalize("claude", payload)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(enforcement.evaluate(items[1])["outcome"], "deny")
+
+    def test_continuation_poll_is_read_but_unbound_input_refuses(self):
+        for harness, tool, args in [("codex", "write_stdin", {"session_id": 1, "chars": "touch x\n"}),
+                                    ("agy", "manage_task", {"Action": "send_input", "TaskId": "s/task-2", "Input": "x"})]:
+            payload = self.canonical(tool, **args)
+            if harness == "agy":
+                payload = {"conversationId": "fixture-session", "workspacePaths": [str(self.repo)], "toolCall": {"name": tool, "args": args}}
+            self.assertEqual(enforcement.evaluate(native.normalize(harness, payload, event="PreToolUse")[0])["outcome"], "deny")
+        payload = self.canonical("write_stdin", session_id=1, chars="")
+        self.assertEqual(enforcement.evaluate(native.normalize("codex", payload)[0])["outcome"], "allow")
+
+    def test_duplicate_native_fields_are_not_last_key_wins(self):
+        with self.assertRaises(ValueError):
+            native.loads('{"tool_name":"Read","tool_name":"Write"}')
+
+    def test_profile_missing_or_changed_helper_is_rejected(self):
+        root = Path(__file__).resolve().parents[4]
+        for harness in ("claude", "codex", "grok", "agy"):
+            with self.subTest(harness=harness):
+                dest = self.world.root / ("profile-" + harness)
+                binding = profiles.generate(harness, dest, source=root, cwd=self.repo, mode="interactive")
+                profiles.validate(profiles.read_binding(binding["binding"]))
+                helper = Path(binding["helper"])
+                helper.write_text("#!/bin/sh\nexit 0\n")
+                with self.assertRaises(ValueError):
+                    profiles.validate(binding)
+
+    def test_grant_ownership_expiry_and_malformed_authority(self):
+        instrument = enforcement.instrument
+        with patch.dict(os.environ, {"CLAUDE_SESSION_ID": "own", "WF_AGENT_OVERRIDE": "Fixture <fixture@example.invalid>"}):
+            db = enforcement.hand.database_path()
+            db.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(db)
+            self.addCleanup(conn.close)
+            conn.execute(enforcement.hand.SCHEMA)
+            stamp = instrument.stamp(instrument.now())
+            conn.execute("INSERT INTO handwork(id,ts,session,agent,action,why_by_hand,lever_class,scope,ttl_s,status) VALUES(1,?,?,?,?,?,'other','',3600,'open')",
+                         (stamp, "own", instrument.identity(), "fixture", "synthetic authority test"))
+            conn.commit()
+            command = "HAND_GRANT=1 printf x > ops/new.py"
+            self.assertEqual(self.evaluate(command=command)["outcome"], "allow")
+            self.assertEqual(self.evaluate(command="HAND_GRANT=1 git commit -m blocked")["outcome"], "deny")
+            for field, value in [("session", "foreign"), ("agent", "Foreign <foreign@example.invalid>"),
+                                 ("ttl_s", 0), ("ttl_s", "invalid"), ("ts", "invalid"),
+                                 ("ts", instrument.stamp(instrument.now() - timedelta(days=1))),
+                                 ("ts", instrument.stamp(instrument.now() + timedelta(days=1)))]:
+                with self.subTest(field=field, value=value):
+                    previous = conn.execute("SELECT " + field + " FROM handwork WHERE id=1").fetchone()[0]
+                    conn.execute("UPDATE handwork SET " + field + "=? WHERE id=1", (value,))
+                    conn.commit()
+                    self.assertEqual(self.evaluate(command=command)["outcome"], "deny")
+                    conn.execute("UPDATE handwork SET " + field + "=? WHERE id=1", (previous,))
+                    conn.commit()
+
+    def test_profiles_cannot_relabel_modified_configuration(self):
+        root = Path(__file__).resolve().parents[4]
+        binding = profiles.generate("codex", self.world.root / "config-case", source=root, cwd=self.repo, mode="interactive")
+        config = Path(binding["home"]) / "config.toml"
+        config.write_text("[features]\nhooks=false\n")
+        binding["config_pins"][str(config)] = profiles.digest(config)
+        with self.assertRaisesRegex(ValueError, "does not project"):
+            profiles.validate(binding)
+
+    def test_missing_config_emits_native_block_without_python(self):
+        root = Path(__file__).resolve().parents[4]
+        binding = profiles.generate("agy", self.world.root / "missing-case", source=root, cwd=self.repo, mode="interactive")
+        Path(next(iter(binding["config_pins"]))).unlink()
+        proc = run(["/bin/sh", binding["helper"], "PreToolUse"], cwd=self.repo, env=self.env, stdin="{}")
+        self.assertEqual(proc.exit, 0)
+        self.assertEqual(json.loads(proc.stdout)["decision"], "deny")
+
+    def test_native_grok_aliases_agree_after_event_translation(self):
+        payload = {**self.canonical(command="cat README.txt"), "hookEventName": "pre_tool_use",
+                   "toolName": "Bash", "toolInput": {"command": "cat README.txt"}}
+        self.assertEqual(enforcement.evaluate(native.normalize("grok", payload)[0])["outcome"], "allow")
+        payload["hookEventName"] = "post_tool_use"
+        with self.assertRaises(ValueError):
+            native.normalize("grok", payload)
+
+    def test_existing_mcp_catalogue_is_required_and_foreign_mutation_refuses(self):
+        common = {"server": "coordination", "name": "coord_brief", "arguments": {}}
+        payload = self.canonical("MCP", **common)
+        self.assertEqual(enforcement.evaluate(payload)["outcome"], "deny")
+        self.assertEqual(enforcement.evaluate(payload, servers=("coordination",))["outcome"], "allow")
+        payload["tool_input"]["arguments"] = {"unknown": True}
+        self.assertEqual(enforcement.evaluate(payload, servers=("coordination",))["outcome"], "deny")
+        self.assertTrue(enforcement.mcp_allowed({"server": "agentscient-lane", "name": "lane_start", "arguments": {"profile": "dev"}}, ("agentscient-lane",)))
+
+    def test_required_context_read_failure_refuses_consequential_work(self):
+        support.git(self.repo, self.env, "checkout", "-qb", "lane/session-fixture")
+        with patch.object(enforcement.context, "tracked_refs", side_effect=OSError("unavailable refs")):
+            result = self.evaluate(command="git push origin lane/session-fixture")
+        self.assertEqual(result["outcome"], "deny")
+        self.assertIn("unavailable refs", result["reason"])
+
+    def test_transcript_reading_is_native_bound_and_missing_is_not_empty(self):
+        session = "native-fixture"
+        transcript = self.world.home / session / "transcript.jsonl"
+        transcript.parent.mkdir()
+        transcript.write_text(json.dumps({"step_index": 1, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "content": "Fixture response."}) + "\n")
+        payload = {"conversationId": session, "workspacePaths": [str(self.repo)], "transcriptPath": str(transcript)}
+        item = native.normalize("agy", payload, event="Stop", cwd=str(self.repo), home=self.world.home)[0]
+        self.assertEqual(item["last_assistant_message"], "Fixture response.")
+        transcript.write_text("{}\n")
+        with self.assertRaises(ValueError):
+            native.normalize("agy", payload, event="Stop", cwd=str(self.repo), home=self.world.home)
+
+    def test_worker_projection_is_distinct_and_relocation_preserves_authority(self):
+        import shutil
+        root = Path(__file__).resolve().parents[4]
+        old = self.world.root / "job-old"
+        snapshot = old / "snapshot"
+        snapshot.mkdir(parents=True)
+        binding = profiles.generate("codex", old / "enforcement", source=root, cwd=snapshot,
+                                    mode="worker", session="issued-worker")
+        new = self.world.root / "job-new"
+        shutil.move(old, new)
+        revised = profiles.relocate(binding, old, new)
+        self.assertEqual(revised["session"], "issued-worker")
+        self.assertEqual(revised["authority_environment"], binding["authority_environment"])
+        self.assertEqual(revised["cwd"], str(new / "snapshot"))
+        profiles.validate(revised)
+        helper = Path(revised["helper"])
+        helper.write_text("#!/bin/sh\nexit 0\n")
+        with self.assertRaises(ValueError):
+            profiles.validate(revised)
+
+    def test_interactive_identity_registers_without_a_dispatch_assignment(self):
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_hook_coordination", root / "ops/conductor/tools/coordination.py")
+        with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "stale-parent", "WF_AGENT_OVERRIDE": "Fixture <fixture@example.invalid>"}):
+            with core.writer() as conn:
+                core.core_bind(conn, None, agent="Fixture <fixture@example.invalid>", roles="lead", harness="claude")
+            binding = profiles.generate("codex", self.world.root / "interactive-native", source=root, cwd=self.repo, mode="interactive")
+            session = profiles.initialize(binding, {"session_id": "actual-native"}, instrument=enforcement.instrument)
+            self.assertEqual(session, "actual-native")
+            conn = core.reader()
+            self.addCleanup(conn.close)
+            participant = core.maybe_participant(conn)
+            self.assertEqual(participant["session_id"], "actual-native")
+            self.assertEqual(participant["roles"], "worker")
+            self.assertEqual(participant["harness"], "codex")
+            self.assertEqual(conn.execute("SELECT count(*) FROM assignments").fetchone()[0], 0)
+            self.assertNotIn("CLAUDE_CODE_SESSION_ID", os.environ)
+
+    def test_interactive_profile_reaches_cli_identity_and_original_stores(self):
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_profile_coordination", root / "ops/conductor/tools/coordination.py")
+        with core.writer():
+            pass
+        caller = World(prefix="shared-native-caller-")
+        self.addCleanup(caller.close)
+        binding = profiles.generate("agy", self.world.root / "interactive-agy", source=root, cwd=self.repo,
+                                    mode="interactive", home=caller.home, agent="Fixture <fixture@example.invalid>")
+        os.environ["WF_AGENT_OVERRIDE"] = "Fixture <fixture@example.invalid>"
+        profiles.initialize(binding, {"conversationId": "actual-agy"}, instrument=enforcement.instrument)
+        with patch.dict(os.environ, caller.env({"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}), clear=True):
+            self.assertEqual(enforcement.instrument.session(), "actual-agy")
+            self.assertEqual(enforcement.instrument.state_root(), Path(binding["authority_environment"]["XDG_STATE_HOME"]))
+            self.assertEqual(enforcement.hand.database_path(), self.world.home / ".local/state/agentscient/handwork.db")
+            with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "foreign-parent"}):
+                with self.assertRaises(enforcement.instrument.Refusal):
+                    enforcement.instrument.session()
+
+    def test_native_cli_verb_first_and_bounded_stop_failure(self):
+        with patch.object(profiles, "prepare_interactive", return_value={"binding": "fixture"}) as generate:
+            self.assertEqual(profiles.main(["prepare-interactive", "--harness", "codex", "--destination", "new",
+                                           "--cwd", str(self.repo), "--executable", "/usr/bin/true", "--agent", "Fixture <f@invalid>"]), 0)
+            generate.assert_called_once()
+        self.assertFalse(profiles.fallback("codex", "Stop")["continue"])
+
+    def test_codex_config_spellings_and_malformed_overrides_refuse(self):
+        root = Path(__file__).resolve().parents[4]
+        binding = profiles.generate("codex", self.world.root / "argv-config", source=root,
+                                    cwd=self.repo, mode="worker", session="issued", executable="/usr/bin/true")
+        for value in ("features.hooks=false", "features={hooks=false}", '"features".hooks=false',
+                      " hooks.enabled=false", "shell_environment_policy.inherit=all", "unknown=true",
+                      "model_reasoning_effort", "model_reasoning_effort=", 'model_reasoning_effort="high"\nfeatures.hooks=false'):
+            for args in (["-c", value], ["--config", value], ["-c" + value], ["-c=" + value], ["--config=" + value]):
+                with self.subTest(args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for args in (["-c"], ["--config"], ["-c="], ["--config="], ["-c", "--model", "fixture"]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for args in (["-c", 'model_reasoning_effort="high"'], ["--config", 'model_reasoning_effort="high"'],
+                     ['-cmodel_reasoning_effort="high"'], ['-c=model_reasoning_effort="high"'],
+                     ['--config=model_reasoning_effort="high"']):
+            with self.subTest(args=args):
+                command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                self.assertEqual(command[-2:], ["-c", 'model_reasoning_effort="high"'])
+
+    def test_interactive_argv_refuses_authority_overlays_and_unknown_grammar(self):
+        root = Path(__file__).resolve().parents[4]
+        attacks = {
+            "codex": [["--dangerously-bypass-approvals-and-sandbox"], ["-C", "/tmp"], ["-C/tmp"],
+                      ["--cd=/tmp"], ["--add-dir", "/"], ["-pother"], ["--profile=other"],
+                      ["-s", "danger-full-access"], ["--ask-for-approval=never"],
+                      ["-c", 'model_reasoning_effort="high"'], ["--ignore-user-config"],
+                      ["resume", "same", "--remote=unix:///tmp/server"], ["exec", "--model", "fixture"]],
+            "claude": [["--permission-mode=bypassPermissions"], ["--dangerously-skip-permissions"],
+                       ["--agent=other"], ["--agents", "{}"], ["--plugin-url=url"], ["-wother"],
+                       ["--setting-sources", "project,local"], ["--mcp-config={}"], ["--bare"]],
+            "grok": [["--sandbox=none"], ["--always-approve"], ["--cwd=/tmp"], ["--allow=*"],
+                     ["--agent=other"], ["--session-id=foreign"], ["--worktree"], ["--fork-session"]],
+            "agy": [["--dangerously-skip-permissions"], ["--add-dir=/"], ["--agent=other"],
+                    ["--project=other"], ["--new-project=x"], ["--mode=accept-edits"], ["--remote-control"]],
+        }
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("interactive-args-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            for args in [*attacks[harness], ["--unknown"], ["--model"], ["--model="],
+                         ["--model", "--help"], ["mcp"], ["--help=true"], ["-hm"], ["--", "one", "two"]]:
+                with self.subTest(harness=harness, args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+            resume = {"codex": ["resume", "same"], "claude": ["--resume", "same"],
+                      "grok": ["-r", "same"], "agy": ["--conversation", "same"]}[harness]
+            for args in (["--model", "fixture"], ["--model=fixture"], resume, ["--", "A plain prompt"]):
+                with self.subTest(harness=harness, args=args):
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                    self.assertIn("/usr/bin/true", command)
+
+    def test_worker_argv_preserves_launcher_sandbox_identity_and_mcp(self):
+        root = Path(__file__).resolve().parents[4]
+        arguments = {
+            "codex": ["exec", "--sandbox", "workspace-write", "--model", "fixture", "-c",
+                      'sandbox_workspace_write.writable_roots=["/out"]', "-c", 'mcp_servers.coordination.required=true',
+                      "-c", 'mcp_servers.coordination.tools.coord_claim.approval_mode="approve"', "--json", "-"],
+            "claude": ["--setting-sources", "project,local", "--session-id", "issued", "--permission-mode",
+                       "acceptEdits", "--add-dir", "/out", "--mcp-config", "server.json", "--print"],
+            "grok": ["--always-approve", "--model", "fixture", "--prompt-file", "prompt.txt"],
+            "agy": ["--print=", "--dangerously-skip-permissions", "--add-dir", "/out", "--conversation", "issued"],
+        }
+        for harness, args in arguments.items():
+            binding = profiles.generate(harness, self.world.root / ("worker-args-" + harness), source=root,
+                                        cwd=self.repo, mode="worker", session="issued", executable="/usr/bin/true")
+            command, env = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+            self.assertEqual(env["CLAUDE_SESSION_ID"], "issued")
+            for arg in args:
+                if arg != "project,local":
+                    self.assertIn(arg, command)
+
+    def test_custody_source_is_pinned_protected_and_checked_after_child(self):
+        root = Path(__file__).resolve().parents[4]
+        source = self.world.root / "source"
+        owner_path = "ops/devlane/harness/isolation.py"
+        for original in {*profiles.source_pins(root), str(root / owner_path)}:
+            target = source / Path(original).relative_to(root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(original, target)
+        canary = self.world.root / "unvalidated-import"
+        profiles.isolation_owner.cache_clear()
+        self.addCleanup(profiles.isolation_owner.cache_clear)
+        with patch.object(profiles, "__file__", str(source / "ops/devlane/hooks/profiles.py")):
+            binding = profiles.generate("codex", self.world.root / "custody-profile", source=source,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                        credential_environment=self.world.env())
+            command, _ = profiles.native_launch(binding, ["/usr/bin/true"], self.env)
+            owner = source / owner_path
+            with self.subTest(closure=True):
+                self.assertIn(str(owner), binding["pins"])
+            with self.subTest(protection=True):
+                self.assertIn(["--ro-bind", str(owner), str(owner)],
+                              [command[i:i + 3] for i in range(len(command))])
+
+            def child_exits(*args, **kwargs):
+                owner.write_text(owner.read_text() + f"\nPath({str(canary)!r}).touch()\n")
+                return 0
+
+            with patch.object(profiles.subprocess, "call", side_effect=child_exits):
+                self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2)
+            self.assertFalse(canary.exists(), "changed custody code executed after the child")
+            with self.assertRaisesRegex(ValueError, "closure changed"):
+                profiles.validate(binding)
+
+    def test_unchanged_interactive_custody_carries_renewal_to_original_home(self):
+        root = Path(__file__).resolve().parents[4]
+        host = self.world.home / ".codex/auth.json"
+        host.parent.mkdir()
+        host.write_text('{"synthetic":"original"}')
+        os.utime(host, ns=(1, 1))
+        binding = profiles.generate("codex", self.world.root / "renewal-profile", source=root,
+                                    cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                    credential_environment=self.world.env())
+        renewed = Path(binding["home"]) / "auth.json"
+        renewed.write_text('{"synthetic":"renewed"}')
+        profiles.isolation_owner.cache_clear()
+        self.addCleanup(profiles.isolation_owner.cache_clear)
+        with patch.object(profiles.subprocess, "call", return_value=0):
+            self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 0)
+        self.assertEqual(json.loads(host.read_text()), {"synthetic": "renewed"})
+        self.assertTrue(renewed.is_symlink())
+
+    def test_native_protected_set_home_replacement_refuses_interactive_carryback(self):
+        root = Path(__file__).resolve().parents[4]
+        host = self.world.home / ".codex/auth.json"
+        host.parent.mkdir()
+        for changed_config in (False, True):
+            with self.subTest(changed_config=changed_config):
+                host.write_text('{"synthetic":"original"}')
+                os.utime(host, ns=(1, 1))
+                home = self.world.root / ("native-home-" + str(changed_config))
+                home.mkdir()
+                saved = home.with_name(home.name + ".before")
+                (home / "auth.json").write_text('{"synthetic":"renewed"}')
+                binding = profiles.generate("codex", self.world.root / ("native-profile-" + str(changed_config)),
+                                            source=root, cwd=self.repo, home=home, mode="interactive",
+                                            executable="/usr/bin/true", credential_environment=self.world.env())
+                original_inode = home.stat().st_ino
+
+                def child(command, *, changed_config=changed_config, home=home, saved=saved,
+                          original_inode=original_inode, binding=binding, **kwargs):
+                    # M-332: use exactly the generated protected mounts, with
+                    # an inert shell in place of the installed model client.
+                    prefix = command[:command.index("--") + 1]
+                    script = ('mv "$1" "$2"; mkdir "$1"; '
+                              'for name in hooks.json config.toml; do cat "$2/$name" > "$1/$name"; done; '
+                              'printf %s "$3" > "$1/auth.json"')
+                    if changed_config:
+                        script += '; printf "\\n# changed\\n" >> "$1/config.toml"'
+                    result = run([*prefix, "/bin/sh", "-ec", script, "fixture", str(home), str(saved),
+                                  '{"synthetic":"substituted"}'], cwd=self.repo, env=self.env)
+                    self.assertEqual(result.exit, 0, result.stderr)
+                    self.assertNotEqual(home.stat().st_ino, original_inode)
+                    if not changed_config:
+                        profiles.validate(binding)  # Same bytes alone still match.
+                    return result.exit
+
+                with patch.object(profiles.subprocess, "call", side_effect=child):
+                    self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2)
+                self.assertEqual(json.loads(host.read_text()), {"synthetic": "original"})
+                self.assertEqual(json.loads((saved / "auth.json").read_text()), {"synthetic": "renewed"})
+                self.assertFalse((home / "auth.json").is_symlink())
+
+    def test_nested_credential_parent_identity_refuses_substitution_but_allows_renewal(self):
+        root = Path(__file__).resolve().parents[4]
+        leaf = Path(".gemini/antigravity-cli/antigravity-oauth-token")
+        host = self.world.home / leaf
+        host.parent.mkdir(parents=True)
+        for fault in ("replaced", "missing", "symlink", None):
+            with self.subTest(fault=fault):
+                host.write_text('{"synthetic":"original"}')
+                os.utime(host, ns=(1, 1))
+                home = self.world.root / ("agy-home-" + str(fault))
+                job = home / leaf
+                job.parent.mkdir(parents=True)
+                job.write_text('{"synthetic":"renewed"}')
+                binding = profiles.generate("agy", self.world.root / ("agy-profile-" + str(fault)), source=root,
+                                            cwd=self.repo, home=home, mode="interactive", executable="/usr/bin/true",
+                                            credential_environment=self.world.env())
+
+                def child(*args, fault=fault, job=job, binding=binding, **kwargs):
+                    if fault:
+                        saved = job.parent.with_name("auth.before")
+                        job.parent.rename(saved)
+                        if fault == "symlink":
+                            job.parent.symlink_to(saved, target_is_directory=True)
+                        elif fault == "replaced":
+                            job.parent.mkdir()
+                            job.write_text('{"synthetic":"substituted"}')
+                        profiles.validate(binding)
+                    else:
+                        staged = job.with_suffix(".renewed")
+                        staged.write_text('{"synthetic":"renewed-again"}')
+                        staged.replace(job)
+                    return 7
+
+                with patch.object(profiles.subprocess, "call", side_effect=child):
+                    self.assertEqual(profiles.main(["run-interactive", "--binding", binding["binding"]]), 2 if fault else 7)
+                self.assertEqual(json.loads(host.read_text()), {"synthetic": "original" if fault else "renewed-again"})
+                if fault:
+                    self.assertEqual(json.loads((job.parent.with_name("auth.before") / leaf.name).read_text()),
+                                     {"synthetic": "renewed"})
+                else:
+                    self.assertTrue(job.is_symlink())
+
+    def test_codex_bound_command_preserves_comments_heredocs_and_explicit_cd(self):
+        original = "pwd # trailing comment\ncat <<'END'\nsynthetic\nEND\n"
+        command = native.bind_command(original, str(self.repo))
+        proc = run(["/bin/sh", "-c", command], cwd=self.world.home, env=self.env)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout, str(self.repo) + "\nsynthetic\n")
+        self.assertEqual(self.evaluate(command=native.bind_command("git commit -m blocked", str(self.repo)))["outcome"], "deny")
+
+    def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
+        import tomllib
+        root = Path(__file__).resolve().parents[4]
+        original = self.world.home / ".codex"
+        original.mkdir()
+        (original / "auth.json").write_text('{"synthetic":true}')
+        (original / "config.toml").write_text('model = "fixture"\n[features]\nhooks=false\n[mcp_servers.agentscient_lane]\ncommand="python3"\nargs=["stable.py"]\n[mcp_servers.agentscient_lane.env]\nCLAUDE_SESSION_ID="old-parent"\n')
+        binding = profiles.prepare_interactive("codex", self.world.root / "prepared", source=root, cwd=self.repo,
+                                               agent="Fixture <f@invalid>", executable="/usr/bin/true")
+        profiles.validate(profiles.read_binding(binding["binding"]))
+        self.assertEqual((Path(binding["home"]) / "auth.json").resolve(), original / "auth.json")
+        config = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())
+        self.assertTrue(config["features"]["hooks"])
+        self.assertFalse(config["features"]["unified_exec_tty"])
+        self.assertEqual(config["model"], "fixture")
+        server = config["mcp_servers"]["agentscient_lane"]
+        self.assertEqual(server["args"], ["stable.py"])
+        self.assertEqual(server["env"], {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]})
+        self.assertEqual(binding["servers"], ["agentscient_lane"])
+        self.assertIn('hooks=false', (original / "config.toml").read_text())

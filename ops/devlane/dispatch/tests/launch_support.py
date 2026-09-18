@@ -24,11 +24,13 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import types
 import unittest
 import urllib.parse
+import uuid
 from pathlib import Path
 
 import support
@@ -139,6 +141,11 @@ env_keys = [
     "GIT_EDITOR", "EDITOR", "PYTHONUNBUFFERED", "PYTHONIOENCODING",
     "LC_ALL", "WF_LANE", "DISPATCH_JOB", "CODEX_HOME", "GROK_HOME",
     "HOME", "CLAUDE_CONFIG_DIR", "WF_AGENT", "TMPDIR",
+    # The session id the launcher minted for this worker. It is in
+    # the shot so an assertion about the worker's environment can
+    # fail for the right reason: without the key here, a test would
+    # read an absent value whether the launcher set it or not.
+    "CLAUDE_SESSION_ID",
 ]
 env_shot = {k: os.environ[k] for k in env_keys if k in os.environ}
 
@@ -1358,3 +1365,59 @@ class _TempLaunch(unittest.TestCase):
                       if isinstance(must_contain, str) else must_contain)
             self.assertIn(needle, landed, "plant missing its marker")
         return landed
+
+
+# The coordination core, reached the way the launcher reaches it: a lever
+# run as a subprocess whose wire is read, never an import. An import would
+# put the core's module state and its store inside every case that touches
+# it.
+CORE_LEVER = REPO / "ops" / "conductor" / "tools" / "coordination.py"
+SESSION_KEY = "CLAUDE_SESSION_ID"
+FIXTURE_DISPATCHER = "Launch Test Dispatcher <noreply@example.invalid>"
+
+
+class CoordinationCore:
+    """Drive the coordination core against the world's own store.
+
+    Mixed into a `_TempLaunch` subclass. The store lives under the world's
+    XDG_STATE_HOME, so nothing here touches the host's.
+    """
+
+    def core(self, *args, session=None, agent=FIXTURE_DISPATCHER):
+        env = dict(os.environ)
+        env["WF_AGENT"] = agent
+        if session:
+            env[SESSION_KEY] = session
+        else:
+            env.pop(SESSION_KEY, None)
+        return subprocess.run(
+            [sys.executable, str(CORE_LEVER), *args],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(REPO), env=env)
+
+    def dispatcher_session(self):
+        """A bound dispatcher in this world's store, and its session id.
+
+        The first bind is the bootstrap: the core makes the first
+        participant a lead, and a lead may grant itself the dispatcher role
+        it needs to mint a worker.
+        """
+        key = str(uuid.uuid4())
+        done = self.core("bind", "--roles", "lead,dispatcher", session=key)
+        self.assertEqual(done.returncode, 0,
+                         f"bootstrap bind refused: {done.stderr!r}")
+        return key
+
+    def assignment(self, session, title="a fixture assignment",
+                   outcome="the launcher binds a worker for it"):
+        drafted = self.core("draft", title, "--outcome", outcome,
+                            session=session)
+        self.assertEqual(drafted.returncode, 0,
+                         f"draft refused: {drafted.stderr!r}")
+        return drafted.stdout.split()[-1]
+
+    def participants(self, session):
+        shown = self.core("participants", session=session)
+        self.assertEqual(shown.returncode, 0,
+                         f"participants refused: {shown.stderr!r}")
+        return shown.stdout
