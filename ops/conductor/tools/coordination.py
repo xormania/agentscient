@@ -56,7 +56,6 @@ Reads need no identity and no participant and never create the store.
 
 from __future__ import annotations
 
-import hashlib
 import hmac
 import json
 import os
@@ -75,8 +74,8 @@ try:
     from instrument import (
         EXIT_DONE,
         Refusal,
+        capability_digest,
         emit,
-        hook_profile,
         identity,
         now,
         parse_stamp,
@@ -385,23 +384,6 @@ def reader():
 
 # -- participants ------------------------------------------------------------
 
-def capability_digest():
-    """Authenticate with a separate private capability, never a public id.
-
-    A declared native profile is authoritative; its missing credential must
-    not fall back to an inherited value. Neither plaintext nor digest is a
-    field on a public participant response.
-    """
-    profile = hook_profile()
-    value = (profile.get("coordination_capability") if profile is not None
-             else os.environ.get("COORDINATION_CAPABILITY"))
-    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
-        refuse("capability", "this participant's private launch capability",
-               "missing or malformed credential",
-               "use the admitted native profile or its private CLI credential")
-    return hashlib.sha256(value.encode("ascii")).hexdigest()
-
-
 def _authenticate(row):
     expected = row["capability_digest"] if "capability_digest" in row.keys() else None  # noqa: SIM118 - sqlite Row
     if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
@@ -447,20 +429,27 @@ def bound_participant(conn, *, participant=None):
     if not key:
         refuse("session", "a session id in the environment", "unset",
                "run under a harness that sets CLAUDE_CODE_SESSION_ID, then bind")
+    expected = None
+    if participant is not None:
+        _, expected = parse_id(participant, "PT")
+        if conn is None:
+            refuse("participant", "the participant issued to this call", "no store",
+                   "bind the participant before issuing its configuration")
+        participant_row(conn, expected)
     row = None
     if conn is not None:
         row = conn.execute(
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
     if row is None:
+        if expected is not None:
+            refuse("state", "the participant issued to this call", "a different session",
+                   "use this worker's own startup binding")
         refuse("participant", "a participant bound to this session", "no bound row",
                "bind --roles ROLE[,ROLE] first")
-    if participant is not None:
-        _, expected = parse_id(participant, "PT")
-        participant_row(conn, expected)
-        if row["id"] != expected:
-            refuse("state", "the participant issued to this call", "a different participant",
-                   "use this worker's own startup binding")
+    if expected is not None and row["id"] != expected:
+        refuse("state", "the participant issued to this call", "a different participant",
+               "use this worker's own startup binding")
     _authenticate(row)
     return row
 
