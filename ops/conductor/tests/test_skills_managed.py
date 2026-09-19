@@ -261,6 +261,14 @@ class ManagedSkills(unittest.TestCase):
         self.rejected(self.call("catalog", identity=False), "skill-source")
         self.assertFalse(self.db.exists())
 
+    def test_alias_to_a_non_skill_leaf_refuses_without_creating_state(self):
+        self.page.unlink()
+        other = self.world.plant_text(self.repo / ".agents/skills/sample/page.md", self.body)
+        self.page.symlink_to(other)
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
     def test_nonregular_page_refuses_without_opening_a_source_stream(self):
         self.page.unlink()
         self.page.mkdir()

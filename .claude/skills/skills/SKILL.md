@@ -63,13 +63,14 @@ row plus `content`), and `record_event(kind, name, detail=None)` (no stdout).
 Names are unqualified local identifiers: vendor- or plugin-qualified names
 are never silently credited to a project skill. The catalogue/loader admits
 an entry shaped `.claude/skills/NAME/SKILL.md`, whether `NAME` is a real
-directory or a repository-confined directory link. It opens the final page
-through a held descriptor and admits only a confined regular UTF-8 page whose
-frontmatter name equals `NAME`; the returned canonical target path (including
-an in-repository `.agents/.../SKILL.md` target) and SHA-256 are the pin
-receipt. It rejects a link that escapes the checkout, a nonregular/malformed
-or oversized page, a duplicate name, a logical-name mismatch, and a retarget
-that cannot retain the already-open page receipt. Mate aliases receive this
+directory or a repository-confined directory link. It opens the final
+`SKILL.md` through a held descriptor and admits only a confined regular UTF-8
+page whose frontmatter name equals `NAME`; the returned canonical target path
+(including an in-repository `.agents/.../SKILL.md` target) and SHA-256 are the
+pin receipt. It rejects a link that escapes the checkout, resolves to a
+non-`SKILL.md` or nonregular/malformed or oversized page, a duplicate name, a
+logical-name mismatch, and a retarget that cannot retain the already-open page
+receipt. Mate aliases receive this
 same rule—there is no hooks-side exclusion or alias-specific admission path.
 Retired, draft, wished, and missing rows are not invocable; a valid on-disk
 page with no registry row is invocable without a separate sync.

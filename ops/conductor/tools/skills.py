@@ -163,7 +163,8 @@ def _read_canonical_page(page, root):
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise ValueError("skill page is not a regular file")
         target = Path(os.readlink(f"/proc/self/fd/{fd}")).resolve(strict=True)
-        if not target.is_relative_to(root) or not target.is_file():
+        if (target.name != "SKILL.md" or not target.is_relative_to(root)
+                or not target.is_file()):
             raise ValueError("skill page is not a repository file")
         with os.fdopen(fd, "rb", closefd=False) as stream:
             raw = stream.read(MAX_SKILL_BYTES + 1)
