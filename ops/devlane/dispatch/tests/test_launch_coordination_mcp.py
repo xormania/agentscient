@@ -350,7 +350,7 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
             done.returncode, 2,
             f"a config bound to one session answered under another: "
             f"stdout={done.stdout!r} stderr={done.stderr!r}")
-        self.assertEqual(done.stderr.split(":", 1)[0], "state")
+        self.assertEqual(done.stderr.split(":", 1)[0], "participant")
 
 
 class ARelocatedCoordinationConfigIsRewiredOnResume(_Acting):

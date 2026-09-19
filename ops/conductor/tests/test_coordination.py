@@ -164,7 +164,12 @@ class CapabilityAuthentication(_Scratch):
 
     def snapshot(self):
         with sqlite3.connect(self.store) as conn:
-            return tuple(conn.iterdump())
+            # writer() refreshes machine registration timestamps even on a
+            # refused action. Keep every authority/effect row and all machine
+            # definitions, excluding only that unrelated declared_at field.
+            rows = tuple(line for line in conn.iterdump() if not line.startswith('INSERT INTO "machines"'))
+            definitions = tuple(conn.execute("SELECT name,version,initial,places FROM machines ORDER BY name"))
+            return (*rows, repr(definitions))
 
     def call_as_lead(self, capability, *args):
         env = self.env(LEAD)
@@ -531,6 +536,7 @@ class DispatchedWorkers(_Scratch):
         env = self.world.env(extra={"LANE_CONF": str(self.conf)})
         env["WF_AGENT"] = SHARED
         env["CLAUDE_SESSION_ID"] = sid or self.MINTED
+        env["COORDINATION_CAPABILITY"] = self.env(sid or self.MINTED)["COORDINATION_CAPABILITY"]
         return run([sys.executable, str(TOOL), *argv],
                    cwd=self.world.cwd, env=env, timeout=60)
 
