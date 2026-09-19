@@ -35,19 +35,46 @@ session that cannot bind itself is what it is for, and it is a
 dispatcher's verb and records its issuer. The boundary binds the
 effective caller; the argument carries it and never chooses it.
 
-What the session id is, said plainly, because every sentence above rests
-on it. It is a bearer credential: any process holding it acts as the
-participant bound to it, and this instrument has no second factor, no
-expiry and no way to tell a session from something that learned its id.
-The id is in the environment of every process the harness starts and in
-the record of every dispatch, so it is about as secret as a process
-listing. It is not proof of who is calling; it is the name under which a
-caller's acts are recorded, and what the checks above buy is that a
-caller cannot act under a name it does not hold. Codex's audit named this
-(20260916T100839Z-review-codex-1833de#1, p1) and the owner accepted it on
-2026-09-16 rather than fixing it, redaction included. It is written here
-so that nobody reads "the participant is the authority" as a claim about
-identity that the code does not make. Both projections are therefore thin and
+The session id is a correlation id, never a credential. The owner required
+the remaining PR #261 session-replay finding repaired on 2026-09-18,
+superseding the 2026-09-16 acceptance of session ids as bearer credentials.
+Each participant now has an independent capability with 256 random bits.
+Only its SHA256 digest (of the 64-character lowercase hexadecimal value,
+encoded as ASCII) is stored in `participants.capability_digest`. The core
+authenticates this capability whenever it resolves or revalidates a caller,
+including an existing-session re-bind; copying an id, agent string, role or
+participant mapping does not authenticate it. Comparison is constant-time.
+Missing, malformed, mismatched and legacy-null credentials refuse class
+`capability` before participant state changes. No refusal echoes a capability.
+
+The existing validated native profile owns the raw capability in its private
+`coordination_capability` field. An unprofiled CLI may carry its own value in
+`COORDINATION_CAPABILITY`. A declared profile takes precedence and cannot fall
+back to an ambient value. Native launch clears inherited credentials and
+projects only its own. Profiles, their directory permissions, and the trusted
+operator's filesystem are credential custody: this does not claim isolation
+from arbitrary code running with that same operating-system account.
+
+Self-bind requires the new caller's capability; a re-bind proves the existing
+one and never replaces its digest. `bind-for` receives only a capability digest
+for the worker, from an authenticated dispatcher. The launcher creates the
+worker profile first and never puts the raw capability in argv, an acting MCP
+config, dispatch records, messages, public responses or SQLite. Resume and
+relocation retain that profile's credential. Generic participant listings omit
+session ids; own bind/who and dispatch receipts retain correlation ids needed
+by existing custody readers.
+
+Existing rows and their history are preserved. A nullable-column migration
+does not enroll a legacy participant. Such participants remain inert until an
+explicit owner-controlled offline cutover installs digests from newly prepared
+private profiles while holding the coordination writer lock. This maintenance
+uses the core's private enrollment helper, outside `CORE`, the CLI and MCP action
+catalogues; it does not expose a session-authenticated upgrade or a first-writer
+claim on an existing row. There is no mixed legacy authentication mode. Active
+participants are provisioned explicitly; retained historical rows may remain
+inert. The operation must preserve roles, assignments and authority history.
+
+Both projections are therefore thin and
 neither holds authority of its own; the CLI verb parses argv, calls the
 function and prints, and the MCP action does the same with a result
 shape instead of a print.
@@ -72,9 +99,10 @@ store` for the first and `no <things>` for the second.
 Inherits `ops/conductor/instrument-conventions.md`: the refusal wire,
 the four exit classes, the instrument shape, the identity rule and the
 lint duty. Runs on the state engine (`machine-lever.md`): every row
-lives in `state.db`, never in a file. Writing verbs require an identity
-and a bound participant; reads require neither and never create the
-store.
+lives in `state.db`, never in a file. Writing verbs require an identity and
+an authenticated bound participant; public reads require neither and never
+create the store. Reads scoped to the calling participant authenticate that
+binding without requiring attribution.
 
 **Authority is enforced inside the core, never by a hook.** Measured by
 the wall session, 2026-09-16: the hook engine cannot see MCP tool calls
@@ -103,7 +131,8 @@ not a display name. The table:
                  session_id TEXT NOT NULL UNIQUE, agent TEXT NOT NULL,
                  harness TEXT, roles TEXT NOT NULL, endpoint TEXT,
                  probe TEXT, bound_at TEXT NOT NULL, bound_by INTEGER,
-                 bound_for INTEGER, granted_by INTEGER, granted_at TEXT)
+                 bound_for INTEGER, granted_by INTEGER, granted_at TEXT,
+                 capability_digest TEXT)
 
 `session_id` is `instrument.session()` and is unique, so two sessions
 on one host are two participants; `agent` is `instrument.identity()`
@@ -115,7 +144,10 @@ authority everywhere below; the agent string never is.
 
 `bound_participant()` reads `instrument.session()`, refuses class
 `session` when the harness set none, and refuses class `participant`
-when no row is bound to it. It is not a verb and does not wear the wire
+when no row is bound to it. It authenticates the private capability against
+that row before returning it. Its optional `participant` keyword narrows the
+expected binding for a configured server and never supplies authority.
+It is not a verb and does not wear the wire
 name of `resolve`, which is the message verb, so a projection mapping
 its tools by wire name has one thing to reach. **No verb takes the acting participant as an argument.** A
 caller-supplied participant or role is refused class `arguments`, so
@@ -202,7 +234,8 @@ with no participant, and every mutation it attempts refuses class
 at `537f3a35`. The launcher already mints a session id per dispatch, so
 the material exists.
 
-`bind-for --session ID --roles R[,R] --for A-n` binds a participant to a
+`bind-for --session ID --roles R[,R] --for A-n --capability-digest SHA256`
+binds a participant to a
 session id the caller names. Only a participant holding `dispatcher` may
 issue one; another refuses class `role`, and a roles set above `worker`
 needs `lead` as well. A session that already holds a row refuses class

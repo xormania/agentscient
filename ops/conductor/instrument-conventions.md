@@ -60,7 +60,10 @@ The two Codex keys identify native interactive sessions. A dispatch's
 explicit `CLAUDE_SESSION_ID` binding keeps precedence: the launcher
 binds that minted session to its participant before starting the worker.
 Native sessions with the same model attribution still bind distinct
-participants, and neither can resolve the other's participant as itself.
+participants. Session aliases carry correlation, not authentication: the
+coordination core separately verifies the participant capability specified in
+`coordination-lever.md`. Changing an alias or attribution cannot substitute
+for that capability.
 Guarded A-218 startup first validates `AGENTSCIENT_HOOK_PROFILE` through the
 installed shared guard. Workers use its issued session; interactive callers
 resolve its existing participant endpoint association. Native aliases must
