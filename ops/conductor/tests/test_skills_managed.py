@@ -206,6 +206,16 @@ class ManagedSkills(unittest.TestCase):
         self.rejected(result, "detail")
         self.assertFalse(self.db.exists())
 
+    def test_telemetry_boundary_accepts_16k_and_100k_refuses_without_an_event(self):
+        accepted = "x" * (16 * 1024)
+        result = self.call("use", "sample", accepted)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][4], accepted)
+
+        before = self.events()
+        self.rejected(self.call("use", "sample", "x" * 100_000), "detail")
+        self.assertEqual(self.events(), before)
+
     def test_busy_registry_leaves_fresh_registration_and_event_atomic(self):
         self.sync()
         with sqlite3.connect(self.db) as con:
