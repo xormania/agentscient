@@ -183,13 +183,38 @@ class SharedEnforcement(unittest.TestCase):
     def test_preserved_mcp_environment_drops_inherited_coordination_capability(self):
         root = Path(__file__).resolve().parents[4]
         inherited = "e" * 64
+        settings = {"model": "fixture-model", "mcp_servers": {"coordination": {
+            "command": "python3", "args": ["fixture.py"],
+            "env": {"COORDINATION_CAPABILITY": inherited, "CODEX_THREAD_ID": "parent-session",
+                    "AGENTSCIENT_HOOK_PROFILE": "/parent/binding.json", "SAFE_SETTING": "retained"}}}}
+        original = profiles.canonical(settings)
         for harness in profiles.HARNESSES:
-            binding = profiles.generate(harness, self.world.root / ("mcp-capability-" + harness), source=root,
-                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true",
-                                        native_settings={"mcp_servers": {"coordination": {"command": "python3",
-                                                         "env": {"COORDINATION_CAPABILITY": inherited}}}})
-            for path in (binding["helper"], *binding["config_pins"]):
-                self.assertNotIn(inherited, Path(path).read_text())
+            with self.subTest(harness=harness):
+                binding = profiles.generate(harness, self.world.root / ("mcp-capability-" + harness), source=root,
+                                            cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                            native_settings=settings)
+                self.assertEqual(profiles.canonical(settings), original)
+                for path in (binding["binding"], binding["helper"], *binding["config_pins"]):
+                    self.assertFalse(inherited in Path(path).read_text(), f"parent capability retained in {path}")
+                self.assertNotIn(inherited, profiles.canonical(binding))
+                server = binding["native_settings"]["mcp_servers"]["coordination"]
+                self.assertEqual(server, {"command": "python3", "args": ["fixture.py"],
+                                         "env": {"SAFE_SETTING": "retained", "AGENTSCIENT_HOOK_PROFILE": binding["binding"]}})
+                self.assertEqual(binding["native_settings"]["model"], "fixture-model")
+                self.assertRegex(binding["coordination_capability"], r"^[0-9a-f]{64}$")
+                self.assertNotEqual(binding["coordination_capability"], inherited)
+                for path in (binding["helper"], *binding["config_pins"]):
+                    self.assertNotIn(binding["coordination_capability"], Path(path).read_text())
+                projected = "".join(Path(path).read_text() for path in binding["config_pins"])
+                for safe in ("SAFE_SETTING", "retained", "fixture.py"):
+                    self.assertIn(safe, projected)
+                profiles.validate(profiles.read_binding(binding["binding"]))
+                command, environment = profiles.native_launch(binding, ["/usr/bin/true"],
+                                                               {**self.env, "COORDINATION_CAPABILITY": inherited})
+                self.assertNotIn(inherited, str(command))
+                self.assertNotIn(binding["coordination_capability"], str(command))
+                self.assertNotIn(inherited, str(environment))
+                self.assertEqual(environment["COORDINATION_CAPABILITY"], binding["coordination_capability"])
 
     def test_grant_ownership_expiry_and_malformed_authority(self):
         instrument = enforcement.instrument

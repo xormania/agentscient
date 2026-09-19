@@ -81,7 +81,10 @@ secret merely by resuming. Resume and relocation retain the original capability.
 Native launch discards inherited `COORDINATION_CAPABILITY` and carries only its
 own binding value; interactive hook initialization likewise sets that value
 before entering the core. Preserved MCP registrations receive the validated
-profile path, never an inherited raw capability. Helpers and public configs,
+profile path, never an inherited raw capability. The binding retains the same
+normalized settings used for native configuration, so its child-readable copy
+also excludes inherited credentials and session aliases without changing the
+caller's settings. Helpers and public configs,
 records and responses contain no raw capability. Interactive registration and
 dispatcher-issued worker initialization remain separate callers of the core.
 

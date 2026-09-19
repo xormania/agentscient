@@ -81,8 +81,8 @@ def toml_value(value):
     return json.dumps(value, allow_nan=False)
 
 
-def configuration(harness, native_home, helper, cwd, settings=None):
-    configs = {}
+def normalized_settings(settings, helper):
+    """Copy preserved settings without another participant's identity or secret."""
     settings = json.loads(json.dumps(settings or {}))
     servers = settings.get("mcp_servers", {})
     for server in servers.values():
@@ -90,6 +90,13 @@ def configuration(harness, native_home, helper, cwd, settings=None):
         for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID", "COORDINATION_CAPABILITY"):
             environment.pop(key, None)
         environment["AGENTSCIENT_HOOK_PROFILE"] = str(helper.parent / "binding.json")
+    return settings
+
+
+def configuration(harness, native_home, helper, cwd, settings=None):
+    configs = {}
+    settings = normalized_settings(settings, helper)
+    servers = settings.get("mcp_servers", {})
     events = EVENTS if harness != "agy" else ("PreToolUse", "PostToolUse", "Stop", "PreInvocation")
     event_groups = {}
     for event in events:
@@ -133,6 +140,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     native_home = Path(home).resolve(strict=True) if home else dest
     helper = dest / "guard.sh"
+    native_settings = normalized_settings(native_settings, helper)
     configs = configuration(harness, native_home, helper, cwd, native_settings)
     for path, content in configs.items():
         if path.exists() or path.is_symlink():
@@ -149,7 +157,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "python": str(Path(sys.executable).resolve()), "session": session,
                "coordination_capability": secrets.token_hex(32),
                "servers": list(servers), "authority_environment": authority,
-               "native_settings": native_settings or {},
+               "native_settings": native_settings,
                "credential_environment": credential_environment or {},
                "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
