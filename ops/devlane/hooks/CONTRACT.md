@@ -188,7 +188,9 @@ transport prefix, preserving leading grant declarations and explicit directory
 changes for the existing checks. Native hidden workdir cannot select another checkout.
 
 Interactive hook registration associates the native session with its derived
-profile through the existing participant endpoint field. The shared instrument
+profile through the participant's private capability digest. An authenticated
+resume preserves an existing native messaging endpoint; initialization fills
+only an absent endpoint with the profile reference. The shared instrument
 resolves that association for subsequent CLI/MCP callers, including AGY which
 does not export a native session variable. A profile admits one native terminal
 session (including resume); another session requires another projection. Missing,

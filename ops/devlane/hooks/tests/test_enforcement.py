@@ -311,6 +311,48 @@ class SharedEnforcement(unittest.TestCase):
             self.assertEqual(conn.execute("SELECT count(*) FROM assignments").fetchone()[0], 0)
             self.assertNotIn("CLAUDE_CODE_SESSION_ID", os.environ)
 
+    def test_interactive_resume_preserves_native_endpoint_and_cli_identity(self):
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_native_endpoint_coordination", root / "ops/conductor/tools/coordination.py")
+        for harness in profiles.HARNESSES:
+            for existing in (False, True):
+                caller = World(prefix="native-endpoint-caller-")
+                self.addCleanup(caller.close)
+                session = f"native-{harness}-{existing}"
+                endpoint = "native-message:" + session if existing else None
+                with self.subTest(harness=harness, endpoint=endpoint), patch.dict(os.environ, self.env, clear=True):
+                    binding = profiles.generate(harness, self.world.root / session, source=root, cwd=self.repo,
+                                                mode="interactive", home=caller.home, agent="Fixture <f@invalid>")
+                    os.environ.update(CLAUDE_SESSION_ID=session, COORDINATION_CAPABILITY=binding["coordination_capability"],
+                                      WF_AGENT_OVERRIDE="Fixture <f@invalid>")
+                    with core.writer() as conn:
+                        part = core.core_bind(conn, None, agent="Fixture <f@invalid>", roles="worker",
+                                              harness=harness, endpoint=endpoint)
+                    payload = {"conversationId" if harness == "agy" else "session_id": session}
+                    for _ in range(2):
+                        self.assertEqual(profiles.initialize(binding, payload, instrument=enforcement.instrument), session)
+                        with core.reader() as conn:
+                            current = core.maybe_participant(conn)
+                            self.assertEqual(f"PT-{current['id']}", part["participant"])
+                            self.assertEqual(current["endpoint"], endpoint or "hook-profile:" + binding["binding"])
+                            self.assertEqual(conn.execute("SELECT count(*) FROM assignments").fetchone()[0], 0)
+                        with patch.dict(os.environ, caller.env({"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}), clear=True):
+                            self.assertEqual(enforcement.instrument.session(), session)
+
+    def test_interactive_resume_capability_cannot_bind_a_second_native_session(self):
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_profile_reuse_coordination", root / "ops/conductor/tools/coordination.py")
+        binding = profiles.generate("codex", self.world.root / "reused-native", source=root, cwd=self.repo, mode="interactive")
+        os.environ.update(CLAUDE_SESSION_ID="original-native", COORDINATION_CAPABILITY=binding["coordination_capability"],
+                          WF_AGENT_OVERRIDE="Fixture <f@invalid>")
+        with core.writer() as conn:
+            core.core_bind(conn, None, agent="Fixture <f@invalid>", roles="worker", harness="codex", endpoint="native-message:original")
+        with self.assertRaisesRegex(ValueError, "another native terminal"):
+            profiles.initialize(binding, {"session_id": "different-native"}, instrument=enforcement.instrument)
+        with core.reader() as conn:
+            self.assertEqual([tuple(row) for row in conn.execute("SELECT session_id, endpoint FROM participants")],
+                             [("original-native", "native-message:original")])
+
     def test_interactive_profile_reaches_cli_identity_and_original_stores(self):
         root = Path(__file__).resolve().parents[4]
         core = enforcement.load("test_profile_coordination", root / "ops/conductor/tools/coordination.py")

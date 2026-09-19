@@ -411,8 +411,8 @@ def initialize(binding, native_payload, *, instrument):
     conn = core.reader()
     try:
         if binding["mode"] == "interactive" and conn.execute(
-                "SELECT 1 FROM participants WHERE endpoint = ? AND session_id != ?",
-                ("hook-profile:" + binding["binding"], session)).fetchone():
+                "SELECT 1 FROM participants WHERE capability_digest = ? AND session_id != ?",
+                (instrument.capability_digest(binding), session)).fetchone():
             raise ValueError("profile already belongs to another native terminal; resume it or prepare a new profile")
         participant = core.maybe_participant(conn)
         if participant is not None:
@@ -429,8 +429,6 @@ def initialize(binding, native_payload, *, instrument):
         raise ValueError("participant harness differs from native binding")
     elif binding["mode"] == "interactive":
         endpoint = "hook-profile:" + binding["binding"]
-        if participant["endpoint"] not in (None, endpoint):
-            raise ValueError("native session already has a different endpoint")
         if participant["endpoint"] is None:
             with core.writer() as conn:
                 core.core_bind(conn, participant, agent=instrument.identity(), roles=participant["roles"], harness=binding["harness"],
