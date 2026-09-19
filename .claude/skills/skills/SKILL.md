@@ -39,6 +39,45 @@ observations, the non-authoritative-mirror rule. Recording an event needs
 - `wish NAME DETAIL` — the skill does not exist and should. Refused if
   it exists (that is a miss, not a wish).
 
+## Shared harness entry points
+
+Claude, Codex, Grok, and Agy use this same registry and the same source
+pages. Adapters translate events; they do not own another catalogue, identity
+resolver, recovery policy, or telemetry store.
+
+- `skills.py catalog` reads validated active pages from this checkout and
+  emits JSON rows with `name`, `description`, `path`, `sha256`, and `status`.
+  It never creates or syncs a store. A fresh host reads disk; an existing
+  unreadable registry refuses rather than concealing lifecycle state.
+- `skills.py read NAME` serves the complete canonical page without telemetry.
+  Inspection is not invocation and needs no identity.
+- `skills.py use NAME [DETAIL]` serves one validated page and records exactly
+  one redacted `invoked` event. The event persists the exact canonical source
+  path and SHA-256 of the bytes served. It replaces the page's manual
+  `log-use` for that invocation; do not double-count it.
+
+The callable seams are `managed_catalog()`, `load_skill(name)` (the catalogue
+row plus `content`), and `record_event(kind, name, detail=None)` (no stdout).
+Names are unqualified local identifiers: vendor- or plugin-qualified names
+are never silently credited to a project skill. The source is opened through
+a held descriptor and checked against this checkout, so a link may target a
+repository file but an escaped or swapped source refuses before content is
+served. Retired, draft, wished, and missing rows are not invocable; a valid
+on-disk page with no registry row is invocable without a separate sync.
+
+Receipt guidance is deliberately narrow: paths beginning `./` or `../` are
+relative to the served page's directory; a repository-relative path such as
+`ops/...` or `docs/...` is relative to the checkout containing the receipt.
+The page itself remains authoritative if it declares another resolution rule.
+Identity remains `instrument.identity()` and sessions remain
+`instrument.session()`; ordinary CLI environment precedence and validated
+profile resolution are existing shared contracts, not a skills subsystem.
+
+Interactive profiles may advertise this catalogue and route. Worker profiles
+do not receive the operator catalogue or auto-onboarding: assignment scope
+and isolation still govern. Telemetry grants no authority and does not retry a
+refusal. A generic file read is not proof that a skill procedure ran.
+
 ## Honesty rules
 
 - An event without its story is refused — counts alone are recollections
