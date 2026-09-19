@@ -7,6 +7,8 @@ findings ledger (`findings.py`). They share one shape: a row is a fact
 with who set it and when, rows are never edited, the store is local and
 the export is tracked.
 
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
+
 Owner, 2026-09-04, in session: "ledger feels like a core Agenscient
 symfony service". Proposed: one Ledger service in the Symfony project,
 four projections (Console, TUI, MCP read-only, API), of which the four

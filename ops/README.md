@@ -20,8 +20,9 @@ is independent of harness, model and conductor/worker role.
 Shared wire, provenance, custody, independent producers and declared
 couplings remain binding. Reading shared contracts or inspecting the
 application does not make its framework a dev-tooling dependency. MCP
-remains a read-only context and diagnostics surface; separate servers and
-action tools are proposals, not authorization here.
+reads and acts (owner, 2026-09-16; D-MCP-1). The lane read server keeps
+its own read-only contract; action operations are a separate typed
+surface under ops/conductor/ that refuses on the wire like every lever.
 
 Follow this boundary through the [instrument conventions](conductor/instrument-conventions.md),
 [onboarding contract](conductor/onboard-lever.md),
@@ -178,7 +179,9 @@ Named so nobody infers them from silence:
 ## The rules the lane binds
 
 - One line of work, one worktree (`../wt/ag-<slug>`); the main
-  checkout belongs to nobody but records; branches are never deleted.
+  checkout belongs to nobody but records; a branch is retired only after
+  its tip is inside a verified, indexed bundle, and never by an agent's
+  hand (AGENTS.md §dev is the trunk).
 - Workers commit with `Source:` and `Co-Authored-By:` trailers naming
   the model that actually ran; a dispatch never names a model on its
   own — the owner supplies one in `dispatch.conf`, and the run records

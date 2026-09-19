@@ -39,7 +39,7 @@ A condition is a row in the registry bound to an event (PreToolUse, PostToolUse,
 | `input-absent` | a `--scope-file` or `--input` missing or empty | spell the path from the worktree and check it exists before the call. |
 | `stale-base` | merging dev forward into the worktree would conflict (behind alone is merged by the dispatcher before the launch, 2026-09-12) | `git merge origin/dev` in the worktree, resolve the named files, commit, then dispatch. |
 | `test-form` | unittest given a path | `python3 -m unittest discover -s <dir> -p '<file>'`. |
-| `prune` | `rm -r` of records, state, worktrees or `.git` | never. Branches are never deleted; worktrees are listed in the handoff. |
+| `prune` | `rm -r` of records, state, worktrees or `.git` | never. A branch is retired only after its tip is inside a verified, indexed bundle, and only by the owner's hand (AGENTS.md §dev is the trunk); worktrees are listed in the handoff. |
 | `bucket-command`, `walkthrough`, `contract-vet`, `dispatch-env` | the scope names the whole suite; a write job carries no walkthrough; harness contracts do not vet; a launch without the launcher pin | read the row's needed half in the refusal; each names the exact file or token to change. |
 
 ## Command-shape and delegation hooks (`unsafe-command.py`, `no-subagents.py`)
@@ -64,7 +64,7 @@ page (or against `deliverable` for its row) in the skills registry, so
 | `findings.py disposition ... observation` | the vocabulary is open, fixed, addressed, deferred, ruled, fix-round, opinion; an observation is `deferred` with the reason (pitfall 5). |
 | `correction: ... no --answers key named` | the write job follows a review; dispose each finding it answers with a contract citation, then pass `--answers <record>#<n>` per key. |
 | `identity` | `export WF_AGENT='Name <address>'` before a writing verb. |
-| the harness classifier blocks a push or a declare text | never rewrite a pushed branch; cut a new branch and leave the old one (pitfall 10). |
+| the harness classifier blocks a push or a declare text | never rewrite a pushed branch; cut a new branch and leave the old one (pitfall 10). A `hand.py declare` denied as "Self-Modification" (grant 260, 2026-09-16) passed unchanged on retry after the terminal's "approved": send the denied command to the Lead as text and continue; the edge and its mechanism, an allow rule in the owner's settings, are in `ops/conductor/harness-capabilities.md` §Claude Code. Never rephrase the lever's command to get past the classifier. |
 
 ## CI walls
 

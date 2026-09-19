@@ -28,6 +28,12 @@ row that cannot look refuses: "could not look" is not a pass.
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
     dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
+    dispatcher      dispatch.sh or go.sh from a session that is   the dispatcher machine
+                    not the Dispatcher the state engine names,    in state.db, the
+                    or while no Dispatcher is named; no grant     harness's session id
+                    escape (owner, 2026-09-12: "as long you
+                    account for the fact that i'll have multiple
+                    sessions running soon")
     test-form       unittest given a path instead of discovery    tokens
     prune           rm -r of records, state, worktrees, .git      statement
     graft-first     a grep/rg/git grep search over a code root    statement, targets
@@ -84,6 +90,21 @@ row that cannot look refuses: "could not look" is not a pass.
                     2026-09-12: "proof needs to be part of the
                     system - it has to generated and verified
                     at boundaries")
+    audit           gh pr ready while the head carries no closed  gh pr view, the record
+                    security audit: the ## Proof section names a  at the head, ops/lane.conf,
+                    security-audit record which, read at the      the findings export at
+                    head, is closed, ran on codex at the model    the head, git diff
+                    ops/lane.conf names in
+                    MODEL_CODEX_SECURITY_AUDIT, has its two head
+                    fields agreeing on a sha whose commits since
+                    all lie inside the row's records set, and
+                    has every finding of its envelope disposed
+                    in the findings export at the head; ready
+                    only, gh pr merge does not carry it; no
+                    grant escape (owner, 2026-09-16: "daybreak
+                    security audits made required for draft
+                    pr's - and resolution required before they
+                    can be made ready for review")
 
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
@@ -112,8 +133,14 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# A-218: the shared entry binds trusted source configuration and the existing
+# instrument identity; legacy standalone probes retain their fixture context.
+from contextvars import ContextVar
+
 import miss
 from command_shape import commands
+
+GUARD_CONTEXT = ContextVar("matrix_guard_context", default=None)
 
 CODE_ROOTS = (
     "ops/", ".github/", ".claude/", "docs/", "packages/", "src/", "config/",
@@ -180,6 +207,8 @@ HEREDOC_OPEN = re.compile(
 HEREDOC_TOKEN = re.compile(r"^(?:(\d+))?<<-?(.*)$")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
+STATE_STORE = "state.db"
+ROLE_MACHINE = "dispatcher"
 # Owner, 2026-09-12: "i have the right to issue a hand grant to change CI and
 # tests - but i'm willing to make that something that can only be done in
 # isolation". The wall is the machinery that contains everyone's mistakes;
@@ -193,7 +222,13 @@ STATE_DIR = os.path.expanduser("~/.local/state")
 # D-TESTKIT-1 (owner, 2026-09-14): the test kit is test machinery and the
 # job catalogue carries the tests job's prompt; both are wall (docs/tests.md
 # rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
-WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+WALL_PATHS = ("ops/devlane/hooks/", "ops/devlane/harness/isolation.py",
+              "ops/devlane/dispatch/launch.py", "ops/conductor/tools/co_doc.py",
+              "ops/conductor/tools/instrument.py", "ops/conductor/tools/hand.py",
+              "ops/conductor/instrument-conventions.md",
+              "ops/conductor/permission-surface.md", "ops/conductor/harness-capabilities.md",
+              "ops/conductor/conductor-start-plan.md", "ops/conductor/lane-policy.md",
+              ".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
               "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
               "ops/testkit/", "ops/devlane/task/jobs.json",
@@ -291,7 +326,10 @@ def is_code(rel):
 
 
 def lane_conf(root):
-    """The lane conf as a dict; missing keys are the caller's defaults."""
+    """The lane conf as a dict; guarded calls use the installed source."""
+    guard = GUARD_CONTEXT.get()
+    if guard is not None:
+        return dict(guard["conf"])
     conf = {}
     path = os.path.join(root or "", "ops", "lane.conf")
     try:
@@ -315,17 +353,32 @@ def open_grant(text, lane):
     if not match:
         return None
     grant_id = int(match.group(1))
-    db = os.path.join(STATE_DIR, lane, "handwork.db")
+    guard = GUARD_CONTEXT.get()
+    db = guard["grant_db"] if guard else os.path.join(STATE_DIR, lane, "handwork.db")
     try:
         connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = connection.execute(
-            "SELECT status, scope, lever_class FROM handwork WHERE id = ?", (grant_id,)
+            "SELECT status, scope, lever_class, ts, ttl_s, session, agent FROM handwork WHERE id = ?", (grant_id,)
         ).fetchone()
         connection.close()
     except sqlite3.Error:
         return None
     if row is None or row[0] != "open":
         return None
+    if guard is not None:
+        authority = guard["instrument"]
+        try:
+            from datetime import timedelta
+            issued = authority.parse_stamp(row[3])
+            ttl = row[4]
+            if type(ttl) is not int or ttl <= 0:
+                return None
+            if not (issued <= authority.now() < issued + timedelta(seconds=ttl)):
+                return None
+            if row[5] != authority.session("") or row[6] != authority.identity():
+                return None
+        except (ValueError, TypeError, OverflowError, authority.Refusal):
+            return None
     return grant_id, (row[1] or ""), (row[2] or "other")
 
 
@@ -659,6 +712,8 @@ def written_paths(tokens):
                 continue
             files.append(token)
         return files
+    if word in ("touch", "mkdir", "rm", "rmdir", "unlink"):
+        return [t for t in rest if not t.startswith("-")]
     if word == "tee":
         return [t for t in rest if not t.startswith("-")]
     if word in COPY_WORDS:
@@ -702,6 +757,36 @@ def prune_targets(tokens, cwd, conf):
 
 # --- dispatch rows ----------------------------------------------------------
 
+SHELLS = ("sh", "bash", "dash", "ksh", "zsh")
+SOURCERS = (".", "source")
+
+
+def shell_operand(tokens, program):
+    """The script operand after a shell's options, or None.
+
+    A dispatcher handed to a shell is still that dispatcher. The rows read
+    the first word of the statement, so `bash ops/bin/dispatch.sh` and
+    `source ops/bin/dispatch.sh` were classified as nothing and walked past
+    every dispatch row, the `dispatcher` row included
+    (20260916T122524Z-review-codex-05a9f5#1). `-c` carries a command string
+    rather than a script and is not a script operand: check_text judges that
+    string on its own."""
+    program += 1
+    while program < len(tokens):
+        argument = tokens[program]
+        if argument == "--":
+            return program + 1 if program + 1 < len(tokens) else None
+        if argument == "-":
+            return None
+        if argument.startswith("-"):
+            if "c" in argument[1:]:
+                return None
+            program += 1
+            continue
+        return program
+    return None
+
+
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
@@ -714,6 +799,12 @@ def dispatch_args(tokens):
         if program is None:
             return None, {}
         name = base(tokens[program]) if program < len(tokens) else ""
+    elif name in SHELLS or name in SOURCERS:
+        program = (shell_operand(tokens, program) if name in SHELLS
+                   else (program + 1 if program + 1 < len(tokens) else None))
+        if program is None or program >= len(tokens):
+            return None, {}
+        name = base(tokens[program])
     if name in DISPATCHERS:
         kind = "dispatcher"
     elif name == LAUNCHER:
@@ -776,7 +867,79 @@ def read_text(path):
         return None
 
 
+def harness_session():
+    """The shared instrument is the one native/issued session resolver."""
+    guard = GUARD_CONTEXT.get()
+    if guard is not None:
+        return guard["instrument"].session("")
+    import importlib.util
+    path = os.path.join(os.path.dirname(__file__), "../../../conductor/tools/instrument.py")
+    spec = importlib.util.spec_from_file_location("hook_instrument", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.session("")
+
+
+def dispatcher_named(lane):
+    """(session, "") for the Dispatcher the state engine names, ("", "") when
+    none is named, or ("", what was found) when the store could not be read.
+
+    Absence is declared, never inferred (docs/wire.md): a store that is
+    absent is an answer — nobody has named a Dispatcher on this host — and
+    a store that is there but unreadable is not, so the two are returned
+    apart and the refusal says which one it met.
+    """
+    if not lane:
+        return "", ""
+    path = os.path.join(STATE_DIR, lane, STATE_STORE)
+    if not os.path.isfile(path):
+        return "", ""
+    try:
+        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        row = connection.execute(
+            "SELECT place, holder_note FROM subjects WHERE machine = ? ORDER BY id LIMIT 1",
+            (ROLE_MACHINE,),
+        ).fetchone()
+        connection.close()
+    except sqlite3.Error as error:
+        return "", f"the state store at {path} could not be read ({type(error).__name__})"
+    if row is None or row[0] != "named" or not (row[1] or "").strip():
+        return "", ""
+    return row[1].strip(), ""
+
+
+def dispatch_role(cwd):
+    """The only emitter of class `dispatcher`: ops/bin/dispatch.sh and
+    ops/bin/go.sh answer to the session the state engine names and to no
+    other. The session is judged, never the working directory: two sessions
+    in one worktree are still two sessions."""
+    lane = lane_conf(repo_root(cwd)).get("LANE_NAME")
+    named, unreadable = dispatcher_named(lane)
+    if unreadable:
+        return deny("dispatcher", "a Dispatcher named in the state engine", unreadable,
+                    "a readable state store, then dispatcher.py set")
+    if not named:
+        return deny("dispatcher", "a Dispatcher named in the state engine", "none",
+                    "dispatcher.py set in the session that will dispatch")
+    mine = harness_session()
+    if not mine:
+        return deny("dispatcher", f"the Dispatcher session {named}",
+                    "the harness named no session for this one",
+                    "send the request to the Dispatcher")
+    if mine != named:
+        return deny("dispatcher", f"the Dispatcher session {named}", mine,
+                    "send the request to the Dispatcher")
+    return None
+
+
 def check_dispatch(kind, flags, cwd, text, grant):
+    if kind == "dispatcher":
+        # Asked first, and no grant lifts it: the remedy is not a write this
+        # session may be trusted with, it is another session sending the
+        # request. A grant that opened this row would make the role advice.
+        refused = dispatch_role(cwd)
+        if refused is not None:
+            return refused
     if kind == "launcher":
         if flags.get("verb") in LAUNCHER_READ_VERBS:
             return None
@@ -1093,10 +1256,18 @@ PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
 PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
+AUDIT_JOB = "security-audit"
+AUDIT_MODEL_KEY = "MODEL_CODEX_SECURITY_AUDIT"
+AUDIT_HARNESS = "codex"
+DISPATCH_RECORDS = ".dev/records/dispatches/"
+FINDINGS_EXPORT = "ops/conductor/findings/findings.jsonl"
+# A dispatch record id as launch.py mints it, the shape ladder.py pins.
+RECORD_ID = re.compile(r"\d{8}T\d{6}Z-[a-z-]+-[0-9a-f]{6}")
 
 
-def proof_ids(body):
-    """The corpus row ids named under the PR body's ## Proof heading."""
+def proof_section(body):
+    """The text under the PR body's ## Proof heading, or None when there is
+    no such heading."""
     match = PROOF_HEADING.search(body or "")
     if match is None:
         return None
@@ -1104,6 +1275,14 @@ def proof_ids(body):
     nxt = re.search(r"^##\s", section, re.MULTILINE)
     if nxt:
         section = section[:nxt.start()]
+    return section
+
+
+def proof_ids(body):
+    """The corpus row ids named under the PR body's ## Proof heading."""
+    section = proof_section(body)
+    if section is None:
+        return None
     ids = []
     for found in PROOF_ID.findall(section):
         if found not in ids:
@@ -1156,6 +1335,319 @@ def gh_repo(toks):
     return None
 
 
+def field(record, path):
+    """The value at a dotted path of a record, or None."""
+    node = record
+    for key in path.split("."):
+        node = node.get(key) if isinstance(node, dict) else None
+    return node
+
+
+def agreed(record, paths, *, sha=False):
+    """(value, "") when every named field is present and they carry one value
+    between them, else (None, what was found). Two fields that disagree are
+    two answers, and an audit is never read as met on two answers: the
+    refusal names both. One present member is not agreement either: a partial
+    record missing `model.ran` or `result.head` was read as its pair agreeing
+    (20260916T122524Z-review-codex-05a9f5#7), so the absent ones are named.
+    Measured 2026-09-16 over the 35 closed security-audit records under
+    .dev/records/dispatches: 35 of 35 carry both members of both pairs."""
+    seen = {path: field(record, path) for path in paths}
+    absent = sorted(path for path, value in seen.items()
+                    if not (isinstance(value, str) and value))
+    if absent:
+        return None, "absent: " + ", ".join(absent)
+    if len(set(seen.values())) > 1:
+        return None, ", ".join(f"{path}={value[:8] if sha else value}"
+                               for path, value in sorted(seen.items()))
+    return next(iter(seen.values())), ""
+
+
+def json_at(root, head, path):
+    """A JSON file as a commit holds it, or None when it is not there."""
+    shown = subprocess.run(["git", "-C", root, "show", f"{head}:{path}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    if shown.returncode != 0:
+        return None
+    try:
+        return json.loads(shown.stdout)
+    except ValueError:
+        return None
+
+
+def dispositions_at(root, head):
+    """{key: disposition} from the findings export as the head holds it.
+    The export at the head, never the host's store: a disposition nobody
+    can read at the head is not evidence the head carries, and an absent
+    export answers `undisposed`, which refuses rather than passes."""
+    shown = subprocess.run(["git", "-C", root, "show", f"{head}:{FINDINGS_EXPORT}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    if shown.returncode != 0:
+        return {}
+    out = {}
+    for line in shown.stdout.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and isinstance(row.get("key"), str):
+            out[row["key"]] = row.get("disposition")
+    return out
+
+
+def is_a_fix_for(message, rid, findings, paths):
+    """A fix commit in CONTRIB.md's shape (### Fix commit) that cites a
+    finding of this audit and touches a path that finding named: a
+    ``Finding:`` line carrying the ledger key ``<record id>#<n>``, the
+    ``Verified:`` line the shape requires, and at least one of ``paths``
+    among the paths the cited finding's ``where`` names. Owner, 2026-09-16:
+    "you can't keep re-auditing after fixes - draw a line".
+
+    The line is drawn at the place the finding named. The two text lines
+    alone exempted every other path riding in the same commit, so unaudited
+    code could arrive beside a nominal fix
+    (20260916T122524Z-review-codex-05a9f5#8). One touched path is enough and
+    not every one: an honest fix commit carries its test file and its record
+    beside the code, and no finding names those."""
+    lines = [line.strip() for line in (message or "").splitlines()]
+    if not any(line.startswith("Verified:") for line in lines):
+        return False
+    touched = set(paths)
+    for n, finding in enumerate(findings, 1):
+        key = f"{rid}#{n}"
+        if not any(line.startswith("Finding:") and key in line for line in lines):
+            continue
+        where = finding.get("where") if isinstance(finding, dict) else None
+        if touched & where_paths(where):
+            return True
+    return False
+
+
+COMMIT_ID = re.compile(r"\A[0-9a-f]{7,40}\Z")
+
+
+def a_commit_id(value):
+    """True when this is a commit id and nothing else. A record's sha reaches
+    `git log` as a range operand, so a value beginning with a dash is read as
+    an option instead: `--output=<path>` made git write that file, print
+    nothing, and the empty range read as an audit nothing had voided
+    (20260916T122524Z-review-codex-05a9f5#4)."""
+    return isinstance(value, str) and bool(COMMIT_ID.match(value))
+
+
+def where_paths(where):
+    """The repository paths a finding's `where` names. A `where` reads
+    `<path>:<lines>` joined by prose, so a token is a path when it carries a
+    separator and a suffix on its last segment; the lines after it are not
+    part of it."""
+    named = set()
+    for token in re.split(r"[\s,;()]+", where if isinstance(where, str) else ""):
+        token = token.strip().rstrip(".,;:")
+        if ":" in token:
+            token = token.split(":", 1)[0]
+        if "/" in token and "." in token.rsplit("/", 1)[-1]:
+            named.add(token)
+    return named
+
+
+def ref_known(root, ref):
+    """True when this clone can resolve ``ref`` to a commit. A ref it does
+    not have is absent, never an empty exclusion read as one: the walk below
+    judges every commit in the range instead, which is the stricter reading."""
+    probe = subprocess.run(["git", "-C", root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    return probe.returncode == 0 and bool(probe.stdout.strip())
+
+
+def branch_commits(root, sha, head, trunk):
+    """The branch's own commits after ``sha``, oldest first, or None when git
+    could not read the range.
+
+    A forward merge of the trunk never voids the audit: the dispatcher merges
+    the trunk into the branch before every launch, so a rule that judged
+    every commit in the range voided every branch that had dispatched
+    anything (2026-09-16, measured on #242; the ruling and who made it are
+    in CONTRIB.md's audit row). ``--not origin/<trunk>`` drops what the
+    trunk already carries, and nothing else is dropped. ``--first-parent``
+    with ``--no-merges`` dropped every merge rather than the trunk's, so a
+    branch could merge a topic carrying unaudited code and keep its audit
+    (#5 of the same audit); the merge commits are judged here too, by their
+    combined diff.
+
+    None when the range cannot be read, the audited sha included: it reaches
+    git as a range operand, so a value that is not a commit id is refused
+    before git sees it (#4 of the same audit)."""
+    if not (a_commit_id(sha) and a_commit_id(head)):
+        return None
+    argv = ["git", "-C", root, "log", "--reverse", "--format=%H", f"{sha}..{head}"]
+    if trunk and ref_known(root, f"origin/{trunk}"):
+        argv += ["--not", f"origin/{trunk}"]
+    listing = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)  # noqa: S603 - an argv this function built, a read
+    if listing.returncode != 0:
+        return None
+    return listing.stdout.split()
+
+
+def edits(root, commit, path):
+    """True when this commit changed or removed a file that was already there.
+    An audit's record lands after the audit closes, so the commit that adds it
+    is the evidence arriving; only a later one changes what it says."""
+    changed = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-c", "--diff-filter=MD", commit, "--", path],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    return changed.returncode == 0 and bool(changed.stdout.strip())
+
+
+def voided_by(root, sha, head, rid, findings, records_set, trunk):
+    """An empty string when every commit this branch carries after the audited
+    sha leaves the audit standing, the reading of the first one that voids it
+    when one does, or None when git could not read the range. A commit stands
+    when everything it touched is inside the records set, or when it is a fix
+    commit citing a finding of this audit at a path that finding named.
+
+    This audit's own record is its evidence and never a record it may edit.
+    The `.dev/records/` prefix exempts the record's landing, which is right,
+    and exempted its later rewriting with it, which is not: closed audit
+    evidence could be edited after the fact and the gate would still read the
+    audit as standing (20260916T122524Z-review-codex-05a9f5#6). The commit
+    that adds the record stands; one that changes or removes it voids the
+    audit, and a citation does not lift that."""
+    commits = branch_commits(root, sha, head, trunk)
+    if commits is None:
+        return None
+    evidence = f"{DISPATCH_RECORDS}{rid}.json"
+    for commit in commits:
+        # `-c` answers the ordinary diff on an ordinary commit and the
+        # combined diff on a merge: what a merge resolved differently from
+        # every parent is content no parent carried and no audit read.
+        touched = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-c", commit],  # noqa: S603,S607 - fixed argv, a read
+                                 capture_output=True, text=True, timeout=30, check=False)
+        if touched.returncode != 0:
+            return None
+        paths = [path for path in touched.stdout.splitlines() if path]
+        if evidence in paths and edits(root, commit, evidence):
+            return (f"{commit[:8]} changed {evidence} after it, which is this audit's "
+                    "own record and is never a record a commit may edit")
+        outside = [path for path in paths if not path.startswith(records_set)]
+        if not outside:
+            continue
+        message = subprocess.run(["git", "-C", root, "log", "-1", "--format=%B", commit],  # noqa: S603,S607 - fixed argv, a read
+                                 capture_output=True, text=True, timeout=30, check=False)
+        if message.returncode != 0:
+            return None
+        if is_a_fix_for(message.stdout, rid, findings, paths):
+            continue
+        return (f"{commit[:8]} changed {outside[0]} after it, neither inside the records "
+                f"set nor a fix commit citing a finding of {rid} at a path it names")
+    return ""
+
+
+def audit_of(root, head, rid, record, conf, records_set):
+    """None when this record is a security audit closed at ``head`` with
+    every finding disposed, else the (found, needed) halves of the refusal
+    that say which part is short. It never refuses itself: one function
+    emits the class, so the registry closes over it exactly."""
+    status = field(record, "status")
+    if status != "closed":
+        return (f"{rid} is status={status}",
+                "wait for the audit to close, then commit its record")
+    harness = field(record, "harness.name")
+    if harness != AUDIT_HARNESS:
+        return (f"{rid} ran on harness {harness}, not {AUDIT_HARNESS}",
+                f"re-run it on the {AUDIT_HARNESS} harness at the model ops/lane.conf names")
+    # The conf names the model, read at check time; the gate never carries a
+    # model string of its own (2026-09-16).
+    wanted = conf.get(AUDIT_MODEL_KEY)
+    if not wanted:
+        return (f"ops/lane.conf names no {AUDIT_MODEL_KEY}",
+                (f"name the audit model in ops/lane.conf as {AUDIT_MODEL_KEY}; "
+                 "could not look is not a pass"))
+    model, disagreement = agreed(record, ("model.requested", "model.ran"))
+    if model is None:
+        return f"{rid} model {disagreement}", f"re-run it on {AUDIT_HARNESS} at {wanted}"
+    if model != wanted:
+        return (f"{rid} ran model {model}, not {wanted} (ops/lane.conf {AUDIT_MODEL_KEY})",
+                f"re-run it on {AUDIT_HARNESS} at {wanted}")
+    # A read-role job commits nothing, so the ref it read and the head it
+    # reports are one sha. lineage.base_sha is the base, not the head.
+    sha, disagreement = agreed(record, ("snapshot.ref_sha", "result.head"), sha=True)
+    if sha is None:
+        return f"{rid} audited sha {disagreement}", f"re-run the {AUDIT_JOB} at the head"
+    if not a_commit_id(sha):
+        return (f"{rid} audited sha {sha[:24]!r} is not a commit id",
+                (f"re-run the {AUDIT_JOB} at the head; the record's sha reaches git as "
+                 "a range operand and is 7 to 40 hex characters, never an option"))
+    findings = field(record, "result.envelope.findings")
+    if not isinstance(findings, list):
+        return (f"{rid} carries no result.envelope.findings array",
+                (f"commit the closed record of the {AUDIT_JOB} with its envelope; an "
+                 "absent findings array is not an audit with nothing left to dispose"))
+    if sha != head:
+        if not records_set:
+            return ("the audit row declares no records set",
+                    "add `records` to the audit row of ops/devlane/hooks/boundaries.json")
+        void = voided_by(root, sha, head, rid, findings, records_set,
+                         conf.get("TRUNK_BRANCH"))
+        if void is None:
+            return (f"git could not read {sha[:8]}..{head[:8]}",
+                    "could not look is not a pass; fetch the audited commit and retry")
+        if void:
+            return (f"{rid} audited {sha[:8]}; {void}",
+                    (f"re-run the {AUDIT_JOB} at {head[:8]}, or apply it as a fix "
+                     f"commit citing `Finding: {rid}#<n>` with its `Verified:` line, "
+                     "at least one of whose touched paths that finding's `where` names"))
+    disposed = dispositions_at(root, head)
+    undisposed = [f"{rid}#{n}" for n in range(1, len(findings) + 1)
+                  if (disposed.get(f"{rid}#{n}") or "open") == "open"]
+    if undisposed:
+        return ((f"{rid} at {sha[:8]}, {len(undisposed)} of {len(findings)} findings "
+                 f"undisposed: {', '.join(undisposed)}"),
+                ("findings.py disposition <key> <how> <why> for each, then "
+                 f"findings.py export --write {FINDINGS_EXPORT} and commit it"))
+    return None
+
+
+def audit_at_head(root, head, body):
+    """The audit row. Owner, 2026-09-16: "i'd like if you have daybreak
+    security audits made required for draft pr's - and resolution required
+    before they can be made ready for review". The rule text is the audit
+    row of CONTRIB.md's ready table (PR #245); this is its gate, carried by
+    the pr-proof boundary because the same command crosses it."""
+    row = declared_boundaries().get("audit") or {}
+    records_set = tuple(row.get("records") or ())
+    expected = f"a closed {AUDIT_JOB} record at {head[:8]} with every finding disposed"
+    needed = f"dispatch {AUDIT_JOB} at the head and dispose each finding"
+    section = proof_section(body)
+    if section is None:
+        return deny("audit", expected, "no `## Proof` section in the PR body", needed)
+    ids = []
+    for found in RECORD_ID.findall(section):
+        if found not in ids:
+            ids.append(found)
+    if not ids:
+        return deny("audit", expected,
+                    f"a `## Proof` section naming no {AUDIT_JOB} record", needed)
+    records = {}
+    for rid in ids:
+        record = json_at(root, head, DISPATCH_RECORDS + rid + ".json")
+        if record is None:
+            return deny("audit", expected,
+                        f"{rid} absent from {DISPATCH_RECORDS} at {head[:8]}",
+                        f"commit the record of the {AUDIT_JOB} at the head")
+        records[rid] = record
+    audits = [(rid, r) for rid, r in records.items() if field(r, "job") == AUDIT_JOB]
+    if not audits:
+        return deny("audit", expected,
+                    ", ".join(f"{rid} is job={field(r, 'job')}" for rid, r in records.items()),
+                    needed)
+    # A body may name an audit and its re-run; one that holds is enough, and
+    # when none holds the first one's reading is the refusal.
+    short = []
+    for rid, record in audits:
+        reading = audit_of(root, head, rid, record, lane_conf(root), records_set)
+        if reading is None:
+            return None
+        short.append(reading)
+    return deny("audit", expected, short[0][0], short[0][1])
 def pr_proof(toks, cwd):
     """Owner, 2026-09-12: "it has to be impossible to not do the work".
     A PR is marked ready or merged only against proof the system verifies
@@ -1227,6 +1719,13 @@ def pr_proof(toks, cwd):
         return deny("pr-proof", f"a green ci run on {head[:8]}",
                     f"conclusion {', '.join(str(r.get('conclusion')) for r in done)}",
                     "fix the branch until the run is green; the Proof rows are in it")
+    # Ready only (2026-09-16, on the owner's words): GitHub refuses to merge
+    # a draft, so the ready flip binds first, and the rows above bind the
+    # lineage after it.
+    if toks[2] == "ready":
+        refused = audit_at_head(root, head, str(data.get("body") or ""))
+        if refused is not None:
+            return refused
     return None
 
 

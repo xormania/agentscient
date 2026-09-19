@@ -2,7 +2,7 @@
 
 - recorded: 2026-09-16, session agentscient-11 (Fable, lane/session-20260915-e), at the wind-down
 - source: owner, verbatim below
-- disposition: open; the owner says the incoming spec documents cover it
+- disposition: hardened as D-MCP-1, 2026-09-16
 
 ## In the owner's words
 

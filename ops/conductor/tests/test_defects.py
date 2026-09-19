@@ -4,9 +4,14 @@ Owner, 2026-09-13 ("fix issue #1 - PR and merge"): lane-defects.md conflicted
 on three of five merge-forwards since 2026-09-11 because every session
 appended its row at the same line of one table. From LD-36 a row is its own
 file under ops/conductor/handoff/lane-defects/, so two sessions' rows merge
-as two additions; only the same id minted twice conflicts, as add/add on one
-file, loudly. One producer (Claude Fable 5.1) under hand grant 194; the
-second producer absent, said in the commit.
+as two additions. Until 2026-09-16 the same id minted twice was accepted and
+left to conflict as add/add on one file, loudly; that window is closed --
+`next` reads every ref, so an id taken on an unmerged branch is not offered
+again -- and the conflict remains the backstop for a row written by hand,
+where the lever is never asked. One producer (Claude Fable 5.1) under hand
+grant 194; the second producer absent, said in the commit. The id reader was
+widened by Claude Opus 5 (1M context) under hand grant 293, A-118 row 2, the
+second producer absent again and said in that commit.
 """
 
 from __future__ import annotations
@@ -77,7 +82,10 @@ class TheDefectLever(unittest.TestCase):
         (self.repo / ROWS).mkdir()
         self.world.plant_text(self.repo / ROWS / "LD-40.md", "# LD-40\n")
         proc = self.run_lever("next", identity=False)
-        self.assertEqual(proc.stdout.strip(), "LD-41", "a row file outranks the table")
+        self.assertEqual(proc.stdout.strip(), "LD-36", "S2 keeps this owner's unfiled reservation")
+        self.assertEqual(self.add().stdout.split()[0], "LD-36")
+        proc = self.run_lever("next", identity=False)
+        self.assertEqual(proc.stdout.strip(), "LD-41", "new allocation counts the later row and the table")
 
     def test_add_writes_one_file_per_row_and_prints_its_id_and_path(self):
         proc = self.add()
@@ -117,28 +125,35 @@ class TheDefectLever(unittest.TestCase):
         self.assertIn("`z.py`", listed.stdout.splitlines()[1])
 
     def test_two_sessions_rows_merge_as_two_additions(self):
-        """The reason for the shape: rows from two branches never touch."""
+        """The reason for the shape: rows from two branches never touch.
+
+        Until 2026-09-16 this row asserted the opposite of its first arm:
+        that b is handed LD-36 a second time while a's row sits on lane/a
+        alone, and that git names the add/add conflict when the branches
+        meet. That was the design -- one window left open, with the merge
+        as its backstop -- and it failed in practice, because the backstop
+        only fires if the two branches meet before the trunk moves. On
+        2026-09-16 one session filed LD-81, LD-82 and LD-83 on ids `next`
+        called free at 19:25:34Z, the trunk moved 21 commits and landed a
+        different LD-81 underneath, and all three were renumbered by hand
+        at 20:09:44Z. `next` now reads every ref, so the id is taken and
+        the second session is told so at the moment it asks.
+
+        The backstop is still asserted, on the one case no ref can show:
+        a row written by hand rather than minted, where the lever is never
+        consulted and only the merge can object.
+        """
         self.git("checkout", "-q", "-b", "lane/a")
         self.assertEqual(self.add(n_where="`a.py`").exit, 0)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "a: LD-36")
         self.git("checkout", "-q", "dev")
         self.git("checkout", "-q", "-b", "lane/b")
-        # b mints while a's row sits on lane/a only: the same id, the one case that conflicts
+        # b mints while a's row sits on lane/a only: the id is taken, and the
+        # lever reads the branch that holds it rather than the trunk alone
         proc = self.add(n_where="`b.py`")
-        self.assertEqual(proc.stdout.split()[0], "LD-36")
-        self.git("add", "-A")
-        self.git("commit", "-q", "-m", "b: LD-36")
-        merge = self.git("merge", "--no-edit", "lane/a", expect=None)
-        self.assertEqual(merge.exit, 1, "the same id twice is an add/add conflict, loudly")
-        conflicted = self.git("diff", "--name-only", "--diff-filter=U").stdout.split()
-        self.assertEqual(conflicted, [str(ROWS / "LD-36.md")], "only the row file, never the page")
-        self.git("merge", "--abort")
-        # b re-mints after taking a's row: distinct files, no conflict
-        self.git("reset", "-q", "--hard", "dev")
-        self.git("merge", "-q", "--no-edit", "lane/a")
-        proc = self.add(n_where="`b.py`")
-        self.assertEqual(proc.stdout.split()[0], "LD-37")
+        self.assertEqual(proc.stdout.split()[0], "LD-37",
+                         "a's row on an unmerged branch is taken, not free")
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "b: LD-37")
         self.git("checkout", "-q", "dev")
@@ -146,6 +161,24 @@ class TheDefectLever(unittest.TestCase):
         merge = self.git("merge", "--no-edit", "lane/b", expect=None)
         self.assertEqual(merge.exit, 0, merge.stdout + merge.stderr)
         self.assertEqual(sorted(p.name for p in (self.repo / ROWS).iterdir()), ["LD-36.md", "LD-37.md"])
+        # the backstop, for the row the lever never saw: written by hand on two
+        # branches, the same id, and the merge is the only thing left to object
+        for branch, where in (("lane/c", "`c.py`"), ("lane/d", "`d.py`")):
+            self.git("checkout", "-q", "dev")
+            self.git("checkout", "-q", "-b", branch)
+            self.world.plant_text(
+                self.repo / ROWS / "LD-38.md",
+                f"# LD-38\n\n| field | value |\n|---|---|\n| observed | 2026-09-16 |\n"
+                f"| where | {where} |\n| defect | a defect |\n| repair | a repair |\n"
+                f"| tests | none yet |\n| by | Hand <hand@example.test> |\n",
+            )
+            self.git("add", "-A")
+            self.git("commit", "-q", "-m", f"{branch}: LD-38 by hand")
+        merge = self.git("merge", "--no-edit", "lane/c", expect=None)
+        self.assertEqual(merge.exit, 1, "a hand-written id twice is an add/add conflict, loudly")
+        conflicted = self.git("diff", "--name-only", "--diff-filter=U").stdout.split()
+        self.assertEqual(conflicted, [str(ROWS / "LD-38.md")], "only the row file, never the page")
+        self.git("merge", "--abort")
 
     def test_outside_a_repository_refuses(self):
         outside = self.world.path("nowhere")

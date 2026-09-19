@@ -1,0 +1,245 @@
+{
+  "id": "20260916T100744Z-review-grok-bcfee6",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-c",
+  "lineage": {
+    "branch": "lane/session-20260916-c",
+    "base_sha": "b1d868b0bac7939416ebbd4512a37e376de62af5"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T10:07:44Z",
+    "closed": "2026-09-16T10:24:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b1d868b0bac7939416ebbd4512a37e376de62af5",
+    "ref_sha": "b1d868b0bac7939416ebbd4512a37e376de62af5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-c/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5597d242-0380-43e4-8ec9-2e0903695320",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok-stream/sessions/<snapshot-encoded>/5597d242-0380-43e4-8ec9-2e0903695320/summary.json"
+  },
+  "session": {
+    "id": "5597d242-0380-43e4-8ec9-2e0903695320",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok-stream/sessions/<snapshot-encoded>/5597d242-0380-43e4-8ec9-2e0903695320/summary.json",
+    "stream_sha256_at_close": "4bea5a444ac8ad1e713f44d0d5ad9e170aaa0ef841e8c41c07f2709c592f1467",
+    "spend": {
+      "input": 2802595,
+      "cached": 2616448,
+      "output": 48827,
+      "total": 2851422,
+      "cost_usd_ticks": 6709832000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok-stream/sessions/<snapshot-encoded>/5597d242-0380-43e4-8ec9-2e0903695320/summary.json",
+      "messages": 268
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-c/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Round two on #243 at b1d868b0. 17f28110 applies ten fixes to coordination.py, test_coordination.py and coordination-lever.md:\n1 bind is a chain: the first participant bootstraps, later self-binds get worker alone, a lead's grant records the grantor, a re-bind never changes roles, bind-for refuses conflict.\n2 observe refuses when no revision is named; submit stales current observations of another revision.\n3 return passes the generation gate under the write lock.\n4 return's findings go through reading().\n5 every core function refuses a participant row whose session is not the caller's.\n6 the actor handed to machine.move is the participant; release honours the lapse.\n7 verify takes --candidate and --evidence.\n8 who prints no store, exit 0.\n9 the CLI routes through CORE[verb].\n10 the instrument table, and a row running every documented form through the parser.\nFor each: does the fix answer its finding or move it? Do the new rows execute the subject or assert around it? Name any hole a fix opened.\n",
+    "inputs": [],
+    "sha256": "f7bc65678e7f677b74777ff2024f48a8ba2aeb7948b6b75b8c9882b0335fc02b",
+    "bytes": 10803,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/lane-mcp.json",
+      "sha256": "41f5dd5305b6d2ba9abec0baeb4728eb9b7f2fd742397375cd6877e5fa428693",
+      "job_ids": [
+        "20260916T082921Z-review-codex-7be071",
+        "20260916T082906Z-review-grok-652e46"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "9599833364a307a80cb11ced9a35bf165567bb02dab656c8bfb21766490971a3"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T10:07:55Z",
+      "ended": "2026-09-16T10:24:02Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "b1d868b0bac7939416ebbd4512a37e376de62af5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_return",
+          "claim": "Fix 3 answers Codex #3's stated reassign sequence and moves the same hole onto the path that does not bump generation. return and submit keep generation 1, so a competing return plus same-revision resubmit between the verb's require_generation and machine.move leaves place submitted at generation 1; the delayed return then applies to the new submission (marking: submit, return by PT-1, submit, return by PT-3). The racing row plants UPDATE assignments SET generation = generation + 1, which is the path reassign already bumps, and stays quiet on this one.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, unittest.mock\nsys.path.insert(0, '.')\nfrom ops.conductor.tests.test_coordination import SHARED, LEAD, WORKER, CHECKER, BRANCH, TOOL, LOCK_LEVER\nfrom ops.testkit import World, run\n\ndef E(w,c,s):\n    e=w.env(extra={'LANE_CONF':str(c)}); e['WF_AGENT']=SHARED; e['CLAUDE_CODE_SESSION_ID']=s; return e\ndef T(w,c,a,s=LEAD):\n    return run([sys.executable,str(TOOL),*a], cwd=w.cwd, env=E(w,c,s), timeout=60)\ndef OK(w,c,a,s=LEAD):\n    p=T(w,c,a,s); assert p.exit==0, p.stderr; return p.stdout\nw=World(prefix='r-ret-'); c=w.plant_text('lane.conf',\"LANE_NAME='testlane'\\n\")\nassert run([sys.executable,str(LOCK_LEVER),'add',BRANCH,'--why','t'], cwd=w.cwd, env=E(w,c,LEAD), timeout=60).exit==0\nOK(w,c,['bind','--roles','lead,coordinator,dispatcher'],LEAD)\nOK(w,c,['bind','--roles','worker'],WORKER)\nOK(w,c,['bind','--roles','worker'],CHECKER)\nOK(w,c,['grant','PT-3','--roles','verifier'],LEAD)\naid=OK(w,c,['draft','x','--outcome','y','--revision','a1b2c3d'],LEAD).split()[-1]\nOK(w,c,['offer',aid,'--to','PT-2'],LEAD)\nOK(w,c,['claim',aid,'--branch',BRANCH,'--generation','1'],WORKER)\nOK(w,c,['observe',aid,'--observation','ran','--revision','a1b2c3d','--generation','1'],WORKER)\nOK(w,c,['submit',aid,'--evidence','a1b2c3d','--revision','a1b2c3d','--generation','1'],WORKER)\nimport importlib.util\npatch=unittest.mock.patch.dict(os.environ,E(w,c,CHECKER),clear=True); patch.start()\nspec=importlib.util.spec_from_file_location('c',TOOL); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\nseen={'n':0}; real=m.require_generation\ndef wrapped(row, stated):\n    seen['n']+=1; ans=real(row, stated)\n    if seen['n']==1:\n        assert T(w,c,['return',aid,'--findings','#243','--generation','1'],LEAD).exit==0\n        assert T(w,c,['submit',aid,'--evidence','beefbee','--revision','a1b2c3d','--generation','1'],WORKER).exit==0\n    return ans\nwith unittest.mock.patch.object(m,'require_generation',wrapped):\n    with m.writer() as conn:\n        shown=m.CORE['return'](conn, m.bound_participant(conn), agent=SHARED, assignment=aid, findings='a1b2c3d', generation='1')\nassert shown['place']=='held' and seen['n']==2, shown\nafter=OK(w,c,['show',aid],LEAD)\nassert 'return submitted -> held by PT-3' in after, after\nprint(after); patch.stop(); w.close()\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_bind",
+          "claim": "Grok #3's caller-supplied session_id clause is moved, not answered. same_session(None) returns; bind then inserts or updates by the session_id argument, never instrument.session(). A worker process calling CORE['bind'](conn, None, session_id='not-this-process', roles='worker') mints a participant with no dispatcher, bound_by or bound_for; the same call with the lead's session_id and matching roles rewrites that lead's agent, endpoint and probe. test_every_core_function_checks_the_row_it_was_passed greps for the string same_session(part) and stays green.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, unittest.mock, importlib.util\nsys.path.insert(0, '.')\nfrom ops.conductor.tests.test_coordination import SHARED, LEAD, WORKER, TOOL\nfrom ops.testkit import World, run\n\ndef E(w,c,s):\n    e=w.env(extra={'LANE_CONF':str(c)}); e['WF_AGENT']=SHARED; e['CLAUDE_CODE_SESSION_ID']=s; return e\ndef OK(w,c,a,s=LEAD):\n    p=run([sys.executable,str(TOOL),*a], cwd=w.cwd, env=E(w,c,s), timeout=60); assert p.exit==0, p.stderr; return p.stdout\ndef core(w,c,s):\n    patch=unittest.mock.patch.dict(os.environ,E(w,c,s),clear=True); patch.start()\n    spec=importlib.util.spec_from_file_location('c',TOOL); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n    return m, patch\nw=World(prefix='r-bind-'); c=w.plant_text('lane.conf',\"LANE_NAME='testlane'\\n\")\nOK(w,c,['bind','--roles','lead,coordinator'],LEAD)\nOK(w,c,['bind','--roles','worker'],WORKER)\nm,p=core(w,c,WORKER)\nwith m.writer() as conn:\n    minted=m.CORE['bind'](conn,None,agent=SHARED,session_id='not-this-process',roles='worker')\n    hijack=m.CORE['bind'](conn,None,agent='Attacker <a@e.test>',session_id=LEAD,roles='lead,coordinator',endpoint='tcp://attacker:9',probe='hijacked')\nassert minted['session']=='not-this-process' and minted['bound_by'] is None, minted\nassert hijack['agent']=='Attacker <a@e.test>' and hijack['endpoint']=='tcp://attacker:9', hijack\nprint(minted); print(hijack); print(OK(w,c,['participants'],LEAD)); p.stop(); w.close()\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_bind",
+          "claim": "Fix 1's first-participant check is not under a write lock. writer() uses isolation_level=None, so COUNT(*) and INSERT are separate autocommit statements. Two first self-binds that interleave the count both take roles above worker: the store holds PT-1 lead,coordinator and PT-2 lead,dispatcher, two roots for a chain that was supposed to have one.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, threading, unittest.mock, importlib.util\nsys.path.insert(0, '.')\nfrom ops.conductor.tests.test_coordination import SHARED, TOOL\nfrom ops.testkit import World, run\nw=World(prefix='r-boot-'); c=w.plant_text('lane.conf',\"LANE_NAME='testlane'\\n\")\ndef E(s):\n    e=w.env(extra={'LANE_CONF':str(c)}); e['WF_AGENT']=SHARED; e['CLAUDE_CODE_SESSION_ID']=s; return e\npatch=unittest.mock.patch.dict(os.environ,E('sess-a'),clear=True); patch.start()\nspec=importlib.util.spec_from_file_location('c',TOOL); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\nbar=threading.Barrier(2, timeout=8); out={}\ndef boot(name, sid, roles):\n    with unittest.mock.patch.dict(os.environ,E(sid),clear=True):\n        conn=m.writer(); hit={'n':0}\n        def tracer(sql):\n            if 'COUNT(*)' in sql and hit['n']==0:\n                hit['n']+=1; bar.wait()\n        conn.set_trace_callback(tracer)\n        out[name]=m.CORE['bind'](conn,None,agent=SHARED,session_id=sid,roles=roles)\n        conn.close()\nt1=threading.Thread(target=boot,args=('A','sess-a','lead,coordinator'))\nt2=threading.Thread(target=boot,args=('B','sess-b','lead,dispatcher'))\nt1.start(); t2.start(); t1.join(15); t2.join(15)\nlisted=run([sys.executable,str(TOOL),'participants'], cwd=w.cwd, env=E('sess-a'), timeout=60)\nprint(out); print(listed.stdout)\nassert 'lead,coordinator' in listed.stdout and 'lead,dispatcher' in listed.stdout, listed.stdout\npatch.stop(); w.close()\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_verify",
+          "claim": "Fix 2 closed observe's `if row['revision'] and` skip; core_verify still uses it on --candidate, and submit still writes --revision without reading() or a non-empty check. `submit --revision ''` exits 0, show prints revision none, and `verify --candidate deadbee` exits 0 because an empty revision is falsy. The candidate gate fix 7 added therefore lifts on the null/empty path observe now refuses.",
+          "reproduce": "python3 - <<'PY'\nimport sys\nsys.path.insert(0, '.')\nfrom ops.conductor.tests.test_coordination import SHARED, LEAD, WORKER, CHECKER, BRANCH, TOOL, LOCK_LEVER\nfrom ops.testkit import World, run\n\ndef E(w,c,s):\n    e=w.env(extra={'LANE_CONF':str(c)}); e['WF_AGENT']=SHARED; e['CLAUDE_CODE_SESSION_ID']=s; return e\ndef T(w,c,a,s=LEAD):\n    return run([sys.executable,str(TOOL),*a], cwd=w.cwd, env=E(w,c,s), timeout=60)\ndef OK(w,c,a,s=LEAD):\n    p=T(w,c,a,s); assert p.exit==0, p.stderr; return p.stdout\nw=World(prefix='r-empty-'); c=w.plant_text('lane.conf',\"LANE_NAME='testlane'\\n\")\nassert run([sys.executable,str(LOCK_LEVER),'add',BRANCH,'--why','t'], cwd=w.cwd, env=E(w,c,LEAD), timeout=60).exit==0\nOK(w,c,['bind','--roles','lead,coordinator,dispatcher'],LEAD)\nOK(w,c,['bind','--roles','worker'],WORKER)\nOK(w,c,['bind','--roles','worker'],CHECKER)\nOK(w,c,['grant','PT-3','--roles','verifier'],LEAD)\naid=OK(w,c,['draft','x','--outcome','y'],LEAD).split()[-1]\nOK(w,c,['offer',aid,'--to','PT-2'],LEAD)\nOK(w,c,['claim',aid,'--branch',BRANCH,'--generation','1'],WORKER)\ns=T(w,c,['submit',aid,'--evidence','a1b2c3d','--revision','','--generation','1'],WORKER)\nv=T(w,c,['verify',aid,'--candidate','deadbee','--evidence','20260916T010203Z-job-v','--generation','1'],CHECKER)\nshown=OK(w,c,['show',aid],LEAD)\nprint(repr(s.stdout), repr(v.stdout), shown.splitlines()[0])\nassert s.exit==0 and v.exit==0 and 'revision none' in shown, (s.exit, v.exit, shown)\nw.close()\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination.py \u00a7do_assignments",
+          "claim": "Fix 8 made who print no store and exit 0. assignments --mine, a documented read in the same instrument table, still calls bound_participant(reader()) first and refuses class participant when the store is absent.",
+          "reproduce": "python3 - <<'PY'\nimport sys\nsys.path.insert(0, '.')\nfrom ops.conductor.tests.test_coordination import SHARED, LEAD, TOOL\nfrom ops.testkit import World, run\nw=World(prefix='r-mine-'); c=w.plant_text('lane.conf',\"LANE_NAME='testlane'\\n\")\ne=w.env(extra={'LANE_CONF':str(c)}); e['WF_AGENT']=SHARED; e['CLAUDE_CODE_SESSION_ID']=LEAD\ndef T(a): return run([sys.executable,str(TOOL),*a], cwd=w.cwd, env=e, timeout=60)\nwho, mine=T(['who']), T(['assignments','--mine'])\nprint(who.exit, repr(who.stdout), mine.exit, mine.stderr.strip())\nassert who.exit==0 and who.stdout.strip()=='no store'\nassert mine.exit==2 and mine.stderr.startswith('participant:')\nw.close()\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2851422,
+        "out": 48827,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b1d868b0bac7939416ebbd4512a37e376de62af5",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: lane MCP brief/jobs/changes/findings (20260916T082921Z-review-codex-7be071, 20260916T082906Z-review-grok-652e46), Graft graft_repo_map and graft_file_api, ops.testkit World/run, machine.connect isolation_level=None, coordination suite (Ran 87 tests, OK). in/ empty. Looked-and-held: (1) CLI bind chain executes bind/grant/bind-for and answers Codex#1/Grok#2; (2) observe refuses no-revision including --stale, submit stales a planted foreign current row; (4) return findings go through reading() on the happy path and each refusal; (6) actor is PT-n, release honours ttl lapse and a live hold refuses; (7) --candidate/--evidence split verifies a P-row/dispatch submit; (8) who no-store; (9) CORE[draft] swap is live, the every-wrapper row greps CORE[; (10) documented forms run the parser, not the verbs. Moved: Codex#3 same-generation resubmit; Grok#3 bind session_id. Opened: dual bootstrap; verify empty revision. Grok#8's observation-rests-on clause was dropped by contract rewrite and was not re-filed."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100744Z-review-grok-bcfee6/home/grok-stream/sessions/<snapshot-encoded>/5597d242-0380-43e4-8ec9-2e0903695320/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T10:24:01.456Z"
+    }
+  },
+  "status": "closed"
+}

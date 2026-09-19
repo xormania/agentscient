@@ -2,8 +2,21 @@
 roots, TMPDIR, the working directory, a hermetic environment, planted
 files and tools, owned child processes, and before/after snapshots of
 declared paths. Hermetic by default: nothing from the host reaches a
-subject unless it is named in ``ambient``. Owned children are reaped
-at close. A plant proves it landed.
+subject unless it is named — values in ``ambient``, tools in
+``ambient_tools``. Owned children are reaped at close. A plant proves it
+landed.
+
+PATH is the one exception, and it is dated. ``World(host_path=False)`` is
+the hermetic PATH the contract asks for: the world's own bin and nothing
+else, so a tool the case neither planted nor named is absent. That is the
+default-to-be, and it is not the default today. LD-72 is the defect; the
+strict shape turns 1,339 rows red across 95 modules whose fixtures run a
+host tool the world would no longer carry, measured and listed in
+``ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md`` at
+``d8219578``. Until that sweep lands, ``host_path`` defaults to True and a
+subject sees the world's bin followed by the host's PATH, as before. The
+kit's own suite runs strict, so the behaviour stays measured while the
+callers catch up.
 """
 
 from __future__ import annotations
@@ -24,8 +37,9 @@ EMAIL = "test@example.invalid"
 
 # The host values a world never carries unless ``ambient`` names them:
 # every GIT_* value, the XDG roots, HOME, TMPDIR and the escape hatches a
-# hook or a tool reads. PATH is the one host value every world inherits,
-# behind its own bin directory, so planted tools shadow real ones.
+# hook or a tool reads. PATH is not one of them: it is never settable
+# through ``ambient`` and is governed by ``host_path`` instead, whose
+# strict value is the world's bin alone (LD-72).
 _ALWAYS_OWN = ("HOME", "TMPDIR", "XDG_STATE_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME")
 
 
@@ -33,8 +47,68 @@ class PlantFailed(AssertionError):
     """The fixture was not what the case claimed to set up: INVALID, not a verdict."""
 
 
+#: Words a caller writes when they mean a choice. A PATH could in
+#: principle be a one-entry relative path spelled `false`, so the ambiguity
+#: is refused rather than settled one way
+#: (20260916T122524Z-review-codex-05a9f5#9).
+_CHOICE_WORDS = frozenset({"", "0", "1", "true", "false", "yes", "no", "on", "off"})
+
+
+def a_tool_name(name):
+    """The name, when it names a tool a world may place on its own bin.
+
+    A world places a tool at ``world.bin / name`` but resolves the real one
+    against the caller's directory, so a name carrying a separator or ``..``
+    put an executable outside the world, which then survived its close
+    (20260916T122524Z-review-codex-05a9f5#3). A tool name is a file name."""
+    text = str(name)
+    separators = [sep for sep in (os.sep, os.altsep) if sep]
+    if (not text or text in (".", "..") or text.startswith("-")
+            or any(sep in text for sep in separators)):
+        raise PlantFailed(
+            f"INVALID: {text!r} is not a tool name; a world places its tools on "
+            "its own bin, so the name is one file name with no separator, no "
+            "'.' or '..', and no leading dash"
+        )
+    return text
+
+
+def a_path_choice(value):
+    """``host_path`` for a World: True or False and nothing else.
+
+    A World uses it as a choice, never as a PATH, and ``bool('false')`` is
+    True, so a caller who spelled a false value got the host's PATH and no
+    word about it (20260916T122524Z-review-codex-05a9f5#9)."""
+    if isinstance(value, bool):
+        return value
+    raise PlantFailed(
+        f"INVALID: host_path is True or False; found {type(value).__name__} "
+        f"{value!r}; a World uses it as a choice, and hermetic_env is the door "
+        "that takes a PATH to follow"
+    )
+
+
+def a_path_or_choice(value):
+    """``host_path`` for hermetic_env: True, False, or the PATH to follow."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        if value.strip().lower() in _CHOICE_WORDS:
+            raise PlantFailed(
+                f"INVALID: host_path {value!r} reads as a choice and as a PATH "
+                "of one entry, and nothing here can tell which was meant; pass "
+                "True, False, or a PATH this is not"
+            )
+        return value
+    raise PlantFailed(
+        f"INVALID: host_path is True, False, or the PATH to follow; found "
+        f"{type(value).__name__} {value!r}"
+    )
+
+
 class World:
-    def __init__(self, *, ambient=(), prefix="world-", keep=False):
+    def __init__(self, *, ambient=(), ambient_tools=(), prefix="world-", keep=False,
+                 host_path=True):
         self.root = Path(tempfile.mkdtemp(prefix=prefix))
         self.home = self.root / "home"
         self.xdg_state = self.root / "xdg" / "state"
@@ -48,13 +122,32 @@ class World:
             path.mkdir(parents=True)
         self.ambient = tuple(ambient)
         for name in self.ambient:
-            if name in _ALWAYS_OWN or name == "PATH":
+            if name == "PATH":
+                raise PlantFailed(
+                    "INVALID: PATH is the world's own and cannot be ambient; "
+                    "name the tools the case needs in ambient_tools, or pass "
+                    "host_path to choose whether the host's PATH follows the "
+                    "world's bin"
+                )
+            if name in _ALWAYS_OWN:
                 raise PlantFailed(f"INVALID: {name} is the world's own and cannot be ambient")
+        for name in ambient_tools:
+            a_tool_name(name)
         self.keep = keep
+        # False is the hermetic PATH of LD-72, the world's bin alone; True,
+        # today's default, appends the host's after it. See the module
+        # docstring for the date and the sweep that moves the default.
+        self.host_path = a_path_choice(host_path)
         self._children: list[subprocess.Popen] = []
         self._saved_environ: dict[str, str] | None = None
         self._tools = None
         self.closed = False
+        # Read once, at construction: a world entered later has replaced
+        # os.environ with its own, and the host's PATH is gone by then.
+        self._host_path = os.environ.get("PATH", "/usr/bin:/bin")
+        self.ambient_tools = tuple(ambient_tools)
+        for name in self.ambient_tools:
+            self.ambient_tool(name)
 
     # -- the environment -------------------------------------------------
 
@@ -64,6 +157,7 @@ class World:
         host. ``extra`` overrides, as the case declares."""
         return hermetic_env(self.home, xdg_state=self.xdg_state, xdg_config=self.xdg_config,
                             xdg_cache=self.xdg_cache, tmp=self.tmp, bin=self.bin,
+                            host_path=self._host_path if self.host_path else False,
                             ambient=self.ambient, extra=extra)
 
     def enter(self) -> World:
@@ -126,6 +220,17 @@ class World:
             dest.write_bytes(b"import sys\nsys.exit(0)\n")
         return dest
 
+    def ambient_tool(self, name: str) -> Path:
+        """A host tool this world carries, named: resolved on the host by
+        absolute path and placed on the world's bin as a wrapper that logs
+        every call. A name the case already planted is left where it is, so
+        a plant wins over an ambient tool of the same name."""
+        name = a_tool_name(name)
+        placed = self.bin / name
+        if placed.exists():
+            return placed
+        return self.tools.wrap(name, host_path=self._host_path)
+
     def require(self, tool: str) -> str:
         """An ambient tool the case needs; its absence is INVALID, never a verdict."""
         return require(tool)
@@ -148,7 +253,11 @@ class World:
     # -- git -------------------------------------------------------------
 
     def git(self, *args: str, cwd=None, check: bool = True, timeout: float = 60):
+        """Git in this world. A world that offers git must carry it, so this
+        method declares git ambient for itself: the first call places the
+        logged wrapper on the world's bin. A planted git wins over it."""
         from .command import run
+        self.ambient_tool("git")
         argv = ["git", "-c", f"user.name={USER}", "-c", f"user.email={EMAIL}",
                 "-c", "commit.gpgsign=false", *args]
         return run(argv, cwd=cwd or self.cwd, env=self.env(), timeout=timeout,
@@ -192,20 +301,28 @@ class World:
 # own roots, so one implementation answers both.
 
 def hermetic_env(home, *, xdg_state=None, xdg_config=None, xdg_cache=None, tmp=None, bin=None,
-                 ambient=(), extra: dict[str, str] | None = None) -> dict[str, str]:
+                 host_path=True, ambient=(), extra: dict[str, str] | None = None) -> dict[str, str]:
     """The hermetic environment for ``home``: the roots (defaulting to the
-    XDG layout under ``home`` and ``home``/tmp), the host PATH behind
-    ``bin`` when one is given, a fixed git identity and clock, C locales,
-    and only the ``ambient`` names from the host. ``extra`` overrides."""
+    XDG layout under ``home`` and ``home``/tmp), a PATH built from ``bin``
+    and ``host_path``, a fixed git identity and clock, C locales, and only
+    the ``ambient`` names from the host. ``extra`` overrides.
+
+    ``host_path`` is True to read the host's PATH now and put it after
+    ``bin``, a string to use one already read, and False for the hermetic
+    PATH of LD-72: ``bin`` alone, so a tool the case neither planted nor
+    named is absent."""
     home = Path(home)
-    host_path = os.environ.get("PATH", "/usr/bin:/bin")
     # TMPDIR names a directory that exists: the world's own, or a caller's
     # home/tmp when it has one; a home without one keeps the system default,
     # since a TMPDIR nobody created breaks every mktemp under it.
     if tmp is None and (home / "tmp").is_dir():
         tmp = home / "tmp"
+    host_path = a_path_or_choice(host_path)
+    if host_path is True:
+        host_path = os.environ.get("PATH", "")
     env = {
-        "PATH": (str(bin) + os.pathsep + host_path) if bin is not None else host_path,
+        "PATH": os.pathsep.join(
+            part for part in (str(bin) if bin is not None else "", host_path or "") if part),
         "HOME": str(home),
         "XDG_STATE_HOME": str(xdg_state or home / ".local" / "state"),
         "XDG_CONFIG_HOME": str(xdg_config or home / ".config"),

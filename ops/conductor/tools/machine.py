@@ -29,6 +29,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
+import time
 from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import NamedTuple
@@ -139,12 +140,32 @@ def connect(*, create: bool) -> sqlite3.Connection:
     if create:
         path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None)
-    connection.row_factory = sqlite3.Row
-    connection.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
-    if create:
-        connection.execute("PRAGMA journal_mode = WAL")
-        connection.executescript(SCHEMA)
-    return connection
+    try:
+        connection.row_factory = sqlite3.Row
+        connection.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+        if create:
+            deadline = time.monotonic() + BUSY_TIMEOUT_MS / 1000
+            while True:
+                try:
+                    connection.execute("PRAGMA journal_mode = WAL")
+                    connection.executescript(SCHEMA)
+                    break
+                except sqlite3.OperationalError as error:
+                    remaining = deadline - time.monotonic()
+                    if (getattr(error, "sqlite_errorcode", 0) & 0xff) != sqlite3.SQLITE_BUSY or remaining <= 0:
+                        raise
+                    # WAL initialization may return BUSY without invoking
+                    # SQLite's busy handler. Keep the original total budget.
+                    time.sleep(min(0.01, remaining))
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise
+                    connection.execute(f"PRAGMA busy_timeout = {max(1, int(remaining * 1000))}")
+            connection.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+        return connection
+    except Exception:
+        connection.close()
+        raise
 
 
 def _check_declaration(machine: Machine) -> None:

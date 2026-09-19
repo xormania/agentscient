@@ -25,6 +25,7 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from ops.testkit import World, run
 
@@ -177,6 +178,58 @@ class TheDeclaration(_Scratch):
             timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
         self.assertEqual(mode.lower(), "wal")
         self.assertGreaterEqual(timeout, 1000)
+
+    def test_a_transient_initialization_busy_uses_the_same_store(self):
+        faults = [sqlite3.SQLITE_BUSY]
+        original = sqlite3.connect
+
+        class BusyOnce(sqlite3.Connection):
+            def execute(self, sql, *args):
+                if sql == "PRAGMA journal_mode = WAL" and faults:
+                    error = sqlite3.OperationalError("planted initialization busy")
+                    error.sqlite_errorcode = faults.pop()
+                    raise error
+                return super().execute(sql, *args)
+
+        def connect(*args, **kwargs):
+            return original(*args, **kwargs, factory=BusyOnce)
+
+        with patch.object(self.machine.sqlite3, "connect", side_effect=connect):
+            conn = self.machine.connect(create=True)
+        self.addCleanup(conn.close)
+        self.assertEqual(conn.execute("PRAGMA journal_mode").fetchone()[0], "wal")
+        self.machine.declare(conn, self.probe)
+        self.assertEqual(conn.execute("SELECT count(*) FROM machines").fetchone()[0], 1)
+        self.assertEqual(list(self.xdg.rglob("state.db")), [self.store])
+
+    def test_failed_initialization_closes_its_connection(self):
+        original = sqlite3.connect
+        for code in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_IOERR):
+            with self.subTest(code=code):
+                opened = []
+
+                class BrokenInit(sqlite3.Connection):
+                    failure_code = code
+
+                    def execute(self, sql, *args):
+                        if sql == "PRAGMA journal_mode = WAL":
+                            error = sqlite3.OperationalError("planted initialization failure")
+                            error.sqlite_errorcode = self.failure_code
+                            raise error
+                        return super().execute(sql, *args)
+
+                def connect(*args, opened=opened, factory=BrokenInit, **kwargs):
+                    conn = original(*args, **kwargs, factory=factory)
+                    opened.append(conn)
+                    self.addCleanup(conn.close)
+                    return conn
+
+                with patch.object(self.machine.sqlite3, "connect", side_effect=connect), \
+                        patch("time.monotonic", side_effect=(0, 6)):
+                    with self.assertRaises(sqlite3.OperationalError):
+                        self.machine.connect(create=True)
+                with self.assertRaises(sqlite3.ProgrammingError):
+                    opened[0].execute("SELECT 1")
 
     def test_a_read_connection_never_creates_the_store(self):
         self.assertFalse(self.store.exists())

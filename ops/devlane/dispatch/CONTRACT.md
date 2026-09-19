@@ -307,6 +307,7 @@ does not make that owner depend on output grants. C1 adds no lane-policy
 implementation, discovery or fileset dependency; its profile transport below
 consumes the policy owner's selection rule. Workers receive job-authorized context,
 not conductor-wide discovery; both MCP surfaces remain read-only.
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
 
 ### C1 frontend inputs and results
 
@@ -1185,6 +1186,56 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- `brief.coordination` is the acting plane beside that read plane
+  (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
+  directive"). A codex dispatch that names an assignment receives three
+  further `-c mcp_servers.coordination.*` overrides and a config at
+  `<job>/coordination-mcp.json`, carrying exactly the eight keys the
+  acting server declares: `version`, `participant` (the `PT-n` `bind-for`
+  minted for this worker's session, never an agent string and never the
+  dispatcher's own id), `assignment`, `branch`, `worktree`, `record` (the
+  record id), `capabilities` and `issued_at`. `server` is the exact argv
+  (`python3 -B <launcher-tree>/ops/conductor/tools/coordination_mcp.py --config
+  <config> serve`). The capability list is declared in the launcher and
+  proved against the server's own catalogue by a case, because the
+  launcher reaches `ops/conductor` as a lever and never as an import.
+  The brief names the verbs the worker holds: a registered server the
+  brief never mentions is what the A-87 trial proved insufficient.
+  Every absence is declared with its reason, and there are three --
+  a harness this does not wire (`codex` alone today; claude and grok each
+  record themselves by name), a launcher tree without the tool, and a dispatch
+  that bound no participant. A relocated job has this config rebased with
+  the lane one, so PR #158's defect does not recur in it.
+
+  Interactive terminals and dispatched workers have different initialization.
+  An interactive terminal self-binds through the shared coordination core
+  using its own harness session; it needs no dispatch record or assignment.
+  A dispatched worker is issued a participant by `bind-for`, and the normal
+  `ops/bin/dispatch.sh --for A-n` wrapper carries that explicit assignment
+  through to the launcher. The transport for terminal messages does not
+  issue a worker binding or confer dispatch authority.
+
+  For every dispatch adapter, `session.binding_id` retains the lane session
+  selected before launch; `session.id` separately records the harness's native
+  conversation id used for resume. Reading a native stream may update only
+  the latter. Every attempt receives the stable binding, including after
+  relocation. A legacy bound record lacking `binding_id` recovers it from
+  the exact stored `bind-for` receipt; an unreadable receipt refuses rather
+  than substituting the native id. Unbound legacy records retain their old
+  behavior. Parent harness session variables are removed from the child
+  environment before the lane binding is set, regardless of the child
+  adapter. Native interactive session startup is unaffected by that child
+  environment operation. These guarantees do not imply acting-MCP support
+  for adapters whose capability remains explicitly unavailable.
+
+  An acting-MCP adapter must carry the issued binding and the same lane
+  configuration and state root used to bind it. The current Codex adapter
+  explicitly forwards `CLAUDE_SESSION_ID`, `LANE_CONF` and `XDG_STATE_HOME`
+  through its server registration's `env_vars`; its native MCP transport
+  otherwise filters these variables. `HOME` retains the client's default
+  inheritance when XDG is unset. The shared core still selects the actor
+  and state; the adapter supplies that context without granting authority.
+
 - `brief.mcp` is the lane MCP handed to the worker (owner, 2026-09-12:
   "enforce usage - not doc it"): `config` is `<job>/lane-mcp.json`, a
   version-2 lane MCP config with `consumer` = the record id, `job_ids` =

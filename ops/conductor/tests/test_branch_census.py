@@ -5,8 +5,15 @@ Contracts (only): `ops/conductor/branch-census.md` and the inherited
 `ops/conductor/tools/branches.py` is the subject and is not read here.
 Tests invoke it through the test kit inside a scratch git repository.
 
-The live dispatch store and this repo must stay untouched — asserted
-in tearDown.
+This repo must stay untouched — asserted in tearDown. The live,
+host-shared dispatch store is not watched (LD-80): every invocation of
+the staged tool goes through self.env()/self.world.env(), which carries
+HOME and XDG_STATE_HOME redirected to this World's own tree, so the
+subject cannot reach the real host's dispatch directory. Watching it
+proved nothing about the subject and only failed when another session's
+own dispatch wrote its own launcher entry mid-run (#250 run
+35095709472, Stacked.test_census_exits_1_when_a_stacked_row_exists,
+against 20260916T122524Z-review-codex-05a9f5).
 
 The implementation lands in parallel. A missing tool file is one red
 (`test_the_tool_file_is_present`). Every other case uses World.stage,
@@ -80,28 +87,6 @@ RETIRED_RE = re.compile(r"retired n=(\d+)")
 # table, same shape as onboard).
 
 
-def _live_store_paths() -> list[Path]:
-    paths: list[Path] = []
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "dispatch")
-    paths.append(Path.home() / ".local" / "state" / "agentscient" / "dispatch")
-    snap = REPO.resolve()
-    if snap.name == "snapshot":
-        job = snap.parent
-        if job.parent.name == "dispatch":
-            paths.append(job.parent)
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
-
-
 def days_ago(days: int) -> str:
     t = datetime.now(timezone.utc) - timedelta(days=days)
     return t.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S +0000")
@@ -114,9 +99,6 @@ class _CensusFixture(unittest.TestCase):
         self.world = World(prefix="branch-census-")
         self.addCleanup(self.world.close)
         self.world.require("git")
-        self._live_watch = self.world.watch(
-            *_live_store_paths(), contents=False
-        )
         repo_env = self.world.env()
         self._head_before = run(
             ["git", "rev-parse", "HEAD"],
@@ -177,7 +159,6 @@ class _CensusFixture(unittest.TestCase):
         self.mid_sha = ""
 
     def tearDown(self):
-        self._live_watch.assert_unchanged(self)
         repo_env = self.world.env()
         head_after = run(
             ["git", "rev-parse", "HEAD"], cwd=REPO, env=repo_env,

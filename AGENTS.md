@@ -20,7 +20,17 @@ boundary is not a declared, verifiable coupling.
   green. `master` is the default and release branch: a release is a
   draft PR from `dev` into `master`, opened by a session for a group
   of landed work and merged by the owner alone. No squash merges,
-  never a deleted branch. **One branch per session** (owner, 2026-09-12:
+  never an unarchived deletion (owner, 2026-09-18: "fix AGENTS.md"):
+  a branch is retired only after its tip is inside a
+  verified bundle whose index is committed and pushed, and the index
+  names the sha that restores it. This replaces "never a deleted
+  branch", which the retirement of 2026-09-18 stopped matching when 266
+  branches went from the remote against the bundle
+  `agentscient-refs-20260918T015216Z.bundle` and the index
+  `ops/conductor/handoff/branch-archive-20260918T015216Z.tsv`.
+  Deleting is the owner's hand, never an agent's; the matching hook row is
+  wall work and not yet built, so this line is law, not a live guard.
+  **One branch per session** (owner, 2026-09-12:
   "one branch per session - lets try it"; "as long you account for the
   fact that i'll have multiple sessions running soon"): a session cuts
   `lane/session-<date>-<id>` from `dev` at its start, names it in the
@@ -81,6 +91,14 @@ boundary is not a declared, verifiable coupling.
 - **No vendor becomes load-bearing.** Every external capability is
   consumed through a contract, a probe, and a verified mock, and is
   removable for the cost of a configuration line.
+- **A failure pattern with a fix does not recur** (owner, 2026-09-16:
+  "just make sure we fix these stupid issues - i can't tolerate the same
+  mistakes too many times (not after we have a fix on a failure pattern)";
+  D-PATTERN-1): the fix is a mechanism, a refusal, a test with a planted
+  fault, or a record the next session reads, never a rule relayed by
+  message; a recurrence after the fix is a defect filed against the fix,
+  not against the session that hit it; the measure is the miss log and
+  the defect ledger by class after the fix's date.
 
 ## Lane boundary and precedence
 
@@ -144,9 +162,15 @@ These framework, projection and package rulings govern the prod application.
   view, an MCP resource, and an API resource, each a projection of the same
   service generated from the same contract. The wire holds on all
   four: exit classes on the CLI, problem details on the API, error
-  results on MCP, the refusal line wherever text is shown. MCP stays
-  the context-and-diagnostics plane, read-only by construction; the
-  CLI and the API act.
+  results on MCP, the refusal line wherever text is shown. MCP acts
+  as well as reads (owner, 2026-09-16: "mcp is no longer read only -
+  that's the directive"; D-MCP-1, withdrawing the 2026-09-01
+  read-only ruling): query operations stay read-only where that is
+  their purpose; action operations are typed, marked as mutations,
+  backed by the same validated domain operations and effective
+  authority as the CLI, and refuse on the wire; capability is
+  defined by operation and assignment, never one global read/write
+  label.
 - **This is a Symfony project, not a constitutional repository**
   (owner, 2026-09-03: "i don't know where the constitutional came from
   - probably bad assumptions from the other model. This is a Symfony
@@ -182,10 +206,9 @@ is the one answer to "is it green?", here and in CI. Read
 
 ## Coordination
 
-The conductor lane for this project runs from the sibling working
-repository under the same organization; sessions coordinate by
-message and by record, never by memory. When in doubt, the record
-outranks recall.
+The conductor lane lives under `ops/conductor/` in this repository;
+sessions coordinate by message and by record, never by memory, and
+the record outranks recall.
 
 The following diagnostic instructions apply to prod application work.
 Mate is not a prerequisite for operating or developing the dev lane.

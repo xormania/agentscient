@@ -441,6 +441,99 @@ class TheDoneGate(_Engine):
         self.assertEqual(json.loads(counter.read_text())["s1"], 1, "a pass resets the session's count")
 
 
+    # Row 6 of A-120, 2026-09-16, hand grant 295 (wall). One producer; the
+    # second producer is absent by the owner's word, said in the commit and
+    # the record. Calibration stands in for it: every case below is a planted
+    # fault the row must catch or a clean neighbour it must pass, taken from
+    # a real session's replies rather than invented.
+
+    def test_a_stamped_show_line_is_the_lock_reading(self):
+        """deliverable.py's target_line appends " (by <agent>)" after met or
+        short, and this row's anchor ended at that word, so it rejected the
+        very lines it told a session to paste: 4 of show's 21 lines accepted,
+        the 17 rejected being every target carrying the stamp."""
+        self.gate()
+        for line in (
+            "target lane/x: until off_kit=0; reading off_kit=0; met (by Claude Opus 5 (1M context) <noreply@anthropic.com>)",
+            "target lane/y: until landed=yes; reading landed=no; short (by Claude Fable 5.1 <noreply@anthropic.com>)",
+        ):
+            with self.subTest(line=line):
+                self.allowed(self.stop("The row is done.\n" + line + "\n"))
+
+    def test_a_lock_line_is_the_reading_indented_fenced_or_quoted(self):
+        """The row named three remedies and accepted them at column 0 only, so
+        a reading pasted the way output is normally pasted was refused. It
+        refused its own `target: expected the measure to read ...` line, which
+        it prints and then names as the remedy."""
+        self.gate()
+        refusal = ("target: expected the measure to read donegate=on-dev; "
+                   "found donegate=not-on-dev; needed keep going")
+        show = "target lane/x: until a=b; reading a=c; short (by Claude Opus 5 <n@a.com>)"
+        for pasted in (
+            "    " + refusal,
+            "  " + show,
+            "```\n" + show + "\n```",
+            "> " + refusal,
+            "\t" + "done lane/x: modules=1",
+        ):
+            with self.subTest(pasted=pasted):
+                self.allowed(self.stop("The row is done.\n" + pasted + "\n"))
+
+    def test_the_row_passes_prose_that_carries_a_completion_word_but_makes_no_claim(self):
+        """Measured on one session's 73 replies: 15 firings, 3 of them claims.
+        Each line below fired the word-set predicate and claims nothing. The
+        second and fourth are the family that made the defect unreportable:
+        the gate fired on its own name and on the report of its own misfire."""
+        self.gate()
+        for quiet in (
+            "brief complete, 1 absence(s)",
+            "The done gate fired again on a sentence about finishing.",
+            "nothing of mine is complete",
+            "zero of which claim a deliverable is done",
+            "the package C contract against what #253 landed and #254 carries",
+            "the job contract demands a fixed-shape result from eight job types",
+            "The rule requiring a report before a worker finishes would fire here.",
+            "Both corrections verified at my own hand.",
+            "the cap row's dependency stated so it can't be landed alone",
+            "Without the grant this cannot be finished today.",
+        ):
+            with self.subTest(quiet=quiet):
+                self.allowed(self.stop(quiet, session="q%d" % abs(hash(quiet)) ))
+
+    def test_the_row_still_catches_a_claim_in_the_writers_own_voice(self):
+        """A fresh session id per fault: the cap passes the fourth consecutive
+        block, so this asserts the predicate and not the cap."""
+        self.gate()
+        for n, fault in enumerate((
+            "All done.",
+            "The branch is done and pushed.",
+            "I've finished the row and the suite is green.",
+            "The deliverable is complete.",
+            "We're done here, and the wall slice is complete.",
+            "The assignment A-120 is done.",
+            "PR #260 is ready for review.",
+        )):
+            with self.subTest(fault=fault):
+                self.refusal(self.stop(fault, session="f%d" % n), "done-gate", event="Stop")
+
+    def test_the_refusal_quotes_the_span_it_matched(self):
+        """The row matched the quote-stripped line and quoted line[:160]: two
+        different strings, so a trigger word past character 160 produced a
+        refusal carrying no trigger word at all and a session could not tell
+        what to change. docs/wire.md: found states what was found."""
+        self.gate()
+        reason = self.refusal(self.stop("x" * 170 + " and the branch is done."),
+                              "done-gate", event="Stop")
+        self.assertIn("is done", reason,
+                      "the refusal quotes the match, not the line's first 160 characters")
+
+    def test_a_completion_word_inside_code_formatting_is_not_the_writers_claim(self):
+        """matrix.QUOTED strips double and curly quotes only, so a word in
+        backticks or inside a fenced block was still read as the writer's."""
+        self.gate()
+        self.allowed(self.stop("The scope says `the branch is done` and I am reading it now."))
+        self.allowed(self.stop("Quoting the brief:\n```\nthe migration is complete\n```\nStill reading."))
+
 class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))

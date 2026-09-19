@@ -24,6 +24,8 @@ And the same day, the ruling the process must carry: "a draft PR should never be
 
 ## Standing facts it must reconcile with
 
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
+
 - MCP is the context-and-diagnostics plane, read-only by construction (AGENTS.md §Standing rulings; `ops/conductor/lane-mcp-lever.md`); an acting surface is a new contract.
 - No producer owns two consecutive artifacts; a tool that constructs and merges must still hold the two-reviewer seam.
 - The wire: every refusal expected–found–needed; ready and merge refuse with the same reading.

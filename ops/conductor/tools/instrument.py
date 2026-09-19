@@ -26,6 +26,7 @@ instrument.py beside itself refuses `tooling` and exits 2.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import os
 import re
@@ -132,26 +133,89 @@ def identity_parts() -> tuple[str, str]:
 # CLAUDE_SESSION_ID, which nothing sets here, so every row it stamped
 # recorded nobody: 251 handwork rows `unknown` and 506 skill events
 # `unrecorded` at bbdcc651 (LD-50). The older key stays admitted, because
-# a host that exports it is answering the same question.
+# a host that exports it is answering the same question. Native Codex
+# sessions supply CODEX_THREAD_ID and CODEX_SESSION_ID. A launcher's
+# explicit legacy binding retains precedence over the worker's native id.
 SESSION_UNKNOWN = "unknown"
+
+
+def hook_profile():
+    """Read a validated launch projection through this installation only."""
+    named = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    if not named:
+        return None
+    try:
+        path = Path(__file__).resolve().parents[3] / "ops/devlane/hooks/profiles.py"
+        spec = importlib.util.spec_from_file_location("instrument_hook_profiles", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.validate(module.read_binding(named))
+    except Exception as error:  # noqa: BLE001 - explicit broken identity never falls through
+        refuse("session-profile", "a valid pinned native profile", str(error),
+               "regenerate the reviewed profile through its interactive or worker initializer")
+
+
+def authority_home() -> Path:
+    profile = hook_profile()
+    return Path(profile["authority_environment"]["HOME"]) if profile else Path.home()
+
+
+def capability_digest(profile=None) -> str:
+    """Digest the caller's private coordination capability, never a session id.
+
+    A declared profile is authoritative and cannot fall back to an ambient
+    credential. The core owns enrollment and comparison; native identity
+    resolution uses this same digest to retain existing messaging endpoints.
+    """
+    if profile is None:
+        profile = hook_profile()
+    value = (profile.get("coordination_capability") if profile is not None
+             else os.environ.get("COORDINATION_CAPABILITY"))
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        refuse("capability", "this participant's private launch capability",
+               "missing or malformed credential",
+               "use the admitted native profile or its private CLI credential")
+    return hashlib.sha256(value.encode("ascii")).hexdigest()
 
 
 def session(default: str = SESSION_UNKNOWN) -> str:
     """The session id the harness set, or `default` when none did.
 
-    A read, so it never refuses: a row that cannot name its session says
-    so in the word the caller chose. Blank is not a declaration and is
-    passed over, so an exported-but-empty key never reads as an answer.
+    An unprofiled read uses the caller's absence word. An explicit guarded
+    profile must resolve its existing SQLite participant or refuses.
 
-    Both keys are spelled literally here rather than looped over a tuple
+    The keys are spelled literally here rather than looped over a tuple
     of names: laneconf's closure check matches a literal beside
     `os.environ.get`, and a read its own gate cannot see is the dark
     coupling docs/verified-couplings.md names.
     """
-    for value in (
+    aliases = (
         os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
         os.environ.get("CLAUDE_SESSION_ID", ""),
-    ):
+        os.environ.get("CODEX_THREAD_ID", ""),
+        os.environ.get("CODEX_SESSION_ID", ""),
+        os.environ.get("GROK_SESSION_ID", ""),
+    )
+    profile = hook_profile()
+    if profile:
+        if profile["mode"] == "worker":
+            return profile["session"]
+        try:
+            conf_values = _laneconf().parse_file(Path(profile["source"]) / "ops/lane.conf")
+            db = Path(profile["authority_environment"]["XDG_STATE_HOME"]) / conf_values["LANE_NAME"] / "state.db"
+            with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
+                rows = conn.execute("SELECT session_id, harness FROM participants WHERE capability_digest = ?",
+                                    (capability_digest(profile),)).fetchall()
+            if len(rows) != 1 or rows[0][1] != profile["harness"]:
+                raise ValueError("missing or ambiguous native participant association")
+            named = rows[0][0]
+            if any(value.strip() and value.strip() != named for value in aliases):
+                raise ValueError("inherited native alias conflicts with the registered session")
+            return named
+        except (OSError, ValueError, KeyError, sqlite3.Error) as error:
+            refuse("session-profile", "one matching native participant", str(error),
+                   "initialize this terminal through its own reviewed profile")
+    for value in aliases:
         named = value.strip()
         if named:
             return named
@@ -176,6 +240,9 @@ def parse_stamp(text: str) -> datetime:
 
 
 def state_root() -> Path:
+    profile = hook_profile()
+    if profile:
+        return Path(profile["authority_environment"]["XDG_STATE_HOME"])
     configured = os.environ.get("XDG_STATE_HOME")
     return Path(configured) if configured else Path.home() / ".local" / "state"
 
@@ -203,6 +270,9 @@ def conf(name: str) -> str:
     """One lane-conf key through laneconf; its refusal on this wire."""
     laneconf = _laneconf()
     try:
+        profile = hook_profile()
+        if profile:
+            return laneconf.parse_file(Path(profile["source"]) / "ops/lane.conf")[name]
         return laneconf.get(name)
     except laneconf.ConfigError as error:
         kind = "conf-key" if error.kind == "key" else error.kind

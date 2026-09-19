@@ -8,6 +8,11 @@ need proof, evidence". Measured that day: PR #141 was merged before its
 checks registered (pitfall 22) and three capabilities were recorded as
 done with no reading that any dispatch consumed them.
 
+From 2026-09-16 the ready flip also crosses the `audit` row, declared
+beside this one in the registry and planted with its faults in
+test_pr_audit.py; this file's fixture satisfies it so these rows keep
+measuring the proof section, the corpus at the head and the ci run.
+
 The row: `gh pr ready N` and `gh pr merge N` refuse class `pr-proof`
 (a deny: the remedy, the proof, is the agent's own; owner, 2026-09-12:
 "i don't want asks unless they're critical") unless the PR body carries a `## Proof` section naming corpus row ids
@@ -27,6 +32,8 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
+
+import support
 
 from ops.testkit import World, run
 
@@ -55,7 +62,8 @@ class PrProofTests(unittest.TestCase):
         self.world.git("init", "-q", "-b", "dev")
         self.world.plant_text(
             self.repo / "ops" / "lane.conf",
-            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\nSCOPE_CAP='1024'\n",
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\nSCOPE_CAP='1024'\n"
+            f"MODEL_CODEX_SECURITY_AUDIT='{support.AUDIT_MODEL}'\n",
         )
         self.world.plant_text(
             self.repo / CORPUS,
@@ -65,6 +73,20 @@ class PrProofTests(unittest.TestCase):
         )
         self.world.git("add", "-A")
         self.world.git("commit", "-q", "-m", "fixture")
+        audited = self.world.git("rev-parse", "HEAD").stdout.strip()
+        # The same command crosses the audit row (class `audit`), so the world
+        # carries a security audit closed at the head with its findings
+        # disposed; test_pr_audit.py is where that row's faults are planted.
+        self.world.plant_text(
+            self.repo / support.DISPATCH_RECORDS / f"{support.AUDIT_RECORD_ID}.json",
+            json.dumps(support.security_audit_record(audited=audited), indent=1),
+        )
+        self.world.plant_text(
+            self.repo / support.FINDINGS_EXPORT,
+            support.findings_export(*support.audit_disposed()),
+        )
+        self.world.git("add", "-A")
+        self.world.git("commit", "-q", "-m", "records: the audit and its dispositions")
         self.head = self.world.git("rev-parse", "HEAD").stdout.strip()
 
     def _subject(self):
@@ -136,7 +158,8 @@ class PrProofTests(unittest.TestCase):
         self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "", proc.stdout)
 
-    GOOD = "## What\n\nx\n\n## Proof\n\nRows at the head: P-FIX-1.\n\n## Why\n\ny\n"
+    GOOD = ("## What\n\nx\n\n## Proof\n\nRows at the head: P-FIX-1.\n"
+            f"Security audit: {support.AUDIT_RECORD_ID}.\n\n## Why\n\ny\n")
 
     def test_ready_and_merge_pass_with_proof_rows_at_a_green_head(self):
         self.plant(body=self.GOOD)
