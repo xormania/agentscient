@@ -639,7 +639,8 @@ COORD_MCP_TOOLS = (
 COORD_MCP_HARNESSES = ("codex",)
 # Shared core context, carried by each supported adapter's MCP transport.
 # The legacy session key names the issued lane binding, not a vendor role.
-COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF")
+COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF",
+                 "AGENTSCIENT_HOOK_PROFILE")
 COORD_MCP_ABSENT = {
     "unresolved": "the launcher's own tree has no "
                   "ops/conductor/tools/coordination_mcp.py"}
@@ -1189,7 +1190,7 @@ def _child_env(base, additions, job_id, session=None):
     # The child is initialized by dispatch, separately from interactive
     # terminal registration. No parent/native alias may select its actor.
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
-                "CODEX_THREAD_ID", "CODEX_SESSION_ID"):
+                "CODEX_THREAD_ID", "CODEX_SESSION_ID", "COORDINATION_CAPABILITY"):
         env.pop(key, None)
     # A dispatch that minted no session id leaves the key absent rather
     # than setting it empty: the server refuses class `session` on unset,
@@ -1240,7 +1241,7 @@ def _bound_participant(line):
     return found.group(0) if found else None
 
 
-def _bind_worker(session, assignment, harness, agent):
+def _bind_worker(session, assignment, harness, agent, *, capability_digest):
     """Mint the worker's participant before the worker exists.
 
     A dispatched worker has no harness session id of its own, so without
@@ -1269,7 +1270,8 @@ def _bind_worker(session, assignment, harness, agent):
         done = subprocess.run(
             [sys.executable, str(COORDINATION), "bind-for",
              "--session", session, "--roles", "worker",
-             "--for", assignment, "--harness", harness],
+             "--for", assignment, "--harness", harness,
+             "--capability-digest", capability_digest],
             capture_output=True, text=True, timeout=BIND_TIMEOUT,
             cwd=str(COORDINATION.parents[3]), env=env, check=False)
     except subprocess.TimeoutExpired:
@@ -2226,10 +2228,27 @@ def _launch(args):
     prompt_text += _turns_budget(turns)
     binding_session = str(uuid.uuid4())
     session = None if args.harness == "agy" else binding_session
+    _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(
+        args.harness, role, job_dir, os.environ)
+    # The private credential must exist before bind-for enrolls its digest.
+    # This is the existing worker profile, reused by _run_attempt and resume;
+    # no raw credential enters the acting config, receipt or public record.
+    isolation = _module("guard_isolation", HARNESS_APP / "isolation.py")
+    try:
+        _profile, binding = isolation.install_enforcement(
+            args.harness, job_dir / "enforcement", source=APP.parents[2], cwd=snapshot,
+            home=isolation_data.get("home"), session=binding_session, agent=agent,
+            executable=worker["executable"],
+            servers=[LANE_MCP_SERVER, LANE_MCP_KEY, COORD_MCP_SERVER])
+        worker_digest = hashlib.sha256(
+            binding["coordination_capability"].encode("ascii")).hexdigest()
+    except (isolation.NotIsolated, OSError, ValueError, TypeError, KeyError) as exc:
+        _refuse("enforcement", "a private authenticated worker hook profile", str(exc),
+                "inspect co_doc.py before dispatching this worker")
     bound = None
     if args.assignment:
         bound = _bind_worker(binding_session, args.assignment,
-                             args.harness, agent)
+                             args.harness, agent, capability_digest=worker_digest)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
     coord_meta, coord_server = _coordination_mcp(
@@ -2253,7 +2272,6 @@ def _launch(args):
         )
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
-    _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
     if args.harness == "grok":
         grok_config = _grok_mcp_config(_iso_env.get("GROK_HOME"), mcp_server)
         if grok_config:

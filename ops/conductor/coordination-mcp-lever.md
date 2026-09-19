@@ -102,6 +102,15 @@ has none (AC-02: caller-supplied identity cannot impersonate another actor).
 
 Two carriers, both issued outside the client.
 
+PR #261 repair, owner 2026-09-18: these carriers identify the participant;
+neither authenticates it. Every call resolves through the core's authenticated
+participant resolver, including configured calls. The separate capability comes
+only from the validated startup profile or `COORDINATION_CAPABILITY` in the
+server environment. It is never accepted in tool arguments or acting config,
+and the server never obtains identity from the public participant listing.
+Missing, changed or legacy-unenrolled capability refuses on the common wire.
+The core's role, generation, holder and producer gates remain authoritative.
+
 ### 2.1 The worker binding — a config on the server's own argv
 
 The launcher writes an acting config into the job directory and passes it as

@@ -76,7 +76,6 @@ CORE_TABLE = "CORE"
 CORE_RESOLVE = "bound_participant"
 CORE_WRITER = "writer"
 CORE_READER = "reader"
-PARTICIPANTS_VERB = "participants"
 INSTRUCTIONS = (
     "Acting server: these tools change durable state. Every mutation needs a "
     "binding the caller cannot supply. Evidence is not authority; every "
@@ -413,31 +412,6 @@ def _store(core, tool: Tool):
     return opener()
 
 
-def _participant_rows(core, conn):
-    """Every participant the core holds; a read, so it needs no binding."""
-    return _verb(core, PARTICIPANTS_VERB)(conn, None)
-
-
-PARTICIPANTS_KEY = "participants"
-
-
-def _row_named(payload, wanted: str):
-    """The participant row the core holds under `wanted`, or None.
-
-    The core answers {"participants": [...]} and each row names itself
-    `participant` as `PT-n`, its integer `id` beside it. A lookup that
-    read a bare list, or compared the integer id to `PT-n`, reported
-    every existing participant absent (X2#2, measured at 40d340b2).
-    """
-    rows = payload.get(PARTICIPANTS_KEY) if isinstance(payload, dict) else payload
-    if not isinstance(rows, (list, tuple)):
-        return None
-    for row in rows:
-        if isinstance(row, dict) and row.get("participant") == wanted:
-            return row
-    return None
-
-
 def check_capability(config, tool: Tool) -> None:
     """The binding's allowlist, checked before the arguments are judged.
 
@@ -464,29 +438,16 @@ def resolve_binding(config, tool: Tool):
     refused before this is reached.
     """
     if config is not None:
-        # The row must exist before anything else is said about it: a
-        # config naming a participant the core does not hold is a
-        # different fault from a session mismatch, and reads as one.
+        # Config names an expected participant, never authentication. Use
+        # the same private-capability resolver as the unconfigured route;
+        # a public catalogue is deliberately not an identity oracle.
         core = _core()
         conn = _store(core, tool)
-        named = config["participant"]
-        row = _row_named(_participant_rows(core, conn), named)
-        if row is None:
-            refuse("participant", f"a participant row for {named}",
-                   "the core holds none",
-                   "bind the participant before issuing this config")
-        # The core binds a participant to the calling session alone
-        # (contract section 9, divergence 1): a config's participant
-        # resolves only when this call is running under the session
-        # bind-for bound it to; package B's core verb landed at
-        # b1d868b0, so this is checked rather than refused outright.
-        key = session("")
-        if row["session"] != key:
-            refuse("state", "a participant row bound to this call's session",
-                   f"{named} bound to session {row['session']!r}",
-                   "bind this worker's minted session id before launch, "
-                   "per section 2.3")
-        return conn, row
+        resolver = getattr(core, CORE_RESOLVE, None)
+        if not callable(resolver):
+            refuse("state", f"the core's participant resolver `{CORE_RESOLVE}`",
+                   "absent from coordination.py", "restore the authenticated core resolver")
+        return conn, resolver(conn, participant=config["participant"])
     # The session id is read before the core is reached: an unbound
     # session is a fault of this server's own boundary, and a core that
     # happens to be absent must not turn it into a different class.

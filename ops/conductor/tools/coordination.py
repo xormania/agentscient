@@ -16,7 +16,7 @@ a hook: the hook engine cannot see MCP tool calls, so a check that lived
 there would not run when the MCP projection calls the same function.
 
     coordination.py bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]
-    coordination.py bind-for --session ID --roles R[,R] --for A-n [--harness H]
+    coordination.py bind-for --session ID --roles R[,R] --for A-n --capability-digest SHA256 [--harness H]
     coordination.py grant PT-n --roles R[,R]
     coordination.py recover-roles --grant ID --roles R[,R] --why TEXT
     coordination.py revoke PT-n --roles R[,R]
@@ -56,6 +56,8 @@ Reads need no identity and no participant and never create the store.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -74,6 +76,7 @@ try:
         EXIT_DONE,
         Refusal,
         emit,
+        hook_profile,
         identity,
         now,
         parse_stamp,
@@ -326,7 +329,7 @@ def ensure_columns(conn) -> None:
     for name, kind in (("bound_by", "INTEGER"), ("bound_for", "INTEGER"),
                        ("granted_by", "INTEGER"), ("granted_at", "TEXT"),
                        ("revoked_by", "INTEGER"), ("revoked_at", "TEXT"),
-                       ("owner_grant", "INTEGER")):
+                       ("owner_grant", "INTEGER"), ("capability_digest", "TEXT")):
         if name not in have:
             conn.execute(f"ALTER TABLE participants ADD COLUMN {name} {kind}")
 
@@ -382,8 +385,64 @@ def reader():
 
 # -- participants ------------------------------------------------------------
 
-def bound_participant(conn):
-    """The participant acting on this command, from the session id alone."""
+def capability_digest():
+    """Authenticate with a separate private capability, never a public id.
+
+    A declared native profile is authoritative; its missing credential must
+    not fall back to an inherited value. Neither plaintext nor digest is a
+    field on a public participant response.
+    """
+    profile = hook_profile()
+    value = (profile.get("coordination_capability") if profile is not None
+             else os.environ.get("COORDINATION_CAPABILITY"))
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        refuse("capability", "this participant's private launch capability",
+               "missing or malformed credential",
+               "use the admitted native profile or its private CLI credential")
+    return hashlib.sha256(value.encode("ascii")).hexdigest()
+
+
+def _authenticate(row):
+    expected = row["capability_digest"] if "capability_digest" in row.keys() else None  # noqa: SIM118 - sqlite Row
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        refuse("capability", "an enrolled participant capability",
+               "a legacy participant without a credential",
+               "the owner must provision this retained participant during offline cutover")
+    if not hmac.compare_digest(expected, capability_digest()):
+        refuse("capability", "the capability enrolled for this participant",
+               "a different credential",
+               "keep this session's own private profile and participant binding")
+
+
+def _install_capability(conn, pid, digest):
+    """Enrollment under the caller's existing exclusive transaction.
+
+    New binds use this after their authority checks. Legacy enrollment is an
+    explicit operator maintenance operation, never a CORE/CLI/MCP verb and
+    never an automatic upgrade based on a replayable session id.
+    """
+    if not conn.in_transaction:
+        refuse("state", "an exclusive enrollment transaction", "none",
+               "hold BEGIN IMMEDIATE over the complete enrollment")
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        refuse("capability", "a SHA256 capability digest", "invalid digest",
+               "hash the private 256-bit hexadecimal capability using ASCII")
+    row = participant_row(conn, pid)
+    if row["capability_digest"] is not None:
+        refuse("capability", "a participant not yet enrolled", "already enrolled",
+               "reuse the existing credential; enrollment never replaces it")
+    if conn.execute("SELECT 1 FROM participants WHERE capability_digest = ?", (digest,)).fetchone():
+        refuse("capability", "a distinct capability for each participant", "already enrolled",
+               "mint a fresh private capability for the new participant")
+    conn.execute("UPDATE participants SET capability_digest = ? WHERE id = ?", (digest, pid))
+
+
+def bound_participant(conn, *, participant=None):
+    """Resolve a correlation id and authenticate its private capability.
+
+    An optional participant is an expected binding, not caller authority.
+    The MCP config uses it without reading the public participant catalogue.
+    """
     key = session("")
     if not key:
         refuse("session", "a session id in the environment", "unset",
@@ -394,8 +453,15 @@ def bound_participant(conn):
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
     if row is None:
-        refuse("participant", "a participant bound to this session", key,
+        refuse("participant", "a participant bound to this session", "no bound row",
                "bind --roles ROLE[,ROLE] first")
+    if participant is not None:
+        _, expected = parse_id(participant, "PT")
+        participant_row(conn, expected)
+        if row["id"] != expected:
+            refuse("state", "the participant issued to this call", "a different participant",
+                   "use this worker's own startup binding")
+    _authenticate(row)
     return row
 
 
@@ -410,9 +476,12 @@ def maybe_participant(conn):
     key = session("")
     if not key or conn is None:
         return None
-    return conn.execute(
+    row = conn.execute(
         "SELECT * FROM participants WHERE session_id = ?", (key,)
     ).fetchone()
+    if row is not None:
+        _authenticate(row)
+    return row
 
 
 def same_session(conn, part):
@@ -444,13 +513,14 @@ def same_session(conn, part):
             "SELECT * FROM participants WHERE id = ?", (part["id"],)
         ).fetchone()
     if row is None or row["session_id"] != key:
-        stood = (f"PT-{part['id']}, bound to session {row['session_id']}"
+        stood = (f"PT-{part['id']}, bound to a different session"
                  if row is not None else
                  f"PT-{part['id']}, which the store does not hold")
-        refuse("participant", f"the participant bound to session {key or 'unset'}",
+        refuse("participant", "the participant bound to the calling session",
                stood,
                "act as the participant this process is bound to; "
                "the caller does not choose it")
+    _authenticate(row)
     return row
 
 
@@ -626,7 +696,7 @@ def require_lock(branch: str) -> None:
 def participant_dict(row) -> dict:
     result = {
         "participant": f"PT-{row['id']}", "id": row["id"], "roles": row["roles"],
-        "agent": row["agent"], "session": row["session_id"],
+        "agent": row["agent"],
         "harness": row["harness"], "endpoint": row["endpoint"],
         "bound_by": f"PT-{row['bound_by']}" if row["bound_by"] else None,
         "bound_for": f"A-{row['bound_for']}" if row["bound_for"] else None,
@@ -742,6 +812,7 @@ def core_bind(conn, part, *, agent, roles, harness=None,
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
         if row is not None:
+            _authenticate(row)
             # A re-bind is how a session refreshes where it can be reached
             # and what its last probe said. It is not how it changes what
             # it may do: Codex reproduced a bound worker re-binding itself
@@ -773,11 +844,12 @@ def core_bind(conn, part, *, agent, roles, harness=None,
                 "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (key, agent, harness, named, endpoint, probe, stamp()),
             ).lastrowid
+            _install_capability(conn, pid, capability_digest())
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return participant_dict(participant_row(conn, pid))
+    return {**participant_dict(participant_row(conn, pid)), "session": key}
 
 
 def core_grant(conn, part, *, agent, participant, roles) -> dict:
@@ -936,7 +1008,7 @@ def core_revoke(conn, part, *, agent, participant, roles) -> dict:
 
 
 def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
-                  harness=None, endpoint=None, probe=None) -> dict:
+                  capability_digest=None, harness=None, endpoint=None, probe=None) -> dict:
     """A participant for a session that cannot bind itself.
 
     A dispatched Codex or Grok worker has no harness session id in its
@@ -987,11 +1059,12 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
             (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid,
              granted, stamp() if granted else None),
         ).lastrowid
+        _install_capability(conn, pid, capability_digest)
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return participant_dict(participant_row(conn, pid))
+    return {**participant_dict(participant_row(conn, pid)), "session": key}
 
 
 def core_who(conn, part) -> dict:
@@ -1000,7 +1073,7 @@ def core_who(conn, part) -> dict:
     part = same_session(conn, part)
     if conn is None or part is None:
         return no_store(participant=None)
-    return participant_dict(part)
+    return {**participant_dict(part), "session": part["session_id"]}
 
 
 def core_participants(conn, part, *, role=None) -> dict:
@@ -1948,13 +2021,14 @@ def do_bind(rest):
 def do_bind_for(rest):
     agent = identity()
     _, opts = parse(
-        rest, 0, required=("session", "roles", "for"),
+        rest, 0, required=("session", "roles", "for", "capability-digest"),
         optional=("harness", "endpoint", "probe"),
     )
     with writer() as conn:
         shown = CORE["bind-for"](conn, bound_participant(conn), agent=agent,
                                  session_id=opts["session"], roles=opts["roles"],
                                  assignment=opts["for"], harness=opts.get("harness"),
+                                 capability_digest=opts["capability-digest"],
                                  endpoint=opts.get("endpoint"), probe=opts.get("probe"))
     print(f"participant {shown['participant']} bound for session {shown['session']} "
           f"by {shown['bound_by']} for {shown['bound_for']}")
@@ -2019,7 +2093,7 @@ def do_participants(rest):
         if row.get("owner_grant"):
             issued += f", owner grant {row['owner_grant']}"
         print(f"{row['participant']} {row['roles']} — {row['agent']} "
-              f"session {row['session']} harness {row['harness'] or 'unrecorded'}"
+              f"harness {row['harness'] or 'unrecorded'}"
               f"{issued}")
     return EXIT_DONE
 
