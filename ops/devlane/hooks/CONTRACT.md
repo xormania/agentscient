@@ -46,13 +46,17 @@ finished. There is no exactly-once replay claim.
 The shared entry imports the skills owner only from its pinned installation,
 never from the tool's cwd or worker snapshot. Its skill-use helper reuses
 `miss.skill_for` for recovery and class attribution: `deliverable` names that
-page; other policy classes name `refused`. Each final policy denial or pending
-owner decision gets a bounded miss observation and the common use command
-appended to its existing reason. The original outcome and needed remedy remain
+page; other policy classes name `refused`. For a verified interactive profile,
+each final policy denial or pending owner decision gets a bounded miss
+observation and the common use command appended to its existing reason. Workers
+retain the policy's own needed remedy without operator skill guidance or skill
+events: on a fresh host an event can read/register an operator source, which
+worker profiles do not pin. The original outcome and needed remedy remain
 authoritative. A failed telemetry write never replaces or weakens that decision;
 guard-input failures are not classified as missed skills. The engine's existing
 Stop-cap observation uses the same pinned owner through an explicit logger seam,
-without changing the cap or creating a second state store. Legacy standalone
+without changing the cap or creating a second state store. This observation is
+also interactive-only, including when the cap ultimately allows stopping. Legacy standalone
 hook entrypoints retain their existing interface.
 
 Only Claude's observed `Skill` spelling and `skill`/optional string `args` input
@@ -67,7 +71,8 @@ native path; their supplied job instructions remain the recovery guidance.
 Interactive startup reads the existing catalogue and returns a compact reminder
 with the common use command and active names/descriptions. It neither runs
 onboarding nor records a use. The catalogue reminder is capped at 6,000 characters
-with omitted entries stated; a failed catalogue read is explicitly unavailable.
+with omitted entries stated; descriptions and names exclude control/formatting
+characters, and a failed catalogue read is explicitly unavailable.
 Workers receive no operator catalogue or startup reminder and do not perform
 that catalogue read. On Agy, the native `PreInvocation` event is preserved for
 the response while policy evaluates its canonical SessionStart event. Context
@@ -83,7 +88,10 @@ bytes, detecting edits, additions, deletions and changed source targets on valid
 Repository-confined aliases (including Mate links into `.agents/skills`) retain
 the owner's source policy; escaping links refuse. Worker profiles do not add these operator
 page pins. Existing source/config/helper validation and protected mounts own the
-binding; there is no second manifest or skill installation command. Shared
+binding. Every consumed catalogue or native skill page must match both a member
+of that validated profile's existing pin closure and its recorded digest, not
+merely a current file anywhere inside the repository. There is no second
+manifest or skill installation command. Shared
 guidance is available in admitted profiles; these changes do not activate hooks
 in ordinary running terminals. Native activation still requires independent
 verification of the combined wall and skills-owner implementation.

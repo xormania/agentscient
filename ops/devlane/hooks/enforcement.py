@@ -112,7 +112,7 @@ def mcp_allowed(inp, servers):
     return False
 
 
-def _evaluate(payload, *, servers=(), mode=None):
+def _evaluate(payload, *, servers=(), mode=None, pins=None):
     """One complete decision. Guard failures cannot be confused with predicate None."""
     token = None
     try:
@@ -155,7 +155,7 @@ def _evaluate(payload, *, servers=(), mode=None):
                 if mode != "interactive":
                     return refuse("native operator skill outside an interactive profile", "follow the worker's assigned job instructions")
                 name = native.skill_name(inp)
-                skill_use.managed_page(skills, SOURCE, name)
+                skill_use.managed_page(skills, SOURCE, name, pins=pins)
                 # The witnessed Claude payload is name-only. It cannot prove
                 # which project/personal/plugin source the native tool loads.
                 return decision("deny", "skill-source: expected a verified canonical native skill source; "
@@ -180,7 +180,11 @@ def _evaluate(payload, *, servers=(), mode=None):
                     out = converted(matrix.decide(payload))
                     if out["outcome"] != "allow":
                         return out
-            out = converted(engine.decide(payload, rows=rows, miss_logger=shared_miss)[0])
+            # Fresh-host skill events can consume operator source pages. Only
+            # an interactive binding pins those pages; workers keep job state.
+            def observer(*args, **kwargs):
+                return mode == "interactive" and shared_miss(*args, **kwargs)
+            out = converted(engine.decide(payload, rows=rows, miss_logger=observer)[0])
             if out["outcome"] != "allow":
                 return out
             if event == "PreToolUse" and tool == "Bash":
@@ -196,9 +200,9 @@ def _evaluate(payload, *, servers=(), mode=None):
             matrix.GUARD_CONTEXT.reset(token)
 
 
-def evaluate(payload, *, servers=(), mode=None):
-    result = _evaluate(payload, servers=servers, mode=mode)
-    return skill_use.recovery(result, skills, SOURCE)
+def evaluate(payload, *, servers=(), mode=None, pins=None):
+    result = _evaluate(payload, servers=servers, mode=mode, pins=pins)
+    return skill_use.recovery(result, skills, SOURCE, mode=mode)
 
 
 def main(argv=None):
@@ -223,14 +227,14 @@ def main(argv=None):
             items[0]["cwd"] = binding["cwd"]
         result = decision()
         for payload in items:
-            result = evaluate(payload, servers=binding.get("servers", ()), mode=binding["mode"])
+            result = evaluate(payload, servers=binding.get("servers", ()), mode=binding["mode"], pins=binding["pins"])
             if result["outcome"] != "allow":
                 break
         if rewritten and result["outcome"] == "allow":
             result["updated_input"] = {"command": rewritten}
         if (binding["mode"] == "interactive" and result["outcome"] == "allow"
                 and args.event in {"SessionStart", "PreInvocation"}):
-            result["context"] = "\n".join(filter(None, (result["context"], skill_use.startup(skills, SOURCE))))
+            result["context"] = "\n".join(filter(None, (result["context"], skill_use.startup(skills, SOURCE, pins=binding["pins"]))))
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])
     print(json.dumps(native.respond(args.harness, result, args.event)))

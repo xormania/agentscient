@@ -40,28 +40,33 @@ def use_command(source, name="NAME"):
     return shlex.join(["python3", str(Path(source) / SKILLS_LEVER), "use", name])
 
 
-def managed_page(owner, source, name):
-    return checked_page(owner.load_skill(name), source, name)
+def managed_page(owner, source, name, *, pins):
+    return checked_page(owner.load_skill(name), source, name, pins=pins)
 
 
-def checked_page(page, source, name):
+def checked_page(page, source, name, *, pins):
     """Check the owner response against this installed source boundary."""
     root = Path(source).resolve(strict=True)
     path = Path(page["path"])
     if (page["name"] != name or page["status"] != "active" or not path.is_absolute()
             or path.name != "SKILL.md" or path.resolve(strict=True) != path
             or not path.is_relative_to(root)
+            or not isinstance(pins, dict) or pins.get(str(path)) != page["sha256"]
             or hashlib.sha256(path.read_bytes()).hexdigest() != page["sha256"]):
         raise ValueError("managed skill is not an active canonical source")
     return page
 
 
-def recovery(result, owner, source):
+def recovery(result, owner, source, *, mode):
     """Observe a final policy refusal without changing its authority decision.
 
     The existing miss owner maps classes; skills.py owns state, attribution and
     redaction. No caller-cwd script runs. A failed event never changes a refusal.
     """
+    # record_event may resolve/register a page on a fresh host. Workers have
+    # no operator page pins, so neither recovery nor its event owner is reached.
+    if mode != "interactive":
+        return result
     import miss
     klass = result.get("policy_class")
     if result["outcome"] == "allow" or not klass or klass in {"hook-error", "hook-input"}:
@@ -83,7 +88,7 @@ def record_miss(owner, klass, found):
         return False
 
 
-def startup(owner, source):
+def startup(owner, source, *, pins):
     """A bounded, read-only projection of the existing managed catalogue."""
     command = use_command(source)
     header = ("Managed project skills (interactive session): " + command
@@ -99,8 +104,11 @@ def startup(owner, source):
         for row in sorted(active, key=lambda item: item["name"]):
             # The catalogue owner already resolved every page in one reading;
             # do not rescan that entire catalogue via load_skill for each row.
-            page = checked_page(row, source, row["name"])
-            line = page["name"] + ": " + " ".join(page["description"].split())[:160]
+            page = checked_page(row, source, row["name"], pins=pins)
+            # Native advisory text must not carry terminal or bidi controls.
+            name = "".join(c for c in page["name"] if c.isprintable())
+            description = "".join(c if c.isprintable() else " " for c in page["description"])
+            line = name + ": " + " ".join(description.split())[:160]
             if used + len(line) + 100 > CATALOGUE_CAP:
                 break
             lines.append(line)

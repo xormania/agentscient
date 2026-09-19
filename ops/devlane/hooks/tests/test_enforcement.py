@@ -59,13 +59,14 @@ class ManagedSkills(unittest.TestCase):
                 "session_id": "fixture-session", "native_harness": "claude",
                 "tool_name": tool, "tool_input": args}
 
-    def invoke(self, harness, event, mode="interactive"):
+    def invoke(self, harness, event, mode="interactive", *, pins=None):
         payload = {"session_id": "fixture-session", "cwd": str(self.repo)}
         if harness == "agy":
             payload = {"conversationId": "fixture-session", "workspacePaths": [str(self.repo)],
                        "invocationNum": 1, "initialNumSteps": 0}
         binding = {"harness": harness, "mode": mode, "cwd": str(self.repo),
-                   "home": str(self.world.home), "source": str(enforcement.SOURCE)}
+                   "home": str(self.world.home), "source": str(enforcement.SOURCE),
+                   "pins": profiles.source_pins(enforcement.SOURCE) if pins is None else pins}
         projection = SimpleNamespace(read_binding=lambda _: binding, validate=lambda _: binding,
                                      initialize=lambda *a, **k: None)
         actual_load = enforcement.load
@@ -84,7 +85,7 @@ class ManagedSkills(unittest.TestCase):
                            ("Agent", {"prompt": "blocked"})]:
             with self.subTest(tool=tool, args=args):
                 self.owner.record_event.reset_mock()
-                result = enforcement.evaluate(self.payload(tool, **args))
+                result = enforcement.evaluate(self.payload(tool, **args), mode="interactive")
                 self.assertEqual(result["outcome"], "deny")
                 self.assertIn("skills.py use refused", result["reason"])
                 self.owner.record_event.assert_called_once()
@@ -93,7 +94,7 @@ class ManagedSkills(unittest.TestCase):
     def test_event_failure_never_replaces_a_denial_or_pending_owner_decision(self):
         self.owner.record_event.side_effect = OSError("unwritable synthetic registry")
         for command, outcome in [("git commit -m blocked", "deny"), ("git push --force origin topic", "ask")]:
-            result = enforcement.evaluate(self.payload(command=command))
+            result = enforcement.evaluate(self.payload(command=command), mode="interactive")
             self.assertEqual(result["outcome"], outcome)
             self.assertIn("skills.py use refused", result["reason"])
             self.assertNotIn("unwritable", result["reason"])
@@ -108,14 +109,14 @@ class ManagedSkills(unittest.TestCase):
         refusal = {"hookSpecificOutput": {"permissionDecision": "deny", "permissionDecisionReason":
                    "[matrix:deliverable] deliverable: expected a lock; found unnamed branch; needed add it"}}
         with patch.object(enforcement.matrix, "decide", return_value=refusal):
-            result = enforcement.evaluate(self.payload(command="touch ops/new.py"))
+            result = enforcement.evaluate(self.payload(command="touch ops/new.py"), mode="interactive")
         self.assertIn("skills.py use deliverable", result["reason"])
         self.owner.record_event.assert_called_once()
         self.assertEqual(self.owner.record_event.call_args.args[:2], ("miss", "deliverable"))
 
     def test_name_only_native_skill_gets_canonical_fallback_without_invoked_credit(self):
         item = native.normalize("claude", self.payload("Skill", skill="onboard", args="session start"))[0]
-        result = enforcement.evaluate(item, mode="interactive")
+        result = enforcement.evaluate(item, mode="interactive", pins=profiles.source_pins(enforcement.SOURCE))
         self.assertEqual(result["outcome"], "deny")
         self.assertIn("skills.py use onboard", result["reason"])
         self.assertFalse(any(call.args[0] == "invoked" for call in self.owner.record_event.call_args_list))
@@ -128,7 +129,8 @@ class ManagedSkills(unittest.TestCase):
                 original = dict(self.rows["onboard"])
                 if change:
                     self.rows["onboard"].update(change)
-                result = enforcement.evaluate(self.payload("Skill", skill=name), mode="interactive")
+                result = enforcement.evaluate(self.payload("Skill", skill=name), mode="interactive",
+                                              pins=profiles.source_pins(enforcement.SOURCE))
                 self.assertEqual(result["outcome"], "deny")
                 self.rows["onboard"] = original
 
@@ -194,7 +196,7 @@ class ManagedSkills(unittest.TestCase):
                    "session_id": "fixture-session", "last_assistant_message": "The task is done."}
         with patch.object(enforcement.engine, "_done_gate_count", return_value=enforcement.engine.DONE_GATE_CAP), patch.object(
                 enforcement.engine, "_lock_reading", return_value="the lock reads: synthetic outstanding target"):
-            result = enforcement.evaluate(payload)
+            result = enforcement.evaluate(payload, mode="interactive")
         self.assertEqual(result["outcome"], "allow")
         self.owner.record_event.assert_called_once()
         self.assertEqual(self.owner.record_event.call_args.args[:2], ("miss", "refused"))
@@ -234,6 +236,26 @@ class ManagedSkills(unittest.TestCase):
         self.assertNotIn("refused procedure", result)
         self.assertLess(len(result), 8500)
 
+    def test_retarget_after_profile_validation_cannot_enter_startup_context(self):
+        source = self.world.root / "retarget-source"
+        for original in profiles.source_pins(enforcement.SOURCE):
+            self.world.plant_bytes(source / Path(original).relative_to(enforcement.SOURCE), Path(original).read_bytes())
+        page = source / ".claude/skills/onboard/SKILL.md"
+        content = page.read_bytes()
+        with patch.object(profiles, "__file__", str(source / "ops/devlane/hooks/profiles.py")):
+            binding = profiles.generate("claude", self.world.root / "retarget-profile",
+                                        source=source, cwd=self.repo, mode="interactive")
+            profiles.validate(binding)
+            # The swap is deliberately scheduled after successful validation.
+            target = self.world.plant_bytes(source / "elsewhere/SKILL.md", content)
+            page.unlink()
+            page.symlink_to(target)
+            row = {**self.rows["onboard"], "path": str(target), "description": "UNPINNED_RETARGET"}
+            owner = SimpleNamespace(managed_catalog=lambda: [row])
+            result = enforcement.skill_use.startup(owner, source, pins=binding["pins"])
+            self.assertIn("unavailable", result)
+            self.assertNotIn("UNPINNED_RETARGET", result)
+
     def test_owner_resolved_repository_aliases_are_served_and_pinned(self):
         name = "mate-system-information"
         path = (enforcement.SOURCE / ".claude/skills" / name / "SKILL.md").resolve(strict=True)
@@ -243,6 +265,34 @@ class ManagedSkills(unittest.TestCase):
         response = self.invoke("claude", "SessionStart")
         self.assertIn("repository alias control", json.dumps(response))
         self.assertEqual(profiles.source_pins(enforcement.SOURCE).get(str(path)), self.rows[name]["sha256"])
+
+    def test_worker_policy_retains_remedy_without_operator_source_or_event(self):
+        result = enforcement.evaluate(self.payload(command="git commit -m blocked"), mode="worker")
+        self.assertEqual(result["outcome"], "deny")
+        self.assertNotIn("skills.py use", result["reason"])
+        self.assertIn("needed", result["reason"])
+        self.owner.record_event.assert_not_called()
+
+    def test_worker_done_cap_never_reaches_operator_event_source(self):
+        payload = {"hook_event_name": "Stop", "cwd": str(self.repo),
+                   "session_id": "fixture-session", "last_assistant_message": "The task is done."}
+        with patch.object(enforcement.engine, "_done_gate_count", return_value=enforcement.engine.DONE_GATE_CAP), patch.object(
+                enforcement.engine, "_lock_reading", return_value="the lock reads: synthetic outstanding target"):
+            result = enforcement.evaluate(payload, mode="worker")
+        self.assertEqual(result["outcome"], "allow")
+        self.owner.record_event.assert_not_called()
+
+    def test_catalogue_text_cannot_inject_control_characters(self):
+        self.rows["onboard"]["description"] = "visible\x1b[31m red\x00 nul\u202e hidden\x7f"
+        output = json.dumps(self.invoke("agy", "PreInvocation"), ensure_ascii=False)
+        for character in ("\\u001b", "\\u0000", "\u202e", "\x7f"):
+            self.assertNotIn(character, output)
+        self.assertIn("visible", output)
+
+    def test_catalogue_page_must_belong_to_supplied_pinned_closure(self):
+        output = json.dumps(self.invoke("claude", "SessionStart", pins={}))
+        self.assertIn("unavailable", output)
+        self.assertNotIn("onboard procedure", output)
 
 
 class SharedEnforcement(unittest.TestCase):
