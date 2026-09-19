@@ -224,6 +224,77 @@ class ManagedSkills(unittest.TestCase):
         self.assertEqual(result.exit, 0, result.stderr)
         self.assertEqual(result.stdout, self.body)
 
+    def test_confined_directory_alias_uses_the_canonical_agents_page_as_its_pin(self):
+        alias_name = "mate-sample"
+        alias_body = self.body.replace("name: sample", f"name: {alias_name}")
+        target = self.world.plant_text(
+            self.repo / ".agents/skills" / alias_name / "SKILL.md", alias_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(target.parent, target_is_directory=True)
+
+        result = self.call("catalog", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        row = next(row for row in json.loads(result.stdout) if row["name"] == alias_name)
+        self.assertEqual(row, {
+            "name": alias_name,
+            "description": "A measured sample",
+            "path": str(target),
+            "sha256": hashlib.sha256(alias_body.encode()).hexdigest(),
+            "status": "active",
+        })
+
+        result = self.call("use", alias_name)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertIn(str(target), result.stdout)
+        self.assertEqual(self.event_sources(), [
+            (str(target), hashlib.sha256(alias_body.encode()).hexdigest()),
+        ])
+
+    def test_directory_alias_escape_refuses_without_creating_state(self):
+        alias_name = "mate-sample"
+        alias_body = self.body.replace("name: sample", f"name: {alias_name}")
+        external = self.world.plant_text(
+            self.world.root / "external" / alias_name / "SKILL.md", alias_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(external.parent, target_is_directory=True)
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_nonregular_page_refuses_without_opening_a_source_stream(self):
+        self.page.unlink()
+        self.page.mkdir()
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_directory_alias_retarget_keeps_the_loaded_page_receipt(self):
+        alias_name = "mate-sample"
+        first_body = self.body.replace("name: sample", f"name: {alias_name}")
+        second_body = first_body.replace("Run the sample procedure.", "Run the replacement procedure.")
+        first = self.world.plant_text(
+            self.repo / ".agents/skills" / alias_name / "SKILL.md", first_body)
+        second = self.world.plant_text(
+            self.repo / ".agents/replacements" / alias_name / "SKILL.md", second_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(first.parent, target_is_directory=True)
+        subject = self.loaded_module()
+        subject.REPO = self.repo
+        subject.SKILLS_DIR = self.skill_root
+        subject.db_path = lambda: self.db
+        subject.identity = lambda: AGENT
+        subject.session = lambda default: "fixture-session"
+
+        page = subject.load_skill(alias_name)
+        alias.unlink()
+        alias.symlink_to(second.parent, target_is_directory=True)
+        subject._record_event("invoked", alias_name, "managed invocation", managed_page=page)
+
+        self.assertEqual(page["content"], first_body)
+        self.assertEqual(self.event_sources(), [
+            (str(first), hashlib.sha256(first_body.encode()).hexdigest()),
+        ])
+
     def test_descriptor_reader_resists_a_resolve_then_open_symlink_swap(self):
         subject = self.loaded_module()
         subject.REPO = self.repo

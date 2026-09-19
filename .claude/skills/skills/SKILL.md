@@ -61,12 +61,18 @@ resolver, recovery policy, or telemetry store.
 The callable seams are `managed_catalog()`, `load_skill(name)` (the catalogue
 row plus `content`), and `record_event(kind, name, detail=None)` (no stdout).
 Names are unqualified local identifiers: vendor- or plugin-qualified names
-are never silently credited to a project skill. The source is opened through
-a held descriptor and checked against this checkout, so a link may target a
-repository file but an escaped or swapped source refuses before content is
-served. A page's logical frontmatter name must match its containing skill
-directory. Retired, draft, wished, and missing rows are not invocable; a valid
-on-disk page with no registry row is invocable without a separate sync.
+are never silently credited to a project skill. The catalogue/loader admits
+an entry shaped `.claude/skills/NAME/SKILL.md`, whether `NAME` is a real
+directory or a repository-confined directory link. It opens the final page
+through a held descriptor and admits only a confined regular UTF-8 page whose
+frontmatter name equals `NAME`; the returned canonical target path (including
+an in-repository `.agents/.../SKILL.md` target) and SHA-256 are the pin
+receipt. It rejects a link that escapes the checkout, a nonregular/malformed
+or oversized page, a duplicate name, a logical-name mismatch, and a retarget
+that cannot retain the already-open page receipt. Mate aliases receive this
+same rule—there is no hooks-side exclusion or alias-specific admission path.
+Retired, draft, wished, and missing rows are not invocable; a valid on-disk
+page with no registry row is invocable without a separate sync.
 
 Receipt guidance is deliberately narrow: paths beginning `./` or `../` are
 relative to the served page's directory; a repository-relative path such as

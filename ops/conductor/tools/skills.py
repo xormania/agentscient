@@ -33,6 +33,7 @@ import json
 import os
 import re
 import sqlite3
+import stat
 import sys
 from contextlib import closing
 from pathlib import Path
@@ -155,8 +156,12 @@ def _read_canonical_page(page, root):
     a symlink that crossed the repository boundary before that descriptor was
     acquired.  Internal links remain supported.
     """
-    fd = os.open(page, os.O_RDONLY)
+    # O_NONBLOCK keeps a malicious FIFO/device from becoming a source-side
+    # denial of service before we can reject its nonregular descriptor.
+    fd = os.open(page, os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0))
     try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("skill page is not a regular file")
         target = Path(os.readlink(f"/proc/self/fd/{fd}")).resolve(strict=True)
         if not target.is_relative_to(root) or not target.is_file():
             raise ValueError("skill page is not a repository file")
