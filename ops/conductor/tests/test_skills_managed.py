@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import sqlite3
 import sys
 import unittest
@@ -64,6 +65,23 @@ class ManagedSkills(unittest.TestCase):
             sys.modules.pop("instrument", None)
             if saved is not None:
                 sys.modules["instrument"] = saved
+
+    def stage_profile_source(self):
+        """Stage the existing profile/coordination closure, not a skills copy."""
+        source_root = Path(__file__).resolve().parents[3]
+        for directory in ("ops/conductor/tools", "ops/devlane/hooks"):
+            for source in (source_root / directory).glob("*.py"):
+                self.world.plant_bytes(self.repo / directory / source.name, source.read_bytes())
+        for relative in ("ops/devlane/hooks/boundaries.json", "ops/devlane/harness/isolation.py"):
+            source = source_root / relative
+            self.world.plant_bytes(self.repo / relative, source.read_bytes())
+
+    @staticmethod
+    def module_from(path, name):
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     def rejected(self, result, kind):
         self.assertEqual(result.exit, 2, result.stdout + result.stderr)
@@ -148,6 +166,40 @@ class ManagedSkills(unittest.TestCase):
         result = self.call("use", "sample", identity=False, extra={"WF_AGENT": AGENT})
         self.assertEqual(result.exit, 0, result.stderr)
         self.assertEqual(self.events()[0][2], AGENT)
+
+    def test_profile_bound_identity_and_session_are_recorded_through_instrument(self):
+        self.stage_profile_source()
+        profile_agent = "Profile Skill Tester <profile@example.invalid>"
+        saved = {name: sys.modules.pop(name, None) for name in ("instrument", "machine")}
+        profile_environment = self.world.env({"XDG_STATE_HOME": str(self.world.xdg_state)})
+        try:
+            with patch.dict(os.environ, profile_environment, clear=True):
+                instrument = self.module_from(self.tools / "instrument.py", "instrument")
+                sys.modules["instrument"] = instrument
+                profiles = self.module_from(
+                    self.repo / "ops/devlane/hooks/profiles.py", "managed_skills_profiles")
+                core = self.module_from(self.tools / "coordination.py", "managed_skills_coordination")
+                with core.writer():
+                    pass
+                binding = profiles.generate(
+                    "codex", self.world.root / "profile", source=self.repo, cwd=self.repo,
+                    mode="interactive", home=self.world.home, agent=profile_agent)
+                os.environ["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
+                profiles.initialize(binding, {"session_id": "profile-skill-session"}, instrument=instrument)
+                expected = (instrument.identity(), instrument.session())
+        finally:
+            for name in ("instrument", "machine"):
+                sys.modules.pop(name, None)
+                if saved[name] is not None:
+                    sys.modules[name] = saved[name]
+
+        result = run(
+            [sys.executable, str(self.tools / "skills.py"), "use", "sample"], cwd=self.repo,
+            env=self.world.env({**binding["authority_environment"],
+                                "AGENTSCIENT_HOOK_PROFILE": binding["binding"],
+                                "WF_AGENT": "Ambient Tester <ambient@example.invalid>"}), timeout=20)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][:4], ("sample", "invoked", *expected))
 
     def test_oversized_telemetry_refuses_before_creating_or_writing_the_store(self):
         result = self.call("use", "sample", "x" * (16 * 1024 + 1))
@@ -324,6 +376,31 @@ class ManagedSkills(unittest.TestCase):
             with patch.object(Path, "resolve", new=replace_after_resolve):
                 page = subject.load_skill("sample")
         self.assertEqual(page["content"], self.body)
+
+    def test_ancestor_swap_after_directory_check_refuses_the_external_page(self):
+        subject = self.loaded_module()
+        subject.REPO = self.repo
+        subject.SKILLS_DIR = self.skill_root
+        external = self.world.plant_text(
+            self.world.root / "external-source/sample/SKILL.md",
+            "---\nname: sample\ndescription: Hostile replacement\n---\n\nDo not serve this.\n",
+        )
+        held = self.skill_root / "sample-held"
+        real_is_dir = Path.is_dir
+
+        def replace_after_directory_check(path):
+            checked = real_is_dir(path)
+            if path == self.skill_root / "sample":
+                path.rename(held)
+                path.symlink_to(external.parent, target_is_directory=True)
+            return checked
+
+        with patch.object(subject, "_statuses", return_value={}):
+            with patch.object(Path, "is_dir", new=replace_after_directory_check):
+                with self.assertRaises(subject.Refusal) as raised:
+                    subject.managed_catalog()
+        self.assertEqual(raised.exception.kind, "skill-source")
+        self.assertFalse(self.db.exists())
 
     def test_duplicate_name_oversize_and_malformed_metadata_refuse(self):
         self.sync()
