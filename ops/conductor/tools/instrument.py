@@ -26,6 +26,7 @@ instrument.py beside itself refuses `tooling` and exits 2.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import os
 import re
@@ -159,6 +160,24 @@ def authority_home() -> Path:
     return Path(profile["authority_environment"]["HOME"]) if profile else Path.home()
 
 
+def capability_digest(profile=None) -> str:
+    """Digest the caller's private coordination capability, never a session id.
+
+    A declared profile is authoritative and cannot fall back to an ambient
+    credential. The core owns enrollment and comparison; native identity
+    resolution uses this same digest to retain existing messaging endpoints.
+    """
+    if profile is None:
+        profile = hook_profile()
+    value = (profile.get("coordination_capability") if profile is not None
+             else os.environ.get("COORDINATION_CAPABILITY"))
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        refuse("capability", "this participant's private launch capability",
+               "missing or malformed credential",
+               "use the admitted native profile or its private CLI credential")
+    return hashlib.sha256(value.encode("ascii")).hexdigest()
+
+
 def session(default: str = SESSION_UNKNOWN) -> str:
     """The session id the harness set, or `default` when none did.
 
@@ -185,8 +204,8 @@ def session(default: str = SESSION_UNKNOWN) -> str:
             conf_values = _laneconf().parse_file(Path(profile["source"]) / "ops/lane.conf")
             db = Path(profile["authority_environment"]["XDG_STATE_HOME"]) / conf_values["LANE_NAME"] / "state.db"
             with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
-                rows = conn.execute("SELECT session_id, harness FROM participants WHERE endpoint = ?",
-                                    ("hook-profile:" + profile["binding"],)).fetchall()
+                rows = conn.execute("SELECT session_id, harness FROM participants WHERE capability_digest = ?",
+                                    (capability_digest(profile),)).fetchall()
             if len(rows) != 1 or rows[0][1] != profile["harness"]:
                 raise ValueError("missing or ambiguous native participant association")
             named = rows[0][0]

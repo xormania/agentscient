@@ -66,7 +66,8 @@ coordination core separately verifies the participant capability specified in
 for that capability.
 Guarded A-218 startup first validates `AGENTSCIENT_HOOK_PROFILE` through the
 installed shared guard. Workers use its issued session; interactive callers
-resolve its existing participant endpoint association. Native aliases must
+resolve its enrolled capability digest to one participant, retaining any
+existing native messaging endpoint. Native aliases must
 agree with the interactive association, including `GROK_SESSION_ID`; invalid,
 missing or ambiguous associations refuse. The same projection supplies the
 original authority HOME and state root when a harness uses a minimal home.
