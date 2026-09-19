@@ -4,6 +4,7 @@ Dev-lane grant 309; one producer, independent test author absent.
 """
 
 import datetime
+import hashlib
 import json
 import sqlite3
 import subprocess
@@ -28,7 +29,8 @@ class OwnerRecovery(unittest.TestCase):
 
     def invoke(self, session, *args, tool="coordination.py"):
         env = self.world.env(extra={"LANE_CONF": str(self.conf), "WF_AGENT": AGENT,
-                                    "CODEX_THREAD_ID": session})
+                                    "CODEX_THREAD_ID": session,
+                                    "COORDINATION_CAPABILITY": hashlib.sha256(session.encode()).hexdigest()})
         return run([sys.executable, "-B", str(TOOLS / tool), *args],
                    cwd=self.world.cwd, env=env, timeout=20)
 
@@ -138,7 +140,8 @@ except c.Refusal as error:
     raise SystemExit(2)
 """
         env = self.world.env(extra={"LANE_CONF": str(self.conf), "WF_AGENT": AGENT,
-                                    "CODEX_THREAD_ID": "successor"})
+                                    "CODEX_THREAD_ID": "successor",
+                                    "COORDINATION_CAPABILITY": hashlib.sha256(b"successor").hexdigest()})
         proc = subprocess.Popen([sys.executable, "-B", "-c", source, str(TOOLS),
                                  str(store), grant], cwd=self.world.cwd, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

@@ -72,6 +72,22 @@ Both call the same evaluator. Resume revalidates source/configuration/identity;
 no fallback to operator home, old profiles or an unguarded launch is permitted.
 No owner home/project setting is activated by source installation or testing.
 
+Participant authentication is independent of the public native session id.
+Each generated profile owns a random 256-bit `coordination_capability`, encoded
+as 64 lowercase hex characters in its private, mode-0600 binding. The existing
+coordination core stores only its SHA256 digest on the participant. Missing or
+malformed capability projections refuse; no legacy profile gains a replacement
+secret merely by resuming. Resume and relocation retain the original capability.
+Native launch discards inherited `COORDINATION_CAPABILITY` and carries only its
+own binding value; interactive hook initialization likewise sets that value
+before entering the core. Preserved MCP registrations receive the validated
+profile path, never an inherited raw capability. The binding retains the same
+normalized settings used for native configuration, so its child-readable copy
+also excludes inherited credentials and session aliases without changing the
+caller's settings. Helpers and public configs,
+records and responses contain no raw capability. Interactive registration and
+dispatcher-issued worker initialization remain separate callers of the core.
+
 Codex configuration arguments have one admitted grammar across split `-c` /
 `--config`, joined `-cKEY=VALUE`, and equals forms. The key is an unquoted
 dotted identifier and the value is one TOML value. Missing values, quoted or
@@ -175,7 +191,9 @@ transport prefix, preserving leading grant declarations and explicit directory
 changes for the existing checks. Native hidden workdir cannot select another checkout.
 
 Interactive hook registration associates the native session with its derived
-profile through the existing participant endpoint field. The shared instrument
+profile through the participant's private capability digest. An authenticated
+resume preserves an existing native messaging endpoint; initialization fills
+only an absent endpoint with the profile reference. The shared instrument
 resolves that association for subsequent CLI/MCP callers, including AGY which
 does not export a native session variable. A profile admits one native terminal
 session (including resume); another session requires another projection. Missing,

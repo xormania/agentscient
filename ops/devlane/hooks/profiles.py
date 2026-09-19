@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shlex
 import shutil
 import stat
@@ -80,15 +81,22 @@ def toml_value(value):
     return json.dumps(value, allow_nan=False)
 
 
-def configuration(harness, native_home, helper, cwd, settings=None):
-    configs = {}
+def normalized_settings(settings, helper):
+    """Copy preserved settings without another participant's identity or secret."""
     settings = json.loads(json.dumps(settings or {}))
     servers = settings.get("mcp_servers", {})
     for server in servers.values():
         environment = server.setdefault("env", {})
-        for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
+        for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID", "COORDINATION_CAPABILITY"):
             environment.pop(key, None)
         environment["AGENTSCIENT_HOOK_PROFILE"] = str(helper.parent / "binding.json")
+    return settings
+
+
+def configuration(harness, native_home, helper, cwd, settings=None):
+    configs = {}
+    settings = normalized_settings(settings, helper)
+    servers = settings.get("mcp_servers", {})
     events = EVENTS if harness != "agy" else ("PreToolUse", "PostToolUse", "Stop", "PreInvocation")
     event_groups = {}
     for event in events:
@@ -132,6 +140,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     native_home = Path(home).resolve(strict=True) if home else dest
     helper = dest / "guard.sh"
+    native_settings = normalized_settings(native_settings, helper)
     configs = configuration(harness, native_home, helper, cwd, native_settings)
     for path, content in configs.items():
         if path.exists() or path.is_symlink():
@@ -146,14 +155,16 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "source": str(source), "cwd": str(cwd), "home": str(native_home),
                "helper": str(helper), "binding": str(dest / "binding.json"),
                "python": str(Path(sys.executable).resolve()), "session": session,
+               "coordination_capability": secrets.token_hex(32),
                "servers": list(servers), "authority_environment": authority,
-               "native_settings": native_settings or {},
+               "native_settings": native_settings,
                "credential_environment": credential_environment or {},
                "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
     binding["helper_sha256"] = hashlib.sha256(helper_text(binding).encode()).hexdigest()
-    Path(binding["binding"]).write_text(canonical(binding))
+    with os.fdopen(os.open(binding["binding"], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as private:
+        private.write(canonical(binding))
     helper.write_text(helper_text(binding))
     helper.chmod(0o700)
     return binding
@@ -172,6 +183,9 @@ def validate(binding):
         raise ValueError("unknown profile projection")
     if binding.get("mode") not in {"worker", "interactive"} or (binding["mode"] == "worker" and not binding.get("session")):
         raise ValueError("invalid startup identity mode")
+    capability = binding.get("coordination_capability")
+    if not isinstance(capability, str) or not re.fullmatch(r"[0-9a-f]{64}", capability):
+        raise ValueError("missing or malformed coordination capability")
     if Path(binding["source"]).resolve() != Path(__file__).resolve().parents[3]:
         raise ValueError("policy source is not this trusted installation")
     if source_pins(binding["source"]) != binding["pins"]:
@@ -225,6 +239,7 @@ def relocate(binding, old_root, new_root):
         path.write_text(content)
     Path(revised["helper"]).write_text(helper_text(revised))
     Path(revised["binding"]).write_text(canonical(revised))
+    Path(revised["binding"]).chmod(0o600)
     return validate(revised)
 
 
@@ -335,6 +350,8 @@ def native_launch(binding, argv, env):
     if binding["authority_environment"]["HOME"] != str(Path.home()):
         raise ValueError("authority HOME differs from the trusted launcher")
     out = dict(env)
+    out.pop("COORDINATION_CAPABILITY", None)
+    out["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     if binding["authority_environment"].get("WF_AGENT_OVERRIDE"):
         out["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
@@ -381,11 +398,13 @@ def initialize(binding, native_payload, *, instrument):
     job is synthesized for an interactive terminal and no parent id is inherited.
     """
     import importlib.util
+    validate(binding)
     native_id = native_payload.get("conversationId") if binding["harness"] == "agy" else native_payload.get("session_id", native_payload.get("sessionId"))
     session = binding["session"] if binding["mode"] == "worker" else native_id
     if not isinstance(session, str) or not session.strip() or len(session) > 128:
         raise ValueError("native/issued session identity unavailable")
     os.environ.pop("AGENTSCIENT_HOOK_PROFILE", None)
+    os.environ["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
         os.environ.pop(key, None)
     # This is the instrument's existing generic issued-session carrier. Native
@@ -400,8 +419,8 @@ def initialize(binding, native_payload, *, instrument):
     conn = core.reader()
     try:
         if binding["mode"] == "interactive" and conn.execute(
-                "SELECT 1 FROM participants WHERE endpoint = ? AND session_id != ?",
-                ("hook-profile:" + binding["binding"], session)).fetchone():
+                "SELECT 1 FROM participants WHERE capability_digest = ? AND session_id != ?",
+                (instrument.capability_digest(binding), session)).fetchone():
             raise ValueError("profile already belongs to another native terminal; resume it or prepare a new profile")
         participant = core.maybe_participant(conn)
         if participant is not None:
@@ -418,8 +437,6 @@ def initialize(binding, native_payload, *, instrument):
         raise ValueError("participant harness differs from native binding")
     elif binding["mode"] == "interactive":
         endpoint = "hook-profile:" + binding["binding"]
-        if participant["endpoint"] not in (None, endpoint):
-            raise ValueError("native session already has a different endpoint")
         if participant["endpoint"] is None:
             with core.writer() as conn:
                 core.core_bind(conn, participant, agent=instrument.identity(), roles=participant["roles"], harness=binding["harness"],

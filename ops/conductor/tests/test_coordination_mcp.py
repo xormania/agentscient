@@ -55,6 +55,7 @@ carries the capability.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import inspect
 import json
@@ -185,7 +186,8 @@ class Subject:
         return head + list(rest)
 
     def env(self, *, session: str | None = None) -> dict[str, str]:
-        extra = {} if session is None else {"CLAUDE_CODE_SESSION_ID": session}
+        extra = {} if session is None else {"CLAUDE_CODE_SESSION_ID": session,
+                                             "COORDINATION_CAPABILITY": hashlib.sha256(session.encode()).hexdigest()}
         return self.world.env(extra=extra)
 
     def run(self, *rest: str, config=None, session=None, stdin=None):
@@ -233,7 +235,7 @@ def reader():
     return {"store": "reader"}
 
 
-def bound_participant(conn):
+def bound_participant(conn, *, participant=None):
     """The participant resolver. Not a verb, and not in CORE.
 
     It reads the session id from its own environment, as
@@ -978,6 +980,7 @@ class CoordinationMcpRealCore(unittest.TestCase):
         extra = {"LANE_CONF": str(self.conf)}
         if session:
             extra["CLAUDE_CODE_SESSION_ID"] = session
+            extra["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         if identity:
             extra["WF_AGENT"] = identity
         return self.world.env(extra=extra)
@@ -1195,24 +1198,23 @@ class CoordinationMcpRealCore(unittest.TestCase):
         self.bound()
         config = self.world.plant_text("absent.json", json.dumps(
             binding(participant="PT-99", capabilities=["coord_brief"])))
-        result = self.mcp("call", "coord_brief", config=config)
+        result = self.mcp("call", "coord_brief", config=config, session=LEAD_SESSION)
         refusal = refusal_wire(
             RefusalCase(id="participant-absent", argv=(), cls="participant",
                         origin="X2#2, 20260916T084315Z-review-codex-b317d7#2"),
             result)
         self.assertIn("PT-99", refusal.line)
 
-    def test_a_config_whose_participant_exists_meets_the_declared_limit(self):
-        """The clean neighbour: PT-1 is bound, so the refusal moves past
-        `participant` to the declared limit of slice one."""
+    def test_configured_participant_with_correct_capability_reads_own_brief(self):
+        """The clean neighbour: the expected participant authenticates in core."""
         self.bound()
         config = self.world.plant_text("present.json", json.dumps(
             binding(participant="PT-1", capabilities=["coord_brief"])))
-        result = self.mcp("call", "coord_brief", config=config)
-        refusal_wire(
-            RefusalCase(id="bind-gap", argv=(), cls="state",
-                        origin="contract 2.3, the declared limit"),
-            result)
+        result = self.mcp("call", "coord_brief", config=config, session=LEAD_SESSION)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["participant"]["participant"], "PT-1")
+        self.assertNotIn(LEAD_SESSION, result.stdout)
+        self.assertNotIn(self.env(LEAD_SESSION)["COORDINATION_CAPABILITY"], result.stdout)
 
     def schemas(self):
         """Every tool's advertised properties, asked of the server itself.

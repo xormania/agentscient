@@ -38,6 +38,7 @@ recipient's own `ack`.
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import unittest
 from pathlib import Path
@@ -70,6 +71,7 @@ class CourierAgainstTheCore(unittest.TestCase):
         extra = {"LANE_CONF": str(self.conf), "WF_AGENT": AGENT}
         if session:
             extra["CLAUDE_CODE_SESSION_ID"] = session
+            extra["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         return self.world.env(extra=extra)
 
     def core(self, *argv, session=LEAD, expect=0):

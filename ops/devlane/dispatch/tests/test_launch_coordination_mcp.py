@@ -305,6 +305,12 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
             env.pop(ls.SESSION_KEY, None)
         else:
             env[ls.SESSION_KEY] = session_id
+        # The worker's private profile is the existing custody carrier. This
+        # helper deliberately uses raw synthetic test custody so the foreign
+        # session control still reaches core without profile identity rewriting.
+        binding = json.loads((Path(config_path).parent / "enforcement/binding.json").read_text())
+        env.pop("AGENTSCIENT_HOOK_PROFILE", None)
+        env["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
         return subprocess.run(
             [sys.executable, str(ACTING), "--config", str(config_path),
              "call", tool, json.dumps(arguments or {})],

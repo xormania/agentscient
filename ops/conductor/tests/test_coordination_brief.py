@@ -20,6 +20,7 @@ written, both readings quoted in the commit that carries it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -60,6 +61,7 @@ class CoordinationWorld(unittest.TestCase):
         env = self.world.env(extra={"LANE_CONF": str(self.conf)})
         env["WF_AGENT"] = AGENT
         env["CLAUDE_CODE_SESSION_ID"] = session
+        env["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         return env
 
     def run_tool(self, *argv, session=LEAD):
