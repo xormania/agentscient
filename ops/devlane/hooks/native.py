@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 from pathlib import Path
 
@@ -42,6 +43,18 @@ def alias(data, first, second, default=None):
     if first in data and second in data and data[first] != data[second]:
         raise ValueError(f"conflicting {first}/{second}")
     return data.get(first, data.get(second, default))
+
+
+def skill_name(args):
+    """The witnessed Claude Skill input; no guessed aliases or source paths."""
+    if not isinstance(args, dict) or set(args) - {"skill", "args"}:
+        raise ValueError("invalid native Skill arguments")
+    name = text(args.get("skill"), "skill name")
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        raise ValueError("native skill name is not a canonical managed name")
+    if "args" in args:
+        text(args["args"], "skill arguments", empty=True)
+    return name
 
 
 def patch_items(body):
@@ -135,7 +148,8 @@ def normalize(harness, payload, *, event=None, cwd=None, home=None):
         raise ValueError("relative working directory")
     if cwd and not Path(directory).resolve().is_relative_to(Path(cwd).resolve()):
         raise ValueError("native cwd outside bound workspace")
-    base = {"hook_event_name": event, "cwd": directory, "session_id": session or "",
+    canonical_event = "SessionStart" if harness == "agy" and event == "PreInvocation" else event
+    base = {"hook_event_name": canonical_event, "cwd": directory, "session_id": session or "",
             "native_tool": tool, "native_harness": harness}
     if transcript:
         base["transcript_path"] = text(transcript, "transcript")
@@ -155,6 +169,9 @@ def normalize(harness, payload, *, event=None, cwd=None, home=None):
     text(tool, "tool name")
     def item(name, inp):
         return {**base, "tool_name": name, "tool_input": inp}
+    if harness == "claude" and tool == "Skill":
+        skill_name(args)
+        return [item("Skill", args)]
     if tool in SHELL_TOOLS:
         command = alias(args, "command", "cmd")
         if harness == "agy":
@@ -231,6 +248,9 @@ def respond(harness, decision, event):
     if event == "Stop" and not allowed and reason.startswith("hook-input:") and harness != "agy":
         return {"continue": False, "stopReason": reason}
     if harness == "agy":
+        if event == "PreInvocation":
+            context = decision.get("context", "") if allowed else ""
+            return {"injectSteps": [{"ephemeralMessage": context}]} if context else {}
         if event == "PreToolUse":
             return {"decision": "allow" if allowed else "deny", "reason": reason}
         if event == "Stop":
@@ -240,6 +260,8 @@ def respond(harness, decision, event):
         return {}
     if event == "PreToolUse":
         output = {"hookEventName": event, "permissionDecision": "allow" if allowed else "deny", "permissionDecisionReason": reason}
+        if allowed and decision.get("context"):
+            output["additionalContext"] = decision["context"]
         if allowed and "updated_input" in decision:
             output["updatedInput"] = decision["updated_input"]
         return {"hookSpecificOutput": output}

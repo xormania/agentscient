@@ -2,19 +2,247 @@
 
 Single dev-lane producer under owner WALL grant; independent verifier is root.
 """
+import hashlib
+import io
 import json
 import os
 import shutil
 import sqlite3
 import unittest
+from contextlib import redirect_stdout
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import support
 
 from ops.devlane.hooks import enforcement, native, profiles
 from ops.testkit import World, run
+
+
+class ManagedSkills(unittest.TestCase):
+    """Owner 2026-09-19: shared skills, existing owners, no native activation.
+
+    The API double declares the non-wall skills.py coupling while that owner's
+    implementation is developed independently. Source pages are read only.
+    """
+
+    def setUp(self):
+        self.world = World(prefix="managed-skill-hooks-")
+        self.addCleanup(self.world.close)
+        self.repo = self.world.root / "repo"
+        self.repo.mkdir()
+        self.env = support.isolated_env(self.world.home)
+        support.git(self.repo, self.env, "init", "-q", "-b", "dev")
+        support.configure_identity(self.repo, self.env)
+        self.world.plant_text(self.repo / "README.txt", "read control\n")
+        self.environment = patch.dict(os.environ, self.env, clear=True)
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+        self.rows = {}
+        for name in ("onboard", "refused", "deliverable"):
+            path = enforcement.SOURCE / ".claude/skills" / name / "SKILL.md"
+            self.rows[name] = {"name": name, "description": name + " procedure", "path": str(path),
+                               "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                               "status": "active", "content": path.read_text()}
+        self.owner = SimpleNamespace(
+            managed_catalog=lambda: [{k: v for k, v in row.items() if k != "content"}
+                                     for row in self.rows.values()],
+            load_skill=lambda name: dict(self.rows[name]), record_event=Mock())
+        self.owner_patch = patch.object(enforcement, "skills", self.owner, create=True)
+        self.owner_patch.start()
+        self.addCleanup(self.owner_patch.stop)
+
+    def payload(self, tool="Bash", **args):
+        return {"hook_event_name": "PreToolUse", "cwd": str(self.repo),
+                "session_id": "fixture-session", "native_harness": "claude",
+                "tool_name": tool, "tool_input": args}
+
+    def invoke(self, harness, event, mode="interactive"):
+        payload = {"session_id": "fixture-session", "cwd": str(self.repo)}
+        if harness == "agy":
+            payload = {"conversationId": "fixture-session", "workspacePaths": [str(self.repo)],
+                       "invocationNum": 1, "initialNumSteps": 0}
+        binding = {"harness": harness, "mode": mode, "cwd": str(self.repo),
+                   "home": str(self.world.home), "source": str(enforcement.SOURCE)}
+        projection = SimpleNamespace(read_binding=lambda _: binding, validate=lambda _: binding,
+                                     initialize=lambda *a, **k: None)
+        actual_load = enforcement.load
+        def loader(name, path):
+            return projection if name == "shared_hook_profiles" else actual_load(name, path)
+        output = io.StringIO()
+        with patch.object(enforcement, "load", side_effect=loader), redirect_stdout(output), patch.object(
+                enforcement.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(json.dumps(payload).encode()))):
+            self.assertEqual(enforcement.main(["--harness", harness, "--event", event,
+                                               "--binding", "/synthetic/binding.json"]), 0)
+        return json.loads(output.getvalue())
+
+    def test_each_policy_refusal_records_one_miss_and_keeps_its_remedy(self):
+        for tool, args in [("Bash", {"command": "git commit -m blocked"}),
+                           ("Bash", {"command": "python3 -m pytest | tail -2"}),
+                           ("Agent", {"prompt": "blocked"})]:
+            with self.subTest(tool=tool, args=args):
+                self.owner.record_event.reset_mock()
+                result = enforcement.evaluate(self.payload(tool, **args))
+                self.assertEqual(result["outcome"], "deny")
+                self.assertIn("skills.py use refused", result["reason"])
+                self.owner.record_event.assert_called_once()
+                self.assertEqual(self.owner.record_event.call_args.args[:2], ("miss", "refused"))
+
+    def test_event_failure_never_replaces_a_denial_or_pending_owner_decision(self):
+        self.owner.record_event.side_effect = OSError("unwritable synthetic registry")
+        for command, outcome in [("git commit -m blocked", "deny"), ("git push --force origin topic", "ask")]:
+            result = enforcement.evaluate(self.payload(command=command))
+            self.assertEqual(result["outcome"], outcome)
+            self.assertIn("skills.py use refused", result["reason"])
+            self.assertNotIn("unwritable", result["reason"])
+
+    def test_clean_read_and_cli_use_are_not_hook_invocations(self):
+        for command in ("cat README.txt", "python3 ops/conductor/tools/skills.py use onboard"):
+            self.assertEqual(enforcement.evaluate(self.payload(command=command))["outcome"], "allow")
+        self.owner.record_event.assert_not_called()
+
+    def test_deliverable_uses_existing_miss_mapping_and_pinned_owner(self):
+        self.world.plant_text(self.repo / "ops/conductor/tools/skills.py", "raise RuntimeError('counterfeit')\n")
+        refusal = {"hookSpecificOutput": {"permissionDecision": "deny", "permissionDecisionReason":
+                   "[matrix:deliverable] deliverable: expected a lock; found unnamed branch; needed add it"}}
+        with patch.object(enforcement.matrix, "decide", return_value=refusal):
+            result = enforcement.evaluate(self.payload(command="touch ops/new.py"))
+        self.assertIn("skills.py use deliverable", result["reason"])
+        self.owner.record_event.assert_called_once()
+        self.assertEqual(self.owner.record_event.call_args.args[:2], ("miss", "deliverable"))
+
+    def test_name_only_native_skill_gets_canonical_fallback_without_invoked_credit(self):
+        item = native.normalize("claude", self.payload("Skill", skill="onboard", args="session start"))[0]
+        result = enforcement.evaluate(item, mode="interactive")
+        self.assertEqual(result["outcome"], "deny")
+        self.assertIn("skills.py use onboard", result["reason"])
+        self.assertFalse(any(call.args[0] == "invoked" for call in self.owner.record_event.call_args_list))
+
+    def test_unknown_retired_or_foreign_native_skill_is_not_admitted(self):
+        for name, change in [("unknown", None), ("onboard", {"status": "retired"}),
+                             ("onboard", {"path": str(self.repo / "SKILL.md")}),
+                             ("onboard", {"sha256": "0" * 64})]:
+            with self.subTest(name=name, change=change):
+                original = dict(self.rows["onboard"])
+                if change:
+                    self.rows["onboard"].update(change)
+                result = enforcement.evaluate(self.payload("Skill", skill=name), mode="interactive")
+                self.assertEqual(result["outcome"], "deny")
+                self.rows["onboard"] = original
+
+    def test_only_observed_skill_spelling_is_normalized(self):
+        for args in ({"skill": []}, {"skill": "../refused"}, {"name": "onboard"},
+                     {"skill": "onboard", "args": {}}, {"skill": "user:onboard"}):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                native.normalize("claude", self.payload("Skill", **args))
+        for harness in ("codex", "grok", "agy"):
+            payload = {**self.payload("Skill", skill="onboard"), "native_harness": harness}
+            self.assertEqual(enforcement.evaluate(payload)["outcome"], "deny")
+
+    def test_worker_native_skill_never_loads_operator_source(self):
+        self.owner.load_skill = Mock(side_effect=AssertionError("operator source reached"))
+        result = enforcement.evaluate(self.payload("Skill", skill="onboard"), mode="worker")
+        self.assertEqual(result["outcome"], "deny")
+        self.assertIn("assigned job instructions", result["reason"])
+        self.owner.load_skill.assert_not_called()
+        self.owner.record_event.assert_not_called()
+
+    def test_interactive_startup_serves_bounded_catalogue_workers_do_not(self):
+        for harness in native.HARNESSES:
+            event = "PreInvocation" if harness == "agy" else "SessionStart"
+            with self.subTest(harness=harness):
+                interactive = self.invoke(harness, event)
+                text = json.dumps(interactive)
+                self.assertIn("skills.py use", text)
+                self.assertIn("onboard procedure", text)
+                self.assertLess(len(text), 8500)
+                worker = json.dumps(self.invoke(harness, event, "worker"))
+                self.assertNotIn("onboard procedure", worker)
+                self.assertNotIn("skills.py use", worker)
+        self.owner.record_event.assert_not_called()
+
+    def test_agy_preinvocation_uses_only_ephemeral_context_and_retains_stop_limits(self):
+        out = self.invoke("agy", "PreInvocation")
+        self.assertIn("injectSteps", out)
+        self.assertTrue(all(set(step) == {"ephemeralMessage"} for step in out["injectSteps"]))
+        result = {"outcome": "deny", "reason": "hook-input: unavailable", "context": ""}
+        self.assertEqual(native.respond("agy", result, "Stop")["decision"], "continue")
+        self.assertEqual(native.respond("agy", result, "PostToolUse"), {})
+
+    def test_catalogue_failure_is_declared_without_changing_startup_policy(self):
+        self.owner.managed_catalog = Mock(side_effect=OSError("unreadable"))
+        response = self.invoke("claude", "SessionStart")
+        self.assertIn("unavailable", json.dumps(response).lower())
+        self.assertNotIn("block", response)
+
+    def test_profile_pins_skill_sources_only_for_interactive_guidance(self):
+        for mode in ("interactive", "worker"):
+            binding = profiles.generate("agy", self.world.root / mode, source=enforcement.SOURCE,
+                                        cwd=self.repo, mode=mode, session="issued" if mode == "worker" else None)
+            page = self.rows["onboard"]["path"]
+            if mode == "interactive":
+                self.assertEqual(binding["pins"].get(page), self.rows["onboard"]["sha256"])
+                self.assertIn("PreInvocation", Path(binding["helper"]).read_text())
+            else:
+                self.assertNotIn(page, binding["pins"])
+
+    def test_done_gate_cap_uses_pinned_telemetry_without_a_snapshot_script(self):
+        self.world.plant_text(self.repo / "ops/conductor/tools/skills.py", "raise RuntimeError('counterfeit')\n")
+        payload = {"hook_event_name": "Stop", "cwd": str(self.repo),
+                   "session_id": "fixture-session", "last_assistant_message": "The task is done."}
+        with patch.object(enforcement.engine, "_done_gate_count", return_value=enforcement.engine.DONE_GATE_CAP), patch.object(
+                enforcement.engine, "_lock_reading", return_value="the lock reads: synthetic outstanding target"):
+            result = enforcement.evaluate(payload)
+        self.assertEqual(result["outcome"], "allow")
+        self.owner.record_event.assert_called_once()
+        self.assertEqual(self.owner.record_event.call_args.args[:2], ("miss", "refused"))
+        self.assertIn("cap", self.owner.record_event.call_args.args[2])
+
+    def test_modified_added_or_redirected_skill_invalidates_interactive_profile(self):
+        source = self.world.root / "source"
+        for original in profiles.source_pins(enforcement.SOURCE):
+            self.world.plant_bytes(source / Path(original).relative_to(enforcement.SOURCE), Path(original).read_bytes())
+        page = source / ".claude/skills/onboard/SKILL.md"
+        content = page.read_bytes()
+        with patch.object(profiles, "__file__", str(source / "ops/devlane/hooks/profiles.py")):
+            for change in ("edit", "add", "symlink"):
+                with self.subTest(change=change):
+                    binding = profiles.generate("claude", self.world.root / ("pins-" + change),
+                                                source=source, cwd=self.repo, mode="interactive")
+                    profiles.validate(binding)
+                    if change == "edit":
+                        self.world.plant_bytes(page, content + b"\nchanged instructions\n")
+                    elif change == "add":
+                        self.world.plant_text(source / ".claude/skills/new-skill/SKILL.md", "new skill\n")
+                    else:
+                        other = self.world.plant_bytes(self.world.root / "foreign-page", content)
+                        page.unlink()
+                        page.symlink_to(other)
+                    with self.assertRaises(ValueError):
+                        profiles.validate(binding)
+                    if change == "symlink":
+                        page.unlink()
+                    self.world.plant_bytes(page, content)
+
+    def test_only_active_catalogue_rows_are_injected_with_bounded_description(self):
+        self.rows["refused"]["status"] = "retired"
+        self.rows["onboard"]["description"] = "long description " * 10000
+        result = json.dumps(self.invoke("agy", "PreInvocation"))
+        self.assertIn("long description", result)
+        self.assertNotIn("refused procedure", result)
+        self.assertLess(len(result), 8500)
+
+    def test_owner_resolved_repository_aliases_are_served_and_pinned(self):
+        name = "mate-system-information"
+        path = (enforcement.SOURCE / ".claude/skills" / name / "SKILL.md").resolve(strict=True)
+        self.rows[name] = {"name": name, "description": "repository alias control", "path": str(path),
+                           "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                           "status": "active", "content": path.read_text()}
+        response = self.invoke("claude", "SessionStart")
+        self.assertIn("repository alias control", json.dumps(response))
+        self.assertEqual(profiles.source_pins(enforcement.SOURCE).get(str(path)), self.rows[name]["sha256"])
 
 
 class SharedEnforcement(unittest.TestCase):

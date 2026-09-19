@@ -5,6 +5,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -35,10 +36,15 @@ unsafe = load("shared_hook_unsafe", HERE / "claude/unsafe-command.py")
 no_subagents = load("shared_hook_delegation", HERE / "claude/no-subagents.py")
 context = load("shared_hook_context", HERE / "claude/context-precheck.py")
 hand = load("shared_hook_hand", TOOLS / "hand.py")
+skills = load("shared_hook_skills", TOOLS / "skills.py")
+skill_use = load("shared_hook_skill_use", HERE / "claude/skill-use.py")
 
 
-def decision(outcome="allow", reason="", context=""):
-    return {"outcome": outcome, "reason": reason, "context": context}
+def decision(outcome="allow", reason="", context="", *, klass=None):
+    value = {"outcome": outcome, "reason": reason, "context": context}
+    if klass:
+        value["policy_class"] = klass
+    return value
 
 
 def refuse(found, needed="repair the shared guard binding; inspect co_doc.py"):
@@ -51,16 +57,29 @@ def converted(value):
     if not isinstance(value, dict):
         raise ValueError("malformed evaluator response")
     if value.get("decision") == "block":
-        return decision("deny", native.text(value.get("reason"), "refusal reason"))
+        reason = native.text(value.get("reason"), "refusal reason")
+        return decision("deny", reason, klass=policy_class(reason))
     spec = value.get("hookSpecificOutput")
     if not isinstance(spec, dict):
         raise ValueError("missing evaluator output")
     outcome = spec.get("permissionDecision")
     if outcome in {"deny", "ask"}:
-        return decision(outcome, native.text(spec.get("permissionDecisionReason"), "refusal reason"))
+        reason = native.text(spec.get("permissionDecisionReason"), "refusal reason")
+        return decision(outcome, reason, klass=policy_class(reason))
     if "additionalContext" in spec:
         return decision(context=native.text(spec["additionalContext"], "context", empty=True))
     raise ValueError("unknown evaluator decision")
+
+
+def policy_class(reason):
+    """Read only existing policy owners' bracketed class tags, never tool input."""
+    match = re.match(r"\[(?:(?:matrix|engine):)?([a-z][a-z0-9-]*)\] ", reason)
+    return match[1] if match else None
+
+
+def shared_miss(_cwd, klass, found, hook="engine"):
+    """Adapt the engine's existing observation seam to the pinned skills owner."""
+    return skill_use.record_miss(skills, klass, found)
 
 
 @contextmanager
@@ -93,7 +112,7 @@ def mcp_allowed(inp, servers):
     return False
 
 
-def evaluate(payload, *, servers=()):
+def _evaluate(payload, *, servers=(), mode=None):
     """One complete decision. Guard failures cannot be confused with predicate None."""
     token = None
     try:
@@ -130,6 +149,18 @@ def evaluate(payload, *, servers=()):
                     return refuse("unbound MCP operation", "bind the existing server catalogue and effective core authority")
             elif tool == "Continuation":
                 return refuse("unbound continuation input", "use a finite guarded command; input is not a fresh shell action")
+            elif tool == "Skill":
+                if payload.get("native_harness") != "claude":
+                    return refuse("unverified native Skill transport", "use the common skills.py use command")
+                if mode != "interactive":
+                    return refuse("native operator skill outside an interactive profile", "follow the worker's assigned job instructions")
+                name = native.skill_name(inp)
+                skill_use.managed_page(skills, SOURCE, name)
+                # The witnessed Claude payload is name-only. It cannot prove
+                # which project/personal/plugin source the native tool loads.
+                return decision("deny", "skill-source: expected a verified canonical native skill source; "
+                                f"found name-only Skill invocation {name}; needed "
+                                + skill_use.use_command(SOURCE, name), klass="skill-source")
             elif tool not in {"Read", "Cancel", "Agent", "Task", "Workflow"}:
                 return refuse("unknown native tool", "declare and verify its translation in the shared guard")
             if event == "PostToolUse" and any(row.get("engine") and row.get("event") == event for row in rows) and "tool_response" not in payload:
@@ -140,7 +171,7 @@ def evaluate(payload, *, servers=()):
             if event == "PreToolUse":
                 reason = no_subagents.decide(payload)
                 if reason:
-                    return decision("deny", reason)
+                    return decision("deny", reason, klass="no-subagents")
                 if tool == "Bash":
                     out = converted(unsafe.decide(payload))
                     if out["outcome"] != "allow":
@@ -149,12 +180,13 @@ def evaluate(payload, *, servers=()):
                     out = converted(matrix.decide(payload))
                     if out["outcome"] != "allow":
                         return out
-            out = converted(engine.decide(payload, rows=rows)[0])
+            out = converted(engine.decide(payload, rows=rows, miss_logger=shared_miss)[0])
             if out["outcome"] != "allow":
                 return out
             if event == "PreToolUse" and tool == "Bash":
                 checked = converted(context.decide(payload, strict=True))
                 if checked["outcome"] != "allow":
+                    checked.setdefault("policy_class", "context-precheck")
                     return checked
             return out
     except Exception as exc:  # noqa: BLE001 - unavailable guard input is a blocking result
@@ -162,6 +194,11 @@ def evaluate(payload, *, servers=()):
     finally:
         if token is not None:
             matrix.GUARD_CONTEXT.reset(token)
+
+
+def evaluate(payload, *, servers=(), mode=None):
+    result = _evaluate(payload, servers=servers, mode=mode)
+    return skill_use.recovery(result, skills, SOURCE)
 
 
 def main(argv=None):
@@ -186,11 +223,14 @@ def main(argv=None):
             items[0]["cwd"] = binding["cwd"]
         result = decision()
         for payload in items:
-            result = evaluate(payload, servers=binding.get("servers", ()))
+            result = evaluate(payload, servers=binding.get("servers", ()), mode=binding["mode"])
             if result["outcome"] != "allow":
                 break
         if rewritten and result["outcome"] == "allow":
             result["updated_input"] = {"command": rewritten}
+        if (binding["mode"] == "interactive" and result["outcome"] == "allow"
+                and args.event in {"SessionStart", "PreInvocation"}):
+            result["context"] = "\n".join(filter(None, (result["context"], skill_use.startup(skills, SOURCE))))
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])
     print(json.dumps(native.respond(args.harness, result, args.event)))

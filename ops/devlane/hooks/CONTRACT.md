@@ -28,6 +28,70 @@ expected–found–needed remedy. A grant never lifts hard rows. A native adapte
 with no verified owner-approval channel converts ask to deny and preserves its
 owner-action reason; it never guesses approval or retries with weaker settings.
 
+## Managed skill guidance and observations
+
+Owner-authorized 2026-09-19, isolated WALL grant 312. The canonical skill owner
+remains `ops/conductor/tools/skills.py`; its declared Python seam is
+`managed_catalog() -> list[{name, description, path, sha256, status}]`,
+`load_skill(name) ->` the same fields plus `content`, and
+`record_event(kind, name, detail=None) -> None`. Paths name canonical SKILL.md
+files. The owner handles registry state, active registration, source reading,
+identity/session attribution, redaction and SQLite writes. These functions
+produce no stdout. The common `skills.py use NAME` command owns its invocation
+event and returns the page with an instruction to skip duplicate manual
+`log-use`. Hook observation never counts shell `use` commands or file reads as
+another invocation. This is instruction retrieval, not proof that the procedure
+finished. There is no exactly-once replay claim.
+
+The shared entry imports the skills owner only from its pinned installation,
+never from the tool's cwd or worker snapshot. Its skill-use helper reuses
+`miss.skill_for` for recovery and class attribution: `deliverable` names that
+page; other policy classes name `refused`. Each final policy denial or pending
+owner decision gets a bounded miss observation and the common use command
+appended to its existing reason. The original outcome and needed remedy remain
+authoritative. A failed telemetry write never replaces or weakens that decision;
+guard-input failures are not classified as missed skills. The engine's existing
+Stop-cap observation uses the same pinned owner through an explicit logger seam,
+without changing the cap or creating a second state store. Legacy standalone
+hook entrypoints retain their existing interface.
+
+Only Claude's observed `Skill` spelling and `skill`/optional string `args` input
+are recognized; canonical names exclude namespace aliases and paths. The native
+payload does not attest its resolved source, so even a known active managed name
+is refused with `skills.py use NAME` as the remedy. It gets no invoked credit.
+Unknown, inactive, foreign or changed canonical pages refuse. No source field or
+Skill alias is invented for another harness. A future native allow path needs a
+source-resolution witness. Workers cannot load operator pages through this
+native path; their supplied job instructions remain the recovery guidance.
+
+Interactive startup reads the existing catalogue and returns a compact reminder
+with the common use command and active names/descriptions. It neither runs
+onboarding nor records a use. The catalogue reminder is capped at 6,000 characters
+with omitted entries stated; a failed catalogue read is explicitly unavailable.
+Workers receive no operator catalogue or startup reminder and do not perform
+that catalogue read. On Agy, the native `PreInvocation` event is preserved for
+the response while policy evaluates its canonical SessionStart event. Context
+uses only `injectSteps: [{ephemeralMessage: ...}]`; no tool call, user message or
+permission override is injected. Since this event recurs before model calls,
+the reminder is bounded and stateless, not another onboarding workflow. Agy's
+empty PostToolUse response and existing bounded Stop continuation remain intact.
+The injection transport is documented by installed Agy 1.2.5, not newly claimed
+as a native interception witness by these synthetic tests.
+
+Interactive profile pins include resolved canonical `.claude/skills/*/SKILL.md`
+bytes, detecting edits, additions, deletions and changed source targets on validation.
+Repository-confined aliases (including Mate links into `.agents/skills`) retain
+the owner's source policy; escaping links refuse. Worker profiles do not add these operator
+page pins. Existing source/config/helper validation and protected mounts own the
+binding; there is no second manifest or skill installation command. Shared
+guidance is available in admitted profiles; these changes do not activate hooks
+in ordinary running terminals. Native activation still requires independent
+verification of the combined wall and skills-owner implementation.
+
+The bounded wall implementation and its World cases have one producer under
+the owner's hand grant; a separate test producer is absent by explicit owner
+instruction. The independent root/security verification remains separate.
+
 ## Native translation
 
 Claude, Codex and Grok hook envelopes normalize into tool_name/tool_input/cwd,

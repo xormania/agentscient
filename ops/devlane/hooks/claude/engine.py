@@ -58,8 +58,9 @@ class CouldNotLook(Exception):
 
 
 class Context:
-    def __init__(self, payload):
+    def __init__(self, payload, *, miss_logger=None):
         self.payload = payload
+        self.log_miss = miss_logger if miss_logger is not None else miss.log_miss
         self.event = payload.get("hook_event_name") or (
             "PostToolUse" if "tool_response" in payload
             else "PreToolUse" if payload.get("tool_name")
@@ -582,7 +583,7 @@ def p_reply_claims_done(ctx):
         return None
     if blocks >= DONE_GATE_CAP:
         _done_gate_count(ctx, session, 0)
-        miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
+        ctx.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
         return None
     _done_gate_count(ctx, session, blocks + 1)
     return (f'the reply says "{claim}" with no deliverable.py line (run python3 ops/conductor/tools/deliverable.py '
@@ -702,8 +703,8 @@ def emit_refusal(event, line, decision="deny"):
     return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": line}}
 
 
-def decide(payload, *, rows=None):
-    ctx = Context(payload)
+def decide(payload, *, rows=None, miss_logger=None):
+    ctx = Context(payload, miss_logger=miss_logger)
     rows = load_registry() if rows is None else rows
     bound = [r for r in rows if r.get("engine") and r.get("event") == ctx.event
              and (not r.get("tools") or ctx.tool in r.get("tools"))]

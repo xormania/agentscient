@@ -28,13 +28,23 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def source_pins(source):
+def source_pins(source, *, operator_skills=True):
     source = Path(source).resolve(strict=True)
     hooks = source / "ops/devlane/hooks"
     files = list((hooks / "claude").glob("*.py"))
     files += [hooks / name for name in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
     files += list((source / "ops/conductor/tools").glob("*.py"))
     files += [source / "ops/lane.conf", source / "ops/devlane/harness/isolation.py"]
+    if operator_skills:
+        root = source / ".claude/skills"
+        if not root.is_dir() or not root.resolve().is_relative_to(source):
+            raise ValueError("unavailable canonical managed skill sources")
+        # Pin resolved source bytes, including the owner's repository-confined
+        # Mate aliases into .agents/skills. Changed targets change this closure.
+        pages = [p.resolve(strict=True) for p in root.glob("*/SKILL.md")]
+        if any(not p.is_relative_to(source) for p in pages):
+            raise ValueError("managed skill source escapes the installed catalogue")
+        files += pages
     if not files or any(not p.is_file() or p.is_symlink() for p in files):
         raise ValueError("unavailable stable policy closure")
     return {str(path): digest(path) for path in sorted(set(files))}
@@ -54,7 +64,7 @@ def fallback(harness, event):
 def helper_text(binding):
     """Reuse control.py's pinned-helper/fallback mechanism, not its action policy."""
     lines = ["#!/bin/sh", "set -u", 'event=${1:-PreToolUse}', 'case "$event" in']
-    for event in EVENTS:
+    for event in (*EVENTS, "PreInvocation"):
         lines.append(f"{event}) denial={shlex.quote(canonical(fallback(binding['harness'], event)))} ;;")
     lines += [f"*) denial={shlex.quote(canonical(fallback(binding['harness'], 'PreToolUse')))} ;;", "esac",
               'block() { printf "%s\\n" "$denial"; exit 0; }']
@@ -100,10 +110,10 @@ def configuration(harness, native_home, helper, cwd, settings=None):
     events = EVENTS if harness != "agy" else ("PreToolUse", "PostToolUse", "Stop", "PreInvocation")
     event_groups = {}
     for event in events:
-        # PreInvocation initializes an interactive native identity only. It is
-        # never presented as a dispatch job or a SessionStart interception proof.
-        hook_event = "SessionStart" if event == "PreInvocation" else event
-        action = {"type": "command", "command": shlex.join(["/bin/sh", str(helper), hook_event]), "timeout": 120}
+        # Preserve the native event so Agy advisory output uses injectSteps.
+        # The evaluator maps it to SessionStart; this is not an enforcement
+        # witness for an Agy startup decision channel.
+        action = {"type": "command", "command": shlex.join(["/bin/sh", str(helper), event]), "timeout": 120}
         event_groups[event] = ([{"matcher": ".*", "hooks": [action]}]
                                if event in {"PreToolUse", "PostToolUse"} else [{"hooks": [action]}])
     if harness == "agy":
@@ -159,7 +169,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "servers": list(servers), "authority_environment": authority,
                "native_settings": native_settings,
                "credential_environment": credential_environment or {},
-               "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
+               "pins": source_pins(source, operator_skills=mode == "interactive"), "config_pins": {str(p): digest(p) for p in configs},
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
     binding["helper_sha256"] = hashlib.sha256(helper_text(binding).encode()).hexdigest()
@@ -188,7 +198,7 @@ def validate(binding):
         raise ValueError("missing or malformed coordination capability")
     if Path(binding["source"]).resolve() != Path(__file__).resolve().parents[3]:
         raise ValueError("policy source is not this trusted installation")
-    if source_pins(binding["source"]) != binding["pins"]:
+    if source_pins(binding["source"], operator_skills=binding["mode"] == "interactive") != binding["pins"]:
         raise ValueError("policy closure changed")
     registry = json.loads((Path(binding["source"]) / "ops/devlane/hooks/boundaries.json").read_text())
     if binding["harness"] == "agy" and any(row.get("engine") and row.get("event") in {"PostToolUse", "SessionStart"} for row in registry["rows"]):
@@ -215,7 +225,7 @@ def relocate(binding, old_root, new_root):
     old_root, new_root = Path(old_root), Path(new_root)
     if binding["mode"] != "worker" or Path(binding["binding"]) != old_root / "enforcement/binding.json":
         raise ValueError("relocation is not the recorded worker profile")
-    if source_pins(binding["source"]) != binding["pins"]:
+    if source_pins(binding["source"], operator_skills=False) != binding["pins"]:
         raise ValueError("relocated policy closure changed")
     def moved(path):
         p = Path(path)
