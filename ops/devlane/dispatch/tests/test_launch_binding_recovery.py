@@ -21,6 +21,7 @@ class BindingRecovery(_Acting):
     def useful_call(self, rec, binding, env=None):
         if env is None:
             env = self.launch._child_env(dict(os.environ), {}, rec["id"], binding)
+            env["AGENTSCIENT_HOOK_PROFILE"] = str(Path(rec["snapshot"]["root"]).parent / "enforcement/binding.json")
         env.pop("WF_AGENT", None)
         argv = list(self.acting(rec)["server"])
         argv[-1:] = ["call", "coord_brief", "{}"]
@@ -74,6 +75,7 @@ class BindingRecovery(_Acting):
         rec, witness, _assignment = self.dispatched()
         binding = witness["env"][ls.SESSION_KEY]
         child = self.launch._child_env(dict(os.environ), {}, rec["id"], binding)
+        child["AGENTSCIENT_HOOK_PROFILE"] = witness["env"]["AGENTSCIENT_HOOK_PROFILE"]
         # Verified against installed Codex 0.155.0: custom variables are
         # filtered unless the server registration explicitly forwards them.
         prefix = "mcp_servers.coordination.env_vars="

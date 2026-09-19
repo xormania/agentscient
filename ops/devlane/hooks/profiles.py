@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shlex
 import shutil
 import stat
@@ -86,7 +87,7 @@ def configuration(harness, native_home, helper, cwd, settings=None):
     servers = settings.get("mcp_servers", {})
     for server in servers.values():
         environment = server.setdefault("env", {})
-        for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
+        for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID", "COORDINATION_CAPABILITY"):
             environment.pop(key, None)
         environment["AGENTSCIENT_HOOK_PROFILE"] = str(helper.parent / "binding.json")
     events = EVENTS if harness != "agy" else ("PreToolUse", "PostToolUse", "Stop", "PreInvocation")
@@ -146,6 +147,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "source": str(source), "cwd": str(cwd), "home": str(native_home),
                "helper": str(helper), "binding": str(dest / "binding.json"),
                "python": str(Path(sys.executable).resolve()), "session": session,
+               "coordination_capability": secrets.token_hex(32),
                "servers": list(servers), "authority_environment": authority,
                "native_settings": native_settings or {},
                "credential_environment": credential_environment or {},
@@ -153,7 +155,8 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
     binding["helper_sha256"] = hashlib.sha256(helper_text(binding).encode()).hexdigest()
-    Path(binding["binding"]).write_text(canonical(binding))
+    with os.fdopen(os.open(binding["binding"], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as private:
+        private.write(canonical(binding))
     helper.write_text(helper_text(binding))
     helper.chmod(0o700)
     return binding
@@ -172,6 +175,9 @@ def validate(binding):
         raise ValueError("unknown profile projection")
     if binding.get("mode") not in {"worker", "interactive"} or (binding["mode"] == "worker" and not binding.get("session")):
         raise ValueError("invalid startup identity mode")
+    capability = binding.get("coordination_capability")
+    if not isinstance(capability, str) or not re.fullmatch(r"[0-9a-f]{64}", capability):
+        raise ValueError("missing or malformed coordination capability")
     if Path(binding["source"]).resolve() != Path(__file__).resolve().parents[3]:
         raise ValueError("policy source is not this trusted installation")
     if source_pins(binding["source"]) != binding["pins"]:
@@ -225,6 +231,7 @@ def relocate(binding, old_root, new_root):
         path.write_text(content)
     Path(revised["helper"]).write_text(helper_text(revised))
     Path(revised["binding"]).write_text(canonical(revised))
+    Path(revised["binding"]).chmod(0o600)
     return validate(revised)
 
 
@@ -335,6 +342,8 @@ def native_launch(binding, argv, env):
     if binding["authority_environment"]["HOME"] != str(Path.home()):
         raise ValueError("authority HOME differs from the trusted launcher")
     out = dict(env)
+    out.pop("COORDINATION_CAPABILITY", None)
+    out["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     if binding["authority_environment"].get("WF_AGENT_OVERRIDE"):
         out["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
@@ -381,11 +390,13 @@ def initialize(binding, native_payload, *, instrument):
     job is synthesized for an interactive terminal and no parent id is inherited.
     """
     import importlib.util
+    validate(binding)
     native_id = native_payload.get("conversationId") if binding["harness"] == "agy" else native_payload.get("session_id", native_payload.get("sessionId"))
     session = binding["session"] if binding["mode"] == "worker" else native_id
     if not isinstance(session, str) or not session.strip() or len(session) > 128:
         raise ValueError("native/issued session identity unavailable")
     os.environ.pop("AGENTSCIENT_HOOK_PROFILE", None)
+    os.environ["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
         os.environ.pop(key, None)
     # This is the instrument's existing generic issued-session carrier. Native

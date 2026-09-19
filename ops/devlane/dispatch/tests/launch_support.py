@@ -146,6 +146,7 @@ env_keys = [
     # fail for the right reason: without the key here, a test would
     # read an absent value whether the launcher set it or not.
     "CLAUDE_SESSION_ID",
+    "AGENTSCIENT_HOOK_PROFILE",
 ]
 env_shot = {k: os.environ[k] for k in env_keys if k in os.environ}
 
@@ -1383,13 +1384,17 @@ class CoordinationCore:
     XDG_STATE_HOME, so nothing here touches the host's.
     """
 
-    def core(self, *args, session=None, agent=FIXTURE_DISPATCHER):
+    def core(self, *args, session=None, agent=FIXTURE_DISPATCHER, profile=None):
         env = dict(os.environ)
         env["WF_AGENT"] = agent
         if session:
             env[SESSION_KEY] = session
+            env["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         else:
             env.pop(SESSION_KEY, None)
+            env.pop("COORDINATION_CAPABILITY", None)
+        if profile:
+            env["AGENTSCIENT_HOOK_PROFILE"] = str(profile)
         return subprocess.run(
             [sys.executable, str(CORE_LEVER), *args],
             capture_output=True, text=True, timeout=60,
@@ -1406,6 +1411,7 @@ class CoordinationCore:
         done = self.core("bind", "--roles", "lead,dispatcher", session=key)
         self.assertEqual(done.returncode, 0,
                          f"bootstrap bind refused: {done.stderr!r}")
+        os.environ["COORDINATION_CAPABILITY"] = hashlib.sha256(key.encode()).hexdigest()
         return key
 
     def assignment(self, session, title="a fixture assignment",

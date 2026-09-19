@@ -132,6 +132,65 @@ class SharedEnforcement(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     profiles.validate(binding)
 
+    def test_coordination_capability_is_private_and_survives_all_harness_resumes(self):
+        root = Path(__file__).resolve().parents[4]
+        isolation = profiles.isolation_owner()
+        seen = set()
+        inherited = "f" * 64
+        for harness in profiles.HARNESSES:
+            with self.subTest(harness=harness):
+                old = self.world.root / ("capability-" + harness)
+                home, cwd = old / "home", old / "snapshot"
+                home.mkdir(parents=True)
+                cwd.mkdir()
+                kwargs = {"source": root, "cwd": cwd, "home": home, "session": "issued-" + harness,
+                          "agent": "Fixture <f@invalid>", "executable": "/usr/bin/true"}
+                _, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                capability = binding.get("coordination_capability")
+                self.assertIsInstance(capability, str)
+                self.assertRegex(capability, r"^[0-9a-f]{64}$")
+                self.assertNotIn(capability, seen)
+                seen.add(capability)
+                self.assertEqual(Path(binding["binding"]).stat().st_mode & 0o777, 0o600)
+                command, env = profiles.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
+                self.assertEqual(env["COORDINATION_CAPABILITY"], capability)
+                self.assertNotIn(capability, str(command))
+                for path in (binding["helper"], *binding["config_pins"]):
+                    self.assertNotIn(capability, Path(path).read_text())
+                _, resumed = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                self.assertEqual(resumed["coordination_capability"], capability)
+                new = old.with_name(old.name + "-moved")
+                shutil.move(old, new)
+                kwargs.update(home=new / "home", cwd=new / "snapshot", relocated_from=old)
+                _, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
+                self.assertEqual(moved["coordination_capability"], capability)
+                profiles.validate(moved)
+
+    def test_coordination_capability_missing_or_malformed_refuses_profile(self):
+        root = Path(__file__).resolve().parents[4]
+        binding = profiles.generate("codex", self.world.root / "capability-invalid", source=root,
+                                    cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+        for value in (None, "", "x" * 64, "A" * 64, "0" * 63, 123):
+            altered = {**binding}
+            if value is None:
+                altered.pop("coordination_capability", None)
+            else:
+                altered["coordination_capability"] = value
+            Path(binding["binding"]).write_text(profiles.canonical(altered))
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "capability"):
+                profiles.validate(altered)
+
+    def test_preserved_mcp_environment_drops_inherited_coordination_capability(self):
+        root = Path(__file__).resolve().parents[4]
+        inherited = "e" * 64
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("mcp-capability-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true",
+                                        native_settings={"mcp_servers": {"coordination": {"command": "python3",
+                                                         "env": {"COORDINATION_CAPABILITY": inherited}}}})
+            for path in (binding["helper"], *binding["config_pins"]):
+                self.assertNotIn(inherited, Path(path).read_text())
+
     def test_grant_ownership_expiry_and_malformed_authority(self):
         instrument = enforcement.instrument
         with patch.dict(os.environ, {"CLAUDE_SESSION_ID": "own", "WF_AGENT_OVERRIDE": "Fixture <fixture@example.invalid>"}):
@@ -235,12 +294,14 @@ class SharedEnforcement(unittest.TestCase):
     def test_interactive_identity_registers_without_a_dispatch_assignment(self):
         root = Path(__file__).resolve().parents[4]
         core = enforcement.load("test_hook_coordination", root / "ops/conductor/tools/coordination.py")
-        with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "stale-parent", "WF_AGENT_OVERRIDE": "Fixture <fixture@example.invalid>"}):
+        with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "stale-parent", "COORDINATION_CAPABILITY": "a" * 64,
+                                     "WF_AGENT_OVERRIDE": "Fixture <fixture@example.invalid>"}):
             with core.writer() as conn:
                 core.core_bind(conn, None, agent="Fixture <fixture@example.invalid>", roles="lead", harness="claude")
             binding = profiles.generate("codex", self.world.root / "interactive-native", source=root, cwd=self.repo, mode="interactive")
             session = profiles.initialize(binding, {"session_id": "actual-native"}, instrument=enforcement.instrument)
             self.assertEqual(session, "actual-native")
+            self.assertEqual(os.environ["COORDINATION_CAPABILITY"], binding["coordination_capability"])
             conn = core.reader()
             self.addCleanup(conn.close)
             participant = core.maybe_participant(conn)

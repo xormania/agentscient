@@ -55,6 +55,7 @@ carries the capability.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import inspect
 import json
@@ -185,7 +186,8 @@ class Subject:
         return head + list(rest)
 
     def env(self, *, session: str | None = None) -> dict[str, str]:
-        extra = {} if session is None else {"CLAUDE_CODE_SESSION_ID": session}
+        extra = {} if session is None else {"CLAUDE_CODE_SESSION_ID": session,
+                                             "COORDINATION_CAPABILITY": hashlib.sha256(session.encode()).hexdigest()}
         return self.world.env(extra=extra)
 
     def run(self, *rest: str, config=None, session=None, stdin=None):
@@ -233,7 +235,7 @@ def reader():
     return {"store": "reader"}
 
 
-def bound_participant(conn):
+def bound_participant(conn, *, participant=None):
     """The participant resolver. Not a verb, and not in CORE.
 
     It reads the session id from its own environment, as
@@ -978,6 +980,7 @@ class CoordinationMcpRealCore(unittest.TestCase):
         extra = {"LANE_CONF": str(self.conf)}
         if session:
             extra["CLAUDE_CODE_SESSION_ID"] = session
+            extra["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         if identity:
             extra["WF_AGENT"] = identity
         return self.world.env(extra=extra)

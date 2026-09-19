@@ -164,11 +164,11 @@ class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
         self.assertNotEqual(
             before, after,
             "the store holds the same participants as before the dispatch")
-        self.assertIn(
-            minted, after,
-            f"no participant in the store carries the session {minted!r} the "
-            f"launcher minted; the worker ran unbound")
         env = witness.get("env") or {}
+        self.assertNotIn(minted, after, "public participant list disclosed a session")
+        own = self.core("who", session=minted, profile=env["AGENTSCIENT_HOOK_PROFILE"])
+        self.assertEqual(own.returncode, 0, own.stderr)
+        self.assertIn(minted, own.stdout)
         self.assertEqual(
             env.get(SESSION_KEY), minted,
             "the worker was bound under one session and run under another")

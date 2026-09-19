@@ -19,6 +19,7 @@ commit that carries it.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 import unittest
@@ -53,6 +54,7 @@ class _World(unittest.TestCase):
         if identity:
             env["WF_AGENT"] = identity
         env["CLAUDE_CODE_SESSION_ID"] = session
+        env["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         return env
 
     def run_tool(self, *argv, session=LEAD, identity=AGENT):

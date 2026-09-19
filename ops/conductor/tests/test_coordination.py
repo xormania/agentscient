@@ -20,6 +20,7 @@ both readings are quoted in the commit that carries it.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sqlite3
 import sys
@@ -58,9 +59,14 @@ class _Scratch(unittest.TestCase):
             env["WF_AGENT"] = identity
         if session:
             env["CLAUDE_CODE_SESSION_ID"] = session
+            env["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
         return env
 
     def run_tool(self, *argv, session=LEAD, identity=SHARED, tool=None):
+        if argv and argv[0] == "bind-for" and "--session" in argv and "--capability-digest" not in argv:
+            target = argv[argv.index("--session") + 1]
+            capability = self.env(target)["COORDINATION_CAPABILITY"]
+            argv = (*argv, "--capability-digest", hashlib.sha256(capability.encode()).hexdigest())
         return run(
             [sys.executable, str(tool or TOOL), *argv],
             cwd=self.world.cwd, env=self.env(session, identity), timeout=60,
@@ -143,6 +149,100 @@ class _Scratch(unittest.TestCase):
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
                 "--generation", self.gen(aid), session=WORKER)
         return aid
+
+
+class CapabilityAuthentication(_Scratch):
+    """A387: public session correlation cannot substitute for caller custody.
+
+    Independent core regressions by PT18; core implementation belongs to PT16.
+    All capabilities and stores here are synthetic and owned by World.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.bind_three()
+
+    def snapshot(self):
+        with sqlite3.connect(self.store) as conn:
+            return tuple(conn.iterdump())
+
+    def call_as_lead(self, capability, *args):
+        env = self.env(LEAD)
+        if capability is None:
+            env.pop("COORDINATION_CAPABILITY")
+        else:
+            env["COORDINATION_CAPABILITY"] = capability
+        return run([sys.executable, str(TOOL), *args], cwd=self.world.cwd, env=env, timeout=60)
+
+    def assert_denied_without_effect(self, capability, args):
+        before = self.snapshot()
+        result = self.call_as_lead(capability, *args)
+        self.assertEqual(result.exit, 2, (args, result.stdout, result.stderr))
+        self.assertEqual(self.snapshot(), before)
+        if capability:
+            self.assertNotIn(capability, result.stdout + result.stderr)
+
+    def test_copied_lead_session_with_worker_capability_refuses_grant_and_draft(self):
+        worker_capability = self.env(WORKER)["COORDINATION_CAPABILITY"]
+        for args in (("grant", "PT-2", "--roles", "lead"),
+                     ("draft", "replayed authority", "--outcome", "must refuse")):
+            with self.subTest(args=args):
+                self.assert_denied_without_effect(worker_capability, args)
+
+    def test_missing_wrong_and_malformed_capability_refuse_mutation_and_rebind(self):
+        for capability in (None, "f" * 64, "", "A" * 64, "0" * 63):
+            for args in (("grant", "PT-2", "--roles", "lead"),
+                         ("draft", "unproved caller", "--outcome", "must refuse"),
+                         ("bind", "--roles", "lead,coordinator", "--probe", "must not replace")):
+                with self.subTest(capability=capability, args=args):
+                    self.assert_denied_without_effect(capability, args)
+
+    def test_matching_capability_allows_lead_and_stores_only_digest(self):
+        capability = self.env(LEAD)["COORDINATION_CAPABILITY"]
+        self.ok("grant", "PT-2", "--roles", "verifier")
+        self.assertRegex(self.ok("draft", "admitted lead", "--outcome", "valid custody"), r"assignment A-\d+")
+        with sqlite3.connect(self.store) as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(participants)")}
+            self.assertIn("capability_digest", columns)
+            held = conn.execute("SELECT capability_digest FROM participants WHERE session_id=?", (LEAD,)).fetchone()[0]
+            self.assertEqual(held, hashlib.sha256(capability.encode()).hexdigest())
+        for session in (LEAD, WORKER, CHECKER):
+            self.assertNotIn(self.env(session)["COORDINATION_CAPABILITY"], "\n".join(self.snapshot()))
+
+    def test_legacy_null_refuses_without_self_rekey(self):
+        with sqlite3.connect(self.store) as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(participants)")}
+            self.assertIn("capability_digest", columns)
+            conn.execute("UPDATE participants SET capability_digest=NULL WHERE session_id=?", (LEAD,))
+        for args in (("grant", "PT-2", "--roles", "lead"),
+                     ("draft", "legacy caller", "--outcome", "must refuse"),
+                     ("bind", "--roles", "lead,coordinator")):
+            with self.subTest(args=args):
+                self.assert_denied_without_effect(self.env(LEAD)["COORDINATION_CAPABILITY"], args)
+
+    def test_public_participant_views_omit_session_and_capability(self):
+        listed = self.ok("participants")
+        core = self.core()
+        with core.reader() as conn:
+            payload = core.CORE["participants"](conn, None)
+        for row in payload["participants"]:
+            self.assertNotIn("session", row)
+            self.assertNotIn("capability_digest", row)
+            self.assertNotIn("coordination_capability", row)
+        for session in (LEAD, WORKER, CHECKER):
+            self.assertNotIn(session, listed)
+            self.assertNotIn(self.env(session)["COORDINATION_CAPABILITY"], listed)
+        self.assertIn(LEAD, self.ok("who"))
+
+    def test_direct_core_replay_refuses_even_with_real_lead_row(self):
+        core = self.core(WORKER)
+        before = self.snapshot()
+        with core.writer() as conn:
+            lead = conn.execute("SELECT * FROM participants WHERE session_id=?", (LEAD,)).fetchone()
+            with unittest.mock.patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": LEAD}):
+                with self.assertRaises(core.Refusal):
+                    core.CORE["grant"](conn, lead, agent=SHARED, participant="PT-2", roles="lead")
+        self.assertEqual(self.snapshot(), before)
 
 
 class Participants(_Scratch):

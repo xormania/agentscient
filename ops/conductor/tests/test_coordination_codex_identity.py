@@ -4,6 +4,7 @@ Recovery grant 309: one dev-lane producer; independent test author absent.
 The planted failure is the reader ignoring the native Codex session keys.
 """
 
+import hashlib
 import sqlite3
 import sys
 import unittest
@@ -28,6 +29,8 @@ class NativeCodexSessions(unittest.TestCase):
                      "CODEX_THREAD_ID", "CODEX_SESSION_ID"):
             env.pop(name, None)
         env.update(keys)
+        native = next((value.strip() for value in keys.values() if value.strip()), "absent")
+        env["COORDINATION_CAPABILITY"] = hashlib.sha256(native.encode()).hexdigest()
         return run([sys.executable, "-B", str(TOOL), *args],
                    cwd=self.world.cwd, env=env, timeout=20)
 
