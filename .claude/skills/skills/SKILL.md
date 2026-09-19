@@ -55,6 +55,8 @@ resolver, recovery policy, or telemetry store.
   one redacted `invoked` event. The event persists the exact canonical source
   path and SHA-256 of the bytes served. It replaces the page's manual
   `log-use` for that invocation; do not double-count it.
+  Event detail is redacted and limited to 16 KiB of UTF-8 before any SQLite
+  write; an oversized detail refuses on the standard wire.
 
 The callable seams are `managed_catalog()`, `load_skill(name)` (the catalogue
 row plus `content`), and `record_event(kind, name, detail=None)` (no stdout).

@@ -149,6 +149,11 @@ class ManagedSkills(unittest.TestCase):
         self.assertEqual(result.exit, 0, result.stderr)
         self.assertEqual(self.events()[0][2], AGENT)
 
+    def test_oversized_telemetry_refuses_before_creating_or_writing_the_store(self):
+        result = self.call("use", "sample", "x" * (16 * 1024 + 1))
+        self.rejected(result, "detail")
+        self.assertFalse(self.db.exists())
+
     def test_inactive_and_unknown_skills_are_not_invocable(self):
         self.sync()
         for status in ("draft", "retired", "missing", "wished"):

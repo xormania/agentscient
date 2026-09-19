@@ -79,6 +79,7 @@ SKILLS_DIR = REPO / ".claude" / "skills"
 KINDS = ("project", "conductor", "process", "personal")
 SKILL_NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 MAX_SKILL_BYTES = 256 * 1024
+MAX_EVENT_DETAIL_BYTES = 16 * 1024
 
 
 def db_path():
@@ -367,6 +368,20 @@ def record_event(kind, name, detail=None):
     _record_event(kind, name, detail)
 
 
+def _event_detail(detail):
+    """Redact and bound telemetry before the SQLite write boundary."""
+    detail = redact(detail)
+    try:
+        size = len(detail.encode("utf-8")) if detail is not None else 0
+    except UnicodeEncodeError:
+        refuse("detail", "UTF-8 event detail", "unencodable text",
+               "supply a valid UTF-8 detail")
+    if size > MAX_EVENT_DETAIL_BYTES:
+        refuse("detail", f"event detail at most {MAX_EVENT_DETAIL_BYTES} UTF-8 bytes",
+               f"{size} bytes", "shorten the event detail before recording it")
+    return detail
+
+
 def _record_event(kind, name, detail=None, *, managed_page=None):
     if kind not in {"invoked", "failed", "miss", "wish"} or not isinstance(name, str) or not name:
         refuse("arguments", "a declared skill event and name", repr((kind, name)),
@@ -378,7 +393,7 @@ def _record_event(kind, name, detail=None, *, managed_page=None):
     # resolved by instrument.session().  This tool adds no identity authority.
     agent = identity()
     event_session = session("unrecorded")
-    detail = redact(detail)
+    detail = _event_detail(detail)
     if kind == "invoked" and managed_page is None:
         # The legacy CLI can honestly record use of a planned registry row
         # that has no canonical page.  For a fresh or active disk skill,
