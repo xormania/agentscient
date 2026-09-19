@@ -64,7 +64,8 @@ Names are unqualified local identifiers: vendor- or plugin-qualified names
 are never silently credited to a project skill. The source is opened through
 a held descriptor and checked against this checkout, so a link may target a
 repository file but an escaped or swapped source refuses before content is
-served. Retired, draft, wished, and missing rows are not invocable; a valid
+served. A page's logical frontmatter name must match its containing skill
+directory. Retired, draft, wished, and missing rows are not invocable; a valid
 on-disk page with no registry row is invocable without a separate sync.
 
 Receipt guidance is deliberately narrow: paths beginning `./` or `../` are

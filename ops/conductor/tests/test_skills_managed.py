@@ -154,6 +154,29 @@ class ManagedSkills(unittest.TestCase):
         self.rejected(result, "detail")
         self.assertFalse(self.db.exists())
 
+    def test_busy_registry_leaves_fresh_registration_and_event_atomic(self):
+        self.sync()
+        with sqlite3.connect(self.db) as con:
+            con.execute("DELETE FROM skills WHERE name='sample'")
+            con.commit()
+        blocker = sqlite3.connect(self.db)
+        self.addCleanup(blocker.close)
+        blocker.execute("BEGIN IMMEDIATE")
+        try:
+            result = self.call("use", "sample")
+        finally:
+            blocker.rollback()
+        self.rejected(result, "registry")
+        with sqlite3.connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT name FROM skills").fetchall(), [])
+            self.assertEqual(con.execute("SELECT skill FROM skill_events").fetchall(), [])
+
+    def test_directory_and_logical_skill_name_mismatch_refuses_without_state(self):
+        mismatched = self.body.replace("name: sample", "name: different")
+        self.world.plant_text(self.page, mismatched)
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
     def test_inactive_and_unknown_skills_are_not_invocable(self):
         self.sync()
         for status in ("draft", "retired", "missing", "wished"):

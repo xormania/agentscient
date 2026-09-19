@@ -187,7 +187,7 @@ def _managed_pages():
             content = raw.decode("utf-8")
             name, description = _metadata(content)
             if (not isinstance(name, str) or not SKILL_NAME.fullmatch(name)
-                    or not description or name in seen):
+                    or not description or name != directory.name or name in seen):
                 raise ValueError("invalid metadata or duplicate skill name")
             seen.add(name)
             if statuses.get(name, "active") == "active":
