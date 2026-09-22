@@ -2108,6 +2108,16 @@ def _launch(args):
     if args.harness == "claude" and role == "write":
         _refuse("write-role-unadmitted", "a write row with a containment entry",
                 "none for claude", "run the containment probe or use codex or grok")
+    # Every job installs a worker-mode hook profile, and one with no issued
+    # participant denies every hook call, so a write job without an assignment
+    # would spend its budget refused (LD-116). Refused before anything is minted.
+    if role == "write" and not args.assignment:
+        CORRECTION.refuse(
+            "participant",
+            "an assignment (--for A-n) to issue this worker a participant through bind-for",
+            "none",
+            "draft or name the assignment and relaunch with --for",
+        )
     mode = job.get("snapshot")
     if job.get("withheld") and mode == "whole":
         _refuse("history-vs-withheld", "one of history or withholding", f"both on {args.job}", "declare fileset")
