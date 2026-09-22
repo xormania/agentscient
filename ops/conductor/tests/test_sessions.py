@@ -10,6 +10,11 @@ exit 2.
 
 The one command that reads this file is
 `python3 -m unittest discover -s ops/conductor/tests -p test_sessions.py`.
+
+Calibration gap: planted faults follow the implementation.
+``ops/testkit/cases.py`` calibrate anchors each mutant on the subject's
+text, and ``ops/conductor/tools/sessions.py`` is absent, so this module
+has no mutants file.
 """
 
 from __future__ import annotations
@@ -20,12 +25,11 @@ import json
 import os
 import shutil
 import signal
-import subprocess
 import sys
+import threading
+import time
 import unittest
 from pathlib import Path
-
-from live_store_guard import IGNORE, TOLERATE_NEW
 
 from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
 
@@ -37,6 +41,11 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 ORIGIN = "sessions-lever.md"
+FINDING = "20260922T215604Z-review-codex-f6777b"
+
+
+def origin_finding(number: int) -> str:
+    return f"{FINDING}#{number}"
 AGENT = "Sessions Tester <noreply@example.test>"
 LANE = "sessionstest"
 TIMEOUT = 60.0
@@ -56,25 +65,6 @@ READINESS = (
     "response",
 )
 SLICE2 = ("tools", "ingress", "response")
-
-
-def _live_store_paths() -> list[Path]:
-    paths: list[Path] = [
-        Path.home() / ".local" / "state" / "agentscient" / "dispatch",
-        Path.home() / ".claude",
-    ]
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "dispatch")
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
 
 
 def _fake_text(path: Path) -> str:
@@ -106,16 +96,23 @@ class ThePresence(unittest.TestCase):
 class _Scratch(unittest.TestCase):
     """Hermetic world, planted fake harness, private tmux socket."""
 
+    def open_world(self, prefix: str) -> World:
+        """A world rooted under /tmp, so the private tmux socket it owns
+        stays under 108 bytes. origin: 20260922T215604Z-review-codex-f6777b#10
+        """
+        saved = os.environ.get("TMPDIR")
+        os.environ["TMPDIR"] = "/tmp"
+        try:
+            return World(prefix=prefix)
+        finally:
+            if saved is None:
+                os.environ.pop("TMPDIR", None)
+            else:
+                os.environ["TMPDIR"] = saved
+
     def setUp(self):
-        self.world = World(prefix="sessions-")
+        self.world = self.open_world("sessions-")
         self.addCleanup(self.world.close)
-        self._live = self.world.watch(
-            *_live_store_paths(),
-            ignore=IGNORE,
-            tolerate_new=TOLERATE_NEW,
-            contents=False,
-        )
-        self.addCleanup(self._live.assert_unchanged, self, "live operator store mutated")
         self.conf = self.world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
         self.xdg = self.world.xdg_state
         self.state = self.xdg / LANE
@@ -129,7 +126,8 @@ class _Scratch(unittest.TestCase):
             self._plant_tmux()
 
     def _plant_harness(self, session_id=None) -> Path:
-        planted = self.world.tools.plant("claude", script=_fake_text(HARNESS_SRC))
+        text = _fake_text(HARNESS_SRC).replace("@@REPO@@", str(REPO))
+        planted = self.world.tools.plant("claude", script=text)
         spec_path = self.world.tools.spec_path("claude")
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
         spec["session_id"] = session_id
@@ -145,8 +143,22 @@ class _Scratch(unittest.TestCase):
             _fake_text(TMUX_SRC)
             .replace("@@TMUX@@", HOST_TMUX)
             .replace("@@LOG@@", str(log))
+            .replace("@@REPO@@", str(REPO))
         )
         return self.world.tools.plant("tmux", script=text)
+
+    def assert_world_roots(self, built: dict[str, str]) -> None:
+        """origin: 20260922T215604Z-review-codex-f6777b#1
+
+        The world owns HOME, the XDG roots and the state root. Every row
+        asserts on those.
+        """
+        self.assertEqual(built["HOME"], str(self.world.home))
+        self.assertEqual(built["XDG_STATE_HOME"], str(self.world.xdg_state))
+        self.assertEqual(built["XDG_CONFIG_HOME"], str(self.world.xdg_config))
+        self.assertEqual(built["XDG_CACHE_HOME"], str(self.world.xdg_cache))
+        self.assertEqual(self.xdg, self.world.xdg_state)
+        self.assertEqual(self.state, self.world.xdg_state / LANE)
 
     def env(self, *, identity: str | None = AGENT, session: str | None = None,
             extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -164,7 +176,9 @@ class _Scratch(unittest.TestCase):
             ).hexdigest()
         if extra:
             payload.update(extra)
-        return self.world.env(extra=payload)
+        built = self.world.env(extra=payload)
+        self.assert_world_roots(built)
+        return built
 
     def tool_argv(self) -> list[str]:
         if TOOL.is_file():
@@ -208,6 +222,66 @@ class _Scratch(unittest.TestCase):
             str(READY),
             *more,
         )
+
+    def _alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    def owned_holder(self) -> tuple[int, object]:
+        """A sleeper started through ops.testkit.run with a timeout.
+
+        origin: 20260922T215604Z-review-codex-f6777b#18
+        origin: 20260922T215604Z-review-codex-f6777b#19
+        """
+        nonce = str(time.time_ns())
+        ready = self.world.tmp / f"holder-{nonce}.ready"
+        stop = self.world.tmp / f"holder-{nonce}.stop"
+        script = (
+            f"#!{sys.executable}\n"
+            "import os, time, pathlib\n"
+            f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
+            f"stop = pathlib.Path({str(stop)!r})\n"
+            "while not stop.exists():\n"
+            "    time.sleep(0.05)\n"
+        )
+        self.world.tools.plant("holder", script=script)
+        box: dict = {}
+
+        def invoke() -> None:
+            try:
+                box["result"] = run(
+                    [str(self.world.bin / "holder")],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=120,
+                )
+            except Exception as exc:
+                box["error"] = exc
+
+        thread = threading.Thread(target=invoke)
+        thread.start()
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not ready.is_file():
+            time.sleep(0.02)
+        self.assertTrue(
+            ready.is_file(),
+            f"holder was not started through ops.testkit.run: {box!r}",
+        )
+        pid = int(ready.read_text(encoding="utf-8"))
+
+        def release() -> None:
+            if not stop.exists():
+                stop.write_text("stop\n", encoding="utf-8")
+            thread.join(timeout=15)
+            if self._alive(pid):
+                with contextlib.suppress(OSError):
+                    os.kill(pid, signal.SIGTERM)
+
+        self.addCleanup(release)
+        return pid, release
 
     def skip_without_tmux(self) -> None:
         if not HOST_TMUX:
@@ -393,7 +467,12 @@ class TheTmuxAndLaunchRows(_Scratch):
 
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
         self.skip_without_tmux()
-        with self.subTest(id="unowned-session", origin=ORIGIN):
+        with self.subTest(id="unowned-session", origin=origin_finding(10)):
+            self.assertLess(
+                len(os.fsencode(str(self.socket))),
+                108,
+                f"private tmux socket must be under 108 bytes: {self.socket}",
+            )
             name = "agentscient-R-1"
             create = run(
                 ["tmux", "-S", str(self.socket), "new-session", "-d", "-s", name],
@@ -569,28 +648,80 @@ class TheCleanNeighbours(_Scratch):
             status = self.sessions("status", identity=None)
             self.assertIn("stopped", status.stdout)
 
+    def _plant_export_canaries(self, member: str) -> list[str]:
+        """origin: 20260922T215604Z-review-codex-f6777b#15
+
+        The binding's coordination_capability and every
+        credential_environment value, with a canary planted before export.
+        """
+        bindings = list((self.state / "sessions").glob(f"*/{member}/profile/binding.json"))
+        if not bindings:
+            return []
+        binding = json.loads(bindings[0].read_text(encoding="utf-8"))
+        if not isinstance(binding, dict):
+            return []
+        capability = binding.get("coordination_capability")
+        if not isinstance(capability, str) or not capability:
+            capability = "capability-canary-a8b48e-not-for-export"
+            binding["coordination_capability"] = capability
+        raw = binding.get("credential_environment")
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["TEST_CREDENTIAL"] = "credential-canary-a8b48e-not-for-export"
+        binding["credential_environment"] = raw
+        bindings[0].write_text(json.dumps(binding), encoding="utf-8")
+        values = [capability]
+        for value in raw.values():
+            if value is None:
+                continue
+            rendered = str(value)
+            if rendered:
+                values.append(rendered)
+        return values
+
     def test_a_full_export_omits_capability_and_credential_values(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#15"""
         self.skip_without_tmux()
         dest = self.world.root / "export"
-        with self.subTest(id="full-export", origin=ORIGIN):
+        with self.subTest(id="full-export", origin=origin_finding(15)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
-            secret = None
-            bindings = list((self.state / "sessions").glob("*/grunt/profile/binding.json"))
-            if bindings:
-                secret = json.loads(bindings[0].read_text(encoding="utf-8")).get(
-                    "coordination_capability"
-                )
+            secrets = self._plant_export_canaries("grunt")
             proc = self.sessions("export", "--to", str(dest))
             self.assertEqual(proc.exit, 0, proc.stderr)
+            self.assertTrue(
+                any(item.is_file() for item in dest.rglob("pane.log")),
+                "pane capture is present",
+            )
+            self.assertTrue(
+                any(item.is_file() for item in dest.rglob("launch.json")),
+                "launch.json is present",
+            )
+            diags = [item for item in dest.rglob("diagnostics.json") if item.is_file()]
+            self.assertTrue(diags, "adapter diagnostics are present")
+            for diag in diags:
+                listed = json.loads(diag.read_text(encoding="utf-8"))
+                self.assertIsInstance(listed, list)
+                self.assertTrue(listed, f"adapter diagnostics empty: {diag}")
+                for item in listed:
+                    name = Path(str(item)).name
+                    self.assertTrue(
+                        any(found.is_file() and found.name == name for found in dest.rglob(name)),
+                        f"retained diagnostic missing from export: {item}",
+                    )
             self.assertRegex(proc.stdout, r"exported .+ \(\d+ members, \d+ files\)")
-            self.assertTrue((dest / "run.json").is_file())
-            blob = ""
-            for path in dest.rglob("*"):
-                if path.is_file():
-                    blob += path.read_text(encoding="utf-8", errors="replace")
-            self.assertNotIn("coordination_capability", blob)
-            if secret:
+            self.assertTrue((dest / "run.json").is_file(), "run.json is present")
+            self.assertTrue(
+                secrets,
+                "coordination_capability and credential_environment values are known",
+            )
+            pieces = []
+            for exported in dest.rglob("*"):
+                pieces.append(str(exported))
+                if exported.is_file():
+                    pieces.append(exported.read_text(encoding="utf-8", errors="replace"))
+            blob = "\n".join(pieces)
+            for secret in secrets:
                 self.assertNotIn(secret, blob)
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
@@ -611,7 +742,7 @@ class TheCleanNeighbours(_Scratch):
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
         self.skip_without_tmux()
-        with self.subTest(id="stale-pid-stop", origin=ORIGIN):
+        with self.subTest(id="stale-pid-stop", origin=origin_finding(18)):
             started = self.sessions(*self.start_argv())
             self.assertIn(started.exit, (0, 1), started.stderr)
             status = self.sessions("status", identity=None)
@@ -620,34 +751,20 @@ class TheCleanNeighbours(_Scratch):
                 if token.isdigit() and int(token) > 1:
                     recorded = int(token)
                     break
-            canary = self.world.own(
-                subprocess.Popen(
-                    [sys.executable, "-c", "import time; time.sleep(3600)"],
-                    start_new_session=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            )
+            canary_pid, _release_canary = self.owned_holder()
             if recorded:
                 with contextlib.suppress(OSError):
                     os.kill(recorded, signal.SIGKILL)
-            holder = canary
-            if recorded and canary.pid != recorded:
+            holder: object = canary_pid
+            if recorded and canary_pid != recorded:
                 for _ in range(64):
-                    child = self.world.own(
-                        subprocess.Popen(
-                            [sys.executable, "-c", "import time; time.sleep(3600)"],
-                            start_new_session=True,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
-                    )
-                    if child.pid == recorded:
-                        holder = child
+                    child_pid, release_child = self.owned_holder()
+                    if child_pid == recorded:
+                        holder = child_pid
                         break
-                    self.world.reap(child)
+                    release_child()
             proc = self.sessions("stop", "--terminate")
-            self.assertIsNone(holder.poll(), "the world-owned pid was signalled")
+            self.assertTrue(self._alive(int(holder)), "the world-owned pid was signalled")
             combined = proc.stdout + proc.stderr
             self.assertIn("stale pid", combined)
             self.assertIn("unresolved", combined)

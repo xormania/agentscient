@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -83,10 +82,22 @@ def native_id(argv: list[str], spec: dict) -> str | None:
     return flag(argv, "--session-id")
 
 
-def run_session_start(profile: Path, bind_id: str) -> None:
+def kit_run():
+    """ops.testkit.run, after the plant substitutes the repository root.
+
+    origin: 20260922T215604Z-review-codex-f6777b#20
+    """
+    repo = "@@REPO@@"
+    if repo not in sys.path:
+        sys.path.insert(0, repo)
+    from ops.testkit import run
+    return run
+
+
+def run_session_start(profile: Path, bind_id: str) -> int:
     guard = profile / "guard.sh"
     if not guard.is_file() or not bind_id:
-        return
+        return 0
     payload = json.dumps({
         "session_id": bind_id,
         "hook_event_name": "SessionStart",
@@ -95,16 +106,17 @@ def run_session_start(profile: Path, bind_id: str) -> None:
     })
     env = os.environ.copy()
     env.pop("COORDINATION_CAPABILITY", None)
-    subprocess.run(
+    result = kit_run()(
         [str(guard), "SessionStart"],
-        input=payload,
+        cwd=os.getcwd(),
         env=env,
-        text=True,
+        stdin=payload,
         timeout=30,
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
     )
+    if result.exit != 0:
+        sys.stderr.write(result.stderr or result.stdout)
+        return result.exit
+    return 0
 
 
 def hold() -> None:
@@ -126,7 +138,9 @@ def main() -> int:
     bind_id = native_id(argv, spec)
     profile = profile_dir(argv)
     if profile is not None and bind_id:
-        run_session_start(profile, bind_id)
+        code = run_session_start(profile, bind_id)
+        if code:
+            return code
     hold()
     return 0
 

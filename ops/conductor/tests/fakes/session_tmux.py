@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import time
 
 REAL = "@@TMUX@@"
 LOG = "@@LOG@@"
+REPO = "@@REPO@@"
 
 
 def main() -> int:
@@ -29,7 +29,16 @@ def main() -> int:
         return 2
     if "attach-session" in argv or (argv and argv[0] == "attach"):
         return 0
-    return subprocess.call([REAL, *argv])
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    from ops.testkit import run
+    result = run(
+        [REAL, *argv],
+        cwd=os.getcwd(),
+        env=os.environ.copy(),
+        timeout=30,
+    )
+    return result.exit
 
 
 if __name__ == "__main__":
