@@ -2,10 +2,13 @@
 
 Contract: `ops/conductor/sessions-lever.md` §The adapter boundary.
 `ops/conductor/tools/session_adapters/framing.py` is the real parser;
-`session_adapters/claude.py` is the one live adapter. Loaded from their
-files and exercised in-process. A missing file is red on the presence
-assertion of each test, so the row fails for its own claim rather than
-an import error.
+`session_adapters/claude.py` is the one live adapter. Exercised in-process.
+A missing adapter fails the row's own method, argv, probe, stop or
+diagnostics assertion, not an import error.
+
+Calibration gap: planted faults follow the implementation.
+ops/testkit/cases.py calibrate anchors each mutant on the subject's text,
+and the adapter modules are absent, so this module has no mutants file.
 
 The one command that reads this file is
 `python3 -m unittest discover -s ops/conductor/tests -p test_session_adapters.py`.
@@ -14,21 +17,30 @@ The one command that reads this file is
 from __future__ import annotations
 
 import importlib.util
-import inspect
-import subprocess
+import json
+import os
 import sys
+import threading
+import time
 import unittest
 from pathlib import Path
 
-from ops.testkit import World
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 ADAPTERS = REPO / "ops" / "conductor" / "tools" / "session_adapters"
 FRAMING = ADAPTERS / "framing.py"
 CLAUDE = ADAPTERS / "claude.py"
+PROFILES = REPO / "ops" / "devlane" / "hooks" / "profiles.py"
 ORIGIN = "sessions-lever.md"
+REVIEW = "20260922T215604Z-review-codex-f6777b"
 METHODS = ("argv", "observe_identity", "probe", "stop", "diagnostics")
 LAUNCH_ID = "11111111-1111-4111-8111-111111111111"
+PROBE_TOKEN = "session-slice1-version-9.9.9"
+
+
+def origin_finding(number: int) -> str:
+    return f"{REVIEW}#{number}"
 
 
 def load_module(path: Path, name: str):
@@ -42,8 +54,24 @@ def reading_of(exc: BaseException) -> str:
     return str(getattr(exc, "reading", None) or exc)
 
 
+def start_ticks(pid: int) -> str:
+    text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    return text.rsplit(")", 1)[1].split()[19]
+
+
+def alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return Path(f"/proc/{pid}").exists()
+
+
 class TheFramingParser(unittest.TestCase):
-    """Each framing fault through the real parser, a row with origin."""
+    """Each framing fault through the real parser, a row with origin.
+
+    Declared gap: the faults file follows the implementation.
+    """
 
     def parser(self):
         self.assertTrue(FRAMING.is_file(), f"RED: framing is absent: {FRAMING}")
@@ -87,83 +115,192 @@ class TheFramingParser(unittest.TestCase):
 
 
 class TheClaudeAdapter(unittest.TestCase):
-    """The five methods, argv carrying the launch id, probe channel unmeasured."""
+    """The five supervisor methods, the profile launch argv, probe, stop, diagnostics.
+
+    Declared gap: planted faults follow the implementation; no mutants file.
+    """
 
     def setUp(self):
         self.world = World(prefix="session-adapter-")
         self.addCleanup(self.world.close)
 
     def adapter(self):
-        self.assertTrue(CLAUDE.is_file(), f"RED: claude adapter is absent: {CLAUDE}")
-        module = load_module(CLAUDE, "session_adapters_claude")
-        self.assertTrue(hasattr(module, "Adapter"), "claude.Adapter is the live adapter")
-        return module.Adapter()
+        if not CLAUDE.is_file():
+            return None
+        try:
+            module = load_module(CLAUDE, "session_adapters_claude")
+        except Exception:
+            return None
+        cls = getattr(module, "Adapter", None)
+        if not isinstance(cls, type):
+            return None
+        try:
+            return cls()
+        except Exception:
+            return None
+
+    def supervisor_methods(self, adapter) -> set[str]:
+        if adapter is None:
+            return set()
+        found: set[str] = set()
+        for klass in type(adapter).mro():
+            if klass is object:
+                continue
+            for name, value in klass.__dict__.items():
+                if name.startswith("_"):
+                    continue
+                if callable(value):
+                    found.add(name)
+        return found
 
     def test_the_adapter_exposes_the_five_methods_and_no_others_the_supervisor_calls(self):
-        with self.subTest(id="adapter-five-methods", origin=ORIGIN):
-            adapter = self.adapter()
-            for name in METHODS:
-                self.assertTrue(
-                    callable(getattr(adapter, name, None)),
-                    f"adapter.{name} is missing",
-                )
-            public = [
-                name for name, _ in inspect.getmembers(adapter, predicate=callable)
-                if not name.startswith("_")
-            ]
-            extra = sorted(set(public) - set(METHODS) - {"Adapter"})
-            for name in extra:
-                self.assertNotIn(
-                    name,
-                    METHODS,
-                    f"supervisor-called method set drifted: {public}",
-                )
+        """origin: 20260922T215604Z-review-codex-f6777b#22"""
+        with self.subTest(id="adapter-five-methods", origin=origin_finding(22)):
+            found = self.supervisor_methods(self.adapter())
+            self.assertEqual(found, set(METHODS), f"supervisor methods: {sorted(found)}")
 
-    def test_argv_carries_the_launch_id_as_claude_session_id(self):
-        with self.subTest(id="claude-argv-launch-id", origin=ORIGIN):
+    def test_argv_is_the_profile_run_interactive_launch(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#23"""
+        with self.subTest(id="claude-argv-launch-id", origin=origin_finding(23)):
             adapter = self.adapter()
-            member = {"name": "co", "harness": "claude"}
-            binding = {"executable": str(self.world.bin / "claude")}
-            argv = adapter.argv(member, binding, LAUNCH_ID)
-            joined = argv if isinstance(argv, str) else " ".join(str(part) for part in argv)
-            self.assertIn("--session-id", joined)
-            self.assertIn(LAUNCH_ID, joined)
-            self.assertNotIn("operator text", joined)
+            exe = self.world.tools.plant("claude", stdout="")
+            binding_path = str(self.world.root / "binding.json")
+            binding = {
+                "executable": str(exe),
+                "binding": binding_path,
+                "harness": "claude",
+            }
+            argv = []
+            if adapter is not None:
+                try:
+                    argv = list(adapter.argv({"name": "co", "harness": "claude"}, binding, LAUNCH_ID))
+                except Exception:
+                    argv = []
+            parts = [str(part) for part in argv]
+            native_ok = parts == [str(exe), "--session-id", LAUNCH_ID]
+            session_value = None
+            if "--session-id" in parts:
+                index = parts.index("--session-id")
+                if index + 1 < len(parts):
+                    session_value = parts[index + 1]
+            profile_ok = (
+                "run-interactive" in parts
+                and any(part.endswith("profiles.py") or part == str(PROFILES) for part in parts)
+                and session_value == LAUNCH_ID
+                and "echo" not in parts
+                and not any("operator text" in part for part in parts)
+            )
+            self.assertTrue(
+                native_ok or profile_ok,
+                f"argv must be the pinned executable plus --session-id or "
+                f"profiles.py run-interactive, found {parts}",
+            )
 
-    def test_probe_reads_unmeasured_slice_2_for_the_channel(self):
-        with self.subTest(id="claude-probe-channel", origin=ORIGIN):
+    def test_probe_runs_the_executable_and_reports_version_and_capability(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#24"""
+        with self.subTest(id="claude-probe-channel", origin=origin_finding(24)):
+            marker = self.world.root / "probe-ran"
+            script = (
+                f"#!{sys.executable}\n"
+                "import pathlib, sys\n"
+                f"pathlib.Path({str(marker)!r}).write_text('ran\\n')\n"
+                f"sys.stdout.write({PROBE_TOKEN!r} + '\\n')\n"
+            )
+            exe = self.world.tools.plant("claude-probe", script=script)
             adapter = self.adapter()
-            exe = self.world.tools.plant("claude", stdout="Claude 9.9.9\n")
-            reading = adapter.probe(str(exe))
+            reading: object = {}
+            if adapter is not None:
+                try:
+                    reading = adapter.probe(str(exe))
+                except Exception as exc:
+                    reading = {"error": str(exc)}
+            self.assertTrue(marker.is_file(), "probe did not execute the planted executable")
             self.assertIsInstance(reading, dict)
-            self.assertIn("channel", reading)
-            self.assertEqual(reading["channel"], "unmeasured slice 2")
+            self.assertIn("capability", reading)
+            self.assertIn("unmeasured", str(reading["capability"]))
+            self.assertIn(PROBE_TOKEN, json.dumps(reading))
+
+    def owned_holder(self) -> tuple[int, callable]:
+        ready = self.world.root / "holder.ready"
+        stop = self.world.root / "holder.stop"
+        script = (
+            f"#!{sys.executable}\n"
+            "import os, time, pathlib\n"
+            f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
+            f"stop = pathlib.Path({str(stop)!r})\n"
+            "while not stop.exists():\n"
+            "    time.sleep(0.05)\n"
+        )
+        self.world.tools.plant("holder", script=script)
+        box: dict = {}
+
+        def invoke() -> None:
+            try:
+                box["result"] = run(
+                    [str(self.world.bin / "holder")],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=30,
+                )
+            except BaseException as exc:  # noqa: BLE001 - the test asserts the outcome
+                box["error"] = exc
+
+        thread = threading.Thread(target=invoke)
+        thread.start()
+        deadline = time.time() + 5
+        while time.time() < deadline and not ready.is_file():
+            time.sleep(0.02)
+        self.assertTrue(ready.is_file(), "holder was not started through ops.testkit.run")
+        pid = int(ready.read_text(encoding="utf-8"))
+
+        def release() -> None:
+            stop.write_text("stop\n", encoding="utf-8")
+            thread.join(timeout=15)
+            if alive(pid):
+                os.kill(pid, 15)
+
+        self.addCleanup(release)
+        return pid, release
 
     def test_stop_does_not_signal_a_pid_whose_start_ticks_do_not_match(self):
-        with self.subTest(id="adapter-stop-stale-pid", origin=ORIGIN):
+        """origin: 20260922T215604Z-review-codex-f6777b#25"""
+        with self.subTest(id="adapter-stop-stale-pid", origin=origin_finding(25)):
             adapter = self.adapter()
-            child = self.world.own(
-                subprocess.Popen(
-                    [sys.executable, "-c", "import time; time.sleep(3600)"],
-                    start_new_session=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            )
-            handle = {"pid": child.pid, "start": 0}
-            outcome = adapter.stop(handle, True)
-            self.assertIsNone(child.poll(), "the world-owned pid was signalled")
-            self.assertTrue(str(outcome).startswith("unresolved"), outcome)
-            self.assertIn("stale pid", str(outcome))
+            outcome = ""
+            still_alive = False
+            if adapter is None:
+                outcome = ""
+            else:
+                pid, release = self.owned_holder()
+                try:
+                    try:
+                        outcome = adapter.stop({"pid": pid, "start": "0"}, True)
+                    except Exception as exc:
+                        outcome = str(exc)
+                    still_alive = alive(pid)
+                finally:
+                    release()
+            text = str(outcome)
+            self.assertTrue(text.startswith("unresolved"), text)
+            self.assertIn("stale pid", text)
+            self.assertTrue(still_alive, "the world-owned pid was signalled")
 
-    def test_diagnostics_returns_the_evidence_paths_it_retained(self):
-        with self.subTest(id="adapter-diagnostics", origin=ORIGIN):
-            adapter = self.adapter()
+    def test_diagnostics_returns_the_retained_pane_log(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#26"""
+        with self.subTest(id="adapter-diagnostics", origin=origin_finding(26)):
             member_dir = self.world.root / "member"
-            member_dir.mkdir()
-            (member_dir / "pane.log").write_text("pane\n", encoding="utf-8")
-            paths = adapter.diagnostics(member_dir)
-            self.assertIsInstance(paths, list)
+            pane = member_dir / "pane.log"
+            self.world.plant_text(pane, "pane\n", recognisable="pane")
+            adapter = self.adapter()
+            paths = []
+            if adapter is not None:
+                try:
+                    paths = list(adapter.diagnostics(member_dir))
+                except Exception:
+                    paths = []
+            names = [Path(str(path)).name for path in paths]
+            self.assertIn("pane.log", names, paths)
+            self.assertTrue(all(Path(str(path)).is_file() for path in paths), paths)
 
 
 if __name__ == "__main__":
