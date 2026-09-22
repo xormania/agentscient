@@ -23,6 +23,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import sys
@@ -31,7 +32,7 @@ import time
 import unittest
 from pathlib import Path
 
-from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
+from ops.testkit import RefusalCase, Watch, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -89,8 +90,30 @@ def claude_member(name: str, roles: list[str]) -> dict:
 
 
 class ThePresence(unittest.TestCase):
-    def test_the_tool_file_is_present(self):
-        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
+    def test_the_tool_executes_status_on_an_absent_store(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#2
+
+        The case runs the subject. An empty file exits 0 with no reading;
+        status on an absent store says ``no runs`` and creates nothing.
+        """
+        world = World(prefix="sessions-presence-")
+        self.addCleanup(world.close)
+        conf = world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
+        argv = (
+            [sys.executable, str(TOOL)]
+            if TOOL.is_file()
+            else [sys.executable, str(world.stage(TOOL))]
+        )
+        proc = run(
+            [*argv, "status"],
+            cwd=world.cwd,
+            env=world.env(extra={"LANE_CONF": str(conf)}),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertIn("no runs", proc.stdout)
+        state = world.xdg_state / LANE
+        self.assertFalse(state.exists(), f"status created {state}")
 
 
 class _Scratch(unittest.TestCase):
@@ -294,18 +317,29 @@ class _Scratch(unittest.TestCase):
         return refusal_wire(case, proc).line
 
     def assert_readiness(self, text: str) -> None:
-        lines = [ln for ln in text.splitlines() if ln.strip()]
-        for dim in READINESS:
-            self.assertTrue(
-                any(dim in ln for ln in lines),
-                f"readiness missing {dim}: {text!r}",
-            )
+        """origin: 20260922T215604Z-review-codex-f6777b#11
+
+        ``ready`` requires process, profile, identity, participant and
+        role to read ok, never waiting or refused. Slice 2 reads
+        unmeasured and never ok.
+        """
+        found = {dim: [] for dim in READINESS}
+        pattern = re.compile(
+            "(?:^|\\s)(process|profile|identity|participant|role|tools|ingress|response)"
+            "\\s*:?\\s*(ok|waiting|refused|unmeasured)\\b"
+        )
+        for line in text.splitlines():
+            for match in pattern.finditer(line):
+                found[match.group(1)].append(match.group(2))
+        for dim in ("process", "profile", "identity", "participant", "role"):
+            states = found[dim]
+            self.assertIn("ok", states, f"{dim} must read ok, found {states!r} in {text!r}")
+            self.assertNotIn("waiting", states, f"{dim} reads waiting: {text!r}")
+            self.assertNotIn("refused", states, f"{dim} reads refused: {text!r}")
         for dim in SLICE2:
-            matching = [ln for ln in lines if dim in ln]
-            self.assertTrue(
-                any("unmeasured" in ln for ln in matching),
-                f"{dim} must read unmeasured: {text!r}",
-            )
+            states = found[dim]
+            self.assertIn("unmeasured", states, f"{dim} must read unmeasured: {text!r}")
+            self.assertNotIn("ok", states, f"{dim} is slice 2 and never reads ok: {text!r}")
 
     def bind_lead(self) -> None:
         self.coord("bind", "--roles", "lead,coordinator", session=LEAD_SESSION)
@@ -330,6 +364,12 @@ class TheRefusalTable(_Scratch):
     """One row per refusal class the contract names, addressed by id."""
 
     def test_writing_without_identity_refuses_identity(self):
+        """Declared gap: planted faults follow the implementation; no mutants file.
+
+        origin: 20260922T215604Z-review-codex-f6777b#3
+        A writing verb whose WF_AGENT is absent, or present but not
+        ``Name <address>``, refuses identity.
+        """
         rows = (
             RefusalCase(id="start-without-identity", argv=self.start_argv(),
                         cls="identity", origin=ORIGIN),
@@ -341,10 +381,32 @@ class TheRefusalTable(_Scratch):
             RefusalCase(id="export-without-identity",
                         argv=("export", "--to", str(self.world.tmp / "out")),
                         cls="identity", origin=ORIGIN),
+            RefusalCase(id="start-bare-name", argv=self.start_argv(),
+                        cls="identity", origin=origin_finding(3),
+                        note="JustAName"),
+            RefusalCase(id="stop-address-without-domain", argv=("stop",),
+                        cls="identity", origin=origin_finding(3),
+                        note="Name <noreply>"),
+            RefusalCase(id="attach-name-without-brackets",
+                        argv=("attach", "--member", "grunt"),
+                        cls="identity", origin=origin_finding(3),
+                        note="Sessions Tester noreply@example.test"),
         )
-        run_table(self, rows, lambda row: self.sessions(*row.argv, identity=None))
+
+        def invoke(row):
+            return self.sessions(*row.argv, identity=row.note)
+
+        run_table(self, rows, invoke)
 
     def test_unknown_and_slice2_verbs_refuse_arguments(self):
+        """Declared gap: planted faults follow the implementation; no mutants file.
+
+        origin: 20260922T215604Z-review-codex-f6777b#4
+        An undeclared verb and option, neither of them the four examples
+        frobnicate, join, recover and --nope, refuse arguments.
+        """
+        extra_verb = "v" + hashlib.sha256(b"sessions-lever arguments").hexdigest()[:12]
+        extra_option = "--" + hashlib.sha256(b"sessions-lever option").hexdigest()[:12]
         rows = (
             RefusalCase(id="unknown-verb", argv=("frobnicate",),
                         cls="arguments", origin=ORIGIN),
@@ -356,24 +418,47 @@ class TheRefusalTable(_Scratch):
                         named=("recover",)),
             RefusalCase(id="unknown-option", argv=("status", "--nope"),
                         cls="arguments", origin=ORIGIN),
+            RefusalCase(id="undeclared-verb", argv=(extra_verb,),
+                        cls="arguments", origin=origin_finding(4),
+                        named=(extra_verb,)),
+            RefusalCase(id="undeclared-option", argv=("doctor", extra_option),
+                        cls="arguments", origin=origin_finding(4),
+                        named=(extra_option,)),
         )
         run_table(self, rows, lambda row: self.sessions(*row.argv))
 
     def test_malformed_team_files_refuse_team(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#5
+
+        Duplicate names, empty roles, a relative executable and an
+        undeclared key refuse team, with the shapes the contract already
+        names.
+        """
         cases = (
-            ("team-unknown-harness",
+            ("team-unknown-harness", ORIGIN,
              a_team({"name": "co", "harness": "gemini", "roles": ["worker"]})),
-            ("team-unknown-role",
+            ("team-unknown-role", ORIGIN,
              a_team({"name": "co", "harness": "claude", "roles": ["emperor"]})),
-            ("team-bad-name",
+            ("team-bad-name", ORIGIN,
              a_team({"name": "CO", "harness": "claude", "roles": ["worker"]})),
-            ("team-empty-members",
+            ("team-empty-members", ORIGIN,
              {"schema": "agentscient-team/1",
               "run": {"name": "lane", "tmux": "agentscient"},
               "members": []}),
+            ("team-duplicate-name", origin_finding(5),
+             a_team(claude_member("co", ["worker"]),
+                    claude_member("co", ["worker"]))),
+            ("team-empty-roles", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": []})),
+            ("team-relative-executable", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": ["worker"],
+                     "executable": "claude"})),
+            ("team-undeclared-key", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": ["worker"],
+                     "model": "unwanted"})),
         )
         rows = []
-        for case_id, team in cases:
+        for case_id, origin, team in cases:
             path = self.world.plant_text(
                 f"{case_id}.json", json.dumps(team) + "\n"
             )
@@ -383,7 +468,7 @@ class TheRefusalTable(_Scratch):
                     argv=("start", "--member", "co", "--team", str(path),
                           "--ready-timeout", str(READY)),
                     cls="team",
-                    origin=ORIGIN,
+                    origin=origin,
                 )
             )
         rows.append(
@@ -398,11 +483,40 @@ class TheRefusalTable(_Scratch):
         run_table(self, rows, lambda row: self.sessions(*row.argv))
 
     def test_status_on_an_absent_store_says_no_runs_and_creates_nothing(self):
-        with self.subTest(id="status-no-runs", origin=ORIGIN):
-            proc = self.sessions("status", identity=None)
-            self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assertIn("no runs", proc.stdout)
-            self.assertFalse(self.state.exists() and (self.state / "state.db").exists())
+        """origin: 20260922T215604Z-review-codex-f6777b#7
+
+        A read says ``no runs`` and creates no state directory, sessions
+        directory, database, or any other artifact under the state root.
+        While the subject is absent the row runs a stand-in that prints
+        the reading and creates those artifacts, so the watch is what
+        goes red.
+        """
+        if TOOL.is_file():
+            argv = [sys.executable, str(TOOL)]
+        else:
+            stand = self.world.plant_text(
+                "status-creates.py",
+                "import os, pathlib, sys\n"
+                f"root = pathlib.Path(os.environ['XDG_STATE_HOME']) / {LANE!r}\n"
+                "root.mkdir(parents=True)\n"
+                "(root / 'sessions').mkdir()\n"
+                "sys.stdout.write('no runs\\n')\n",
+            )
+            argv = [sys.executable, str(stand)]
+        watch = Watch([self.xdg])
+        proc = run(
+            [*argv, "status"],
+            cwd=self.world.cwd,
+            env=self.env(identity=None),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertIn("no runs", proc.stdout)
+        with self.subTest(id="status-creates-nothing", origin=origin_finding(7)):
+            watch.assert_unchanged(self, "status created a store artifact")
+            self.assertFalse(self.state.exists())
+            self.assertFalse((self.state / "sessions").exists())
+            self.assertFalse((self.state / "state.db").exists())
 
     def test_a_corrupt_store_refuses_store(self):
         store = self.state / "state.db"
@@ -413,11 +527,40 @@ class TheRefusalTable(_Scratch):
             self.assert_refusal(proc, "store", case_id="store-corrupt")
 
     def test_a_worktree_that_is_not_of_this_repository_refuses_worktree(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#8
+
+        A plain directory refuses worktree, and so does a git worktree
+        whose common directory is another repository.
+        """
         other = self.world.root / "not-a-worktree"
         other.mkdir()
         with self.subTest(id="worktree-plain-dir", origin=ORIGIN):
             proc = self.sessions(*self.start_argv("grunt", "--worktree", str(other)))
             self.assert_refusal(proc, "worktree", case_id="worktree-plain-dir")
+        repo = self.world.root / "other-repo"
+        repo.mkdir()
+        env = self.world.env()
+        run(["git", "init", "-b", "main"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        run(["git", "commit", "--allow-empty", "-m", "other"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        wt = self.world.root / "other-wt"
+        run(["git", "worktree", "add", "--detach", str(wt), "HEAD"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        inside = run(
+            ["git", "-C", str(wt), "rev-parse", "--is-inside-work-tree"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        self.assertEqual(inside.stdout.strip(), "true")
+        other_common = run(
+            ["git", "-C", str(wt), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        this_common = run(
+            ["git", "-C", str(REPO), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        self.assertNotEqual(other_common.stdout.strip(), this_common.stdout.strip())
+        with self.subTest(id="worktree-other-repository", origin=origin_finding(8)):
+            proc = self.sessions(*self.start_argv("grunt", "--worktree", str(wt)))
+            self.assert_refusal(proc, "worktree", case_id="worktree-other-repository")
 
     def test_absent_run_member_and_pane_refuse_absent(self):
         rows = (
@@ -465,6 +608,61 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def test_a_missing_member_or_pane_of_an_existing_run_refuses_absent(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#6
+
+        A run that exists still refuses absent for a member it does not
+        contain, and for a member whose pane is gone.
+        """
+        self.skip_without_tmux()
+        self.sessions(*self.start_argv())
+        with self.subTest(id="absent-member-existing-run", origin=origin_finding(6)):
+            proc = self.sessions("attach", "--member", "nosuch", "--run", "R-1")
+            refusal_wire(
+                RefusalCase(
+                    id="absent-member-existing-run",
+                    argv=("attach", "--member", "nosuch", "--run", "R-1"),
+                    cls="absent",
+                    origin=origin_finding(6),
+                    named=("nosuch",),
+                ),
+                proc,
+            )
+        with self.subTest(id="absent-pane-existing-run", origin=origin_finding(6)):
+            self.drop_owned_pane("grunt")
+            proc = self.sessions("attach", "--member", "grunt", "--run", "R-1")
+            refusal_wire(
+                RefusalCase(
+                    id="absent-pane-existing-run",
+                    argv=("attach", "--member", "grunt", "--run", "R-1"),
+                    cls="absent",
+                    origin=origin_finding(6),
+                    named=("grunt",),
+                ),
+                proc,
+            )
+
+    def drop_owned_pane(self, member: str) -> None:
+        """Kill the member's pane when the private server has one."""
+        listed = run(
+            ["tmux", "-S", str(self.socket), "list-panes", "-a",
+             "-F", "#{window_name} #{pane_id}"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        if listed.exit != 0:
+            return
+        for line in listed.stdout.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[0] == member:
+                run(
+                    ["tmux", "-S", str(self.socket), "kill-pane", "-t", parts[1]],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=TIMEOUT,
+                )
+
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
         self.skip_without_tmux()
         with self.subTest(id="unowned-session", origin=origin_finding(10)):
@@ -483,6 +681,37 @@ class TheTmuxAndLaunchRows(_Scratch):
             self.assertEqual(create.exit, 0, create.stderr)
             proc = self.sessions(*self.start_argv())
             self.assert_refusal(proc, "ownership", case_id="unowned-session")
+
+    def test_ready_while_process_is_not_ok_refuses_readiness(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#9
+
+        The planted harness exits after bind, so process is not ok.
+        start must refuse readiness rather than report ready.
+        """
+        self.skip_without_tmux()
+        text = _fake_text(HARNESS_SRC)
+        marker = "@@REPO@@"
+        if text.count(marker) != 1:
+            raise AssertionError("INVALID: harness repo anchor")
+        at = text.index(marker)
+        text = text[:at] + str(REPO) + text[at + len(marker):]
+        hold = "    hold()\n"
+        if text.count(hold) != 1:
+            raise AssertionError("INVALID: harness hold anchor")
+        at = text.index(hold)
+        text = text[:at] + "    return 0\n" + text[at + len(hold):]
+        self.world.tools.plant("claude", script=text)
+        proc = self.sessions(*self.start_argv())
+        refusal_wire(
+            RefusalCase(
+                id="readiness-process-not-ok",
+                argv=self.start_argv(),
+                cls="readiness",
+                origin=origin_finding(9),
+                named=("process",),
+            ),
+            proc,
+        )
 
     def test_native_id_mismatch_refuses_native(self):
         self.skip_without_tmux()
@@ -568,14 +797,14 @@ class TheCleanNeighbours(_Scratch):
     def test_cold_start_on_an_empty_store_binds_lead(self):
         self.skip_without_tmux()
         self.plant_team(a_team(claude_member("co", ["lead"])))
-        with self.subTest(id="cold-start", origin=ORIGIN):
+        with self.subTest(id="cold-start", origin=origin_finding(11)):
             proc = self.sessions(*self.start_argv("co"))
             self.assertEqual(proc.exit, 0, proc.stderr)
+            self.assert_readiness(proc.stdout)
             self.assertRegex(
                 proc.stdout,
                 r"started co SM-\d+ as PT-\d+ in R-\d+ pane %\d+ gen \d+",
             )
-            self.assert_readiness(proc.stdout)
             who = self.store_who("co")
             self.assertIn("lead", who)
 
@@ -594,17 +823,56 @@ class TheCleanNeighbours(_Scratch):
             lead = self.coord("who", session=LEAD_SESSION)
             self.assertIn("lead", lead.stdout)
 
+    def identity_oks(self, text: str) -> list[str]:
+        """Session ids from ``identity ok <id>`` lines."""
+        found = []
+        for line in text.splitlines():
+            match = re.search(r"\bidentity\s*:?\s*ok\s+(\S+)", line)
+            if match:
+                found.append(match.group(1))
+        return found
+
+    def launch_ids(self, run: str) -> list[str]:
+        """Launch identities recorded under the run, one per member."""
+        root = self.state / "sessions" / run
+        found = []
+        if not root.is_dir():
+            return found
+        for path in sorted(root.glob("*/launch.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                continue
+            for key in ("launch_id", "launch-id", "launch id"):
+                value = data.get(key)
+                if value:
+                    found.append(str(value))
+                    break
+        return found
+
     def test_a_second_member_of_the_same_harness_has_distinct_profile_identity_pane(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#12
+
+        The second member's launch identity and native identity differ
+        from the first member's.
+        """
         self.skip_without_tmux()
         self.plant_team(a_team(
             claude_member("co", ["worker"]),
             claude_member("xo", ["worker"]),
         ))
-        with self.subTest(id="second-member", origin=ORIGIN):
+        with self.subTest(id="second-member", origin=origin_finding(12)):
             first = self.sessions(*self.start_argv("co"))
             self.assertEqual(first.exit, 0, first.stderr)
             second = self.sessions(*self.start_argv("xo", "--run", "R-1"))
             self.assertEqual(second.exit, 0, second.stderr)
+            first_native = self.identity_oks(first.stdout)
+            second_native = self.identity_oks(second.stdout)
+            self.assertEqual(len(first_native), 1, f"first identity: {first.stdout!r}")
+            self.assertEqual(len(second_native), 1, f"second identity: {second.stdout!r}")
+            self.assertNotEqual(first_native[0], second_native[0])
+            launches = self.launch_ids("R-1")
+            self.assertEqual(len(launches), 2, f"launch identities: {launches!r}")
+            self.assertNotEqual(launches[0], launches[1])
             status = self.sessions("status", "--run", "R-1", identity=None)
             self.assertIn("co", status.stdout)
             self.assertIn("xo", status.stdout)
@@ -619,34 +887,107 @@ class TheCleanNeighbours(_Scratch):
             self.assertNotEqual(panes[0], panes[1])
 
     def test_attach_execs_tmux_on_the_owned_window(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#13
+
+        attach-session uses the run's socket, the run's session name,
+        and the member's window.
+        """
         self.skip_without_tmux()
-        with self.subTest(id="attach", origin=ORIGIN):
+        with self.subTest(id="attach", origin=origin_finding(13)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
             proc = self.sessions("attach", "--member", "grunt")
             self.assertEqual(proc.exit, 0, proc.stderr)
+            run_id = "R-1"
+            match = re.search(r"\b(R-\d+)\b", started.stdout)
+            if match:
+                run_id = match.group(1)
+            session = f"agentscient-{run_id}"
+            window = "grunt"
             log = self.world.root / "fakes" / "tmux.calls.jsonl"
-            self.assertTrue(log.is_file(), "tmux shim did not log")
-            calls = [
-                json.loads(ln)["argv"]
-                for ln in log.read_text(encoding="utf-8").splitlines()
-                if ln.strip()
-            ]
+            calls = []
+            if log.is_file():
+                calls = [
+                    json.loads(line)["argv"]
+                    for line in log.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+            matched = []
+            for argv in calls:
+                if "attach-session" not in argv and not (argv and argv[0] == "attach"):
+                    continue
+                if str(self.socket) not in argv:
+                    continue
+                if not any(session in part for part in argv):
+                    continue
+                if not any(window in part for part in argv):
+                    continue
+                matched.append(argv)
             self.assertTrue(
-                any("attach-session" in c or (c and c[0] == "attach") for c in calls),
-                calls,
+                matched,
+                f"attach-session on {self.socket} at {session} window {window}: {calls}",
             )
 
+    def owned_pid_and_window(self, member: str, started: str):
+        pid = None
+        for path in (self.state / "sessions").glob(f"*/{member}/launch.json"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            raw = data.get("pid") if isinstance(data, dict) else None
+            if isinstance(raw, int) and raw > 1:
+                pid = raw
+            elif isinstance(raw, str) and raw.isdigit() and int(raw) > 1:
+                pid = int(raw)
+        if pid is None:
+            status = self.sessions("status", identity=None).stdout
+            match = re.search(r"\bpid=(\d+)\b", status)
+            if match and int(match.group(1)) > 1:
+                pid = int(match.group(1))
+        run_id = "R-1"
+        named = re.search(r"\b(R-\d+)\b", started)
+        if named:
+            run_id = named.group(1)
+        return pid, f"agentscient-{run_id}", member
+
+    def window_present(self, session: str, window: str) -> bool:
+        listed = run(
+            ["tmux", "-S", str(self.socket), "list-windows", "-t", session,
+             "-F", "#{window_name}"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        return listed.exit == 0 and window in listed.stdout.split()
+
     def test_a_clean_stop_terminates_the_owned_pid(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#14
+
+        stop --terminate signals the owned pid and removes the owned
+        window. Printing stopped while either is still alive fails.
+        """
         self.skip_without_tmux()
-        with self.subTest(id="clean-stop", origin=ORIGIN):
+        with self.subTest(id="clean-stop", origin=origin_finding(14)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
+            pid, session, window = self.owned_pid_and_window("grunt", started.stdout)
+            self.assertIsNotNone(pid, "stop --terminate recorded no owned pid")
+            self.assertTrue(self._alive(pid), "recorded pid was already dead")
+            self.assertTrue(
+                self.window_present(session, window),
+                f"owned window {session}:{window} was absent before stop",
+            )
             proc = self.sessions("stop", "--terminate")
             self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assertIn("stopped", proc.stdout)
+            self.assertRegex(proc.stdout, r"stopped \S+")
+            self.assertFalse(self._alive(pid), "owned pid still alive after stop --terminate")
+            self.assertFalse(
+                self.window_present(session, window),
+                "owned window still alive after stop --terminate",
+            )
             status = self.sessions("status", identity=None)
-            self.assertIn("stopped", status.stdout)
+            self.assertRegex(status.stdout, r"\bstopped\b")
 
     def _plant_export_canaries(self, member: str) -> list[str]:
         """origin: 20260922T215604Z-review-codex-f6777b#15
@@ -725,50 +1066,135 @@ class TheCleanNeighbours(_Scratch):
                 self.assertNotIn(secret, blob)
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#16
+
+        The pane capture is unreadable before export. The first failure
+        is kept and named, and the export exits 1.
+        """
         self.skip_without_tmux()
         dest = self.world.root / "export-partial"
-        with self.subTest(id="export-unreadable-diagnostics", origin=ORIGIN):
+        with self.subTest(id="export-unreadable-diagnostics", origin=origin_finding(16)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
-            evidence = list((self.state / "sessions").glob("*/grunt"))
-            self.assertTrue(evidence, "no member evidence directory")
-            target = evidence[0] / "pane.log"
-            target.write_text("capture\n", encoding="utf-8")
+            targets = list((self.state / "sessions").glob("*/grunt/pane.log"))
+            if not targets:
+                planted = self.state / "sessions" / "R-1" / "grunt" / "pane.log"
+                planted.parent.mkdir(parents=True, exist_ok=True)
+                planted.write_text("capture\n", encoding="utf-8")
+                targets = [planted]
+            target = targets[0]
             target.chmod(0)
-            proc = self.sessions("export", "--to", str(dest))
-            target.chmod(0o644)
-            self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
-            self.assertTrue(proc.stdout.strip() or proc.stderr.strip())
+            unreadable = False
+            try:
+                target.read_bytes()
+            except OSError:
+                unreadable = True
+            self.assertTrue(unreadable, f"{target} stayed readable after chmod 0")
+            try:
+                proc = self.sessions("export", "--to", str(dest))
+            finally:
+                target.chmod(0o644)
+            combined = proc.stdout + proc.stderr
+            self.assertIn(str(target), combined, f"the first failure was not named: {combined!r}")
+            self.assertEqual(proc.exit, 1, combined)
+
+    def proc_start_ticks(self, pid: int) -> str:
+        text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        return text.rsplit(")", 1)[1].split()[19]
+
+    def recorded_pid_ticks(self, member: str) -> tuple[int | None, str | None]:
+        pid = None
+        ticks = None
+        for path in (self.state / "sessions").glob(f"*/{member}/launch.json"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            raw = data.get("pid")
+            if isinstance(raw, int) and raw > 1:
+                pid = raw
+            elif isinstance(raw, str) and raw.isdigit() and int(raw) > 1:
+                pid = int(raw)
+            for key in ("start", "start_ticks", "start-ticks"):
+                value = data.get(key)
+                if value is not None and str(value):
+                    ticks = str(value)
+                    break
+        if pid is None:
+            status = self.sessions("status", identity=None).stdout
+            match = re.search(r"\bpid=(\d+)\b", status)
+            if match and int(match.group(1)) > 1:
+                pid = int(match.group(1))
+            ticks_match = re.search(r"\bstart=(\d+)\b", status)
+            if ticks_match:
+                ticks = ticks_match.group(1)
+        return pid, ticks
+
+    def wait_until_gone(self, pid: int) -> None:
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and Path(f"/proc/{pid}").exists():
+            time.sleep(0.02)
+
+    def reuse_recorded_pid(self, recorded: int, ticks: str) -> int | None:
+        """Spawn through owned_holder until the recorded pid is alive again
+        with different start ticks. Fail closed when that does not happen.
+        """
+        cursor = Path("/proc/sys/kernel/ns_last_pid")
+        for _ in range(8):
+            try:
+                cursor.write_text(str(recorded - 1), encoding="utf-8")
+            except OSError:
+                pass
+            child, release = self.owned_holder()
+            if child == recorded:
+                try:
+                    live = self.proc_start_ticks(child)
+                except OSError:
+                    live = ticks
+                if live != ticks:
+                    return child
+            release()
+        return None
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#17
+
+        The recorded pid is reaped and reused with different start ticks.
+        If the world does not reuse it, the row fails. stop --terminate
+        must not signal the live pid, and must say unresolved stale pid.
+        Spawns go through owned_holder (findings 18 and 19).
+        """
         self.skip_without_tmux()
-        with self.subTest(id="stale-pid-stop", origin=origin_finding(18)):
+        with self.subTest(id="stale-pid-stop", origin=origin_finding(17)):
             started = self.sessions(*self.start_argv())
             self.assertIn(started.exit, (0, 1), started.stderr)
-            status = self.sessions("status", identity=None)
-            recorded = None
-            for token in status.stdout.replace("=", " ").split():
-                if token.isdigit() and int(token) > 1:
-                    recorded = int(token)
-                    break
-            canary_pid, _release_canary = self.owned_holder()
-            if recorded:
-                with contextlib.suppress(OSError):
-                    os.kill(recorded, signal.SIGKILL)
-            holder: object = canary_pid
-            if recorded and canary_pid != recorded:
-                for _ in range(64):
-                    child_pid, release_child = self.owned_holder()
-                    if child_pid == recorded:
-                        holder = child_pid
-                        break
-                    release_child()
+            recorded, ticks = self.recorded_pid_ticks("grunt")
+            if recorded is None or not Path(f"/proc/{recorded}").exists():
+                recorded, release_seed = self.owned_holder()
+                ticks = self.proc_start_ticks(recorded)
+                os.kill(recorded, signal.SIGKILL)
+                release_seed()
+                self.wait_until_gone(recorded)
+            else:
+                if not ticks:
+                    ticks = self.proc_start_ticks(recorded)
+                os.kill(recorded, signal.SIGKILL)
+                self.wait_until_gone(recorded)
+            self.assertFalse(Path(f"/proc/{recorded}").exists(), "the recorded pid was not reaped")
+            reused = self.reuse_recorded_pid(recorded, ticks)
+            self.assertEqual(
+                reused,
+                recorded,
+                "the world did not reuse the recorded pid; a stale-pid row must not pass",
+            )
+            self.assertNotEqual(self.proc_start_ticks(reused), ticks)
             proc = self.sessions("stop", "--terminate")
-            self.assertTrue(self._alive(int(holder)), "the world-owned pid was signalled")
+            self.assertTrue(self._alive(reused), "the reused pid was signalled")
             combined = proc.stdout + proc.stderr
             self.assertIn("stale pid", combined)
             self.assertIn("unresolved", combined)
-
 
 class TheDoctorDefaultTeam(_Scratch):
     def test_doctor_reports_missing_adapter_for_codex_and_grok(self):
