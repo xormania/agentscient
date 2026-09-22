@@ -887,22 +887,45 @@ class TheCleanNeighbours(_Scratch):
             self.assertNotEqual(panes[0], panes[1])
 
     def test_attach_execs_tmux_on_the_owned_window(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#13
+
+        attach-session uses the run's socket, the run's session name,
+        and the member's window.
+        """
         self.skip_without_tmux()
-        with self.subTest(id="attach", origin=ORIGIN):
+        with self.subTest(id="attach", origin=origin_finding(13)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
             proc = self.sessions("attach", "--member", "grunt")
             self.assertEqual(proc.exit, 0, proc.stderr)
+            run_id = "R-1"
+            match = re.search(r"\b(R-\d+)\b", started.stdout)
+            if match:
+                run_id = match.group(1)
+            session = f"agentscient-{run_id}"
+            window = "grunt"
             log = self.world.root / "fakes" / "tmux.calls.jsonl"
-            self.assertTrue(log.is_file(), "tmux shim did not log")
-            calls = [
-                json.loads(ln)["argv"]
-                for ln in log.read_text(encoding="utf-8").splitlines()
-                if ln.strip()
-            ]
+            calls = []
+            if log.is_file():
+                calls = [
+                    json.loads(line)["argv"]
+                    for line in log.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+            matched = []
+            for argv in calls:
+                if "attach-session" not in argv and not (argv and argv[0] == "attach"):
+                    continue
+                if str(self.socket) not in argv:
+                    continue
+                if not any(session in part for part in argv):
+                    continue
+                if not any(window in part for part in argv):
+                    continue
+                matched.append(argv)
             self.assertTrue(
-                any("attach-session" in c or (c and c[0] == "attach") for c in calls),
-                calls,
+                matched,
+                f"attach-session on {self.socket} at {session} window {window}: {calls}",
             )
 
     def test_a_clean_stop_terminates_the_owned_pid(self):
