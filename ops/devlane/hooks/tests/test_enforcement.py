@@ -483,6 +483,51 @@ class SharedEnforcement(unittest.TestCase):
             with self.subTest(harness=harness), self.assertRaises(ValueError):
                 profiles.native_launch(other, ["/usr/bin/true", "--session-id", launch], self.env)
 
+    def test_claude_launch_session_id_binds_only_the_native_session_it_names(self):
+        # origin: 20260922T213639Z-review-codex-202757#1, from its reproduce field: the
+        # interactive profile bound the hook's session_id without comparing it to the
+        # admitted --session-id, so the terminal registered under a session the launch
+        # never named.
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_launch_session_coordination", root / "ops/conductor/tools/coordination.py")
+        with core.writer():
+            pass
+        intended = "0b5d2c4e-7a31-4f6e-9c2d-3e8f1a6b9d07"
+        observed = "ffffffff-ffff-4fff-8fff-ffffffffffff"
+
+        def launched(name, args, inherited=None):
+            binding = profiles.generate("claude", self.world.root / name, source=root, cwd=self.repo, mode="interactive",
+                                        executable="/usr/bin/true", agent="Fixture <fixture@example.invalid>")
+            _, env = profiles.native_launch(binding, ["/usr/bin/true", *args], {**self.env, **(inherited or {})})
+            return binding, env
+
+        def stored(session):
+            with core.reader() as conn:
+                return conn.execute("SELECT count(*) FROM participants WHERE session_id = ?", (session,)).fetchone()[0]
+
+        binding, env = launched("launch-mismatch", ["--session-id", intended])
+        with patch.dict(os.environ, env, clear=True):
+            with self.assertRaisesRegex(ValueError, f"^native: expected the launch session id {intended}; found {observed};"):
+                profiles.initialize(binding, {"session_id": observed}, instrument=enforcement.instrument)
+        self.assertEqual((stored(observed), stored(intended)), (0, 0))
+
+        binding, env = launched("launch-match", ["--session-id=" + intended])
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(profiles.initialize(binding, {"session_id": intended}, instrument=enforcement.instrument), intended)
+        self.assertEqual(stored(intended), 1)
+
+        # Clean neighbours: no launch id admitted, so the hook's session binds as before,
+        # whatever the caller's environment carried in, and a prompt that reads like the
+        # option names nothing.
+        for name, args in (("launch-none", []), ("launch-prompt", ["--", "--session-id"])):
+            native = "native-" + name
+            binding, env = launched(name, args, {"AGENTSCIENT_LAUNCH_SESSION": intended})
+            with self.subTest(args=args):
+                self.assertNotIn("AGENTSCIENT_LAUNCH_SESSION", env)
+                with patch.dict(os.environ, env, clear=True):
+                    self.assertEqual(profiles.initialize(binding, {"session_id": native}, instrument=enforcement.instrument), native)
+                self.assertEqual(stored(native), 1)
+
     def test_worker_argv_preserves_launcher_sandbox_identity_and_mcp(self):
         root = Path(__file__).resolve().parents[4]
         arguments = {
