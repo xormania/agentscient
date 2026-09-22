@@ -585,28 +585,80 @@ class TheCleanNeighbours(_Scratch):
             status = self.sessions("status", identity=None)
             self.assertIn("stopped", status.stdout)
 
+    def _plant_export_canaries(self, member: str) -> list[str]:
+        """origin: 20260922T215604Z-review-codex-f6777b#15
+
+        The binding's coordination_capability and every
+        credential_environment value, with a canary planted before export.
+        """
+        bindings = list((self.state / "sessions").glob(f"*/{member}/profile/binding.json"))
+        if not bindings:
+            return []
+        binding = json.loads(bindings[0].read_text(encoding="utf-8"))
+        if not isinstance(binding, dict):
+            return []
+        capability = binding.get("coordination_capability")
+        if not isinstance(capability, str) or not capability:
+            capability = "capability-canary-a8b48e-not-for-export"
+            binding["coordination_capability"] = capability
+        raw = binding.get("credential_environment")
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["TEST_CREDENTIAL"] = "credential-canary-a8b48e-not-for-export"
+        binding["credential_environment"] = raw
+        bindings[0].write_text(json.dumps(binding), encoding="utf-8")
+        values = [capability]
+        for value in raw.values():
+            if value is None:
+                continue
+            rendered = str(value)
+            if rendered:
+                values.append(rendered)
+        return values
+
     def test_a_full_export_omits_capability_and_credential_values(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#15"""
         self.skip_without_tmux()
         dest = self.world.root / "export"
-        with self.subTest(id="full-export", origin=ORIGIN):
+        with self.subTest(id="full-export", origin=origin_finding(15)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
-            secret = None
-            bindings = list((self.state / "sessions").glob("*/grunt/profile/binding.json"))
-            if bindings:
-                secret = json.loads(bindings[0].read_text(encoding="utf-8")).get(
-                    "coordination_capability"
-                )
+            secrets = self._plant_export_canaries("grunt")
             proc = self.sessions("export", "--to", str(dest))
             self.assertEqual(proc.exit, 0, proc.stderr)
+            self.assertTrue(
+                any(item.is_file() for item in dest.rglob("pane.log")),
+                "pane capture is present",
+            )
+            self.assertTrue(
+                any(item.is_file() for item in dest.rglob("launch.json")),
+                "launch.json is present",
+            )
+            diags = [item for item in dest.rglob("diagnostics.json") if item.is_file()]
+            self.assertTrue(diags, "adapter diagnostics are present")
+            for diag in diags:
+                listed = json.loads(diag.read_text(encoding="utf-8"))
+                self.assertIsInstance(listed, list)
+                self.assertTrue(listed, f"adapter diagnostics empty: {diag}")
+                for item in listed:
+                    name = Path(str(item)).name
+                    self.assertTrue(
+                        any(found.is_file() and found.name == name for found in dest.rglob(name)),
+                        f"retained diagnostic missing from export: {item}",
+                    )
             self.assertRegex(proc.stdout, r"exported .+ \(\d+ members, \d+ files\)")
-            self.assertTrue((dest / "run.json").is_file())
-            blob = ""
-            for path in dest.rglob("*"):
-                if path.is_file():
-                    blob += path.read_text(encoding="utf-8", errors="replace")
-            self.assertNotIn("coordination_capability", blob)
-            if secret:
+            self.assertTrue((dest / "run.json").is_file(), "run.json is present")
+            self.assertTrue(
+                secrets,
+                "coordination_capability and credential_environment values are known",
+            )
+            pieces = []
+            for exported in dest.rglob("*"):
+                pieces.append(str(exported))
+                if exported.is_file():
+                    pieces.append(exported.read_text(encoding="utf-8", errors="replace"))
+            blob = "\n".join(pieces)
+            for secret in secrets:
                 self.assertNotIn(secret, blob)
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
