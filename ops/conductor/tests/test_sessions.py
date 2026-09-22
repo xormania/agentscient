@@ -538,6 +538,61 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def test_a_missing_member_or_pane_of_an_existing_run_refuses_absent(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#6
+
+        A run that exists still refuses absent for a member it does not
+        contain, and for a member whose pane is gone.
+        """
+        self.skip_without_tmux()
+        self.sessions(*self.start_argv())
+        with self.subTest(id="absent-member-existing-run", origin=origin_finding(6)):
+            proc = self.sessions("attach", "--member", "nosuch", "--run", "R-1")
+            refusal_wire(
+                RefusalCase(
+                    id="absent-member-existing-run",
+                    argv=("attach", "--member", "nosuch", "--run", "R-1"),
+                    cls="absent",
+                    origin=origin_finding(6),
+                    named=("nosuch",),
+                ),
+                proc,
+            )
+        with self.subTest(id="absent-pane-existing-run", origin=origin_finding(6)):
+            self.drop_owned_pane("grunt")
+            proc = self.sessions("attach", "--member", "grunt", "--run", "R-1")
+            refusal_wire(
+                RefusalCase(
+                    id="absent-pane-existing-run",
+                    argv=("attach", "--member", "grunt", "--run", "R-1"),
+                    cls="absent",
+                    origin=origin_finding(6),
+                    named=("grunt",),
+                ),
+                proc,
+            )
+
+    def drop_owned_pane(self, member: str) -> None:
+        """Kill the member's pane when the private server has one."""
+        listed = run(
+            ["tmux", "-S", str(self.socket), "list-panes", "-a",
+             "-F", "#{window_name} #{pane_id}"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        if listed.exit != 0:
+            return
+        for line in listed.stdout.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[0] == member:
+                run(
+                    ["tmux", "-S", str(self.socket), "kill-pane", "-t", parts[1]],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=TIMEOUT,
+                )
+
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
         self.skip_without_tmux()
         with self.subTest(id="unowned-session", origin=origin_finding(10)):
