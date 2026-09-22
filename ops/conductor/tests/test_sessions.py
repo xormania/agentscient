@@ -823,17 +823,56 @@ class TheCleanNeighbours(_Scratch):
             lead = self.coord("who", session=LEAD_SESSION)
             self.assertIn("lead", lead.stdout)
 
+    def identity_oks(self, text: str) -> list[str]:
+        """Session ids from ``identity ok <id>`` lines."""
+        found = []
+        for line in text.splitlines():
+            match = re.search(r"\bidentity\s*:?\s*ok\s+(\S+)", line)
+            if match:
+                found.append(match.group(1))
+        return found
+
+    def launch_ids(self, run: str) -> list[str]:
+        """Launch identities recorded under the run, one per member."""
+        root = self.state / "sessions" / run
+        found = []
+        if not root.is_dir():
+            return found
+        for path in sorted(root.glob("*/launch.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                continue
+            for key in ("launch_id", "launch-id", "launch id"):
+                value = data.get(key)
+                if value:
+                    found.append(str(value))
+                    break
+        return found
+
     def test_a_second_member_of_the_same_harness_has_distinct_profile_identity_pane(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#12
+
+        The second member's launch identity and native identity differ
+        from the first member's.
+        """
         self.skip_without_tmux()
         self.plant_team(a_team(
             claude_member("co", ["worker"]),
             claude_member("xo", ["worker"]),
         ))
-        with self.subTest(id="second-member", origin=ORIGIN):
+        with self.subTest(id="second-member", origin=origin_finding(12)):
             first = self.sessions(*self.start_argv("co"))
             self.assertEqual(first.exit, 0, first.stderr)
             second = self.sessions(*self.start_argv("xo", "--run", "R-1"))
             self.assertEqual(second.exit, 0, second.stderr)
+            first_native = self.identity_oks(first.stdout)
+            second_native = self.identity_oks(second.stdout)
+            self.assertEqual(len(first_native), 1, f"first identity: {first.stdout!r}")
+            self.assertEqual(len(second_native), 1, f"second identity: {second.stdout!r}")
+            self.assertNotEqual(first_native[0], second_native[0])
+            launches = self.launch_ids("R-1")
+            self.assertEqual(len(launches), 2, f"launch identities: {launches!r}")
+            self.assertNotEqual(launches[0], launches[1])
             status = self.sessions("status", "--run", "R-1", identity=None)
             self.assertIn("co", status.stdout)
             self.assertIn("xo", status.stdout)
