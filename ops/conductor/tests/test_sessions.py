@@ -25,7 +25,6 @@ import json
 import os
 import shutil
 import signal
-import subprocess
 import sys
 import threading
 import time
@@ -233,6 +232,7 @@ class _Scratch(unittest.TestCase):
         """A sleeper started through ops.testkit.run with a timeout.
 
         origin: 20260922T215604Z-review-codex-f6777b#18
+        origin: 20260922T215604Z-review-codex-f6777b#19
         """
         nonce = str(time.time_ns())
         ready = self.world.tmp / f"holder-{nonce}.ready"
@@ -754,25 +754,15 @@ class TheCleanNeighbours(_Scratch):
                 with contextlib.suppress(OSError):
                     os.kill(recorded, signal.SIGKILL)
             holder: object = canary_pid
-            if recorded and canary.pid != recorded:
+            if recorded and canary_pid != recorded:
                 for _ in range(64):
-                    child = self.world.own(
-                        subprocess.Popen(
-                            [sys.executable, "-c", "import time; time.sleep(3600)"],
-                            start_new_session=True,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
-                    )
-                    if child.pid == recorded:
-                        holder = child
+                    child_pid, release_child = self.owned_holder()
+                    if child_pid == recorded:
+                        holder = child_pid
                         break
-                    self.world.reap(child)
+                    release_child()
             proc = self.sessions("stop", "--terminate")
-            if isinstance(holder, int):
-                self.assertTrue(self._alive(holder), "the world-owned pid was signalled")
-            else:
-                self.assertIsNone(holder.poll(), "the world-owned pid was signalled")
+            self.assertTrue(self._alive(int(holder)), "the world-owned pid was signalled")
             combined = proc.stdout + proc.stderr
             self.assertIn("stale pid", combined)
             self.assertIn("unresolved", combined)
