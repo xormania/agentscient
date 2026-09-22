@@ -387,6 +387,14 @@ class TheRefusalTable(_Scratch):
         run_table(self, rows, invoke)
 
     def test_unknown_and_slice2_verbs_refuse_arguments(self):
+        """Declared gap: planted faults follow the implementation; no mutants file.
+
+        origin: 20260922T215604Z-review-codex-f6777b#4
+        An undeclared verb and option, neither of them the four examples
+        frobnicate, join, recover and --nope, refuse arguments.
+        """
+        extra_verb = "v" + hashlib.sha256(b"sessions-lever arguments").hexdigest()[:12]
+        extra_option = "--" + hashlib.sha256(b"sessions-lever option").hexdigest()[:12]
         rows = (
             RefusalCase(id="unknown-verb", argv=("frobnicate",),
                         cls="arguments", origin=ORIGIN),
@@ -398,6 +406,12 @@ class TheRefusalTable(_Scratch):
                         named=("recover",)),
             RefusalCase(id="unknown-option", argv=("status", "--nope"),
                         cls="arguments", origin=ORIGIN),
+            RefusalCase(id="undeclared-verb", argv=(extra_verb,),
+                        cls="arguments", origin=origin_finding(4),
+                        named=(extra_verb,)),
+            RefusalCase(id="undeclared-option", argv=("doctor", extra_option),
+                        cls="arguments", origin=origin_finding(4),
+                        named=(extra_option,)),
         )
         run_table(self, rows, lambda row: self.sessions(*row.argv))
 
