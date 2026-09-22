@@ -31,7 +31,7 @@ import time
 import unittest
 from pathlib import Path
 
-from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
+from ops.testkit import RefusalCase, Watch, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -471,11 +471,40 @@ class TheRefusalTable(_Scratch):
         run_table(self, rows, lambda row: self.sessions(*row.argv))
 
     def test_status_on_an_absent_store_says_no_runs_and_creates_nothing(self):
-        with self.subTest(id="status-no-runs", origin=ORIGIN):
-            proc = self.sessions("status", identity=None)
-            self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assertIn("no runs", proc.stdout)
-            self.assertFalse(self.state.exists() and (self.state / "state.db").exists())
+        """origin: 20260922T215604Z-review-codex-f6777b#7
+
+        A read says ``no runs`` and creates no state directory, sessions
+        directory, database, or any other artifact under the state root.
+        While the subject is absent the row runs a stand-in that prints
+        the reading and creates those artifacts, so the watch is what
+        goes red.
+        """
+        if TOOL.is_file():
+            argv = [sys.executable, str(TOOL)]
+        else:
+            stand = self.world.plant_text(
+                "status-creates.py",
+                "import os, pathlib, sys\n"
+                f"root = pathlib.Path(os.environ['XDG_STATE_HOME']) / {LANE!r}\n"
+                "root.mkdir(parents=True)\n"
+                "(root / 'sessions').mkdir()\n"
+                "sys.stdout.write('no runs\\n')\n",
+            )
+            argv = [sys.executable, str(stand)]
+        watch = Watch([self.xdg])
+        proc = run(
+            [*argv, "status"],
+            cwd=self.world.cwd,
+            env=self.env(identity=None),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertIn("no runs", proc.stdout)
+        with self.subTest(id="status-creates-nothing", origin=origin_finding(7)):
+            watch.assert_unchanged(self, "status created a store artifact")
+            self.assertFalse(self.state.exists())
+            self.assertFalse((self.state / "sessions").exists())
+            self.assertFalse((self.state / "state.db").exists())
 
     def test_a_corrupt_store_refuses_store(self):
         store = self.state / "state.db"
