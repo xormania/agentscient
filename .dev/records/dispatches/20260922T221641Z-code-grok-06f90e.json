@@ -1,0 +1,415 @@
+{
+  "id": "20260922T221641Z-code-grok-06f90e",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260922-69",
+  "lineage": {
+    "branch": "lane/session-20260922-69",
+    "base_sha": "8251c219f705c7e9c4d30787097f6eba8d859eeb"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-22T22:16:41Z",
+    "closed": "2026-09-22T22:46:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8251c219f705c7e9c4d30787097f6eba8d859eeb",
+    "ref_sha": "8251c219f705c7e9c4d30787097f6eba8d859eeb",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/usr/bin/bwrap",
+      "--die-with-parent",
+      "--unshare-user",
+      "--bind",
+      "/",
+      "/",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/enforcement/binding.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/enforcement/binding.json",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/enforcement/guard.sh",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/enforcement/guard.sh",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok/hooks/agentscient.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok/hooks/agentscient.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "--chdir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/snapshot",
+      "--",
+      "/home/scientdb/.grok/downloads/grok-1.0.40-linux-x86_64",
+      "-s",
+      "24251b34-9109-4d95-b0d2-60516077d77c",
+      "--model",
+      "grok-4.7",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.7",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.7",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok-stream/sessions/<snapshot-encoded>/24251b34-9109-4d95-b0d2-60516077d77c/summary.json"
+  },
+  "session": {
+    "id": "24251b34-9109-4d95-b0d2-60516077d77c",
+    "binding_id": "24251b34-9109-4d95-b0d2-60516077d77c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok-stream/sessions/<snapshot-encoded>/24251b34-9109-4d95-b0d2-60516077d77c/summary.json",
+    "stream_sha256_at_close": "f58d14e453f56bb6f982cee8b91939670304951cb2ea32b3e5fec5787a59b71e",
+    "bound": "participant PT-28 bound for session 24251b34-9109-4d95-b0d2-60516077d77c by PT-22 for A-483",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "# Scope: revise-tests, sessions slice 1 (A-483)\n\nRevise ops/conductor/tests/test_sessions.py,\nops/conductor/tests/test_session_adapters.py and\nops/conductor/tests/fakes/session_harness.py, session_tmux.py against\nthe 26 findings in\n.dev/records/dispatches/20260922T215604Z-review-codex-f6777b.json\n(result.envelope.findings). Contract: ops/conductor/sessions-lever.md.\nNo implementation exists; every row stays red on its own assertion.\nThe three p1s are fixed, never answered away. Read the input's\nFirst-run walkthrough first: the socket-length limit, the hermetic\nhome, the calibration gap and the subprocess rule are measured there.\nNote: each finding number with fixed or answered <why>, and the reading\nof python3 -m unittest discover -s ops/conductor/tests -p\n'test_session*.py'.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/2026-09-22-sessions-slice1-revise-tests-walkthrough.md",
+        "sha256": "e7e2fd6c4644beebb2d1f305e479c6cb923c45ed5000f315220096305c4d04e7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/test_sessions.py",
+        "sha256": "3dc0157fb4557331ce62b4f5b3acda1d3abbda4ac65815155c09fe041a09ee4d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/test_session_adapters.py",
+        "sha256": "b3a89ec97935ce8ace8d82c9b35a85e8cfa04c493da1f70526019320dc419d08"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/session_harness.py",
+        "sha256": "649da559ba66d33c9c9d569bb26e36060fe7f986b954d60a2d43a5b8e85dcc59"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/session_tmux.py",
+        "sha256": "55a6074afd3fe1ed57401a0ed6f948b4e162f91ddfe32e7ae9f6e2871a40fdff"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/in/20260922T215604Z-review-codex-f6777b.json",
+        "sha256": "97404793c64e70b2f64c60c8f27914df444ba81687854247ff5a442b97a0ea6d"
+      }
+    ],
+    "sha256": "54995e1b9b6c10fec9afed0d9a1032f5d0fffe3bf3c9ba7e554a9ae93067bdd8",
+    "bytes": 11297,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/lane-mcp.json",
+      "sha256": "47768554e0a7c5a7a3655663d1ecc087e0af8bd0c888ad146362eeda2a6b4e4c",
+      "job_ids": [
+        "20260922T215604Z-review-codex-f6777b",
+        "20260922T213030Z-code-grok-1693c9",
+        "20260922T212631Z-code-grok-123236"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok/config.toml"
+    },
+    "coordination": {
+      "unresolved": "the acting server is wired for codex today; this dispatch is grok"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-22T22:16:43Z",
+      "ended": "2026-09-22T22:46:46Z",
+      "exit": 137,
+      "tripped": true,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "d2a24d8ce3260e8fd54745058b96449aed1149d4",
+    "changed_paths": [
+      "ops/conductor/tests/test_session_adapters.py"
+    ],
+    "residual_paths": [
+      " M ops/conductor/tests/fakes/session_harness.py",
+      " M ops/conductor/tests/fakes/session_tmux.py"
+    ],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "8251c219f705c7e9c4d30787097f6eba8d859eeb"
+      },
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 0,
+      "mcp_tools": [],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/home/grok-stream/sessions/<snapshot-encoded>/24251b34-9109-4d95-b0d2-60516077d77c/summary.json"
+    },
+    "reuse": "undeclared",
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T221641Z-code-grok-06f90e/residual.patch",
+      "sha256": "c6c2e77e828eb64596a7119404cca91f61c1e25cb1d81e2b153f637dc0629310",
+      "untracked": []
+    },
+    "cause": {
+      "reason": "timeout",
+      "note": "timeout: harness exceeded runtime"
+    },
+    "store_sweep": {
+      "swept": true,
+      "days": 5,
+      "reclaimed": 0,
+      "kept": 123,
+      "ids": []
+    }
+  },
+  "status": "closed"
+}
