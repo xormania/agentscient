@@ -1186,6 +1186,13 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- Every job in `jobs.json` declares `caps.timeout` 3600 (owner,
+  2026-09-22, relayed by the Lead: "raise them to 60 mins - we're
+  shooting ourselves in the foot"). The 1800s author-tests cap was
+  measured killing live work that day: A-483 timed out keeping one
+  commit, and record 20260922T231526Z-code-grok-312c63 was still
+  committing red rows as its limit came near. A job that needs another
+  value changes this line first.
 - `brief.coordination` is the acting plane beside that read plane
   (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
   directive"). A codex dispatch that names an assignment receives three

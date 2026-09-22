@@ -39,6 +39,7 @@ ENV_TURNS = 21
 JOB_TIMEOUT = 42
 ENV_TIMEOUT = 123.5
 LOOP_TIMEOUT = 0.3
+ONE_HOUR = 3600.0
 
 
 def _caps(test, rec):
@@ -130,6 +131,50 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
         self.assertEqual(caps["timeout_source"], "default")
+
+
+class EveryCatalogueJobLaunchesUnderTheOneHourCap(ls._TempLaunch):
+    """CONTRACT.md §The record: every job in jobs.json declares
+    caps.timeout 3600 (owner, 2026-09-22, relayed by the Lead: "raise
+    them to 60 mins - we're shooting ourselves in the foot"). Each job in
+    the real catalogue is launched with no DISPATCH_TIMEOUT and its record
+    read, so the row runs the launcher rather than reading the file. The
+    planted fault is the catalogue at e20dac19, eight jobs below the hour;
+    implement, already at 3600, is the clean neighbour.
+
+    A job whose adapter is not ``harness`` (verify is ``direct``) is not
+    the launcher's: the launcher refuses it, and this row asserts that
+    refusal and the value it declares. What bounds a direct job at run
+    time is task/run.py's runtime.timeout, which this row does not reach;
+    that is a declared gap, not a cover."""
+
+    def test_each_job_records_3600_from_the_job_layer(self):
+        self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        # A review's base is the merge-base with dev; plant dev at the
+        # middle commit so ref..base is not empty (as the read-role rows do).
+        self._git("branch", "dev", self.mid_sha)
+        catalogue = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertGreater(len(catalogue), 0, "jobs.json must name jobs")
+        for job in sorted(catalogue):
+            with self.subTest(job=job):
+                if catalogue[job].get("adapter") != "harness":
+                    code, out, err = self.dispatch(job=job, harness="grok")
+                    self.assertEqual(code, ls.REFUSAL_EXIT, f"{job}: {self.combined(out, err)!r}")
+                    self.assertIn("job: expected a harness job", self.combined(out, err))
+                    self.assertEqual(catalogue[job]["caps"]["timeout"], int(ONE_HOUR))
+                    continue
+                # A job whose brief names no {scope} refuses one (adjudicate).
+                takes_scope = "{scope}" in (catalogue[job].get("prompt") or "")
+                before = set(self.record_files())
+                code, out, err = self.dispatch(
+                    job=job, harness="grok", scope="pin the launcher" if takes_scope else None)
+                self.assertEqual(
+                    code, 0, f"{job} launch exits 0: {self.combined(out, err)[-400:]!r}")
+                new = sorted(set(self.record_files()) - before)
+                self.assertEqual(len(new), 1, f"{job} wrote one record: {new}")
+                caps = _caps(self, self.read_record(new[0]))
+                self.assertEqual(caps["timeout_source"], "job")
+                self.assertEqual(float(caps["timeout"]), ONE_HOUR)
 
 
 class EveryJobDeclaresItsCaps(unittest.TestCase):
