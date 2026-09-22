@@ -416,20 +416,37 @@ class TheRefusalTable(_Scratch):
         run_table(self, rows, lambda row: self.sessions(*row.argv))
 
     def test_malformed_team_files_refuse_team(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#5
+
+        Duplicate names, empty roles, a relative executable and an
+        undeclared key refuse team, with the shapes the contract already
+        names.
+        """
         cases = (
-            ("team-unknown-harness",
+            ("team-unknown-harness", ORIGIN,
              a_team({"name": "co", "harness": "gemini", "roles": ["worker"]})),
-            ("team-unknown-role",
+            ("team-unknown-role", ORIGIN,
              a_team({"name": "co", "harness": "claude", "roles": ["emperor"]})),
-            ("team-bad-name",
+            ("team-bad-name", ORIGIN,
              a_team({"name": "CO", "harness": "claude", "roles": ["worker"]})),
-            ("team-empty-members",
+            ("team-empty-members", ORIGIN,
              {"schema": "agentscient-team/1",
               "run": {"name": "lane", "tmux": "agentscient"},
               "members": []}),
+            ("team-duplicate-name", origin_finding(5),
+             a_team(claude_member("co", ["worker"]),
+                    claude_member("co", ["worker"]))),
+            ("team-empty-roles", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": []})),
+            ("team-relative-executable", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": ["worker"],
+                     "executable": "claude"})),
+            ("team-undeclared-key", origin_finding(5),
+             a_team({"name": "co", "harness": "claude", "roles": ["worker"],
+                     "model": "unwanted"})),
         )
         rows = []
-        for case_id, team in cases:
+        for case_id, origin, team in cases:
             path = self.world.plant_text(
                 f"{case_id}.json", json.dumps(team) + "\n"
             )
@@ -439,7 +456,7 @@ class TheRefusalTable(_Scratch):
                     argv=("start", "--member", "co", "--team", str(path),
                           "--ready-timeout", str(READY)),
                     cls="team",
-                    origin=ORIGIN,
+                    origin=origin,
                 )
             )
         rows.append(
