@@ -89,8 +89,30 @@ def claude_member(name: str, roles: list[str]) -> dict:
 
 
 class ThePresence(unittest.TestCase):
-    def test_the_tool_file_is_present(self):
-        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
+    def test_the_tool_executes_status_on_an_absent_store(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#2
+
+        The case runs the subject. An empty file exits 0 with no reading;
+        status on an absent store says ``no runs`` and creates nothing.
+        """
+        world = World(prefix="sessions-presence-")
+        self.addCleanup(world.close)
+        conf = world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
+        argv = (
+            [sys.executable, str(TOOL)]
+            if TOOL.is_file()
+            else [sys.executable, str(world.stage(TOOL))]
+        )
+        proc = run(
+            [*argv, "status"],
+            cwd=world.cwd,
+            env=world.env(extra={"LANE_CONF": str(conf)}),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertIn("no runs", proc.stdout)
+        state = world.xdg_state / LANE
+        self.assertFalse(state.exists(), f"status created {state}")
 
 
 class _Scratch(unittest.TestCase):
