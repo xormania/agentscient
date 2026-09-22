@@ -670,6 +670,37 @@ class TheTmuxAndLaunchRows(_Scratch):
             proc = self.sessions(*self.start_argv())
             self.assert_refusal(proc, "ownership", case_id="unowned-session")
 
+    def test_ready_while_process_is_not_ok_refuses_readiness(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#9
+
+        The planted harness exits after bind, so process is not ok.
+        start must refuse readiness rather than report ready.
+        """
+        self.skip_without_tmux()
+        text = _fake_text(HARNESS_SRC)
+        marker = "@@REPO@@"
+        if text.count(marker) != 1:
+            raise AssertionError("INVALID: harness repo anchor")
+        at = text.index(marker)
+        text = text[:at] + str(REPO) + text[at + len(marker):]
+        hold = "    hold()\n"
+        if text.count(hold) != 1:
+            raise AssertionError("INVALID: harness hold anchor")
+        at = text.index(hold)
+        text = text[:at] + "    return 0\n" + text[at + len(hold):]
+        self.world.tools.plant("claude", script=text)
+        proc = self.sessions(*self.start_argv())
+        refusal_wire(
+            RefusalCase(
+                id="readiness-process-not-ok",
+                argv=self.start_argv(),
+                cls="readiness",
+                origin=origin_finding(9),
+                named=("process",),
+            ),
+            proc,
+        )
+
     def test_native_id_mismatch_refuses_native(self):
         self.skip_without_tmux()
         self._plant_harness(session_id="other-native-id")
