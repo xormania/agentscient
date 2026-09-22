@@ -1933,14 +1933,20 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         (job_dir / "state.json").write_text(json.dumps(state) + "\n")
         job_timeout = (job_caps or {}).get("timeout")
         wall_default = _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
-        timeout = float(os.environ.get(
-            "DISPATCH_TIMEOUT",
-            job_timeout if job_timeout is not None else wall_default,
-        ))
+        # The job's cap bounds the environment (CONTRACT.md, the Lead's
+        # ruling 2026-09-22): DISPATCH_TIMEOUT may lower a cap, never raise
+        # it, and what it asked for is recorded beside what was applied.
+        requested = (float(os.environ["DISPATCH_TIMEOUT"])
+                     if "DISPATCH_TIMEOUT" in os.environ else None)
+        if requested is not None and (job_timeout is None or requested <= float(job_timeout)):
+            timeout, source = requested, "DISPATCH_TIMEOUT"
+        elif job_timeout is not None:
+            timeout, source = float(job_timeout), "job"
+        else:
+            timeout, source = float(wall_default), "default"
         rec["caps"]["timeout"] = timeout
-        rec["caps"]["timeout_source"] = (
-            "DISPATCH_TIMEOUT" if "DISPATCH_TIMEOUT" in os.environ
-            else "job" if job_timeout is not None else "default")
+        rec["caps"]["timeout_source"] = source
+        rec["caps"]["timeout_requested"] = requested
         grace = float(os.environ.get("DISPATCH_STREAM_GRACE", "120"))
         started_clock = monotonic()
         runtime_note = None
