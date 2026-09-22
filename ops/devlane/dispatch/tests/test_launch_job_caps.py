@@ -4,7 +4,9 @@ Written from CONTRACT.md §The record, the ``caps.timeout`` bullet:
 ``DISPATCH_TIMEOUT`` from the invoking environment, else the job's own
 ``caps.timeout`` in jobs.json, else 900 — and ``caps.timeout_source``
 names the layer that answered: ``DISPATCH_TIMEOUT``, ``job``, or
-``default``. Policy values and the author-tests commit-on-red clause
+``default``; the job's cap bounds ``DISPATCH_TIMEOUT``, and
+``caps.timeout_requested`` records what the environment asked for.
+Policy values and the author-tests commit-on-red clause
 come from ``ops/devlane/task/jobs.json``. launch.py and record.py were
 not read.
 """
@@ -38,6 +40,7 @@ JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
 ENV_TIMEOUT = 123.5
+ENV_BELOW = 21.5
 LOOP_TIMEOUT = 0.3
 ONE_HOUR = 3600.0
 
@@ -99,20 +102,43 @@ class JobTimeoutIsRecordedWhenEnvIsAbsent(ls._TempLaunch):
         self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
         self.assertEqual(caps["timeout_source"], "job")
+        self.assertIn("timeout_requested", caps, "an unset request is declared, not absent")
+        self.assertIsNone(caps["timeout_requested"])
 
 
-class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
-    """DISPATCH_TIMEOUT from the invoking environment wins; source names it."""
+class EnvTimeoutAboveTheJobCapIsNotAdmitted(ls._TempLaunch):
+    """The Lead's ruling, 2026-09-22 23:39Z: the job's cap bounds
+    DISPATCH_TIMEOUT. Asked for more than the cap, the launcher applies
+    the cap, names the job as the source, and records the request."""
 
-    def test_dispatch_timeout_beats_the_job_cap_and_names_its_source(self):
+    def test_dispatch_timeout_above_the_cap_applies_the_cap(self):
         plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.assertGreater(ENV_TIMEOUT, JOB_TIMEOUT)
         os.environ["DISPATCH_TIMEOUT"] = str(ENV_TIMEOUT)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _caps(self, rec)
-        self.assertEqual(float(caps["timeout"]), float(ENV_TIMEOUT))
-        self.assertNotEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
-        self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
+        self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
+        self.assertEqual(caps["timeout_source"], "job")
+        self.assertIn("timeout_requested", caps)
+        self.assertEqual(float(caps["timeout_requested"]), ENV_TIMEOUT)
+
+
+class EnvTimeoutBelowTheJobCapIsAdmitted(ls._TempLaunch):
+    """At or below the cap, DISPATCH_TIMEOUT answers and the source names
+    it; the request is recorded beside the value applied."""
+
+    def test_dispatch_timeout_below_the_cap_is_applied(self):
+        plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.assertLess(ENV_BELOW, JOB_TIMEOUT)
+        os.environ["DISPATCH_TIMEOUT"] = str(ENV_BELOW)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _caps(self, rec)
+        self.assertEqual(float(caps["timeout"]), ENV_BELOW)
         self.assertEqual(caps["timeout_source"], "DISPATCH_TIMEOUT")
+        self.assertIn("timeout_requested", caps)
+        self.assertEqual(float(caps["timeout_requested"]), ENV_BELOW)
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
