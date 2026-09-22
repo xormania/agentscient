@@ -95,8 +95,22 @@ class ThePresence(unittest.TestCase):
 class _Scratch(unittest.TestCase):
     """Hermetic world, planted fake harness, private tmux socket."""
 
+    def open_world(self, prefix: str) -> World:
+        """A world rooted under /tmp, so the private tmux socket it owns
+        stays under 108 bytes. origin: 20260922T215604Z-review-codex-f6777b#10
+        """
+        saved = os.environ.get("TMPDIR")
+        os.environ["TMPDIR"] = "/tmp"
+        try:
+            return World(prefix=prefix)
+        finally:
+            if saved is None:
+                os.environ.pop("TMPDIR", None)
+            else:
+                os.environ["TMPDIR"] = saved
+
     def setUp(self):
-        self.world = World(prefix="sessions-")
+        self.world = self.open_world("sessions-")
         self.addCleanup(self.world.close)
         self.conf = self.world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
         self.xdg = self.world.xdg_state
@@ -390,7 +404,12 @@ class TheTmuxAndLaunchRows(_Scratch):
 
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
         self.skip_without_tmux()
-        with self.subTest(id="unowned-session", origin=ORIGIN):
+        with self.subTest(id="unowned-session", origin=origin_finding(10)):
+            self.assertLess(
+                len(os.fsencode(str(self.socket))),
+                108,
+                f"private tmux socket must be under 108 bytes: {self.socket}",
+            )
             name = "agentscient-R-1"
             create = run(
                 ["tmux", "-S", str(self.socket), "new-session", "-d", "-s", name],
