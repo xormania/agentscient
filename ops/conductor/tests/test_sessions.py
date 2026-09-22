@@ -928,16 +928,66 @@ class TheCleanNeighbours(_Scratch):
                 f"attach-session on {self.socket} at {session} window {window}: {calls}",
             )
 
+    def owned_pid_and_window(self, member: str, started: str):
+        pid = None
+        for path in (self.state / "sessions").glob(f"*/{member}/launch.json"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            raw = data.get("pid") if isinstance(data, dict) else None
+            if isinstance(raw, int) and raw > 1:
+                pid = raw
+            elif isinstance(raw, str) and raw.isdigit() and int(raw) > 1:
+                pid = int(raw)
+        if pid is None:
+            status = self.sessions("status", identity=None).stdout
+            match = re.search(r"\bpid=(\d+)\b", status)
+            if match and int(match.group(1)) > 1:
+                pid = int(match.group(1))
+        run_id = "R-1"
+        named = re.search(r"\b(R-\d+)\b", started)
+        if named:
+            run_id = named.group(1)
+        return pid, f"agentscient-{run_id}", member
+
+    def window_present(self, session: str, window: str) -> bool:
+        listed = run(
+            ["tmux", "-S", str(self.socket), "list-windows", "-t", session,
+             "-F", "#{window_name}"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        return listed.exit == 0 and window in listed.stdout.split()
+
     def test_a_clean_stop_terminates_the_owned_pid(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#14
+
+        stop --terminate signals the owned pid and removes the owned
+        window. Printing stopped while either is still alive fails.
+        """
         self.skip_without_tmux()
-        with self.subTest(id="clean-stop", origin=ORIGIN):
+        with self.subTest(id="clean-stop", origin=origin_finding(14)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
+            pid, session, window = self.owned_pid_and_window("grunt", started.stdout)
+            self.assertIsNotNone(pid, "stop --terminate recorded no owned pid")
+            self.assertTrue(self._alive(pid), "recorded pid was already dead")
+            self.assertTrue(
+                self.window_present(session, window),
+                f"owned window {session}:{window} was absent before stop",
+            )
             proc = self.sessions("stop", "--terminate")
             self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assertIn("stopped", proc.stdout)
+            self.assertRegex(proc.stdout, r"stopped \S+")
+            self.assertFalse(self._alive(pid), "owned pid still alive after stop --terminate")
+            self.assertFalse(
+                self.window_present(session, window),
+                "owned window still alive after stop --terminate",
+            )
             status = self.sessions("status", identity=None)
-            self.assertIn("stopped", status.stdout)
+            self.assertRegex(status.stdout, r"\bstopped\b")
 
     def _plant_export_canaries(self, member: str) -> list[str]:
         """origin: 20260922T215604Z-review-codex-f6777b#15
