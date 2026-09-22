@@ -143,6 +143,7 @@ class _Scratch(unittest.TestCase):
             _fake_text(TMUX_SRC)
             .replace("@@TMUX@@", HOST_TMUX)
             .replace("@@LOG@@", str(log))
+            .replace("@@REPO@@", str(REPO))
         )
         return self.world.tools.plant("tmux", script=text)
 
