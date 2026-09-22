@@ -10,6 +10,11 @@ exit 2.
 
 The one command that reads this file is
 `python3 -m unittest discover -s ops/conductor/tests -p test_sessions.py`.
+
+Calibration gap: planted faults follow the implementation.
+``ops/testkit/cases.py`` calibrate anchors each mutant on the subject's
+text, and ``ops/conductor/tools/sessions.py`` is absent, so this module
+has no mutants file.
 """
 
 from __future__ import annotations
@@ -25,8 +30,6 @@ import sys
 import unittest
 from pathlib import Path
 
-from live_store_guard import IGNORE, TOLERATE_NEW
-
 from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]
@@ -37,6 +40,11 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 ORIGIN = "sessions-lever.md"
+FINDING = "20260922T215604Z-review-codex-f6777b"
+
+
+def origin_finding(number: int) -> str:
+    return f"{FINDING}#{number}"
 AGENT = "Sessions Tester <noreply@example.test>"
 LANE = "sessionstest"
 TIMEOUT = 60.0
@@ -56,25 +64,6 @@ READINESS = (
     "response",
 )
 SLICE2 = ("tools", "ingress", "response")
-
-
-def _live_store_paths() -> list[Path]:
-    paths: list[Path] = [
-        Path.home() / ".local" / "state" / "agentscient" / "dispatch",
-        Path.home() / ".claude",
-    ]
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "dispatch")
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
 
 
 def _fake_text(path: Path) -> str:
@@ -109,13 +98,6 @@ class _Scratch(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="sessions-")
         self.addCleanup(self.world.close)
-        self._live = self.world.watch(
-            *_live_store_paths(),
-            ignore=IGNORE,
-            tolerate_new=TOLERATE_NEW,
-            contents=False,
-        )
-        self.addCleanup(self._live.assert_unchanged, self, "live operator store mutated")
         self.conf = self.world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
         self.xdg = self.world.xdg_state
         self.state = self.xdg / LANE
@@ -148,6 +130,19 @@ class _Scratch(unittest.TestCase):
         )
         return self.world.tools.plant("tmux", script=text)
 
+    def assert_world_roots(self, built: dict[str, str]) -> None:
+        """origin: 20260922T215604Z-review-codex-f6777b#1
+
+        The world owns HOME, the XDG roots and the state root. Every row
+        asserts on those.
+        """
+        self.assertEqual(built["HOME"], str(self.world.home))
+        self.assertEqual(built["XDG_STATE_HOME"], str(self.world.xdg_state))
+        self.assertEqual(built["XDG_CONFIG_HOME"], str(self.world.xdg_config))
+        self.assertEqual(built["XDG_CACHE_HOME"], str(self.world.xdg_cache))
+        self.assertEqual(self.xdg, self.world.xdg_state)
+        self.assertEqual(self.state, self.world.xdg_state / LANE)
+
     def env(self, *, identity: str | None = AGENT, session: str | None = None,
             extra: dict[str, str] | None = None) -> dict[str, str]:
         payload = {
@@ -164,7 +159,9 @@ class _Scratch(unittest.TestCase):
             ).hexdigest()
         if extra:
             payload.update(extra)
-        return self.world.env(extra=payload)
+        built = self.world.env(extra=payload)
+        self.assert_world_roots(built)
+        return built
 
     def tool_argv(self) -> list[str]:
         if TOOL.is_file():
