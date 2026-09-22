@@ -515,11 +515,40 @@ class TheRefusalTable(_Scratch):
             self.assert_refusal(proc, "store", case_id="store-corrupt")
 
     def test_a_worktree_that_is_not_of_this_repository_refuses_worktree(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#8
+
+        A plain directory refuses worktree, and so does a git worktree
+        whose common directory is another repository.
+        """
         other = self.world.root / "not-a-worktree"
         other.mkdir()
         with self.subTest(id="worktree-plain-dir", origin=ORIGIN):
             proc = self.sessions(*self.start_argv("grunt", "--worktree", str(other)))
             self.assert_refusal(proc, "worktree", case_id="worktree-plain-dir")
+        repo = self.world.root / "other-repo"
+        repo.mkdir()
+        env = self.world.env()
+        run(["git", "init", "-b", "main"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        run(["git", "commit", "--allow-empty", "-m", "other"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        wt = self.world.root / "other-wt"
+        run(["git", "worktree", "add", "--detach", str(wt), "HEAD"], cwd=repo, env=env, timeout=TIMEOUT, expect=0)
+        inside = run(
+            ["git", "-C", str(wt), "rev-parse", "--is-inside-work-tree"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        self.assertEqual(inside.stdout.strip(), "true")
+        other_common = run(
+            ["git", "-C", str(wt), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        this_common = run(
+            ["git", "-C", str(REPO), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=self.world.cwd, env=env, timeout=TIMEOUT, expect=0,
+        )
+        self.assertNotEqual(other_common.stdout.strip(), this_common.stdout.strip())
+        with self.subTest(id="worktree-other-repository", origin=origin_finding(8)):
+            proc = self.sessions(*self.start_argv("grunt", "--worktree", str(wt)))
+            self.assert_refusal(proc, "worktree", case_id="worktree-other-repository")
 
     def test_absent_run_member_and_pane_refuse_absent(self):
         rows = (
