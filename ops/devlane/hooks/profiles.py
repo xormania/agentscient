@@ -358,6 +358,12 @@ def native_launch(binding, argv, env):
         out["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
         out.pop(key, None)
+    # The admitted launch id reaches the hook through the child environment, never
+    # the binding, which one profile keeps across launches; initialize compares it.
+    out.pop("AGENTSCIENT_LAUNCH_SESSION", None)
+    options = tokens[:tokens.index("--")] if "--" in tokens else tokens
+    if binding["mode"] == "interactive" and "--session-id" in options:
+        out["AGENTSCIENT_LAUNCH_SESSION"] = options[options.index("--session-id") + 1]
     if binding["mode"] == "worker":
         out["CLAUDE_SESSION_ID"] = binding["session"]
     for key in ("CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE", "BOUNDARIES_PATH", "PYTHONPATH", "PYTHONSTARTUP"):
@@ -405,6 +411,10 @@ def initialize(binding, native_payload, *, instrument):
     session = binding["session"] if binding["mode"] == "worker" else native_id
     if not isinstance(session, str) or not session.strip() or len(session) > 128:
         raise ValueError("native/issued session identity unavailable")
+    launch = os.environ.get("AGENTSCIENT_LAUNCH_SESSION")
+    if binding["mode"] == "interactive" and launch and launch != session:
+        raise ValueError(f"native: expected the launch session id {launch}; found {session}; "
+                         "needed the native session the launch named: relaunch the profile, never rebind it")
     os.environ.pop("AGENTSCIENT_HOOK_PROFILE", None)
     os.environ["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
