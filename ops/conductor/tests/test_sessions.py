@@ -1066,20 +1066,37 @@ class TheCleanNeighbours(_Scratch):
                 self.assertNotIn(secret, blob)
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#16
+
+        The pane capture is unreadable before export. The first failure
+        is kept and named, and the export exits 1.
+        """
         self.skip_without_tmux()
         dest = self.world.root / "export-partial"
-        with self.subTest(id="export-unreadable-diagnostics", origin=ORIGIN):
+        with self.subTest(id="export-unreadable-diagnostics", origin=origin_finding(16)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
-            evidence = list((self.state / "sessions").glob("*/grunt"))
-            self.assertTrue(evidence, "no member evidence directory")
-            target = evidence[0] / "pane.log"
-            target.write_text("capture\n", encoding="utf-8")
+            targets = list((self.state / "sessions").glob("*/grunt/pane.log"))
+            if not targets:
+                planted = self.state / "sessions" / "R-1" / "grunt" / "pane.log"
+                planted.parent.mkdir(parents=True, exist_ok=True)
+                planted.write_text("capture\n", encoding="utf-8")
+                targets = [planted]
+            target = targets[0]
             target.chmod(0)
-            proc = self.sessions("export", "--to", str(dest))
-            target.chmod(0o644)
-            self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
-            self.assertTrue(proc.stdout.strip() or proc.stderr.strip())
+            unreadable = False
+            try:
+                target.read_bytes()
+            except OSError:
+                unreadable = True
+            self.assertTrue(unreadable, f"{target} stayed readable after chmod 0")
+            try:
+                proc = self.sessions("export", "--to", str(dest))
+            finally:
+                target.chmod(0o644)
+            combined = proc.stdout + proc.stderr
+            self.assertIn(str(target), combined, f"the first failure was not named: {combined!r}")
+            self.assertEqual(proc.exit, 1, combined)
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
         self.skip_without_tmux()
