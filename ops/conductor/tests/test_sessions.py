@@ -352,6 +352,12 @@ class TheRefusalTable(_Scratch):
     """One row per refusal class the contract names, addressed by id."""
 
     def test_writing_without_identity_refuses_identity(self):
+        """Declared gap: planted faults follow the implementation; no mutants file.
+
+        origin: 20260922T215604Z-review-codex-f6777b#3
+        A writing verb whose WF_AGENT is absent, or present but not
+        ``Name <address>``, refuses identity.
+        """
         rows = (
             RefusalCase(id="start-without-identity", argv=self.start_argv(),
                         cls="identity", origin=ORIGIN),
@@ -363,8 +369,22 @@ class TheRefusalTable(_Scratch):
             RefusalCase(id="export-without-identity",
                         argv=("export", "--to", str(self.world.tmp / "out")),
                         cls="identity", origin=ORIGIN),
+            RefusalCase(id="start-bare-name", argv=self.start_argv(),
+                        cls="identity", origin=origin_finding(3),
+                        note="JustAName"),
+            RefusalCase(id="stop-address-without-domain", argv=("stop",),
+                        cls="identity", origin=origin_finding(3),
+                        note="Name <noreply>"),
+            RefusalCase(id="attach-name-without-brackets",
+                        argv=("attach", "--member", "grunt"),
+                        cls="identity", origin=origin_finding(3),
+                        note="Sessions Tester noreply@example.test"),
         )
-        run_table(self, rows, lambda row: self.sessions(*row.argv, identity=None))
+
+        def invoke(row):
+            return self.sessions(*row.argv, identity=row.note)
+
+        run_table(self, rows, invoke)
 
     def test_unknown_and_slice2_verbs_refuse_arguments(self):
         rows = (
