@@ -27,6 +27,8 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -219,6 +221,65 @@ class _Scratch(unittest.TestCase):
             str(READY),
             *more,
         )
+
+    def _alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    def owned_holder(self) -> tuple[int, object]:
+        """A sleeper started through ops.testkit.run with a timeout.
+
+        origin: 20260922T215604Z-review-codex-f6777b#18
+        """
+        nonce = str(time.time_ns())
+        ready = self.world.tmp / f"holder-{nonce}.ready"
+        stop = self.world.tmp / f"holder-{nonce}.stop"
+        script = (
+            f"#!{sys.executable}\n"
+            "import os, time, pathlib\n"
+            f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
+            f"stop = pathlib.Path({str(stop)!r})\n"
+            "while not stop.exists():\n"
+            "    time.sleep(0.05)\n"
+        )
+        self.world.tools.plant("holder", script=script)
+        box: dict = {}
+
+        def invoke() -> None:
+            try:
+                box["result"] = run(
+                    [str(self.world.bin / "holder")],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=120,
+                )
+            except Exception as exc:
+                box["error"] = exc
+
+        thread = threading.Thread(target=invoke)
+        thread.start()
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not ready.is_file():
+            time.sleep(0.02)
+        self.assertTrue(
+            ready.is_file(),
+            f"holder was not started through ops.testkit.run: {box!r}",
+        )
+        pid = int(ready.read_text(encoding="utf-8"))
+
+        def release() -> None:
+            if not stop.exists():
+                stop.write_text("stop\n", encoding="utf-8")
+            thread.join(timeout=15)
+            if self._alive(pid):
+                with contextlib.suppress(OSError):
+                    os.kill(pid, signal.SIGTERM)
+
+        self.addCleanup(release)
+        return pid, release
 
     def skip_without_tmux(self) -> None:
         if not HOST_TMUX:
@@ -679,7 +740,7 @@ class TheCleanNeighbours(_Scratch):
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
         self.skip_without_tmux()
-        with self.subTest(id="stale-pid-stop", origin=ORIGIN):
+        with self.subTest(id="stale-pid-stop", origin=origin_finding(18)):
             started = self.sessions(*self.start_argv())
             self.assertIn(started.exit, (0, 1), started.stderr)
             status = self.sessions("status", identity=None)
@@ -688,18 +749,11 @@ class TheCleanNeighbours(_Scratch):
                 if token.isdigit() and int(token) > 1:
                     recorded = int(token)
                     break
-            canary = self.world.own(
-                subprocess.Popen(
-                    [sys.executable, "-c", "import time; time.sleep(3600)"],
-                    start_new_session=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            )
+            canary_pid, _release_canary = self.owned_holder()
             if recorded:
                 with contextlib.suppress(OSError):
                     os.kill(recorded, signal.SIGKILL)
-            holder = canary
+            holder: object = canary_pid
             if recorded and canary.pid != recorded:
                 for _ in range(64):
                     child = self.world.own(
@@ -715,7 +769,10 @@ class TheCleanNeighbours(_Scratch):
                         break
                     self.world.reap(child)
             proc = self.sessions("stop", "--terminate")
-            self.assertIsNone(holder.poll(), "the world-owned pid was signalled")
+            if isinstance(holder, int):
+                self.assertTrue(self._alive(holder), "the world-owned pid was signalled")
+            else:
+                self.assertIsNone(holder.poll(), "the world-owned pid was signalled")
             combined = proc.stdout + proc.stderr
             self.assertIn("stale pid", combined)
             self.assertIn("unresolved", combined)
