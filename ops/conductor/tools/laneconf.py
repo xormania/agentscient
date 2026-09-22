@@ -96,6 +96,7 @@ EXTERNAL_ENV_KEYS = {
     # Supplied by the finite controller to children and the read-only doctor.
     "CONTROL_STATE",
     "AGENTSCIENT_HOOK_PROFILE",
+    "AGENTSCIENT_LAUNCH_SESSION",
     "COORDINATION_CAPABILITY",
     "AGENTSCIENT_ORG",
     "AGENTSCIENT_ROOT",
