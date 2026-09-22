@@ -23,6 +23,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import sys
@@ -316,18 +317,29 @@ class _Scratch(unittest.TestCase):
         return refusal_wire(case, proc).line
 
     def assert_readiness(self, text: str) -> None:
-        lines = [ln for ln in text.splitlines() if ln.strip()]
-        for dim in READINESS:
-            self.assertTrue(
-                any(dim in ln for ln in lines),
-                f"readiness missing {dim}: {text!r}",
-            )
+        """origin: 20260922T215604Z-review-codex-f6777b#11
+
+        ``ready`` requires process, profile, identity, participant and
+        role to read ok, never waiting or refused. Slice 2 reads
+        unmeasured and never ok.
+        """
+        found = {dim: [] for dim in READINESS}
+        pattern = re.compile(
+            "(?:^|\\s)(process|profile|identity|participant|role|tools|ingress|response)"
+            "\\s*:?\\s*(ok|waiting|refused|unmeasured)\\b"
+        )
+        for line in text.splitlines():
+            for match in pattern.finditer(line):
+                found[match.group(1)].append(match.group(2))
+        for dim in ("process", "profile", "identity", "participant", "role"):
+            states = found[dim]
+            self.assertIn("ok", states, f"{dim} must read ok, found {states!r} in {text!r}")
+            self.assertNotIn("waiting", states, f"{dim} reads waiting: {text!r}")
+            self.assertNotIn("refused", states, f"{dim} reads refused: {text!r}")
         for dim in SLICE2:
-            matching = [ln for ln in lines if dim in ln]
-            self.assertTrue(
-                any("unmeasured" in ln for ln in matching),
-                f"{dim} must read unmeasured: {text!r}",
-            )
+            states = found[dim]
+            self.assertIn("unmeasured", states, f"{dim} must read unmeasured: {text!r}")
+            self.assertNotIn("ok", states, f"{dim} is slice 2 and never reads ok: {text!r}")
 
     def bind_lead(self) -> None:
         self.coord("bind", "--roles", "lead,coordinator", session=LEAD_SESSION)
@@ -785,14 +797,14 @@ class TheCleanNeighbours(_Scratch):
     def test_cold_start_on_an_empty_store_binds_lead(self):
         self.skip_without_tmux()
         self.plant_team(a_team(claude_member("co", ["lead"])))
-        with self.subTest(id="cold-start", origin=ORIGIN):
+        with self.subTest(id="cold-start", origin=origin_finding(11)):
             proc = self.sessions(*self.start_argv("co"))
             self.assertEqual(proc.exit, 0, proc.stderr)
+            self.assert_readiness(proc.stdout)
             self.assertRegex(
                 proc.stdout,
                 r"started co SM-\d+ as PT-\d+ in R-\d+ pane %\d+ gen \d+",
             )
-            self.assert_readiness(proc.stdout)
             who = self.store_who("co")
             self.assertIn("lead", who)
 
