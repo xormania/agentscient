@@ -131,8 +131,9 @@ the ordinary case and is never wiped.
 
 ### tmux ownership
 
-One tmux server per run, on the socket `AGENTSCIENT_TMUX_SOCKET` or
-`--tmux-socket NAME` (default: the operator's server). The session is
+One tmux session per run, on the socket `AGENTSCIENT_TMUX_SOCKET` or
+`--tmux-socket NAME` (default: the operator's own server, shared; the
+tests use a private one). The session is
 `<team.run.tmux>-<R-n>` with the session option `@agentscient_owner`
 set to the run id, one window per member named by the member, and
 `remain-on-exit on`. Option operations target the exact session
@@ -162,7 +163,9 @@ the channel capability as `unmeasured slice 2`) and `framing.py`. The
 framing parser refuses, with a reading that names the line: a
 non-JSON line, a response whose id matches no request, two requests
 with one id, a result missing its id. Codex and Grok modules are
-absent, and `doctor` says so per member of those harnesses.
+absent: `doctor` reads `missing adapter` for each codex and grok member
+of the default team and so exits 1 in slice 1, the declared absence
+slice 2 closes.
 
 ## Instrument
 
