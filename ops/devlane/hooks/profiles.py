@@ -277,7 +277,7 @@ def interactive_args(harness, tokens):
     """Admit session UI arguments, never alternate native authority/configuration."""
     groups = {
         "codex": {"value": "--model -m", "flag": "--no-alt-screen --strict-config --help -h --version -V"},
-        "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd",
+        "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd", "uuid": "--session-id",
                    "optional": "--resume -r", "flag": "--continue -c --print -p --verbose --include-partial-messages --include-hook-events --help -h --version -v"},
         "grok": {"value": "--model -m --reasoning-effort --effort --output-format --max-turns",
                  "prompt": "--single -p", "optional": "--resume -r",
@@ -323,6 +323,8 @@ def interactive_args(harness, tokens):
             index += 1
         if value.startswith("-") or (not value and kind != "prompt"):
             raise ValueError("native option has an ambiguous or missing value: " + name)
+        if kind == "uuid" and not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", value, re.IGNORECASE):
+            raise ValueError("native option requires a UUID: " + name)
         result += [name, value]
     return result
 
