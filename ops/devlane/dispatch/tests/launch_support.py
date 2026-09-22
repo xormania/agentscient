@@ -996,7 +996,50 @@ class _TempLaunch(unittest.TestCase):
         launch.mint_id = lambda *a, **k: job_id
         return job_id
 
-    def run_main(self, argv, *, cwd=None):
+    def fixture_assignment(self):
+        """An assignment in this world's store, and the dispatcher that drafted it.
+
+        The launcher refuses a write job that names no assignment (LD-116),
+        so a row that launches one without --for is given one here. The
+        dispatcher is bound once per test; each launch gets its own draft.
+        """
+        key = getattr(self, "_fixture_dispatcher", None)
+        if key is None:
+            key = str(uuid.uuid4())
+            bound = CoordinationCore.core(self, "bind", "--roles", "lead,dispatcher", session=key)
+            self.assertEqual(bound.returncode, 0, f"fixture dispatcher bind refused: {bound.stderr!r}")
+            self._fixture_dispatcher = key
+        drafted = CoordinationCore.core(
+            self, "draft", "a fixture write job", "--outcome", "the launcher binds its worker",
+            session=key)
+        self.assertEqual(drafted.returncode, 0, f"fixture draft refused: {drafted.stderr!r}")
+        return key, drafted.stdout.split()[-1]
+
+    def run_main(self, argv, *, cwd=None, assign=True):
+        argv = list(argv)
+        restore = {}
+        if assign and argv and "--for" not in argv:
+            try:
+                spec = json.loads(self.jobs_file.read_text(encoding="utf-8")).get(argv[0]) or {}
+            except (OSError, ValueError):
+                spec = {}
+            if spec.get("role") == "write":
+                key, aid = self.fixture_assignment()
+                argv.extend(["--for", aid])
+                for name, value in ((SESSION_KEY, key),
+                                    ("COORDINATION_CAPABILITY", hashlib.sha256(key.encode()).hexdigest())):
+                    restore[name] = os.environ.get(name)
+                    os.environ[name] = value
+        try:
+            return self._run_main(argv, cwd=cwd)
+        finally:
+            for name, value in restore.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+    def _run_main(self, argv, *, cwd=None):
         launch = self.load_launch()
         out, err = io.StringIO(), io.StringIO()
         cwd = cwd or self.repo
@@ -1046,7 +1089,7 @@ class _TempLaunch(unittest.TestCase):
         argv.extend(list(extra))
         return argv
 
-    def dispatch(self, argv=None, **kwargs):
+    def dispatch(self, argv=None, *, assign=True, **kwargs):
         if argv is None:
             argv = self.argv_for(**kwargs)
         # A write envelope must declare reuse (launch.py, grant 158); the
@@ -1061,7 +1104,7 @@ class _TempLaunch(unittest.TestCase):
                 os.environ["TASK_LAUNCH_NOTE"] = "reused: nothing applied (fixture default)"
                 planted = True
         try:
-            return self.run_main(argv)
+            return self.run_main(argv, assign=assign)
         finally:
             if planted:
                 os.environ.pop("TASK_LAUNCH_NOTE", None)

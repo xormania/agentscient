@@ -189,7 +189,7 @@ class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
         """
         for job in ("implement", "author-tests"):
             with self.subTest(job=job):
-                code, out, err = self.dispatch(self.argv_for(job, harness="grok"))
+                code, out, err = self.dispatch(self.argv_for(job, harness="grok"), assign=False)
                 lines = err.strip().splitlines()
                 self.assertEqual(code, 2, f"a write job with no --for exited {code}: {err!r}")
                 self.assertEqual(out, "", "a refusal prints nothing on stdout")
