@@ -126,7 +126,8 @@ class _Scratch(unittest.TestCase):
             self._plant_tmux()
 
     def _plant_harness(self, session_id=None) -> Path:
-        planted = self.world.tools.plant("claude", script=_fake_text(HARNESS_SRC))
+        text = _fake_text(HARNESS_SRC).replace("@@REPO@@", str(REPO))
+        planted = self.world.tools.plant("claude", script=text)
         spec_path = self.world.tools.spec_path("claude")
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
         spec["session_id"] = session_id
