@@ -454,6 +454,35 @@ class SharedEnforcement(unittest.TestCase):
                     command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
                     self.assertIn("/usr/bin/true", command)
 
+    def test_claude_interactive_admits_a_launch_session_id(self):
+        # origin: ops/conductor/sessions-lever.md at 13664232, "Identity, without
+        # impersonation": the supervisor passes its launch id as `claude --session-id`.
+        root = Path(__file__).resolve().parents[4]
+        launch = "0b5d2c4e-7a31-4f6e-9c2d-3e8f1a6b9d07"
+        binding = profiles.generate("claude", self.world.root / "interactive-session-id", source=root,
+                                    cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+        for args in (["--session-id", launch], ["--session-id=" + launch],
+                     ["--model", "fixture", "--session-id", launch, "--", "A plain prompt"]):
+            with self.subTest(args=args):
+                try:
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                except ValueError as refusal:
+                    self.fail(f"refused an admitted launch id: {refusal}")
+                at = command.index("--session-id")
+                self.assertEqual(command[at + 1], launch)
+        # claude refuses anything but a UUID itself; the launcher refuses it first.
+        for args in (["--session-id"], ["--session-id="], ["--session-id", "--help"],
+                     ["--session-id", "foreign"], ["--session-id=foreign"], ["--session-id", launch + "0"],
+                     ["--session-id", launch[:-1]], ["--session-id", launch.replace("-", "")],
+                     ["--session-id", launch + "\n"]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for harness in ("codex", "grok", "agy"):
+            other = profiles.generate(harness, self.world.root / ("interactive-session-id-" + harness), source=root,
+                                      cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            with self.subTest(harness=harness), self.assertRaises(ValueError):
+                profiles.native_launch(other, ["/usr/bin/true", "--session-id", launch], self.env)
+
     def test_worker_argv_preserves_launcher_sandbox_identity_and_mcp(self):
         root = Path(__file__).resolve().parents[4]
         arguments = {
