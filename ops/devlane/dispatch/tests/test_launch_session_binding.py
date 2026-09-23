@@ -152,6 +152,11 @@ class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
         self.assertFalse(
             self.witness.is_file(),
             "the harness CLI ran although the binding was refused")
+        self.assertEqual(list(self.jobs_root.iterdir()), [],
+                         "a refused handoff left a staged job and private worker home")
+        records = self.repo / ".dev" / "records" / "dispatches"
+        self.assertEqual(list(records.glob("*.json")), [],
+                         "a refused handoff left a dispatch record")
 
     def test_a_dispatch_naming_an_assignment_leaves_a_bound_participant(self):
         """L6, the whole point: dispatched=1 rather than dispatched=0."""
