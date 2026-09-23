@@ -12,14 +12,14 @@ No row checks that the file is present: a presence check asserts
 nothing the subject does (docs/tests.md rule 9,
 20260923T020916Z-review-codex-5a41cd#4), and every row below runs the staged subject.
 
-Calibration gap (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
-the refusal table in test_the_cli_refuses_role_and_holder_on_the_wire has
-no planted faults. ops/testkit/cases.py calibrate anchors each mutant on
-the subject's text, and dispatch_mcp.py and dispatch_actions.py are
-absent, so this module has no mutants file; the faults follow the
-implementation.
+Planted faults (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
+dispatch_mcp_faults.py beside this module, anchored on agentscient-10's
+subjects at bfa82f5b; its docstring names the calibrate command.
+Calibrated over mcp-tools-list, mcp-role, mcp-holder, cli-role and
+cli-holder; the rest is a declared gap until its rows are green on the
+subject.
 
-    python3 -m unittest ops.conductor.tests.test_dispatch_mcp
+    python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_mcp.py
 """
 
 from __future__ import annotations
@@ -54,6 +54,7 @@ TIMEOUT = 30.0
 TOOLS_FOUR = {"coord_launch", "coord_status", "coord_wait", "coord_collect"}
 MUTATIONS = {"coord_launch", "coord_collect"}
 READS = {"coord_status", "coord_wait"}
+WAIT_READING = "residue remains after the job"
 
 
 def _fake_text(path: Path) -> str:
@@ -77,19 +78,19 @@ class DispatchMcp(unittest.TestCase):
         self.jobs.mkdir()
         self.input_path = self.world.plant_text(
             self.world.cwd / "assignment-input.txt", "the assignment's full text\n")
-        self.world.plant_text(
-            self.world.cwd / "verifications.json",
-            json.dumps({"tests": ["python3", "-m", "unittest"]}) + "\n")
         self.wrapper = self.world.tools.plant(
             "dispatch-wrapper", script=_fake_text(FAKES / "dispatch_wrapper.py"))
         self.launcher = self.world.tools.plant(
             "dispatch-launch", script=_fake_text(FAKES / "dispatch_launch.py"))
         self.monitor = self.world.tools.plant("dispatch-monitor")
-        self._extend_spec("dispatch-wrapper", {"record": RECORD, "mode": "record"})
+        # The specs in the fakes' own keys: fakes/dispatch_wrapper.py and
+        # fakes/dispatch_launch.py read these and nothing else.
+        self._extend_spec("dispatch-wrapper", {"record": RECORD})
         self._extend_spec("dispatch-launch", {
-            "status": {"stdout": "running\n", "exit": 0},
-            "wait": {"stdout": "not-clean\n", "exit": 1},
-            "collect": {"stdout": "closed\n", "exit": 0},
+            "status": "running",
+            "wait": "not-clean",
+            "wait_reading": WAIT_READING,
+            "collect_reading": "closed",
         })
         self._assignment()
 
@@ -191,9 +192,10 @@ class DispatchMcp(unittest.TestCase):
         )
 
     def launch_fields(self, key: str) -> dict[str, str]:
-        """The CLI flags as the tool's argument names."""
+        """The CLI flags as the tool's argument names; `--for A-n` is
+        `assignment` (the XO's ruling, 2026-09-23)."""
         return {
-            "for": self.assignment,
+            "assignment": self.assignment,
             "job": "verify",
             "harness": "grok",
             "branch": BRANCH,
@@ -371,7 +373,7 @@ class DispatchMcp(unittest.TestCase):
             self.call("coord_wait", {"intent": intent, "timeout": 5}, session=HOLD), row)
         result, text = self.shown(message, row)
         self.assertIsNot(result.get("isError"), True, f"{row}: {text!r}")
-        self.assertIn("not-clean", text, row)
+        self.assertIn(WAIT_READING, text, row)
 
     def test_coord_collect_unknown_name_returns_verify(self):
         """origin: sessions-lever.md#slice-3 11
