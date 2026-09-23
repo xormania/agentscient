@@ -53,18 +53,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptQuotesACalibrationRowPerSlice(_PlanJob):
     """Declared bucket and estimated minutes per stage, in the named shape."""
 
-    def test_the_plan_carries_a_calibration_row_per_slice(self):
-        self.assertIn(CALIBRATION_ROW, self.words())
-
-    def test_the_row_names_the_declared_bucket(self):
-        self.assertIn(DECLARED_BUCKET, self.words())
-
-    def test_the_row_names_the_estimated_minutes_per_stage(self):
-        self.assertIn(MINUTES_PER_STAGE, self.words())
-
-    def test_the_row_is_in_the_shape_of_calibration_buckets_md(self):
-        self.assertIn(SHAPE_PATH, self.plan_prompt())
-
     def test_every_calibration_sentence_is_present_together(self):
         required = (
             CALIBRATION_ROW,

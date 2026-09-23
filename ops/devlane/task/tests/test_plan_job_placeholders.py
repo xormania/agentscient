@@ -59,31 +59,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptKeepsPlaceholdersAndTheEnvelopeTail(_PlanJob):
     """{ref}, {scope}, {out}, {out}/PLAN.md, and the shared envelope tail."""
 
-    def test_the_prompt_keeps_the_ref_placeholder(self):
-        prompt = self.plan_prompt()
-        self.assertIn("{ref}", prompt)
-        self.assertIn(PLANNING_MARKER, _squish(prompt))
-
-    def test_the_prompt_keeps_the_scope_placeholder(self):
-        prompt = self.plan_prompt()
-        self.assertIn("{scope}", prompt)
-        self.assertIn(PLANNING_MARKER, _squish(prompt))
-
-    def test_the_prompt_keeps_the_out_placeholder(self):
-        prompt = self.plan_prompt()
-        self.assertIn("{out}", prompt)
-        self.assertIn(PLANNING_MARKER, _squish(prompt))
-
-    def test_the_prompt_still_writes_the_plan_to_out_plan_md(self):
-        prompt = self.plan_prompt()
-        self.assertIn("{out}/PLAN.md", prompt)
-        self.assertIn(PLANNING_MARKER, _squish(prompt))
-
-    def test_the_prompt_keeps_the_shared_envelope_tail(self):
-        prompt = self.plan_prompt()
-        self.assertIn(ENVELOPE_CLAUSE, prompt)
-        self.assertIn(PLANNING_MARKER, _squish(prompt))
-
     def test_placeholders_and_envelope_are_present_together(self):
         prompt = self.plan_prompt()
         required = (

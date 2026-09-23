@@ -8,9 +8,8 @@ passing a bad message would make the hook decorative.
 
 import unittest
 
-# Imported as a MODULE, not `from test_hooks import HookContractTest`:
-# the from-form binds the class into this module's namespace and unittest
-# then discovers its 28 cases a second time here (44 -> 72 collected).
+# Import the module and inherit only its fixture; the crossing-recorder
+# cases belong to test_hooks and must not run again as commit-msg cases.
 import test_hooks
 
 from ops.testkit import World, run
@@ -20,7 +19,7 @@ JOINED = "subject\n\nbody.\n\nSource: original\nCo-Authored-By: A <a@x>\n"
 TIMEOUT = 120
 
 
-class TheCommitMsgGate(test_hooks.HookContractTest):
+class TheCommitMsgGate(test_hooks._HookFixture):
     def setUp(self):
         self.world = World(prefix="commit-msg-gate-")
         self.addCleanup(self.world.close)

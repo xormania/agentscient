@@ -118,6 +118,19 @@ refusal, and the kit's own suite proves it from a temporary directory.
    that cannot fail is a declared gap wearing a pass; it is rewritten to
    run the subject against a planted fault, or dropped.
 
+Shared setup belongs in a fixture class with no `test_` methods. Inherit
+test methods only when the child deliberately changes the subject or
+inputs; borrowing helpers must not rerun the parent's cases. Generated
+case registration must not leave another module-level name bound to the
+same TestCase class: unittest discovers that alias too, even if its name
+starts with an underscore.
+
+Before retiring repeated checks, compare their fixtures and inputs as
+well as their assertions. Keep one owner for the behavior and record
+which retained case covers each removal. An existing comprehensive case
+can replace its repeated individual assertions; moving distinct scenarios
+into one method merely to lower the reported count is not a reduction.
+
 ## Invariants
 
 The names a tests job's note joins with `reused:`:
