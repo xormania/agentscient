@@ -210,7 +210,7 @@ class MatrixHookTests(unittest.TestCase):
     def setUpClass(cls):
         """One Dispatcher store for the class, written by the real lever.
 
-        Built once and copied into each world: 71 cases share it, the lever
+        Built once and copied into each world: the cases share it, the lever
         is the only writer of the engine's rows, and a lever that refuses
         fails the fixture loudly rather than leaving a world that quietly
         refuses every dispatch below.
@@ -825,7 +825,8 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "override")
 
-    def test_override_allows_dispatch_without_model_or_effort(self):
+    def test_dispatch_passes_when_every_preflight_condition_holds(self):
+        """Clean neighbour for override, inputs, scope, ancestry, vet and env."""
         self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- input-absent ---
@@ -844,9 +845,6 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "input-absent")
 
-    def test_input_absent_allows_existing_nonempty_resolved_files(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
-
     # --- scope-cap ---
 
     def test_scope_cap_refuses_a_scope_file_over_the_cap(self):
@@ -854,9 +852,6 @@ class MatrixHookTests(unittest.TestCase):
             self.run_bash(self.dispatch(scope_file=self.scope_big)),
             "scope-cap",
         )
-
-    def test_scope_cap_allows_a_scope_file_at_or_under_the_cap(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- bucket-command ---
 
@@ -963,9 +958,6 @@ class MatrixHookTests(unittest.TestCase):
         self.assertIn("conflict", proc.stdout)
         self.assertIn("conflict.txt", proc.stdout)
 
-    def test_stale_base_allows_when_origin_trunk_is_an_ancestor(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
-
     # --- contract-vet ---
 
     def test_contract_vet_refuses_when_cue_vet_fails(self):
@@ -982,9 +974,6 @@ class MatrixHookTests(unittest.TestCase):
             self.run_bash(self.dispatch(), env=self.env_without_cue()),
             "contract-vet",
         )
-
-    def test_contract_vet_allows_when_cue_vet_exits_zero(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- dispatch-env ---
 
@@ -1004,9 +993,6 @@ class MatrixHookTests(unittest.TestCase):
         for cmd in rows:
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "dispatch-env")
-
-    def test_dispatch_env_allows_when_pin_timeout_and_agent_are_in_the_text(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- prune ---
 

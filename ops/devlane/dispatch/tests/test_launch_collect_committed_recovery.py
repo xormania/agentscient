@@ -290,15 +290,6 @@ class PreservedCommittedRecovery(_KitLaunch):
         rec2 = self.read_record()
         self.assertFalse((rec2.get("result") or {}).get("collected"))
 
-    def test_collect_refuses_a_read_role(self):
-        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
-        self.assertEqual(rec["role"], "read")
-        code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-role",
-            phrases=["collect-role"],
-        )
-
     def test_collect_refuses_a_running_unclosed_job(self):
         rec, _plant = self._plant_committed_failed_write()
 

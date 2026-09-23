@@ -168,7 +168,7 @@ def jsonl_text(entries):
     return "".join(json.dumps(entry) + "\n" for entry in entries)
 
 
-class GrokUsageReader(unittest.TestCase):
+class _GrokUsageFixture(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="grok-usage-reader-")
         self.addCleanup(self.world.close)
@@ -262,6 +262,8 @@ class GrokUsageReader(unittest.TestCase):
         except json.JSONDecodeError as error:
             self.fail(f"{USAGE} did not emit one JSON document: {error}")
 
+
+class GrokUsageReader(_GrokUsageFixture):
     def test_resets_bank_per_run_maxima_and_keep_the_legacy_gap(self):
         self.write_session("usage-reset", RESET_USAGE)
         self.write_session("legacy-no-usage", [])
@@ -495,7 +497,7 @@ class SkepticAccountingShapes(unittest.TestCase):
         self.assertEqual(cost, 80)
 
 
-class SkepticReportShapes(GrokUsageReader):
+class SkepticReportShapes(_GrokUsageFixture):
     def test_one_costless_session_makes_the_aggregate_cost_a_gap(self):
         self.write_session("with-cost", COMPLETE_B)
         self.write_session("without-cost", [
