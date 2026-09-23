@@ -1,0 +1,331 @@
+#!/usr/bin/env python3
+"""Dispatch intents: the ask, persisted before anything is launched.
+
+Contract: ops/conductor/sessions-lever.md, "Slice 3 — Dispatcher
+integration", the shapes. The table lives in the coordination core's
+store and is created here, through the core's own `writer()`; this
+module edits `coordination.py` nowhere. The place is the engine's
+(machine.py): `DI-n` is the subject id of machine `dispatch-intent`, as
+`A-n` and `M-n` are, and the `phase` column repeats the place inside the
+same transaction so a plain SELECT reads it.
+
+A library, not a command: `dispatch_actions.py` is its CLI and
+`dispatch_mcp.py` its MCP projection. Stdlib only.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import sqlite3
+import sys
+import uuid
+from pathlib import Path
+
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    import coordination
+    import machine
+    from instrument import conf, refuse, stamp, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py, machine.py and coordination.py beside this tool; "
+        "found absent; needed restore them beside ops/conductor/tools/dispatch_intents.py",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
+ID = re.compile(r"^DI-(\d+)$")
+PHASES = ("reserved", "launching", "launched", "closed", "uncertain", "refused")
+
+T = machine.Transition
+# The contract's `refuse` leaves three places; the engine declares one
+# source per transition, so it is one row per source, as sessions.py
+# declares its stop and lose (XO ruling 2026-09-23 on S3's point 4).
+INTENT = machine.Machine(
+    name="dispatch-intent",
+    version=1,
+    initial="reserved",
+    places=PHASES,
+    transitions=(
+        T("launch", "reserved", "launching", "any", "required", "place", "keep"),
+        T("mint", "launching", "launched", "any", "required", "place", "keep"),
+        T("close", "launched", "closed", "any", "required", "place", "keep"),
+        T("lose", "launching", "uncertain", "any", "required", "place", "keep"),
+        T("reconcile", "uncertain", "launched", "any", "required", "place", "keep"),
+        *(T(f"refuse-{place}", place, "refused", "any", "required", "place", "keep")
+          for place in ("reserved", "launching", "uncertain")),
+    ),
+    ttl_s=12 * 3600,
+)
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS dispatch_intents(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL, digest TEXT NOT NULL,
+    requester INTEGER NOT NULL, dispatcher INTEGER NOT NULL,
+    assignment INTEGER NOT NULL, generation INTEGER NOT NULL,
+    job TEXT NOT NULL, harness TEXT NOT NULL,
+    branch TEXT NOT NULL, scope_ref TEXT NOT NULL,
+    inputs TEXT NOT NULL, correlation TEXT NOT NULL UNIQUE,
+    phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
+    launcher_ticks TEXT, reserved_at TEXT NOT NULL,
+    launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+    UNIQUE (requester, key));
+"""
+TABLE = "dispatch_intents"
+ROOT = Path(__file__).resolve().parents[3]
+# The programs the facade runs and its cap, read through the lane conf
+# (the environment first, so a test names a fake in their place). The
+# keys are iterated from this tuple so laneconf's closure check sees
+# each read (laneconf.py, `CONF_KEYS`).
+CONF_KEYS = ("DISPATCH_WRAPPER", "DISPATCH_LAUNCHER", "DISPATCH_MONITOR", "DISPATCH_CAPACITY")
+# What each move writes beside the place, in the move's own transaction.
+STAMPED = {"mint": "launched_at", "reconcile": "launched_at", "close": "closed_at"}
+
+
+def writer() -> sqlite3.Connection:
+    """The core's store with this table and machine in it."""
+    try:
+        conn = coordination.writer()
+        conn.executescript(SCHEMA)
+    except sqlite3.DatabaseError as error:
+        refuse("store", f"a writable SQLite store at {machine.store_path()}", str(error),
+               "restore or move the store aside; the engine never rebuilds one to order")
+    machine.declare(conn, INTENT)
+    return conn
+
+
+def reader() -> sqlite3.Connection | None:
+    """The store read-only, or None when it holds no intents; never created."""
+    path = machine.store_path()
+    if not path.is_file():
+        return None
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
+                               timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn.row_factory = sqlite3.Row
+        held = {row["name"] for row in
+                conn.execute("SELECT name FROM sqlite_schema WHERE type = 'table'")}
+    except sqlite3.DatabaseError as error:
+        refuse("store", f"a readable SQLite store at {path}", str(error),
+               "restore or move the store aside; a read never rebuilds it")
+    if TABLE not in held or "subjects" not in held:
+        conn.close()
+        return None
+    return conn
+
+
+def parse_id(text: str) -> int:
+    match = ID.match(text or "")
+    if match is None:
+        refuse("arguments", "an intent id like DI-1", text or "none",
+               "the id launch printed")
+    return int(match.group(1))
+
+
+def digest_of(*, assignment: int, job: str, harness: str, branch: str,
+              scope_ref: str, inputs: list) -> str:
+    """sha256 over the canonical JSON of the six fields the contract names."""
+    body = {"assignment": assignment, "job": job, "harness": harness,
+            "branch": branch, "scope_ref": scope_ref, "inputs": inputs}
+    packed = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(packed.encode("utf-8")).hexdigest()
+
+
+def row(conn, di: int):
+    """One intent with its engine place, or refuse `unknown`."""
+    found = None
+    if conn is not None:
+        found = conn.execute(
+            "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+            "WHERE i.id = ?", (di,)).fetchone()
+    if found is None:
+        refuse("unknown", "an intent id in the store", f"DI-{di}",
+               "an id printed by dispatch_actions.py launch")
+    return found
+
+
+def by_key(conn, requester: int, key: str):
+    return conn.execute(
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+        "WHERE i.requester = ? AND i.key = ?", (requester, key)).fetchone()
+
+
+def by_record(conn, record: str):
+    return conn.execute(
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+        "WHERE i.record = ?", (record,)).fetchone()
+
+
+def in_phases(conn, phases) -> list:
+    marks = ",".join("?" for _ in phases)
+    return conn.execute(
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "  # noqa: S608 - placeholders only
+        f"WHERE s.place IN ({marks}) ORDER BY i.id", tuple(phases)).fetchall()
+
+
+def reserve(conn, agent: str, *, key: str, digest: str, requester: int, dispatcher: int,
+            assignment: int, generation: int, job: str, harness: str, branch: str,
+            scope_ref: str, inputs: list):
+    """The intent row at `reserved`: (row, repeated).
+
+    The same (requester, key) with the same digest is the row already
+    there; with another digest it refuses `idempotency` naming it and
+    writes nothing. Two reservations racing on one key both create a
+    subject; the loser's insert fails on the key, and its subject is
+    moved to `refused` with the winner named, so the store holds a
+    record of it rather than an orphan at `reserved`.
+    """
+    existing = by_key(conn, requester, key)
+    if existing is not None:
+        return repeat(existing, digest), True
+    sid = machine.create(conn, INTENT, agent, note=f"key {key}")
+    try:
+        conn.execute(
+            "INSERT INTO dispatch_intents(id, key, digest, requester, dispatcher, assignment, "
+            "generation, job, harness, branch, scope_ref, inputs, correlation, phase, "
+            "reserved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reserved', ?)",
+            (sid, key, digest, requester, dispatcher, assignment, generation, job, harness,
+             branch, scope_ref, json.dumps(inputs, sort_keys=True), str(uuid.uuid4()), stamp()),
+        )
+    except sqlite3.IntegrityError:
+        winner = by_key(conn, requester, key)
+        machine.move(conn, INTENT, sid, "refuse-reserved", agent,
+                     evidence=f"key {key} taken by DI-{winner['id'] if winner else '?'}")
+        if winner is None:
+            raise
+        return repeat(winner, digest), True
+    return row(conn, sid), False
+
+
+def repeat(existing, digest: str):
+    if existing["digest"] != digest:
+        refuse("idempotency", f"the request DI-{existing['id']} was reserved for under this key",
+               f"DI-{existing['id']} with another digest",
+               "ask again with a new key, or repeat the original request unchanged")
+    return existing
+
+
+def move(conn, di: int, transition: str, agent: str, *, evidence: str, **columns):
+    """One move of the intent's machine, with the phase and any named
+    columns written inside the engine's own transaction (the gate runs
+    under its write lock), so the row and the place never disagree."""
+    target = INTENT.transition(transition).target
+    updates = dict(columns)
+    updates["phase"] = target
+    if transition in STAMPED:
+        updates.setdefault(STAMPED[transition], stamp())
+    names = sorted(updates)
+    assignments = ", ".join(f"{name} = ?" for name in names)
+
+    def gate(_subject):
+        conn.execute(f"UPDATE dispatch_intents SET {assignments} WHERE id = ?",  # noqa: S608 - names are this module's own
+                     (*(updates[name] for name in names), di))
+
+    machine.move(conn, INTENT, di, transition, agent, evidence=evidence, gate=gate)
+    return row(conn, di)
+
+
+def note(conn, di: int, **columns) -> None:
+    """Columns that are not a move: the launcher's pid and ticks at spawn."""
+    names = sorted(columns)
+    assignments = ", ".join(f"{name} = ?" for name in names)
+    conn.execute(f"UPDATE dispatch_intents SET {assignments} WHERE id = ?",  # noqa: S608 - names are this module's own
+                 (*(columns[name] for name in names), di))
+
+
+def intent_dict(found) -> dict:
+    return {
+        "intent": f"DI-{found['id']}", "phase": found["place"],
+        "record": found["record"], "job": found["job"], "harness": found["harness"],
+        "branch": found["branch"], "assignment": f"A-{found['assignment']}",
+        "generation": found["generation"], "requester": f"PT-{found['requester']}",
+        "dispatcher": f"PT-{found['dispatcher']}", "correlation": found["correlation"],
+        "outcome": found["outcome"], "error": found["error"],
+    }
+
+
+# -- the programs, the jobs root and the launcher's liveness ----------------
+
+def settings() -> dict:
+    return {key: conf(key) for key in CONF_KEYS}
+
+
+def program(key: str, kind: str) -> list[str]:
+    """One program as an argv of one path, or refuse `kind` naming it.
+
+    A relative value is the repository's; nothing is looked up on PATH
+    and nothing runs through a shell."""
+    value = settings()[key].strip()
+    path = Path(value) if os.path.isabs(value) else ROOT / value
+    if not value or not path.is_file() or not os.access(path, os.X_OK):
+        refuse(kind, f"{key} naming an executable file", str(path) if value else "empty",
+               f"set {key} to an executable, or restore its default in ops/lane.conf")
+    return [str(path)]
+
+
+def capacity() -> int:
+    raw = settings()["DISPATCH_CAPACITY"].strip()
+    if not raw.isdigit() or int(raw) < 1:
+        refuse("capacity", "DISPATCH_CAPACITY as a whole number above zero", raw or "empty",
+               "set DISPATCH_CAPACITY in ops/lane.conf or the environment")
+    return int(raw)
+
+
+def jobs_root() -> Path:
+    named = os.environ.get("DISPATCH_JOBS", "")
+    return Path(named) if named else coordination.dispatch_store()
+
+
+def intent_dir(di: int) -> Path:
+    return state_dir() / "dispatch-intents" / f"DI-{di}"
+
+
+def start_ticks(pid: int | None) -> str | None:
+    if not pid:
+        return None
+    try:
+        text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return text.rsplit(")", 1)[1].split()[19]
+
+
+def process_reading(pid: int | None, ticks: str | None) -> str:
+    """The pid and its start ticks, both present and matching, or why not;
+    a missing tick is never alive."""
+    if pid is None:
+        return "gone no launcher pid recorded"
+    if ticks is None:
+        return f"gone no start ticks recorded for pid={pid}"
+    current = start_ticks(pid)
+    if current is None:
+        return f"gone pid={pid} start={ticks}"
+    if current != ticks:
+        return f"gone reused pid={pid} start={current}, recorded {ticks}"
+    return f"alive pid={pid} start={ticks}"
+
+
+def alive(pid: int | None, ticks: str | None) -> bool:
+    return process_reading(pid, ticks).startswith("alive")
+
+
+def scan(correlation: str) -> list:
+    """Every job directory whose state.json carries this correlation."""
+    found = []
+    try:
+        entries = sorted(jobs_root().glob("*/state.json"))
+    except OSError:
+        entries = []
+    for path in entries:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and data.get("correlation") == correlation:
+            found.append((path.parent.name, path, data))
+    return found
