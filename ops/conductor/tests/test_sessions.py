@@ -44,6 +44,8 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 HOLDER_SRC = FAKES / "session_holder.py"
+ADAPTER_SRC = FAKES / "session_adapter_claude.py"
+REVIEW = "20260923T003033Z-review-codex-c99cc9"
 ORIGIN = "sessions-lever.md"
 FINDING = "20260922T215604Z-review-codex-f6777b"
 
@@ -1427,6 +1429,228 @@ class TheCleanNeighbours(_Scratch):
             combined = proc.stdout + proc.stderr
             self.assertIn(f"unresolved stale pid {holder}", combined)
             self.assertEqual(proc.exit, 1, combined)
+
+def ticks_of(pid: int) -> str:
+    """Field 22 of /proc/<pid>/stat, the process's start ticks."""
+    text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    return text.rsplit(")", 1)[1].split()[19]
+
+
+class TheSupervisorBoundaries(_Scratch):
+    """Rows for A-481 findings #1, #4, #5 and #6, from the contract clauses
+    each cites (sessions-lever.md at c1a69a78). Each reaches the subject
+    through a record or a tmux option the world plants."""
+
+    def plant_pid(self, member: str, pid: int, ticks: str | None) -> None:
+        with sqlite3.connect(self.state / "state.db") as conn:
+            changed = conn.execute(
+                "UPDATE session_member SET pid = ?, start_ticks = ? WHERE name = ?",
+                (pid, ticks, member),
+            ).rowcount
+        self.assertEqual(changed, 1, f"the planted {member} record did not land")
+
+    def member_count(self) -> int:
+        with sqlite3.connect(self.state / "state.db") as conn:
+            return conn.execute("SELECT COUNT(*) FROM session_member").fetchone()[0]
+
+    def started(self) -> None:
+        proc = self.sessions(*self.start_argv())
+        self.assertEqual(proc.exit, 0, proc.stderr)
+
+    # -- #1: stop never acts inside a session another run owns ------------
+
+    def run_session(self, run_id: str) -> str:
+        """The contract's session name, ``<team.run.tmux>-<R-n>``."""
+        return f"agentscient-{run_id}"
+
+    def windows(self, session: str) -> list[str]:
+        listed = self.host_tmux("list-windows", "-t", f"={session}", "-F", "#{window_name}")
+        self.assertEqual(listed.exit, 0, listed.stderr)
+        return listed.stdout.split()
+
+    def stop_on_a_foreign_session(self, case_id: str, owner: str | None) -> None:
+        self.skip_without_tmux()
+        self.started()
+        holder, release = self.owned_holder()
+        self.addCleanup(release)
+        self.plant_pid("grunt", holder, ticks_of(holder))
+        session = self.run_session("R-1")
+        if owner is None:
+            self.host_tmux("set-option", "-u", "-t", f"={session}:",
+                           "@agentscient_owner", expect=0)
+        else:
+            self.host_tmux("set-option", "-t", f"={session}:",
+                           "@agentscient_owner", owner, expect=0)
+        proc = self.sessions("stop", "--terminate")
+        refusal_wire(
+            RefusalCase(id=case_id, argv=("stop", "--terminate"), cls="ownership",
+                        origin=f"{REVIEW}#1"),
+            proc,
+        )
+        self.assertTrue(self._alive(holder), "a member of a foreign session was signalled")
+        self.assertIn("grunt", self.windows(session))
+
+    def test_stop_in_a_session_owned_by_another_run_refuses_ownership(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#1
+
+        sessions-lever.md: a session of the run's name with another run's
+        id refuses ownership, and the supervisor never kills it."""
+        with self.subTest(id="stop-foreign-owner", origin=f"{REVIEW}#1"):
+            self.stop_on_a_foreign_session("stop-foreign-owner", "R-99")
+
+    def test_stop_in_a_session_without_the_owner_option_refuses_ownership(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#1"""
+        with self.subTest(id="stop-no-owner", origin=f"{REVIEW}#1"):
+            self.stop_on_a_foreign_session("stop-no-owner", None)
+
+    # -- #4: liveness is pid plus start ticks, never pid alone -------------
+
+    def process_states(self, text: str) -> list[str]:
+        return re.findall(r"(?m)^\s*process\s*:?\s*(ok|waiting|refused|gone)\b", text)
+
+    def test_a_record_without_start_ticks_never_reads_process_ok(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#4
+
+        A gone pid and no recorded ticks compare equal (None == None); the
+        readiness must still not read ok."""
+        self.skip_without_tmux()
+        with self.subTest(id="no-ticks-readiness", origin=f"{REVIEW}#4"):
+            self.started()
+            holder, release = self.owned_holder()
+            release()
+            self.assertFalse(self._alive(holder), "the holder was not reaped")
+            self.plant_pid("grunt", holder, None)
+            status = self.sessions("status", identity=None)
+            self.assertEqual(status.exit, 0, status.stderr)
+            states = self.process_states(status.stdout)
+            self.assertTrue(states, f"no process reading: {status.stdout!r}")
+            self.assertNotIn("ok", states, status.stdout)
+            self.assertNotIn("start=None", status.stdout)
+
+    def test_stop_never_signals_a_pid_without_recorded_ticks(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#4"""
+        self.skip_without_tmux()
+        with self.subTest(id="no-ticks-stop", origin=f"{REVIEW}#4"):
+            self.started()
+            holder, release = self.owned_holder()
+            self.addCleanup(release)
+            self.plant_pid("grunt", holder, None)
+            proc = self.sessions("stop", "--terminate")
+            combined = proc.stdout + proc.stderr
+            self.assertTrue(self._alive(holder), "a pid with no recorded ticks was signalled")
+            self.assertRegex(combined, r"grunt SM-\d+ unresolved", combined)
+            self.assertEqual(proc.exit, 1, combined)
+
+    # -- #5: a run is one started team --------------------------------------
+
+    def second_team(self) -> dict:
+        return a_team(claude_member("grunt", ["worker"]), claude_member("second", ["worker"]))
+
+    def start_second(self, team: Path):
+        return self.sessions("start", "--member", "second", "--run", "R-1",
+                             "--team", str(team), "--ready-timeout", str(READY))
+
+    def test_start_into_a_run_with_another_team_file_refuses_team(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#5"""
+        self.skip_without_tmux()
+        with self.subTest(id="run-other-team-file", origin=f"{REVIEW}#5"):
+            self.started()
+            other = self.world.plant_text("team-b.json", json.dumps(self.second_team()) + "\n")
+            proc = self.start_second(other)
+            refusal_wire(
+                RefusalCase(id="run-other-team-file", argv=("start",), cls="team",
+                            origin=f"{REVIEW}#5"),
+                proc,
+            )
+            self.assertEqual(self.member_count(), 1)
+
+    def test_start_into_a_run_whose_team_file_changed_refuses_team(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#5"""
+        self.skip_without_tmux()
+        with self.subTest(id="run-changed-team-file", origin=f"{REVIEW}#5"):
+            self.started()
+            changed = json.dumps(self.second_team()) + "\n"
+            self.team_path.write_text(changed, encoding="utf-8")
+            self.assertEqual(self.team_path.read_text(encoding="utf-8"), changed)
+            proc = self.start_second(self.team_path)
+            refusal_wire(
+                RefusalCase(id="run-changed-team-file", argv=("start",), cls="team",
+                            origin=f"{REVIEW}#5"),
+                proc,
+            )
+            self.assertEqual(self.member_count(), 1)
+
+    # -- #6: the supervisor goes through the adapter boundary ---------------
+
+    def staged_tool(self) -> tuple[Path, Path]:
+        """A copy of sessions.py in a mirror of the repository whose
+        session_adapters/claude.py is the logging wrapper. Every other
+        entry is a symlink to the real one."""
+        root = self.world.root / "repo"
+        log = self.world.root / "adapter.calls.jsonl"
+
+        def mirror(src: Path, dst: Path, skip: set[str]) -> None:
+            dst.mkdir(parents=True)
+            for entry in src.iterdir():
+                if entry.name not in skip and entry.name != "__pycache__":
+                    (dst / entry.name).symlink_to(entry)
+
+        tools = root / "ops" / "conductor" / "tools"
+        mirror(REPO, root, {"ops"})
+        mirror(REPO / "ops", root / "ops", {"conductor"})
+        mirror(REPO / "ops" / "conductor", root / "ops" / "conductor", {"tools"})
+        mirror(TOOL.parent, tools, {"sessions.py", "session_adapters"})
+        shutil.copy2(TOOL, tools / "sessions.py")
+        adapters = tools / "session_adapters"
+        mirror(TOOL.parent / "session_adapters", adapters, {"claude.py"})
+        text = ADAPTER_SRC.read_text(encoding="utf-8")
+        for anchor, value in (("@@REAL@@", str(TOOL.parent / "session_adapters" / "claude.py")),
+                              ("@@LOG@@", str(log))):
+            if text.count(anchor) != 1:
+                raise AssertionError(f"INVALID: {ADAPTER_SRC.name} anchor {anchor}")
+            text = text.replace(anchor, value)
+        (adapters / "claude.py").write_text(text, encoding="utf-8")
+        return tools / "sessions.py", log
+
+    def calls(self, log: Path, method: str) -> list[dict]:
+        if not log.is_file():
+            return []
+        rows = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
+        return [row for row in rows if row.get("method") == method]
+
+    def test_readiness_observes_identity_through_the_adapter(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#6
+
+        sessions-lever.md, the adapter boundary: observe_identity(store,
+        launch_id) is a method the supervisor calls."""
+        self.skip_without_tmux()
+        with self.subTest(id="adapter-observe-identity", origin=f"{REVIEW}#6"):
+            tool, log = self.staged_tool()
+            proc = run([sys.executable, str(tool), *self.start_argv()],
+                       cwd=self.world.cwd, env=self.env(), timeout=TIMEOUT)
+            self.assertEqual(proc.exit, 0, proc.stderr)
+            launches = list((self.state / "sessions").glob("*/grunt/launch.json"))
+            self.assertEqual(len(launches), 1, launches)
+            launch_id = json.loads(launches[0].read_text(encoding="utf-8"))["launch_id"]
+            observed = self.calls(log, "observe_identity")
+            self.assertTrue(observed, "readiness did not call observe_identity")
+            self.assertIn(launch_id, [row["launch_id"] for row in observed])
+
+    def test_doctor_probes_through_the_adapter(self):
+        """origin: 20260923T003033Z-review-codex-c99cc9#6
+
+        sessions-lever.md, the adapter boundary: probe(executable) is a
+        method the supervisor calls."""
+        with self.subTest(id="adapter-probe", origin=f"{REVIEW}#6"):
+            tool, log = self.staged_tool()
+            proc = run([sys.executable, str(tool), "doctor", "--team", str(self.team_path)],
+                       cwd=self.world.cwd, env=self.env(), timeout=TIMEOUT)
+            self.assertIn(proc.exit, (0, 1), proc.stderr)
+            probed = self.calls(log, "probe")
+            self.assertTrue(probed, f"doctor did not call probe: {proc.stdout!r}")
+            self.assertEqual(Path(probed[0]["executable"]).name, "claude")
+            self.assertIn("session-harness 0.0.0-fake", proc.stdout)
+
 
 class TheDoctorDefaultTeam(_Scratch):
     def test_doctor_reports_missing_adapter_for_codex_and_grok(self):

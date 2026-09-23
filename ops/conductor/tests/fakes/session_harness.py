@@ -16,6 +16,8 @@ import sys
 import time
 from pathlib import Path
 
+VERSION = "session-harness 0.0.0-fake"
+
 
 def spec_path() -> Path | None:
     named = os.environ.get("TESTKIT_FAKE_SPEC", "")
@@ -140,6 +142,11 @@ def main() -> int:
     argv = sys.argv[1:]
     spec_file = spec_path()
     log_call(spec_file, argv)
+    if argv[:1] == ["--version"]:
+        # The adapter's probe asks the executable its version
+        # (origin: 20260923T003033Z-review-codex-c99cc9#6).
+        sys.stdout.write(VERSION + "\n")
+        return 0
     spec = load_spec()
     bind_id = native_id(argv, spec)
     profile = profile_dir(argv)
