@@ -62,6 +62,24 @@ FINDINGS:
 - Denial is never an error: a CHANGES verdict recorded and addressed is the
   process working.
 
+A finding is fixed only when it shows a concrete failure on the exit
+path — a wrong result, a crash, or a bypassed refusal, on an invocation
+someone will actually make. Every other finding is `ruled`, never
+silently dropped: `findings.py disposition <key> ruled '<why>'`, `<why>`
+beginning `declined: not practical — <judgement>`, the judgement itself
+a reading produced by a command, never dictated. `practical: no` is
+declined unless the XO overrides it with the failing invocation written
+down. Owner, relayed by the Lead (agentscient-d8), 2026-09-23: "all
+findings aren't requirements - practical issues, not theorietical are
+important."; "i've said that many times over many weeks - findings are
+just suggestions - judgement is needed"; "get moving - and make sure i
+NEVER have to say that again." At `gh pr ready`, `matrix.py`'s
+`finding_dispositions()` enforces the disposition half mechanically:
+every finding of the closed audit is named in `## Proof` with a
+disposition token equal to the findings export's value at the head and
+its judgement line, and a `practical`-labeled ruled finding's judgement
+must begin "declined: not practical — "; no grant escape (D-FINDINGS-1).
+
 ## Draft first
 
 A pull request opens as a **draft** and is marked ready only when its

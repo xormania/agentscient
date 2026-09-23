@@ -388,5 +388,20 @@
   "standing": "proposed",
   "superseded_by": null,
   "supersedes": null
+ },
+ {
+  "blocked_on": null,
+  "created_at": "2026-09-23T01:56:38.870190Z",
+  "created_by": "Claude Opus 5.5 <noreply@anthropic.com>",
+  "decided_at": null,
+  "decided_by": null,
+  "evidence": null,
+  "home": "CONTRIB.md",
+  "id": "D-FINDINGS-1",
+  "question": "Findings are suggestions requiring judgement, not automatic requirements. Owner, relayed by the Lead (agentscient-d8) via the XO (agentscient-0e), confirmed verbatim as typed in the owner's own terminal: 2026-09-23 about 01:19Z, \"all findings aren't requirements - practical issues, not theorietical are important.\"; about 01:22Z, \"i've said that many times over many weeks - findings are just suggestions - judgement is needed\"; about 01:24Z, \"get moving - and make sure i NEVER have to say that again\"; and, on not re-auditing after fixes, 2026-09-16, \"you can't keep re-auditing after fixes - draw a line\" (already CONTRIB.md:92). Triage, the Lead's standing order: a finding is fixed only when it shows a concrete failure on the exit path \u2014 a wrong result, a crash, or a bypassed refusal, on an invocation someone will actually make; every other finding is `ruled`, with evidence beginning \"declined: not practical \u2014 <judgement>\"; a judgement line in a disposition is a reading, produced by a command, never dictated; `practical: no` is declined unless the XO overrides it with the failing invocation written down. Mechanism, on lane/session-20260922-376c at 9464438a: ops/devlane/hooks/claude/matrix.py:1435 finding_dispositions(), run by audit_at_head() at 'gh pr ready' only, no grant escape, refusing class finding-disposition when a named finding of the closed audit lacks a disposition token equal to the findings export's value at the head plus one line of judgement, and requiring a practical-labeled ruled finding's judgement to begin \"declined: not practical \u2014 \" (4e64d4bd); the optional practical/failing label a reviewer may set at the source (ops/devlane/task/envelope.py:45,325, 58ad7d6c) and its storage/export columns (ops/conductor/tools/findings.py:70,76, 02f36400). D-PATTERN-1 applies: the mechanism, not a rule relayed by message, is the fix. Proposed for the owner to ratify.",
+  "recorded_by": "Claude Opus 5.5 <noreply@anthropic.com>",
+  "standing": "proposed",
+  "superseded_by": null,
+  "supersedes": null
  }
 ]
