@@ -3,11 +3,16 @@ protocol channel.
 
 Contract: ops/conductor/sessions-lever.md, "The adapter boundary". Adapted
 from the proof's asyncio RPC reader (`RPC.read`) and its id book-keeping,
-made synchronous: this module reads no process and owns no transport, it
-only classifies one already-received line at a time.
+made synchronous: this module reads no process and owns no transport. The
+caller records each request this side sends with `sent`, feeds each line
+it receives with `feed`, and records each answer it writes with `answered`.
+
+As in the proof, a response correlates with a request this side sent; a
+request the other side sends is answered, and its id is held only until
+the answer is recorded, so a second request with that id is refused.
 
 Source: /home/scientdb/projects/poc/multi-harness-proof@a944f31
-(mhproof/rpc.py: RPCError, RPC.read)
+(mhproof/rpc.py: RPCError, RPC.request, RPC.read)
 
 Stdlib only.
 """
@@ -25,15 +30,28 @@ class Refused(Exception):
 
 
 class Parser:
-    """Feeds one native-protocol line at a time.
+    """Classifies one received native-protocol line at a time.
 
-    Tracks the ids of requests seen so a response can be matched to one;
-    a line this parser cannot place is refused, naming the line itself,
+    A line this parser cannot place is refused, naming the line itself,
     never a summary of it.
     """
 
     def __init__(self):
-        self._pending: set = set()
+        self._sent: set = set()
+        self._received: set = set()
+
+    def sent(self, ident) -> None:
+        """Record a request this side wrote, so its response correlates."""
+        if ident is None:
+            raise Refused("a sent request with no id cannot be correlated")
+        _check_id(ident, repr(ident))
+        if ident in self._sent:
+            raise Refused(f"a second sent request with id {ident!r} already pending")
+        self._sent.add(ident)
+
+    def answered(self, ident) -> None:
+        """Record that this side answered a received request."""
+        self._received.discard(ident)
 
     def feed(self, line: str) -> dict:
         try:
@@ -45,14 +63,22 @@ class Parser:
         if "method" in packet:
             ident = packet.get("id")
             if ident is not None:
-                if ident in self._pending:
-                    raise Refused(f"a second request with id {ident!r} already pending: {line}")
-                self._pending.add(ident)
+                _check_id(ident, line)
+                if ident in self._received:
+                    raise Refused(f"a second request with id {ident!r} before the first was answered: {line}")
+                self._received.add(ident)
             return packet
         ident = packet.get("id")
         if ident is None:
             raise Refused(f"a result with no id to correlate it: {line}")
-        if ident not in self._pending:
-            raise Refused(f"a response whose id {ident!r} matches no pending request: {line}")
-        self._pending.discard(ident)
+        _check_id(ident, line)
+        if ident not in self._sent:
+            raise Refused(f"a response whose id {ident!r} matches no request this side sent: {line}")
+        self._sent.discard(ident)
         return packet
+
+
+def _check_id(ident, line: str) -> None:
+    """A JSON-RPC id is a string or a number; anything else is refused."""
+    if isinstance(ident, bool) or not isinstance(ident, (str, int, float)):
+        raise Refused(f"an id that is neither a string nor a number: {line}")

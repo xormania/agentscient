@@ -29,20 +29,27 @@ SOFTWARE.
 
 ## Manifest
 
-Each adapted function beside its origin, `file:line` at `a944f31`.
+Each adapted function beside its origin, `file:line` at `a944f31`. A row
+is added in the commit that lands the function it names.
 
 | here | origin | what was taken |
 |---|---|---|
-| `framing.py: Parser.feed` | `mhproof/rpc.py:68-92` (`RPC.read`) | the JSON-lines parse and the request/response id correlation, made synchronous: one line in, one frame out or a `Refused` naming the line |
+| `framing.py: Parser.feed` | `mhproof/rpc.py:68-92` (`RPC.read`) | the JSON-lines parse and the split of a received line into a request, a notification or a response correlated by id, made synchronous: one line in, one frame out or a `Refused` naming the line |
+| `framing.py: Parser.sent` | `mhproof/rpc.py:37-52` (`RPC.request`, its `pending` book) | a response correlates only with a request this side sent |
 | `framing.py: Refused` | `mhproof/rpc.py:6-9` (`RPCError`) | a typed exception carrying the reading, not the raw packet |
-| `claude.py: Adapter.argv` | `mhproof/sessions.py:190-220` (`start`, the `ENTRY`/argv construction) | the shape of a fixed, non-operator launch argv for a native TUI window |
-| `claude.py: Adapter.stop` | `mhproof/sessions.py:290-300` (`supervise`, the SIGINT-then-wait teardown) | signalling only a pid whose start ticks still match, never a stale one |
-| `claude.py: Adapter.diagnostics` | `mhproof/sessions.py:74-85` (`Tmux.finish_peer`) | retaining a redacted terminal capture as evidence, by path |
+| `sessions.py: ownership` | `mhproof/sessions.py:38-42` (`Tmux.owned`) | the owner option read with `show-options -qv` on the exact session component, `=name:` |
+| `sessions.py: launch` (the opening tmux call) | `mhproof/sessions.py:44-51` (`Tmux.create`), `:53-64` (`Tmux.launch`) | the owned session or window created detached with `-P -F` printing the pane, the owner option set on creation, `remain-on-exit on` so a dead pane keeps its capture; `launch` refuses a session it does not own |
+| `sessions.py: do_attach` | `mhproof/sessions.py:91-94` (`Tmux.attach`) | attach only to an owned session, `switch-client` inside tmux and `attach-session` outside |
+| `sessions.py: do_export` (`scrub`) | `mhproof/sessions.py:74-82` (`Tmux.finish_peer`) | a terminal capture is redacted of the run's secrets before it is written out |
+| `claude.py: Adapter.diagnostics` | `mhproof/sessions.py:74-82` (`Tmux.finish_peer`) | the terminal capture kept as evidence, named by path |
+
+`Parser.answered`, the duplicate-request refusal and the id type check are
+not in the proof; they come from the contract's framing faults.
 
 ## Not adapted
 
 The proof's test-suite termination policy, its `queue.Queue`, `relay.py`,
-`contract.py`, `suite.py`, and `controller()` (`mhproof/sessions.py:223-229`,
+`contract.py`, `suite.py`, and `controller()` (`mhproof/sessions.py:221-227`,
 which calls `suite.run_suite`). None of these cross into the lane: the
 termination policy and the queue are proof-harness test machinery; `relay.py`
 and `contract.py` carry proof-only wire framing and tool-restriction prose
