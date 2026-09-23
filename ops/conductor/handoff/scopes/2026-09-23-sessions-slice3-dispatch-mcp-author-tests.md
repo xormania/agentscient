@@ -31,8 +31,8 @@ and `DISPATCH_MONITOR` name in the world's environment (defaults
 `ops/conductor/tools/dispatch.sh`, `ops/devlane/dispatch/launch.py`,
 `ops/conductor/tools/monitor.py`; each an argv, no shell); a key naming
 a non-executable refuses `launcher` (wrapper, launcher) or `store`
-(monitor); `DISPATCH_CAPACITY` default 6; the jobs root `$DISPATCH_JOBS`
-else `$XDG_STATE_HOME/<lane>/dispatch`; `verifications.json` read from
+(monitor); `DISPATCH_CAPACITY` default 6; the jobs root the DISPATCH_JOBS
+key names, else XDG_STATE_HOME/<lane>/dispatch; `verifications.json` read from
 the repository root; the scope file at
 `<state dir>/dispatch-intents/DI-n/scope.txt`.
 
