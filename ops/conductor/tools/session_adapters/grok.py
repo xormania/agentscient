@@ -40,6 +40,13 @@ PROMPT_GRACE = 2.0
 UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
 
 
+def channel_error(error) -> bool:
+    """A ChannelError from any load of channel.py. Modules here are loaded by
+    path, so one file can yield two classes and `except` on one misses the
+    other (a caller's own RPC, as the adapter rows build)."""
+    return type(error).__name__ == "ChannelError" and hasattr(error, "reading")
+
+
 def tool_name(update: dict) -> str | None:
     meta = update.get("_meta") if isinstance(update.get("_meta"), dict) else {}
     tool = meta.get("x.ai/tool") if isinstance(meta.get("x.ai/tool"), dict) else None
@@ -125,7 +132,9 @@ class Adapter(common.ProtocolAdapter):
             method = "session/new"
             opened = rpc.request(method, {"cwd": self.workdir(rpc), "mcpServers": self.servers},
                                  timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             self.refuse_channel(method, error)
         native = opened.get("sessionId") if isinstance(opened, dict) else None
         if not isinstance(native, str) or not native:
@@ -144,17 +153,23 @@ class Adapter(common.ProtocolAdapter):
                             {"sessionId": self.native, "text": text,
                              "interjectionId": str(uuid.uuid4())},
                             timeout=common.SUBMIT_TIMEOUT)
-            except common.channel.ChannelError as error:
+            except Exception as error:
+                if not channel_error(error):
+                    raise
                 return self.settled("_x.ai/interject", error)
             return "written"
         try:
             pending = rpc.send("session/prompt", {"sessionId": self.native,
                                                   "prompt": [{"type": "text", "text": text}]})
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return self.settled("session/prompt", error)
         try:
             pending.wait(PROMPT_GRACE)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             if not error.reading.startswith("no answer within"):
                 return self.settled("session/prompt", error)
         return "written"

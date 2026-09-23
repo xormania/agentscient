@@ -43,6 +43,12 @@ DECLINE = {
 }
 UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
 
+def channel_error(error) -> bool:
+    """A ChannelError from any load of channel.py. Modules here are loaded by
+    path, so one file can yield two classes and `except` on one misses the
+    other (a caller's own RPC, as the adapter rows build)."""
+    return type(error).__name__ == "ChannelError" and hasattr(error, "reading")
+
 
 def client() -> dict:
     """The clientInfo `initialize` names, under the lane conf's LANE_NAME."""
@@ -85,7 +91,9 @@ class Adapter(common.ProtocolAdapter):
             rpc.notify("initialized")
             method = "thread/start"
             started = rpc.request(method, {}, timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             self.refuse_channel(method, error)
         thread = started.get("thread") if isinstance(started, dict) else None
         native = thread.get("id") if isinstance(thread, dict) else None
@@ -105,7 +113,9 @@ class Adapter(common.ProtocolAdapter):
                                      "output": text}}
         try:
             result = rpc.request("turn/start", params, timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return self.settled("turn/start", error)
         turn = result.get("turn") if isinstance(result, dict) else None
         ident = turn.get("id") if isinstance(turn, dict) else None
@@ -118,7 +128,9 @@ class Adapter(common.ProtocolAdapter):
         try:
             read = rpc.request("thread/read", {"threadId": self.native, "includeTurns": True},
                                timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return f"unseen {message}: thread/read {error.reading}"
         if common.marker(message) in json.dumps(read, ensure_ascii=False):
             return f"seen {message}"
