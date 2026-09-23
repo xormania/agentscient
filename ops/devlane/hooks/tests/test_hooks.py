@@ -26,7 +26,6 @@ import json
 import os
 import re
 import stat
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -101,15 +100,12 @@ class HookContractTest(unittest.TestCase):
         return self.world.env(extra=extra)
 
     def run_cmd(self, argv, cwd, env=None, expect=0):
-        result = run(
+        proc = run(
             argv,
             cwd=str(cwd),
             env=env if env is not None else self.env_for(),
             timeout=RUN_CAP,
             expect=None,
-        )
-        proc = subprocess.CompletedProcess(
-            list(result.argv), result.exit, result.stdout, result.stderr
         )
         if expect is not None:
             self.assertEqual(

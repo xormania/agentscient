@@ -7,7 +7,6 @@ passing a bad message would make the hook decorative.
 """
 
 import unittest
-from types import SimpleNamespace
 
 # Imported as a MODULE, not `from test_hooks import HookContractTest`:
 # the from-form binds the class into this module's namespace and unittest
@@ -51,12 +50,7 @@ class TheCommitMsgGate(test_hooks.HookContractTest):
                 f"(wanted {expect})\nstdout: {result.stdout}\n"
                 f"stderr: {result.stderr}",
             )
-        return SimpleNamespace(
-            args=list(result.argv),
-            returncode=result.exit,
-            stdout=result.stdout,
-            stderr=result.stderr,
-        )
+        return result
 
     def prepared(self, with_checker):
         self.require_sources()
