@@ -27,10 +27,12 @@ the jobs root, never by launching again.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shlex
+import signal
 import sqlite3
 import subprocess
 import sys
@@ -318,7 +320,7 @@ def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref
     try:
         child = subprocess.Popen(  # noqa: S603 - argv is a list, never a shell string
             argv, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True)
+            stderr=subprocess.PIPE, text=True, start_new_session=True)
     except OSError as error:
         line = f"{argv[0]}: {error.strerror}"
         intents.move(conn, di, "refuse-launching", who, evidence=line, error=line)
@@ -329,10 +331,16 @@ def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref
     try:
         stdout, stderr = child.communicate(timeout=SPAWN_WAIT)
     except subprocess.TimeoutExpired:
-        reading = (f"no record from the wrapper within {SPAWN_WAIT}s; "
-                   f"{intents.process_reading(child.pid, ticks)}")
-        return answer(intents.move(conn, di, "lose", who, evidence=reading), reading=reading,
-                      repeated=False)
+        # The wrapper ends with the ask (A-525 #4): one left running could
+        # mint after the caller read the abort. Its detached launcher is
+        # its own session and survives; the correlation in its log is what
+        # reconcile finds. A record printed before the end still mints.
+        stdout, stderr = ended(child)
+        if not any(line.startswith("record: ") for line in stdout.splitlines()):
+            reading = (f"no record from the wrapper within {SPAWN_WAIT}s; wrapper "
+                       f"pid={child.pid} ended by the ask, exit {child.returncode}")
+            return answer(intents.move(conn, di, "lose", who, evidence=reading), reading=reading,
+                          repeated=False)
     record = pid = None
     for line in stdout.splitlines():
         if line.startswith("record: "):
@@ -409,6 +417,22 @@ def verification(name: str) -> list:
         refuse("verify", "a verification named in verifications.json", name or "empty",
                "one of " + ", ".join(names))
     return argv
+
+
+def ended(child) -> tuple[str, str]:
+    """End the wrapper's process group, TERM then KILL, and read what it
+    printed. The group, not the pid: a child of the wrapper holding its
+    stdout would keep the read open past the wrapper's own end. The
+    launcher it detached runs in its own session and is not in the group."""
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(child.pid, sig)
+        try:
+            return child.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            continue
+    child.wait()
+    return "", ""
 
 
 def collected_reading(record: str) -> str | None:
