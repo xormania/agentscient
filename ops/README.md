@@ -84,7 +84,7 @@ state engines are retained; this is not a replacement controller.
 
 | run | does |
 |---|---|
-| `ops/bin/suites.sh` | runs every lane suite exactly as CI does; the local answer and the CI answer are one command |
+| `ops/bin/suites.sh` | runs the full CI lane plan: lint, guards, every required suite and probes, each once; missing suites fail. `--suite DIR` is an explicitly labelled partial run. |
 | `ops/bin/fixture.sh` | makes isolated fixture repositories, proves their planted faults red or fixed faults green, and grades review records |
 | `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness through the launcher in the same worktree; `--detach` returns the minted record id at once, and `launch.py wait ID` waits for closure |
 | `ops/bin/ladder.sh` | runs the declared test, implementation, audit, fix, and draft-PR ladder in a branch's owning worktree; `resume ID` continues its named durable record |
