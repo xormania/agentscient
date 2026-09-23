@@ -31,6 +31,7 @@ import importlib.util
 import json
 import os
 import re
+import secrets
 import shutil
 import sqlite3
 import stat
@@ -178,6 +179,11 @@ def terminal_pointer(run: str, terminal: str) -> Path:
     return state_dir() / "runs" / run / "terminals" / terminal / "home" / "profile.json"
 
 
+def mint_token() -> str:
+    """A fresh coordination capability, minted before the participant row."""
+    return secrets.token_hex(32)
+
+
 def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
     """Write an owner terminal's pointer, 0600 and never replaced, and return its
     path. Called after the participant row carries the capability's digest."""
@@ -200,6 +206,20 @@ def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
     with os.fdopen(descriptor, "w", encoding="ascii") as out:
         out.write(body)
     return path
+
+
+def remove_terminal_profile(run: str, terminal: str, capability: str) -> bool:
+    """Remove the pointer only when it holds ``capability``: the unlink partner for a
+    COMMIT that did not land after the file was written. False when there is none."""
+    path = terminal_pointer(run, terminal)
+    try:
+        held = json.loads(path.read_text(encoding="ascii")).get("coordination_capability")
+    except (OSError, ValueError, AttributeError):
+        return False
+    if not isinstance(capability, str) or held != capability:
+        return False
+    path.unlink()
+    return True
 
 
 def terminal_profile():
