@@ -1074,8 +1074,7 @@ class TheCleanNeighbours(_Scratch):
                 target = flag("-t") or flag("--target")
                 if not target:
                     return False
-                if target.startswith("="):
-                    target = target[1:]
+                target = target.removeprefix("=")
                 if ":" not in target:
                     return False
                 sess, rest = target.split(":", 1)
@@ -1385,10 +1384,8 @@ class TheCleanNeighbours(_Scratch):
         """
         cursor = Path("/proc/sys/kernel/ns_last_pid")
         for _ in range(8):
-            try:
+            with contextlib.suppress(OSError):
                 cursor.write_text(str(recorded - 1), encoding="utf-8")
-            except OSError:
-                pass
             child, release = self.owned_holder()
             if child == recorded:
                 try:
