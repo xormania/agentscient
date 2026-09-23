@@ -312,6 +312,20 @@ class _Scratch(unittest.TestCase):
                 "tmux is absent; private-socket rows need it"
             )
 
+    def host_tmux(self, *argv: str, expect: int | None = None):
+        """The host tmux on this world's private socket.
+
+        The planted shim drops the real server's stderr, so a fixture
+        that must exist drives the host binary by absolute path.
+        """
+        return run(
+            [HOST_TMUX, "-S", str(self.socket), *argv],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+            expect=expect,
+        )
+
     def assert_refusal(self, proc, klass: str, *, case_id: str) -> str:
         case = RefusalCase(id=case_id, argv=proc.argv[2:], cls=klass, origin=ORIGIN)
         return refusal_wire(case, proc).line
@@ -608,20 +622,79 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def session_name(self, run_id: str) -> str:
+        return f"agentscient-{run_id}"
+
+    def plant_owned_run(self, run_id: str, member: str) -> None:
+        """An owned run while the subject is absent.
+
+        The contract's session is ``<team.run.tmux>-<R-n>`` with
+        ``@agentscient_owner`` equal to the run id and one window named
+        by the member. origin: 20260922T234512Z-review-codex-5b18d7#1
+        """
+        session = self.session_name(run_id)
+        self.host_tmux(
+            "new-session", "-d", "-s", session, "-n", member, "sleep", "300",
+            expect=0,
+        )
+        self.host_tmux(
+            "set-option", "-t", f"={session}:", "remain-on-exit", "on",
+            expect=0,
+        )
+        self.host_tmux(
+            "set-option", "-t", f"={session}:", "@agentscient_owner", run_id,
+            expect=0,
+        )
+        self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={session}"))
+
+    def window_names(self, session: str) -> list[str]:
+        listed = self.host_tmux(
+            "list-windows", "-t", f"={session}", "-F", "#{window_name}",
+        )
+        self.assertEqual(listed.exit, 0, listed.stderr)
+        return listed.stdout.split()
+
+    def prove_existing_run(self, run_id: str, member: str) -> str:
+        """The existing-run fixture is on the socket before any absent row."""
+        session = self.session_name(run_id)
+        has = self.host_tmux("has-session", "-t", f"={session}")
+        self.assertEqual(
+            has.exit,
+            0,
+            f"existing-run fixture {session} does not exist: {has.stderr}",
+        )
+        owner = self.host_tmux(
+            "show-options", "-t", f"={session}:", "-v", "@agentscient_owner",
+        )
+        self.assertEqual(owner.exit, 0, owner.stderr)
+        self.assertEqual(owner.stdout.strip(), run_id)
+        self.assertIn(member, self.window_names(session))
+        return session
+
     def test_a_missing_member_or_pane_of_an_existing_run_refuses_absent(self):
         """origin: 20260922T215604Z-review-codex-f6777b#6
+        origin: 20260922T234512Z-review-codex-5b18d7#1
 
         A run that exists still refuses absent for a member it does not
-        contain, and for a member whose pane is gone.
+        contain, and for a member whose pane is gone. The run is proven
+        before either absent assertion.
         """
         self.skip_without_tmux()
-        self.sessions(*self.start_argv())
+        run_id = "R-1"
+        member = "grunt"
+        if TOOL.is_file():
+            started = self.sessions(*self.start_argv(member))
+            self.assertEqual(started.exit, 0, started.stderr)
+        else:
+            self.plant_owned_run(run_id, member)
+        session = self.prove_existing_run(run_id, member)
         with self.subTest(id="absent-member-existing-run", origin=origin_finding(6)):
-            proc = self.sessions("attach", "--member", "nosuch", "--run", "R-1")
+            self.assertNotIn("nosuch", self.window_names(session))
+            proc = self.sessions("attach", "--member", "nosuch", "--run", run_id)
             refusal_wire(
                 RefusalCase(
                     id="absent-member-existing-run",
-                    argv=("attach", "--member", "nosuch", "--run", "R-1"),
+                    argv=("attach", "--member", "nosuch", "--run", run_id),
                     cls="absent",
                     origin=origin_finding(6),
                     named=("nosuch",),
@@ -629,39 +702,49 @@ class TheTmuxAndLaunchRows(_Scratch):
                 proc,
             )
         with self.subTest(id="absent-pane-existing-run", origin=origin_finding(6)):
-            self.drop_owned_pane("grunt")
-            proc = self.sessions("attach", "--member", "grunt", "--run", "R-1")
+            self.drop_owned_pane(session, member)
+            self.assertEqual(
+                self.host_tmux("has-session", "-t", f"={session}").exit,
+                0,
+                "the run disappeared with its pane",
+            )
+            self.assertNotIn(member, self.window_names(session))
+            proc = self.sessions("attach", "--member", member, "--run", run_id)
             refusal_wire(
                 RefusalCase(
                     id="absent-pane-existing-run",
-                    argv=("attach", "--member", "grunt", "--run", "R-1"),
+                    argv=("attach", "--member", member, "--run", run_id),
                     cls="absent",
                     origin=origin_finding(6),
-                    named=("grunt",),
+                    named=(member,),
                 ),
                 proc,
             )
 
-    def drop_owned_pane(self, member: str) -> None:
-        """Kill the member's pane when the private server has one."""
-        listed = run(
-            ["tmux", "-S", str(self.socket), "list-panes", "-a",
-             "-F", "#{window_name} #{pane_id}"],
-            cwd=self.world.cwd,
-            env=self.world.env(),
-            timeout=TIMEOUT,
+    def drop_owned_pane(self, session: str, member: str) -> None:
+        """Remove the member's pane and leave the owned session up.
+
+        A second window keeps the server alive: killing the only pane
+        takes the run with it, and the row would then be about a missing
+        run.
+        """
+        self.host_tmux(
+            "new-window", "-d", "-t", f"={session}:", "-n", "keeper", "sleep", "300",
+            expect=0,
         )
-        if listed.exit != 0:
-            return
+        listed = self.host_tmux(
+            "list-panes", "-s", "-t", f"={session}",
+            "-F", "#{window_name} #{pane_id}",
+        )
+        self.assertEqual(listed.exit, 0, listed.stderr)
+        killed = False
         for line in listed.stdout.splitlines():
             parts = line.split()
             if len(parts) == 2 and parts[0] == member:
-                run(
-                    ["tmux", "-S", str(self.socket), "kill-pane", "-t", parts[1]],
-                    cwd=self.world.cwd,
-                    env=self.world.env(),
-                    timeout=TIMEOUT,
-                )
+                gone = self.host_tmux("kill-pane", "-t", parts[1])
+                self.assertEqual(gone.exit, 0, gone.stderr)
+                killed = True
+        self.assertTrue(killed, f"no pane for {member}: {listed.stdout!r}")
 
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
         self.skip_without_tmux()
