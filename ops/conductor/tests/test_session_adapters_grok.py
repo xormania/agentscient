@@ -25,6 +25,22 @@ entries; when one is ``coordination`` the fake answers
 options; the contract's `decline` is the answer selecting `reject-once`,
 and the frame reads `permission <title>`.
 
+The one exception (sessions-lever.md `observe`, at 7952a9a6): a `use_tool`
+call whose `rawInput.tool_name` is exactly `coordination__<tool>` with an
+input object is answered `allow-once` and reads `permission coordination
+<tool> allowed`; the frame is the one agentscient-b3 measured on grok
+1.0.40, `session/request_permission` for `coordination__coord_probe`
+offering always-allow, allow-once and reject-once. Its neighbours stay
+declined: another server's tool, a target with no tool, a call with no
+input object, a call that is not grok's own use_tool, and always-allow is
+never chosen (origin: A-527, b3's live reading, and the contract line).
+
+A response whose id matches no request the bridge sent, as grok 1.0.40
+sends `skills-reload` mid-turn, is dropped and written to the channel's
+log, and the turn's later frames still arrive (origin: A-527, aa's
+e8cae56c, and the contract line); the RPC rows for it are in
+test_session_channel.py.
+
 Planted faults: `session_adapters_grok_faults.py` beside this module,
 anchored on the adapter at bf924ee7; the clean neighbours are the
 unmodified subject and the no-server row.
@@ -60,6 +76,11 @@ OTHER_SESSION = "sess-other"
 UPDATE_TEXT = "pane-line"
 TURN = "turn-7"
 PERMISSION_TITLE = "run the suite"
+USE_TOOL_TITLE = "use_tool"
+LIVE_OPTIONS = [["always-allow", "allow_always"], ["allow-once", "allow_once"],
+                ["reject-once", "reject_once"]]
+STRAY = "skills-reload"
+ORIGIN_527 = "A-527; sessions-lever.md observe, permission exception, 7952a9a6"
 OPERATOR_TEXT = "operator line for gee"
 CHANNEL_TAIL = ["--no-auto-update", "agent", "stdio"]
 HANDSHAKE = ["initialize", "session/new"]
@@ -153,7 +174,7 @@ class TheGrokAdapter(unittest.TestCase):
             return None
         return self._adapter
 
-    def open_channel(self, spec_path: Path):
+    def open_channel(self, spec_path: Path, stderr=None):
         """channel.Channel spawning the planted peer with the contracted argv."""
         if not CHANNEL.is_file():
             return None
@@ -164,7 +185,7 @@ class TheGrokAdapter(unittest.TestCase):
             channel = module.Channel(
                 [str(self.planted), *CHANNEL_TAIL], jsonrpc=True,
                 env=self.world.env(extra={"TESTKIT_FAKE_SPEC": str(spec_path)}),
-                cwd=str(self.world.cwd),
+                cwd=str(self.world.cwd), stderr=stderr,
             )
         except Exception:
             return None
@@ -196,9 +217,9 @@ class TheGrokAdapter(unittest.TestCase):
             return None
         return [row.get("method") for row in rows]
 
-    def spawn(self, **overrides):
+    def spawn(self, stderr=None, **overrides):
         """The planted peer behind a Channel, or None with no channel."""
-        return self.open_channel(self.write_spec(**overrides))
+        return self.open_channel(self.write_spec(**overrides), stderr=stderr)
 
     def connect_in(self, directory: Path, **overrides):
         """The planted peer spawned the bridge's way, ``adapter.connect``,
@@ -247,6 +268,117 @@ class TheGrokAdapter(unittest.TestCase):
             if time.monotonic() >= deadline:
                 return False
             time.sleep(0.02)
+
+    def answer_to_permission(self) -> str | None:
+        """What the peer received as the answer to `perm-1`: the selected
+        optionId, `cancelled`, `error`, or None when no answer came."""
+        deadline = time.monotonic() + 2
+        while True:
+            for call in self.world.tools.calls("grok"):
+                if not (call.get("response") and call.get("id") == "perm-1"):
+                    continue
+                if "error" in call:
+                    return "error"
+                outcome = (call.get("result") or {}).get("outcome")
+                if isinstance(outcome, dict) and outcome.get("outcome") == "cancelled":
+                    return "cancelled"
+                return selected(call.get("result"))
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(0.02)
+
+    def permission_reading(self, raw_input: dict, options=LIVE_OPTIONS, tool=None):
+        """The adapter's reading of a `use_tool` permission request carrying
+        ``raw_input``, and the answer the peer received; ``tool`` replaces
+        the request's `_meta` tool, `[namespace, name]`."""
+        adapter = self.adapter()
+        if adapter is None:
+            return None, None, "no adapter"
+        rpc = self.spawn(permission_title=USE_TOOL_TITLE, permission_raw_input=raw_input,
+                         permission_options=options, permission_tool=tool)
+        try:
+            adapter.handshake(rpc)
+            adapter.submit(rpc, OPERATOR_TEXT, busy=False)
+            frame = next(
+                item for item in (self.lines(self.emitted_path) or [])
+                if item.get("method") == "session/request_permission"
+            )
+            with contextlib.redirect_stdout(io.StringIO()):
+                reading = adapter.observe(rpc, frame)
+        except Exception as exc:
+            return None, None, exc
+        return reading, self.answer_to_permission(), None
+
+    def test_observe_a_coordination_use_tool_is_allowed_once(self):
+        """origin: A-527, b3's live reading; sessions-lever.md observe at 7952a9a6"""
+        with self.subTest(id="grok-permission-coordination-allowed", origin=ORIGIN_527):
+            reading, answer, error = self.permission_reading(
+                {"tool_name": "coordination__coord_probe", "tool_input": {}})
+            self.assertIsNone(error, error)
+            self.assertEqual(
+                (reading, answer),
+                ("permission coordination coord_probe allowed", "allow-once"),
+            )
+
+    def test_observe_every_other_use_tool_stays_declined(self):
+        """origin: A-527, b3's live reading; sessions-lever.md observe at 7952a9a6"""
+        probe = {"tool_name": "coordination__coord_probe", "tool_input": {}}
+        rows = [
+            ("grok-permission-other-server", {"tool_name": "shell__run", "tool_input": {"cmd": "ls"}},
+             LIVE_OPTIONS, None),
+            ("grok-permission-no-tool", {"tool_name": "coordination__", "tool_input": {}},
+             LIVE_OPTIONS, None),
+            ("grok-permission-no-input", {"tool_name": "coordination__coord_probe"},
+             LIVE_OPTIONS, None),
+            ("grok-permission-input-not-object",
+             {"tool_name": "coordination__coord_probe", "tool_input": "{}"}, LIVE_OPTIONS, None),
+            ("grok-permission-prefix-only",
+             {"tool_name": "xcoordination__coord_probe", "tool_input": {}}, LIVE_OPTIONS, None),
+            ("grok-permission-no-allow-once", probe,
+             [["always-allow", "allow_always"], ["reject-once", "reject_once"]], None),
+            ("grok-permission-not-use-tool", probe, LIVE_OPTIONS, ["grok_build", "run_command"]),
+            ("grok-permission-other-namespace", probe, LIVE_OPTIONS, ["mcp", "use_tool"]),
+        ]
+        for ident, raw_input, options, tool in rows:
+            with self.subTest(id=ident, origin=ORIGIN_527):
+                self.world.tools.log_path("grok").write_text("", encoding="utf-8")
+                self.emitted_path.write_text("", encoding="utf-8")
+                reading, answer, error = self.permission_reading(raw_input, options, tool)
+                self.assertIsNone(error, error)
+                self.assertEqual((reading, answer), (f"permission {USE_TOOL_TITLE}", "reject-once"))
+
+    def test_a_stray_response_mid_turn_is_dropped_and_logged(self):
+        """origin: A-527, aa's e8cae56c; sessions-lever.md the bridge at 7952a9a6"""
+        with self.subTest(id="grok-stray-response-dropped", origin=ORIGIN_527):
+            adapter = self.adapter()
+            log_path = self.world.root / "channel.log"
+            received = None
+            state = None
+            logged = None
+            error = None
+            if adapter is not None:
+                with open(log_path, "ab") as log:
+                    rpc = self.spawn(stderr=log, stray_id=STRAY, permission_title=PERMISSION_TITLE)
+                    try:
+                        adapter.handshake(rpc)
+                        adapter.submit(rpc, OPERATOR_TEXT, busy=False)
+                        received = []
+                        deadline = time.monotonic() + 3
+                        while "session/request_permission" not in received and time.monotonic() < deadline:
+                            frame = rpc.next_frame(0.1)
+                            if frame is not None:
+                                received.append(frame.get("method"))
+                        state = (rpc.dead.is_set(), len(getattr(rpc, "strays", [])))
+                    except Exception as exc:
+                        error = exc
+                logged = [line for line in log_path.read_text(encoding="utf-8").splitlines()
+                          if line.startswith("channel: dropped") and repr(STRAY) in line]
+            self.assertIsNone(error, error)
+            self.assertEqual(received[-3:] if received else received,
+                             ["session/update", "_x.ai/session/prompt_complete",
+                              "session/request_permission"])
+            self.assertEqual(state, (False, 1))
+            self.assertEqual(len(logged or []), 1, logged)
 
     def test_transport_reads_protocol(self):
         """origin: sessions-lever.md#slice-2 adapters"""

@@ -454,6 +454,47 @@ class SharedEnforcement(unittest.TestCase):
                     command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
                     self.assertIn("/usr/bin/true", command)
 
+    def test_the_bridge_channel_argv_is_admitted_whole_and_nothing_near_it(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (1), T-486; found by agentscient-5c 2026-09-23 03:05Z: every codex
+        # and grok member read `process refused gone`, run-interactive refusing the
+        # adapters' channel() argv as "unknown native command".
+        root = Path(__file__).resolve().parents[4]
+        channels = {"codex": ["app-server", "--listen", "stdio://"],
+                    "grok": ["--no-auto-update", "agent", "stdio"]}
+        near = {
+            "codex": [["app-server"], ["app-server", "--listen"], ["app-server", "--listen", "ws://127.0.0.1:4500"],
+                      ["app-server", "--listen=stdio://"], ["app-server", "--listen", "stdio://", "--model", "fixture"],
+                      ["app-server", "--listen", "stdio://", "-c", 'model_reasoning_effort="high"'],
+                      ["--model", "fixture", "app-server", "--listen", "stdio://"], ["app-server", "daemon"],
+                      ["app-server", "proxy"], ["app-server", "--listen", "stdio://", "--", "A plain prompt"]],
+            "grok": [["agent", "stdio"], ["--no-auto-update"], ["--no-auto-update", "agent"],
+                     ["--no-auto-update", "agent", "serve"], ["--no-auto-update", "agent", "headless"],
+                     ["--no-auto-update", "agent", "stdio", "--sandbox=none"],
+                     ["--model", "fixture", "--no-auto-update", "agent", "stdio"],
+                     ["--no-auto-update", "agent", "stdio", "--", "A plain prompt"]],
+        }
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("channel-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            for owner, channel in channels.items():
+                if owner != harness:
+                    with self.subTest(harness=harness, channel=owner), self.assertRaises(ValueError):
+                        profiles.native_launch(binding, ["/usr/bin/true", *channel], self.env)
+            if harness not in channels:
+                continue
+            with self.subTest(harness=harness, channel=harness):
+                try:
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *channels[harness]], self.env)
+                except ValueError as refusal:
+                    self.fail(f"refused the bridge's channel argv: {refusal}")
+                self.assertEqual(command[command.index("/usr/bin/true") + 1:],
+                                 {"codex": ["--dangerously-bypass-hook-trust", *channels["codex"]],
+                                  "grok": channels["grok"]}[harness])
+            for args in near[harness]:
+                with self.subTest(harness=harness, args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+
     def test_claude_interactive_admits_a_launch_session_id(self):
         # origin: ops/conductor/sessions-lever.md at 13664232, "Identity, without
         # impersonation": the supervisor passes its launch id as `claude --session-id`.
@@ -690,6 +731,52 @@ class SharedEnforcement(unittest.TestCase):
         self.assertEqual(proc.stdout, str(self.repo) + "\nsynthetic\n")
         self.assertEqual(self.evaluate(command=native.bind_command("git commit -m blocked", str(self.repo)))["outcome"], "deny")
 
+    def test_every_member_profile_registers_the_coordination_acting_server(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (3): the interactive profile registers the `coordination` acting
+        # server for all three harnesses. Before it, a profile carried only the
+        # operator's own servers, and this host's ~/.grok/config.toml has none, so a
+        # grok member never read tools ok (agentscient-11's review of fed6a4ce, LD-134).
+        import tomllib
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        elsewhere = {"command": "python3", "args": ["/elsewhere/coordination_mcp.py", "serve"]}
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".codex/config.toml").write_text(
+            '[mcp_servers.agentscient_lane]\ncommand="python3"\nargs=["stable.py"]\n'
+            '[mcp_servers.coordination]\ncommand="python3"\nargs=["/elsewhere/coordination_mcp.py", "serve"]\n')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        (home / ".claude.json").write_text(json.dumps({"mcpServers": {"coordination": elsewhere}}))
+        server = {"command": str(Path(profiles.sys.executable).resolve()),
+                  "args": ["-B", str(root / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("member-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                profiles.validate(profiles.read_binding(binding["binding"]))
+                if harness == "claude":
+                    servers = json.loads((Path(binding["helper"]).parent / "mcp.json").read_text())["mcpServers"]
+                else:
+                    servers = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())["mcp_servers"]
+                expected = {**server, "env": {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}}
+                if harness == "codex":
+                    # The bridge declines every approval the app-server asks
+                    # (session_adapters/codex.py DECLINE), so codex approves this
+                    # server's tools; the core's role gate still runs in every verb.
+                    expected["default_tools_approval_mode"] = "approve"
+                    self.assertEqual(servers["agentscient_lane"]["args"], ["stable.py"])
+                self.assertEqual(servers.get("coordination"), expected)
+                self.assertIn("coordination", binding["servers"])
+                registered = servers["coordination"]
+                probe = run([registered["command"], *registered["args"][:-1], "check"],
+                            cwd=self.repo, env=self.env, timeout=60)
+                self.assertEqual(probe.exit, 0, probe.stderr)
+                self.assertEqual(json.loads(probe.stdout)["server"], "coordination")
+
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib
         root = Path(__file__).resolve().parents[4]
@@ -708,5 +795,5 @@ class SharedEnforcement(unittest.TestCase):
         server = config["mcp_servers"]["agentscient_lane"]
         self.assertEqual(server["args"], ["stable.py"])
         self.assertEqual(server["env"], {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]})
-        self.assertEqual(binding["servers"], ["agentscient_lane"])
+        self.assertEqual(binding["servers"], ["agentscient_lane", "coordination"])
         self.assertIn('hooks=false', (original / "config.toml").read_text())
