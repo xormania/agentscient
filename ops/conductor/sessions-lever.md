@@ -622,8 +622,11 @@ never held across the spawn.
 
 **Reconciliation**: an intent at `launching` whose launcher is gone
 moves `uncertain`; the holder then scans the jobs root (`$DISPATCH_JOBS`
-or `$XDG_STATE_HOME/<lane>/dispatch`) for a `*/state.json` carrying the
-intent's `correlation`; found moves `launched` with that record id;
+or `$XDG_STATE_HOME/<lane>/dispatch`) for a launcher log whose first
+line is `correlation: <uuid>` matching the intent's, `<id>/launcher.log`
+beside a `state.json` once the wrapper minted, or `.launcher.*` in the
+jobs root when the wrapper died before the mint; found beside a
+`state.json` moves `launched` with that record id;
 absent leaves `uncertain` and prints it, and the ask is never relaunched
 by the holder: the requester asks again with a new key or the owner
 launches by hand. Restart is `dispatch_actions.py recover`: every
@@ -734,16 +737,24 @@ config beside it, repeats nothing for the first.
 | `uncertain` | `wait` or `collect` on an intent at `uncertain`; needed `reconcile` |
 | `unknown` | `DI-n` not in the store |
 | `verify` | `--verify` not a key of `verifications.json` |
-| `correlation` | two `state.json` files carry one correlation |
+| `correlation` | two launcher logs carry one correlation |
 | `store` | the core's store absent or unwritable |
 
 ### Required of the wall
 
-(1) `launch.py` admits `--correlation <uuid>` and writes it as
-`correlation` in the job directory's `state.json` at mint, before the
-`record:` line; (2) `dispatch.sh` (S3's) passes `--correlation` through
-unchanged and prints nothing new. Until (1) lands the reconciliation
-rows run over a planted `state.json` carrying the key.
+None. The first shape, `launch.py` admitting `--correlation` and
+writing it into `state.json` at mint, was withdrawn on 2026-09-23 when
+the reviewers A-524 and A-525 measured a real launch dying in
+`launch.py`'s argparse on the flag the fake alone admitted (records
+20260923T034128Z-review-grok-4461aa #1, 20260923T040654Z-review-codex-8649a7
+#1). `launch.py` is wall and is not touched: `dispatch.sh` (S3's)
+keeps `--correlation`, passes it to no launcher, and writes
+`correlation: <uuid>` as the first line of the detached launch log,
+which moves to `<jobs root>/<id>/launcher.log` at mint or stays as
+`.launcher.*` in the jobs root when the wrapper dies first;
+`dispatch_intents.scan` reads it beside `state.json`, one entry per
+record, and the facade reads the launcher's `prog: error:` line as a
+refusal of class `launcher` (built at 1c31eb58).
 
 ### Tests
 
@@ -772,7 +783,8 @@ with an origin of this section:
 2. the same key twice → one row, `repeated`; another digest under the
    key → `idempotency`, no row;
 3. the wrapper exits without a `record:` line → `uncertain`; with a
-   planted `state.json` carrying the correlation, `reconcile` →
+   planted `launcher.log` opening `correlation: <uuid>` beside a
+   `state.json`, `reconcile` →
    `launched`; without it → still `uncertain` and a second `launch` with
    the same key is `repeated`, never a second wrapper call (the log has
    one line);
