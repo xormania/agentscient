@@ -410,13 +410,23 @@ channel capability it left `unmeasured` in slice 1 and reads
 | ingress | `ok <route> pid=N` when a live `delivery_routes` row exists for the participant; `waiting courier` otherwise; `refused channel` when the bridge's last attempt read `unsupported`; `unmeasured the profile arms no courier` when no `*.json` in the member's profile names `courier.py watch`, so no route can exist by construction |
 | response | `ok M-n <latency>` when the member acked the readiness probe: when `start` runs from a bound shell, after `bound` it sends `inform` "readiness probe R-n SM-n <nonce>" to `PT-n` and waits for the recipient's own ack; `waiting ack M-n` until then; `unmeasured no starter participant` when the starter is unbound |
 
-`ready` now requires slice 1's five `ok` (with slice 1's rule that
-`role` may read `waiting grant`) and each of the three slice 2
-dimensions `ok` or `unmeasured <reason>`; `waiting` or `refused` on
-any of the three refuses `readiness`, naming the dimension. An
+`ready` requires slice 1's five `ok` (with slice 1's rule that `role`
+may read `waiting grant`) and each of the three slice 2 dimensions
+`ok`. A member whose eight lines are measured and whose tools, ingress
+or response reads `unmeasured <reason>` reaches `admitted`, a place of
+its own in LIVE: `start` exits 0 on it and its line reads
+`admitted, unverified: <the unmeasured dimensions>`. `waiting` or
+`refused` on any of the three refuses `readiness`, naming the
+dimension. An
 `unmeasured` reading is a declared absence, never a pass in disguise:
-the line carries it. The readiness probe is an `inform`, so it leaves
-no obligation.
+the line carries it. `admitted` is never `ready`: no consumer of the
+place, the run's `status`, `send`, `coord_launch` or a trial record,
+reads an admitted member as verified readiness (owner, 2026-09-23: "A session
+admitted with unmeasured tools, ingress, or response must not be
+presented or consumed as verified operational readiness"; this
+withdraws the 2026-09-23 slice 2 ruling that admitted `unmeasured` into
+`ready`). The readiness probe is an `inform`, so it leaves no
+obligation.
 
 ### Verbs added
 
