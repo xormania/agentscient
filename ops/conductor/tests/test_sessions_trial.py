@@ -484,6 +484,24 @@ class TheOwnersTerminal(_Trial):
                 self.assertRegex(block, rf"(?m)^  {dimension} \S", block)
             self.assertRegex(block, r"(?m)^  enforcement unmeasured$", block)
 
+    @unittest.expectedFailure  # LD-125: bind --run is the wall's minting, not yet landed
+    def test_bind_naming_no_run_refuses_absent(self):
+        """origin: sessions-lever.md#slice-4 the owner's terminals, ruled at a1520df5
+
+        ``bind --run R-n`` in a plain terminal, naming no run, refuses class
+        ``absent``, the class an unknown run takes everywhere in the lever;
+        ``missing`` is the found of a ``capability`` refusal, never a class.
+        """
+        at = origin("the owner's terminals")
+        with self.subTest(id="owner-terminal-no-run", origin=at):
+            result = self.coord("bind", "--run", "R-9", "--roles", "worker",
+                                session=OWNER_SESSION, capability=None)
+            refusal_wire(
+                RefusalCase(id="owner-terminal-no-run", argv=("bind", "--run", "R-9"),
+                            cls="absent", origin=at, named=("R-9",)),
+                result,
+            )
+
     @unittest.expectedFailure  # LD-125: the refusal naming which is the wall's, not yet landed
     def test_a_malformed_capability_refuses_capability_naming_it(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals
