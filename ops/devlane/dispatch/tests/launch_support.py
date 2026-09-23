@@ -663,7 +663,9 @@ class _TempLaunch(unittest.TestCase):
     def assert_wire_refusal(self, code, out, err, *, ident, named=(), phrases=()):
         """The common refusal wire, followed by the family's content checks."""
         token = ident.lower().replace("_", "-")
-        result = Result((), code, out or "", err or "", 0.0, str(self.repo))
+        # Unwrap the CLI's declared label before checking the common wire.
+        wire = (err or "").removeprefix("launch.py: refusal: ")
+        result = Result((), code, out or "", wire, 0.0, str(self.repo))
         case = RefusalCase(ident, (), token, exit=REFUSAL_EXIT, named=tuple(map(str, named)))
         line = refusal_wire(case, result).line
         for phrase in phrases:
