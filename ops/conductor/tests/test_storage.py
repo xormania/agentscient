@@ -140,10 +140,11 @@ for reader in readers:
             for node in ast.walk(ast.parse(path.read_text())):
                 if not isinstance(node, ast.Call):
                     continue
-                if ast.unparse(node.func) == "sqlite3.connect":
-                    # A synthetic empty register has no file authority.
-                    if not node.args or not isinstance(node.args[0], ast.Constant) or node.args[0].value != ":memory:":
-                        copies.append(f"{path.name}:{node.lineno}: private file connection")
+                # A synthetic empty register has no file authority.
+                if (ast.unparse(node.func) == "sqlite3.connect"
+                        and (not node.args or not isinstance(node.args[0], ast.Constant)
+                             or node.args[0].value != ":memory:")):
+                    copies.append(f"{path.name}:{node.lineno}: private file connection")
                 if (isinstance(node.func, ast.Attribute) and node.func.attr == "execute"
                         and node.args and isinstance(node.args[0], ast.Constant)
                         and str(node.args[0].value).upper().startswith("BEGIN")):
