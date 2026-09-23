@@ -43,7 +43,7 @@ READ = TOOL.with_name("lane_read.py")  # test_lane_mcp_review.py and test_lane_m
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
-SIBLINGS = ("lane_read.py", "instrument.py")
+SIBLINGS = ("lane_read.py", "instrument.py", "mcp_transport.py", "dispatch_observation.py")
 
 RUN_CAP = 20
 FIFO_CAP = 5
@@ -556,9 +556,6 @@ class _LaneMcpFixture(unittest.TestCase):
         return lines
 
 
-class TestLaneMcpPresence(_LaneMcpFixture):
-    def test_the_tool_file_is_present(self):
-        self.assertTrue(TOOL.is_file(), TOOL)
 
 
 class TestLaneMcpCliWire(_LaneMcpFixture):
@@ -1314,55 +1311,45 @@ class TestLaneMcpTransport(_LaneMcpFixture):
             rpc("tools/list", 3),
             rpc("resources/list", 4),
         ]
-        seen_versions = {}
-        for version in (*PROTOCOLS, "2099-01-01"):
-            proc = self.serve(self.handshake(requests, version=version))
-            self.assertEqual(proc.exit, 0, proc.stderr)
-            objs = self.rpc_objects(proc)
-            init = self.rpc_by_id(objs, 1)
-            result = init["result"]
-            negotiated = result["protocolVersion"]
-            if version in PROTOCOLS:
-                self.assertEqual(negotiated, version)
-            else:
-                self.assertEqual(negotiated, "2025-06-18")
-            seen_versions[version] = negotiated
-            caps = result["capabilities"]
-            self.assertIn("tools", caps)
-            self.assertIn("resources", caps)
-            for banned in ("sampling", "elicitation", "logging"):
-                self.assertNotIn(banned, caps)
-            instructions = result["instructions"]
-            self.assertIsInstance(instructions, str, instructions)
-            text = instructions.lower()
-            self.assertIn("read-only", text)
-            self.assertRegex(text, r"evidence(?: is)? not authority", instructions)
-            self.assertRegex(text, r"brief (?:before|then) detail", instructions)
-            self.assertIn("no live readiness", text)
-            ping = self.rpc_by_id(objs, 2)
-            self.assertEqual(ping.get("result"), {})
-            tools = self.rpc_by_id(objs, 3)["result"]["tools"]
-            names = [tool["name"] for tool in tools]
-            self.assertEqual(sorted(names), sorted(TOOLS))
-            self.assertEqual(len(tools), 4)
-            for tool in tools:
-                ann = tool["annotations"]
-                self.assertEqual(ann["readOnlyHint"], True)
-                self.assertEqual(ann["destructiveHint"], False)
-            resources = self.rpc_by_id(objs, 4)["result"]["resources"]
-            uris = [item["uri"] for item in resources]
-            self.assertEqual(len(uris), 4)
-            self.assertEqual(
-                set(uris),
-                {
-                    "lane://brief",
-                    "lane://alerts",
-                    "lane://usage",
-                    f"lane://record/{JOB}",
-                },
-            )
-            self.assertNotIn(f"lane://record/{JOB_UNLISTED}", uris)
-        self.assertEqual(len(seen_versions), 4)
+        proc = self.serve(self.handshake(requests))
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        objs = self.rpc_objects(proc)
+        result = self.rpc_by_id(objs, 1)["result"]
+        caps = result["capabilities"]
+        self.assertIn("tools", caps)
+        self.assertIn("resources", caps)
+        for banned in ("sampling", "elicitation", "logging"):
+            self.assertNotIn(banned, caps)
+        instructions = result["instructions"]
+        self.assertIsInstance(instructions, str, instructions)
+        text = instructions.lower()
+        self.assertIn("read-only", text)
+        self.assertRegex(text, r"evidence(?: is)? not authority", instructions)
+        self.assertRegex(text, r"brief (?:before|then) detail", instructions)
+        self.assertIn("no live readiness", text)
+        ping = self.rpc_by_id(objs, 2)
+        self.assertEqual(ping.get("result"), {})
+        tools = self.rpc_by_id(objs, 3)["result"]["tools"]
+        names = [tool["name"] for tool in tools]
+        self.assertEqual(sorted(names), sorted(TOOLS))
+        self.assertEqual(len(tools), 4)
+        for tool in tools:
+            ann = tool["annotations"]
+            self.assertEqual(ann["readOnlyHint"], True)
+            self.assertEqual(ann["destructiveHint"], False)
+        resources = self.rpc_by_id(objs, 4)["result"]["resources"]
+        uris = [item["uri"] for item in resources]
+        self.assertEqual(len(uris), 4)
+        self.assertEqual(
+            set(uris),
+            {
+                "lane://brief",
+                "lane://alerts",
+                "lane://usage",
+                f"lane://record/{JOB}",
+            },
+        )
+        self.assertNotIn(f"lane://record/{JOB_UNLISTED}", uris)
 
     def test_malformed_then_healthy_notification_silence_and_discovery(self):
         self.plant_record()

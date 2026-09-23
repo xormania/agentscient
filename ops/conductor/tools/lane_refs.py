@@ -768,7 +768,8 @@ class Acquisition:
             contract_bytes = (tools_home.parent / 'discovery-lever.md').read_bytes()
         if implementation_bytes is None:
             implementation_bytes = {f'ops/conductor/tools/{name}': (tools_home / name).read_bytes()
-                                    for name in ('lane_read.py', 'lane_mcp.py', 'lane_refs.py')}
+                                    for name in ('lane_read.py', 'lane_mcp.py', 'lane_refs.py',
+                                                 'mcp_transport.py', 'dispatch_observation.py')}
         self.definitions = {
             'config': config,
             'contract': dict(protocol='discovery/3', revision=hashlib.sha256(contract_bytes).hexdigest()),

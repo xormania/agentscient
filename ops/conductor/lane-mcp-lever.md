@@ -73,9 +73,9 @@ no identity. Config is loaded once per process; restart to apply changes.
 The v3-only [trusted discovery boot transport](discovery-lever.md#trusted-discovery-boot-transport)
 adds `--discovery-boot-fd FD` at process launch, before `query` or `serve`.
 The inherited read-only directory descriptor grants exactly the contract and
-three fixed implementation files, with the owning contract's bounds, identity
+five fixed implementation files, with the owning contract's bounds, identity
 checks and [executed-byte binding gate](discovery-lever.md#executed-byte-binding-gate).
-The lane_mcp boot custodian checks execution-input evidence for all three
+The lane_mcp boot custodian checks execution-input evidence for all five
 modules, including itself; trusted launch owns the bound loader inputs.
 D-A47's independent mismatch and clean controls verify that coupling without
 claiming launcher authentication. It adds no configuration key or query/URI
