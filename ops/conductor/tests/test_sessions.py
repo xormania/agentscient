@@ -48,7 +48,11 @@ FINDING = "20260922T215604Z-review-codex-f6777b"
 def origin_finding(number: int) -> str:
     return f"{FINDING}#{number}"
 AGENT = "Sessions Tester <noreply@example.test>"
-LANE = "sessionstest"
+# The profile pins LANE_CONF to the source ops/lane.conf (profiles.py,
+# the authority environment), so the guard binds into that lane's store.
+# The world names the same lane under its own XDG root, or the store
+# splits in two (A-495 item a).
+LANE = "agentscient"
 TIMEOUT = 60.0
 READY = 15
 LEAD_SESSION = "lead-already-bound"
