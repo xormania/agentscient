@@ -83,6 +83,23 @@ class ThePracticalLabelOnTheClaudePath(unittest.TestCase):
                 self.assertEqual(data["status"], "ok", data.get("note"))
                 self.assertEqual(data["findings"], [finding])
 
+    def test_half_a_label_never_reaches_the_record_as_ok(self):
+        """Both or neither: yes names its failing invocation, and failing
+        never comes without practical. The schema claude is bound to types
+        each field alone, so these are shapes a claude review can emit."""
+        cases = (
+            ("yes-without-failing", labelled(practical="yes", failing=None)),
+            ("failing-without-practical", labelled(failing="ops/bin/dispatch.sh review --for A-1")),
+        )
+        for case_id, finding in cases:
+            with self.subTest(id=case_id, origin=ORIGIN):
+                with self.assertRaises(self.launch.ENVELOPE.EnvelopeError):
+                    self.launch.ENVELOPE.finding(**finding)
+                data = self.claude(self.with_finding(finding))
+                self.assertNotEqual(
+                    data["status"], "ok",
+                    f"{case_id}: the record would carry {data['findings']} as an ok finding")
+
 
 if __name__ == "__main__":
     unittest.main()
