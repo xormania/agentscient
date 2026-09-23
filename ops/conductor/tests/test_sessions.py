@@ -34,8 +34,7 @@ import time
 import unittest
 from pathlib import Path
 
-from private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
-
+from ops.conductor.tests.private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
 from ops.testkit import RefusalCase, Watch, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]

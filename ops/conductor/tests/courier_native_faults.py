@@ -10,7 +10,8 @@ each note must go red on its mutant:
         --mutants ops/conductor/tests/courier_native_faults.py \\
         --command "python3 -m unittest ops.conductor.tests.test_courier_native.TheCrash ops.conductor.tests.test_courier_native.TheAttempts.test_a_fifth_reservation_refuses_place ops.conductor.tests.test_courier_native.TheAttempts.test_four_settled_attempts_leave_a_fifth_admitted"
 
-Anchored on the subjects at bf924ee7 (#277). An anchor that no longer
+Anchored on the subjects at bf924ee7 (#277); M-settled-counted
+re-anchored at 8ab649dd, where the count keys on the member's kin (020d470e). An anchor that no longer
 matches once refuses class anchor; re-measure it against the subject.
 """
 
@@ -53,8 +54,8 @@ MUTANTS = [
     Mutant(
         "M-settled-counted",
         CORE,
-        '"SELECT COUNT(*) FROM delivery_attempts WHERE participant = ? AND outcome IS NULL",',
-        '"SELECT COUNT(*) FROM delivery_attempts WHERE participant = ?",',
+        '"AND outcome IS NULL", kin).fetchone()[0]',
+        '"", kin).fetchone()[0]',
         "settled attempts count as outstanding (settled-not-outstanding, #5)",
     ),
 ]
