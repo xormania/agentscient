@@ -95,6 +95,7 @@ class SessionMessages(unittest.TestCase):
     def setUp(self):
         self.world = self.open_world("s2msg-")
         self.addCleanup(self.world.close)
+        self.addCleanup(self.stop_server)
         self.conf = self.world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
         self.state = self.world.xdg_state / LANE
         self.socket = self.world.tmp / "tmux.sock"
@@ -121,6 +122,20 @@ class SessionMessages(unittest.TestCase):
             send_reply=False, reply="grok-reply-a503", reject_method=None,
             die_after=None, advertise_auth=True,
         )
+
+    def stop_server(self) -> None:
+        """Kill this world's tmux server, if a row started one.
+
+        Registered after ``world.close``, so it runs first: the world
+        does not own a tmux server, and one left running outlives it.
+        """
+        if HOST_TMUX and self.socket.exists():
+            run(
+                [HOST_TMUX, "-S", str(self.socket), "kill-server"],
+                cwd=self.world.cwd,
+                env=self.world.env(),
+                timeout=TIMEOUT,
+            )
 
     def _plant_harness(self) -> None:
         text = substitute(shebang(FAKES / "session_harness.py"), "@@REPO@@", str(REPO), label="harness")
