@@ -381,21 +381,50 @@ def alive(pid: int | None, ticks: str | None) -> bool:
     return process_reading(pid, ticks).startswith("alive")
 
 
-def scan(correlation: str) -> list:
-    """Every job directory whose state.json carries this correlation."""
-    found = []
+def state_of(job: Path) -> dict:
     try:
-        entries = sorted(jobs_root().glob("*/state.json"))
+        data = json.loads((job / "state.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def logged_record(log: Path, correlation: str) -> str | None:
+    """The record a launcher log names when dispatch.sh wrote this
+    correlation as its first line, or None."""
+    try:
+        lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        entries = []
-    for path in entries:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        if isinstance(data, dict) and data.get("correlation") == correlation:
-            found.append((path.parent.name, path, data))
-    return found
+        return None
+    if not lines or lines[0] != f"correlation: {correlation}":
+        return None
+    if log.name == "launcher.log":
+        return log.parent.name
+    return next((line[len("record: "):].strip() for line in lines if line.startswith("record: ")), None)
+
+
+def scan(correlation: str) -> list:
+    """Every job directory carrying this correlation, one entry per record:
+    its state.json's `correlation` (launch.py, once the wall admits the
+    flag), or the launcher log whose first line dispatch.sh wrote as
+    `correlation: <uuid>`, moved to <job>/launcher.log at mint or left in
+    the jobs root as .launcher.* when the wrapper died after the record."""
+    root = jobs_root()
+    found: dict = {}
+    try:
+        states = sorted(root.glob("*/state.json"))
+        logs = sorted(root.glob("*/launcher.log")) + sorted(root.glob(".launcher.*"))
+    except OSError:
+        states, logs = [], []
+    for path in states:
+        data = state_of(path.parent)
+        if data.get("correlation") == correlation:
+            found.setdefault(path.parent.name, (path.parent.name, path, data))
+    for log in logs:
+        record = logged_record(log, correlation)
+        if record and (root / record).is_dir():
+            found.setdefault(record, (record, log, state_of(root / record)))
+    return list(found.values())
 
 
 # -- the verbs ---------------------------------------------------------------
