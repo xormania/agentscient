@@ -312,6 +312,20 @@ class _Scratch(unittest.TestCase):
                 "tmux is absent; private-socket rows need it"
             )
 
+    def host_tmux(self, *argv: str, expect: int | None = None):
+        """The host tmux on this world's private socket.
+
+        The planted shim drops the real server's stderr, so a fixture
+        that must exist drives the host binary by absolute path.
+        """
+        return run(
+            [HOST_TMUX, "-S", str(self.socket), *argv],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+            expect=expect,
+        )
+
     def assert_refusal(self, proc, klass: str, *, case_id: str) -> str:
         case = RefusalCase(id=case_id, argv=proc.argv[2:], cls=klass, origin=ORIGIN)
         return refusal_wire(case, proc).line
@@ -608,20 +622,79 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def session_name(self, run_id: str) -> str:
+        return f"agentscient-{run_id}"
+
+    def plant_owned_run(self, run_id: str, member: str) -> None:
+        """An owned run while the subject is absent.
+
+        The contract's session is ``<team.run.tmux>-<R-n>`` with
+        ``@agentscient_owner`` equal to the run id and one window named
+        by the member. origin: 20260922T234512Z-review-codex-5b18d7#1
+        """
+        session = self.session_name(run_id)
+        self.host_tmux(
+            "new-session", "-d", "-s", session, "-n", member, "sleep", "300",
+            expect=0,
+        )
+        self.host_tmux(
+            "set-option", "-t", f"={session}:", "remain-on-exit", "on",
+            expect=0,
+        )
+        self.host_tmux(
+            "set-option", "-t", f"={session}:", "@agentscient_owner", run_id,
+            expect=0,
+        )
+        self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={session}"))
+
+    def window_names(self, session: str) -> list[str]:
+        listed = self.host_tmux(
+            "list-windows", "-t", f"={session}", "-F", "#{window_name}",
+        )
+        self.assertEqual(listed.exit, 0, listed.stderr)
+        return listed.stdout.split()
+
+    def prove_existing_run(self, run_id: str, member: str) -> str:
+        """The existing-run fixture is on the socket before any absent row."""
+        session = self.session_name(run_id)
+        has = self.host_tmux("has-session", "-t", f"={session}")
+        self.assertEqual(
+            has.exit,
+            0,
+            f"existing-run fixture {session} does not exist: {has.stderr}",
+        )
+        owner = self.host_tmux(
+            "show-options", "-t", f"={session}:", "-v", "@agentscient_owner",
+        )
+        self.assertEqual(owner.exit, 0, owner.stderr)
+        self.assertEqual(owner.stdout.strip(), run_id)
+        self.assertIn(member, self.window_names(session))
+        return session
+
     def test_a_missing_member_or_pane_of_an_existing_run_refuses_absent(self):
         """origin: 20260922T215604Z-review-codex-f6777b#6
+        origin: 20260922T234512Z-review-codex-5b18d7#1
 
         A run that exists still refuses absent for a member it does not
-        contain, and for a member whose pane is gone.
+        contain, and for a member whose pane is gone. The run is proven
+        before either absent assertion.
         """
         self.skip_without_tmux()
-        self.sessions(*self.start_argv())
+        run_id = "R-1"
+        member = "grunt"
+        if TOOL.is_file():
+            started = self.sessions(*self.start_argv(member))
+            self.assertEqual(started.exit, 0, started.stderr)
+        else:
+            self.plant_owned_run(run_id, member)
+        session = self.prove_existing_run(run_id, member)
         with self.subTest(id="absent-member-existing-run", origin=origin_finding(6)):
-            proc = self.sessions("attach", "--member", "nosuch", "--run", "R-1")
+            self.assertNotIn("nosuch", self.window_names(session))
+            proc = self.sessions("attach", "--member", "nosuch", "--run", run_id)
             refusal_wire(
                 RefusalCase(
                     id="absent-member-existing-run",
-                    argv=("attach", "--member", "nosuch", "--run", "R-1"),
+                    argv=("attach", "--member", "nosuch", "--run", run_id),
                     cls="absent",
                     origin=origin_finding(6),
                     named=("nosuch",),
@@ -629,41 +702,58 @@ class TheTmuxAndLaunchRows(_Scratch):
                 proc,
             )
         with self.subTest(id="absent-pane-existing-run", origin=origin_finding(6)):
-            self.drop_owned_pane("grunt")
-            proc = self.sessions("attach", "--member", "grunt", "--run", "R-1")
+            self.drop_owned_pane(session, member)
+            self.assertEqual(
+                self.host_tmux("has-session", "-t", f"={session}").exit,
+                0,
+                "the run disappeared with its pane",
+            )
+            self.assertNotIn(member, self.window_names(session))
+            proc = self.sessions("attach", "--member", member, "--run", run_id)
             refusal_wire(
                 RefusalCase(
                     id="absent-pane-existing-run",
-                    argv=("attach", "--member", "grunt", "--run", "R-1"),
+                    argv=("attach", "--member", member, "--run", run_id),
                     cls="absent",
                     origin=origin_finding(6),
-                    named=("grunt",),
+                    named=(member,),
                 ),
                 proc,
             )
 
-    def drop_owned_pane(self, member: str) -> None:
-        """Kill the member's pane when the private server has one."""
-        listed = run(
-            ["tmux", "-S", str(self.socket), "list-panes", "-a",
-             "-F", "#{window_name} #{pane_id}"],
-            cwd=self.world.cwd,
-            env=self.world.env(),
-            timeout=TIMEOUT,
+    def drop_owned_pane(self, session: str, member: str) -> None:
+        """Remove the member's pane and leave the owned session up.
+
+        A second window keeps the server alive: killing the only pane
+        takes the run with it, and the row would then be about a missing
+        run.
+        """
+        self.host_tmux(
+            "new-window", "-d", "-t", f"={session}:", "-n", "keeper", "sleep", "300",
+            expect=0,
         )
-        if listed.exit != 0:
-            return
+        listed = self.host_tmux(
+            "list-panes", "-s", "-t", f"={session}",
+            "-F", "#{window_name} #{pane_id}",
+        )
+        self.assertEqual(listed.exit, 0, listed.stderr)
+        killed = False
         for line in listed.stdout.splitlines():
             parts = line.split()
             if len(parts) == 2 and parts[0] == member:
-                run(
-                    ["tmux", "-S", str(self.socket), "kill-pane", "-t", parts[1]],
-                    cwd=self.world.cwd,
-                    env=self.world.env(),
-                    timeout=TIMEOUT,
-                )
+                gone = self.host_tmux("kill-pane", "-t", parts[1])
+                self.assertEqual(gone.exit, 0, gone.stderr)
+                killed = True
+        self.assertTrue(killed, f"no pane for {member}: {listed.stdout!r}")
 
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#10
+        origin: 20260922T234512Z-review-codex-5b18d7#2
+
+        An unowned session of the run's name refuses ownership. The
+        session is created through the host tmux and proven present,
+        and unowned, before sessions.py runs.
+        """
         self.skip_without_tmux()
         with self.subTest(id="unowned-session", origin=origin_finding(10)):
             self.assertLess(
@@ -672,13 +762,21 @@ class TheTmuxAndLaunchRows(_Scratch):
                 f"private tmux socket must be under 108 bytes: {self.socket}",
             )
             name = "agentscient-R-1"
-            create = run(
-                ["tmux", "-S", str(self.socket), "new-session", "-d", "-s", name],
-                cwd=self.world.cwd,
-                env=self.world.env(),
-                timeout=TIMEOUT,
+            create = self.host_tmux(
+                "new-session", "-d", "-s", name, "sleep", "300",
             )
             self.assertEqual(create.exit, 0, create.stderr)
+            self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={name}"))
+            has = self.host_tmux("has-session", "-t", f"={name}")
+            self.assertEqual(
+                has.exit,
+                0,
+                f"unowned session was not created: {has.stderr}",
+            )
+            owner = self.host_tmux(
+                "show-options", "-t", f"={name}:", "-v", "@agentscient_owner",
+            )
+            self.assertNotEqual(owner.stdout.strip(), "R-1")
             proc = self.sessions(*self.start_argv())
             self.assert_refusal(proc, "ownership", case_id="unowned-session")
 
@@ -888,9 +986,10 @@ class TheCleanNeighbours(_Scratch):
 
     def test_attach_execs_tmux_on_the_owned_window(self):
         """origin: 20260922T215604Z-review-codex-f6777b#13
+        origin: 20260922T234512Z-review-codex-5b18d7#3
 
         attach-session uses the run's socket, the run's session name,
-        and the member's window.
+        and the member's window, each as a whole field.
         """
         self.skip_without_tmux()
         with self.subTest(id="attach", origin=origin_finding(13)):
@@ -912,20 +1011,49 @@ class TheCleanNeighbours(_Scratch):
                     for line in log.read_text(encoding="utf-8").splitlines()
                     if line.strip()
                 ]
-            matched = []
-            for argv in calls:
-                if "attach-session" not in argv and not (argv and argv[0] == "attach"):
-                    continue
-                if str(self.socket) not in argv:
-                    continue
-                if not any(session in part for part in argv):
-                    continue
-                if not any(window in part for part in argv):
-                    continue
-                matched.append(argv)
+            def exact(argv: list) -> bool:
+                """Socket, session and window as whole fields, never substrings.
+
+                agentscient-R-10 does not match agentscient-R-1, and grunt2
+                does not match grunt.
+                """
+                if "attach-session" not in argv and argv[:1] != ["attach"]:
+                    return False
+
+                def flag(name: str):
+                    if name in argv:
+                        index = argv.index(name)
+                        if index + 1 < len(argv):
+                            return argv[index + 1]
+                    prefix = name + "="
+                    for part in argv:
+                        if part.startswith(prefix):
+                            return part[len(prefix):]
+                    return None
+
+                socket = str(self.socket)
+                if flag("-S") != socket and flag("--socket-path") != socket:
+                    return False
+                target = flag("-t") or flag("--target")
+                if not target:
+                    return False
+                if target.startswith("="):
+                    target = target[1:]
+                if ":" not in target:
+                    return False
+                sess, rest = target.split(":", 1)
+                win = rest.split(".", 1)[0]
+                return sess == session and win == window
+
+            decoy = [
+                "-S", str(self.socket), "attach-session", "-t",
+                "agentscient-R-10:grunt2",
+            ]
+            self.assertFalse(exact(decoy), "a substring target must not match")
+            matched = [argv for argv in calls if exact(argv)]
             self.assertTrue(
                 matched,
-                f"attach-session on {self.socket} at {session} window {window}: {calls}",
+                f"attach-session exactly on {self.socket} at {session} window {window}: {calls}",
             )
 
     def owned_pid_and_window(self, member: str, started: str):
@@ -1020,15 +1148,87 @@ class TheCleanNeighbours(_Scratch):
                 values.append(rendered)
         return values
 
+    def export_keys(self, dest: Path) -> set[str]:
+        """Every JSON key written under an export directory."""
+        found: set[str] = set()
+
+        def walk(node) -> None:
+            if isinstance(node, dict):
+                found.update(str(key) for key in node)
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        for path in dest.rglob("*"):
+            if not path.is_file():
+                continue
+            try:
+                walk(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, UnicodeError, ValueError):
+                continue
+        return found
+
+    def broken_export_keeps_the_capability_key(self, dest: Path):
+        """A broken exporter while sessions.py is absent.
+
+        The evidence files are present and the secret values are omitted,
+        and the capability key is still written.
+        origin: 20260922T234512Z-review-codex-5b18d7#5
+        """
+        script = self.world.plant_text(
+            "broken-export.py",
+            "import json, pathlib, sys\n"
+            f"dest = pathlib.Path({str(dest)!r})\n"
+            "member = dest / 'grunt'\n"
+            "member.mkdir(parents=True)\n"
+            "(member / 'pane.log').write_text('capture\\n', encoding='utf-8')\n"
+            "(member / 'launch.json').write_text('{}\\n', encoding='utf-8')\n"
+            "(member / 'adapter.log').write_text('diag\\n', encoding='utf-8')\n"
+            "(member / 'diagnostics.json').write_text("
+            "json.dumps(['adapter.log']) + '\\n', encoding='utf-8')\n"
+            "(dest / 'run.json').write_text("
+            "json.dumps({'coordination_capability': '[REDACTED]'}) + '\\n',"
+            " encoding='utf-8')\n"
+            "files = sum(1 for item in dest.rglob('*') if item.is_file())\n"
+            "sys.stdout.write(f'exported {dest} (1 members, {files} files)\\n')\n",
+        )
+        return run(
+            [sys.executable, str(script)],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+
     def test_a_full_export_omits_capability_and_credential_values(self):
-        """origin: 20260922T215604Z-review-codex-f6777b#15"""
+        """origin: 20260922T215604Z-review-codex-f6777b#15
+        origin: 20260922T234512Z-review-codex-5b18d7#5
+
+        The export omits the coordination_capability key itself, not only
+        the capability and credential values.
+        """
         self.skip_without_tmux()
         dest = self.world.root / "export"
         with self.subTest(id="full-export", origin=origin_finding(15)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
+            if not TOOL.is_file():
+                bindings = list(
+                    (self.state / "sessions").glob("*/grunt/profile/binding.json")
+                )
+                if not bindings:
+                    planted = (
+                        self.state / "sessions" / "R-1" / "grunt"
+                        / "profile" / "binding.json"
+                    )
+                    planted.parent.mkdir(parents=True)
+                    planted.write_text("{}\n", encoding="utf-8")
             secrets = self._plant_export_canaries("grunt")
-            proc = self.sessions("export", "--to", str(dest))
+            if TOOL.is_file():
+                proc = self.sessions("export", "--to", str(dest))
+            else:
+                proc = self.broken_export_keeps_the_capability_key(dest)
             self.assertEqual(proc.exit, 0, proc.stderr)
             self.assertTrue(
                 any(item.is_file() for item in dest.rglob("pane.log")),
@@ -1064,6 +1264,11 @@ class TheCleanNeighbours(_Scratch):
             blob = "\n".join(pieces)
             for secret in secrets:
                 self.assertNotIn(secret, blob)
+            self.assertNotIn(
+                "coordination_capability",
+                self.export_keys(dest),
+                "the capability key is present in the export",
+            )
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
         """origin: 20260922T215604Z-review-codex-f6777b#16
@@ -1160,11 +1365,13 @@ class TheCleanNeighbours(_Scratch):
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
         """origin: 20260922T215604Z-review-codex-f6777b#17
+        origin: 20260922T234512Z-review-codex-5b18d7#4
 
         The recorded pid is reaped and reused with different start ticks.
-        If the world does not reuse it, the row fails. stop --terminate
-        must not signal the live pid, and must say unresolved stale pid.
-        Spawns go through owned_holder (findings 18 and 19).
+        When the world cannot force that reuse, the row skips with the
+        reason and does not fail before stop --terminate. When it can,
+        stop --terminate must not signal the live pid, and must say
+        unresolved stale pid. Spawns go through owned_holder.
         """
         self.skip_without_tmux()
         with self.subTest(id="stale-pid-stop", origin=origin_finding(17)):
@@ -1184,11 +1391,11 @@ class TheCleanNeighbours(_Scratch):
                 self.wait_until_gone(recorded)
             self.assertFalse(Path(f"/proc/{recorded}").exists(), "the recorded pid was not reaped")
             reused = self.reuse_recorded_pid(recorded, ticks)
-            self.assertEqual(
-                reused,
-                recorded,
-                "the world did not reuse the recorded pid; a stale-pid row must not pass",
-            )
+            if reused != recorded:
+                self.skipTest(
+                    "the world cannot force pid reuse; "
+                    "stop --terminate was not invoked"
+                )
             self.assertNotEqual(self.proc_start_ticks(reused), ticks)
             proc = self.sessions("stop", "--terminate")
             self.assertTrue(self._alive(reused), "the reused pid was signalled")
