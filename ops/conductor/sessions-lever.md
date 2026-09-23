@@ -253,3 +253,257 @@ origin. The proof's test-suite termination policy and its
 process; `status` is the board line; `stop` before the terminal is
 closed, `export` before a claim about the run. Slice 2 adds the
 courier route on the same rows; nothing here is rewritten for it.
+
+## Slice 2 — persistent native conversation
+
+Standing: proposed, slice 2 of the plan (§11 "Slice 2"; the mechanics
+are §7 the courier and its traps, §9 stop and recovery, §12 the cases).
+Written by the contract session (agentscient-87, Claude Fable 5.1, grant
+335) against slice 1's text at 11d77a56 and the file split
+`ops/conductor/handoff/2026-09-23-sessions-slices-2-3-file-ownership.md`
+(cc8b5f5f). This section holds what the tests need: the shapes, the
+verbs, the refusals and the fixture set. Everything else is the plan's,
+cited, not restated. Nothing above this heading is rewritten.
+
+**Exit** (plan §11): participants on different harnesses exchange a
+request and a response in their existing sessions while work stays open;
+a second member on the same harness routes correctly; a restart or a
+timeout neither erases the obligation nor replays its effects.
+
+### Owners
+
+One owner per file (the split). S2 owns `courier.py`, `sessions.py`,
+`session_adapters/` (`framing.py`, `claude.py`, `__init__.py`, and new
+`codex.py`, `grok.py`, `channel.py`), the additive tables and verbs in
+`coordination.py`, and `coord_send`'s `key` in `coordination_mcp.py`.
+The wall (W, `matrix.py WALL_PATHS`) owns `profiles.py`, `native.py`,
+`enforcement.py` and `launch.py`; what this slice needs from them is in
+"Required of the wall" below, and until W lands the rows run against a
+planted fake of that surface, never the real one. The test world uses
+the source lane's name (`profiles.py:151` pins `LANE_CONF`).
+
+### The shapes
+
+**A route** is how queued messages reach one participant. Two routes:
+`stdout`, slice 1's courier armed as a Monitor inside a Claude TUI
+session (`courier.py watch`, unchanged in shape); `native`, the bridge
+below submitting through the member's protocol channel. One live route
+per participant, in `coordination.py`'s store:
+
+    delivery_routes(participant INTEGER PRIMARY KEY, route TEXT NOT NULL,
+                    member INTEGER, pid INTEGER NOT NULL,
+                    start_ticks TEXT NOT NULL, since TEXT NOT NULL,
+                    last_pass_at TEXT)
+
+A courier takes the row under the write lock with its own pid and start
+ticks. A second courier of either route for a participant whose holder
+is alive (pid plus ticks; a missing tick is never alive) refuses `route`
+naming the holder; a dead holder's row is taken over and the takeover is
+the new row's `since`. A printed receipt from the stdout route never
+suppresses a native delivery, because the two cannot hold one
+participant at once (plan §7, competing couriers).
+
+**A delivery attempt** (`AT-n`) is one submission of one message to one
+concrete participant at one generation:
+
+    delivery_attempts(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      message INTEGER NOT NULL, participant INTEGER NOT NULL,
+                      generation INTEGER NOT NULL, route TEXT NOT NULL,
+                      reserved_at TEXT NOT NULL, submitted_at TEXT,
+                      outcome TEXT, native_ref TEXT, error TEXT)
+
+Reserved before the submission, settled after it. `outcome` is one of
+`written` (the request left, no response yet: grok's acceptance),
+`accepted <native ref>` (the native response: codex's turn id),
+`unsupported <method>`, `failed <error>`, `uncertain <why>`, `accepted
+reconciled`. A NULL outcome older than `ATTEMPT_TTL` (60 s) is a crash
+between the two writes: the next pass asks the adapter's `observe` for
+the message in the native session's evidence; found reads `accepted
+reconciled`, not found reads `uncertain` and one new attempt is reserved.
+Nothing is resubmitted while an attempt is unresolved. At most
+`ATTEMPTS_OUTSTANDING` (4) attempts per participant are reserved and
+unsettled at once. The core's `deliver` is recorded once, on the first
+`written` or `accepted` outcome, with `delivery_ref` `native:AT-n:<ref>`;
+`acked_at` stays the recipient's own (`coord_ack`), never the bridge's.
+A role-addressed message is carried only by the courier of the run's
+single live holder of that role; with two live holders it is carried by
+neither, and `status` prints `ambiguous recipient <role>: PT-a, PT-b`
+for it (declared gap: no fixture in this slice). The attempt binds the
+concrete `PT-n`; the message row's `recipient` stays as sent.
+
+**A send request key** makes `send` idempotent per caller:
+
+    send_requests(participant INTEGER NOT NULL, key TEXT NOT NULL,
+                  digest TEXT NOT NULL, message INTEGER NOT NULL,
+                  at TEXT NOT NULL, PRIMARY KEY (participant, key))
+
+`digest` is sha256 over the canonical JSON of `to, purpose, body,
+assignment, decision, reply_to, artifact`. The same key with the same
+digest returns the existing message (`message M-n queued (repeated)`);
+the same key with another digest refuses `idempotency` and writes
+nothing; no key is slice 1's behaviour. Slice 3's event routing relies
+on this key.
+
+The three tables are additive `CREATE TABLE IF NOT EXISTS` rows in the
+core's schema; a store populated by the current schema opens with its
+rows intact.
+
+**The bridge** is a codex or grok member's own process: `sessions.py
+bridge --run R-n --member NAME`, launched by `start` in the member's
+pane under the profile's authority environment, in place of the harness
+itself. It spawns the harness with pipes through `profiles.py
+run-interactive --binding B -- <channel argv>`, speaks the protocol
+through `framing.Parser` (a reader thread feeds the parser; one writer
+lock; no SQLite transaction is ever held across a native call), takes
+the native id from the handshake, runs the profile's `guard.sh
+SessionStart` with that id so `initialize` binds the participant under
+the profile's own capability, then loops: lines on its stdin are
+operator text and go to `submit`; every `tick` it carries its
+participant's undelivered messages through the native route; native
+output goes to the pane, so `pane.log` holds it. The supervisor still
+binds nothing and carries no capability: the bridge is the member. Its
+pid is the member's pid, so liveness, `stop` and `export` are slice 1's.
+A delivery error never exits the bridge (plan §9): it records the
+outcome, backs off to `BACKOFF` (2 s, doubling to 60 s) and reports the
+degradation on its readiness. A Claude member has no bridge: slice 1's
+launch stands and its route is `stdout`.
+
+**Unix socket paths**: every socket path this slice or the tests bind
+(the tmux server's under `--tmux-socket`, and the world's) is under 108
+bytes, or the verb refuses `socket` naming the length before tmux is
+called. Measured on 2026-09-22 under a long `TMPDIR`.
+
+### The adapter boundary, extended
+
+Every adapter carries slice 1's five methods and these five; the
+supervisor and the bridge call no others:
+
+| method | returns |
+|---|---|
+| `transport()` | `tui` (claude) or `protocol` (codex, grok) |
+| `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
+| `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
+| `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native`), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+
+`rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
+the parser and the writer lock, adapted from the proof's `RPC`
+(`SOURCES.md` gains the row). The claude adapter's `probe` measures the
+channel capability it left `unmeasured` in slice 1 and reads
+`unsupported channel` on the installed version, which is not a refusal.
+
+### Readiness, the three slice 2 dimensions
+
+| dimension | reading |
+|---|---|
+| tools | `ok <evidence>` when the native session shows the `coordination` acting server loaded: codex and grok, the adapter's `tool` or discovery frame naming it; claude, the profile home's debug log line for the server's connection. `waiting tools` until then, never `ok` from the binding's server list alone |
+| ingress | `ok <route> pid=N` when a live `delivery_routes` row exists for the participant; `waiting courier` otherwise; `refused channel` when the bridge's last attempt read `unsupported` |
+| response | `ok M-n <latency>` when the member acked the readiness probe: when `start` runs from a bound shell, after `bound` it sends `inform` "readiness probe R-n SM-n <nonce>" to `PT-n` and waits for the recipient's own ack; `waiting ack M-n` until then; `unmeasured no starter participant` when the starter is unbound |
+
+`ready` now requires all eight `ok`, with slice 1's rule that `role` may
+read `waiting grant`. The readiness probe is an `inform`, so it leaves
+no obligation.
+
+### Verbs added
+
+| verb | effect |
+|---|---|
+| `bridge --run R-n --member NAME` | the member's own process, above; launched by `start`, runnable by hand for a reserved member; refuses `transport` for a claude member |
+| `join --run R-n --member NAME --participant PT-n` | records a participant the supervisor did not launch (the owner's own terminal, a session started before the run) as a member at `bound`, generation 1, no pid, `native_id` the participant's session id; `status` reads its process `unmanaged`; `stop` prints `unresolved unmanaged` and signals nothing |
+| `recover [--run R-n]` | the observer restart (plan §9): re-reads every live member's pid and ticks, pane and route row; a gone process moves `lose-<place>` with what was found; a live one is left alone; prints one line per member; exit 0 when every live member was found alive, 1 otherwise; never launches. A replacement is `start --member NAME --run R-n` after the loss, which mints the next generation and keeps the old row |
+| `input --run R-n --member NAME TEXT` | operator text to a protocol member: `send-keys -l` and `Enter` to the owned window, which is the bridge's stdin; refuses `transport` for a claude member (type in the pane) |
+| `status` | adds, per member, the route line `route <stdout|native> pid=N since <stamp>` or `route none`, and the attempts line `attempts reserved N written N accepted N uncertain N` |
+| `stop` | as slice 1, judging `absent`, `place` and `ownership` before its first move (A-481 #1), and when the starter is a bound participant sending each live member `inform` "stop requested R-n" before the drain |
+
+`courier.py` gains `--route stdout|native`; `native` is the bridge's
+in-process call (`carry(module, submit=...)`), never a second process.
+`coordination.py` gains `route --take stdout|native --member SM-n`,
+`route --release`, `attempt M-n --route R --generation G`, `attempted
+AT-n --outcome O [--ref REF] [--error TEXT]`, `attempts M-n`, `routes`,
+and `send --key K`; `coord_send` gains optional `key`.
+
+### Refusals added
+
+| class | when |
+|---|---|
+| `route` | a courier taking a route while a live holder of either route has the participant; found names the holder's route and pid |
+| `idempotency` | `send --key` reused with a different digest; found names the existing M-n |
+| `transport` | a protocol verb on a tui member or the reverse |
+| `channel` | the handshake or a submission failed on the protocol channel; found is the adapter's reading with the method |
+| `socket` | a unix socket path of 108 bytes or more; found is the length |
+| `unmanaged` | a verb that needs a pid on a joined member |
+
+### Required of the wall
+
+Stated as interface requirements; W lands them from one brief written
+from this section and slice 3's: (1) `profiles.py run-interactive`
+admits the codex `app-server --listen stdio://` and grok `agent stdio`
+argv shapes (T-486); (2) the profile's `guard.sh SessionStart` accepts
+the bridge's payload naming a codex thread id or a grok session id, and
+`initialize` binds it as slice 1 binds the claude launch id; (3) the
+interactive profile registers the `coordination` acting server for all
+three harnesses, and its start line names `courier.py watch` so a Claude
+member arms its route; (4) two members of one harness compose two
+profiles with nothing shared (slice 1's `WITHHELD` keys stay withheld).
+
+### Tests
+
+`ops/conductor/tests/test_session_messages.py` (sessions.py: bridge,
+join, recover, input, readiness, stop), `test_courier_native.py`
+(courier routes, attempts, the send key, the additive schema),
+`test_session_adapters_codex.py` and `test_session_adapters_grok.py`,
+all on `ops/testkit`, run by `ops/bin/suites.sh`. New fakes through the
+registry, no program in a test module (`docs/tests.md` rule 6, A-481
+#7): `fakes/session_codex.py` speaks the app-server shape above and
+emits `turn/started`, `item/agentMessage/delta`, `turn/completed` with
+its `threadId`; `fakes/session_grok.py` speaks the ACP shape and emits
+`session/update` and `_x.ai/session/prompt_complete`; each logs one JSON
+line per request it receives; each takes a spec that says which native
+id to answer, whether to answer -32601 to a method, and whether to die
+after a given request. Slice 1's fakes are S2's to extend and S3 does
+not touch them.
+
+The fixture set, the practical failures on the exit path (owner,
+2026-09-23: "practical issues, not theoretical"), each a row with an
+origin of this section:
+
+1. the cross-harness exchange: a claude member and a codex member; a
+   `request` from the claude participant is carried by the codex bridge
+   (one `AT-n` reserved then `accepted turn <id>`, `delivered_at` set with
+   the `native:` ref, `acked_at` NULL until the fake acks as its own
+   participant); the codex reply is carried to the claude world by the
+   stdout courier and printed;
+2. two codex members: a message to the second is written on the second
+   fake's channel only (the fakes' logs);
+3. `send --key` twice with one body → one `M-n`; a third with another
+   body → `idempotency`, no row;
+4. crash after submission: an attempt with NULL outcome past the ttl and
+   the fake's log showing the message → `accepted reconciled`, no second
+   `turn/start`; the log without it → `uncertain` and one new attempt;
+5. competing couriers: a live planted holder (the world owns it) on the
+   stdout route → the bridge refuses `route` naming its pid; the holder
+   reaped → the row taken over;
+6. -32601 to `turn/start` → `unsupported turn/start`, the message still
+   undelivered, ingress `refused channel`, the bridge alive after the
+   backoff;
+7. `recover` with the bridge alive → nothing moved, no launch; with the
+   bridge's pid reaped and reused by a planted child → `lost` with the
+   reading, the child not signalled; `start` again → generation 2, the
+   old row kept;
+8. `stop` on a stopped run → exit 2 and the marking row count unchanged;
+9. a `--tmux-socket` path of 108 bytes → `socket` before any tmux call
+   (the fake tmux log empty);
+10. `join` a bound participant → `bound`, generation 1, no pid; `stop
+    --terminate` → `unresolved unmanaged`, nothing signalled;
+11. the readiness probe: a fake that acks → `response ok M-n`; a fake
+    that never acks → `waiting ack M-n` and `start` exits 1 at the
+    timeout with the row at `bound`;
+12. the additive schema on a populated store: the rows before are the
+    rows after.
+
+Clean neighbours: a codex member reading all eight `ok`; a grok member
+the same through `session/prompt`; an `inform` submitted while the fake
+is busy (`toolOutput` into the active turn, `_x.ai/interject`); `input`
+reaching the bridge's stdin (the fake's log shows the operator text).
+No live harness runs in the suite; the live exchange is plan §13 step 3
+by hand, its readings to probe rows.
