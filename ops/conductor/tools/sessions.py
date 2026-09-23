@@ -20,6 +20,8 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py join --run R-n --member NAME --participant PT-n [--team FILE]
     sessions.py recover [--run R-n]
     sessions.py input --run R-n --member NAME TEXT
+    sessions.py trial objective R-n --deliverable ID --clause FILE:LINE ... --candidate REF
+                      --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -2005,10 +2007,112 @@ def do_input(rest):
     return EXIT_DONE
 
 
+# -- slice 4: the trial -------------------------------------------------------------
+
+CLAUSE = re.compile(r"\S+:\d+")
+
+
+def objective_path(rid: int) -> Path:
+    return state_dir() / "runs" / f"R-{rid}" / "objective.json"
+
+
+def gathered(rest, *, single=(), repeated=()):
+    """--options where a repeated one gathers every value after it up to
+    the next --option; anything else refuses `arguments`."""
+    found: dict = {name: [] for name in repeated}
+    current = None
+    for token in rest:
+        if token.startswith("--"):
+            name = token[2:]
+            if name not in single and name not in repeated:
+                refuse("arguments", "a known option", token, usage())
+            if name in single and name in found:
+                refuse("arguments", f"--{name} once", f"--{name} twice", usage())
+            current = name
+            if name in single:
+                found[name] = None
+            continue
+        if current is None:
+            refuse("arguments", "an --option before each value", token, usage())
+        if current in single:
+            if found[current] is not None:
+                refuse("arguments", f"one value after --{current}", token, usage())
+            found[current] = token
+        else:
+            found[current].append(token)
+    return found
+
+
+def trial_objective(rest):
+    """The objective record (slice 4, the shapes), written once per run by
+    the CO before any assignment; refused `objective` when a part is missing."""
+    if not rest or rest[0].startswith("--"):
+        refuse("arguments", "the run id first, trial objective R-n", rest[0] if rest else "none", usage())
+    rid = run_number(rest[0])
+    options = gathered(rest[1:], single=("deliverable", "candidate"), repeated=("clause", "case", "fake"))
+    agent = identity()
+    missing = [part for part, held in (("--deliverable", options.get("deliverable")),
+                                        ("--clause", options["clause"]),
+                                        ("--candidate", options.get("candidate"))) if not held]
+    cases = {}
+    for case in options["case"]:
+        kind, _, value = case.partition(":")
+        if kind not in ("omitted", "changed") or not value or kind in cases:
+            refuse("objective", "each case once, omitted:<clause> and changed:<ref>", case,
+                   "pass --case omitted:<file:line> --case changed:<ref>")
+        cases[kind] = value
+    missing += [f"--case {kind}:" for kind in ("omitted", "changed") if kind not in cases]
+    if missing:
+        refuse("objective", "the deliverable, a clause, the candidate and both controlled cases",
+               "no " + ", no ".join(missing), "pass every part; the objective is written once")
+    malformed = [clause for clause in options["clause"] if not CLAUSE.fullmatch(clause)]
+    if malformed:
+        refuse("objective", "each clause as file:line", " ".join(malformed), "name each clause by its line")
+    if cases["omitted"] not in options["clause"]:
+        refuse("objective", "the omitted case naming one of the clauses", cases["omitted"],
+               "pass --case omitted:<one of the --clause values>")
+    conn = reader()
+    try:
+        run = chosen_run(conn, {"run": f"R-{rid}"}, places=("open", "stopping", "stopped"))
+    finally:
+        if conn is not None:
+            conn.close()
+    path = objective_path(run["id"])
+    if path.exists():
+        refuse("objective", f"no objective yet for R-{run['id']}", f"one at {path}",
+               "an objective is written once, before any assignment; start a new run for a new one")
+    record = {
+        "run": f"R-{run['id']}",
+        "deliverable": options["deliverable"],
+        "clauses": options["clause"],
+        "candidate": options["candidate"],
+        "cases": cases,
+        "fakes": options["fake"],
+        "written_by": agent,
+        "written_at": stamp(),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_write(path, json.dumps(record, indent=1) + "\n")
+    print(f"objective R-{run['id']} {options['deliverable']} {len(options['clause'])} clauses "
+          f"{len(options['fake'])} fakes written {path}")
+    return EXIT_DONE
+
+
+TRIAL = {"objective": trial_objective}
+
+
+def do_trial(rest):
+    verb = rest[0] if rest else ""
+    if verb not in TRIAL:
+        refuse("arguments", "trial " + " | ".join(TRIAL), verb or "no verb", usage())
+    return TRIAL[verb](rest[1:])
+
+
 VERBS = {
     "doctor": do_doctor, "start": do_start, "status": do_status,
     "attach": do_attach, "stop": do_stop, "export": do_export,
     "bridge": do_bridge, "join": do_join, "recover": do_recover, "input": do_input,
+    "trial": do_trial,
 }
 
 
