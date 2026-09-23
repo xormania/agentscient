@@ -188,6 +188,27 @@ class PrProofTests(unittest.TestCase):
         self.assertIn("P-FIX-NOPE", reason)
         self.assertNotIn("P-FIX-1,", reason)
 
+    def test_a_bare_family_prefix_in_prose_is_not_an_id(self):
+        # origin: #278, refused at the flip twice on 2026-09-23 ("found absent:
+        # P-278"): prose saying "all seven P-278 rows PASS" was read as a row id.
+        # The same shape refused #271 and #274. An id is P-<family>-<leaf>; a bare
+        # family, followed by a space, a full stop, an asterisk or the line's end,
+        # names no row.
+        body = self.GOOD.replace(
+            "Rows at the head: P-FIX-1.\n",
+            "Rows at the head: P-FIX-1. All the P-FIX rows PASS; P-FIX* are the fixture's.\n"
+            "The family is P-FIX.\nP-FIX\n")
+        self.plant(body=body)
+        self.allowed(self.run_bash("gh pr ready 12"))
+        self.allowed(self.run_bash("gh pr merge 12 --merge"))
+
+    def test_a_proof_naming_only_a_bare_family_names_no_row(self):
+        # The clean neighbour of the row above: with no full id beside it, a bare
+        # family is still no proof.
+        self.plant(body="## Proof\n\nall the P-FIX rows PASS\n")
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertNotIn("found absent", reason)
+
     def test_a_head_not_fetched_here_refuses_with_the_fetch(self):
         self.plant(body=self.GOOD, head="0" * 40)
         reason = self.refusal(self.run_bash("gh pr ready 12"))
