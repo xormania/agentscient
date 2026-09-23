@@ -51,6 +51,7 @@ owner's word (AGENTS.md, dev-lane changes by hand).
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 import unittest
@@ -144,7 +145,9 @@ class AuditAtTheHead(unittest.TestCase):
     # -- the call ----------------------------------------------------------
 
     GOOD = ("## What\n\nx\n\n## Proof\n\nRows at the head: P-FIX-1.\n"
-            f"Security audit: {AUDIT}.\n\n## Why\n\ny\n")
+            f"Security audit: {AUDIT}.\n"
+            + support.proof_findings((f"{AUDIT}#1", "fixed"), (f"{AUDIT}#2", "ruled"))
+            + "\n## Why\n\ny\n")
 
     def plant(self, *, body, head, runs=None):
         if runs is None:
@@ -617,6 +620,128 @@ class AuditAtTheHead(unittest.TestCase):
         already carries into the table above it."""
         table = self.hook.read_text(encoding="utf-8").split('"""', 2)[1]
         self.assertIn("\n    audit ", table)
+
+
+class FindingDispositionsInProof(AuditAtTheHead):
+    """finding-disposition: every finding of the audit is named in `## Proof`
+    with a disposition token the ledger holds and one line of judgement.
+
+    Owner, relayed by the Lead through the XO, 2026-09-23 01:24Z: "get
+    moving - and make sure i NEVER have to say that again"; findings are
+    suggestions and judgement is needed, and D-PATTERN-1 wants a mechanism.
+    The token is a findings.py disposition other than `open`. A finding
+    whose record carries `practical` and is disposed `ruled` is a decline,
+    and its judgement begins "declined: not practical — "; a finding
+    without the field (every record before this row) may be ruled on any
+    ground, so the 33 past rulings in the export stay valid.
+
+    One producer (Claude Opus 5.5 (1M context)) under hand grant 331 wrote
+    these rows and the row they test; the second producer is absent by the
+    owner's word (AGENTS.md, dev-lane changes by hand)."""
+
+    def body(self, *lines):
+        return ("## Proof\n\nRows at the head: P-FIX-1.\n"
+                f"Security audit: {AUDIT}.\n" + "".join(lines) + "\n## Why\n\ny\n")
+
+    def disposition_refusal(self, proc):
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertTrue(proc.stdout.strip(), "hook let the call through")
+        out = json.loads(proc.stdout)["hookSpecificOutput"]
+        self.assertEqual(out["permissionDecision"], "deny")
+        reason = out["permissionDecisionReason"]
+        self.assertTrue(reason.startswith(
+            "[matrix:finding-disposition] finding-disposition: expected "), reason)
+        self.assertIn("; found ", reason)
+        self.assertIn("; needed ", reason)
+        return reason
+
+    def practical_record(self, practical="no", failing=None):
+        record = a_record(audited=self.audited)
+        record["result"]["envelope"]["findings"][1]["practical"] = practical
+        record["result"]["envelope"]["findings"][1]["failing"] = failing
+        return record
+
+    def test_every_finding_named_with_a_token_and_a_judgement_passes(self):
+        head = self.close_audit()
+        self.plant(body=self.GOOD, head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    def test_a_finding_the_proof_does_not_name_refuses_and_is_named(self):
+        head = self.close_audit()
+        self.plant(body=self.body(f"- {AUDIT}#1 fixed: the refusal lands first.\n"), head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{AUDIT}#2", reason)
+        self.assertNotIn(f"{AUDIT}#1", reason)
+
+    def test_a_finding_named_with_no_token_refuses(self):
+        head = self.close_audit()
+        self.plant(body=self.body(f"- {AUDIT}#1 fixed: the refusal lands first.\n",
+                                  f"- {AUDIT}#2 the owner's call on the trust model.\n"),
+                   head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{AUDIT}#2", reason)
+        self.assertIn("no disposition token", reason)
+
+    def test_a_token_with_no_judgement_refuses(self):
+        head = self.close_audit()
+        self.plant(body=self.body(f"- {AUDIT}#1 fixed: the refusal lands first.\n",
+                                  f"- {AUDIT}#2 **ruled**.\n"), head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{AUDIT}#2", reason)
+        self.assertIn("no judgement", reason)
+
+    def test_a_token_the_ledger_does_not_hold_refuses(self):
+        head = self.close_audit()
+        self.plant(body=self.body(f"- {AUDIT}#1 fixed: the refusal lands first.\n",
+                                  f"- {AUDIT}#2 fixed: it was fixed, the body says.\n"),
+                   head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{AUDIT}#2", reason)
+        self.assertIn("ruled", reason)
+
+    def test_a_practical_finding_ruled_without_the_decline_refuses(self):
+        head = self.close_audit(record=self.practical_record())
+        self.plant(body=self.body(f"- {AUDIT}#1 fixed: the refusal lands first.\n",
+                                  f"- {AUDIT}#2 ruled: the owner's call.\n"), head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{AUDIT}#2", reason)
+        self.assertIn("declined: not practical", reason)
+
+    def test_a_practical_finding_declined_as_not_practical_passes(self):
+        head = self.close_audit(record=self.practical_record())
+        self.plant(body=self.body(
+            f"- {AUDIT}#1 fixed: the refusal lands first.\n",
+            f"- `{AUDIT}#2` **ruled**, \"declined: not practical — nothing fails on the exit path\".\n"),
+            head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    def test_the_record_suffix_names_a_finding(self):
+        head = self.close_audit()
+        suffix = AUDIT.rsplit("-", 1)[1]
+        self.plant(body=self.body(f"- `{suffix}#1` fixed: the refusal lands first.\n",
+                                  f"- `{suffix}#2` ruled: the owner's call.\n"), head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    def test_the_suffix_of_finding_1_is_not_finding_10(self):
+        record = a_record(audited=self.audited, findings=10)
+        rows = tuple((f"{AUDIT}#{n}", "fixed") for n in range(1, 11))
+        head = self.close_audit(record=record, rows=rows)
+        lines = [f"- {AUDIT}#{n} fixed: judged.\n" for n in range(2, 11)]
+        self.plant(body=self.body(*lines), head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertRegex(reason, re.escape(f"{AUDIT}#1") + r"(?!\d)")
+
+    def test_the_docstring_table_names_the_disposition_row(self):
+        table = self.hook.read_text(encoding="utf-8").split('"""', 2)[1]
+        self.assertIn("\n    finding-disposition ", table)
+
+
+
+# The parent's rows are the audit row's and run in their own class; the
+# loader skips a name that is not callable, so only this class's rows run here.
+for _name in [n for n in dir(AuditAtTheHead) if n.startswith("test_")]:
+    if _name not in FindingDispositionsInProof.__dict__:
+        setattr(FindingDispositionsInProof, _name, None)
 
 
 if __name__ == "__main__":

@@ -376,3 +376,9 @@ def findings_export(*rows):
 def audit_disposed(n=2):
     """Every finding of the fixture's audit, disposed."""
     return tuple((f"{AUDIT_RECORD_ID}#{i}", "fixed") for i in range(1, n + 1))
+
+
+def proof_findings(*rows):
+    """The `## Proof` lines the finding-disposition row reads: each finding
+    named, its disposition token, and one line of judgement."""
+    return "".join(f"- {key} {how}: the judgement on {key}.\n" for key, how in rows)
