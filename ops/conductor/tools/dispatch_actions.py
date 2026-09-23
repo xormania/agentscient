@@ -72,6 +72,9 @@ VERIFICATIONS = ROOT / "ops/conductor/verifications.json"
 RECORD = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,255}\Z")
 # A refusal line on the wire, bare or behind dispatch.sh's own prefix.
 REFUSAL_LINE = re.compile(r"^(dispatch: refusal: )?([a-z][a-z0-9-]*: )?expected .+; found .+")
+# The launcher's own argument parser refusing, `launch.py: error: ...`,
+# passed through on the wrapper's stderr with its exit (A-524 #1).
+PARSER_ERROR = re.compile(r"^\S+: error: .+")
 # How long the wrapper may take to print its record: dispatch.sh waits
 # DETACH_WAIT (60 s by default) for the launcher's mint, then refuses.
 SPAWN_WAIT = 120
@@ -225,6 +228,12 @@ def refusal_in(stderr: str) -> str | None:
     return lines[-1] if lines else None
 
 
+def launcher_refusal(stderr: str) -> str | None:
+    """The wrapper's refusal line, else the launcher parser's error line."""
+    parser = [line.strip() for line in stderr.splitlines() if PARSER_ERROR.match(line.strip())]
+    return refusal_in(stderr) or (parser[-1] if parser else None)
+
+
 def job_state(launcher, record: str | None) -> str:
     if not record:
         return "unlaunched"
@@ -336,7 +345,7 @@ def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref
                              launcher_pid=launcher_pid,
                              launcher_ticks=intents.start_ticks(launcher_pid))
         return answer(found, repeated=False)
-    line = refusal_in(stderr) if child.returncode != 0 else None
+    line = launcher_refusal(stderr) if child.returncode != 0 else None
     if line is not None:
         intents.move(conn, di, "refuse-launching", who, evidence=line, error=line)
         refuse("launcher", f"the wrapper to launch DI-{di}", line,
