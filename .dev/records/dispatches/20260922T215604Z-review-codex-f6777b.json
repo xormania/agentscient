@@ -1,0 +1,647 @@
+{
+  "id": "20260922T215604Z-review-codex-f6777b",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260922-69",
+  "lineage": {
+    "branch": "lane/session-20260922-69",
+    "base_sha": "73be1ef39fbdf23814c0cd5788b69fd493824f64"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-22T21:56:04Z",
+    "closed": "2026-09-22T22:12:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "73be1ef39fbdf23814c0cd5788b69fd493824f64",
+    "ref_sha": "73be1ef39fbdf23814c0cd5788b69fd493824f64",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/usr/bin/bwrap",
+      "--die-with-parent",
+      "--unshare-user",
+      "--bind",
+      "/",
+      "/",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/enforcement/binding.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/enforcement/binding.json",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/enforcement/guard.sh",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/enforcement/guard.sh",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex/config.toml",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex/config.toml",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex/hooks.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex/hooks.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "--chdir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/snapshot",
+      "--",
+      "/home/scientdb/.codex/packages/standalone/releases/0.155.1-x86_64-unknown-linux-musl/bin/codex",
+      "exec",
+      "--dangerously-bypass-hook-trust",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/lane-mcp.json\", \"serve\"]",
+      "-c",
+      "mcp_servers.coordination.command=\"python3\"",
+      "-c",
+      "mcp_servers.coordination.args=[\"-B\", \"/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/coordination-mcp.json\", \"serve\"]",
+      "-c",
+      "mcp_servers.coordination.env_vars=[\"CLAUDE_SESSION_ID\", \"XDG_STATE_HOME\", \"LANE_CONF\", \"AGENTSCIENT_HOOK_PROFILE\"]",
+      "-c",
+      "mcp_servers.coordination.required=true",
+      "-c",
+      "mcp_servers.coordination.enabled_tools=[\"coord_accept\", \"coord_ack\", \"coord_assignments\", \"coord_brief\", \"coord_claim\", \"coord_draft\", \"coord_inbox\", \"coord_observe\", \"coord_offer\", \"coord_outstanding\", \"coord_release\", \"coord_resolve\", \"coord_return\", \"coord_send\", \"coord_show\", \"coord_submit\", \"coord_verify\"]",
+      "-c",
+      "mcp_servers.coordination.tools.coord_accept.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_ack.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_assignments.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_brief.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_claim.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_draft.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_inbox.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_observe.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_offer.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_outstanding.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_release.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_resolve.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_return.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_send.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_show.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_submit.approval_mode=\"approve\"",
+      "-c",
+      "mcp_servers.coordination.tools.coord_verify.approval_mode=\"approve\"",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex-stream/sessions/2026/09/22/rollout-2026-09-22T17-56-06-01a0cb1e-77a1-7583-8393-83408b404542.jsonl"
+  },
+  "session": {
+    "id": "01a0cb1e-77a1-7583-8393-83408b404542",
+    "binding_id": "2a04e99e-75d1-4285-a862-efd64a969f3d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex-stream/sessions/2026/09/22/rollout-2026-09-22T17-56-06-01a0cb1e-77a1-7583-8393-83408b404542.jsonl",
+    "stream_sha256_at_close": "054f13fe3a35c40323d2b8bd4c8aa968602e819a27ff242f579d2b62a50af636",
+    "bound": "participant PT-27 bound for session 2a04e99e-75d1-4285-a862-efd64a969f3d by PT-22 for A-478",
+    "spend": {
+      "input": 1800608,
+      "cached": 1698816,
+      "output": 26309,
+      "total": 1826917,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex-stream/sessions/2026/09/22/rollout-2026-09-22T17-56-06-01a0cb1e-77a1-7583-8393-83408b404542.jsonl",
+      "messages": 322
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "# Scope: check-tests, sessions slice 1 (A-478)\n\nContract: ops/conductor/sessions-lever.md (at 13664232, in the tree).\nCandidate, by Grok (record 20260922T213030Z-code-grok-1693c9, commits\nd078b68b, ea39ec55): ops/conductor/tests/test_sessions.py,\nops/conductor/tests/test_session_adapters.py,\nops/conductor/tests/fakes/session_harness.py,\nops/conductor/tests/fakes/session_tmux.py.\nNo implementation exists; every row is red by design. Judge each row by\nthe broken sessions.py it would still pass.\nAlso judge against docs/tests.md: rule 6 (are the fakes planted through\nthe registry, or programs embedded in the suite), rule 9, rule 3, rule 5\n(every subprocess through run with a timeout), rule 4 (no read of the\noperator's home or store). A fixture in the contract's Tests section or\na refusal class in its table with no row is one finding.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py",
+        "sha256": "3dc0157fb4557331ce62b4f5b3acda1d3abbda4ac65815155c09fe041a09ee4d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py",
+        "sha256": "b3a89ec97935ce8ace8d82c9b35a85e8cfa04c493da1f70526019320dc419d08"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_harness.py",
+        "sha256": "649da559ba66d33c9c9d569bb26e36060fe7f986b954d60a2d43a5b8e85dcc59"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_tmux.py",
+        "sha256": "55a6074afd3fe1ed57401a0ed6f948b4e162f91ddfe32e7ae9f6e2871a40fdff"
+      }
+    ],
+    "sha256": "5259f533c5e2a53862c2bc201e286be16b5b3d560a689dfabd1c88a22f9df3f9",
+    "bytes": 11954,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/lane-mcp.json",
+      "sha256": "6d0628bfd8cb59e883b4b7512561bc54dc4e4488c0de71278e0d370d74e982b0",
+      "job_ids": [
+        "20260922T213030Z-code-grok-1693c9",
+        "20260922T212631Z-code-grok-123236"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "coordination": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/coordination-mcp.json",
+      "sha256": "a529cee59f0c96779718764d2c55d0bf5608d627a56c79ae322c32b2f0f742cc",
+      "participant": "PT-27",
+      "assignment": "A-478",
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/coordination-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "coord_accept",
+        "coord_ack",
+        "coord_assignments",
+        "coord_brief",
+        "coord_claim",
+        "coord_draft",
+        "coord_inbox",
+        "coord_observe",
+        "coord_offer",
+        "coord_outstanding",
+        "coord_release",
+        "coord_resolve",
+        "coord_return",
+        "coord_send",
+        "coord_show",
+        "coord_submit",
+        "coord_verify"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-22T21:56:06Z",
+      "ended": "2026-09-22T22:12:09Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "unresolved": "policy closure changed"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "73be1ef39fbdf23814c0cd5788b69fd493824f64",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 22,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:61",
+          "claim": "declared (docs/tests.md:68): A world is hermetic by default; ambient is explicit and named.; practiced: Path.home() / \".local\" / \"state\" / \"agentscient\" / \"dispatch\", Path.home() / \".claude\", and self.world.watch(..., contents=False); misses: a broken sessions.py that reads the operator's home or store without changing watched metadata, or creates a tolerated new entry, still passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '61,77p;109,118p'"
+        },
+        {
+          "severity": "p3",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:101",
+          "claim": "declared (docs/tests.md:79): A case executes the subject's behaviour and asserts what it did.; practiced: self.assertTrue(TOOL.is_file(), f\"RED: tool is absent: {TOOL}\"); misses: an empty or otherwise nonfunctional sessions.py passes this test.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '101,104p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:258",
+          "claim": "declared (docs/tests.md:65): A table carries a fixture set, planted faults it catches and clean neighbours it passes, or it is a declared gap.; practiced: RefusalCase(id=\"start-without-identity\" ...), RefusalCase(id=\"stop-without-identity\" ...), RefusalCase(id=\"attach-without-identity\" ...), RefusalCase(id=\"export-without-identity\" ...) followed by run_table(...), with no sessions faults file; misses: a broken sessions.py that accepts malformed non-empty WF_AGENT values instead of requiring full Name <address> form passes every row.",
+          "reproduce": "python3 ops/testkit/cases.py calibrate --subject ops/conductor/tools/sessions.py --mutants ops/conductor/tests/session_faults.py --command 'python3 -m unittest discover -s ops/conductor/tests -p test_sessions.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:273",
+          "claim": "declared (docs/tests.md:65): A table carries a fixture set, planted faults it catches and clean neighbours it passes, or it is a declared gap.; practiced: RefusalCase(id=\"unknown-verb\" ...), RefusalCase(id=\"slice2-join\" ...), RefusalCase(id=\"slice2-recover\" ...), RefusalCase(id=\"unknown-option\" ...) followed by run_table(...), with no sessions faults file; misses: a broken sessions.py that deny-lists only frobnicate, join, recover and --nope while accepting another undeclared verb or option passes.",
+          "reproduce": "python3 ops/testkit/cases.py calibrate --subject ops/conductor/tools/sessions.py --mutants ops/conductor/tests/session_faults.py --command 'python3 -m unittest discover -s ops/conductor/tests -p test_sessions.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:288",
+          "claim": "declared (ops/conductor/sessions-lever.md:86): name matches [a-z][a-z0-9-]{0,31} and is unique in the file; harness is one of claude, codex, grok; roles is a non-empty subset of the coordination store's ROLES; an optional executable is an absolute path. Nothing else is accepted (team).; practiced: cases contains team-unknown-harness, team-unknown-role, team-bad-name, team-empty-members and team-unknown-member only; misses: a broken sessions.py that accepts duplicate names, empty roles, a relative executable or undeclared keys passes the table.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '288,324p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:348",
+          "claim": "declared (ops/conductor/sessions-lever.md:205): absent | no such run, member or pane; practiced: stop-absent-run, attach-absent-member with --run R-9, and export-absent-run all use an absent run; misses: a broken sessions.py that handles absent runs but treats a missing member or missing pane in an existing run as success passes every row.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '348,360p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:326",
+          "claim": "declared (ops/conductor/sessions-lever.md:18): reads do not and never create the store.; practiced: self.assertFalse(self.state.exists() and (self.state / \"state.db\").exists()); misses: a broken status verb that creates the state directory, sessions directory or another store artifact but not state.db passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '326,331p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:341",
+          "claim": "declared (ops/conductor/sessions-lever.md:200): worktree | --worktree is not a git worktree of this repository; practiced: other = self.world.root / \"not-a-worktree\" followed by other.mkdir(); misses: a broken sessions.py that verifies only that the path is some Git worktree, and therefore accepts a worktree belonging to another repository, passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '341,346p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:255",
+          "claim": "declared (ops/conductor/sessions-lever.md:202): readiness | ready asked while a required dimension is not ok; practiced: One row per refusal class the contract names, addressed by id., but there is no RefusalCase with cls=\"readiness\"; misses: a broken sessions.py that returns success when readiness is requested with a required dimension not ok passes the suite.",
+          "reproduce": "git grep -n 'cls=\"readiness\"' ea39ec55 -- ops/conductor/tests/test_sessions.py"
+        },
+        {
+          "severity": "p1",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:394",
+          "claim": "declared (ops/process/roles/test-skeptic.md:38): A red must fail on the intended assertion, not on collection or import.; practiced: self.assertEqual(create.exit, 0, create.stderr) fails with error connecting to .../tmp/tmux.sock (File name too long) before sessions.py is invoked; misses: every broken ownership implementation, because this row cannot reach the subject in the dispatched tree.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_sessions.py"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:489",
+          "claim": "declared (ops/conductor/sessions-lever.md:109): ready requires the first five ok; practiced: assert_readiness only requires any line containing each dimension name and requires unmeasured only for tools, ingress and response; misses: a broken sessions.py that exits 0 and marks the member ready while process, profile, identity, participant or role reads waiting or refused passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '222,234p;489,501p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:518",
+          "claim": "declared (ops/conductor/sessions-lever.md:225): a second member of the same harness with distinct profile, identity and pane; practiced: profiles are counted and compared, and pane-containing status lines are compared, but no identity value is extracted or compared; misses: a broken sessions.py that reuses the first member's launch or native identity for the second member passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '518,540p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:542",
+          "claim": "declared (ops/conductor/sessions-lever.md:180): execs tmux attach-session on the run's socket at the member's window after the ownership check; practiced: any(\"attach-session\" in c or (c and c[0] == \"attach\") for c in calls); misses: a broken sessions.py that calls attach-session on the wrong socket, session or window passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '542,559p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:561",
+          "claim": "declared (ops/conductor/sessions-lever.md:181): with --terminate it signals only a pid whose start ticks still match the record, then the owned window, and records stopped <how>; practiced: self.assertIn(\"stopped\", proc.stdout) and self.assertIn(\"stopped\", status.stdout); misses: a broken sessions.py that leaves the process and window alive but prints and records stopped passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '561,570p'"
+        },
+        {
+          "severity": "p1",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:572",
+          "claim": "declared (ops/conductor/sessions-lever.md:182): a binding's coordination_capability and every credential_environment value are omitted; practiced: self.assertNotIn(\"coordination_capability\", blob) and, only when found, self.assertNotIn(secret, blob); misses: a broken exporter that leaks credential_environment values, or omits required pane, launch and adapter-diagnostic evidence while writing run.json, passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '572,594p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:596",
+          "claim": "declared (ops/conductor/sessions-lever.md:182): the first failure is kept and named, exit 1 for a partial export; practiced: target.chmod(0), self.assertEqual(proc.exit, 1, ...) and self.assertTrue(proc.stdout.strip() or proc.stderr.strip()); misses: a broken exporter that emits an unrelated generic error passes, and the test never proves the chmod fault is unreadable before invoking the subject.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '596,610p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:612",
+          "claim": "declared (ops/conductor/sessions-lever.md:222): a stale pid on stop --terminate (a pid the world reaped and reused); practiced: holder = canary, and after only 64 attempts holder remains canary unless child.pid == recorded; misses: when reuse does not occur, a broken sessions.py that signals the dead recorded PID without comparing start ticks and then prints unresolved stale pid passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '612,653p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:623",
+          "claim": "declared (docs/tests.md:69): Every subprocess goes through run; a call without a timeout is a finding.; practiced: subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(3600)\"], ...); misses: the stale-PID fault is exercised by an embedded, unlogged program with no timeout rather than a registry plant, so blocking or escaped-process behavior is not caught deterministically.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '623,630p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py:637",
+          "claim": "declared (docs/tests.md:69): Every subprocess goes through run; a call without a timeout is a finding.; practiced: subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(3600)\"], ...); misses: each PID-reuse attempt bypasses run, timeout and fake-registry logging, so a broken stale-PID implementation can be hidden by fixture luck or leave the row hanging.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_sessions.py | sed -n '635,648p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_harness.py:98",
+          "claim": "declared (docs/tests.md:69): Every subprocess goes through run; practiced: subprocess.run([str(guard), \"SessionStart\"], ..., timeout=30, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); misses: a broken launch path that only appears to work because the fake discards the guard child's refusal or failure is not reported through the kit's result and refusal wire.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_harness.py | sed -n '86,107p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_tmux.py:32",
+          "claim": "declared (docs/tests.md:69): Every subprocess goes through run; a call without a timeout is a finding.; practiced: return subprocess.call([REAL, *argv]); misses: a broken sessions.py that sends tmux a blocking argv hangs the suite instead of producing a bounded failure.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/session_tmux.py | sed -n '25,32p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py:102",
+          "claim": "declared (ops/conductor/sessions-lever.md:151): methods and no others the supervisor calls; practiced: extra = sorted(set(public) - set(METHODS) - {\"Adapter\"}) followed by assertNotIn(name, METHODS); misses: the assertion is true by construction, so a broken adapter exposing arbitrary extra supervisor-callable methods passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py | sed -n '102,120p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py:122",
+          "claim": "declared (ops/conductor/sessions-lever.md:155): the fixed launch argv for the profile's run-interactive, never operator text; practiced: assertIn(\"--session-id\", joined), assertIn(LAUNCH_ID, joined), assertNotIn(\"operator text\", joined); misses: a broken adapter returning [\"echo\", \"--session-id\", LAUNCH_ID] instead of the profile's run-interactive argv passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py | sed -n '122,131p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py:133",
+          "claim": "declared (ops/conductor/sessions-lever.md:157): probe(executable) returns {capability: \"ok <reading>\" | \"unsupported <reading>\" | \"unmeasured\"}, with the installed version; practiced: assertIn(\"channel\", reading) and assertEqual(reading[\"channel\"], \"unmeasured slice 2\"); misses: a broken adapter that never runs the planted executable and returns the constant {\"channel\": \"unmeasured slice 2\"} without capability or installed version passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py | sed -n '133,140p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py:145",
+          "claim": "declared (docs/tests.md:69): Every subprocess goes through run; a call without a timeout is a finding.; practiced: subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(3600)\"], ...); misses: the stale-handle row uses an embedded, unlogged child with no timeout, so blocking cleanup or escaped-process behavior is not bounded or calibrated through the registry.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py | sed -n '142,157p'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py:159",
+          "claim": "declared (ops/conductor/sessions-lever.md:159): diagnostics(member_dir) | the list of evidence paths it retained; practiced: paths = adapter.diagnostics(member_dir) followed only by self.assertIsInstance(paths, list); misses: a broken adapter that always returns [] and retains no pane.log evidence passes.",
+          "reproduce": "nl -ba /home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/in/test_session_adapters.py | sed -n '159,166p'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 1826917,
+        "out": 26309,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "73be1ef39fbdf23814c0cd5788b69fd493824f64",
+        "started": null,
+        "ended": "2026-09-22T22:05:55Z"
+      },
+      "note": "Review finished without reading implementation or writing files. Measured test_sessions.py: 25 tests, 37 failures; test_session_adapters.py: 9 tests, 9 failures. Calibration was attempted from the tree root and refused because the declared subjects do not exist; ea39ec55 contains no sessions faults/mutants file. coord_submit for A-478 was attempted after completion and refused because the shared guard reported a missing or changed helper, leaving the assignment held. reused: lane MCP brief/jobs/changes/findings, coordination A-478, testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire, testkit.rows"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 5,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260922T215604Z-review-codex-f6777b/home/codex-stream/sessions/2026/09/22/rollout-2026-09-22T17-56-06-01a0cb1e-77a1-7583-8393-83408b404542.jsonl"
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    },
+    "store_sweep": {
+      "swept": true,
+      "days": 5,
+      "reclaimed": 0,
+      "kept": 121,
+      "ids": []
+    }
+  },
+  "status": "closed"
+}
