@@ -693,6 +693,28 @@ class TheTmuxAndLaunchRows(_Scratch):
     def session_name(self, run_id: str) -> str:
         return f"agentscient-{run_id}"
 
+    def test_no_tmux_server_or_pane_survives_the_world(self):
+        """The Lead's p1, 2026-09-23: every row that started a member left
+        its private tmux server, and the harness in its pane, alive after
+        the world was deleted (1,211 servers on the host). The fixture's
+        own cleanups run here, and both pids must be gone after them."""
+        self.skip_without_tmux()
+        self.sessions(*self.start_argv())
+        shown = self.host_tmux("display-message", "-p", "-t", f"={self.session_name('R-1')}:",
+                               "#{pid} #{pane_pid}")
+        self.assertEqual(shown.exit, 0, shown.stderr)
+        server, pane = (int(pid) for pid in shown.stdout.split())
+        self.doCleanups()
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and (Path(f"/proc/{server}").exists()
+                                               or Path(f"/proc/{pane}").exists()):
+            time.sleep(0.05)
+        with self.subTest(id="world-close-stops-server", origin="the Lead, 2026-09-23 01:40Z"):
+            self.assertFalse(Path(f"/proc/{server}").exists(),
+                             f"tmux server {server} survived the world")
+            self.assertFalse(Path(f"/proc/{pane}").exists(),
+                             f"the pane's harness {pane} survived the world")
+
     def plant_owned_run(self, run_id: str, member: str) -> None:
         """An owned run while the subject is absent.
 
