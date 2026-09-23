@@ -896,10 +896,14 @@ participants are its members and the participant that started it:
 the caller's binding (an ALTER adds the column to an older store), and
 export, `decisions` and `observations` count the starter with the
 members. The window has both ends: a row counts when it was reserved
-at or after the run's `started_at` and before the run's stop stamp
-when the run is stopped, else before the starter's next run's
-`started_at` when the same binding started a later run, else before
-the export's own stamp. A member is bound to one run; the starter is
+at or after the run's `started_at` and before the window's end, which
+is the earliest of three stamps that exist: the stamp of the run's
+`stop` request (the move to `stopping`, never the later close to
+`stopped`, which a run with an unresolved member never reaches), the
+`started_at` of the next run the same binding started, and the
+export's own stamp. Two runs of one starter therefore never share a
+row: a launch after R-2 started belongs to R-2 alone, even while R-1
+is still open. A member is bound to one run; the starter is
 not, and without the upper bound an export of R-1 taken after R-2
 started would list R-2's launches as R-1's (the reviewer agentscient-0e
 at cff1115e). The intents table gains no run column. A managed
