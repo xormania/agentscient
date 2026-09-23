@@ -354,7 +354,7 @@ class DispatchActions(unittest.TestCase):
                 )
             self.act("reconcile", "DI-1")
             shown = self.act("status", "DI-1")
-            self.assertRegex(shown.stdout, r"intent DI-1 launched record \S+")
+            self.assertRegex(shown.stdout, r"intent DI-1 launched record only\b")
             self.assertEqual(shown.exit, 0, shown.stderr)
 
     def test_a_relaunch_does_not_call_the_wrapper_again(self):
