@@ -45,12 +45,13 @@ except ModuleNotFoundError:
     )
     raise SystemExit(2) from None
 
+from dispatch_observation import DispatchRecord
+
 HERE = Path(__file__).resolve()
 JOBS_JSON_CANDIDATES = (
     HERE.parents[2] / "devlane" / "task" / "jobs.json",
     Path.cwd() / "ops" / "devlane" / "task" / "jobs.json",
 )
-TERMINAL = {"closed", "died"}
 DEFAULT_TICK = 300.0
 DEFAULT_HEARTBEAT = 6
 DEFAULT_FORGE_EVERY = 1
@@ -343,12 +344,10 @@ class Entry:
         self.has_exit = has_exit
         self.error = None
         self.from_closed_cache = False
-        result = rec.get("result") if isinstance(rec.get("result"), dict) else {}
-        envelope = result.get("envelope") if isinstance(result.get("envelope"), dict) else {}
-        changed = result.get("changed_paths")
-        self.summary_status = rec.get("status")
-        self.summary_envelope = envelope.get("status")
-        self.summary_changed = len(changed) if isinstance(changed, list) else "unknown"
+        observation = DispatchRecord(rec)
+        self.summary_status = observation.status
+        self.summary_envelope = observation.envelope.get("status")
+        self.summary_changed = observation.changed_count if observation.changed_count is not None else "unknown"
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
         self.launched = stamp_or_none(at.get("launched")) or stamp_of(self.name)
         self.closed_at = stamp_or_none(at.get("closed"))
@@ -668,14 +667,7 @@ def entries(store, caps, closed_cache=None):
             continue
         exit_row = next(row for row in fingerprint if row[0] == "exit")
         has_exit = exit_row[1] is not None
-        if rec is None:
-            kind = "no-copy"
-        elif rec.get("status") in TERMINAL:
-            kind = "closed"
-        elif has_exit:
-            kind = "settling"
-        else:
-            kind = "running"
+        kind = DispatchRecord(rec).phase(has_exit)
         entry = Entry(d, kind, rec or {}, state, has_exit, caps)
         entry.fingerprint = fingerprint
         entry.exit_mtime = exit_row[5] / 1_000_000_000 if has_exit else None
