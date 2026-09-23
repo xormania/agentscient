@@ -819,10 +819,12 @@ record, with the reading that decided it. The trial never carries both.
 | path | owner | why |
 |---|---|---|
 | `ops/conductor/tools/onboard.py`, `ops/conductor/onboard-lever.md`, role guidance under `ops/conductor/`, `.claude/skills/*` | S4 | the one documented start path (I-01) and what a new session reads |
-| `ops/conductor/handoff/runbook-managed-sessions.md` (new) | S4 | the short runbook: start, inspect, stop, resume, disable |
+| `ops/conductor/handoff/runbook-managed-sessions.md` (new) | S4 | the short runbook: start, inspect, stop, resume, disable; it says in its first lines that `sessions start` is the one guarded start and that a bare `codex`, `grok` or `claude` launched by hand takes no profile (the 2026-09-19 debrief, `.xor/out/codex/fuckup.md` :346, left that unestablished and a reader expected otherwise) |
 | `ops/conductor/handoff/<date>-slice4-trial.md` (new) | S4 | the trial record: the acceptance matrix with evidence by id |
 | the trial deliverable's file (`coordination.py` for LD-123) | the dispatched worker of the trial job, never a management seat | the candidate is produced by the path under test |
 | the independent verifier's record | the verifier session, never the builder or the XO | I-10 and I-14 need a producer who wrote none of the candidate |
+| the thin onboard wrapper inside a codex or grok member's private native home (`profiles.py` `prepare_interactive`, the profile's skills directory) | the wall (a wall session, one PR, a planted row red then green), never S4 | the one connection the 2026-09-19 debrief found missing (`.xor/out/codex/fuckup.md` :82-84, :255-270): the guarded profile carried the hooks and no `onboard`, the operator's home carried `onboard` and no hooks; step 1's "onboard brief exit 0" per member cannot read for a codex or grok member until the wrapper is in the profile home. Measured 2026-09-23 at 1bd5e764: `grep -c onboard` reads 0 in `profiles.py` and `isolation.py` |
+| `ops/conductor/tools/instrument.py` `bind` for an owner-opened terminal (LD-125) | S4, the session that takes the thread the minute slice 3 is green in the integration PR, nobody before then | the owner's own terminals must `join` a run (the 2026-09-19 ask, `.xor/out/codex/fuckup.md` :25); today `bind` refuses class `capability` for a plain terminal (`instrument.py` :175 at 89b11dab: no `coordination_capability` in a profile and no `COORDINATION_CAPABILITY` in the environment reads "missing or malformed credential") |
 
 ### The shapes
 
@@ -871,7 +873,7 @@ unmet does not advance; the trial record says which step stopped it.
 | 5 worker blocker | the dispatched worker | a question through acting MCP received by management while the assignment stays open; the record states whether the return path was live ingress or a checkpoint (never "live steering" for a one-shot route) | `ingress` | I-09 |
 | 6 result and verification | Dispatcher, then verifier | `coord_collect` result; the verifier's examination of the candidate against the objective; the omitted-behaviour case and the changed-candidate case each **fail** acceptance, with the failing line | `acceptance` | I-10 second half, I-14 |
 | 7 detach and recover | owner, then observer | `attach` and re-attach with the native sessions untouched; `recover` (slice 2) over the same pending and complete records; a process-loss case against a sacrificial member only, the `lose-<place>` marking and the replacement's next generation | `recovery` | I-11 |
-| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
+| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store, `acknowledged <stamp>` or `unacknowledged`, never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
 
 ### Refusals added
 
@@ -905,9 +907,32 @@ what follows is operating evidence, not more rows.
 
 ### Required of the wall
 
-None expected. Declared, not inferred: the LD-117 fallback is a wall fix
-(`unsafe-command.py`), so choosing the fallback adds one wall session
-whose deliverable is that row and nothing else.
+One row, declared: the onboard wrapper inside a codex or grok member's
+private home is a `profiles.py` change (the owners table above), so
+slice 4 needs one wall session whose deliverable is that row, red then
+green with a planted row that reads the wrapper from the profile home
+and refuses its absence. Also declared, not inferred: the LD-117
+fallback is a wall fix (`unsafe-command.py`), so choosing the fallback
+adds a second wall session whose deliverable is that row and nothing
+else.
+
+### The owner's terminals
+
+A terminal the owner opened by hand joins a run as a member without a
+managed launch (plan §1, the first ask of 2026-09-19). `join` needs a
+bound participant, and `bind` today refuses class `capability` for a
+plain terminal (LD-125). The clause: `bind` in an owner-opened terminal
+mints the participant's private capability at bind time, writes it into
+that terminal's own profile home and nowhere shared, and refuses
+`capability` only when it can neither read nor mint one; the refusal
+names which. A bound plain terminal joins with the same eight readiness
+lines as a managed member, `enforcement` reading `unmeasured` until the
+hook profile is observed, never `ok` by default. The fix is non-wall
+(`instrument.py`), taken as slice 4's first item by the session the
+owners table names, with a planted row: a world with no profile and no
+environment capability binds, joins, and reads `unmeasured` on
+enforcement; the same world with a malformed capability refuses
+`capability` naming the malformation.
 
 ### Tests
 
