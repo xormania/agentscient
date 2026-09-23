@@ -2,7 +2,8 @@
 the run export, the trial record.
 
 Contract: ops/conductor/sessions-lever.md section "Slice 4 — operational
-trial and closure", read at 293d4d25 (the gaps closed at 26c94c5a). Run
+trial and closure", read at 73081d6f (the gaps closed at 26c94c5a, `trial accept`'s
+readings named at 73081d6f). Run
 from the repository root:
 python3 -m unittest discover -s ops/conductor/tests -p test_sessions_trial.py
 
@@ -62,6 +63,7 @@ VERIFIED = "a" * 40
 MOVED = "b" * 40
 CLAUSE = "ops/conductor/tools/coordination.py:100"
 RECORD_ID = "20260923T090000Z-trial-claude-5a4e01"
+FAKE = "session_codex"
 
 
 def origin(part: str) -> str:
@@ -117,13 +119,16 @@ def stop_line(text: str, name: str) -> str:
 def trial_table(rows: dict[str, tuple[str, str, str]] | None = None) -> str:
     """A trial record: fourteen rows, each read, I-10 and I-14 naming the
     verified sha and reading refused for both controlled cases. `rows`
-    replaces a row's (required, evidence, reading) by id."""
+    replaces a row's (required, evidence, reading) by id. I-14's evidence is
+    ``verified <sha>``; I-06's reading cites the objective's clause."""
     cells = {key: (f"the {key} requirement", f"P-sessions4-{key}", f"measured {key} exit 0")
              for key in IDS}
-    for key in ("I-10", "I-14"):
-        cells[key] = (f"the {key} requirement",
-                      f"ops/conductor/handoff/verifier.md@{VERIFIED}",
-                      "refused acceptance omitted; refused acceptance changed")
+    cells["I-06"] = ("the I-06 requirement", f"ops/conductor/handoff/verifier.md@{VERIFIED}",
+                     f"measured {CLAUSE} exit 0")
+    cells["I-10"] = ("the I-10 requirement", f"ops/conductor/handoff/verifier.md@{VERIFIED}",
+                     "refused acceptance omitted; refused acceptance changed")
+    cells["I-14"] = ("the I-14 requirement", f"verified {VERIFIED}",
+                     "refused acceptance omitted; refused acceptance changed")
     cells.update(rows or {})
     lines = ["# Slice 4 trial", "", "| id | required result | evidence | reading |",
              "|---|---|---|---|"]
@@ -243,8 +248,7 @@ class TheObjective(_Trial):
     """`trial objective` writes the objective record or refuses `objective`."""
 
     def full(self, run_id: str) -> list[str]:
-        return ["trial", "objective", run_id, "--deliverable", "LD-123", "--clause", CLAUSE,
-                "--candidate", "dev", "--case", f"omitted:{CLAUSE}", "--case", f"changed:{MOVED}"]
+        return objective_argv(run_id)
 
     @staticmethod
     def without(argv: list[str], *flag_value: str) -> tuple[str, ...]:
@@ -285,7 +289,9 @@ class TheObjective(_Trial):
         """origin: sessions-lever.md#slice-4 the shapes
 
         A whole call exits 0 and writes ``<state dir>/runs/R-n/objective.json``
-        carrying the deliverable, the clause, the candidate and both cases.
+        carrying the deliverable, the clause, the candidate and both cases,
+        and ``fakes`` always present: empty with no ``--fake``, the names
+        with it.
         """
         self.skip_without_tmux()
         with self.subTest(id="objective-written", origin=origin("the shapes")):
@@ -298,48 +304,78 @@ class TheObjective(_Trial):
             text = path.read_text(encoding="utf-8")
             for part in ("LD-123", CLAUSE, "dev", f"omitted:{CLAUSE}", f"changed:{MOVED}"):
                 self.assertIn(part, text)
+            self.assertEqual(json.loads(text).get("fakes"), [], text)
+            again = self.sessions(*self.full(run_id), "--fake", FAKE, session=LEAD_SESSION)
+            self.assertEqual(again.exit, 0, again.stderr)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")).get("fakes"), [FAKE])
 
 
 class TheAcceptance(_Trial):
-    """`trial accept` refuses `acceptance` on a stale sha or a mock written live."""
+    """`trial accept` refuses `acceptance` on the readings 73081d6f names."""
 
     def accept(self, run_id: str, candidate: str, table: str):
         record = self.world.plant_text("trial.md", table)
         return self.sessions("trial", "accept", run_id, "--candidate", candidate,
                              "--record", str(record), session=LEAD_SESSION)
 
-    def test_acceptance_refuses_a_stale_sha_and_a_mock_written_live(self):
-        """origin: sessions-lever.md#slice-4 refusals added
-
-        A candidate sha that is not the sha the verifier's row names, and an
-        evidence cell reading ``live`` for a row whose command ran a planted
-        fake, each refuse ``acceptance``; the stale sha names both shas.
-        """
-        self.skip_without_tmux()
+    def objective_run(self) -> str:
+        """A run whose objective names CLAUSE and declares FAKE planted. The
+        call's own exit is the objective rows' to judge; here it is setup."""
         self.bind_lead()
         run_id = self.start_co()
-        at = origin("refusals added")
-        live_mock = trial_table({"I-05": ("the I-05 requirement", "live mock session_codex",
-                                          "measured I-05 exit 0")})
-        tables = {"acceptance-stale-sha": trial_table(), "acceptance-mock-as-live": live_mock}
+        self.sessions(*objective_argv(run_id), "--fake", FAKE, session=LEAD_SESSION)
+        return run_id
+
+    def test_acceptance_refuses_each_reading_the_clause_names(self):
+        """origin: sessions-lever.md#slice-4 the shapes
+
+        ``acceptance`` refuses: a candidate that is not I-14's ``verified
+        <sha>`` (naming both shas); an I-14 cell without one (naming I-14); an
+        objective clause cited by no row (the omitted behaviour, naming the
+        clause); ``live`` evidence on a row whose reading names a declared
+        fake; ``mock <name>`` and ``live`` in one cell.
+        """
+        self.skip_without_tmux()
+        run_id = self.objective_run()
+        at = origin("the shapes")
+        req = "the {} requirement"
+        tables = {
+            "acceptance-stale-sha": trial_table(),
+            "acceptance-no-verified-sha": trial_table(
+                {"I-14": (req.format("I-14"), "ops/conductor/handoff/verifier.md",
+                          "refused acceptance omitted; refused acceptance changed")}),
+            "acceptance-omitted-clause": trial_table(
+                {"I-06": (req.format("I-06"), f"ops/conductor/handoff/verifier.md@{VERIFIED}",
+                          "measured exit 0")}),
+            "acceptance-live-on-a-fake": trial_table(
+                {"I-05": (req.format("I-05"), "live", f"{FAKE} answered the send, exit 0")}),
+            "acceptance-mock-and-live": trial_table(
+                {"I-05": (req.format("I-05"), f"mock {FAKE} live", "measured I-05 exit 0")}),
+        }
+        argv = ("trial", "accept", run_id)
         rows = (
-            RefusalCase(id="acceptance-stale-sha", argv=("trial", "accept", run_id, "--candidate", MOVED),
-                        cls="acceptance", origin=at, named=(VERIFIED, MOVED), note=MOVED),
-            RefusalCase(id="acceptance-mock-as-live", argv=("trial", "accept", run_id, "--candidate", VERIFIED),
-                        cls="acceptance", origin=at, named=("I-05",), note=VERIFIED),
+            RefusalCase(id="acceptance-stale-sha", argv=argv, cls="acceptance", origin=at,
+                        named=(VERIFIED, MOVED), note=MOVED),
+            RefusalCase(id="acceptance-no-verified-sha", argv=argv, cls="acceptance", origin=at,
+                        named=("I-14",), note=VERIFIED),
+            RefusalCase(id="acceptance-omitted-clause", argv=argv, cls="acceptance", origin=at,
+                        named=(CLAUSE,), note=VERIFIED),
+            RefusalCase(id="acceptance-live-on-a-fake", argv=argv, cls="acceptance", origin=at,
+                        named=("I-05",), note=VERIFIED),
+            RefusalCase(id="acceptance-mock-and-live", argv=argv, cls="acceptance", origin=at,
+                        named=("I-05",), note=VERIFIED),
         )
         run_table(self, rows, lambda row: self.accept(run_id, row.note, tables[row.id]))
 
     def test_the_verified_sha_on_a_complete_record_is_accepted(self):
         """origin: sessions-lever.md#slice-4 the shapes
 
-        The clean neighbour: the verified sha on a record with no mock
-        written live exits 0.
+        The clean neighbour: I-14's sha as the candidate, every clause cited,
+        no declared fake read live, exits 0.
         """
         self.skip_without_tmux()
         with self.subTest(id="acceptance-verified", origin=origin("the shapes")):
-            self.bind_lead()
-            run_id = self.start_co()
+            run_id = self.objective_run()
             done = self.accept(run_id, VERIFIED, trial_table())
             self.assertEqual(done.exit, 0, done.stderr)
 
@@ -636,6 +672,12 @@ class TheTrialRecord(unittest.TestCase):
             for key in ("I-10", "I-14"):
                 self.assertGreaterEqual(len(re.findall(r"\brefused\b", rows[key][3])), 2,
                                         f"{key}: {rows[key]}")
+
+
+def objective_argv(run_id: str) -> list[str]:
+    """A whole `trial objective` call naming CLAUSE, the candidate and both cases."""
+    return ["trial", "objective", run_id, "--deliverable", "LD-123", "--clause", CLAUSE,
+            "--candidate", "dev", "--case", f"omitted:{CLAUSE}", "--case", f"changed:{MOVED}"]
 
 
 def importlib_spec(path: Path):
