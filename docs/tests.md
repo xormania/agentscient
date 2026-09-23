@@ -70,6 +70,14 @@ its sources. Three primitives and one pattern on them:
   for existing assertions; helpers do not copy it into CompletedProcess
   objects or family-specific result classes. Refusal helpers delegate to
   `Result.refusal` or `refusal_wire` before checking domain-specific details.
+- **Checks** (`checks.py`): immutable name, argv, required inputs and timeout;
+  `execute_checks` preflights a complete plan and returns named `Result`s from
+  `run`, serially or concurrently. Missing inputs, duplicate names and empty
+  plans refuse. `suite_checks` proves a file partition and uses `suite.py`
+  for unittest discovery that rejects zero collected cases. Domain check
+  definitions stay outside the kit. The dev-lane adapter and its full/partial
+  distinction are specified in
+  [CONTRACT-ci.md](../ops/devlane/workflow/checks/CONTRACT-ci.md).
 - **Tools** (`fakes.py`, `fake_program.py`): one fake registry driven by
   data. A planted tool answers by argv from its spec, injects failure by
   data, and appends one JSON line per call to an append-only log. A

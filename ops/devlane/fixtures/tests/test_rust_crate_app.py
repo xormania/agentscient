@@ -271,6 +271,9 @@ HEX_PIN = "=0.4.3"
 LANE_COPY_PATHS = (
     "ops/devlane/fixtures/apps/FAULT-KINDS.md",
     "ops/bin/suites.sh",
+    "ops/devlane/workflow/checks/lane.py",
+    "ops/testkit/checks.py",
+    "ops/testkit/suite.py",
     "ops/bin/dispatch.sh",
     "ops/conductor/tools/dispatch.sh",
     "ops/conductor/tools/instrument.py",
@@ -1792,7 +1795,8 @@ class RustCrateMakeProve(_RepoFreeze):
         env = self.scratch_env()
         try:
             suites = run(
-                ["bash", str(made / "ops" / "bin" / "suites.sh")],
+                ["bash", str(made / "ops" / "bin" / "suites.sh"),
+                 "--suite", "ops/devlane/task/tests"],
                 cwd=made,
                 env=env,
                 timeout=SUITES_CAP,
@@ -1805,6 +1809,7 @@ class RustCrateMakeProve(_RepoFreeze):
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
         )
+        self.assertIn("PARTIAL: PASS", suites.stdout)
         combined = (suites.stdout or "") + (suites.stderr or "")
         ran = UNITTEST_RAN_RE.search(combined)
         self.assertIsNotNone(

@@ -149,9 +149,23 @@ def job_ids(text, filename="workflow"):
 
 
 def workflow_job_names(root=None):
-    """Return every job id from the repository's always-on workflow."""
+    """Read the JSON workflow, retaining YAML reads for historical PR refs."""
     root = Path(root) if root is not None else ROOT
-    names = job_ids(read_workflow(root, CI), CI)
+    text = read_workflow(root, CI)
+    if text.lstrip().startswith("{"):
+        try:
+            doc = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise DerivationError(CI, "-", "a JSON workflow", str(exc)) from exc
+        jobs = doc.get("jobs")
+        if not isinstance(jobs, dict) or any(
+            not re.fullmatch(JOB_ID_TEXT, name) or not isinstance(job, dict)
+            for name, job in jobs.items()
+        ):
+            raise DerivationError(CI, "-", "a mapping of job ids to jobs", repr(jobs))
+        names = list(jobs)
+    else:
+        names = job_ids(text, CI)
     if not names:
         raise DerivationError(CI, "-", "at least one workflow job", "none")
     return sorted(names)
