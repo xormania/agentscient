@@ -580,6 +580,7 @@ def make_executable(path: Path) -> Path:
 PROC = Path("/proc")
 POLL = 0.05
 SWEEP_GRACE = 2.0
+START_MARK = "TESTKIT_DAEMON_START"
 
 
 class DaemonRefused(AssertionError):
@@ -641,6 +642,12 @@ def carrying(home: Path, pids) -> set[int]:
     """The pids whose environment names ``home`` as HOME."""
     marker = b"HOME=" + os.fsencode(str(home))
     return {pid for pid in pids if marker in _read(pid, "environ").split(b"\0")}
+
+
+def bearing(entry: str, pids) -> set[int]:
+    """The pids whose environment holds ``entry``, a ``NAME=value``, verbatim."""
+    want = os.fsencode(entry)
+    return {pid for pid in pids if want in _read(pid, "environ").split(b"\0")}
 
 
 def matching(tokens, pids) -> set[int]:
@@ -747,8 +754,15 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
     """Run ``argv`` in the world and record the daemon it leaves running."""
     from .command import run
     _check_daemon(name, stop)
+    # The start's own mark: ``match`` reads only the processes that carry it,
+    # so a process the host starts meanwhile with the same tokens is never
+    # this daemon (A-535 #1). A daemon that clears its whole environment
+    # carries neither the mark nor HOME and is not found: a declared gap.
+    mark = f"{START_MARK}={os.urandom(16).hex()}"
+    env = dict(world.env())
+    env[START_MARK] = mark.split("=", 1)[1]
     before = processes()
-    run(argv, cwd=world.cwd, env=world.env(), timeout=timeout, expect=0)
+    run(argv, cwd=world.cwd, env=env, timeout=timeout, expect=0)
     owned = {child.pid for child in world._children}
     taken = {pid for other in world._daemons for pid in other.pids}
     deadline = time.monotonic() + timeout
@@ -756,7 +770,7 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
         table = processes()
         new = {pid for pid, (_, started) in table.items()
                if before.get(pid, (None, None))[1] != started}
-        pids = (carrying(world.home, new) | matching(match, new)) - owned - taken - {os.getpid()}
+        pids = (carrying(world.home, new) | matching(match, bearing(mark, new))) - owned - taken - {os.getpid()}
         if pids or time.monotonic() >= deadline:
             break
         time.sleep(POLL)

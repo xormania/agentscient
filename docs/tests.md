@@ -56,7 +56,8 @@ its sources. Three primitives and one pattern on them:
   narrowed by `match` when both are given; or, with no socket, the
   processes carrying the world's HOME that `match` names. Nothing outside
   the world is adopted, and `world.daemon`'s `match` reads only the
-  processes its start made. A stop callable runs within the timeout. A
+  processes its start made, those carrying the start's own mark in their
+  environment. A stop callable runs within the timeout. A
   refusal names a process by its program and argv size, never its bytes. The case starts nothing, so the
   subject's own path is the one under test, and `close` stops an adopted
   daemon as it stops a started one.
