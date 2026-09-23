@@ -524,6 +524,14 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
         raise EnvelopeError(
             f"a {env['status']!r} task did not do its job and cannot "
             "approve one")
+    p1 = env["counts"].get("p1")
+    if env["verdict"] == "approve" and isinstance(p1, int) and p1 > 0:
+        # A p2 or p3 under approve stays lawful; a p1 is the task saying
+        # the change is wrong. A p1 counted as 0 under approve is refused
+        # below, where the counts meet the findings (LD-147).
+        raise EnvelopeError(
+            "a verdict that approves over a p1 finding contradicts its "
+            "findings")
     if env["status"] == "invalid" and env["verdict"] is not None:
         raise EnvelopeError("an invalid task carries no verdict")
     if env["status"] == "invalid" and not env["note"]:
