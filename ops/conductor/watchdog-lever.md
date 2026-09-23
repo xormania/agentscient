@@ -270,3 +270,87 @@ Verification boundary: existing `test_watchdog.py` behavior stays covered;
 focused additional probes must distinguish unchanged versus amended
 closed records, unreadable store versus empty store, cached versus fresh
 forge readings, a full page, and errors spanning an output-read boundary.
+
+## Host conditions
+
+Standing: proposed, at the owner's word (2026-09-23, 01:53Z: "we have
+watchdog and monitor - maybe they can also track memory leaks?"),
+written by the contract session (agentscient-87, Claude Fable 5.1) at
+the Lead's order through the XO; the code seat is named with board 12.
+What it answers, measured that night: the slice 1 test world leaked
+its private tmux server on every run, 1,211 servers held about 43 GB
+by 01:40Z, and nothing on the lane said so until the host swapped.
+
+`python3 ops/conductor/tools/watchdog.py host [--once] [--tick N]
+[--proc-root PATH]` takes four host readings and prints one line for
+each that stands outside its bound. It reads; no identity. Every
+reading and its bound come from a config row, with a default when the
+row is absent:
+
+| reading | source | key in `ops/lane.conf` | default | trips when |
+|:--|:--|:--|:--|:--|
+| available memory, MB | `MemAvailable` in `<proc-root>/meminfo` | `HOST_MEM_FLOOR_MB` | 2048 | below the floor |
+| swap used, MB | `SwapTotal - SwapFree` in `<proc-root>/meminfo` | `HOST_SWAP_CEIL_MB` | 4096 | above the ceiling |
+| process count | the all-digit entries of `<proc-root>` | `HOST_PROC_CEIL` | 3000 | above the ceiling |
+| stray tmux servers | socket files matching `HOST_TMUX_GLOB` under `HOST_TMUX_ROOT`, older than `HOST_TMUX_GRACE_MIN` by the socket file's mtime, that answer a connect | `HOST_TMUX_CEIL` (with `HOST_TMUX_ROOT`, default the system temp directory; `HOST_TMUX_GLOB`, default `sessions-*/tmp/tmux.sock`; `HOST_TMUX_GRACE_MIN`, default 30) | 0 | above the ceiling |
+
+The tmux count is read from the socket files plus a liveness check,
+never from `ps` alone: a socket file whose connect is refused is a
+stale socket, counted separately and never a server; a server younger
+than the grace period is a test still running, not a stray. `ps` is
+not consulted, because a server's command line does not say which
+world left it.
+
+The lines, each printed once on entry into the crossing state and once
+more, as `host <reading> recovered: <value>`, when the reading comes
+back inside its bound; `--once` prints what stands now and exits:
+
+- `host memory: <n> MB available of <total>, floor <f> MB; needed hold
+  launches, kill the stray daemons the host tmux line names, or raise
+  HOST_MEM_FLOOR_MB`
+- `host swap: <n> MB used of <total>, ceiling <c> MB; needed the same`
+- `host processes: <n>, ceiling <c>; needed the same`
+- `host tmux: <n> servers under <root> older than <g> min, ceiling <c>,
+  stale sockets <s>: <up to three socket paths>; needed tmux -S <path>
+  kill-server for each, by the owner's hand, never an agent's, and the
+  leak filed against its test world`
+- `host unreachable: <reading>: <why>` when a source cannot be read; it
+  stands like a crossing, because a reading that could not be taken is
+  never a pass.
+
+Exit under `--once`: 0 when no line stands, 1 (Finding) when one does.
+The `host` verb is also folded into the cadence loop: the four readings
+join the heartbeat as `host=<mem> MB, swap <n> MB, procs <n>, tmux <n>`.
+
+**The hold**: the Dispatcher reads `watchdog.py host --once` before
+every launch and holds the launch while a host line stands; the
+refusal it prints is `host: expected no host line standing; found <the
+line>; needed <the line's remedy>`. `dispatch.sh` (the Dispatcher's
+own, not wall) runs the read itself so the hold does not depend on the
+seat remembering. What stands is reported to the XO at once with the
+line, because the remedy is the owner's hand.
+
+Refusals added: `host-conf` (a `HOST_*` value that is not a positive
+number, or a floor above the host's total); `proc-root` (`--proc-root`
+not a directory). The wire as above.
+
+Tests (`ops/conductor/tests/test_watchdog_host.py`, on the kit): the
+planted fault is tonight's leak, a world-owned fake tmux server (a
+listener on `<root>/sessions-x/tmp/tmux.sock` with the file's mtime set
+past the grace period by `os.utime`) trips `host tmux` naming its path;
+the clean neighbour is one younger than the grace period, which does
+not trip; a socket file with no listener reads as a stale socket, not a
+server; a planted `meminfo` under `--proc-root` below the floor trips
+`host memory` and one above it does not; the same for swap; a
+`--proc-root` with 3001 all-digit directories trips `host processes`;
+a `meminfo` that cannot be read prints `host unreachable` and exits 1;
+`host recovered` prints once when a planted reading moves back. The
+rows are written by a producer other than the code seat.
+
+### Required of the wall
+
+Last on the wall's list (agentscient-55): `launch.py` takes the same
+read before it forks the harness and refuses `host` with the line, so a
+launch by hand is held the same way a dispatched one is. Until it
+lands, the hold is `dispatch.sh`'s alone, and that absence is declared
+here.
