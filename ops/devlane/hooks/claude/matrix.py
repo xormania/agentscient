@@ -1265,7 +1265,9 @@ def deliverable(toks, cwd, lane):
 
 
 PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
-PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
+# A row id is P-<family>-<leaf>. A bare family in prose ("all seven P-278 rows
+# PASS") names no row; read as one, it refused #271, #278 and #274 as absent.
+PROOF_ID = re.compile(r"\bP-[A-Za-z0-9]+(?:-[A-Za-z0-9_]+)+")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
 AUDIT_JOB = "security-audit"
