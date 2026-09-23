@@ -7,6 +7,9 @@ per-pass config and logs it and the record ids it names; `digest`
 answers the events in the spec file beside this program whose id is above
 the acked cursor, as monitor.py's digest does; `--ack` moves the cursor to
 the last event served. The spec's `replay` serves every event regardless.
+The spec's `observed` serves only events whose subject a `run --once`
+config named, as monitor.py only reports what a pass observed; the ids
+observed are kept in `<this-program>.observed`.
 
 The spec is `<this-program>.spec.json`: `{"replay": false, "events":
 [...]}`. Each event is a monitor digest event (id, route, consumer,
@@ -53,6 +56,18 @@ def collect_ids(value) -> list[str]:
         for item in value:
             found.extend(collect_ids(item))
     return found
+
+
+def observed_path() -> Path:
+    return program().with_suffix(".observed")
+
+
+def observed_ids() -> set[str]:
+    """Every record id a `run --once` config has named; empty before any."""
+    try:
+        return set(observed_path().read_text(encoding="utf-8").split())
+    except OSError:
+        return set()
 
 
 def acked_through() -> int:
@@ -148,6 +163,9 @@ def emit(payload: dict) -> None:
 def serve_run(argv: list[str], spec: dict) -> int:
     config, ids = config_ids(argv)
     log_call(argv, ids, config)
+    if ids:
+        with observed_path().open("a", encoding="utf-8") as handle:
+            handle.write("".join(f"{item}\n" for item in ids))
     events = spec.get("events") if isinstance(spec.get("events"), list) else []
     emit({"observations": len(ids), "events": len(events), "unavailable": 0})
     return 0
@@ -161,6 +179,10 @@ def serve_digest(argv: list[str], spec: dict) -> int:
     asked = consumer_of(argv)
     if asked not in (None, "dispatch"):
         events = []
+    if spec.get("observed"):
+        seen = observed_ids()
+        events = [event for event in events
+                  if isinstance(event, dict) and str(event.get("subject")) in seen]
     if not replay:
         cursor = acked_through()
         events = [event for event in events

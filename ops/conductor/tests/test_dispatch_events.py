@@ -13,7 +13,9 @@ acked and never sent. The same digest served twice sends nothing twice,
 counted by `send --key event:<event id>:<recipient>`. A send that cannot
 take the store's write lock leaves the cursor unacked and the messages
 absent. An event whose record has no intent is acked and never sent.
-`--once` returns after one `run --once`.
+`--once` returns after one `run --once`. A job waited and collected
+before any router pass still reaches its requester as one inform with
+the record id (slice 3's exit; 0e's F1 at d0cbc6b0).
 
 The monitor is `fakes/dispatch_digest.py`, planted through the registry
 at `DISPATCH_MONITOR`. An intent is planted through `dispatch_intents.py`
@@ -51,6 +53,9 @@ from ops.testkit import RefusalCase, World, refusal_wire, run
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
 EVENTS = TOOLS / "dispatch_events.py"
+ACTIONS = TOOLS / "dispatch_actions.py"
+LAUNCH_FAKE = Path(__file__).resolve().parent / "fakes" / "dispatch_launch.py"
+VERIFICATIONS = REPO / "ops" / "conductor" / "verifications.json"
 INTENTS = TOOLS / "dispatch_intents.py"
 CORE = TOOLS / "coordination.py"
 DISPATCHER = TOOLS / "dispatcher.py"
@@ -67,6 +72,7 @@ DISPATCHER_SESSION = "sess-events-dispatcher"
 BRANCH = "lane/session-20260923-events"
 ORIGIN = "sessions-lever.md#slice-3 9"
 PASS_CONFIG = "sessions-lever.md#slice-3 the per-intent pass config"
+EXIT_CLAUSE = "sessions-lever.md#slice-3 exit; 0e F1 at d0cbc6b0"
 EXIT_ALONE = re.compile(r"(?<![0-9])0(?![0-9])")
 
 
@@ -97,6 +103,7 @@ ROWS = _by_id((
     Row("once-returns", ORIGIN, "running", "rec-once"),
     Row("early-finish-one-inform", PASS_CONFIG, "completion", "rec-early"),
     Row("later-launch-repeats-nothing", PASS_CONFIG, "completion", "rec-first"),
+    Row("collected-before-router-informs-once", EXIT_CLAUSE, "completion", "rec-collected"),
 ))
 
 
@@ -115,7 +122,11 @@ class DispatchFollowThrough(unittest.TestCase):
             self.world.bin / "dispatch-monitor", FAKE.read_text(encoding="utf-8"))
         self.spec_path = Path(self.monitor).with_suffix(".spec.json")
         self.wrapper = self.world.tools.plant("dispatch-wrapper")
-        self.launcher = self.world.tools.plant("dispatch-launcher")
+        text = LAUNCH_FAKE.read_text(encoding="utf-8")
+        if text.startswith("#!"):
+            text = text.split("\n", 1)[1]
+        self.launcher = self.world.tools.plant("dispatch-launcher",
+                                               script=f"#!{sys.executable}\n" + text)
         self._held = None
         self.addCleanup(self.release_store)
         self._bind_cast()
@@ -230,7 +241,8 @@ class DispatchFollowThrough(unittest.TestCase):
                            "--record", row.record, session=DISPATCHER_SESSION)
         self.assertEqual(minted.exit, 0, minted.stderr)
 
-    def serve(self, row: Row, *, replay: bool = False, event_id: int = 1) -> None:
+    def serve(self, row: Row, *, replay: bool = False, event_id: int = 1,
+              observed: bool = False) -> None:
         """The digest this pass returns. Summary is the monitor's status field."""
         event = {
             "id": event_id,
@@ -245,7 +257,8 @@ class DispatchFollowThrough(unittest.TestCase):
             "observed_at": "2026-09-23T00:00:00Z",
             "delivery": "queued",
         }
-        self.world.plant_text(self.spec_path, json.dumps({"replay": replay, "events": [event]}) + "\n")
+        self.world.plant_text(self.spec_path, json.dumps(
+            {"replay": replay, "observed": observed, "events": [event]}) + "\n")
 
     def route(self):
         return run(
@@ -474,6 +487,30 @@ class DispatchFollowThrough(unittest.TestCase):
                          self.about(HOLDER, "inform", row.record))
         self.assertEqual(len(self.about(HOLDER, "inform", later.record)), 1,
                          self.about(HOLDER, "inform", later.record))
+
+    def test_a_job_collected_before_any_pass_informs_its_requester_once(self):
+        """A job that ends and is collected before the router's first pass
+        (the router down, or inside one tick) still reaches its requester as
+        one inform carrying the record id, whether the pass reports it or
+        collect sends it itself.
+        origin: slice 3's exit, "the launch's outcome reaches the requester
+        as a message with the record id, once"; 0e's F1 at d0cbc6b0"""
+        row = ROWS["collected-before-router-informs-once"]
+        with self.subTest(id=row.id, origin=row.origin):
+            self.plant_launched(row)
+            table = json.loads(VERIFICATIONS.read_text(encoding="utf-8"))
+            self.assertTrue(table, f"the tracked table names no verification: {VERIFICATIONS}")
+            collected = run(
+                [sys.executable, str(ACTIONS), "collect", "DI-1", "--verify", min(table)],
+                cwd=REPO, env=self.env(DISPATCHER_SESSION), timeout=TIMEOUT,
+            )
+            self.assertEqual(collected.exit, 0, collected.stderr)
+            self.assertEqual(self.calls(), [], "a router pass ran before collect")
+            self.serve(row, observed=True)
+            self.route()
+            lines = self.about(HOLDER, "inform", row.record)
+            self.assertEqual(len(lines), 1, f"{row.id}: {lines!r}")
+            self.assertIn(row.record, self.payload(lines[0]))
 
 
 if __name__ == "__main__":

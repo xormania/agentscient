@@ -851,7 +851,9 @@ omitted behaviour and a changed candidate). It is written by
 `sessions.py trial objective <run> --deliverable <id> --clause <file:line>
 ... --candidate <ref> --case omitted:<clause> --case changed:<ref>
 [--fake <name> ...]` into `<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
-a clause, the candidate or either case is refused `objective`.
+a clause, the candidate or either case is refused `objective`, and so
+is `trial accept` on a run whose `objective.json` is absent: acceptance
+is judged against the objective, never without one.
 
 **The trial record** is `ops/conductor/handoff/<date>-slice4-trial.md`,
 the date the run's start date in `YYYY-MM-DD`, checked by `sessions.py
@@ -859,9 +861,9 @@ trial record <path>`, which refuses `evidence` on the first row without a
 reading or `not measured <why>` and exits 0 on a complete record. An
 acceptance claim is `sessions.py trial accept <run> --candidate <sha>
 --record <path>`, which refuses `acceptance` when `<sha>` is not the
-40-hex sha in row I-14's evidence cell (`verified <sha>`, the
-verifier's row; a cell without one refuses `acceptance` naming the
-absence), when any clause in the run's `objective.json` appears by its
+40-hex sha in row I-14's evidence cell (`verified <sha>`, the sha first
+after the word, the verifier's row; a cell without one refuses
+`acceptance` naming I-14, a mismatch names both shas), when any clause in the run's `objective.json` appears by its
 `file:line` token in no row's evidence or reading (the omitted
 behaviour, refused naming the clause), or when an evidence cell reads
 `live` while its row's reading names a program the objective's `fakes`
@@ -881,10 +883,23 @@ never declares the September 16 objective complete.
 run, preserving every attempt including the failed ones, plus
 `coordination.py` `decisions` and `observations` for the run's
 participants, into `<state dir>/runs/R-n/export/` (plan §10). The
-runbook's export command is `sessions.py export <run>`; it exits 0 only
-when it names every managed member's pane log and every dispatch record
-id the run launched, the ids read from the store's `coord_launch` rows
-(slice 3), and refuses `export` otherwise. A joined member has no pane
+runbook's export command is `sessions.py export <run>`, the run
+positional and the destination `<state dir>/runs/R-n/export/` unless
+slice 1's `--to DIR` names another; it exits 0 only when it names every
+managed member's pane log and every dispatch record id the run
+launched. "Launched by the run" is read from the store, never from a
+message: the `dispatch_intents` rows (slice 3) whose requester or
+dispatcher is one of the run's participants, reserved at or after the
+run's `started_at`, and whose intent reached a record; the store gains
+no column for it, since a participant is bound to one run. A managed
+member with no pane log, or a record id whose record is not under the
+jobs root, refuses `export` (exit 2, stdout empty) before anything is
+written; a log that exists but cannot be read is slice 1's partial
+export, exit 1 with the failure named. The export writes `run.json`
+with the records, decisions and observations of the run's participants,
+and the run's telemetry rows when the telemetry store selects by run;
+otherwise `run.json` declares `telemetry not exported <why>`, a known
+gap in the handoff, never a silent absence. A joined member has no pane
 log and is listed `joined <id> no pane log`, a declared absence, never a
 refusal.
 
@@ -910,7 +925,7 @@ unmet does not advance; the trial record says which step stopped it.
 | 5 worker blocker | the dispatched worker | a question through acting MCP received by management while the assignment stays open; the record states whether the return path was live ingress or a checkpoint (never "live steering" for a one-shot route) | `ingress` | I-09 |
 | 6 result and verification | Dispatcher, then verifier | `coord_collect` result; the verifier's examination of the candidate against the objective; the omitted-behaviour case and the changed-candidate case each **fail** acceptance, with the failing line | `acceptance` | I-10 second half, I-14 |
 | 7 detach and recover | owner, then observer | `attach` and re-attach with the native sessions untouched; `recover` (slice 2) over the same pending and complete records; a process-loss case against a sacrificial member only, the `lose-<place>` marking and the replacement's next generation | `recovery` | I-11 |
-| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store (a `send --purpose inform --reply-to M-n` answering the stop-requested message M-n), `acknowledged <stamp>` with the reply's `created` stamp in ISO 8601 UTC, or `unacknowledged`, never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
+| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store (a `send --purpose inform --reply-to M-n` answering the stop-requested message M-n), `acknowledged <stamp>` with the reply's `queued_at` stamp (the messages table's column) in ISO 8601 UTC, `unacknowledged` when the stop-requested message reached the member and no reply answers it, or `unacknowledged no stop request reached it` when no such message exists for the member; never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
 
 ### Refusals added
 
@@ -966,7 +981,12 @@ mints the participant's private capability at bind time, writes it into
 that terminal's own profile home, `<state dir>/runs/R-n/terminals/PT-n/home`,
 and nowhere shared, and refuses `capability` only when it can neither
 read nor mint one; the refusal names which, `missing` or `malformed
-<what>`. A bound plain terminal joins with the same eight readiness
+<what>`. The terminal names its run: `bind --run R-n` in a terminal
+with no managed launch, refused `missing` when `R-n` names no run;
+the mint writes `<home>/profile.json` carrying the coordination
+capability and prints `profile <path>`, and every later verb in that
+terminal reads it through `AGENTSCIENT_HOOK_PROFILE`, exported by the
+shell as the runbook shows, or `--profile <path>` on the verb. A bound plain terminal joins with the same eight readiness
 lines as a managed member plus a ninth line that `status` prints for
 every member, `enforcement unmeasured` until the hook profile is
 observed and `enforcement ok <profile id>` after, never `ok` by default. The minting is a wall change:
@@ -983,9 +1003,16 @@ enforcement; the same world with a malformed capability refuses
 
 Slice 4 owns one suite, `ops/conductor/tests/test_sessions_trial.py`
 with `sessions_trial_faults.py` beside it (written red by the reviewer
-agentscient-cf at 662f9407, 2026-09-23), rows by id for the four
-refusals, the trial record's shape, step 8's accounting and the
-owner's-terminal clause. The controlled cases below are planted in the
+agentscient-cf at 662f9407, repointed at 3f17367a, 2026-09-23), rows by
+id for the four refusals, the trial record's shape, step 8's accounting
+and the owner's-terminal clause. Which rows ride the run is declared,
+never left to a red count: the acceptance rows write their own
+objective through `trial objective` first and assert `fakes` present;
+a row over the trial record skips, naming the reason, while no record
+exists at `ops/conductor/handoff/<date>-slice4-trial.md`; the
+owner's-terminal rows are marked expected failures citing LD-125 until
+the wall session lands the minting, and turn red-for-real the commit it
+lands. The controlled cases below are planted in the
 live trial by the verifier and recorded in the verifier's record; the
 suite carries their fixture shape, the verifier carries their reading:
 
