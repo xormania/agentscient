@@ -90,7 +90,7 @@ class SecurityAuditIsInTheCatalogue(_WorldCase):
             f"last 240 chars: {prompt[-240:]!r}",
         )
 
-    def test_security_audit_declares_caps_timeout_1200(self):
+    def test_security_audit_declares_caps_timeout_3600(self):
         jobs = self.jobs()
         self.assertIn("security-audit", jobs)
         self.assertIn("adversarial-review", jobs)
@@ -103,11 +103,12 @@ class SecurityAuditIsInTheCatalogue(_WorldCase):
         self.assertIsInstance(audit_caps, dict, "security-audit must declare caps")
         self.assertIsInstance(sibling_caps, dict)
         # adversarial-review moved to 1800 on 2026-09-11 (Grok reviews ran
-        # to 19 of 20 minutes); security-audit stays at 1200.
-        self.assertEqual(sibling_caps.get("timeout"), 1800)
+        # to 19 of 20 minutes); both moved to 3600 on 2026-09-22 with every
+        # other job (dispatch CONTRACT.md, owner: "raise them to 60 mins").
+        self.assertEqual(sibling_caps.get("timeout"), 3600)
         self.assertEqual(
-            audit_caps.get("timeout"), 1200,
-            "security-audit declares caps.timeout 1200, like adversarial-review",
+            audit_caps.get("timeout"), 3600,
+            "security-audit declares caps.timeout 3600, like adversarial-review",
         )
 
 
