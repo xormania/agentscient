@@ -1371,7 +1371,7 @@ def do_export(rest):
     if failures:
         print(f"partial {dest} ({len(members)} members, {files} files); first failure: {failures[0]}")
         return EXIT_FINDING
-    print(f"exported {dest} ({len(members)} members, {len(records)} records, {files} files)")
+    print(f"exported {dest} ({len(members)} members, {files} files) {len(records)} records")
     return EXIT_DONE
 
 
