@@ -21,6 +21,18 @@ TESTKIT_FAKE_SPEC when it names this program's spec) says:
   ``session/request_permission`` with that title, id ``perm-1``, offering
   ACP's two options, ``allow-once`` (allow_once) and ``reject-once``
   (reject_once);
+- ``permission_raw_input``: when set with ``permission_title``, the
+  request's ``toolCall`` is a ``use_tool`` call in grok's own namespace
+  (``_meta`` ``x.ai/tool`` ``grok_build``/``use_tool``) carrying this
+  object verbatim as ``rawInput``, as grok 1.0.40 asks before a call on
+  an MCP server (sessions-lever.md, ``observe``'s permission exception);
+  ``permission_tool`` ``[namespace, name]`` replaces that ``_meta`` tool;
+- ``permission_options``: ``[optionId, kind]`` pairs replacing the two
+  default options; live grok offers ``always-allow`` (allow_always) too;
+- ``stray_id``: when set, a prompt's frames carry, after the first
+  ``session/update``, a response whose id is this value and which no
+  request of the client's matches, as grok 1.0.40 sends its own
+  ``skills-reload`` response mid-turn;
 - ``reject_method``: the method answered -32601;
 - ``die_after``: the method after whose answer the process exits;
 - ``ack_probe``, ``ack``, ``send_reply``, and ``session`` with
@@ -126,7 +138,8 @@ def stream(req_id, value: dict, frames: list) -> None:
     """The frames, then the result, as ACP orders a prompt's updates
     before its answer; the frames are logged before either is written."""
     for frame in frames:
-        append(".emitted.jsonl", frame)
+        if "method" in frame:
+            append(".emitted.jsonl", frame)
     for frame in frames:
         emit(frame)
     result(req_id, value)
@@ -206,7 +219,10 @@ def coordination(*argv: str):
         sys.path.insert(0, REPO)
     from ops.testkit import run
     env = os.environ.copy()
-    env["CLAUDE_CODE_SESSION_ID"] = session
+    # The participant resolves by the capability's digest under the member's
+    # profile; an alias naming the launch id conflicts with the registered
+    # native id and inbox refuses session-profile (b3's reading, 2026-09-23).
+    env.pop("CLAUDE_CODE_SESSION_ID", None)
     env["COORDINATION_CAPABILITY"] = capability
     tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
     try:
@@ -250,17 +266,25 @@ def prompt_frames(spec: dict, native: str) -> list:
         {"jsonrpc": "2.0", "method": "_x.ai/session/prompt_complete",
          "params": {"sessionId": native, "turn": turn}},
     ]
+    stray = spec.get("stray_id")
+    if isinstance(stray, str) and stray:
+        frames.insert(1, {"jsonrpc": "2.0", "id": stray, "result": {}})
     title = spec.get("permission_title")
     if isinstance(title, str) and title:
+        call = {"toolCallId": "call-1", "title": title}
+        raw = spec.get("permission_raw_input")
+        if isinstance(raw, dict):
+            call["rawInput"] = raw
+            named = spec.get("permission_tool")
+            namespace, name = named if isinstance(named, list) else ["grok_build", "use_tool"]
+            call["_meta"] = {"x.ai/tool": {"namespace": namespace, "name": name}}
+        pairs = spec.get("permission_options")
+        if not isinstance(pairs, list):
+            pairs = [["allow-once", "allow_once"], ["reject-once", "reject_once"]]
+        options = [{"optionId": ident, "name": ident, "kind": kind} for ident, kind in pairs]
         frames.append({"jsonrpc": "2.0", "id": "perm-1", "method": "session/request_permission",
                        "params": {"sessionId": native, "title": title,
-                                  "toolCall": {"toolCallId": "call-1", "title": title},
-                                  "options": [
-                                      {"optionId": "allow-once", "name": "Allow",
-                                       "kind": "allow_once"},
-                                      {"optionId": "reject-once", "name": "Reject",
-                                       "kind": "reject_once"},
-                                  ]}})
+                                  "toolCall": call, "options": options}})
     return frames
 
 
@@ -272,8 +296,11 @@ def after_submit(spec: dict, params: dict) -> None:
             ack_lines(lambda line: "readiness probe" in line)
         return
     if spec.get("send_reply") and blob.strip():
+        # The carried message names its id, `[coordination M-n]`; the inbox
+        # line for it starts with that id.
+        carried = set(re.findall(r"\bM-\d+\b", blob))
         for line in inbox().splitlines():
-            if not any(part and part in line for part in texts(params)):
+            if not line.split() or line.split()[0] not in carried:
                 continue
             sender = re.search(r"\bfrom (PT-\d+)\b", line)
             if sender:
