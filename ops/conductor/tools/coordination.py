@@ -2255,6 +2255,29 @@ def carriable(conn, part) -> dict:
     return {"carry": carry, "ambiguous": ambiguous}
 
 
+def member_kin(conn, pid: int) -> list[int]:
+    """The participants of every generation of the member PT-`pid` is: the
+    same run and member name in sessions.py's `session_member`, in the
+    same store. `pid` alone when no member row names it or the store has
+    no such table. Attempt exclusion and reconciliation key on these, so a
+    replacement generation sees, waits on and settles what its
+    predecessor left unsettled (A-522 #1): a restart neither erases the
+    obligation nor replays its effects."""
+    if not has_table(conn, "session_member"):
+        return [pid]
+    rows = conn.execute(
+        "SELECT DISTINCT k.participant FROM session_member m JOIN session_member k "
+        "ON k.run = m.run AND k.name = m.name "
+        "WHERE m.participant = ? AND k.participant IS NOT NULL ORDER BY k.participant",
+        (pid,)).fetchall()
+    return [row[0] for row in rows] or [pid]
+
+
+def marks(values) -> str:
+    """One `?` per value, for an `IN (...)` whose values stay bound."""
+    return ",".join("?" for _ in values)
+
+
 def attempt_row(conn, aid: int):
     row = None
     if conn is not None and has_table(conn, "delivery_attempts"):
@@ -2270,7 +2293,8 @@ def core_attempt(conn, part, *, message, route, generation) -> dict:
 
     Nothing is resubmitted while an attempt of the message is unsettled, and
     at most ATTEMPTS_OUTSTANDING attempts per participant are unsettled at
-    once. A delivered message may take a later attempt: its outcome settles
+    once, a participant counting with its member's earlier generations
+    (member_kin). A delivered message may take a later attempt: its outcome settles
     that attempt and never records `deliver` again. The courier does not
     select a delivered message; `carriable` is where that holds.
     """
@@ -2293,16 +2317,17 @@ def core_attempt(conn, part, *, message, route, generation) -> dict:
         if current["place"] != "open":
             refuse("place", f"an open message M-{mid}", f"M-{mid} {current['place']}",
                    "a resolved or withdrawn message is not carried")
+        kin = member_kin(conn, part["id"])
         pending = conn.execute(
-            "SELECT * FROM delivery_attempts WHERE message = ? AND participant = ? "
-            "AND outcome IS NULL ORDER BY id", (mid, part["id"])).fetchone()
+            f"SELECT * FROM delivery_attempts WHERE message = ? AND participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL ORDER BY id", (mid, *kin)).fetchone()
         if pending is not None:
             refuse("place", f"no unsettled attempt of M-{mid}",
                    f"AT-{pending['id']} reserved {pending['reserved_at']}, unsettled",
                    "settle it with attempted, or let the next pass reconcile it past the ttl")
         held = conn.execute(
-            "SELECT COUNT(*) FROM delivery_attempts WHERE participant = ? AND outcome IS NULL",
-            (part["id"],)).fetchone()[0]
+            f"SELECT COUNT(*) FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL", kin).fetchone()[0]
         if held >= ATTEMPTS_OUTSTANDING:
             refuse("place", f"fewer than {ATTEMPTS_OUTSTANDING} unsettled attempts for PT-{part['id']}",
                    f"{held} unsettled", "settle or reconcile the outstanding attempts first")
@@ -2340,8 +2365,9 @@ def core_attempted(conn, part, *, attempt, outcome, ref=None, error=None) -> dic
 
     def settle(conn):
         row = attempt_row(conn, aid)
-        if row["participant"] != part["id"]:
-            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}",
+        if row["participant"] not in member_kin(conn, part["id"]):
+            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}, "
+                   "or of a later generation of its member",
                    f"PT-{part['id']}", "the courier that reserved it settles it")
         if row["outcome"] is not None:
             refuse("place", f"an unsettled attempt AT-{aid}", f"settled {row['outcome']}",
@@ -2373,13 +2399,15 @@ def core_attempts(conn, part, *, message=None) -> dict:
 
 
 def stale_attempts(conn, part) -> dict:
-    """This participant's unsettled attempts reserved longer than ATTEMPT_TTL
-    ago: a crash between the submission and its settlement."""
+    """This participant's unsettled attempts, and its member's earlier
+    generations', reserved longer than ATTEMPT_TTL ago: a crash between
+    the submission and its settlement."""
     part = same_session(conn, part)
     if conn is None or not has_table(conn, "delivery_attempts"):
         return {"stale": []}
-    rows = conn.execute("SELECT * FROM delivery_attempts WHERE participant = ? AND outcome IS NULL "
-                        "ORDER BY id", (part["id"],)).fetchall()
+    kin = member_kin(conn, part["id"])
+    rows = conn.execute(f"SELECT * FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+                        "AND outcome IS NULL ORDER BY id", kin).fetchall()
     moment = now()
     stale = [row for row in rows
              if (moment - parse_stamp(row["reserved_at"])).total_seconds() > ATTEMPT_TTL]
