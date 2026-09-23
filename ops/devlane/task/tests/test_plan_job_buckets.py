@@ -66,51 +66,6 @@ class _PlanJob(_WorldCase):
 class PlanPromptQuotesTheBucketRule(_PlanJob):
     """S, M as two named S buckets, L split; each slice carries the rest."""
 
-    def test_s_is_one_to_three_files_and_one_worker_run_under_ten_minutes(self):
-        self.assertIn(S_BUCKET, self.words())
-
-    def test_m_is_four_to_eight_files_as_two_named_s_buckets(self):
-        self.assertIn(M_BUCKET, self.words())
-
-    def test_l_is_split(self):
-        self.assertIn(L_BUCKET, self.words())
-
-    def test_every_slice_carries_what_it_unblocks(self):
-        self.assertIn(UNBLOCKS, self.words())
-
-    def test_every_slice_carries_its_risk_class(self):
-        self.assertIn(RISK_CLASS, self.words())
-
-    def test_risk_class_names_the_dispatcher(self):
-        self.assertIn(RISK_DISPATCHER, self.words())
-
-    def test_risk_class_names_the_launchers_argv_building(self):
-        self.assertIn(RISK_ARGV, self.words())
-
-    def test_risk_class_names_a_contract_as_its_own_slice(self):
-        self.assertIn(RISK_CONTRACT, self.words())
-
-    def test_every_slice_carries_the_edges_it_touches(self):
-        self.assertIn(EDGES, self.words())
-
-    def test_every_slice_carries_the_guarantees_it_must_declare_or_keep(self):
-        self.assertIn(GUARANTEES, self.words())
-
-    def test_guarantees_cite_verified_couplings(self):
-        self.assertIn(COUPLINGS, self.words())
-
-    def test_every_slice_carries_what_it_depends_on(self):
-        self.assertIn(DEPENDS, self.words())
-
-    def test_every_slice_lands_green_alone(self):
-        self.assertIn(LANDS_GREEN, self.words())
-
-    def test_the_plan_says_which_slice_deserves_its_own_pr(self):
-        self.assertIn(OWN_PR, self.words())
-
-    def test_slices_are_ordered_by_value_per_cost_with_dependencies_respected(self):
-        self.assertIn(VALUE_ORDER, self.words())
-
     def test_every_bucket_rule_sentence_is_present_together(self):
         required = (
             S_BUCKET,

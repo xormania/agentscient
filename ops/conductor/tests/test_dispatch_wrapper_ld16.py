@@ -1,3 +1,4 @@
+# testkit: exempt exercises live_store_guard's kit compare without I/O
 """LD-16 regression: a job directory of the declared shape is not an
 ordinary added name, so the shared live-store guard tolerates it while
 still failing on anything else.

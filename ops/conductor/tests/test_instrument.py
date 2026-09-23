@@ -602,7 +602,17 @@ class TheOwnerTerminal(unittest.TestCase):
             "schema": "owner-terminal-profile/1", "run": "R-3", "terminal": "PT-7",
             "coordination_capability": self.CAP})
 
+    def enroll(self):
+        env = self.world.env({"LANE_CONF": os.environ["LANE_CONF"], "WF_AGENT": AGENT,
+                              "CODEX_THREAD_ID": "terminal", "COORDINATION_CAPABILITY": self.CAP})
+        result = run([sys.executable, str(TOOLS / "coordination.py"), "bind", "--roles", "worker"],
+                     cwd=self.world.cwd, env=env, timeout=60)
+        self.assertEqual(result.exit, 0, result.stderr)
+        with self.m.connect_store(self.m.state_db(), mode="rw") as conn:
+            conn.execute("UPDATE participants SET id=7, terminal_run=3 WHERE session_id='terminal'")
+
     def test_the_digest_reads_the_pointer_and_never_the_ambient_credential(self):
+        self.enroll()
         path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
         with self.named(path), mock.patch.dict(os.environ, {"COORDINATION_CAPABILITY": "cd" * 32}):
             self.assertEqual(self.m.capability_digest(), hashlib.sha256(self.CAP.encode()).hexdigest())
@@ -680,6 +690,7 @@ class TheOwnerTerminal(unittest.TestCase):
                 finally:
                     linked.unlink()
         # Clean neighbour: the same tree with no link mints, reads and removes.
+        self.enroll()
         path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
         self.assertEqual(Path(path), self.home / "profile.json")
         with self.named(path):
@@ -709,6 +720,22 @@ class TheOwnerTerminal(unittest.TestCase):
         self.assertFalse(Path(path).exists())
         self.assertFalse(self.m.remove_terminal_profile("R-3", "PT-7", self.CAP))
         self.assertEqual(Path(self.m.mint_terminal_profile("R-3", "PT-7", "cd" * 32)), path)
+
+    def test_remove_rejects_traversal_before_touching_a_matching_file(self):
+        outside = self.world.root / "outside/terminals/PT-7/home/profile.json"
+        outside.parent.mkdir(parents=True)
+        outside.write_text(json.dumps({"coordination_capability": self.CAP}))
+        state = self.world.xdg_state / "testlane"
+        (state / "runs").mkdir(parents=True)
+        traversal = os.path.relpath(outside.parents[3], state / "runs")
+        with self.assertRaises(self.m.Refusal):
+            self.m.remove_terminal_profile(traversal, "PT-7", self.CAP)
+        self.assertTrue(outside.is_file())
+
+    def test_an_unenrolled_pointer_is_not_a_capability(self):
+        path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
+        with self.named(path):
+            self.assertIn("malformed enrollment", self.refused(self.m.capability_digest))
 
     def test_mint_refuses_a_malformed_run_terminal_or_capability(self):
         for run_id, terminal, capability in [("R-x", "PT-1", self.CAP), ("R-1", "PT-1/..", self.CAP),

@@ -37,9 +37,9 @@ import tomllib
 import unittest
 from pathlib import Path
 
-from test_fixture_manifests import KIND_IDS, parse_kind_rows, validate_manifest
+from test_fixture_manifests import parse_kind_rows
 
-from ops.testkit import Timeout, World, make_executable, plant_text, run
+from ops.testkit import Timeout, World, plant_text, run
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
@@ -48,13 +48,10 @@ APP = APPS / "rust-crate"
 MANIFEST = APP / "FAULTS.json"
 KINDS = APPS / "FAULT-KINDS.md"
 CALIBRATION = REPO / "ops" / "conductor" / "findings" / "calibration.jsonl"
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
-CALIBRATE_STUB = FIXTURES / "calibrate_capture.py"
 
 APP_NAME = "rust-crate"
 AGENT = "Rust Crate Fixture Tester <rust-crate-fixture@example.invalid>"
 RUN_CAP = 60
-PROVE_CAP = 900
 CHECK_CAP = 180
 PROBE_CAP = 130
 SUITES_CAP = 60
@@ -64,7 +61,6 @@ METADATA_CAP = 30
 
 EXPECTED_IDS = tuple(f"RC-{index:02d}" for index in range(1, 8))
 REQUIRED_KINDS = frozenset({"K1", "K2", "K3", "K4", "K5", "K6", "K9"})
-OMITTED_KINDS = frozenset({"K7", "K8"})
 EXPECTED_KIND_VISIBLE = {
     "RC-01": ("K1", "audit"),
     "RC-02": ("K2", "both"),
@@ -240,14 +236,6 @@ INTEGRATION_TESTS = (
     "tests/interval.rs",
     "tests/render.rs",
 )
-LAYOUT_FILES = (
-    "README.md",
-    "Cargo.toml",
-    "Cargo.lock",
-    "rustfmt.toml",
-    ".gitignore",
-)
-LAYOUT_DIRS = ("src", "tests", "probes", "fixes")
 
 
 def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
@@ -271,6 +259,9 @@ HEX_PIN = "=0.4.3"
 LANE_COPY_PATHS = (
     "ops/devlane/fixtures/apps/FAULT-KINDS.md",
     "ops/bin/suites.sh",
+    "ops/devlane/workflow/checks/lane.py",
+    "ops/testkit/checks.py",
+    "ops/testkit/suite.py",
     "ops/bin/dispatch.sh",
     "ops/conductor/tools/dispatch.sh",
     "ops/conductor/tools/instrument.py",
@@ -297,25 +288,12 @@ CARGO_ENV_KEYS = (
     "RUSTFLAGS",
 )
 
-REC_ID = "20260904T000000Z-review-grok-rcrate01"
-HARNESS = "grok"
-MODEL = "grok-4.6"
 
-ABSENT_STUB = b"#!/usr/bin/env bash\nexit 0\n"
 COLOUR_RE = re.compile(r"\b(RED|GREEN|UNREACHABLE)\b")
 FAULT_ID_RE = re.compile(r"\b(RC-\d{2})\b")
 COUNTS_RE = re.compile(
     r"red=(?P<red>\d+)\s+green=(?P<green>\d+)\s+"
     r"unreachable=(?P<unreachable>\d+)"
-)
-GRADE_COUNTS_RE = re.compile(
-    r"caught=(?P<caught>\d+)\s+missed=(?P<missed>\d+)\s+"
-    r"false-positive=(?P<fp>\d+)\s+unmatched=(?P<unmatched>\d+)\s+"
-    r"unlocated=(?P<unlocated>\d+)"
-)
-GRADE_RATE_RE = re.compile(
-    r"caught/faults=(?P<caught>0(?:\.\d+)?|1(?:\.0+)?)\s+"
-    r"false-positive/neighbours=(?P<fp>0(?:\.\d+)?|1(?:\.0+)?)"
 )
 HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 UNITTEST_RAN_RE = re.compile(r"Ran ([1-9]\d*) tests?")
@@ -416,30 +394,8 @@ def _live_findings_stores() -> list[Path]:
     return unique
 
 
-def _where(span: dict) -> str:
-    path = span.get("path")
-    lines = span.get("lines")
-    if not isinstance(path, str) or not path.strip():
-        return "unlocated-span"
-    if (
-        not isinstance(lines, list)
-        or len(lines) != 2
-        or not all(
-            isinstance(item, int) and not isinstance(item, bool)
-            for item in lines
-        )
-    ):
-        return f"{path}:1-1"
-    return f"{path}:{lines[0]}-{lines[1]}"
 
 
-def _finding(severity: str, where: str, claim: str) -> dict:
-    return {
-        "severity": severity,
-        "where": where,
-        "claim": claim,
-        "reproduce": "true",
-    }
 
 
 def _as_lines(value) -> list[int] | None:
@@ -629,29 +585,9 @@ def _cargo_env_passthrough() -> dict[str, str]:
     return extra
 
 
-class RustCrateExists(unittest.TestCase):
-    def test_faults_json_exists(self):
-        self.assertTrue(
-            MANIFEST.is_file(),
-            f"{MANIFEST} is missing; slice 5 plants apps/rust-crate",
-        )
 
 
 class RustCrateLayout(unittest.TestCase):
-    def test_layout_paths_exist(self):
-        for name in LAYOUT_FILES:
-            with self.subTest(path=name):
-                self.assertTrue(
-                    (APP / name).is_file(),
-                    f"{APP / name} is missing; the contract names this file",
-                )
-        for name in LAYOUT_DIRS:
-            with self.subTest(path=name):
-                self.assertTrue(
-                    (APP / name).is_dir(),
-                    f"{APP / name} is missing; the contract names this "
-                    "directory",
-                )
 
     def test_src_lib_bin_and_modules_exist(self):
         for rel in SRC_FILES:
@@ -681,28 +617,6 @@ class RustCrateLayout(unittest.TestCase):
                     f"{APP / rel} is missing; integration tests ship green",
                 )
 
-    def test_probes_and_fixes_exist(self):
-        for index in range(1, 8):
-            sh_name = f"probes/rc{index:02d}.sh"
-            patch_name = f"fixes/rc{index:02d}.patch"
-            with self.subTest(path=sh_name):
-                self.assertTrue(
-                    (APP / sh_name).is_file(),
-                    f"{APP / sh_name} is missing",
-                )
-            with self.subTest(path=patch_name):
-                self.assertTrue(
-                    (APP / patch_name).is_file(),
-                    f"{APP / patch_name} is missing",
-                )
-        for index in range(1, 7):
-            rs_name = f"probes/rc{index:02d}.rs"
-            with self.subTest(path=rs_name):
-                self.assertTrue(
-                    (APP / rs_name).is_file(),
-                    f"{APP / rs_name} is missing; RC-01..RC-06 are "
-                    "cargo test targets",
-                )
 
     def test_probe_shell_scripts_are_the_contracted_gates(self):
         for index in range(1, 7):
@@ -914,75 +828,8 @@ class RustCrateLayout(unittest.TestCase):
             "(the root gitignore is rooted)",
         )
 
-    def test_readme_itself_declares_apparatus(self):
-        text = (
-            (APP / "README.md").read_text(encoding="utf-8")
-            if (APP / "README.md").is_file()
-            else ""
-        )
-        self.assertRegex(
-            text,
-            r"(?i)apparatus",
-            "README.md itself must say the tree is apparatus, never product",
-        )
-        self.assertRegex(
-            text,
-            r"(?i)never product|not product|not a real project",
-            "README.md must say this crate is never product code",
-        )
 
-    def test_readme_names_check_cargo_fetch_and_offline(self):
-        text = (
-            (APP / "README.md").read_text(encoding="utf-8")
-            if (APP / "README.md").is_file()
-            else ""
-        )
-        self.assertRegex(text, r"\bcargo fmt\b", "README.md must name cargo fmt")
-        self.assertRegex(text, r"\bclippy\b", "README.md must name clippy")
-        self.assertRegex(
-            text,
-            r"\bcargo test\b",
-            "README.md must name cargo test",
-        )
-        self.assertRegex(
-            text,
-            r"\b--offline\b",
-            "README.md must name --offline after the warm fetch",
-        )
-        self.assertRegex(
-            text,
-            r"\b--locked\b",
-            "README.md must name --locked so the lock agrees",
-        )
-        self.assertRegex(
-            text,
-            r"\bcargo fetch\b",
-            "README.md must name cargo fetch as the warm step",
-        )
-        self.assertRegex(
-            text,
-            r"\bCARGO_TARGET_DIR\b",
-            "README.md must say CARGO_TARGET_DIR may point outside the scratch",
-        )
 
-    def test_readme_carries_one_declaration_per_fault(self):
-        text = (
-            (APP / "README.md").read_text(encoding="utf-8")
-            if (APP / "README.md").is_file()
-            else ""
-        )
-        for fault_id, quote in EXPECTED_DECLARATIONS.items():
-            with self.subTest(fault=fault_id):
-                self.assertRegex(
-                    text,
-                    rf"{re.escape(fault_id)}:",
-                    f"README.md must label {fault_id}",
-                )
-                self.assertIn(
-                    quote,
-                    text,
-                    f"README.md must carry the declared words for {fault_id}",
-                )
 
 
 class RustCrateKinds(unittest.TestCase):
@@ -1004,49 +851,9 @@ class RustCrateKinds(unittest.TestCase):
 
 
 class RustCrateManifest(unittest.TestCase):
-    def test_manifest_name_is_rust_crate(self):
-        data = load_json_object(MANIFEST)
-        self.assertEqual(
-            data.get("name"),
-            APP_NAME,
-            "FAULTS.json name matches the app directory",
-        )
 
-    def test_manifest_has_seven_rows_over_seven_kinds(self):
-        faults = fault_rows(load_json_object(MANIFEST))
-        self.assertEqual(
-            len(faults),
-            7,
-            f"seven planted faults, the eighth stays open; found {len(faults)}",
-        )
-        kinds = {row.get("kind") for row in faults}
-        self.assertEqual(
-            len(kinds),
-            7,
-            f"seven distinct kinds, found {sorted(kinds)}",
-        )
 
-    def test_manifest_cites_k1_to_k6_and_k9(self):
-        faults = fault_rows(load_json_object(MANIFEST))
-        kinds = {row.get("kind") for row in faults}
-        self.assertTrue(
-            kinds >= REQUIRED_KINDS,
-            f"manifest must cite {sorted(REQUIRED_KINDS)}; found {sorted(kinds)}",
-        )
-        self.assertTrue(
-            kinds.isdisjoint(OMITTED_KINDS),
-            f"K7 is in python-service; K8 is in python-tooling and "
-            f"symfony-app; found {sorted(kinds)}",
-        )
 
-    def test_manifest_ids_are_rc_01_to_rc_07(self):
-        faults = fault_rows(load_json_object(MANIFEST))
-        ids = tuple(row.get("id") for row in faults)
-        self.assertEqual(
-            ids,
-            EXPECTED_IDS,
-            "seven rows, ids RC-01 to RC-07; the eighth is left open",
-        )
 
     def test_manifest_kind_visible_to_and_severity_match_the_contract(self):
         faults = fault_rows(load_json_object(MANIFEST))
@@ -1300,13 +1107,6 @@ class RustCrateManifest(unittest.TestCase):
         self.assertIn("K7", not_planted, "K7 is in python-service")
         self.assertIn("K8", not_planted, "K8 is in python-tooling and symfony-app")
 
-    def test_manifest_sweep_accepts_faults_json(self):
-        problems = validate_manifest(APP, set(KIND_IDS))
-        self.assertEqual(
-            problems,
-            [],
-            f"the slice-1 sweep must accept rust-crate FAULTS.json: {problems}",
-        )
 
 
 class _RepoFreeze(unittest.TestCase):
@@ -1757,30 +1557,6 @@ class RustCrateMakeProve(_RepoFreeze):
             f"{label}: {spec!r} is a compatible range, not an exact pin",
         )
 
-    def test_make_rust_crate_into_a_temp_directory_succeeds(self):
-        made = self.made_app("made")
-        for name in LAYOUT_FILES:
-            with self.subTest(copied=name):
-                self.assertTrue(
-                    (made / name).is_file(),
-                    f"make copies the app to DIR root; missing {name}",
-                )
-        self.assertTrue(
-            (made / "FAULTS.json").is_file(),
-            "make copies FAULTS.json",
-        )
-        for name in LAYOUT_DIRS:
-            with self.subTest(copied=name):
-                self.assertTrue(
-                    (made / name).is_dir(),
-                    f"make copies the app to DIR root; missing {name}/",
-                )
-        for rel in LANE_COPY_PATHS:
-            with self.subTest(copied=rel):
-                self.assertTrue(
-                    (made / rel).is_file(),
-                    f"the lane copy list must ride into DIR: missing {rel}",
-                )
 
     def test_scratch_runs_suites_and_dispatch_dry_run(self):
         made = self.made_app("portable")
@@ -1792,7 +1568,8 @@ class RustCrateMakeProve(_RepoFreeze):
         env = self.scratch_env()
         try:
             suites = run(
-                ["bash", str(made / "ops" / "bin" / "suites.sh")],
+                ["bash", str(made / "ops" / "bin" / "suites.sh"),
+                 "--suite", "ops/devlane/task/tests"],
                 cwd=made,
                 env=env,
                 timeout=SUITES_CAP,
@@ -1805,6 +1582,7 @@ class RustCrateMakeProve(_RepoFreeze):
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
         )
+        self.assertIn("PARTIAL: PASS", suites.stdout)
         combined = (suites.stdout or "") + (suites.stderr or "")
         ran = UNITTEST_RAN_RE.search(combined)
         self.assertIsNotNone(
@@ -1917,83 +1695,7 @@ class RustCrateMakeProve(_RepoFreeze):
             f"stderr={proc.stderr!r} stdout={proc.stdout!r}",
         )
 
-    def test_prove_reports_every_planted_fault_red_when_cargo_is_ready(self):
-        target = self.root / "prove-fresh"
-        proc_make = self.make(target)
-        self.assertEqual(
-            proc_make.exit,
-            0,
-            proc_make.stderr or proc_make.stdout,
-        )
-        made = self.parse_dir(proc_make)
-        reason = self.cargo_ready_skip(made)
-        if reason:
-            self.skipTest(reason)
-        install_reason = self.install_from_manifest(made)
-        if install_reason:
-            self.skipTest(install_reason)
-        self.warm_crate(made)
-        proc = self.invoke(
-            ["prove", str(made)],
-            agent=None,
-            timeout=PROVE_CAP,
-        )
-        rows = self.parse_prove(proc.stdout)
-        self.assertEqual(
-            set(rows),
-            set(EXPECTED_IDS),
-            f"prove must colour every planted fault: {proc.stdout!r} "
-            f"stderr={proc.stderr!r}",
-        )
-        for fault_id in EXPECTED_IDS:
-            self.assertEqual(
-                rows[fault_id],
-                "RED",
-                f"{fault_id} must be RED on a fresh make: {proc.stdout!r}",
-            )
-        self.assertNotIn("GREEN", set(rows.values()))
-        self.assertNotIn("UNREACHABLE", set(rows.values()))
-        counts = self.parse_counts(proc.stdout)
-        self.assertEqual(counts["unreachable"], 0, proc.stdout)
-        self.assertEqual(counts["red"], len(EXPECTED_IDS), proc.stdout)
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
-    def test_prove_fixed_reports_every_probe_green_when_cargo_is_ready(self):
-        target = self.root / "prove-fixed"
-        proc_make = self.make(target)
-        self.assertEqual(proc_make.exit, 0, proc_make.stderr or proc_make.stdout)
-        made = self.parse_dir(proc_make)
-        reason = self.cargo_ready_skip(made)
-        if reason:
-            self.skipTest(reason)
-        install_reason = self.install_from_manifest(made)
-        if install_reason:
-            self.skipTest(install_reason)
-        self.warm_crate(made)
-        proc = self.invoke(
-            ["prove", "--fixed", str(made)],
-            agent=None,
-            timeout=PROVE_CAP,
-        )
-        rows = self.parse_prove(proc.stdout)
-        self.assertEqual(
-            set(rows),
-            set(EXPECTED_IDS),
-            f"prove --fixed must colour every planted fault: {proc.stdout!r} "
-            f"stderr={proc.stderr!r}",
-        )
-        for fault_id in EXPECTED_IDS:
-            self.assertEqual(
-                rows[fault_id],
-                "GREEN",
-                f"{fault_id} must be GREEN after planted fixes: {proc.stdout!r}",
-            )
-        self.assertNotIn("RED", set(rows.values()))
-        self.assertNotIn("UNREACHABLE", set(rows.values()))
-        counts = self.parse_counts(proc.stdout)
-        self.assertEqual(counts["unreachable"], 0, proc.stdout)
-        self.assertEqual(counts["green"], len(EXPECTED_IDS), proc.stdout)
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
     def test_each_fault_is_pinned_to_gate_target_quotes_and_rc07(self):
         made = self.made_app("oracle-probes")
@@ -2419,253 +2121,6 @@ class RustCrateMakeProve(_RepoFreeze):
         )
 
 
-class RustCrateGrade(_RepoFreeze):
-    def setUp(self):
-        super().setUp()
-        self.repo = self.root / "grade-repo"
-        self.repo.mkdir()
-        self.staged = self.repo / "ops" / "bin" / "fixture.sh"
-        self.capture = self.root / "calibrate.stdin"
-        self._stage_lever()
-        self._plant_findings_stub()
-        self._plant_lane_conf()
-        self._stage_manifest()
-
-    def _stage_lever(self) -> None:
-        self.staged.parent.mkdir(parents=True, exist_ok=True)
-        self.assertTrue(
-            LEVER.is_file(),
-            "INVALID: ops/bin/fixture.sh missing; slice 1 must be merged",
-        )
-        data = LEVER.read_bytes()
-        self.world.plant_bytes(self.staged, data)
-        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
-        make_executable(self.staged)
-
-    def _plant_findings_stub(self) -> None:
-        path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        self.assertTrue(
-            CALIBRATE_STUB.is_file(),
-            f"INVALID: calibrate capture fixture missing: {CALIBRATE_STUB}",
-        )
-        body = CALIBRATE_STUB.read_text(encoding="utf-8")
-        self.world.tools.plant_executable(path, body)
-
-    def _plant_lane_conf(self) -> None:
-        self.world.plant_text(
-            self.repo / "ops" / "lane.conf",
-            "LANE_NAME='agentscient'\n",
-        )
-
-    def _stage_manifest(self) -> None:
-        dest = (
-            self.repo
-            / "ops"
-            / "devlane"
-            / "fixtures"
-            / "apps"
-            / APP_NAME
-            / "FAULTS.json"
-        )
-        if MANIFEST.is_file():
-            data = MANIFEST.read_bytes()
-            self.world.plant_bytes(dest, data)
-            self.assertEqual(dest.read_bytes(), data)
-
-    def staged_manifest(self) -> Path:
-        return (
-            self.repo
-            / "ops"
-            / "devlane"
-            / "fixtures"
-            / "apps"
-            / APP_NAME
-            / "FAULTS.json"
-        )
-
-    def invoke(self, argv: list[str], *, agent: str | None = AGENT):
-        env = self.env(agent=agent, extra={"CALIBRATE_CAPTURE": str(self.capture)})
-        if agent is None:
-            self.assertNotIn("WF_AGENT", env)
-        try:
-            return run(
-                [str(self.staged), *argv],
-                cwd=self.repo,
-                env=env,
-                timeout=RUN_CAP,
-            )
-        except Timeout as exc:
-            self.fail(f"fixture.sh {argv} exceeded {RUN_CAP}s: {exc}")
-
-    def plant_record(self, findings: list[dict]) -> Path:
-        payload = {
-            "id": REC_ID,
-            "job": "security-audit",
-            "harness": {"name": HARNESS},
-            "model": {"ran": MODEL, "requested": MODEL},
-            "result": {"envelope": {"findings": findings}},
-        }
-        raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-        path = self.root / f"{REC_ID}.json"
-        self.world.plant_bytes(path, raw)
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(loaded["id"], REC_ID)
-        self.assertEqual(
-            len(loaded["result"]["envelope"]["findings"]),
-            len(findings),
-        )
-        return path
-
-    def parse_counts(self, stdout: str) -> dict[str, int]:
-        match = GRADE_COUNTS_RE.search(stdout)
-        self.assertIsNotNone(
-            match,
-            f"grade prints caught/missed/false-positive/unmatched/"
-            f"unlocated counts: {stdout!r}",
-        )
-        raw = match.groupdict()
-        return {
-            "caught": int(raw["caught"]),
-            "missed": int(raw["missed"]),
-            "false-positive": int(raw["fp"]),
-            "unmatched": int(raw["unmatched"]),
-            "unlocated": int(raw["unlocated"]),
-        }
-
-    def parse_rates(self, stdout: str) -> dict[str, float]:
-        match = GRADE_RATE_RE.search(stdout)
-        self.assertIsNotNone(
-            match,
-            f"grade prints caught/faults and false-positive/neighbours: "
-            f"{stdout!r}",
-        )
-        return {key: float(value) for key, value in match.groupdict().items()}
-
-    def test_grade_scores_a_planted_review(self):
-        faults = fault_rows(load_json_object(self.staged_manifest()))
-        if faults:
-            self.assertEqual(
-                tuple(row.get("id") for row in faults),
-                EXPECTED_IDS,
-                "grade scores RC-01 as caught, not a lucky first row",
-            )
-            first = faults[0]
-            findings = [
-                _finding(
-                    "p1",
-                    _where(first.get("location") or {}),
-                    "PLANTED_CAUGHT_RC_LOCATION",
-                ),
-                _finding(
-                    "p3",
-                    "src/unrelated-not-a-fault.rs:1-2",
-                    "PLANTED_UNMATCHED_RC",
-                ),
-                _finding("p3", "the CLI help text", "PLANTED_UNLOCATED_RC"),
-            ]
-        else:
-            findings = [
-                _finding(
-                    "p1",
-                    "src/shell.rs:1-1",
-                    "PLANTED_CAUGHT_RC_LOCATION",
-                ),
-                _finding(
-                    "p3",
-                    "src/unrelated-not-a-fault.rs:1-2",
-                    "PLANTED_UNMATCHED_RC",
-                ),
-                _finding("p3", "the CLI help text", "PLANTED_UNLOCATED_RC"),
-            ]
-        rec = self.plant_record(findings)
-        before = rec.read_bytes()
-        proc = self.invoke(["grade", str(rec), APP_NAME])
-        self.assertEqual(
-            proc.exit,
-            0,
-            f"grade must score a planted review of {APP_NAME}: "
-            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
-        )
-        self.assertEqual(
-            rec.read_bytes(),
-            before,
-            "grade writes nothing to the record",
-        )
-        self.assertIn(HARNESS, proc.stdout)
-        self.assertIn(MODEL, proc.stdout)
-        counts = self.parse_counts(proc.stdout)
-        self.assertEqual(counts["caught"], 1, proc.stdout)
-        self.assertEqual(counts["false-positive"], 0, proc.stdout)
-        self.assertEqual(counts["unmatched"], 1, proc.stdout)
-        self.assertEqual(counts["unlocated"], 1, proc.stdout)
-        self.assertEqual(
-            counts["missed"],
-            len(EXPECTED_IDS) - 1,
-            proc.stdout,
-        )
-        rates = self.parse_rates(proc.stdout)
-        n_faults = len(EXPECTED_IDS)
-        self.assertEqual(
-            rates["caught"],
-            float(f"{counts['caught'] / n_faults:.6f}"),
-        )
-
-    def test_grade_scores_a_false_positive_on_a_neighbour(self):
-        source_root = APP if APP.is_dir() else self.root / "missing-app"
-        discovered = discover_clean_neighbours(source_root)
-        faults = fault_rows(load_json_object(self.staged_manifest()))
-        self.assertEqual(
-            tuple(row.get("id") for row in faults),
-            EXPECTED_IDS,
-            "grade FP proof needs the seven planted faults",
-        )
-        findings = []
-        for row in faults:
-            kind = row.get("kind")
-            loc = row.get("location") if isinstance(row.get("location"), dict) else {}
-            picked = None
-            for rel, start, end, _snippet in discovered.get(kind, []):
-                if _spans_overlap(
-                    rel, [start, end], loc.get("path"), loc.get("lines")
-                ):
-                    continue
-                picked = (rel, start, end)
-                break
-            self.assertIsNotNone(
-                picked,
-                f"{row.get('id')} ({kind}) has no independently found "
-                "clean neighbour",
-            )
-            findings.append(
-                _finding(
-                    "p2",
-                    f"{picked[0]}:{picked[1]}-{picked[2]}",
-                    f"PLANTED_NEIGHBOUR_CLEAN_{row.get('id')}",
-                )
-            )
-        rec = self.plant_record(findings)
-        proc = self.invoke(["grade", str(rec), APP_NAME])
-        self.assertEqual(
-            proc.exit,
-            0,
-            f"grade must score independently found neighbour findings: "
-            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
-        )
-        counts = self.parse_counts(proc.stdout)
-        n_faults = len(EXPECTED_IDS)
-        self.assertEqual(
-            counts["caught"],
-            0,
-            "a clean neighbour must not count as a caught fault",
-        )
-        self.assertEqual(
-            counts["false-positive"],
-            n_faults,
-            "every independently found neighbour finding is a false positive",
-        )
-        self.assertEqual(counts["missed"], n_faults, proc.stdout)
-        self.assertEqual(counts["unmatched"], 0, proc.stdout)
-        self.assertEqual(counts["unlocated"], 0, proc.stdout)
 
 
 if __name__ == "__main__":

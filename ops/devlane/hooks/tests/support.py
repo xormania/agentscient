@@ -11,11 +11,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 
-from ops.testkit import PlantFailed, Timeout, hermetic_env, make_executable, run
+from ops.testkit import PlantFailed, Result, Timeout, hermetic_env, make_executable, run
 from ops.testkit import plant_text as _kit_plant_text
 from ops.testkit import require as _kit_require
 from ops.testkit.world import FIXED_DATE
@@ -65,12 +64,12 @@ def isolated_env(home: Path, extra_path=None, extra=None):
 
 
 def run_cmd(argv, cwd, env, *, expect=None, stdin=None):
-    """The kit's run, its Result in the CompletedProcess shape this suite reads."""
+    """Run in the fixture environment and retain the kit's complete result."""
     try:
         result = run(argv, cwd=cwd, env=env, stdin=stdin, timeout=RUN_CAP, expect=expect)
     except Timeout as exc:
         raise PlantFailed(f"INVALID: {exc}") from exc
-    return subprocess.CompletedProcess(list(result.argv), result.exit, result.stdout, result.stderr)
+    return result
 
 
 def git(cwd, env, *args, expect=0):
@@ -113,7 +112,7 @@ def write_payload(file_path=None, relative_path=None, cwd=None) -> str:
     return json.dumps(payload)
 
 
-def run_script(script: Path, payload: str, cwd: Path, env) -> subprocess.CompletedProcess:
+def run_script(script: Path, payload: str, cwd: Path, env) -> Result:
     if not script.is_file():
         raise PlantFailed(f"INVALID: script missing: {script}")
     argv = (["python3", str(script)] if script.suffix == ".py"

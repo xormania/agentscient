@@ -38,6 +38,7 @@ import sqlite3
 import stat
 import subprocess
 import sys
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NoReturn
@@ -176,7 +177,15 @@ TERMINAL_EXPECTED = "this owner terminal's minted capability, owner-terminal-pro
 TERMINAL_NEEDED = "bind --run R-n in this terminal again, which mints a new one"
 
 
+def validate_terminal_ids(run: str, terminal: str) -> None:
+    if not (isinstance(run, str) and RUN_ID.fullmatch(run)
+            and isinstance(terminal, str) and TERMINAL_ID.fullmatch(terminal)):
+        refuse("arguments", "a run R-n and a terminal PT-n", f"run {run!r}, terminal {terminal!r}",
+               "name the run and the participant the row was inserted as")
+
+
 def terminal_pointer(run: str, terminal: str) -> Path:
+    validate_terminal_ids(run, terminal)
     return state_dir() / "runs" / run / "terminals" / terminal / "home" / "profile.json"
 
 
@@ -186,6 +195,7 @@ def terminal_home(run: str, terminal: str, *, create: bool) -> int:
     leads outside the state root (A-548 #1). With ``create``, a missing component
     is made 0700. FileNotFoundError when a component is absent; another OSError
     when one is a link or not a directory. The caller closes the descriptor."""
+    validate_terminal_ids(run, terminal)
     root = state_dir()
     if create:
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -216,10 +226,7 @@ def mint_token() -> str:
 def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
     """Write an owner terminal's pointer, 0600 and never replaced, and return its
     path. Called after the participant row carries the capability's digest."""
-    if not (isinstance(run, str) and RUN_ID.fullmatch(run)
-            and isinstance(terminal, str) and TERMINAL_ID.fullmatch(terminal)):
-        refuse("arguments", "a run R-n and a terminal PT-n", f"run {run!r}, terminal {terminal!r}",
-               "name the run and the participant the row was inserted as")
+    validate_terminal_ids(run, terminal)
     if not isinstance(capability, str) or CAPABILITY.fullmatch(capability) is None:
         refuse("capability", TERMINAL_EXPECTED, "malformed capability",
                "mint 32 random bytes as hex before inserting the participant")
@@ -233,15 +240,20 @@ def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
                f"{path.parent} could not be reached ({error.strerror or error})",
                "remove the link or file in its place; a pointer is never written through one")
     try:
-        descriptor = os.open("profile.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-                             0o600, dir_fd=home)
-    except FileExistsError:
-        refuse("capability", "a new home for this terminal", f"a minted profile already at {path}",
-               "bind a new terminal; a minted capability is never replaced")
+        try:
+            descriptor = os.open("profile.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                 0o600, dir_fd=home)
+        except FileExistsError:
+            refuse("capability", "a new home for this terminal", f"a minted profile already at {path}",
+                   "bind a new terminal; a minted capability is never replaced")
+        try:
+            with os.fdopen(descriptor, "w", encoding="ascii") as out:
+                out.write(body)
+        except BaseException:
+            os.unlink("profile.json", dir_fd=home)
+            raise
     finally:
         os.close(home)
-    with os.fdopen(descriptor, "w", encoding="ascii") as out:
-        out.write(body)
     return path
 
 
@@ -320,6 +332,18 @@ def terminal_profile():
     capability = value["coordination_capability"]
     if not isinstance(capability, str) or CAPABILITY.fullmatch(capability) is None:
         malformed("capability")
+    digest = hashlib.sha256(capability.encode("ascii")).hexdigest()
+    try:
+        with closing(connect_store(state_db())) as conn:
+            enrolled = conn.execute(
+                "SELECT 1 FROM participants WHERE id = ? AND terminal_run = ? "
+                "AND capability_digest = ?",
+                (int(terminal[3:]), int(run[2:]), digest),
+            ).fetchone()
+    except (OSError, sqlite3.Error):
+        malformed("enrollment")
+    if enrolled is None:
+        malformed("enrollment")
     return value
 
 
@@ -328,8 +352,8 @@ def authority_home() -> Path:
     return Path(profile["authority_environment"]["HOME"]) if profile else Path.home()
 
 
-def capability_digest(profile=None) -> str:
-    """Digest the caller's private coordination capability, never a session id.
+def capability_value(profile=None) -> str:
+    """Read the caller's private coordination capability, never a session id.
 
     A declared profile is authoritative and cannot fall back to an ambient
     credential. The core owns enrollment and comparison; native identity
@@ -343,9 +367,14 @@ def capability_digest(profile=None) -> str:
              else os.environ.get("COORDINATION_CAPABILITY"))
     if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
         refuse("capability", "this participant's private launch capability",
-               "missing or malformed credential",
+               "missing credential" if value is None else "malformed capability",
                "use the admitted native profile or its private CLI credential")
-    return hashlib.sha256(value.encode("ascii")).hexdigest()
+    return value
+
+
+def capability_digest(profile=None) -> str:
+    """Only the digest of the validated capability enters the participant store."""
+    return hashlib.sha256(capability_value(profile).encode("ascii")).hexdigest()
 
 
 def session(default: str = SESSION_UNKNOWN) -> str:
@@ -373,7 +402,7 @@ def session(default: str = SESSION_UNKNOWN) -> str:
         try:
             conf_values = _laneconf().parse_file(Path(profile["source"]) / "ops/lane.conf")
             db = Path(profile["authority_environment"]["XDG_STATE_HOME"]) / conf_values["LANE_NAME"] / "state.db"
-            with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
+            with closing(connect_store(db)) as conn:
                 rows = conn.execute("SELECT session_id, harness FROM participants WHERE capability_digest = ?",
                                     (capability_digest(profile),)).fetchall()
             if len(rows) != 1 or rows[0][1] != profile["harness"]:
@@ -467,6 +496,53 @@ def state_db() -> Path:
     return state_dir() / "state.db"
 
 
+def connect_store(
+    path: Path, *, mode: str = "ro", timeout: float = 5,
+    isolation_level: str | None = "",
+) -> sqlite3.Connection:
+    """Open a store with explicit authority: read, update, or create.
+
+    Only rwc creates directories or a database. URI escaping keeps path
+    punctuation from becoming connection options. Readers open the named
+    file read-only; query-only mode also rejects DML and DDL, including
+    temporary tables. The caller owns schema,
+    row shape, absence/error policy and closing the returned connection.
+    """
+    if mode not in {"ro", "rw", "rwc"}:
+        raise ValueError(f"unknown store mode: {mode}")
+    path = Path(path).absolute()
+    if mode == "rwc":
+        path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path.as_uri() + f"?mode={mode}", uri=True,
+                           timeout=timeout, isolation_level=isolation_level)
+    try:
+        if mode == "ro":
+            conn.execute("PRAGMA query_only=ON")
+        return conn
+    except BaseException:
+        conn.close()
+        raise
+
+
+@contextmanager
+def transaction(conn: sqlite3.Connection):
+    """Own one immediate transaction, including the read that decides.
+
+    Commit on success; roll back on every failure, including commit failure
+    and process interruption. A nested call refuses at BEGIN before it can
+    affect its caller's transaction. Compose domain operations under one
+    owner instead of committing part of an enclosing operation.
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield conn
+        conn.commit()
+    except BaseException:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+
+
 SESSION_IDENTITY = """
 CREATE TABLE IF NOT EXISTS session_identity (
     session_id TEXT PRIMARY KEY,
@@ -498,7 +574,7 @@ def stored_identity() -> str:
     if not key or not path.is_file():
         return ""
     try:
-        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as con:
+        with closing(connect_store(path)) as con:
             # PRAGMA, not a SELECT against the schema table: that
             # table's name ends in the release branch's name, and
             # laneconf.py's literal scan reads the substring, not the
@@ -540,9 +616,7 @@ def set_identity(agent: str) -> str:
                "run under a harness that sets CLAUDE_CODE_SESSION_ID, or "
                "name the agent with WF_AGENT_OVERRIDE for one command")
     path = state_db()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(path, isolation_level=None) as con:
-        con.execute("BEGIN IMMEDIATE")
+    with closing(connect_store(path, mode="rwc", isolation_level=None)) as con, transaction(con):
         con.execute(SESSION_IDENTITY)
         con.execute(
             "INSERT INTO session_identity (session_id, agent, at)"
@@ -551,7 +625,6 @@ def set_identity(agent: str) -> str:
             " agent = excluded.agent, at = excluded.at",
             (key, agent.strip(), stamp()),
         )
-        con.execute("COMMIT")
     return key
 
 

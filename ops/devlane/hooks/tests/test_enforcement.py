@@ -116,6 +116,24 @@ class SharedEnforcement(unittest.TestCase):
         payload = self.canonical("write_stdin", session_id=1, chars="")
         self.assertEqual(enforcement.evaluate(native.normalize("codex", payload)[0])["outcome"], "allow")
 
+    def test_claude_structured_output_is_its_result_and_no_other_name_is(self):
+        # LD-136: a claude review returns its envelope by calling StructuredOutput;
+        # the guard refused it as an unknown tool, so A-527's record read invalid.
+        payload = self.canonical("StructuredOutput", verdict="clean", findings=[])
+        items = native.normalize("claude", payload, event="PreToolUse")
+        self.assertEqual([x["tool_name"] for x in items], ["Result"])
+        self.assertEqual(enforcement.evaluate(items[0])["outcome"], "allow")
+        after = {**payload, "hook_event_name": "PostToolUse", "tool_response": {"ok": True}}
+        self.assertEqual(enforcement.evaluate(native.normalize("claude", after, event="PostToolUse")[0])["outcome"], "allow")
+        for harness, tool in [("codex", "StructuredOutput"), ("grok", "StructuredOutput"), ("claude", "MysteryOutput")]:
+            with self.subTest(harness=harness, tool=tool):
+                out = enforcement.evaluate(native.normalize(harness, self.canonical(tool, x=1), event="PreToolUse")[0])
+                self.assertEqual(out["outcome"], "deny")
+                self.assertIn("found unknown native tool", out["reason"])
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness), self.assertRaisesRegex(ValueError, "reserved canonical tool"):
+                native.normalize(harness, self.canonical("Result", verdict="clean"), event="PreToolUse")
+
     def test_duplicate_native_fields_are_not_last_key_wins(self):
         with self.assertRaises(ValueError):
             native.loads('{"tool_name":"Read","tool_name":"Write"}')
@@ -145,14 +163,14 @@ class SharedEnforcement(unittest.TestCase):
                 cwd.mkdir()
                 kwargs = {"source": root, "cwd": cwd, "home": home, "session": "issued-" + harness,
                           "agent": "Fixture <f@invalid>", "executable": "/usr/bin/true"}
-                _, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                worker_profile, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
                 capability = binding.get("coordination_capability")
                 self.assertIsInstance(capability, str)
                 self.assertRegex(capability, r"^[0-9a-f]{64}$")
                 self.assertNotIn(capability, seen)
                 seen.add(capability)
                 self.assertEqual(Path(binding["binding"]).stat().st_mode & 0o777, 0o600)
-                command, env = profiles.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
+                command, env = worker_profile.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
                 self.assertEqual(env["COORDINATION_CAPABILITY"], capability)
                 self.assertNotIn(capability, str(command))
                 for path in (binding["helper"], *binding["config_pins"]):
@@ -162,9 +180,9 @@ class SharedEnforcement(unittest.TestCase):
                 new = old.with_name(old.name + "-moved")
                 shutil.move(old, new)
                 kwargs.update(home=new / "home", cwd=new / "snapshot", relocated_from=old)
-                _, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
+                moved_profile, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
                 self.assertEqual(moved["coordination_capability"], capability)
-                profiles.validate(moved)
+                moved_profile.validate(moved)
 
     def test_coordination_capability_missing_or_malformed_refuses_profile(self):
         root = Path(__file__).resolve().parents[4]

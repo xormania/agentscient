@@ -21,6 +21,7 @@ both readings are quoted in the commit that carries it.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sqlite3
 import sys
@@ -149,6 +150,99 @@ class _Scratch(unittest.TestCase):
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
                 "--generation", self.gen(aid), session=WORKER)
         return aid
+
+
+class OwnerTerminalBind(_Scratch):
+    """LD-125 and A-548: mint, enrollment and rollback through the real core."""
+
+    def setUp(self):
+        super().setUp()
+        self.module = self.core()
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("terminal_sessions", TOOLS / "sessions.py")
+        sessions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sessions)
+        with self.module.writer() as conn:
+            conn.executescript(sessions.SCHEMA)
+            conn.execute("INSERT INTO session_run(id,subject,name,team_file,team_sha256,"
+                         "tmux_session,started_by,started_at) VALUES (3,1,'test','team','sha',"
+                         "'test',?,?)", (SHARED, self.module.stamp()))
+        os.environ.pop("COORDINATION_CAPABILITY", None)
+
+    def call(self, *args, extra=None):
+        env = self.env(LEAD)
+        env.pop("COORDINATION_CAPABILITY")
+        env.update(extra or {})
+        return run([sys.executable, str(TOOL), *args], cwd=self.world.cwd, env=env, timeout=60)
+
+    def minted(self):
+        result = self.call("bind", "--run", "R-3", "--roles", "lead")
+        self.assertEqual(result.exit, 0, result.stderr)
+        path = self.xdg / "testlane/runs/R-3/terminals/PT-1/home/profile.json"
+        self.assertIn(f"profile {path}\n", result.stdout)
+        token = json.loads(path.read_text())["coordination_capability"]
+        self.assertNotIn(token, result.stdout + result.stderr)
+        return path, token
+
+    def test_plain_terminal_can_authenticate_and_rebind_without_leaking_its_token(self):
+        path, token = self.minted()
+        drafted = self.call("draft", "bounded work", "--outcome", "done", "--profile", str(path))
+        self.assertEqual(drafted.exit, 0, drafted.stderr)
+        rebound = self.call("bind", "--roles", "lead", "--run", "R-3", "--profile", str(path))
+        self.assertEqual(rebound.exit, 0, rebound.stderr)
+        with sqlite3.connect(self.store) as conn:
+            row = conn.execute("SELECT terminal_run, capability_digest FROM participants").fetchone()
+            self.assertEqual(row, (3, hashlib.sha256(token.encode()).hexdigest()))
+            self.assertNotIn(token, "\n".join(conn.iterdump()))
+        self.assertEqual(json.loads(path.read_text())["coordination_capability"], token)
+
+    def test_a_fabricated_pointer_for_another_run_or_participant_refuses(self):
+        path, _ = self.minted()
+        body = json.loads(path.read_text())
+        for run_id, terminal in (("R-4", "PT-1"), ("R-3", "PT-2")):
+            with self.subTest(run=run_id, terminal=terminal):
+                target = self.xdg / "testlane/runs" / run_id / "terminals" / terminal / "home/profile.json"
+                target.parent.mkdir(parents=True)
+                target.write_text(json.dumps({**body, "run": run_id, "terminal": terminal}))
+                target.chmod(0o600)
+                refused = self.call("draft", "forged", "--outcome", "must refuse", "--profile", str(target))
+                self.assertEqual(refused.exit, 2, refused.stdout + refused.stderr)
+                self.assertIn("malformed enrollment", refused.stderr)
+
+    def test_missing_run_and_malformed_credential_refuse_without_enrollment(self):
+        for run_id, extra, reason in (("R-9", {}, "absent:"),
+                                      ("R-3", {"COORDINATION_CAPABILITY": "bad"}, "malformed capability")):
+            with self.subTest(run=run_id):
+                result = self.call("bind", "--roles", "lead", "--run", run_id, extra=extra)
+                self.assertEqual(result.exit, 2, result.stderr)
+                self.assertIn(reason, result.stderr)
+        with sqlite3.connect(self.store) as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0], 0)
+
+    def test_failed_pointer_write_or_commit_leaves_no_enrollment_or_pointer(self):
+        core = self.module
+        path = self.xdg / "testlane/runs/R-3/terminals/PT-1/home/profile.json"
+
+        class FailedCommit:
+            def __init__(self, conn):
+                self.conn = conn
+
+            def __getattr__(self, name):
+                return getattr(self.conn, name)
+
+            def commit(self):
+                raise OSError("planted commit failure")
+
+        with core.writer() as conn:
+            with unittest.mock.patch.object(core.instrument, "mint_terminal_profile", side_effect=OSError("write failure")):
+                with self.assertRaises(OSError):
+                    core.core_bind(conn, None, agent=SHARED, roles="lead", run="R-3")
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0], 0)
+            with self.assertRaises(OSError):
+                core.core_bind(FailedCommit(conn), None, agent=SHARED, roles="lead", run="R-3")
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM participants").fetchone()[0], 0)
+        self.assertFalse(path.exists())
+        self.minted()
 
 
 class CapabilityAuthentication(_Scratch):
