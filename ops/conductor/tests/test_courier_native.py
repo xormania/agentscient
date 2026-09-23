@@ -38,6 +38,8 @@ import time
 import unittest
 from pathlib import Path
 
+from private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
+
 from ops.testkit import RefusalCase, World, refusal_wire, run
 
 REPO = Path(__file__).resolve().parents[3]
@@ -512,7 +514,7 @@ class TheCrash(CoreCase):
         self.assertNotEqual(rows[1][0], rows[0][0])
 
 
-class TheRoutes(unittest.TestCase):
+class TheRoutes(RecordedTmux, unittest.TestCase):
     """``route --take`` for stdout and for native.
 
     origin: sessions-lever.md#slice-2 5 for the live holder and the
@@ -528,7 +530,6 @@ class TheRoutes(unittest.TestCase):
             self.skipTest("tmux is absent; a member route needs it")
         self.world = open_world("courier-route-")
         self.addCleanup(self.world.close)
-        self.addCleanup(self.stop_server)
         self.conf = self.world.plant_text(
             "lane.conf", f"LANE_NAME='{LANE}'\n"
         )
@@ -556,6 +557,9 @@ class TheRoutes(unittest.TestCase):
             "start", "--member", "grunt", "--team", str(self.team),
             "--ready-timeout", str(READY),
         )
+        # The server the start left and the harness in its pane are
+        # recorded with the kit (private_tmux.RecordedTmux).
+        self.own_server()
         self.assertEqual(started.exit, 0, started.stderr)
         match = re.search(
             r"started grunt (SM-\d+) as (PT-\d+)", started.stdout,
@@ -564,20 +568,6 @@ class TheRoutes(unittest.TestCase):
         self.member = match.group(1)
         self.participant = int(match.group(2).split("-", 1)[1])
         self.launch_id, self.capability = self._member_identity()
-
-    def stop_server(self) -> None:
-        """Kill this world's tmux server, if a row started one.
-
-        Registered after ``world.close``, so it runs first: the world
-        does not own a tmux server, and one left running outlives it.
-        """
-        if HOST_TMUX and self.socket.exists():
-            run(
-                [HOST_TMUX, "-S", str(self.socket), "kill-server"],
-                cwd=self.world.cwd,
-                env=self.world.env(),
-                timeout=TIMEOUT,
-            )
 
     def _plant_harness(self) -> None:
         text = _anchored(_fake_text(HARNESS_SRC), "@@REPO@@", str(REPO))
@@ -613,6 +603,21 @@ class TheRoutes(unittest.TestCase):
             }),
             timeout=TIMEOUT,
         )
+
+    def test_close_stops_a_server_whose_socket_file_is_gone(self):
+        """origin: docs/tests.md, Daemons; the kit's measure at a93368b5
+
+        The member setUp started, its tmux server and the harness in its
+        pane, are recorded with the kit, so with the socket file removed
+        the case's cleanups still stop them: close raises no refusal, and
+        no process carries the world's HOME after it.
+        """
+        with self.subTest(id="route-server-socket-file-gone", origin=ORIGIN_DAEMON):
+            self.assertTrue(self.socket.exists(), "the start left no socket")
+            self.socket.unlink()
+            home = str(self.world.home)
+            self.doCleanups()
+            self.assertEqual(carrying_home(home), [])
 
     def _member_identity(self) -> tuple[str, str]:
         bindings = list(

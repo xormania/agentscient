@@ -38,6 +38,8 @@ import time
 import unittest
 from pathlib import Path
 
+from private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
+
 from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]
@@ -58,9 +60,6 @@ OWNER_SESSION = "owner-already-bound"
 SHORT_ROOT = "/tmp"
 SOCKET_LIMIT = 108
 HOST_TMUX = shutil.which("tmux")
-# A recorded tmux server's stop, and each of the kit's escalations after it.
-SERVER_STOP = 10.0
-ORIGIN_DAEMON = "docs/tests.md Daemons; the kit's measure at a93368b5"
 REPLY = "codex-reply-a503"
 CARRY = "please-carry-a503"
 SECOND_BODY = "only-the-second-a503"
@@ -105,24 +104,7 @@ def protocol_member(name: str, harness: str, roles: list[str]) -> dict:
     return {"name": name, "harness": harness, "roles": roles}
 
 
-def carrying_home(home: str) -> list[int]:
-    """The live processes whose environment carries ``HOME=<home>``: what
-    the kit's sweep reads as a process of the world."""
-    wanted = b"HOME=" + os.fsencode(home)
-    found = []
-    for entry in Path("/proc").iterdir():
-        if not entry.name.isdigit():
-            continue
-        try:
-            environ = (entry / "environ").read_bytes()
-        except OSError:
-            continue
-        if wanted in environ.split(b"\0"):
-            found.append(int(entry.name))
-    return sorted(found)
-
-
-class SessionMessages(unittest.TestCase):
+class SessionMessages(RecordedTmux, unittest.TestCase):
     """Rows for sessions.py slice 2, each addressed by id with its origin."""
 
     def open_world(self, prefix: str) -> World:
@@ -137,9 +119,7 @@ class SessionMessages(unittest.TestCase):
         self.world = self.open_world("s2msg-")
         self.addCleanup(self.world.close)
         # The tmux server and the harness in its panes are recorded with the
-        # kit as the rows start them; close stops them.
-        self._server = None
-        self._servers = 0
+        # kit as the rows start them (private_tmux.RecordedTmux).
         self.conf = self.world.plant_text("lane.conf", f"LANE_NAME='{LANE}'\n")
         self.state = self.world.xdg_state / LANE
         self.socket = self.world.tmp / "tmux.sock"
@@ -167,74 +147,6 @@ class SessionMessages(unittest.TestCase):
             send_reply=False, reply="grok-reply-a503", reject_method=None,
             die_after=None, advertise_auth=True,
         )
-
-    # -- the tmux server, recorded with the kit ----------------------------
-
-    def server_running(self) -> bool:
-        """Whether a tmux server answers on this world's socket."""
-        if not HOST_TMUX or not self.socket.exists():
-            return False
-        probe = run(
-            [HOST_TMUX, "-S", str(self.socket), "list-sessions"],
-            cwd=self.world.cwd,
-            env=self.world.env(),
-            timeout=TIMEOUT,
-        )
-        return probe.exit == 0
-
-    def own_server(self) -> None:
-        """Record the tmux server a subject call left on this world's socket
-        with the kit, ``world.adopt`` by the socket, so close stops it and
-        the harness in its panes, proves them gone, and refuses class
-        ``daemon`` for a survivor (docs/tests.md, Daemons)."""
-        if self._server is not None and self._server.alive():
-            return
-        if not self.server_running():
-            return
-        box: dict = {}
-        self._servers += 1
-        box["daemon"] = self._server = self.world.adopt(
-            f"tmux-{self._servers}", lambda: self.stop_recorded(box["daemon"]),
-            socket=self.socket, timeout=SERVER_STOP,
-        )
-
-    def start_server(self, *argv: str) -> None:
-        """A tmux session the case starts itself: through ``world.daemon``
-        when no recorded server is up, since a daemon started around the kit
-        is a finding; on the recorded server otherwise."""
-        if self._server is not None and self._server.alive():
-            done = run(
-                [HOST_TMUX, "-S", str(self.socket), *argv],
-                cwd=self.world.cwd,
-                env=self.world.env(),
-                timeout=TIMEOUT,
-            )
-            self.assertEqual(done.exit, 0, done.stderr)
-            return
-        box: dict = {}
-        self._servers += 1
-        box["daemon"] = self._server = self.world.daemon(
-            f"tmux-{self._servers}", [HOST_TMUX, "-S", str(self.socket), *argv],
-            lambda: self.stop_recorded(box["daemon"]),
-            socket=self.socket, timeout=SERVER_STOP,
-        )
-
-    def stop_recorded(self, daemon) -> None:
-        """A recorded server's stop: tmux's own kill-server on the socket,
-        then SIGTERM to any of its recorded processes still up, which is
-        every one of them when the socket file is gone (the kit's measure
-        at a93368b5: the teardown skipped on a missing socket file)."""
-        if HOST_TMUX and self.socket.exists():
-            with contextlib.suppress(Exception):
-                run(
-                    [HOST_TMUX, "-S", str(self.socket), "kill-server"],
-                    cwd=self.world.cwd,
-                    env=self.world.env(),
-                    timeout=SERVER_STOP,
-                )
-        for pid in daemon.alive():
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                os.kill(pid, signal.SIGTERM)
 
     def _plant_harness(self) -> None:
         text = substitute(shebang(FAKES / "session_harness.py"), "@@REPO@@", str(REPO), label="harness")
