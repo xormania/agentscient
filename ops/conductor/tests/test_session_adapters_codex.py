@@ -95,7 +95,7 @@ class TheCodexAdapter(unittest.TestCase):
     def start(self, **overrides):
         name = self.world.root.name
         prefix = "session-codex-"
-        token = name[len(prefix):] if name.startswith(prefix) else name
+        token = name.removeprefix(prefix)
         root = self.world.root / "codex"
         inbox = root / "inbox"
         outbox = root / "outbox"
@@ -278,7 +278,7 @@ class TheCodexAdapter(unittest.TestCase):
                 frame = self.as_frame(by_method[method])
                 reading = ""
                 if adapter is not None:
-                    reading = str(self.call(lambda: adapter.observe(rpc, frame)))
+                    reading = str(self.call(lambda frame=frame: adapter.observe(rpc, frame)))
                 self.assertEqual(reading, expect(frame))
                 self.assertEqual(frame["params"]["threadId"], spec["thread_id"])
 

@@ -77,7 +77,7 @@ def lane_name() -> str:
         text = Path(conf).read_text(encoding="utf-8")
     except OSError:
         return ""
-    match = re.search(r"^LANE_NAME='([^']*)'", text, re.M)
+    match = re.search(r"^LANE_NAME='([^']*)'", text, re.MULTILINE)
     return match.group(1) if match else ""
 
 

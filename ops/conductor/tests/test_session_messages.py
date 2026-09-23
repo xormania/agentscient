@@ -6,6 +6,7 @@ python3 -m unittest discover -s ops/conductor/tests -p test_session_messages.py
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -370,10 +371,8 @@ class SessionMessages(unittest.TestCase):
                 stop.write_text("stop\n", encoding="utf-8")
             thread.join(timeout=15)
             if self._alive(pid):
-                try:
+                with contextlib.suppress(OSError):
                     os.kill(pid, signal.SIGTERM)
-                except OSError:
-                    pass
 
         self.addCleanup(release)
         return pid, release
@@ -493,7 +492,7 @@ class SessionMessages(unittest.TestCase):
             )
             self.bind_lead()
             started = self.sessions(*self.start_argv("dispatcher", ready=4), session=LEAD_SESSION)
-            run_id = self.started_run(started.stdout)
+            self.started_run(started.stdout)
             participant = self.started_pt(started.stdout, "dispatcher")
             if participant:
                 self.coord(
