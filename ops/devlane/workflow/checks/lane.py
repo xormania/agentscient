@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from ops.testkit import Check, execute_checks, suite_checks
@@ -26,8 +27,9 @@ def python_check(name, path, *args, timeout=60, required=()):
     return Check(name, (sys.executable, path, *args), timeout, (path, *required))
 
 
+LINT = Check("ruff", ("ruff", "check", "."), 60, ("ruff.toml",))
 GUARDS = (
-    Check("ruff", ("ruff", "check", "."), 60, ("ruff.toml",)),
+    LINT,
     python_check("term-wall", "ops/devlane/workflow/checks/term_wall.py", "--root", "."),
     python_check("testkit-ratchet", "ops/devlane/workflow/checks/testkit_ratchet.py",
                  required=("ops/devlane/workflow/checks/testkit-ratchet.json",)),
@@ -43,7 +45,7 @@ GUARDS = (
 def plan(root, selected=()):
     # Portable subjects carry their own lint contract. They explicitly select
     # their copied suites, and never claim the full repository was checked.
-    checks = [Check("ruff", ("ruff", "check", "."), 60)] if selected else list(GUARDS)
+    checks = [replace(LINT, required=())] if selected else list(GUARDS)
     for directory in selected or FAMILIES:
         patterns = ("test_*.py",) if selected else SHARDS.get(directory, ("test_*.py",))
         checks.extend(suite_checks(root, directory, patterns))
