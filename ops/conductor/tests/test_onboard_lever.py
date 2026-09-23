@@ -29,7 +29,7 @@ from unittest import mock
 
 from live_store_guard import assert_unchanged, without_new_job_dirs
 
-from ops.testkit import World, run
+from ops.testkit import World, hermetic_env, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
@@ -1688,18 +1688,21 @@ class TheMemberBrief(_OnboardFixture):
             "member_profiles", self.repo / "ops" / "devlane" / "hooks" / "profiles.py")
         profiles = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(profiles)
-        authority = {"HOME": str(self.home), "XDG_STATE_HOME": str(self.home / ".local" / "state")}
-        with mock.patch.dict(os.environ, authority):
+        # The authority is the fixture's HOME with its state root under it,
+        # where plant_handoff and the ledger put their stores.
+        with mock.patch.dict(os.environ, hermetic_env(self.home, bin=self.bin)):
             binding = profiles.generate("grok", self.root / "profile", source=self.repo,
                                         cwd=self.repo, mode="interactive", home=private)
         self.assertFalse((private / ".local").exists(), "INVALID: the private home holds a store")
         return private, Path(binding["binding"])
 
     def invoke_member(self, private: Path, binding: Path):
-        env = self.world.env({"LANE_CONF": str(self.repo / "ops" / "lane.conf")})
-        env.pop("XDG_STATE_HOME", None)
-        env.update({"HOME": str(private), "GROK_HOME": str(private),
-                    "AGENTSCIENT_HOOK_PROFILE": str(binding)})
+        # The member's own home, built as the world's is, with its XDG roots
+        # under it; only the binding names the authority's.
+        env = hermetic_env(private, tmp=self.scratch, bin=self.bin, ambient=self.world.ambient, extra={
+            "LANE_CONF": str(self.repo / "ops" / "lane.conf"), "GROK_HOME": str(private),
+            "AGENTSCIENT_HOOK_PROFILE": str(binding)})
+        self.assertEqual(Path(env["XDG_STATE_HOME"]), private / ".local" / "state")
         self.assertNotIn("WF_AGENT", env)
         return run([sys.executable, str(self.repo / "ops" / "conductor" / "tools" / "onboard.py")],
                    cwd=self.repo, env=env, timeout=RUN_CAP)
