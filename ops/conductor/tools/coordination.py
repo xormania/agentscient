@@ -2268,9 +2268,11 @@ def attempt_row(conn, aid: int):
 def core_attempt(conn, part, *, message, route, generation) -> dict:
     """Reserve one submission of one message to this participant, before it.
 
-    Nothing is resubmitted while an attempt of the message is unsettled, a
-    delivered message is not carried again, and at most
-    ATTEMPTS_OUTSTANDING attempts per participant are unsettled at once.
+    Nothing is resubmitted while an attempt of the message is unsettled, and
+    at most ATTEMPTS_OUTSTANDING attempts per participant are unsettled at
+    once. A delivered message may take a later attempt: its outcome settles
+    that attempt and never records `deliver` again. The courier does not
+    select a delivered message; `carriable` is where that holds.
     """
     part = same_session(conn, part)
     _, mid = parse_id(message, "M")
@@ -2291,10 +2293,6 @@ def core_attempt(conn, part, *, message, route, generation) -> dict:
         if current["place"] != "open":
             refuse("place", f"an open message M-{mid}", f"M-{mid} {current['place']}",
                    "a resolved or withdrawn message is not carried")
-        if current["delivered_at"] is not None:
-            refuse("place", f"M-{mid} not yet delivered",
-                   f"delivered {current['delivered_at']} ref {current['delivery_ref']}",
-                   "nothing to carry; the recipient acknowledges it")
         pending = conn.execute(
             "SELECT * FROM delivery_attempts WHERE message = ? AND participant = ? "
             "AND outcome IS NULL ORDER BY id", (mid, part["id"])).fetchone()
