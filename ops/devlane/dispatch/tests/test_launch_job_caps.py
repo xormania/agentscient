@@ -4,7 +4,9 @@ Written from CONTRACT.md §The record, the ``caps.timeout`` bullet:
 ``DISPATCH_TIMEOUT`` from the invoking environment, else the job's own
 ``caps.timeout`` in jobs.json, else 900 — and ``caps.timeout_source``
 names the layer that answered: ``DISPATCH_TIMEOUT``, ``job``, or
-``default``. Policy values and the author-tests commit-on-red clause
+``default``; the job's cap bounds ``DISPATCH_TIMEOUT``, and
+``caps.timeout_requested`` records what the environment asked for.
+Policy values and the author-tests commit-on-red clause
 come from ``ops/devlane/task/jobs.json``. launch.py and record.py were
 not read.
 """
@@ -38,7 +40,9 @@ JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
 ENV_TIMEOUT = 123.5
+ENV_BELOW = 21.5
 LOOP_TIMEOUT = 0.3
+ONE_HOUR = 3600.0
 
 
 def _caps(test, rec):
@@ -98,20 +102,65 @@ class JobTimeoutIsRecordedWhenEnvIsAbsent(ls._TempLaunch):
         self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
         self.assertEqual(caps["timeout_source"], "job")
+        self.assertIn("timeout_requested", caps, "an unset request is declared, not absent")
+        self.assertIsNone(caps["timeout_requested"])
 
 
-class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
-    """DISPATCH_TIMEOUT from the invoking environment wins; source names it."""
+class EnvTimeoutAboveTheJobCapIsNotAdmitted(ls._TempLaunch):
+    """The Lead's ruling, 2026-09-22 23:39Z: the job's cap bounds
+    DISPATCH_TIMEOUT. Asked for more than the cap, the launcher applies
+    the cap, names the job as the source, and records the request."""
 
-    def test_dispatch_timeout_beats_the_job_cap_and_names_its_source(self):
+    def test_dispatch_timeout_above_the_cap_applies_the_cap(self):
         plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.assertGreater(ENV_TIMEOUT, JOB_TIMEOUT)
         os.environ["DISPATCH_TIMEOUT"] = str(ENV_TIMEOUT)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _caps(self, rec)
-        self.assertEqual(float(caps["timeout"]), float(ENV_TIMEOUT))
-        self.assertNotEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
-        self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
+        self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
+        self.assertEqual(caps["timeout_source"], "job")
+        self.assertIn("timeout_requested", caps)
+        self.assertEqual(float(caps["timeout_requested"]), ENV_TIMEOUT)
+
+
+class EnvTimeoutBelowTheJobCapIsAdmitted(ls._TempLaunch):
+    """At or below the cap, DISPATCH_TIMEOUT answers and the source names
+    it; the request is recorded beside the value applied."""
+
+    def test_dispatch_timeout_below_the_cap_is_applied(self):
+        plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.assertLess(ENV_BELOW, JOB_TIMEOUT)
+        os.environ["DISPATCH_TIMEOUT"] = str(ENV_BELOW)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _caps(self, rec)
+        self.assertEqual(float(caps["timeout"]), ENV_BELOW)
         self.assertEqual(caps["timeout_source"], "DISPATCH_TIMEOUT")
+        self.assertIn("timeout_requested", caps)
+        self.assertEqual(float(caps["timeout_requested"]), ENV_BELOW)
+
+
+class MalformedEnvTimeoutIsRefusedBeforeLaunch(ls._TempLaunch):
+    """20260923T000804Z-review-codex-da66dd#1 and #2: a DISPATCH_TIMEOUT
+    that is not a positive finite number of seconds is refused, class
+    timeout, before anything is minted or spawned. At 0c001217 a
+    non-number started the harness and then exited 2 with the child alive
+    (#1), and NaN launched and wrote an unquoted NaN into the record (#2).
+    The below-the-cap row above is the clean neighbour."""
+
+    def test_a_value_that_is_not_a_positive_finite_number_is_refused(self):
+        plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
+        for raw in ("not-a-number", "NaN", "inf", "-inf", "0", "-5"):
+            with self.subTest(value=raw):
+                os.environ["DISPATCH_TIMEOUT"] = raw
+                code, out, err = self.dispatch(job="plan", harness="grok", stage="plan")
+                text = self.combined(out, err)
+                self.assertEqual(code, ls.REFUSAL_EXIT, f"{raw}: {text!r}")
+                self.assertIn("timeout: expected", text)
+                self.assertEqual(self.record_files(), [], f"{raw}: a record was written")
+                self.assertFalse(self.start_witness.is_file(), f"{raw}: the harness started")
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
@@ -130,6 +179,50 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
         self.assertEqual(caps["timeout_source"], "default")
+
+
+class EveryCatalogueJobLaunchesUnderTheOneHourCap(ls._TempLaunch):
+    """CONTRACT.md §The record: every job in jobs.json declares
+    caps.timeout 3600 (owner, 2026-09-22, relayed by the Lead: "raise
+    them to 60 mins - we're shooting ourselves in the foot"). Each job in
+    the real catalogue is launched with no DISPATCH_TIMEOUT and its record
+    read, so the row runs the launcher rather than reading the file. The
+    planted fault is the catalogue at e20dac19, eight jobs below the hour;
+    implement, already at 3600, is the clean neighbour.
+
+    A job whose adapter is not ``harness`` (verify is ``direct``) is not
+    the launcher's: the launcher refuses it, and this row asserts that
+    refusal and the value it declares. What bounds a direct job at run
+    time is task/run.py's runtime.timeout, which this row does not reach;
+    that is a declared gap, not a cover."""
+
+    def test_each_job_records_3600_from_the_job_layer(self):
+        self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        # A review's base is the merge-base with dev; plant dev at the
+        # middle commit so ref..base is not empty (as the read-role rows do).
+        self._git("branch", "dev", self.mid_sha)
+        catalogue = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertGreater(len(catalogue), 0, "jobs.json must name jobs")
+        for job in sorted(catalogue):
+            with self.subTest(job=job):
+                if catalogue[job].get("adapter") != "harness":
+                    code, out, err = self.dispatch(job=job, harness="grok")
+                    self.assertEqual(code, ls.REFUSAL_EXIT, f"{job}: {self.combined(out, err)!r}")
+                    self.assertIn("job: expected a harness job", self.combined(out, err))
+                    self.assertEqual(catalogue[job]["caps"]["timeout"], int(ONE_HOUR))
+                    continue
+                # A job whose brief names no {scope} refuses one (adjudicate).
+                takes_scope = "{scope}" in (catalogue[job].get("prompt") or "")
+                before = set(self.record_files())
+                code, out, err = self.dispatch(
+                    job=job, harness="grok", scope="pin the launcher" if takes_scope else None)
+                self.assertEqual(
+                    code, 0, f"{job} launch exits 0: {self.combined(out, err)[-400:]!r}")
+                new = sorted(set(self.record_files()) - before)
+                self.assertEqual(len(new), 1, f"{job} wrote one record: {new}")
+                caps = _caps(self, self.read_record(new[0]))
+                self.assertEqual(caps["timeout_source"], "job")
+                self.assertEqual(float(caps["timeout"]), ONE_HOUR)
 
 
 class EveryJobDeclaresItsCaps(unittest.TestCase):

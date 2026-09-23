@@ -242,7 +242,7 @@ class TheClaudeAdapter(unittest.TestCase):
                     env=self.world.env(),
                     timeout=30,
                 )
-            except BaseException as exc:  # noqa: BLE001 - the test asserts the outcome
+            except BaseException as exc:  # the test asserts the outcome
                 box["error"] = exc
 
         thread = threading.Thread(target=invoke)

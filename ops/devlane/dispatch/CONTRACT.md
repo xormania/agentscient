@@ -1178,7 +1178,18 @@ absence is historical and must not be read as "none answered".
 - `caps.timeout` (seconds) resolves in one order: `DISPATCH_TIMEOUT`
   from the invoking environment, else the job's own `caps.timeout` in
   `jobs.json`, else 900 — and `caps.timeout_source` names the layer
-  that answered: `DISPATCH_TIMEOUT`, `job`, or `default`. The job
+  that answered: `DISPATCH_TIMEOUT`, `job`, or `default`. The job's
+  cap bounds the environment (the Lead's ruling, 2026-09-22 23:39Z,
+  relayed by the XO): a `DISPATCH_TIMEOUT` above the job's
+  `caps.timeout` is not admitted as given; the job's cap is applied and
+  the source is `job`. At or below the cap, or on a job with no cap, it
+  is admitted and the source is `DISPATCH_TIMEOUT`, so the environment
+  can lower a job's cap and never raise it. `caps.timeout_requested`
+  records the value `DISPATCH_TIMEOUT` asked for beside the one
+  applied, in seconds, and is `null` when the variable is unset. A
+  `DISPATCH_TIMEOUT` that is not a positive finite number of seconds is
+  refused, class `timeout`, before anything is minted or spawned
+  (20260923T000804Z-review-codex-da66dd#1 and #2). The job
   layer exists because runtime is a property of the job, not of the
   session that happens to launch it: author-tests proves every
   assertion red before green, its successful runs measure p50 928s
@@ -1186,6 +1197,17 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- Every job in `jobs.json` declares `caps.timeout` 3600 (owner,
+  2026-09-22, relayed by the Lead: "raise them to 60 mins - we're
+  shooting ourselves in the foot"). The 1800s author-tests cap was
+  measured killing live work that day: A-483 timed out keeping one
+  commit, and record 20260922T231526Z-code-grok-312c63 was still
+  committing red rows as its limit came near. A job that needs another
+  value changes this line first. The task runner's direct jobs
+  (`ops/devlane/task/run.py`; verify) are bounded by the same cap: a
+  runtime timeout above the job's `caps.timeout` is not admitted, and a
+  runtime that names none takes the cap
+  (20260923T000804Z-review-codex-da66dd#3).
 - `brief.coordination` is the acting plane beside that read plane
   (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
   directive"). A codex dispatch that names an assignment receives three

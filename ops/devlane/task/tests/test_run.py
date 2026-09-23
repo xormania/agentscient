@@ -755,6 +755,45 @@ class DirectDelegatesToVerify(_TempRun):
         )
 
 
+class TheDirectJobIsBoundedByItsCap(_TempRun):
+    """20260923T000804Z-review-codex-da66dd#3 and dispatch CONTRACT.md: a
+    direct job is bounded by its caps.timeout. At cc28e441 verify.check
+    got runtime.get("timeout", 300), so a runtime of 7200 ran under a 3600
+    cap, and a runtime naming none fell back to 300, never to the cap.
+    A runtime below the cap is the clean neighbour."""
+
+    def _applied(self, runtime_timeout):
+        self.jobs["verify"]["caps"] = {"timeout": 3600, "turns": 150}
+        seen = []
+        original = verify.check
+
+        def wrapped(*args, **kwargs):
+            seen.append(kwargs.get("timeout"))
+            return original(*args, **kwargs)
+
+        self._patch_attr(verify, "check", wrapped)
+        self._patch_attr(getattr(run, "verify", None), "check", wrapped)
+        env = self.call_run(
+            "verify",
+            jobs=self.jobs,
+            require={"scope": "python exits 0", "constraints": [],
+                     "claim": "python exits 0", "command": [sys.executable, "-c", "pass"]},
+            runtime={"harness": "direct", "role": "read", "timeout": runtime_timeout},
+        )
+        self.assertEqual(env.get("status"), "ok", env.get("note"))
+        self.assertTrue(seen, "direct must delegate to verify.check")
+        return seen[-1]
+
+    def test_a_runtime_above_the_cap_applies_the_cap(self):
+        self.assertEqual(self._applied(7200), 3600)
+
+    def test_a_runtime_naming_no_timeout_applies_the_cap(self):
+        self.assertEqual(self._applied(None), 3600)
+
+    def test_a_runtime_below_the_cap_is_applied(self):
+        self.assertEqual(self._applied(30), 30)
+
+
 # ---------------------------------------------------------------------------
 # R7
 # ---------------------------------------------------------------------------
