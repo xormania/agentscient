@@ -375,8 +375,14 @@ called. Measured on 2026-09-22 under a long `TMPDIR`.
 
 ### The adapter boundary, extended
 
-Every adapter carries slice 1's five methods and these five; the
-supervisor and the bridge call no others:
+Every adapter carries slice 1's five methods, these five, and
+`connect(argv, cwd=, stderr=)`, which opens the channel and returns
+`rpc` (measured 2026-09-23 at fed6a4ce: `do_bridge` calls it once);
+the supervisor and the bridge call no others. Helpers an adapter
+keeps beyond them (codex and grok's `reconcile`, `answer`,
+`refuse_channel`, `other_native`, `settled`, reached only inside
+`observe`) are adapter-private and no finding. The claude adapter's
+`handshake`, `submit` and `observe` refuse `transport`:
 
 | method | returns |
 |---|---|
@@ -396,12 +402,16 @@ channel capability it left `unmeasured` in slice 1 and reads
 
 | dimension | reading |
 |---|---|
-| tools | `ok <evidence>` when the native session shows the `coordination` acting server loaded: codex and grok, the adapter's `tool` or discovery frame naming it; claude, the profile home's debug log line for the server's connection. `waiting tools` until then, never `ok` from the binding's server list alone |
-| ingress | `ok <route> pid=N` when a live `delivery_routes` row exists for the participant; `waiting courier` otherwise; `refused channel` when the bridge's last attempt read `unsupported` |
+| tools | `ok <evidence>` when the native session shows the `coordination` acting server loaded: codex and grok, the adapter's `tool` or discovery frame naming it; claude, the profile home's debug log line for the server's connection, which reads `unmeasured no debug log` until the profile admits `--debug-file` (W's surface, not yet on the tree). `waiting tools` until then, never `ok` from the binding's server list alone |
+| ingress | `ok <route> pid=N` when a live `delivery_routes` row exists for the participant; `waiting courier` otherwise; `refused channel` when the bridge's last attempt read `unsupported`; `unmeasured the profile arms no courier` when no `*.json` in the member's profile names `courier.py watch`, so no route can exist by construction |
 | response | `ok M-n <latency>` when the member acked the readiness probe: when `start` runs from a bound shell, after `bound` it sends `inform` "readiness probe R-n SM-n <nonce>" to `PT-n` and waits for the recipient's own ack; `waiting ack M-n` until then; `unmeasured no starter participant` when the starter is unbound |
 
-`ready` now requires all eight `ok`, with slice 1's rule that `role` may
-read `waiting grant`. The readiness probe is an `inform`, so it leaves
+`ready` now requires slice 1's five `ok` (with slice 1's rule that
+`role` may read `waiting grant`) and each of the three slice 2
+dimensions `ok` or `unmeasured <reason>`; `waiting` or `refused` on
+any of the three refuses `readiness`, naming the dimension. An
+`unmeasured` reading is a declared absence, never a pass in disguise:
+the line carries it. The readiness probe is an `inform`, so it leaves
 no obligation.
 
 ### Verbs added
@@ -678,6 +688,21 @@ tracked `monitor.dispatch.json`. Each send is `send --key event:<event id>:<reci
 cursor is acked (`digest --ack`) only after every send of the batch is
 committed, so a failed send leaves the batch to the next pass. Events
 for a record with no intent are logged and acked, never sent.
+
+**The per-intent pass config** (XO ruling, 2026-09-23, withdrawing the
+seed reading written at 1df9fbf0, which rested on a false reading): the
+per-pass config names one monitor, one condition and one route per
+launched intent (`di-<n>`), never one shared `ids` list, because a
+shared list reset every baseline and re-sent old completions
+(agentscient-10's fix at 1d865da7). The monitor's first reading of a
+record emits its status ({"observations": 1, "events": 1}, measured by
+agentscient-10 on the real `monitor.py` at 8bf3d710; the earlier
+"events 0" came from a record with no `record.json`), so a job that
+finished before the router's first pass is reported by that first
+event, and a seed read would have sent it twice under two keys. There
+is no seed. Two rows for the test fix pass (agentscient-5c): an early
+finish gives exactly one inform; a later launch, added to the pass
+config beside it, repeats nothing for the first.
 
 ### Refusals
 

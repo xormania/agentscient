@@ -7,6 +7,12 @@ this host. One pass, fixed once, no re-check (owner, 2026-09-23:
 
 ## First-run walkthrough
 
+- order (the Lead, 2026-09-23): do not run test_session* until the
+  tmux-leak fix (agentscient-5c, sha to follow) is on the tree; each
+  run leaks about 40 tmux servers. Measured by the XO: the slice 1 test
+  world leaks its private tmux server, and 1,211 servers held about
+  43 GB at 01:35Z. A check that needs a reading of the suite reads the
+  last landed record instead, and says so in the note.
 - assumption: the contract is in the tree. Measured: the section
   "Slice 2 — persistent native conversation" is
   `ops/conductor/sessions-lever.md` lines 256–509 at b9bc1444, with
