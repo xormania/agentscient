@@ -185,6 +185,11 @@ class _Scratch(unittest.TestCase):
                 f"INVALID: private tmux socket must be under {SOCKET_LIMIT} bytes: "
                 f"{self.socket}"
             )
+        # Registered after world.close, so it runs first: the server and the
+        # harness holding in its panes outlive the world otherwise, one of
+        # each per row that starts a member (the XO, 2026-09-23: 1,212 tmux
+        # servers and 2,266 python processes left under /tmp/sessions-*).
+        self.addCleanup(self.stop_server)
         self.team_path = self.world.plant_text(
             "team.json",
             json.dumps(a_team(claude_member("grunt", ["worker"]))) + "\n",
@@ -348,6 +353,11 @@ class _Scratch(unittest.TestCase):
             raise unittest.SkipTest(
                 "tmux is absent; private-socket rows need it"
             )
+
+    def stop_server(self) -> None:
+        """Kill this world's tmux server, if a row started one."""
+        if HOST_TMUX and self.socket.exists():
+            self.host_tmux("kill-server")
 
     def host_tmux(self, *argv: str, expect: int | None = None):
         """The host tmux on this world's private socket.
@@ -841,22 +851,19 @@ class TheTmuxAndLaunchRows(_Scratch):
     def test_ready_while_process_is_not_ok_refuses_readiness(self):
         """origin: 20260922T215604Z-review-codex-f6777b#9
 
-        The planted harness exits after bind, so process is not ok.
-        start must refuse readiness rather than report ready.
+        The planted harness exits, and its bind lands only after its pid
+        has left /proc, so process is not ok whenever the member reads
+        bound. start must refuse readiness rather than report ready. A
+        harness that bound first and exited after raced settle() and read
+        ready in 2 of 12 full runs (the XO, agentscient-0e, 2026-09-23).
         """
         self.skip_without_tmux()
-        text = _fake_text(HARNESS_SRC)
-        marker = "@@REPO@@"
-        if text.count(marker) != 1:
-            raise AssertionError("INVALID: harness repo anchor")
-        at = text.index(marker)
-        text = text[:at] + str(REPO) + text[at + len(marker):]
-        hold = "    hold()\n"
-        if text.count(hold) != 1:
-            raise AssertionError("INVALID: harness hold anchor")
-        at = text.index(hold)
-        text = text[:at] + "    return 0\n" + text[at + len(hold):]
-        self.world.tools.plant("claude", script=text)
+        marker = self.world.root / "bind-after-exit.txt"
+        self._plant_harness()
+        spec_path = self.world.tools.spec_path("claude")
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        spec["bind_after_exit"] = str(marker)
+        spec_path.write_text(json.dumps(spec, indent=1) + "\n", encoding="utf-8")
         proc = self.sessions(*self.start_argv())
         refusal_wire(
             RefusalCase(
@@ -868,6 +875,13 @@ class TheTmuxAndLaunchRows(_Scratch):
             ),
             proc,
         )
+        # The bind has to land, or the row read nothing about a bound
+        # member whose process is gone.
+        deadline = time.monotonic() + 30
+        while not marker.is_file() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(marker.is_file(), "the binder never reported")
+        self.assertEqual(marker.read_text(encoding="utf-8"), "bound after exit 0\n")
 
     def test_native_id_mismatch_refuses_native(self):
         self.skip_without_tmux()
