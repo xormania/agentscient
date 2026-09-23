@@ -53,7 +53,6 @@ STALE_BASE = (
     "stale-base: expected a clean worktree to merge origin/dev forward; "
     "found uncommitted changes in the worktree; needed commit or stash them"
 )
-VERIFY = json.dumps({"tests": ["python3", "-m", "unittest"]}, indent=1) + "\n"
 CONF = (
     f"LANE_NAME='{LANE}'\n"
     "WORKER_HARNESSES='claude codex grok agy'\n"
@@ -63,11 +62,10 @@ CONF = (
     "MODEL_CLAUDE_PLAN='claude-fable-5-1'\n"
     "SCOPE_CAP='1024'\n"
 )
-VERIFY_ARGV = ("python3", "-m", "unittest")
-VERIFY_PATHS = (
-    REPO / "verifications.json",
-    REPO / "ops" / "conductor" / "verifications.json",
-)
+# The tracked table, read from the repository root ("Verification names").
+# A row reads it and never writes it: a fixture that wrote the tree
+# errored every row in setUp under a read-only checkout (20260923T020916Z-review-codex-5a41cd#1).
+VERIFICATIONS = REPO / "ops" / "conductor" / "verifications.json"
 
 
 def flag(argv, name: str):
@@ -114,7 +112,6 @@ class DispatchActions(unittest.TestCase):
             "dispatch-launch", script=_fake_text(FAKES / "dispatch_launch.py"),
         )
         self.monitor = self.world.tools.plant("dispatch-monitor")
-        self._plant_verifications()
         self.input_path = self.world.plant_text("assignment-input.txt", "the assignment text\n")
         self.scope_cap = self._scope_cap()
         self.subject = TOOL if TOOL.is_file() else self.world.stage(TOOL)
@@ -146,29 +143,32 @@ class DispatchActions(unittest.TestCase):
             "--generation", self.generation(), session=self.worker,
         )
 
-    def _plant_verifications(self):
-        self.world.plant_text("verifications.json", VERIFY)
-        self.world.plant_text("cwd/verifications.json", VERIFY)
-        for path in VERIFY_PATHS:
-            if path.exists() and path.read_text(encoding="utf-8") != VERIFY:
-                raise AssertionError(f"INVALID: {path} exists and is not this fixture")
-            path.write_text(VERIFY, encoding="utf-8")
-            self.addCleanup(lambda path=path: path.unlink(missing_ok=True))
+    def verification(self) -> tuple[str, list[str]]:
+        """The first name of the tracked table and its argv, read, never
+        written. origin: 20260923T020916Z-review-codex-5a41cd#1"""
+        self.assertTrue(VERIFICATIONS.is_file(), f"the tracked table is absent: {VERIFICATIONS}")
+        table = json.loads(VERIFICATIONS.read_text(encoding="utf-8"))
+        self.assertIsInstance(table, dict, f"{VERIFICATIONS} is {{name: [argv...]}}")
+        self.assertTrue(table, f"the tracked table names no verification: {VERIFICATIONS}")
+        name = min(table)
+        return name, [str(part) for part in table[name]]
 
     def _scope_cap(self) -> int:
         match = re.search(r"^SCOPE_CAP='(\d+)'\s*$", self.conf.read_text(encoding="utf-8"), re.M)
         self.assertIsNotNone(match, "the planted conf declares SCOPE_CAP")
         return int(match.group(1))
 
-    def env(self, session: str | None, extra: dict | None = None) -> dict:
+    def env(self, session: str | None, extra: dict | None = None, *,
+            identity: bool = True) -> dict:
         fields = {
             "LANE_CONF": str(self.conf),
-            "WF_AGENT": AGENT,
             "DISPATCH_WRAPPER": str(self.wrapper),
             "DISPATCH_LAUNCHER": str(self.launcher),
             "DISPATCH_MONITOR": str(self.monitor),
             "DISPATCH_JOBS": str(self.jobs),
         }
+        if identity:
+            fields["WF_AGENT"] = AGENT
         if session:
             fields["CLAUDE_CODE_SESSION_ID"] = session
             fields["COORDINATION_CAPABILITY"] = hashlib.sha256(session.encode()).hexdigest()
@@ -189,11 +189,11 @@ class DispatchActions(unittest.TestCase):
         self.assertEqual(proc.exit, 0, f"{Path(path).name} {argv}: {proc.stderr or proc.stdout}")
         return proc.stdout
 
-    def act(self, *argv, session=None, extra=None):
+    def act(self, *argv, session=None, extra=None, identity=True):
         return run(
             [sys.executable, str(self.subject), *argv],
             cwd=REPO,
-            env=self.env(session or self.dispatcher, extra),
+            env=self.env(session or self.dispatcher, extra, identity=identity),
             timeout=TIMEOUT,
         )
 
@@ -448,13 +448,14 @@ class DispatchActions(unittest.TestCase):
         with self.subTest(id="collect-tests", origin=origin):
             self.launch(key="collect")
             self.set_spec("dispatch-launch", collect_reading="collected-reading-tests")
-            proc = self.act("collect", "DI-1", "--verify", "tests")
+            name, expected = self.verification()
+            proc = self.act("collect", "DI-1", "--verify", name)
             self.assertIn("collected-reading-tests", proc.stdout, proc.stdout)
             self.assertEqual(proc.exit, 0, proc.stderr)
             calls = self.launcher_calls()
             self.assertTrue(calls, "collect-tests: launch.py was called")
             argv = calls[-1]["argv"]
-            for token in VERIFY_ARGV:
+            for token in expected:
                 self.assertIn(token, argv, argv)
             shown = self.act("status", "DI-1")
             self.assertIn("closed", shown.stdout, shown.stdout)
@@ -615,11 +616,14 @@ class DispatchActions(unittest.TestCase):
             self.assertEqual(flag(calls[0]["argv"], "--input"), str(big))
 
     def test_status_by_a_worker(self):
-        """origin: sessions-lever.md#slice-3 clean status"""
+        """origin: sessions-lever.md#slice-3 clean status
+
+        `status` "reads only; no identity": the worker reads with no
+        WF_AGENT (20260923T020916Z-review-codex-5a41cd#2)."""
         origin = f"{ORIGIN} clean status"
         with self.subTest(id="status-by-worker", origin=origin):
             self.launch(key="read")
-            proc = self.act("status", "DI-1", session=self.worker)
+            proc = self.act("status", "DI-1", session=self.worker, identity=False)
             self.assertRegex(proc.stdout, r"intent DI-1 launched record \S+")
             self.assertEqual(proc.exit, 0, proc.stderr)
 

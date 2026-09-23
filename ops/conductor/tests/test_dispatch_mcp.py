@@ -8,6 +8,17 @@ output) so each row fails on its own assertion.
 
 Origin of every row: sessions-lever.md#slice-3 11.
 
+No row checks that the file is present: a presence check asserts
+nothing the subject does (docs/tests.md rule 9,
+20260923T020916Z-review-codex-5a41cd#4), and every row below runs the staged subject.
+
+Calibration gap (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
+the refusal table in test_the_cli_refuses_role_and_holder_on_the_wire has
+no planted faults. ops/testkit/cases.py calibrate anchors each mutant on
+the subject's text, and dispatch_mcp.py and dispatch_actions.py are
+absent, so this module has no mutants file; the faults follow the
+implementation.
+
     python3 -m unittest ops.conductor.tests.test_dispatch_mcp
 """
 
@@ -52,16 +63,6 @@ def _fake_text(path: Path) -> str:
     if text.startswith("#!"):
         text = text.split("\n", 1)[1]
     return f"#!{sys.executable}\n" + text
-
-
-class TheStandaloneEntry(unittest.TestCase):
-    def test_the_tool_file_is_present(self):
-        """origin: sessions-lever.md#slice-3 11
-
-        The absent entrypoint is its own red. The other rows stage a no-op
-        and fail on the promise, not on Python's missing-file exit.
-        """
-        self.assertTrue(TOOL.is_file(), f"the contract's subject is absent: {TOOL}")
 
 
 class DispatchMcp(unittest.TestCase):
@@ -387,6 +388,7 @@ class DispatchMcp(unittest.TestCase):
 
     def test_the_cli_refuses_role_and_holder_on_the_wire(self):
         """origin: sessions-lever.md#slice-3 11"""
+        # A declared gap: no planted faults yet (the module docstring).
         rows = (
             RefusalCase(id="cli-role", argv=self.launch_argv("cli-role"), cls="role",
                         origin=ORIGIN),
