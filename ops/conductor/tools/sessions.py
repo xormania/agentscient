@@ -15,7 +15,7 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py status [--run R-n] [--member NAME]
     sessions.py attach --member NAME [--run R-n]
     sessions.py stop [--run R-n] [--terminate] [--drain SEC]
-    sessions.py export [--run R-n] --to DIR
+    sessions.py export [R-n | --run R-n] [--to DIR]
     sessions.py bridge --run R-n --member NAME [--tick SEC]
     sessions.py join --run R-n --member NAME --participant PT-n [--team FILE]
     sessions.py recover [--run R-n]
@@ -1216,21 +1216,81 @@ def scrub(text: str, secrets: list[str]) -> str:
     return text
 
 
+def launched_records(conn, run, participants: set[int]) -> list:
+    """The dispatch records the run launched: the store's coord_launch rows
+    (slice 3's intents) that reached a record, requested or dispatched by
+    one of the run's participants since the run started. A store with no
+    intents table has launched none."""
+    if not participants:
+        return []
+    marks = ",".join("?" for _ in participants)
+    try:
+        return conn.execute(
+            "SELECT id, record, requester, dispatcher FROM dispatch_intents "  # noqa: S608 - placeholders only
+            f"WHERE record IS NOT NULL AND reserved_at >= ? "
+            f"AND (requester IN ({marks}) OR dispatcher IN ({marks})) ORDER BY id",
+            (run["started_at"], *participants, *participants)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+
+
+def run_rows(conn, sql: str, participants: set[int]) -> list[dict]:
+    """A coordination table's rows for the run's participants, or none."""
+    if not participants:
+        return []
+    marks = ",".join("?" for _ in participants)
+    try:
+        bound = [*participants] * sql.count("{marks}")
+        return [dict(row) for row in conn.execute(sql.format(marks=marks), bound)]
+    except sqlite3.OperationalError:
+        return []
+
+
 def do_export(rest):
-    options = parse(rest, required=("to",), optional=("run",))
+    """The run export (slice 4, the shapes): every managed member's pane log
+    and every dispatch record the run launched, named, or refused `export`
+    before anything is written. A joined member has no pane log and is
+    listed `joined PT-n no pane log`, a declared absence."""
+    rest = list(rest)
+    positional = rest.pop(0) if rest and not rest[0].startswith("--") else None
+    options = parse(rest, optional=("run", "to"))
+    if positional is not None:
+        if "run" in options and options["run"] != positional:
+            refuse("arguments", "one run", f"{positional} and --run {options['run']}", usage())
+        options["run"] = positional
     identity()
     conn = reader()
     try:
         run = chosen_run(conn, options, places=("open", "stopping", "stopped"))
         members = member_rows(conn, rid=run["id"])
+        participants = {row["participant"] for row in members if row["participant"] is not None}
+        records = launched_records(conn, run, participants)
+        decisions = run_rows(conn, "SELECT * FROM decisions WHERE asked_by IN ({marks}) "
+                             "OR decided_by IN ({marks}) ORDER BY id", participants)
+        observations = run_rows(conn, "SELECT * FROM observations WHERE producer IN ({marks}) "
+                                "ORDER BY id", participants)
     finally:
         if conn is not None:
             conn.close()
-    dest = Path(options["to"]).absolute()
+    import dispatch_intents
+    jobs = dispatch_intents.jobs_root()
+    missing = []
+    for row in members:
+        if not joined(row) and not (Path(row["evidence"]) / "pane.log").is_file():
+            missing.append(f"{row['name']} SM-{row['id']} has no pane.log at {Path(row['evidence']) / 'pane.log'}")
+    for found in records:
+        if not (jobs / found["record"]).is_dir():
+            missing.append(f"DI-{found['id']} record {found['record']} is not under {jobs}")
+    if missing:
+        refuse("export", "every managed member's pane log and every record the run launched",
+               "; ".join(missing), "restore them, or export before the jobs root is reclaimed")
+    dest = (Path(options["to"]) if "to" in options
+            else state_dir() / "runs" / f"R-{run['id']}" / "export").absolute()
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     secrets = sorted({s for row in members for s in secrets_of(row["profile"])}, key=len, reverse=True)
     failures: list[str] = []
     files = 0
+    named: list[str] = []
 
     def write(relative: str, text: str) -> None:
         nonlocal files
@@ -1247,9 +1307,15 @@ def do_export(rest):
         entry["process_identity"] = {"pid": row["pid"], "start_ticks": row["start_ticks"],
                                      "alive": found["process"].startswith("ok")}
         described.append(entry)
+        if joined(row):
+            named.append(f"{row['name']} joined PT-{row['participant']} no pane log")
+            continue
         folder = row["name"] if row["generation"] == 1 else f"{row['name']}-gen-{row['generation']}"
         adapter = load_adapter(row["harness"])
-        retained = adapter.diagnostics(row["evidence"]) if adapter is not None else []
+        retained = list(adapter.diagnostics(row["evidence"]) if adapter is not None else [])
+        pane = str(Path(row["evidence"]) / "pane.log")
+        if pane not in retained:
+            retained.append(pane)
         exported = []
         for source in retained:
             name = Path(source).name
@@ -1260,20 +1326,30 @@ def do_export(rest):
                 continue
             write(f"{folder}/{name}", text)
             exported.append(f"{folder}/{name}")
+            if name == "pane.log":
+                named.append(f"{row['name']} pane log {dest / folder / name}")
         write(f"{folder}/diagnostics.json", json.dumps(exported, indent=1) + "\n")
+    for found in records:
+        named.append(f"DI-{found['id']} record {found['record']}")
     summary = {
         "run": dict(run),
         "team_sha256": run["team_sha256"],
         "tmux": {"socket": run["tmux_socket"], "session": run["tmux_session"]},
         "members": described,
+        "records": [dict(found) for found in records],
+        "decisions": decisions,
+        "observations": observations,
+        "telemetry": "not exported: the run's telemetry is read from each record under the jobs root",
         "exported_at": stamp(),
         "omitted": "each binding's coordination_capability and credential_environment values",
     }
     write("run.json", json.dumps(summary, indent=1, default=str) + "\n")
+    for line in named:
+        print(line)
     if failures:
         print(f"partial {dest} ({len(members)} members, {files} files); first failure: {failures[0]}")
         return EXIT_FINDING
-    print(f"exported {dest} ({len(members)} members, {files} files)")
+    print(f"exported {dest} ({len(members)} members, {len(records)} records, {files} files)")
     return EXIT_DONE
 
 
