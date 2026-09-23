@@ -507,3 +507,232 @@ is busy (`toolOutput` into the active turn, `_x.ai/interject`); `input`
 reaching the bridge's stdin (the fake's log shows the operator text).
 No live harness runs in the suite; the live exchange is plan §13 step 3
 by hand, its readings to probe rows.
+
+## Slice 3 — Dispatcher integration
+
+Standing: proposed, slice 3 of the plan (§11 "Slice 3"; the mechanics
+are §8 the launch transaction, correlation, the scope cap and the
+event follow-through, §9 stop and recovery, §12 the cases). Written by
+the contract session (agentscient-87, Claude Fable 5.1, grant 335)
+against slice 2 above at b9bc1444, `coordination-mcp-lever.md` slice
+two (the four verbs' names and their standalone entry), and the file
+split at cc8b5f5f. As slice 2: the shapes, the verbs, the refusals and
+the fixture set; the plan for the rest.
+
+**Exit** (plan §11): a participant asks the Dispatcher for a job by
+message or by MCP verb and gets one record id back, at most once per
+request; the launch's outcome reaches the requester as a message with
+the record id, once, in order, and a Dispatcher restart between the
+ask and the launch neither loses the ask nor launches it twice.
+
+### Owners
+
+S3 owns three new modules under `ops/conductor/tools/`:
+`dispatch_intents.py` (the table and its verbs, through the core's
+`writer()`; it edits `coordination.py` nowhere), `dispatch_actions.py`
+(the four verbs on the CLI), `dispatch_mcp.py` (the same four as MCP
+tools, standalone entry), and `dispatch_events.py` (the follow-through);
+`dispatch.sh` under `ops/conductor/tools/` (not wall); tests
+`test_dispatch_actions.py`, `test_dispatch_mcp.py`,
+`test_dispatch_events.py` and `fakes/dispatch_*`, never `fakes/session_*`.
+The one registration line that adds the four tools to `CATALOGUE` in
+`coordination_mcp.py` is an integration commit by S2's owner after both
+land. The wall (W) owns `launch.py`; what this slice needs from it is in
+"Required of the wall". Until W lands, the rows run against a planted
+fake `dispatch.sh` and a planted job directory, never the real launcher.
+Cancellation of a running job is declared out of this slice: `close`
+and `--terminate` stay slice 1's and `launch.py`'s.
+
+### The shapes
+
+**A dispatch intent** (`DI-n`) is the ask persisted before anything is
+launched, in the core's store:
+
+    dispatch_intents(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     key TEXT NOT NULL, digest TEXT NOT NULL,
+                     requester INTEGER NOT NULL, dispatcher INTEGER NOT NULL,
+                     assignment INTEGER NOT NULL, generation INTEGER NOT NULL,
+                     job TEXT NOT NULL, harness TEXT NOT NULL,
+                     branch TEXT NOT NULL, scope_ref TEXT NOT NULL,
+                     inputs TEXT NOT NULL, correlation TEXT NOT NULL UNIQUE,
+                     phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
+                     launcher_ticks TEXT, reserved_at TEXT NOT NULL,
+                     launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+                     UNIQUE (requester, key))
+
+`digest` is sha256 over the canonical JSON of `assignment, job, harness,
+branch, scope_ref, inputs`. `correlation` is a uuid4 minted at the
+reservation and passed to the launcher; it is the only join between the
+intent and the job directory. `phase` is the machine `dispatch-intent`
+(engine, ttl 12 h): `reserved` → `launching` → `launched` → `closed`;
+`launching` → `uncertain` when the launcher exits without a `record:`
+line or dies (pid plus ticks; a missing tick is never alive);
+`uncertain` → `launched` on reconciliation (`reconcile`) or → `refused`
+(`refuse`) with the wrapper's refusal line as `error`; `reserved` →
+`refused` when validation fails after the row (never before it, so a
+refused ask is still a record). Transitions: `launch` (actor
+dispatcher), `mint` (dispatcher, evidence the record id), `close`
+(dispatcher, evidence `launch.py`'s closed reading), `lose`
+(dispatcher, evidence the pid reading), `reconcile` (dispatcher,
+evidence the `state.json` path), `refuse` (dispatcher, evidence the
+line). The launcher is the holder's own child: `launcher_pid` and
+`launcher_ticks` are its, read at spawn.
+
+**The launch, in order** (plan §8, the transaction boundary): the
+holder validates the ask; reserves the intent; commits; spawns
+`dispatch.sh --job J --harness H --branch B --scope-file <ref file>
+--input <assignment file> --for A-n --agent <ident> --detach
+--correlation <uuid>` with the intent's `--timeout` from `jobs.json`;
+moves `launching`; reads the wrapper's `record: <id>` and
+`launcher-pid:` lines; moves `launched` with the id; then answers. The
+scope file is a reference, never the assignment truncated (plan §8, the
+cap): one line naming `A-n`, the job, the contract path and ref, and
+the input file; the assignment's full text rides as `--input`, so
+`SCOPE_CAP` is never the reason an ask fails. A second ask with the same
+`(requester, key)` and digest returns the existing `DI-n` and its phase
+as `repeated`; with another digest refuses `idempotency`. The store is
+never held across the spawn.
+
+**Reconciliation**: an intent at `launching` whose launcher is gone
+moves `uncertain`; the holder then scans the jobs root (`$DISPATCH_JOBS`
+or `$XDG_STATE_HOME/<lane>/dispatch`) for a `*/state.json` carrying the
+intent's `correlation`; found moves `launched` with that record id;
+absent leaves `uncertain` and prints it, and the ask is never relaunched
+by the holder: the requester asks again with a new key or the owner
+launches by hand. Restart is `dispatch_actions.py recover`: every
+`launching` row reconciled, every `launched` row read through
+`launch.py status`; nothing launched.
+
+**Capacity**: at most `DISPATCH_CAPACITY` (env, default 6) intents at
+`launching` or `launched` with `launch.py` reading `running`; the next
+ask refuses `capacity` naming the count, and is not reserved.
+
+**Holder**: the four verbs act only for the participant whose role is
+`dispatcher` and who holds the `dispatcher` machine (`dispatcher.py`,
+holder_note the session id); a caller without the role refuses `role`,
+a dispatcher who is not the holder refuses `holder` with the remedy
+`dispatcher.py set`. The requester is the caller of `launch`; the
+Dispatcher launches for it and both are on the intent.
+
+**Verification names**: `collect --verify` takes a name keyed in the
+tracked table `ops/conductor/verifications.json` (`{name: [argv...]}`,
+run from the repository root); a caller's text never reaches
+`launch.py collect --verify`, and an unknown name refuses `verify`.
+
+### Verbs
+
+`ops/conductor/tools/dispatch_actions.py`, with slice 1's conventions
+(identity for writes, the wire):
+
+| verb | effect |
+|---|---|
+| `launch --for A-n --job J --harness H --branch B --scope-ref TEXT --input PATH --key K` | the launch above; prints `intent DI-n launched <record id>`; exit 0. `harness` is one of the worker harnesses in `lane.conf`'s model keys; `job` a key of `jobs.json`; `B` the assignment's branch; `A-n` open at the caller's generation |
+| `status DI-n` | `intent DI-n <phase> record <id|none> job <unlaunched|running|finished|tripped|DIED> closed <reading|none>`; reads only; no identity |
+| `wait DI-n [--timeout S] [--interval S]` | blocks until `launch.py wait` reads clean, not clean or the timeout; exit 0 clean, 1 not clean or timeout (a Finding, printed as `wait DI-n timeout after S`), never 2 for the timeout |
+| `collect DI-n --verify NAME` | `launch.py collect <record> --verify <argv from verifications.json>`; moves `close` with the reading; prints it |
+| `recover` | the restart above; one line per row touched; exit 0 |
+| `reconcile DI-n` | the scan above for one row |
+
+`ops/conductor/tools/dispatch_mcp.py` serves the same four (`launch`,
+`status`, `wait`, `collect`) as `coord_launch`, `coord_status`,
+`coord_wait`, `coord_collect` under `coordination-mcp-lever.md`'s tool
+shape (`Tool(name, verb, mutates, ...)`): `coord_launch` and
+`coord_collect` mutate, the others do not; the MCP entry binds the
+caller as `coordination_mcp.py` does and applies the same `role` and
+`holder` checks; the standalone entry (`python3 dispatch_mcp.py serve`)
+runs without the registration line, which is how the tests reach it.
+
+`ops/conductor/tools/dispatch_events.py route --consumer dispatch
+[--once] [--tick N]` is the follow-through (plan §8): it reads
+`monitor.py digest --consumer dispatch` over the separate config
+`ops/conductor/monitor.dispatch.json` (adapter `dispatch`, store the
+jobs root), maps each event to the intent by the record id, and sends:
+`finished` and `closed` → `inform` to the requester with the record id
+and the exit; `tripped` and `DIED` → `finding` to the Dispatcher and to
+the requester. Each send is `send --key event:<event id>:<recipient>`
+(slice 2's key), so a replay of the digest sends nothing twice; the
+cursor is acked (`digest --ack`) only after every send of the batch is
+committed, so a failed send leaves the batch to the next pass. Events
+for a record with no intent are logged and acked, never sent.
+
+### Refusals
+
+| class | when |
+|---|---|
+| `role` | the caller is not a `dispatcher` participant |
+| `holder` | the caller does not hold the `dispatcher` machine; needed `dispatcher.py set` |
+| `generation` | `--for A-n` is not open at the caller's generation |
+| `job` | `--job` is not a key of `jobs.json` |
+| `harness` | `--harness` is not a worker harness of `lane.conf` |
+| `idempotency` | the same `(requester, key)` with another digest; found names the `DI-n` |
+| `capacity` | the cap above; found is the count |
+| `launcher` | the wrapper refused; the intent is `refused`; found is the wrapper's own line verbatim (`stale-base`, `scope-cap`, …) |
+| `uncertain` | `wait` or `collect` on an intent at `uncertain`; needed `reconcile` |
+| `unknown` | `DI-n` not in the store |
+| `verify` | `--verify` not a key of `verifications.json` |
+| `correlation` | two `state.json` files carry one correlation |
+| `store` | the core's store absent or unwritable |
+
+### Required of the wall
+
+(1) `launch.py` admits `--correlation <uuid>` and writes it as
+`correlation` in the job directory's `state.json` at mint, before the
+`record:` line; (2) `dispatch.sh` (S3's) passes `--correlation` through
+unchanged and prints nothing new. Until (1) lands the reconciliation
+rows run over a planted `state.json` carrying the key.
+
+### Tests
+
+`ops/conductor/tests/test_dispatch_actions.py` (launch, status, wait,
+collect, recover, reconcile, the refusals), `test_dispatch_mcp.py`
+(the four tools over the standalone entry) and
+`test_dispatch_events.py` (the follow-through), all on `ops/testkit`.
+Fakes through the registry, no program in a test module (rule 6):
+`fakes/dispatch_wrapper.py` stands in for `dispatch.sh`: logs its argv as
+one JSON line, and per its spec prints `record: <id>` and
+`launcher-pid: <pid>` and writes `<jobs root>/<id>/state.json` with the
+correlation from its argv, or refuses with a given line, or exits
+without a `record:` line, or writes `state.json` then dies;
+`fakes/dispatch_launch.py` stands in for `launch.py` (`status`, `wait`,
+`collect` readings by spec, argv logged); `fakes/dispatch_digest.py`
+stands in for `monitor.py digest` (events by spec, acks logged).
+
+The fixture set, the practical failures on the exit path, each a row
+with an origin of this section:
+
+1. the launch: a bound dispatcher holding the machine → one intent, the
+   fake wrapper's argv carrying `--for A-n`, `--detach`,
+   `--correlation <the row's uuid>` and a `--scope-file` of one line;
+   `launched` with the record id; `status` reads it;
+2. the same key twice → one row, `repeated`; another digest under the
+   key → `idempotency`, no row;
+3. the wrapper exits without a `record:` line → `uncertain`; with a
+   planted `state.json` carrying the correlation, `reconcile` →
+   `launched`; without it → still `uncertain` and a second `launch` with
+   the same key is `repeated`, never a second wrapper call (the log has
+   one line);
+4. the wrapper refuses `stale-base` → `launcher` with that line
+   verbatim, the intent `refused`;
+5. a dispatcher who is not the holder → `holder` before any row; a
+   worker → `role`;
+6. the seventh ask at the cap → `capacity`, not reserved;
+7. `wait` on a fake reading not clean → exit 1 and the reading; on the
+   timeout → exit 1 with `timeout`, not 2;
+8. `collect --verify tests` (a key) → the fake `launch.py` argv carries
+   the table's argv, and `closed`; `--verify 'rm -rf'` → `verify`, no
+   call;
+9. the follow-through: a digest of `finished` → one `inform` to the
+   requester with the record id; the same digest replayed → no second
+   message; a send that fails (the store locked by the world) → the
+   cursor not acked;
+10. `recover` after a launcher death with `state.json` present → the row
+    `launched`, nothing launched (the wrapper log unchanged);
+11. the MCP entry: `coord_launch` over the standalone server with a bound
+    dispatcher → the same row as the CLI; without the role → the
+    server's `error` result carrying `role`.
+
+Clean neighbours: a launch with `--input` past `SCOPE_CAP` in size
+(the cap binds the scope file only); `status` by a worker (reads need
+no identity); an event for a record with no intent (acked, no send).
+No live launcher runs in the suite; the live ask is plan §13 step 4 by
+hand, its readings to probe rows.
