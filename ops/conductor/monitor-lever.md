@@ -311,3 +311,51 @@ consumer/ack/output bounds. No credentials, real stores or vendor calls in
 tests. Real probes: one bounded quota read and one aggregate-only read of an
 explicit operator-selected rollout. External harness delivery stays unprobed
 until separately verified. Register the instrument's config refusal row.
+
+## Host adapter and the leak record
+
+Standing: proposed, at the owner's word (2026-09-23, 01:53Z: "we have
+watchdog and monitor - maybe they can also track memory leaks?"),
+written by the contract session (agentscient-87, Claude Fable 5.1) at
+the Lead's order through the XO, beside the watchdog's "Host
+conditions" section, which holds the readings' sources, the config keys
+and their defaults, and the tmux liveness rule; the two read the same
+four things so a line and a trend never disagree.
+
+- `host`: params `{tmux_root,tmux_glob,grace_min}`, each optional with
+  the watchdog's defaults. Metrics: `mem_available_mb, mem_total_mb,
+  swap_used_mb, swap_total_mb, processes, tmux_servers,
+  tmux_stale_sockets`, all integers; `tmux_servers` counts socket files
+  older than the grace period that answer a connect, and
+  `tmux_stale_sockets` the ones that refuse it. State `ok` when every
+  source was read; `unavailable`, with the source named in `reason`,
+  when any was not; never a partial row read as ok. Evidence is the
+  paths read (`/proc/meminfo`, the proc root, the tmux root), not their
+  contents. Subject is the host name; generation is the boot id
+  (`/proc/sys/kernel/random/boot_id`), so a reboot re-arms every
+  condition.
+
+Conditions on it are the schema's `lt` and `gt` over those fields; the
+lane's own registry carries `mem_available_mb lt 2048`, `swap_used_mb gt
+4096`, `processes gt 3000` and `tmux_servers gt 0`, each with a
+cooldown of 900 s, routed to the consumer `dispatch` so the Dispatcher's
+digest carries the trend the watchdog's line points at.
+
+The first rows, taken by hand on 2026-09-23 before the adapter existed,
+recorded here so the trend has its origin:
+
+| observed_at | mem_available_mb | mem_total_mb | swap_used_mb | swap_total_mb | processes | tmux_servers | by |
+|:--|--:|--:|--:|--:|--:|--:|:--|
+| 01:35:48Z | 2298 | 30909 | 8191 | 8192 | not measured | not measured | the XO, `free -m` |
+| 01:40Z | not measured | not measured | not measured | not measured | 7360 | 1211 on `/tmp/sessions-*/tmp/tmux.sock` | the Lead |
+| 01:44Z, after the owner's kill | 17469 | 30909 | 2098 | 8192 | 1253 | not measured | the XO |
+
+Tests (`ops/conductor/tests/test_monitor_host.py`, on the kit): the
+planted fault is the watchdog's, a world-owned listener on a temp socket
+older than the grace period, which reads `tmux_servers` 1 and trips
+`tmux_servers gt 0` once, not on the next poll; the clean neighbour,
+younger than the grace period, reads 0 and trips nothing; a planted
+`meminfo` under the proc root drives `mem_available_mb lt` and
+`swap_used_mb gt`; an unreadable `meminfo` reads `unavailable` with its
+reason and matches only an `unavailable` condition; a changed boot id
+re-arms. Independent producer, as the section above.

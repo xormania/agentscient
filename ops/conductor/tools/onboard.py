@@ -16,7 +16,7 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, emit, lane_name, refuse
+    from instrument import Refusal, authority_home, emit, lane_name, refuse, state_root
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -153,12 +153,15 @@ def register_line(root: Path) -> tuple[str, bool]:
 def ledger_line(root: Path) -> tuple[str, bool]:
     tool = root / "ops/conductor/tools/hand.py"
     # The precheck mirrors the sibling's own store path: hand.py opens
-    # $HOME/.local/state/agentscient/handwork.db unconditionally (it
-    # predates the conventions' XDG rule — the gap is registered).
+    # authority_home()/.local/state/<lane>/handwork.db, never an XDG path
+    # (it predates the conventions' XDG rule — the gap is registered).
     # Checking an XDG path the sibling never reads would report false
     # absence, or worse, pass while the sibling creates an empty HOME
-    # store on read (Codex review of PR #106).
-    store = Path.home() / ".local/state/agentscient/handwork.db"
+    # store on read (Codex review of PR #106). authority_home() is the
+    # launch binding's HOME in a member whose own HOME is private: read
+    # through Path.home() there, the store the guard reads was ABSENT
+    # (LD-146).
+    store = authority_home() / ".local/state" / lane_name() / "handwork.db"
     if not store.is_file():
         return f"ledger: store: expected the handwork store at {store}; found ABSENT", False
     output, reason = run([sys.executable, str(tool), "report"], root)
@@ -204,11 +207,17 @@ def prs_line(root: Path) -> tuple[str, bool]:
 
 
 def lock_lines(root: Path) -> tuple[list[str], bool]:
-    """The deliverable lock as deliverable.py show prints it: the branches
-    and the owner's words on one line, then every target with its live
-    reading (owner, 2026-09-15: a brief that never printed the lock let a
-    plan's paraphrase of the order stand in for the order)."""
-    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    """The deliverable lock as deliverable.py show --unmeasured prints it:
+    the branches and the owner's words on one line, then every target
+    with its until text (owner, 2026-09-15: a brief that never printed the
+    lock let a plan's paraphrase of the order stand in for the order).
+    No measure runs here: show ran every target's measure in turn, 1m54s
+    for 44 targets, and no brief finished inside its bounds (LD-146).
+    The reading is `deliverable.py done <branch>`."""
+    # The siblings' own root: the launch binding's XDG_STATE_HOME in a
+    # member whose HOME is private, else XDG_STATE_HOME or ~/.local/state.
+    # Read through Path.home() there, the lock read none (LD-146).
+    state_home = state_root()
     lock = state_home / lane_name() / "deliverable.json"
     if not lock.is_file():
         # Checked before the lever runs: a read never creates the state
@@ -218,7 +227,7 @@ def lock_lines(root: Path) -> tuple[list[str], bool]:
     # LD-48, where the retry and the UNREACHABLE word were first needed;
     # bounded_read holds the rule now, and every other read shares it.
     output, absence = bounded_read(
-        [sys.executable, str(tool), "show"], root, "lock"
+        [sys.executable, str(tool), "show", "--unmeasured"], root, "lock"
     )
     if output is None:
         return [absence], False
@@ -257,7 +266,10 @@ def dispatch_is_running(path: Path) -> bool:
 
 
 def dispatches_line() -> tuple[str, bool]:
-    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    # The siblings' own root: the launch binding's XDG_STATE_HOME in a
+    # member whose HOME is private, else XDG_STATE_HOME or ~/.local/state.
+    # Read through Path.home() there, the lock read none (LD-146).
+    state_home = state_root()
     store = state_home / lane_name() / "dispatch"
     if not store.is_dir():
         if not store.exists() and not store.is_symlink():
@@ -294,7 +306,10 @@ def dispatches_line() -> tuple[str, bool]:
 def handoffs_lines(root: Path) -> tuple[list[str], bool]:
     """The handoff manager's brief, or a measured absence. The store is
     checked before the sibling runs: a read must never create it."""
-    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    # The siblings' own root: the launch binding's XDG_STATE_HOME in a
+    # member whose HOME is private, else XDG_STATE_HOME or ~/.local/state.
+    # Read through Path.home() there, the lock read none (LD-146).
+    state_home = state_root()
     store = state_home / lane_name() / "state.db"
     if not store.is_file():
         return [f"handoffs: ABSENT {store} (none recorded)"], True

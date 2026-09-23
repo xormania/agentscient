@@ -9,19 +9,27 @@ timeout-with-no-bind variant). It runs the profile's guard.sh
 SessionStart and then holds until the supervisor stops it. A
 ``bind_after_exit`` path in the spec makes it exit at once instead and
 leave a binder that runs SessionStart only after this process is gone,
-then writes that path (the exited-pane variant).
+then writes that path (the exited-pane variant). ``ack_probe`` true makes
+it, once bound, read its own inbox as the id it bound, with the
+capability in the profile's binding.json, and ack the readiness probe
+``start`` sends (sessions-lever.md slice 2, 11), as a member's own hooks
+would; it then holds.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
 
 VERSION = "session-harness 0.0.0-fake"
+REPO = "@@REPO@@"
 # How long the binder waits for the harness's pid to leave /proc.
 GONE_WAIT = 20.0
+# How long a bound harness looks for the readiness probe to ack.
+PROBE_WAIT = 30.0
 
 
 def spec_path() -> Path | None:
@@ -94,9 +102,8 @@ def kit_run():
 
     origin: 20260922T215604Z-review-codex-f6777b#20
     """
-    repo = "@@REPO@@"
-    if repo not in sys.path:
-        sys.path.insert(0, repo)
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
     from ops.testkit import run
     return run
 
@@ -132,15 +139,80 @@ def run_session_start(profile: Path, bind_id: str) -> int:
     return 0
 
 
+def ack_probe(profile: Path, bind_id: str) -> None:
+    """Ack the readiness probe from this member's inbox, or give up quietly
+    at PROBE_WAIT: the row reads ``waiting ack`` then."""
+    try:
+        binding = json.loads((profile / "binding.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    capability = binding.get("coordination_capability") if isinstance(binding, dict) else None
+    if not isinstance(capability, str) or not capability:
+        return
+    env = os.environ.copy()
+    env["CLAUDE_CODE_SESSION_ID"] = bind_id
+    env["COORDINATION_CAPABILITY"] = capability
+    tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
+    run = kit_run()
+    deadline = time.monotonic() + PROBE_WAIT
+    while time.monotonic() < deadline:
+        shown = run([sys.executable, tool, "inbox"], cwd=os.getcwd(), env=env, timeout=30)
+        probes = [line for line in shown.stdout.splitlines() if "readiness probe" in line]
+        for line in probes:
+            for token in re.findall(r"\bM-\d+\b", line):
+                run([sys.executable, tool, "ack", token], cwd=os.getcwd(), env=env, timeout=30)
+        if probes:
+            return
+        time.sleep(0.2)
+
+
+def pane_chain() -> list[int]:
+    """This process and its ancestors below the tmux server, or this
+    process alone when no tmux server is above it.
+
+    The pid the supervisor records is the pane's own process, profiles.py
+    run-interactive, which runs this harness as a child and outlives it by
+    its custody step. A binder that waited for this process alone could
+    bind while the pane's process still read ok (LD-149).
+    """
+    chain = [os.getpid()]
+    pid = os.getppid()
+    while pid > 1:
+        # stat, never exe: under the harness sandbox an ancestor's exe link
+        # is denied (measured: PermissionError 13), its stat is not.
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        except OSError:
+            break
+        comm, rest = stat.split("(", 1)[1].rsplit(")", 1)
+        if comm.startswith("tmux"):
+            return chain
+        chain.append(pid)
+        pid = int(rest.split()[1])
+    return chain[:1]
+
+
+def running(pid: int) -> bool:
+    """In /proc and not a zombie. A zombie has exited; only its parent's
+    reap is pending, and a tmux server has left a pane's process unreaped
+    for 15 s (LD-150)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return stat.rsplit(")", 1)[1].split()[0] != "Z"
+
+
 def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
     """Fork a binder and return, so the caller exits at once.
 
-    The binder waits until this process has left /proc, runs SessionStart,
-    and writes ``marker`` with the guard's exit. No poll of the supervisor
-    can then find the process ok and the member bound at the same time
-    (origin: 20260922T215604Z-review-codex-f6777b#9).
+    The binder waits until this process and every ancestor up to the
+    pane's own process have exited, runs SessionStart, and writes
+    ``marker`` with the guard's exit. No poll of the supervisor can then
+    find the process ok and the member bound at the same time (origin:
+    20260922T215604Z-review-codex-f6777b#9; LD-149).
     """
-    parent = os.getpid()
+    chain = pane_chain()
     if os.fork() != 0:
         return
     code = 1
@@ -150,9 +222,9 @@ def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
         for fd in (0, 1, 2):
             os.dup2(null, fd)
         deadline = time.monotonic() + GONE_WAIT
-        while Path(f"/proc/{parent}").exists():
+        while any(running(pid) for pid in chain):
             if time.monotonic() >= deadline:
-                note = f"harness pid {parent} still in /proc after {GONE_WAIT}s, never bound\n"
+                note = f"pane pids {chain} still running after {GONE_WAIT}s, never bound\n"
                 break
             time.sleep(0.02)
         else:
@@ -199,6 +271,8 @@ def main() -> int:
         code = run_session_start(profile, bind_id)
         if code:
             return code
+        if spec.get("ack_probe"):
+            ack_probe(profile, bind_id)
     hold()
     return 0
 

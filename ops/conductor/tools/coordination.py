@@ -35,10 +35,13 @@ there would not run when the MCP projection calls the same function.
     coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
     coordination.py send --to WHO --purpose P --body TEXT [--assignment A-n]
-                         [--decision DC-n] [--reply-to M-n] [--artifact REF]
+                         [--decision DC-n] [--reply-to M-n] [--artifact REF] [--key K]
     coordination.py deliver M-n --ref REF | ack M-n | resolve M-n --evidence READING
     coordination.py withdraw M-n --why TEXT | inbox [--unresolved] | outstanding [--to WHO]
     coordination.py undelivered [--to WHO]
+    coordination.py route --take stdout|native [--member SM-n] | route --release | routes
+    coordination.py attempt M-n --route R --generation G | attempts M-n
+    coordination.py attempted AT-n --outcome O [--ref REF] [--error TEXT]
     coordination.py observe A-n --observation TEXT --revision SHA --generation N
                             [--stale] [--execution REC] [--artifact REF]
                             [--requirement REF] [--environment TEXT]
@@ -50,6 +53,11 @@ there would not run when the MCP projection calls the same function.
     coordination.py reserve NAME --for A-n [--ttl MIN] | free NAME --why TEXT | resources
     coordination.py coverage [--requirement REF] | brief
     coordination.py entry [--role R]
+
+In an owner's terminal (sessions-lever.md, the owner's terminals) bind
+also takes --run R-n, the run it joins, refused `absent` when it names
+none; and every verb takes --profile PATH, the hook profile read in
+place of AGENTSCIENT_HOOK_PROFILE.
 
 Reads need no identity and no participant and never create the store.
 """
@@ -174,7 +182,13 @@ ENTRY = {
 }
 PURPOSES = ("inform", "request", "finding")
 OBLIGATIONS = ("request", "finding")
-ID = re.compile(r"^(PT|DC|A|M|E|R)-(\d+)$")
+# Slice 2 of sessions-lever.md: one live route per participant, a delivery
+# attempt reserved before each native submission and settled after it.
+ROUTES = ("stdout", "native")
+OUTCOMES = ("written", "accepted", "unsupported", "failed", "uncertain")
+ATTEMPT_TTL = 60
+ATTEMPTS_OUTSTANDING = 4
+ID = re.compile(r"^(PT|DC|AT|A|M|E|R)-(\d+)$")
 READING = re.compile(
     r"^(?:[0-9a-f]{7,40}|#\d+|\d{8}T\d{6}Z-[\w-]+|P-[\w-]+)$", re.IGNORECASE
 )
@@ -255,6 +269,22 @@ CREATE TABLE IF NOT EXISTS decisions(
 CREATE TABLE IF NOT EXISTS resources(
     id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, assignment INTEGER,
     holder INTEGER, note TEXT);
+"""
+# Additive, and outside STORE_TABLES on purpose: a store populated before
+# slice 2 still reads, and its first writer adds these with its rows intact.
+DELIVERY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS delivery_routes(
+    participant INTEGER PRIMARY KEY, route TEXT NOT NULL, member INTEGER,
+    pid INTEGER NOT NULL, start_ticks TEXT NOT NULL, since TEXT NOT NULL,
+    last_pass_at TEXT);
+CREATE TABLE IF NOT EXISTS delivery_attempts(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, message INTEGER NOT NULL,
+    participant INTEGER NOT NULL, generation INTEGER NOT NULL, route TEXT NOT NULL,
+    reserved_at TEXT NOT NULL, submitted_at TEXT, outcome TEXT, native_ref TEXT,
+    error TEXT);
+CREATE TABLE IF NOT EXISTS send_requests(
+    participant INTEGER NOT NULL, key TEXT NOT NULL, digest TEXT NOT NULL,
+    message INTEGER NOT NULL, at TEXT NOT NULL, PRIMARY KEY (participant, key));
 """
 
 
@@ -340,6 +370,7 @@ def ensure_columns(conn) -> None:
 def writer():
     conn = machine.connect(create=True)
     conn.executescript(SCHEMA)
+    conn.executescript(DELIVERY_SCHEMA)
     ensure_columns(conn)
     for declared in (ASSIGNMENT, MESSAGE, RESOURCE):
         machine.declare(conn, declared)
@@ -1449,12 +1480,31 @@ def core_assignments(conn, part, *, state=None, to=None) -> dict:
     return {"assignments": [assignment_dict(row) for row in shown]}
 
 
+QUEUE_MESSAGE = ("INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
+                 "assignment, decision, reply_to, queued_at) "
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+
 def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision=None,
-              reply_to=None, artifact=None) -> dict:
+              reply_to=None, artifact=None, key=None) -> dict:
+    """With `key`, idempotent per caller (sessions-lever.md, Slice 2): the
+    same key with the same payload returns the message it first queued,
+    marked `repeated`; with another payload it refuses `idempotency` and
+    writes nothing. Without a key, every send queues a new message."""
     part = same_session(conn, part)
     if purpose not in PURPOSES:
         refuse("arguments", "a purpose of " + ", ".join(PURPOSES), purpose,
                "an inform carries no obligation; a request and a finding do")
+    digest = None
+    if key is not None:
+        if not isinstance(key, str) or not key.strip() or len(key) > 200:
+            refuse("arguments", "a non-empty key of at most 200 characters", repr(key),
+                   "name the caller's own request key")
+        digest = send_digest(to=to, purpose=purpose, body=body, assignment=assignment,
+                             decision=decision, reply_to=reply_to, artifact=artifact)
+        repeated = keyed_message(conn, part, key, digest)
+        if repeated is not None:
+            return repeated
     recipient = recipient_of(conn, to)
     aid = parse_id(assignment, "A")[1] if assignment else None
     did = parse_id(decision, "DC")[1] if decision else None
@@ -1462,12 +1512,36 @@ def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision
     if aid is not None:
         assignment_row(conn, aid)
     sid = machine.create(conn, MESSAGE, actor(part))
-    conn.execute(
-        "INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
-        "assignment, decision, reply_to, queued_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp()),
-    )
+    queued = (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp())
+    if key is None:
+        conn.execute(QUEUE_MESSAGE, queued)
+        return message_dict(message_row(conn, sid))
+
+    def take_key(conn):
+        # The key's row and the message's row land in one transaction under
+        # the write lock. A send that lost the key to a concurrent one never
+        # wrote a message row, so no courier can carry what it queued: the
+        # restart or the race does not replay the effect.
+        if keyed_message(conn, part, key, digest) is not None:
+            return False
+        conn.execute(QUEUE_MESSAGE, queued)
+        conn.execute("INSERT INTO send_requests(participant, key, digest, message, at) "
+                     "VALUES (?, ?, ?, ?, ?)", (part["id"], key, digest, sid, stamp()))
+        return True
+
+    try:
+        with instrument.transaction(conn):
+            took = take_key(conn)
+    except Refusal:
+        # Another payload took the key after the check above: the subject
+        # this send opened carries no message and is withdrawn, never deleted.
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named another payload")
+        raise
+    if not took:
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named a message")
+        return keyed_message(conn, part, key, digest)
     return message_dict(message_row(conn, sid))
 
 
@@ -1998,6 +2072,395 @@ def core_entry(conn, part, *, role=None) -> dict:
             "ladder": "ops/conductor/coordination-lever.md"}
 
 
+# -- delivery: routes, attempts, send keys (sessions-lever.md, Slice 2) -------
+
+def process_ticks(pid) -> str | None:
+    """Start ticks for a live process; absent, malformed and zombie records are gone."""
+    try:
+        with open(f"/proc/{int(pid)}/stat", encoding="utf-8") as handle:
+            text = handle.read()
+    except (OSError, ValueError, TypeError):
+        return None
+    try:
+        fields = text.rsplit(")", 1)[1].split()
+        return None if fields[0] in {"Z", "X", "x"} else fields[19]
+    except IndexError:
+        return None
+
+
+def holder_alive(row) -> bool:
+    """A route's holder is alive when its pid still carries the recorded
+    start ticks; a missing tick is never alive."""
+    return bool(row["start_ticks"]) and process_ticks(row["pid"]) == row["start_ticks"]
+
+
+def has_table(conn, name: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?", (name,)
+    ).fetchone() is not None
+
+
+def route_dict(row) -> dict:
+    return {
+        "participant": f"PT-{row['participant']}", "route": row["route"],
+        "member": f"SM-{row['member']}" if row["member"] is not None else None,
+        "pid": row["pid"], "start_ticks": row["start_ticks"], "since": row["since"],
+        "last_pass_at": row["last_pass_at"], "alive": holder_alive(row),
+    }
+
+
+def attempt_dict(row) -> dict:
+    return {
+        "attempt": f"AT-{row['id']}", "id": row["id"], "message": f"M-{row['message']}",
+        "participant": f"PT-{row['participant']}", "generation": row["generation"],
+        "route": row["route"], "reserved_at": row["reserved_at"],
+        "submitted_at": row["submitted_at"], "outcome": row["outcome"],
+        "native_ref": row["native_ref"], "error": row["error"],
+    }
+
+
+def holder_line(row) -> str:
+    return f"{row['route']} route held by pid={row['pid']} since {row['since']}"
+
+
+def core_route(conn, part, *, action, pid, start_ticks, route=None, member=None) -> dict:
+    """A courier's route: `take`, `pass` or `release`, by the holder's pid
+    and start ticks. One verb, so the CLI and the core offer the same
+    table; the three moves are the functions below."""
+    part = same_session(conn, part)
+    if not isinstance(pid, int) or pid < 1 or not start_ticks:
+        refuse("arguments", "the holder's pid and its start ticks", f"pid={pid} start={start_ticks}",
+               "name the route from the courier's own live process")
+    if action == "take":
+        return route_take(conn, part, route=route, pid=pid, start_ticks=start_ticks,
+                          member=member)
+    if action == "pass":
+        return route_pass(conn, part, pid=pid, start_ticks=start_ticks)
+    if action == "release":
+        return route_release(conn, part, pid=pid, start_ticks=start_ticks)
+    return refuse("arguments", "a route action of take, pass or release", str(action),
+                  "route --take stdout|native or route --release")
+
+
+def member_id(member) -> int | None:
+    if member is None or isinstance(member, int):
+        return member
+    match = re.fullmatch(r"SM-(\d+)", str(member))
+    if match is None:
+        refuse("id", "a member id like SM-1", str(member), "the id sessions.py status prints")
+    return int(match.group(1))
+
+
+def route_take(conn, part, *, route, pid, start_ticks, member=None) -> dict:
+    """One live route per participant, taken under the write lock.
+
+    A second courier of either route refuses while the holder lives; a dead
+    holder's row is taken over and the takeover is the new row's `since`
+    (plan §7, competing couriers).
+    """
+    if route not in ROUTES:
+        refuse("arguments", "a route of " + " or ".join(ROUTES), str(route),
+               "stdout for a TUI session's courier, native for a bridge")
+    member = member_id(member)
+
+    def take(conn):
+        row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                           (part["id"],)).fetchone()
+        moment = stamp()
+        if row is not None and (row["pid"], row["start_ticks"]) == (pid, str(start_ticks)):
+            conn.execute("UPDATE delivery_routes SET route = ?, member = ?, last_pass_at = ? "
+                         "WHERE participant = ?", (route, member, moment, part["id"]))
+            return None
+        if row is not None and holder_alive(row):
+            refuse("route", f"no live courier holding PT-{part['id']}", holder_line(row),
+                   "stop that courier first; a route is taken over only from a dead holder")
+        conn.execute("INSERT OR REPLACE INTO delivery_routes(participant, route, member, pid, "
+                     "start_ticks, since, last_pass_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (part["id"], route, member, pid, str(start_ticks), moment, moment))
+        return None if row is None else holder_line(row)
+
+    with instrument.transaction(conn):
+        previous = take(conn)
+    shown = route_dict(conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                                    (part["id"],)).fetchone())
+    shown["took_over"] = previous
+    return shown
+
+
+def route_pass(conn, part, *, pid, start_ticks) -> dict:
+    """A courier's pass stamps the route it still holds; one that lost it refuses."""
+    moment = stamp()
+    changed = conn.execute(
+        "UPDATE delivery_routes SET last_pass_at = ? WHERE participant = ? AND pid = ? "
+        "AND start_ticks = ?", (moment, part["id"], pid, str(start_ticks))).rowcount
+    row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                       (part["id"],)).fetchone()
+    if not changed:
+        refuse("route", f"the route PT-{part['id']} took with pid={pid}",
+               holder_line(row) if row is not None else "no route row",
+               "take the route again; another courier holds it or it was released")
+    return route_dict(row)
+
+
+def route_release(conn, part, *, pid, start_ticks) -> dict:
+    """The holder gives its route up; a live holder that is not the caller refuses."""
+
+    def release(conn):
+        row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                           (part["id"],)).fetchone()
+        if row is None:
+            return None
+        mine = (row["pid"], row["start_ticks"]) == (pid, str(start_ticks))
+        if not mine and holder_alive(row):
+            refuse("route", f"a route held by pid={pid} or by a dead holder", holder_line(row),
+                   "the holding courier releases its own route")
+        conn.execute("DELETE FROM delivery_routes WHERE participant = ?", (part["id"],))
+        return holder_line(row)
+
+    with instrument.transaction(conn):
+        released = release(conn)
+    return {"participant": f"PT-{part['id']}", "released": released}
+
+
+def core_routes(conn, part) -> dict:
+    """Every route row; a store without the table has taken no route yet."""
+    if conn is None:
+        return no_store(routes=[])
+    if not has_table(conn, "delivery_routes"):
+        return {"routes": [], "table": "absent: no writer since slice 2's tables"}
+    rows = conn.execute("SELECT * FROM delivery_routes ORDER BY participant").fetchall()
+    return {"routes": [route_dict(row) for row in rows]}
+
+
+def live_holders(conn, role: str) -> list[int]:
+    """Participants holding `role` whose courier holds a live route."""
+    if not has_table(conn, "delivery_routes"):
+        return []
+    rows = conn.execute(
+        "SELECT r.*, p.roles FROM delivery_routes r JOIN participants p ON p.id = r.participant "
+        "ORDER BY r.participant").fetchall()
+    return [row["participant"] for row in rows
+            if role in row["roles"].split(",") and holder_alive(row)]
+
+
+def carriable(conn, part) -> dict:
+    """What this participant's courier carries now, and what no courier may.
+
+    A message to `PT-n` is carried by that participant's courier. A
+    role-addressed message is carried only by the courier of the single
+    live holder of that role; with two live holders it is carried by
+    neither and is listed as ambiguous (plan §7, role-addressed messages).
+    The live holders are read across the store's routes, not per run: the
+    core knows no runs.
+    """
+    part = same_session(conn, part)
+    if conn is None:
+        return no_store(carry=[], ambiguous=[])
+    rows = conn.execute(
+        "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+        "WHERE m.delivered_at IS NULL AND s.place = 'open' ORDER BY m.id"
+    ).fetchall()
+    carry, ambiguous = [], []
+    for row in rows:
+        if not addressed(part, row["recipient"]):
+            continue
+        if row["recipient"] == f"PT-{part['id']}":
+            carry.append(message_dict(row))
+            continue
+        holders = live_holders(conn, row["recipient"])
+        if holders == [part["id"]]:
+            carry.append(message_dict(row))
+        elif len(holders) > 1:
+            ambiguous.append({"message": f"M-{row['id']}", "role": row["recipient"],
+                              "holders": [f"PT-{pid}" for pid in holders]})
+    return {"carry": carry, "ambiguous": ambiguous}
+
+
+def member_kin(conn, pid: int) -> list[int]:
+    """The participants of every generation of the member PT-`pid` is: the
+    same run and member name in sessions.py's `session_member`, in the
+    same store. `pid` alone when no member row names it or the store has
+    no such table. Attempt exclusion and reconciliation key on these, so a
+    replacement generation sees, waits on and settles what its
+    predecessor left unsettled (A-522 #1): a restart neither erases the
+    obligation nor replays its effects."""
+    if not has_table(conn, "session_member"):
+        return [pid]
+    rows = conn.execute(
+        "SELECT DISTINCT k.participant FROM session_member m JOIN session_member k "
+        "ON k.run = m.run AND k.name = m.name "
+        "WHERE m.participant = ? AND k.participant IS NOT NULL ORDER BY k.participant",
+        (pid,)).fetchall()
+    return [row[0] for row in rows] or [pid]
+
+
+def marks(values) -> str:
+    """One `?` per value, for an `IN (...)` whose values stay bound."""
+    return ",".join("?" for _ in values)
+
+
+def attempt_row(conn, aid: int):
+    row = None
+    if conn is not None and has_table(conn, "delivery_attempts"):
+        row = conn.execute("SELECT * FROM delivery_attempts WHERE id = ?", (aid,)).fetchone()
+    if row is None:
+        refuse("unknown", "a delivery attempt id in the store", f"AT-{aid}",
+               "an id printed by attempts")
+    return row
+
+
+def core_attempt(conn, part, *, message, route, generation) -> dict:
+    """Reserve one submission of one message to this participant, before it.
+
+    Nothing is resubmitted while an attempt of the message is unsettled, and
+    at most ATTEMPTS_OUTSTANDING attempts per participant are unsettled at
+    once, a participant counting with its member's earlier generations
+    (member_kin). A delivered message may take a later attempt: its outcome settles
+    that attempt and never records `deliver` again. The courier does not
+    select a delivered message; `carriable` is where that holds.
+    """
+    part = same_session(conn, part)
+    _, mid = parse_id(message, "M")
+    if route not in ROUTES:
+        refuse("arguments", "a route of " + " or ".join(ROUTES), str(route),
+               "the route the courier holds")
+    stated = str(generation)
+    if not stated.isdigit() or int(stated) < 1:
+        refuse("arguments", "--generation as a whole number of one or more", stated,
+               "the member's generation sessions.py status prints")
+    row = message_row(conn, mid)
+    if not addressed(part, row["recipient"]):
+        refuse("recipient", f"the recipient {row['recipient']} of M-{mid}",
+               f"PT-{part['id']} ({part['roles']})", "the recipient's own courier carries it")
+
+    def reserve(conn):
+        current = message_row(conn, mid)
+        if current["place"] != "open":
+            refuse("place", f"an open message M-{mid}", f"M-{mid} {current['place']}",
+                   "a resolved or withdrawn message is not carried")
+        kin = member_kin(conn, part["id"])
+        pending = conn.execute(
+            f"SELECT * FROM delivery_attempts WHERE message = ? AND participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL ORDER BY id", (mid, *kin)).fetchone()
+        if pending is not None:
+            refuse("place", f"no unsettled attempt of M-{mid}",
+                   f"AT-{pending['id']} reserved {pending['reserved_at']}, unsettled",
+                   "settle it with attempted, or let the next pass reconcile it past the ttl")
+        held = conn.execute(
+            f"SELECT COUNT(*) FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL", kin).fetchone()[0]
+        if held >= ATTEMPTS_OUTSTANDING:
+            refuse("place", f"fewer than {ATTEMPTS_OUTSTANDING} unsettled attempts for PT-{part['id']}",
+                   f"{held} unsettled", "settle or reconcile the outstanding attempts first")
+        return conn.execute(
+            "INSERT INTO delivery_attempts(message, participant, generation, route, reserved_at) "
+            "VALUES (?, ?, ?, ?, ?)", (mid, part["id"], int(stated), route, stamp())).lastrowid
+
+    with instrument.transaction(conn):
+        aid = reserve(conn)
+    return attempt_dict(attempt_row(conn, aid))
+
+
+def outcome_text(outcome, ref, error) -> str:
+    """The recorded outcome, one of the contract's six shapes."""
+    needs = {"accepted": ref, "unsupported": ref or error, "failed": error, "uncertain": error}
+    if outcome not in OUTCOMES:
+        refuse("arguments", "an outcome of " + ", ".join(OUTCOMES), str(outcome),
+               "written, accepted with --ref, unsupported with the method, failed or "
+               "uncertain with --error")
+    if outcome == "written":
+        return "written"
+    if not needs[outcome]:
+        refuse("arguments", f"an outcome {outcome} with its reading",
+               "no --ref" if outcome == "accepted" else "no --error",
+               "accepted takes --ref; unsupported the method; failed and uncertain --error")
+    return f"{outcome} {needs[outcome]}"
+
+
+def core_attempted(conn, part, *, attempt, outcome, ref=None, error=None) -> dict:
+    """Settle an attempt after the submission; the first written or accepted
+    one records the core's `deliver` once, ref `native:AT-n:<ref>`. The
+    recipient's own `ack` is never written here."""
+    part = same_session(conn, part)
+    _, aid = parse_id(attempt, "AT")
+    text = outcome_text(outcome, ref, error)
+
+    def settle(conn):
+        row = attempt_row(conn, aid)
+        if row["participant"] not in member_kin(conn, part["id"]):
+            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}, "
+                   "or of a later generation of its member",
+                   f"PT-{part['id']}", "the courier that reserved it settles it")
+        if row["outcome"] is not None:
+            refuse("place", f"an unsettled attempt AT-{aid}", f"settled {row['outcome']}",
+                   "reserve a new attempt; a settled one is not rewritten")
+        conn.execute("UPDATE delivery_attempts SET outcome = ?, native_ref = ?, error = ?, "
+                     "submitted_at = ? WHERE id = ?", (text, ref, error, stamp(), aid))
+        if outcome in ("written", "accepted"):
+            conn.execute("UPDATE messages SET delivered_at = ?, delivery_ref = ? "
+                         "WHERE id = ? AND delivered_at IS NULL",
+                         (stamp(), f"native:AT-{aid}:{ref or 'written'}", row["message"]))
+
+    with instrument.transaction(conn):
+        settle(conn)
+    return attempt_dict(attempt_row(conn, aid))
+
+
+def core_attempts(conn, part, *, message=None) -> dict:
+    """The attempts of one message, or of every message, oldest first."""
+    if conn is None:
+        return no_store(attempts=[])
+    if not has_table(conn, "delivery_attempts"):
+        return {"attempts": [], "table": "absent: no writer since slice 2's tables"}
+    if message is None:
+        rows = conn.execute("SELECT * FROM delivery_attempts ORDER BY id").fetchall()
+    else:
+        _, mid = parse_id(message, "M")
+        rows = conn.execute("SELECT * FROM delivery_attempts WHERE message = ? ORDER BY id",
+                            (mid,)).fetchall()
+    return {"attempts": [attempt_dict(row) for row in rows]}
+
+
+def stale_attempts(conn, part) -> dict:
+    """This participant's unsettled attempts, and its member's earlier
+    generations', reserved longer than ATTEMPT_TTL ago: a crash between
+    the submission and its settlement."""
+    part = same_session(conn, part)
+    if conn is None or not has_table(conn, "delivery_attempts"):
+        return {"stale": []}
+    kin = member_kin(conn, part["id"])
+    rows = conn.execute(f"SELECT * FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+                        "AND outcome IS NULL ORDER BY id", kin).fetchall()
+    moment = now()
+    stale = [row for row in rows
+             if (moment - parse_stamp(row["reserved_at"])).total_seconds() > ATTEMPT_TTL]
+    return {"stale": [attempt_dict(row) for row in stale]}
+
+
+def send_digest(*, to, purpose, body, assignment, decision, reply_to, artifact) -> str:
+    payload = {"to": to, "purpose": purpose, "body": body, "assignment": assignment,
+               "decision": decision, "reply_to": reply_to, "artifact": artifact}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def keyed_message(conn, part, key: str, digest: str):
+    """The message a key already named, or None; another digest refuses."""
+    if not has_table(conn, "send_requests"):
+        return None
+    row = conn.execute("SELECT * FROM send_requests WHERE participant = ? AND key = ?",
+                       (part["id"], key)).fetchone()
+    if row is None:
+        return None
+    if row["digest"] != digest:
+        refuse("idempotency", f"key {key} with the payload it first named",
+               f"M-{row['message']} under that key with another payload",
+               "reuse a key only for the same message; a new message takes a new key")
+    shown = message_dict(message_row(conn, row["message"]))
+    shown["repeated"] = True
+    return shown
+
+
 CORE = {
     "bind": core_bind, "bind-for": core_bind_for, "grant": core_grant,
     "revoke": core_revoke,
@@ -2017,6 +2480,8 @@ CORE = {
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
     "recover-roles": core_recover_roles,
     "coverage": core_coverage, "brief": core_brief, "entry": core_entry,
+    "route": core_route, "routes": core_routes, "attempt": core_attempt,
+    "attempted": core_attempted, "attempts": core_attempts,
 }
 
 
@@ -2298,15 +2763,16 @@ def do_send(rest):
     agent = identity()
     _, opts = parse(
         rest, 0, required=("to", "purpose", "body"),
-        optional=("assignment", "decision", "reply-to", "artifact"),
+        optional=("assignment", "decision", "reply-to", "artifact", "key"),
     )
     with writer() as conn:
         shown = CORE["send"](conn, bound_participant(conn), agent=agent, to=opts["to"],
                              purpose=opts["purpose"], body=opts["body"],
                              assignment=opts.get("assignment"),
                              decision=opts.get("decision"),
-                             reply_to=opts.get("reply-to"), artifact=opts.get("artifact"))
-    print(f"message {shown['message']} queued")
+                             reply_to=opts.get("reply-to"), artifact=opts.get("artifact"),
+                             key=opts.get("key"))
+    print(f"message {shown['message']} queued" + (" (repeated)" if shown.get("repeated") else ""))
 
 
 def do_deliver(rest):
@@ -2391,6 +2857,94 @@ def do_outstanding(rest):
     for row in shown["outstanding"]:
         seen = f", acknowledged {row['acked_at']}" if row["acked_at"] else ", not acknowledged"
         print(message_line(row) + seen)
+    return EXIT_DONE
+
+
+# -- delivery: verbs ---------------------------------------------------------
+
+def do_route(rest):
+    """`route --take R [--member SM-n]` or `route --release`, held by the
+    calling process's parent: the shell or courier that ran this verb."""
+    identity()
+    _, opts = parse(rest, 0, optional=("take", "member"), flags=("release",))
+    if ("take" in opts) == bool(opts.get("release")):
+        refuse("arguments", "one of --take stdout|native or --release",
+               "both" if "take" in opts else "neither", usage())
+    holder = os.getppid()
+    ticks = process_ticks(holder)
+    with writer() as conn:
+        if opts.get("release"):
+            shown = CORE["route"](conn, bound_participant(conn), action="release",
+                                  pid=holder, start_ticks=ticks)
+            print(f"released {shown['released']}" if shown["released"] else "no route held")
+            return EXIT_DONE
+        shown = CORE["route"](conn, bound_participant(conn), action="take", route=opts["take"],
+                              pid=holder, start_ticks=ticks, member=opts.get("member"))
+    tail = f"; took over from {shown['took_over']}" if shown["took_over"] else ""
+    print(f"route {shown['route']} held by pid={shown['pid']} for {shown['participant']}{tail}")
+    return EXIT_DONE
+
+
+def do_routes(rest):
+    parse(rest, 0)
+    shown = CORE["routes"](reader(), None)
+    if shown.get("store") == "absent":
+        print("no store")
+        return EXIT_DONE
+    if "table" in shown:
+        print(f"no routes: {shown['table']}")
+        return EXIT_DONE
+    if not shown["routes"]:
+        print("no routes")
+        return EXIT_DONE
+    for row in shown["routes"]:
+        member = f" {row['member']}" if row["member"] else ""
+        print(f"{row['participant']}{member} route {row['route']} pid={row['pid']} "
+              f"since {row['since']}, {'alive' if row['alive'] else 'dead'}")
+    return EXIT_DONE
+
+
+def do_attempt(rest):
+    identity()
+    (raw,), opts = parse(rest, 1, required=("route", "generation"))
+    with writer() as conn:
+        shown = CORE["attempt"](conn, bound_participant(conn), message=raw,
+                                route=opts["route"], generation=opts["generation"])
+    print(f"attempt {shown['attempt']} reserved for {shown['message']}")
+    return EXIT_DONE
+
+
+def do_attempted(rest):
+    identity()
+    (raw,), opts = parse(rest, 1, required=("outcome",), optional=("ref", "error"))
+    with writer() as conn:
+        shown = CORE["attempted"](conn, bound_participant(conn), attempt=raw,
+                                  outcome=opts["outcome"], ref=opts.get("ref"),
+                                  error=opts.get("error"))
+    print(f"attempt {shown['attempt']} {shown['outcome']}")
+    return EXIT_DONE
+
+
+def attempt_line(row: dict) -> str:
+    return (f"{row['attempt']} {row['message']} to {row['participant']} generation "
+            f"{row['generation']} route {row['route']} reserved {row['reserved_at']}: "
+            f"{row['outcome'] or 'unsettled'}")
+
+
+def do_attempts(rest):
+    (raw,), _ = parse(rest, 1)
+    shown = CORE["attempts"](reader(), None, message=raw)
+    if shown.get("store") == "absent":
+        print("no store")
+        return EXIT_DONE
+    if "table" in shown:
+        print(f"no attempts: {shown['table']}")
+        return EXIT_DONE
+    if not shown["attempts"]:
+        print(f"no attempts of {raw}")
+        return EXIT_DONE
+    for row in shown["attempts"]:
+        print(attempt_line(row))
     return EXIT_DONE
 
 
@@ -2682,6 +3236,8 @@ VERBS = {
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
     "recover-roles": do_recover_roles,
     "coverage": do_coverage, "brief": do_brief, "entry": do_entry,
+    "route": do_route, "routes": do_routes, "attempt": do_attempt,
+    "attempted": do_attempted, "attempts": do_attempts,
 }
 
 

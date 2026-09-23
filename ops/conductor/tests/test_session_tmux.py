@@ -19,6 +19,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from ops.conductor.tests.private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
 from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
@@ -45,7 +46,7 @@ def shim_text(log: Path) -> str:
     return f"#!{sys.executable}\n" + text
 
 
-class TheTmuxShimForwardsFormat(unittest.TestCase):
+class TheTmuxShimForwardsFormat(RecordedTmux, unittest.TestCase):
     """One regression row: a real tmux format value reaches the caller."""
 
     def open_world(self) -> World:
@@ -79,7 +80,7 @@ class TheTmuxShimForwardsFormat(unittest.TestCase):
             )
             log = world.root / "tmux.calls.jsonl"
             planted = world.tools.plant("tmux", script=shim_text(log))
-            self.addCleanup(self.stop_server, world, socket)
+            self.world, self.socket = world, socket
             proc = run(
                 [
                     str(planted),
@@ -92,20 +93,43 @@ class TheTmuxShimForwardsFormat(unittest.TestCase):
                 env=world.env(),
                 timeout=TIMEOUT,
             )
+            # The shim is the subject and left the server: recorded with
+            # the kit (private_tmux.RecordedTmux), so close stops it.
+            self.own_server()
             self.assertEqual(proc.exit, 0, proc.stderr)
             self.assertEqual(
                 proc.stdout.strip(),
                 "probe",
                 f"the shim dropped the host tmux format value: {proc.stdout!r}",
             )
+    def test_close_stops_a_server_whose_socket_file_is_gone(self):
+        """origin: docs/tests.md, Daemons; the kit's measure at a93368b5
 
-    def stop_server(self, world: World, socket: Path) -> None:
-        run(
-            [HOST_TMUX, "-S", str(socket), "kill-server"],
-            cwd=world.cwd,
-            env=world.env(),
-            timeout=TIMEOUT,
-        )
+        The server the shim started is recorded with the kit, so with the
+        socket file removed the case's cleanups still stop it.
+        """
+        if not HOST_TMUX:
+            raise unittest.SkipTest("tmux is absent; the row needs the host tmux")
+        with self.subTest(id="shim-server-socket-file-gone", origin=ORIGIN_DAEMON):
+            world = self.open_world()
+            self.addCleanup(world.close)
+            socket = world.tmp / "tmux.sock"
+            planted = world.tools.plant("tmux", script=shim_text(world.root / "tmux.calls.jsonl"))
+            self.world, self.socket = world, socket
+            proc = run(
+                [str(planted), "-S", str(socket), "-f", "/dev/null",
+                 "new-session", "-d", "-s", "probe"],
+                cwd=world.cwd,
+                env=world.env(),
+                timeout=TIMEOUT,
+            )
+            self.own_server()
+            self.assertEqual(proc.exit, 0, proc.stderr)
+            self.assertTrue(socket.exists(), "the shim left no socket")
+            socket.unlink()
+            home = str(world.home)
+            self.doCleanups()
+            self.assertEqual(carrying_home(home), [])
 
 
 if __name__ == "__main__":

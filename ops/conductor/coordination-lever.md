@@ -483,7 +483,7 @@ reconciliation the caller still owes.
 
 | verb | effect |
 |---|---|
-| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
+| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n`; in an owner's terminal `--run R-n` names the run an owner's terminal joins and refuses `absent` when it names no run (sessions-lever.md, the owner's terminals). Every verb takes `--profile PATH`, read as `AGENTSCIENT_HOOK_PROFILE` is, and refuses `arguments` when both name different profiles |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
 | `recover-roles --grant ID --roles R[,R] --why TEXT` | the owner's current hand grant restores this session's roles, with a receipt |
@@ -503,7 +503,7 @@ reconciliation the caller still owes.
 | `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |
 | `show A-n` | the row, its marking, its observations and its open messages |
-| `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF]` | prints `message M-n queued` |
+| `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF] [--key K]` | prints `message M-n queued`; with `--key`, the same key and payload again prints the existing `message M-n queued (repeated)`, another payload refuses `idempotency` (sessions slice 2) |
 | `deliver M-n --ref REF` | the transport's receipt |
 | `ack M-n` | the recipient's acknowledgment |
 | `resolve M-n --evidence READING` | the obligation answered |
@@ -511,6 +511,12 @@ reconciliation the caller still owes.
 | `inbox [--unresolved]` | messages to this participant or its roles |
 | `outstanding [--to WHO]` | requests and findings not yet resolved |
 | `undelivered [--to WHO]` | queued to the caller and not yet delivered |
+| `route --take ROUTE [--member SM-n]` | the courier takes the caller's delivery route (`stdout` or `native`) with its own pid and start ticks; a live holder refuses `route` (sessions slice 2) |
+| `route --release` | the courier gives its route row back |
+| `routes` | every live and dead route row |
+| `attempt M-n --route ROUTE --generation N` | reserves one delivery attempt before the submission; prints `attempt AT-n reserved` |
+| `attempted AT-n --outcome O [--ref REF] [--error TEXT]` | settles the attempt (`written`, `accepted`, `unsupported`, `failed`, `uncertain`); the first `written` or `accepted` records the message's `deliver` |
+| `attempts M-n` | the attempts of one message, newest first |
 | `observe A-n --observation TEXT --revision SHA --generation N [--stale] [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
 | `observations A-n [--all]` | current observations, `--all` includes stale |
 | `ask --question TEXT --alternatives TEXT [--assignment A-n]` | prints `decision DC-n` |

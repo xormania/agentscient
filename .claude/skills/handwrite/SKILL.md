@@ -13,15 +13,21 @@ grant that does not exist.
 
 ## The shape
 
-1. **Declare at the owner's word, unscoped.** "hand grant" or "get it
-   done" is the grant; the owner types nothing:
-   `python3 ops/conductor/tools/hand.py declare '<what>' 'owner <date>: "<the words>"' other --ttl 480`.
-   The two classes: `other` for every write outside the wall; `wall`
-   for `.github/workflows/`, `ops/bin/suites.sh`, `probes.py`,
-   `laneconf.py`, `boundaries.json`, `matrix.py`, `engine.py`,
-   `ops/devlane/hooks/tests/`. A wall grant may not write a non-wall
-   path and a non-wall grant may not write a wall path; declare both
-   when the work spans them and lead each command with the right one.
+1. **Declare once, at the session's start, unscoped.** The owner's word
+   at the start, or the Lead's word on the owner's delegation, is the
+   grant (owner 2026-09-23: "i just want to give you the power to declare hand grants as needed for dev-lane work"). The owner
+   types nothing, and a later write needs no fresh word:
+   `python3 ops/conductor/tools/hand.py declare '<what>' 'owner <date>, relayed by <who>: <the ruling>' other --ttl 1440`.
+   Words the owner gave this session directly read
+   `'owner <date>: "<the words>"'`. The two classes: `other` for every
+   write outside the wall; `wall` for `.github/workflows/`,
+   `ops/bin/suites.sh`, `probes.py`, `laneconf.py`, `boundaries.json`,
+   `matrix.py`, `engine.py`, `ops/devlane/hooks/tests/`. A wall grant may
+   not write a non-wall path and a non-wall grant may not write a wall
+   path. A wall session's one declaration covers both classes (owner
+   2026-09-23); hand.py at 2df477aa takes one class per declaration, so
+   until it takes both, a wall session declares one of each at its start
+   and leads each command with the right one.
 2. **The id is the first token of the whole command.**
    `HAND_GRANT=<id> python3 /abs/path/script.py` passes;
    `cd <wt> && HAND_GRANT=<id> git ...` refuses (pitfall 27);
@@ -39,7 +45,7 @@ grant that does not exist.
    `HAND_GRANT=<id> git -C <wt> commit -F <scratchpad>/msg.txt`.
    The message names the grant and says the second producer is absent.
    Push the same way.
-5. **Settle with a bare sha.** `hand.py settle <id> --evidence <sha>
+5. **Settle at close, with a bare sha.** `hand.py settle <id> --evidence <sha>
    --note '<words>'`; prose in `--evidence` reads back "claimed;
    unverified" and cannot be re-settled (pitfall 32).
 6. **Two calls for edit-then-create.** A chain of "edit the body, then

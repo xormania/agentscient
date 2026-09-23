@@ -50,8 +50,8 @@ def dispatch(request, route, *, server, strict_initialize=False):
         selected = requested if requested in PROTOCOLS else LATEST_PROTOCOL
         return result(identifier, {
             "protocolVersion": selected,
-            "capabilities": {"tools": {"listChanged": False},
-                             "resources": {"subscribe": False, "listChanged": False}},
+            "capabilities": server.get("capabilities", {"tools": {"listChanged": False},
+                             "resources": {"subscribe": False, "listChanged": False}}),
             "serverInfo": server["serverInfo"],
             "instructions": server["instructions"],
         })

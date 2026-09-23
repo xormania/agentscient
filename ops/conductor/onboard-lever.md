@@ -102,10 +102,13 @@ line (an unperformed read is named, never silent):
   read that could not look is entitled to none of them.
 - `branch:` current branch and short sha of the repository the tool
   runs from.
-- `lock:` the deliverable lock as `deliverable.py show` prints it: the
-  branches named and the owner's words on one line, then every measured
-  target on its own `target <branch>: until ...; reading ...; met|short`
-  line, the reading taken now. `lock: none` when no lock is set, a
+- `lock:` the deliverable lock as `deliverable.py show --unmeasured`
+  prints it: the branches named and the owner's words on one line, then
+  every target on its own `target <branch>: until ...; reading
+  unmeasured; unmeasured` line. No measure runs in the brief: `show` ran
+  every target's measure in turn, 44 of them in 1m54.208s on 2026-09-23,
+  and no brief read the lock inside its bounds (LD-146). The reading is
+  `deliverable.py done <branch>`. `lock: none` when no lock is set, a
   measured fact; `lock: unavailable: <reason>` when the lever reports a
   failure, counted unmeasured. A read that expires is retried once with
   a longer bound, and if that expires too the line reads
@@ -133,7 +136,12 @@ register's report is deterministic JSON, the ledger's report begins
 with its `status:` line and carries a `debt:` line — and the read-only
 mandate reaches through subprocesses: the ledger's store is checked
 for existence before its instrument runs — at the path the sibling
-actually opens (`~/.local/state/agentscient/handwork.db`; hand.py
+actually opens (`<authority HOME>/.local/state/<lane>/handwork.db`,
+the launch binding's HOME in a member whose own HOME is private, LD-146;
+the dispatch store, the lock and the handoff store are likewise read
+under the binding's XDG_STATE_HOME in a member, where the siblings
+read them;
+hand.py
 predates the conventions' XDG rule, and its conformance gap is
 registered) — because a sibling that creates its store on read would
 make this tool a writer. An absent dispatch store is a measured fact

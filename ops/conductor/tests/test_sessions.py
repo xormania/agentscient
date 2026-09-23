@@ -27,6 +27,7 @@ import re
 import shutil
 import signal
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import threading
@@ -34,6 +35,7 @@ import time
 import unittest
 from pathlib import Path
 
+from ops.conductor.tests.private_tmux import ORIGIN_DAEMON, RecordedTmux, carrying_home
 from ops.testkit import RefusalCase, Watch, World, refusal_wire, run, run_table
 
 REPO = Path(__file__).resolve().parents[3]
@@ -44,6 +46,8 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 HOLDER_SRC = FAKES / "session_holder.py"
+CODEX_SRC = FAKES / "session_codex.py"
+GROK_SRC = FAKES / "session_grok.py"
 ADAPTER_SRC = FAKES / "session_adapter_claude.py"
 REVIEW = "20260923T003033Z-review-codex-c99cc9"
 ORIGIN = "sessions-lever.md"
@@ -103,6 +107,29 @@ def claude_member(name: str, roles: list[str]) -> dict:
 
 
 class ThePresence(unittest.TestCase):
+    def test_zombie_process_is_gone_for_sessions_dispatch_and_routes(self):
+        """LD-150: an unreaped process must not hold readiness or route authority."""
+        from ops.conductor.tools import coordination, dispatch_intents, sessions
+
+        world = World(prefix="sessions-zombie-")
+        self.addCleanup(world.close)
+        executable = world.tools.plant("exit-now", exit=0)
+        child = world.own(subprocess.Popen([str(executable)], env=world.env(), cwd=world.cwd))
+        deadline = time.monotonic() + 5
+        while os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG) is None:
+            self.assertLess(time.monotonic(), deadline, "fixture child did not exit")
+            time.sleep(0.01)
+        fields = Path(f"/proc/{child.pid}/stat").read_text().rsplit(")", 1)[1].split()
+        self.assertEqual(fields[0], "Z", "fixture must remain unreaped")
+        ticks = fields[19]
+        self.assertTrue(sessions.process_reading(child.pid, ticks).startswith("refused gone"))
+        self.assertTrue(dispatch_intents.process_reading(child.pid, ticks).startswith("gone"))
+        self.assertFalse(coordination.holder_alive({"pid": child.pid, "start_ticks": ticks}))
+        own_ticks = coordination.process_ticks(os.getpid())
+        self.assertIsNotNone(own_ticks)
+        self.assertTrue(sessions.alive(os.getpid(), own_ticks))
+        self.assertTrue(dispatch_intents.alive(os.getpid(), own_ticks))
+
     def test_the_tool_executes_status_on_an_absent_store(self):
         """origin: 20260922T215604Z-review-codex-f6777b#2
 
@@ -156,7 +183,7 @@ class TheSocketPath(unittest.TestCase):
             self.assertEqual(tempfile.gettempdir(), str(long_dir))
 
 
-class _Scratch(unittest.TestCase):
+class _Scratch(RecordedTmux, unittest.TestCase):
     """Hermetic world, planted fake harness, private tmux socket."""
 
     def open_world(self, prefix: str) -> World:
@@ -185,11 +212,8 @@ class _Scratch(unittest.TestCase):
                 f"INVALID: private tmux socket must be under {SOCKET_LIMIT} bytes: "
                 f"{self.socket}"
             )
-        # Registered after world.close, so it runs first: the server and the
-        # harness holding in its panes outlive the world otherwise, one of
-        # each per row that starts a member (the XO, 2026-09-23: 1,212 tmux
-        # servers and 2,266 python processes left under /tmp/sessions-*).
-        self.addCleanup(self.stop_server)
+        # The server and the harness holding in its panes are recorded with
+        # the kit as the rows start them (private_tmux.RecordedTmux).
         self.team_path = self.world.plant_text(
             "team.json",
             json.dumps(a_team(claude_member("grunt", ["worker"]))) + "\n",
@@ -261,12 +285,14 @@ class _Scratch(unittest.TestCase):
     def sessions(self, *argv: str, identity: str | None = AGENT,
                  session: str | None = None, timeout: float = TIMEOUT,
                  extra: dict[str, str] | None = None):
-        return run(
+        result = run(
             [*self.tool_argv(), *argv],
             cwd=self.world.cwd,
             env=self.env(identity=identity, session=session, extra=extra),
             timeout=timeout,
         )
+        self.own_server()
+        return result
 
     def coord(self, *argv: str, session: str = LEAD_SESSION, expect: int | None = 0):
         return run(
@@ -353,11 +379,6 @@ class _Scratch(unittest.TestCase):
             raise unittest.SkipTest(
                 "tmux is absent; private-socket rows need it"
             )
-
-    def stop_server(self) -> None:
-        """Kill this world's tmux server, if a row started one."""
-        if HOST_TMUX and self.socket.exists():
-            self.host_tmux("kill-server")
 
     def host_tmux(self, *argv: str, expect: int | None = None):
         """The host tmux on this world's private socket.
@@ -484,20 +505,26 @@ class TheRefusalTable(_Scratch):
         """Declared gap: planted faults follow the implementation; no mutants file.
 
         origin: 20260922T215604Z-review-codex-f6777b#4
-        An undeclared verb and option, neither of them the four examples
-        frobnicate, join, recover and --nope, refuse arguments.
+        An undeclared verb and option, neither of them the examples
+        frobnicate and --nope, refuse arguments. ``join`` and ``recover``
+        are slice 2 verbs: ``join`` without ``--run`` and ``recover`` with
+        an option it does not declare or a malformed run id refuse
+        arguments naming what is wrong (sessions-lever.md slice 2).
         """
         extra_verb = "v" + hashlib.sha256(b"sessions-lever arguments").hexdigest()[:12]
         extra_option = "--" + hashlib.sha256(b"sessions-lever option").hexdigest()[:12]
         rows = (
             RefusalCase(id="unknown-verb", argv=("frobnicate",),
                         cls="arguments", origin=ORIGIN),
-            RefusalCase(id="slice2-join", argv=("join",),
+            RefusalCase(id="join-without-run", argv=("join",),
                         cls="arguments", origin=ORIGIN,
-                        named=("join",)),
-            RefusalCase(id="slice2-recover", argv=("recover",),
+                        named=("--run",)),
+            RefusalCase(id="recover-undeclared-option", argv=("recover", "--member", "grunt"),
                         cls="arguments", origin=ORIGIN,
-                        named=("recover",)),
+                        named=("--member",)),
+            RefusalCase(id="recover-malformed-run", argv=("recover", "--run", "nonsense"),
+                        cls="arguments", origin=ORIGIN,
+                        named=("nonsense",)),
             RefusalCase(id="unknown-option", argv=("status", "--nope"),
                         cls="arguments", origin=ORIGIN),
             RefusalCase(id="undeclared-verb", argv=(extra_verb,),
@@ -690,6 +717,24 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def test_close_stops_a_server_whose_socket_file_is_gone(self):
+        """origin: docs/tests.md, Daemons; the kit's measure at a93368b5
+
+        A started member's tmux server and the harness in its pane are
+        recorded with the kit, so with the socket file removed the case's
+        cleanups still stop them: close raises no refusal, and no process
+        carries the world's HOME after it.
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="server-socket-file-gone", origin=ORIGIN_DAEMON):
+            started = self.sessions(*self.start_argv())
+            self.assertEqual(started.exit, 0, started.stderr + started.stdout)
+            self.assertTrue(self.socket.exists(), "the start left no socket")
+            self.socket.unlink()
+            home = str(self.world.home)
+            self.doCleanups()
+            self.assertEqual(carrying_home(home), [])
+
     def session_name(self, run_id: str) -> str:
         return f"agentscient-{run_id}"
 
@@ -723,10 +768,7 @@ class TheTmuxAndLaunchRows(_Scratch):
         by the member. origin: 20260922T234512Z-review-codex-5b18d7#1
         """
         session = self.session_name(run_id)
-        self.host_tmux(
-            "new-session", "-d", "-s", session, "-n", member, "sleep", "300",
-            expect=0,
-        )
+        self.start_server("new-session", "-d", "-s", session, "-n", member, "sleep", "300")
         self.host_tmux(
             "set-option", "-t", f"={session}:", "remain-on-exit", "on",
             expect=0,
@@ -852,10 +894,7 @@ class TheTmuxAndLaunchRows(_Scratch):
                 f"private tmux socket must be under 108 bytes: {self.socket}",
             )
             name = "agentscient-R-1"
-            create = self.host_tmux(
-                "new-session", "-d", "-s", name, "sleep", "300",
-            )
-            self.assertEqual(create.exit, 0, create.stderr)
+            self.start_server("new-session", "-d", "-s", name, "sleep", "300")
             self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={name}"))
             has = self.host_tmux("has-session", "-t", f"={name}")
             self.assertEqual(
@@ -1664,6 +1703,7 @@ class TheSupervisorBoundaries(_Scratch):
             tool, log = self.staged_tool()
             proc = run([sys.executable, str(tool), *self.start_argv()],
                        cwd=self.world.cwd, env=self.env(), timeout=TIMEOUT)
+            self.own_server()
             self.assertEqual(proc.exit, 0, proc.stderr)
             launches = list((self.state / "sessions").glob("*/grunt/launch.json"))
             self.assertEqual(len(launches), 1, launches)
@@ -1689,8 +1729,16 @@ class TheSupervisorBoundaries(_Scratch):
 
 
 class TheDoctorDefaultTeam(_Scratch):
-    def test_doctor_reports_missing_adapter_for_codex_and_grok(self):
-        with self.subTest(id="doctor-missing-adapter", origin=ORIGIN):
+    def test_doctor_reads_the_codex_and_grok_adapters(self):
+        """origin: sessions-lever.md slice 2
+
+        Slice 2 lands the codex and grok adapters: ``doctor`` reads each
+        protocol member's planted executable and its adapter ``ok`` and
+        exits 0 (slice 1's ``missing adapter`` reading is withdrawn).
+        """
+        with self.subTest(id="doctor-protocol-adapters", origin=ORIGIN):
+            for name, source in (("codex", CODEX_SRC), ("grok", GROK_SRC)):
+                self.world.tools.plant(name, script=_fake_text(source))
             team = a_team(
                 claude_member("co", ["lead"]),
                 {"name": "dispatcher", "harness": "codex", "roles": ["dispatcher"]},
@@ -1698,10 +1746,17 @@ class TheDoctorDefaultTeam(_Scratch):
             )
             path = self.plant_team(team)
             proc = self.sessions("doctor", "--team", str(path), identity=None)
-            self.assertEqual(proc.exit, 1, proc.stdout)
+            self.assertEqual(proc.exit, 0, proc.stdout)
             text = proc.stdout
-            self.assertIn("adapter", text)
-            self.assertTrue("codex" in text and "grok" in text, text)
+            for member, harness in (("dispatcher", "codex"), ("grunt", "grok")):
+                self.assertIn(
+                    f"ok adapter {member} ({harness}): "
+                    f"ops/conductor/tools/session_adapters/{harness}.py", text,
+                )
+                self.assertIn(
+                    f"ok executable {member} ({harness}): {self.world.bin / harness}", text,
+                )
+            self.assertNotIn("missing adapter", text)
 
 
 if __name__ == "__main__":

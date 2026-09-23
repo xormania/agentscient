@@ -1343,6 +1343,9 @@ class TheDocumentedFormsParse(_Scratch):
         "READING": "a1b2c3d", "REC": "20260916T010203Z-job-x", "WHO": "PT-1",
         "B": BRANCH, "N": "1", "MIN": "5", "ID": "dispatch-7f3a", "P": "request",
         "H": "claude-code", "E": "tcp://127.0.0.1:7311", "S": "held",
+        # The sessions slice 2 courier verbs and send's --key.
+        "ROUTE": "stdout", "SM-n": "SM-1", "AT-n": "AT-1", "O": "written",
+        "K": "event:1:PT-1",
     }
 
     def forms(self):
