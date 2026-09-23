@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# testkit: exempt fixture program planted through Tools
 """Stand-in for monitor.py on the dispatch follow-through.
 
 sessions-lever.md slice 3, "The programs it runs": `run --once` reads the
