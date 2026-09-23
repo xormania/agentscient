@@ -34,6 +34,31 @@ particular, `docs/mapping.md` is application research, not a dev-lane
 replacement schedule. These documentation rules do not claim live
 enforcement; the parallel planner owns that design and its verification.
 
+## Reduce the dev lane to shared primitives
+
+Owner direction, 2026-09-23: consolidate the entire dev lane into reusable
+primitives. Start from each existing contract and owner, reuse or compose
+them, and extend the owner when a shared responsibility is missing. A
+second implementation is not consolidation. The Symfony application stays
+outside this work. The table is a migration map, not a claim that every
+row is already consolidated.
+
+| Responsibility | Existing owner to reuse | Remaining consolidation |
+|---|---|---|
+| Identity, refusal, clock and configuration | `conductor/tools/instrument.py`, `laneconf.py` | Move remaining private readers and clocks behind these contracts where their semantics agree. |
+| Storage and atomic transactions | `instrument.connect_store`, `instrument.transaction`; schema and transitions in `machine.py` | File-backed SQLite opening and explicit transactions now share these primitives. Separate legacy findings/hand/skills reads from initialization; move mutable control/deliverable/ladder state into the existing store with explicit migration. |
+| Workflow | `machine.py` declarations and transitions | Represent shared lifecycle behavior as transitions and policy data instead of new lifecycle engines. |
+| Work, authority, messages and evidence association | `coordination.py` domain operations | Keep one authority owner. Dispatch, session lifecycle and communication consume it while retaining their separate responsibilities. |
+| Execution and capability isolation | `devlane/dispatch/launch.py`, `devlane/task/run.py`, `devlane/harness/isolation.py`, issued hook profiles | Consolidate process ownership, bounds and cleanup across their callers; retain harness differences at adapters. |
+| Evidence and result validation | `devlane/task/envelope.py`, `devlane/dispatch/record.py`, `devlane/harness/receipt/` | Reuse validation and custody operations; keep different evidence contracts explicit. |
+| Observation, telemetry and economics | `conductor/tools/monitor.py`, `lane_read.py`, `devlane/telemetry/` | Share source readings and normalization; keep observation separate from decisions and action. |
+| CLI, MCP, hooks and tests | Existing domain operations, shared hook enforcement, `ops/testkit` | Make each surface an adapter to the owning operation; test shared invariants once plus representative adapter behavior. |
+
+A migration finishes a responsibility across its callers, removes the old
+implementations and verifies behavior and planted failures. Count remaining
+owners and mechanisms, not merely test methods. Existing dispatch and
+state engines are retained; this is not a replacement controller.
+
 ## Layout
 
 | path | holds |

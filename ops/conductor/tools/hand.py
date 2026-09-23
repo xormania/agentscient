@@ -19,6 +19,7 @@ try:
     from instrument import (
         Refusal,
         authority_home,
+        connect_store,
         emit,
         identity,
         lane_name,
@@ -73,8 +74,7 @@ def database_path():
 
 def connect():
     path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+    connection = connect_store(path, mode="rwc")
     connection.row_factory = sqlite3.Row
     connection.execute(SCHEMA)
     connection.commit()

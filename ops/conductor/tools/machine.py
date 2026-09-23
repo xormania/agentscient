@@ -44,6 +44,7 @@ try:
         EXIT_DONE,
         EXIT_FINDING,
         Refusal,
+        connect_store,
         emit,
         identity,
         now,
@@ -51,6 +52,7 @@ try:
         refuse,
         stamp,
         state_dir,
+        transaction,
     )
 except ModuleNotFoundError:
     print(
@@ -137,9 +139,8 @@ def connect(*, create: bool) -> sqlite3.Connection:
             "absent",
             "a writing verb of an instrument creates it; nothing to read",
         )
-    if create:
-        path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None)
+    connection = connect_store(path, mode="rwc" if create else "ro",
+                               timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None)
     try:
         connection.row_factory = sqlite3.Row
         connection.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
@@ -191,8 +192,7 @@ def _check_declaration(machine: Machine) -> None:
 def declare(conn: sqlite3.Connection, machine: Machine) -> None:
     """Write the machine and its transitions as rows; declaring twice is once."""
     _check_declaration(machine)
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         conn.execute(
             "INSERT OR REPLACE INTO machines(name, version, initial, places, declared_at) "
             "VALUES (?, ?, ?, ?, ?)",
@@ -204,17 +204,12 @@ def declare(conn: sqlite3.Connection, machine: Machine) -> None:
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [(machine.name, *t) for t in machine.transitions],
         )
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
 
 
 def create(conn: sqlite3.Connection, machine: Machine, agent: str, *, note: str | None = None) -> int:
     """A new subject at the initial place; its first marking row is `create`."""
     moment = stamp()
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         cursor = conn.execute(
             "INSERT INTO subjects(machine, place, created_at, created_by) VALUES (?, ?, ?, ?)",
             (machine.name, machine.initial, moment, agent),
@@ -225,10 +220,6 @@ def create(conn: sqlite3.Connection, machine: Machine, agent: str, *, note: str 
             "VALUES (?, ?, 'create', NULL, ?, ?, ?, NULL, ?)",
             (machine.name, sid, machine.initial, agent, moment, note),
         )
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     return sid
 
 
@@ -353,14 +344,9 @@ def move(
     write lock, so two sessions moving one subject serialize and the
     second reads the first's result."""
     t = machine.transition(transition)
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         marking_id = _move_locked(conn, machine, t, sid, agent, stamp(),
                                   evidence=evidence, note=note, gate=gate, ttl_s=ttl_s)
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     return conn.execute("SELECT * FROM marking WHERE id = ?", (marking_id,)).fetchone()
 
 
@@ -383,8 +369,7 @@ def move_many(
     the write lock so the choice and the moves see one state. An empty
     choice moves nothing and returns []."""
     t = machine.transition(transition)
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         chosen = list(sids(conn)) if callable(sids) else list(sids)
         moment = stamp()
         ids = [
@@ -392,10 +377,6 @@ def move_many(
                          evidence=evidence, note=note, gate=gate, ttl_s=ttl_s)
             for sid in chosen
         ]
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     return [conn.execute("SELECT * FROM marking WHERE id = ?", (i,)).fetchone() for i in ids]
 
 

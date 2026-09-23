@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import IDENTITY, Refusal, emit, refuse, state_root
+    from instrument import IDENTITY, Refusal, connect_store, emit, refuse, state_root
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -356,7 +356,7 @@ def ledgers(report):
                        f"initialize {path} with its owning tool before relying on the ledger")
             continue
         try:
-            connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            connection = connect_store(path)
             try:
                 connection.execute("PRAGMA query_only=ON")
                 connection.execute("SELECT 1").fetchone()

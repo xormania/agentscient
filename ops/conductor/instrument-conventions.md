@@ -147,6 +147,39 @@ placed as pending.
 
 ## State
 
+### Storage primitives
+
+`instrument.connect_store(path, mode="ro" | "rw" | "rwc")` owns opening
+file-backed SQLite connections. `ro` is the default and prohibits writes,
+including temporary tables; `rw` can update an existing store; only `rwc`
+creates a directory or store. Paths are URI-escaped before SQLite sees
+them. Callers own their schema, migrations, row shape, timeout, connection
+lifetime and classification of absent or unreadable stores. A synthetic
+in-memory empty register is not a file-backed store.
+
+`instrument.transaction(connection)` owns an immediate transaction. The
+read that decides and the writes it authorizes belong inside the same
+context. Success commits; every exception, including interruption and a
+failed commit, rolls back. A nested transaction fails before taking
+ownership of its caller's work. Domain operations compose under one
+transaction; they do not independently commit steps of an enclosing action.
+
+`machine.connect(create=False)` is a read connection. Writers use
+`create=True`; the existing engine still owns its WAL initialization,
+schema and busy retry budget. Coordination, handoff, ledger, sessions,
+CI and decision read adapters consume the same read boundary. Existing
+findings, hand and skills entry points that initialize their schema still
+declare create access; separating those legacy reads from initialization
+is remaining work, not a property established by this migration.
+
+The shared invariants and representative adapters are exercised through
+`ops/testkit` in `tests/test_storage.py`. The same suite rejects private
+file connection and transaction implementations in conductor tools.
+Workflow state machines, assignment authority, evidence requirements,
+ledger collision recovery and monitor routing remain domain policy.
+
+### State, records and apparatus
+
 Owner, 2026-09-13: "I don't like using files - i like something more
 deterministic and that manages states - and it can be improved over
 time"; "i'm not happy that we aren't SQLite more - this got lost
