@@ -2,8 +2,8 @@
 the run export, the trial record.
 
 Contract: ops/conductor/sessions-lever.md section "Slice 4 — operational
-trial and closure", read at 73081d6f (the gaps closed at 26c94c5a, `trial accept`'s
-readings named at 73081d6f). Run
+trial and closure", read at c4dd8f12 (the gaps closed at 26c94c5a,
+`trial accept`'s readings at 73081d6f, which rows ride at e0cee144). Run
 from the repository root:
 python3 -m unittest discover -s ops/conductor/tests -p test_sessions_trial.py
 
@@ -12,8 +12,11 @@ refusals (`objective`, `acceptance`, `evidence`, `export`) on the verbs the
 section names, the trial record's shape, step 8's accounting, the ninth
 `enforcement` line, and the owner's-terminal clause. The owner's-terminal
 rows stay red until the wall session lands the `bind` minting in
-instrument.py (a wall path, LD-125). The controlled cases' readings are
-the verifier's; these rows carry their fixture shape.
+instrument.py (a wall path, LD-125): they are marked expected failures
+and turn red-for-real the commit the minting lands. The rows over the
+repository's trial record skip, naming the reason, while no record
+exists. The controlled cases' readings are the verifier's; these rows
+carry their fixture shape.
 
 Planted faults: sessions_trial_faults.py beside this module, anchored on
 sessions.py; its docstring names the calibrate command. A declared gap
@@ -186,6 +189,7 @@ class _Trial(unittest.TestCase):
             "LANE_CONF": str(self.conf),
             "AGENTSCIENT_TMUX_SOCKET": str(self.socket),
             "TESTKIT_FAKE_SPEC": str(self.world.tools.spec_path("claude")),
+            "DISPATCH_JOBS": str(self.world.root / "jobs"),
         }
         if identity:
             payload["WF_AGENT"] = identity
@@ -228,8 +232,9 @@ class _Trial(unittest.TestCase):
     def bind_lead(self) -> str:
         return self.bind(LEAD_SESSION, "lead,coordinator", capability=self.capability_of(LEAD_SESSION))
 
-    def start_co(self) -> str:
-        started = self.sessions("start", "--member", "co", "--team", str(self.team_path),
+    def start_co(self, member: str = "co") -> str:
+        """Start one member in a new run as the lead; the run id."""
+        started = self.sessions("start", "--member", member, "--team", str(self.team_path),
                                 "--ready-timeout", str(READY), session=LEAD_SESSION)
         match = re.search(r"\b(R-\d+)\b", started.stdout)
         self.assertIsNotNone(match, started.stdout + started.stderr)
@@ -242,6 +247,28 @@ class _Trial(unittest.TestCase):
 
     def run_dir(self, run_id: str) -> Path:
         return self.state / "runs" / run_id
+
+    def started_at(self, run_id: str) -> str:
+        with sqlite3.connect((self.state / "state.db").as_uri() + "?mode=ro", uri=True) as conn:
+            return conn.execute("SELECT started_at FROM session_run WHERE id = ?",
+                                (int(run_id[2:]),)).fetchone()[0]
+
+    def plant_launch(self, run_id: str, record: str = RECORD_ID) -> None:
+        """One intent that reached `record`, requested and dispatched by the
+        run's starter PT-1, reserved at the run's start, its record directory
+        under the jobs root (e0cee144: an intent that reached a record)."""
+        spec = importlib_spec(TOOLS / "dispatch_intents.py")
+        (self.world.root / "jobs" / record).mkdir(parents=True)
+        started = self.started_at(run_id)
+        with sqlite3.connect(self.state / "state.db") as conn:
+            conn.executescript(spec.SCHEMA)
+            serial = conn.execute("SELECT COUNT(*) FROM dispatch_intents").fetchone()[0] + 1
+            conn.execute(
+                "INSERT INTO dispatch_intents(key, digest, requester, dispatcher, assignment, generation,"
+                " job, harness, branch, scope_ref, inputs, correlation, subject, phase, record,"
+                " reserved_at, launched_at) VALUES (?, 'd1', 1, 1, 1, 1, 'review', 'claude',"
+                " 'lane/trial', 'scope', '[]', ?, ?, 'launched', ?, ?, ?)",
+                (f"k{serial}", f"corr-trial-{serial}", 990000 + serial, record, started, started))
 
 
 class TheObjective(_Trial):
@@ -367,6 +394,21 @@ class TheAcceptance(_Trial):
         )
         run_table(self, rows, lambda row: self.accept(run_id, row.note, tables[row.id]))
 
+    def test_acceptance_without_an_objective_refuses_objective(self):
+        """origin: sessions-lever.md#slice-4 the shapes
+
+        ``trial accept`` on a run with no ``objective.json`` refuses
+        ``objective``: acceptance is judged against the objective, never
+        without one.
+        """
+        self.skip_without_tmux()
+        self.bind_lead()
+        run_id = self.start_co()
+        self.assertFalse((self.run_dir(run_id) / "objective.json").exists())
+        row = RefusalCase(id="acceptance-without-objective", argv=("trial", "accept", run_id),
+                          cls="objective", origin=origin("the shapes"), note=VERIFIED)
+        run_table(self, (row,), lambda case: self.accept(run_id, case.note, trial_table()))
+
     def test_the_verified_sha_on_a_complete_record_is_accepted(self):
         """origin: sessions-lever.md#slice-4 the shapes
 
@@ -423,43 +465,67 @@ class TheRecordCheck(_Trial):
 
 
 class TheOwnersTerminal(_Trial):
-    """The owner's terminals: bind mints, join reads, the refusal names which."""
+    """The owner's terminals: bind mints, join reads, the refusal names which.
 
+    Both rows are expected failures citing LD-125 until the wall session
+    lands the minting in instrument.py; they turn red-for-real that commit.
+    """
+
+    @unittest.expectedFailure  # LD-125: the bind minting is the wall's, not yet landed
     def test_a_plain_terminal_binds_joins_and_reads_unmeasured(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals
 
-        A world with no profile and no environment capability binds, joins,
-        and reads ``enforcement unmeasured`` beside the eight readiness
-        lines; the minted capability lives under
-        ``<state dir>/runs/R-n/terminals/PT-n/home`` and nowhere shared. Red
-        until the wall lands the minting in instrument.py.
+        A world with no profile and no environment capability binds with
+        ``bind --run R-n``, prints ``profile <path>`` at
+        ``<state dir>/runs/R-n/terminals/PT-n/home/profile.json`` carrying the
+        minted capability, found in no other file; it joins and reads
+        ``enforcement unmeasured`` beside the eight readiness lines.
         """
         self.skip_without_tmux()
         with self.subTest(id="owner-terminal-unminted", origin=origin("the owner's terminals")):
             self.plant_team("co", "owner")
             self.bind_lead()
             run_id = self.start_co()
-            bound = self.coord("bind", "--roles", "worker", session=OWNER_SESSION, capability=None)
+            bound = self.coord("bind", "--run", run_id, "--roles", "worker",
+                               session=OWNER_SESSION, capability=None)
             self.assertEqual(bound.exit, 0, "a plain terminal did not bind: " + bound.stderr)
             participant = re.search(r"\b(PT-\d+)\b", bound.stdout)
             self.assertIsNotNone(participant, bound.stdout)
-            self.join_owner(run_id, participant.group(1))
-            home = self.run_dir(run_id) / "terminals" / participant.group(1) / "home"
-            minted = [match for path in home.rglob("*") if path.is_file()
-                      for match in re.findall(r"\b[0-9a-f]{64}\b",
-                                              path.read_text(encoding="utf-8", errors="replace"))]
-            self.assertEqual(len(set(minted)), 1, f"one minted capability under {home}: {minted}")
+            profile = self.run_dir(run_id) / "terminals" / participant.group(1) / "home" / "profile.json"
+            self.assertRegex(bound.stdout, rf"(?m)^profile {re.escape(str(profile))}$", bound.stdout)
+            minted = json.loads(profile.read_text(encoding="utf-8")).get("coordination_capability")
+            self.assertRegex(str(minted), r"^[0-9a-f]{64}$", profile)
             for path in self.world.root.rglob("*"):
-                if path.is_file() and home not in path.parents:
-                    self.assertNotIn(minted[0], path.read_text(encoding="utf-8", errors="replace"),
+                if path.is_file() and path != profile:
+                    self.assertNotIn(minted, path.read_text(encoding="utf-8", errors="replace"),
                                      f"the capability is shared in {path}")
+            self.join_owner(run_id, participant.group(1))
             status = self.sessions("status", identity=None)
             self.assertEqual(status.exit, 0, status.stderr)
             block = member_block(status.stdout, "owner")
             for dimension in READINESS:
                 self.assertRegex(block, rf"(?m)^  {dimension} \S", block)
-            self.assertRegex(block, r"(?m)^  enforcement unmeasured$", block)
+            self.assertRegex(block, r"(?m)^  enforcement unmeasured( .+)?$", block)
 
+    @unittest.expectedFailure  # LD-125: bind --run is the wall's minting, not yet landed
+    def test_bind_naming_no_run_refuses_absent(self):
+        """origin: sessions-lever.md#slice-4 the owner's terminals, ruled at a1520df5
+
+        ``bind --run R-n`` in a plain terminal, naming no run, refuses class
+        ``absent``, the class an unknown run takes everywhere in the lever;
+        ``missing`` is the found of a ``capability`` refusal, never a class.
+        """
+        at = origin("the owner's terminals")
+        with self.subTest(id="owner-terminal-no-run", origin=at):
+            result = self.coord("bind", "--run", "R-9", "--roles", "worker",
+                                session=OWNER_SESSION, capability=None)
+            refusal_wire(
+                RefusalCase(id="owner-terminal-no-run", argv=("bind", "--run", "R-9"),
+                            cls="absent", origin=at, named=("R-9",)),
+                result,
+            )
+
+    @unittest.expectedFailure  # LD-125: the refusal naming which is the wall's, not yet landed
     def test_a_malformed_capability_refuses_capability_naming_it(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals
 
@@ -583,19 +649,6 @@ class TheRunExport(_Trial):
         self.assertIn(stopped.exit, (0, 1), stopped.stderr)
         return run_id
 
-    def plant_launch(self) -> None:
-        """One launched intent in the store's dispatch table, the shape slice 3's
-        coord_launch writes, carrying RECORD_ID."""
-        spec = importlib_spec(TOOLS / "dispatch_intents.py")
-        with sqlite3.connect(self.state / "state.db") as conn:
-            conn.executescript(spec.SCHEMA)
-            conn.execute(
-                "INSERT INTO dispatch_intents(key, digest, requester, dispatcher, assignment, generation,"
-                " job, harness, branch, scope_ref, inputs, correlation, subject, phase, record,"
-                " reserved_at, launched_at) VALUES ('k1', 'd1', 1, 1, 1, 1, 'review', 'claude',"
-                " 'lane/trial', 'scope', '[]', 'corr-trial-1', 990001, 'launched', ?,"
-                " '2026-09-23T09:00:00Z', '2026-09-23T09:00:01Z')", (RECORD_ID,))
-
     def test_a_complete_export_names_every_pane_log_and_record_id(self):
         """origin: sessions-lever.md#slice-4 the run export
 
@@ -606,7 +659,7 @@ class TheRunExport(_Trial):
         self.skip_without_tmux()
         with self.subTest(id="export-complete", origin=origin("the run export")):
             run_id = self.stopped_run("co", "owner")
-            self.plant_launch()
+            self.plant_launch(run_id)
             exported = self.sessions("export", run_id)
             self.assertEqual(exported.exit, 0, exported.stderr)
             self.assertRegex(exported.stdout, r"\bco\b\S*pane\.log", exported.stdout)
@@ -636,12 +689,70 @@ class TheRunExport(_Trial):
             )
 
 
+class TheExportWindow(_Trial):
+    """Two runs of one starter never share a launch (sessions-lever.md at
+    7ef98cd6): the window ends at the earliest of the stop request, the
+    starter's next run's ``started_at``, and the export's own stamp."""
+
+    def two_runs(self) -> tuple[str, str]:
+        """R-1 and R-2, both started by the lead, R-1 still open; a launch
+        reserved at each run's start."""
+        self.plant_team("co", "co2")
+        self.bind_lead()
+        first = self.start_co("co")
+        second = self.start_co("co2")
+        self.assertNotEqual(first, second)
+        self.plant_launch(first, "rec-window-r1")
+        self.plant_launch(second, "rec-window-r2")
+        return first, second
+
+    def exported(self, run_id: str) -> str:
+        done = self.sessions("export", run_id, "--to", str(self.world.tmp / f"export-{run_id}"))
+        self.assertEqual(done.exit, 0, done.stderr)
+        return done.stdout
+
+    def test_an_open_runs_export_omits_the_next_runs_launch(self):
+        """origin: sessions-lever.md#slice-4 the run export, at 7ef98cd6
+
+        R-1's export, taken while R-1 is open and after the same starter
+        started R-2, names R-1's launch and omits R-2's. Red until
+        started_participant counts the starter (8a1bc757).
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="export-window-next-run", origin=origin("the run export")):
+            first, _second = self.two_runs()
+            out = self.exported(first)
+            self.assertIn("rec-window-r1", out, out)
+            self.assertNotIn("rec-window-r2", out, out)
+
+    def test_a_launch_after_the_next_start_is_the_next_runs_alone(self):
+        """origin: sessions-lever.md#slice-4 the run export, at 7ef98cd6
+
+        R-1 stopped after R-2 started: the launch reserved at R-2's start is
+        R-2's alone, and R-1's own launch is R-1's alone. Red until
+        started_participant counts the starter (8a1bc757).
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="export-window-stopped-later", origin=origin("the run export")):
+            first, second = self.two_runs()
+            stopped = self.sessions("stop", "--terminate", "--run", first, session=LEAD_SESSION)
+            self.assertIn(stopped.exit, (0, 1), stopped.stderr)
+            one, two = self.exported(first), self.exported(second)
+            self.assertIn("rec-window-r1", one, one)
+            self.assertNotIn("rec-window-r2", one, one)
+            self.assertIn("rec-window-r2", two, two)
+            self.assertNotIn("rec-window-r1", two, two)
+
+
 class TheTrialRecord(unittest.TestCase):
     """The trial record in the repository, checked by `trial record`."""
 
     def record(self) -> Path:
         records = [path for path in sorted(HANDOFF.glob("*-slice4-trial.md"))
                    if re.fullmatch(r"\d{4}-\d{2}-\d{2}-slice4-trial\.md", path.name)]
+        if not records:
+            self.skipTest(f"no trial record at {HANDOFF}/<date>-slice4-trial.md yet: "
+                          "S4 writes it in the live trial (sessions-lever.md#slice-4 tests)")
         self.assertEqual(len(records), 1, f"expected one dated trial record under {HANDOFF}, found {records}")
         return records[0]
 
