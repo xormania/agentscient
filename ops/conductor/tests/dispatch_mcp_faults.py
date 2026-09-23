@@ -34,7 +34,7 @@ MUTANTS = [
     ),
     Mutant(
         "M-mcp-role-unchecked",
-        "ops/conductor/tools/dispatch_actions.py",
+        "ops/conductor/tools/dispatch_intents.py",
         '    coordination.require_role(part, ("dispatcher",))\n',
         "    pass\n",
         "the shared role check dropped: coord_launch by a worker returns "

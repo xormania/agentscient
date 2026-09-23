@@ -16,11 +16,14 @@ matches once refuses class anchor; re-measure it against the subject.
 from ops.testkit import Mutant
 
 SUBJECT = "ops/conductor/tools/dispatch_actions.py"
+# The role and holder check moved into dispatch_intents.the_dispatcher at
+# f465f0d9; dispatch_actions calls it from there.
+INTENTS = "ops/conductor/tools/dispatch_intents.py"
 
 MUTANTS = [
     Mutant(
         "M-role-unchecked",
-        SUBJECT,
+        INTENTS,
         '    coordination.require_role(part, ("dispatcher",))\n',
         "    pass\n",
         "the role check dropped: a worker reaches the holder check and "
@@ -28,7 +31,7 @@ MUTANTS = [
     ),
     Mutant(
         "M-holder-unchecked",
-        SUBJECT,
+        INTENTS,
         "    if not held or held != mine:\n",
         "    if False:\n",
         "any dispatcher acts without holding the machine (not-holder)",
