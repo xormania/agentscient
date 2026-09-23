@@ -453,7 +453,7 @@ reconciliation the caller still owes.
 
 | verb | effect |
 |---|---|
-| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
+| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n`; in an owner's terminal `--run R-n` names the run an owner's terminal joins and refuses `absent` when it names no run (sessions-lever.md, the owner's terminals). Every verb takes `--profile PATH`, read as `AGENTSCIENT_HOOK_PROFILE` is, and refuses `arguments` when both name different profiles |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
 | `recover-roles --grant ID --roles R[,R] --why TEXT` | the owner's current hand grant restores this session's roles, with a receipt |

@@ -54,6 +54,11 @@ there would not run when the MCP projection calls the same function.
     coordination.py coverage [--requirement REF] | brief
     coordination.py entry [--role R]
 
+In an owner's terminal (sessions-lever.md, the owner's terminals) bind
+also takes --run R-n, the run it joins, refused `absent` when it names
+none; and every verb takes --profile PATH, the hook profile read in
+place of AGENTSCIENT_HOOK_PROFILE.
+
 Reads need no identity and no participant and never create the store.
 """
 
@@ -2464,10 +2469,48 @@ CORE = {
 
 # -- the CLI projection: parse argv, call the function, print -----------------
 
+def run_named(conn, run: str) -> int:
+    """The sessions lever's run `bind --run` names, or refuse `absent`: a
+    terminal with no managed launch names the run it joins (sessions-lever.md,
+    the owner's terminals). A store no run was started in has none."""
+    named = re.fullmatch(r"R-(\d+)", run)
+    row = None
+    if named:
+        try:
+            row = conn.execute("SELECT id FROM session_run WHERE id = ?", (int(named[1]),)).fetchone()
+        except sqlite3.OperationalError:
+            row = None
+    if row is None:
+        refuse("absent", "a run the sessions lever started, R-n", f"no run {run}",
+               "sessions.py status lists the runs; bind --run names one of them")
+    return row["id"]
+
+
+def profile_named(rest: list[str]) -> list[str]:
+    """Take `--profile PATH` off a verb's arguments and hand it to every read
+    of the hook profile, as AGENTSCIENT_HOOK_PROFILE would; the flag and a
+    different exported profile are two answers, refused `arguments`."""
+    places = [index for index, word in enumerate(rest) if word == "--profile"]
+    if not places:
+        return rest
+    if len(places) > 1 or places[0] + 1 >= len(rest):
+        refuse("arguments", "--profile PATH once", " ".join(rest[places[0]:]) or "--profile",
+               "name the terminal's profile.json once")
+    path = rest[places[0] + 1]
+    exported = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    if exported and exported != path:
+        refuse("arguments", "one hook profile", f"--profile {path} and AGENTSCIENT_HOOK_PROFILE {exported}",
+               "drop one; the terminal reads a single profile")
+    os.environ["AGENTSCIENT_HOOK_PROFILE"] = path
+    return rest[:places[0]] + rest[places[0] + 2:]
+
+
 def do_bind(rest):
     agent = identity()
-    _, opts = parse(rest, 0, required=("roles",), optional=("harness", "endpoint", "probe"))
+    _, opts = parse(rest, 0, required=("roles",), optional=("run", "harness", "endpoint", "probe"))
     with writer() as conn:
+        if "run" in opts:
+            run_named(conn, opts["run"])
         shown = CORE["bind"](conn, None, agent=agent,
                              roles=opts["roles"], harness=opts.get("harness"),
                              endpoint=opts.get("endpoint"), probe=opts.get("probe"))
@@ -3186,7 +3229,7 @@ def main(argv: list[str]) -> int:
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(sorted(VERBS)), verb or "no verb",
                    "name one verb; the module doc has the arguments")
-        return VERBS[verb](argv[2:]) or EXIT_DONE
+        return VERBS[verb](profile_named(argv[2:])) or EXIT_DONE
     except Refusal as refusal:
         return emit(refusal)
 

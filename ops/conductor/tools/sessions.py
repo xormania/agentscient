@@ -24,6 +24,7 @@ native home is the private profile `profiles.py prepare-interactive` makes.
                       --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
     sessions.py trial record PATH
     sessions.py trial accept R-n --candidate SHA --record PATH
+    Every verb takes --profile PATH, as coordination.py does.
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -2336,7 +2337,7 @@ def main(argv: list[str]) -> int:
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(VERBS), verb or "no verb",
                    "name one verb; the module doc has the arguments")
-        return VERBS[verb](argv[2:]) or EXIT_DONE
+        return VERBS[verb](coordination.profile_named(argv[2:])) or EXIT_DONE
     except Refusal as refusal:
         return emit(refusal)
 
