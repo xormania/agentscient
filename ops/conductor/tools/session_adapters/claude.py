@@ -25,7 +25,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
 PROFILES = REPO / "ops" / "devlane" / "hooks" / "profiles.py"
-PROBE_TIMEOUT = 30
+PROBE_TIMEOUT = 10
 STOP_WAIT = 5.0
 EVIDENCE = ("pane.log", "stderr.log", "launch.json")
 
@@ -79,7 +79,7 @@ class Adapter:
         try:
             done = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
                 [str(executable), "--version"], capture_output=True, text=True,
-                timeout=PROBE_TIMEOUT, check=False,
+                stdin=subprocess.DEVNULL, timeout=PROBE_TIMEOUT, check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             reading["version"] = f"unresolved {type(error).__name__}: {error}"
