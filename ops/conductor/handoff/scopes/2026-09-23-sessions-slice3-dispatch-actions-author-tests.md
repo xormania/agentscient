@@ -31,6 +31,17 @@ test module (rule 6). The dispatcher participant is bound in the world
 and holds the `dispatcher` machine through `dispatcher.py set`; a
 worker participant is bound for the `role` row.
 
+Names the code uses (contract, "The programs it runs"): the fakes are
+planted at the paths the keys `DISPATCH_WRAPPER`, `DISPATCH_LAUNCHER`
+and `DISPATCH_MONITOR` name in the world's environment (defaults
+`ops/conductor/tools/dispatch.sh`, `ops/devlane/dispatch/launch.py`,
+`ops/conductor/tools/monitor.py`; each an argv, no shell); a key naming
+a non-executable refuses `launcher` (wrapper, launcher) or `store`
+(monitor); `DISPATCH_CAPACITY` default 6; the jobs root `$DISPATCH_JOBS`
+else `$XDG_STATE_HOME/<lane>/dispatch`; `verifications.json` read from
+the repository root; the scope file at
+`<state dir>/dispatch-intents/DI-n/scope.txt`.
+
 Rows: fixtures 1 to 8 and 10, every refusal class in the table once,
 and the clean neighbours (an `--input` past `SCOPE_CAP`; `status` by a
 worker). The relaunch rows assert the wrapper's log line count. A pin

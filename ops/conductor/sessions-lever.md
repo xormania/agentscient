@@ -574,8 +574,10 @@ refused ask is still a record). Transitions: `launch` (actor
 dispatcher), `mint` (dispatcher, evidence the record id), `close`
 (dispatcher, evidence `launch.py`'s closed reading), `lose`
 (dispatcher, evidence the pid reading), `reconcile` (dispatcher,
-evidence the `state.json` path), `refuse` (dispatcher, evidence the
-line). The launcher is the holder's own child: `launcher_pid` and
+evidence the `state.json` path), `refuse-reserved`, `refuse-launching`
+and `refuse-uncertain` (dispatcher, evidence the line; three
+transitions because the engine allows one source per transition; the
+verbs and the tests call them `refuse`). The launcher is the holder's own child: `launcher_pid` and
 `launcher_ticks` are its, read at spawn.
 
 **The launch, in order** (plan §8, the transaction boundary): the
@@ -611,12 +613,29 @@ ask refuses `capacity` naming the count, and is not reserved.
 `dispatcher` and who holds the `dispatcher` machine (`dispatcher.py`,
 holder_note the session id); a caller without the role refuses `role`,
 a dispatcher who is not the holder refuses `holder` with the remedy
-`dispatcher.py set`. The requester is the caller of `launch`; the
-Dispatcher launches for it and both are on the intent.
+`dispatcher.py set`. Only the Dispatcher can call `launch`, so the
+caller is always the Dispatcher; the requester is the holder of the
+`--for A-n` assignment (XO ruling, 2026-09-23), and both are on the
+intent.
+
+**The programs it runs** (agentscient-10's five points, the Lead's
+ruling 2026-09-23), each an argv with no shell, each named by an
+environment key so a test plants a fake in its place:
+`DISPATCH_WRAPPER`, default `ops/conductor/tools/dispatch.sh`
+(`fakes/dispatch_wrapper.py` stands in); `DISPATCH_LAUNCHER`, default
+`ops/devlane/dispatch/launch.py` (`fakes/dispatch_launch.py`);
+`DISPATCH_MONITOR`, default `ops/conductor/tools/monitor.py`
+(`fakes/dispatch_digest.py`). A value that is not an executable file
+refuses `launcher` for the wrapper and the launcher, and `store` for
+the monitor, before any row is written. `DISPATCH_CAPACITY` defaults
+to 6. The jobs root is `$DISPATCH_JOBS`, else
+`$XDG_STATE_HOME/<lane>/dispatch`. Each intent's scope file is written
+at `<state dir>/dispatch-intents/DI-n/scope.txt` and that path is what
+`--scope-file` carries.
 
 **Verification names**: `collect --verify` takes a name keyed in the
 tracked table `ops/conductor/verifications.json` (`{name: [argv...]}`,
-run from the repository root); a caller's text never reaches
+read from the repository root, run from it); a caller's text never reaches
 `launch.py collect --verify`, and an unknown name refuses `verify`.
 
 ### Verbs
@@ -644,12 +663,17 @@ runs without the registration line, which is how the tests reach it.
 
 `ops/conductor/tools/dispatch_events.py route --consumer dispatch
 [--once] [--tick N]` is the follow-through (plan §8): it reads
-`monitor.py digest --consumer dispatch` over the separate config
-`ops/conductor/monitor.dispatch.json` (adapter `dispatch`, store the
-jobs root), maps each event to the intent by the record id, and sends:
-`finished` and `closed` → `inform` to the requester with the record id
-and the exit; `tripped` and `DIED` → `finding` to the Dispatcher and to
-the requester. Each send is `send --key event:<event id>:<recipient>`
+`monitor.py digest --consumer dispatch`, maps each event to the intent
+by the record id, and sends by the dispatch metric's own words
+(`monitor.py`, measured by agentscient-10 on 2026-09-23): `completion`
+and `no-op` → `inform` to the requester with the record id and the
+exit; `invalid` and `death` → `finding` to the Dispatcher and to the
+requester; `settling`, `running`, `unknown` and any other word → acked,
+never sent. The dispatch adapter reads a static id list (`params.ids`,
+at most 256, `monitor.py:129-137`), so each pass first writes a config
+under the state directory naming the launched intents' record ids,
+runs `monitor.py run --once` over it, then `digest`; there is no
+tracked `monitor.dispatch.json`. Each send is `send --key event:<event id>:<recipient>`
 (slice 2's key), so a replay of the digest sends nothing twice; the
 cursor is acked (`digest --ack`) only after every send of the batch is
 committed, so a failed send leaves the batch to the next pass. Events
@@ -695,7 +719,8 @@ correlation from its argv, or refuses with a given line, or exits
 without a `record:` line, or writes `state.json` then dies;
 `fakes/dispatch_launch.py` stands in for `launch.py` (`status`, `wait`,
 `collect` readings by spec, argv logged); `fakes/dispatch_digest.py`
-stands in for `monitor.py digest` (events by spec, acks logged).
+stands in for `monitor.py` (`run --once` takes the per-pass config and
+logs its ids; `digest` answers events by spec; `--ack` calls logged).
 
 The fixture set, the practical failures on the exit path, each a row
 with an origin of this section:
@@ -721,9 +746,11 @@ with an origin of this section:
 8. `collect --verify tests` (a key) → the fake `launch.py` argv carries
    the table's argv, and `closed`; `--verify 'rm -rf'` → `verify`, no
    call;
-9. the follow-through: a digest of `finished` → one `inform` to the
-   requester with the record id; the same digest replayed → no second
-   message; a send that fails (the store locked by the world) → the
+9. the follow-through: a digest of `completion` → one `inform` to the
+   assignment's holder with the record id, and the per-pass config the
+   fake received names that intent's record id; `death` → a `finding`
+   to the Dispatcher and the holder; `running` → acked, no message; the
+   same digest replayed → no second message; a send that fails (the store locked by the world) → the
    cursor not acked;
 10. `recover` after a launcher death with `state.json` present → the row
     `launched`, nothing launched (the wrapper log unchanged);

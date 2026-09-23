@@ -25,6 +25,17 @@ never fork), rows by id with `origin: sessions-lever.md#slice-3 11`,
 `refusal_wire` on the CLI-side rows and the error result's class token
 on the MCP-side rows. No program embedded in the test module (rule 6).
 
+Names the code uses (contract, "The programs it runs"): the fakes are
+planted at the paths the keys `DISPATCH_WRAPPER`, `DISPATCH_LAUNCHER`
+and `DISPATCH_MONITOR` name in the world's environment (defaults
+`ops/conductor/tools/dispatch.sh`, `ops/devlane/dispatch/launch.py`,
+`ops/conductor/tools/monitor.py`; each an argv, no shell); a key naming
+a non-executable refuses `launcher` (wrapper, launcher) or `store`
+(monitor); `DISPATCH_CAPACITY` default 6; the jobs root `$DISPATCH_JOBS`
+else `$XDG_STATE_HOME/<lane>/dispatch`; `verifications.json` read from
+the repository root; the scope file at
+`<state dir>/dispatch-intents/DI-n/scope.txt`.
+
 Rows: `tools/list` names the four with `coord_launch` and
 `coord_collect` marked as mutations; `coord_launch` by a bound
 dispatcher holding the machine writes the same intent row the CLI
