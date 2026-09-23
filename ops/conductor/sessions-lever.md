@@ -572,7 +572,18 @@ launched, in the core's store:
                      phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
                      launcher_ticks TEXT, reserved_at TEXT NOT NULL,
                      launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+                     reported_at TEXT,
                      UNIQUE (requester, key))
+
+`reported_at` is written once the router pass's sends for the intent
+commit, in that transaction; a pass watches every `launched` intent and
+every `closed` intent whose `reported_at` is NULL, so a job collected
+while the router was down, restarting or inside one tick still reaches
+its requester once (the reviewer agentscient-0e's F1 at d0cbc6b0:
+monitors built from `launched` alone, `collect` moving the row to
+`closed` with nothing sent; fixed at eec4eddc). A store from before the
+column gets it at the next writer, with already-closed intents marked
+`before reporting`, so an upgrade sends nothing old again.
 
 `digest` is sha256 over the canonical JSON of `assignment, job, harness,
 branch, scope_ref, inputs`. `correlation` is a uuid4 minted at the
@@ -838,8 +849,8 @@ contract clauses the fix must satisfy, by line), the candidate's
 starting ref, and the two controlled cases the verifier will plant (an
 omitted behaviour and a changed candidate). It is written by
 `sessions.py trial objective <run> --deliverable <id> --clause <file:line>
-... --candidate <ref> --case omitted:<clause> --case changed:<ref>` into
-`<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
+... --candidate <ref> --case omitted:<clause> --case changed:<ref>
+[--fake <name> ...]` into `<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
 a clause, the candidate or either case is refused `objective`.
 
 **The trial record** is `ops/conductor/handoff/<date>-slice4-trial.md`,
@@ -847,9 +858,16 @@ the date the run's start date in `YYYY-MM-DD`, checked by `sessions.py
 trial record <path>`, which refuses `evidence` on the first row without a
 reading or `not measured <why>` and exits 0 on a complete record. An
 acceptance claim is `sessions.py trial accept <run> --candidate <sha>
---record <path>`, which refuses `acceptance` when `<sha>` is not the sha
-the verifier's row names or when any evidence cell reads `live` for a
-row whose command ran a planted fake. It is a table with one row per
+--record <path>`, which refuses `acceptance` when `<sha>` is not the
+40-hex sha in row I-14's evidence cell (`verified <sha>`, the
+verifier's row; a cell without one refuses `acceptance` naming the
+absence), when any clause in the run's `objective.json` appears by its
+`file:line` token in no row's evidence or reading (the omitted
+behaviour, refused naming the clause), or when an evidence cell reads
+`live` while its row's reading names a program the objective's `fakes`
+list declares planted, or reads `mock <name>` and `live` together.
+`objective.json` therefore carries `fakes`, the planted programs by
+name, possibly empty and always present. It is a table with one row per
 acceptance id I-01 to I-14 (plan §13), each row `id | required result |
 evidence | reading`,
 where `evidence` is a path plus sha, a record id, or a probe row id, and
