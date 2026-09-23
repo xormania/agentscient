@@ -10,11 +10,10 @@ the clean subject:
 
 Anchored on agentscient-10's sessions.py at c4dd8f12, each anchor counted
 once: step 8's acknowledgment and export's pre-check (`if missing:`;
-`if failures:` now guards only read errors). Calibrated at 2d374e5e,
-with 10's LIVE rename merged (846744f3), over the rows the notes name,
-`-k Stop -k missing_a_pane` added to the command above: clean green,
-both mutants caught. The whole module's clean run waits on
-started_participant (export-complete and the export-window rows).
+`if failures:` now guards only read errors). Calibrated over the whole
+module at f12428dd, with 10's started_participant merged (746ad0ad):
+clean green, both mutants caught. A fault for each other row is a
+declared gap.
 The owner's-terminal rows have no mutant here: their subject is the bind minting in instrument.py, a
 wall path, and the fault is planted in the wall session's change.
 """
