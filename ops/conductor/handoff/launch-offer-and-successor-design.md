@@ -222,4 +222,3 @@ coordination.py: agentscient-10 (1 to 3) and agentscient-69 (4);
 launch.py: agentscient-11 on this design; the case table: agentscient-5c;
 the live sequence: agentscient-69 as Dispatcher. Grants: 367 (69),
 368 (wall, 11). No producer writes the tests of its own implementation.
-
