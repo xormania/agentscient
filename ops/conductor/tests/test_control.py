@@ -313,7 +313,11 @@ class ControlTests(unittest.TestCase):
         )
         self.world.own(p)
         try:
-            time.sleep(0.1)
+            deadline = time.monotonic() + RUN_CAP
+            while "seat" not in self.status():
+                self.assertIsNone(p.poll(), "seat exited before publishing its reservation")
+                self.assertLess(time.monotonic(), deadline, "seat did not publish its reservation")
+                time.sleep(0.01)
             self.assert_refusal(
                 self.cp(
                     "seat",
