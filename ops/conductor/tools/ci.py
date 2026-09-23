@@ -21,6 +21,7 @@ from typing import Any
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import Refusal, emit, identity, refuse, stamp, state_dir
 except ModuleNotFoundError:
     print(
@@ -67,11 +68,10 @@ def positive(value: str, option: str) -> int:
 def connect(*, write: bool) -> sqlite3.Connection:
     path = store_path()
     if write:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(path)
+        connection = instrument.connect_store(path, mode="rwc")
         connection.executescript(SCHEMA)
     elif path.is_file():
-        connection = sqlite3.connect(path)
+        connection = instrument.connect_store(path)
     else:
         refuse(
             "store",

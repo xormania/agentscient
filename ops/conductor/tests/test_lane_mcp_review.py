@@ -37,7 +37,7 @@ class TestLaneMcpReview(_LaneMcpFixture):
         self.scratch = self.world.path("stage")
         siblings = tuple(
             path.name
-            for path in (READ, READ.with_name("instrument.py"))
+            for path in (READ, READ.with_name("instrument.py"), READ.with_name("mcp_transport.py"), READ.with_name("dispatch_observation.py"))
             if path.is_file()
         )
         self.staged = self.world.stage(

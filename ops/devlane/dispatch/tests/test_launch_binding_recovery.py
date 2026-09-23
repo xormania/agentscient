@@ -8,13 +8,12 @@ the recovery archive's review-262-evidence/probe_boundaries.py.
 import json
 import os
 import shutil
-import subprocess
 from pathlib import Path
 
 import launch_support as ls
 from test_launch_coordination_mcp import _Acting
 
-from ops.testkit import World  # noqa: F401 - _Acting owns the World
+from ops.testkit import World, run  # noqa: F401 - _Acting owns the World
 
 
 class BindingRecovery(_Acting):
@@ -25,8 +24,7 @@ class BindingRecovery(_Acting):
         env.pop("WF_AGENT", None)
         argv = list(self.acting(rec)["server"])
         argv[-1:] = ["call", "coord_brief", "{}"]
-        result = subprocess.run(argv, env=env, cwd=ls.REPO, text=True,
-                                capture_output=True, timeout=30)
+        result = run(argv, env=env, cwd=ls.REPO, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         return result
 

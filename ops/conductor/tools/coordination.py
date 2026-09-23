@@ -70,6 +70,7 @@ from datetime import timedelta
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         EXIT_DONE,
@@ -180,11 +181,12 @@ READING = re.compile(
 T = machine.Transition
 ASSIGNMENT = machine.Machine(
     name="assignment",
-    version=1,
+    version=2,
     initial="drafted",
     places=("drafted", "offered", "held", "submitted", "verified", "accepted", "superseded"),
     transitions=(
         T("offer", "drafted", "offered", "any", "none", "offered", "keep"),
+        T("address", "offered", "offered", "any", "required", "offered", "clear"),
         T("claim", "offered", "held", "any", "none", "taken", "take"),
         T("release", "held", "offered", "holder-or-lapsed", "required", "place", "clear"),
         T("reassign", "held", "offered", "any", "required", "place", "clear"),
@@ -362,8 +364,7 @@ def reader():
     path = machine.store_path()
     if not path.is_file():
         return None
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                           timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
     # `sqlite_schema` is the name SQLite 3.33 gave the table it has always
@@ -795,8 +796,7 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     # insert two first callers both read zero and both took roles above
     # worker: all three reviewers of round two reproduced two roots in
     # that window against b1d868b0.
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with instrument.transaction(conn):
         row = conn.execute(
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -834,10 +834,6 @@ def core_bind(conn, part, *, agent, roles, harness=None,
                 (key, agent, harness, named, endpoint, probe, stamp()),
             ).lastrowid
             _install_capability(conn, pid, capability_digest())
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     return {**participant_dict(participant_row(conn, pid)), "session": key}
 
 
@@ -887,59 +883,52 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
     grant_id = int(grant)
     authority = None
     try:
-        authority = sqlite3.connect(database_path().as_uri() + "?mode=rw", uri=True,
-                                    isolation_level=None, timeout=10)
+        authority = instrument.connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
         authority.row_factory = sqlite3.Row
-        authority.execute("BEGIN IMMEDIATE")
-        row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
-        valid = (row is not None and row["status"] == "open"
-                 and row["session"] == session() and row["agent"] == agent
-                 and row["lever_class"] == "other" and not (row["scope"] or "").strip()
-                 and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
-        deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
-        valid = valid and deadline > now()
-        if not valid:
-            refuse("grant", "this session's open, unexpired, unscoped other grant",
-                   f"grant {grant_id} does not satisfy that binding",
-                   "use the owner's recorded recovery authorization for this session")
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            if deadline <= now():
-                refuse("grant", "authority current at the role-changing transaction",
-                       f"grant {grant_id} expired while waiting",
-                       "use a current owner-authorized recovery grant")
-            conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
-                grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
-                roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
-                grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
-            for operation in ("UPDATE", "DELETE"):
-                conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
-                    BEFORE {operation} ON owner_role_grants BEGIN
-                    SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
-            prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
-                                 (grant_id,)).fetchone()
-            if prior is not None:
-                if prior["participant"] != part["id"] or prior["roles"] != named:
-                    refuse("grant", "the same participant and roles for a recovered grant",
-                           f"grant {grant_id} already used", "declare a new owner-authorized grant")
-            else:
-                current = participant_row(conn, part["id"])
-                held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
-                conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
-                             (grant_id, part["id"], named, current["roles"],
-                              json.dumps(dict(row), sort_keys=True), why, stamp()))
-                conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
-                             (",".join(held), grant_id, part["id"]))
-            conn.execute("COMMIT")
-        except BaseException:
-            conn.execute("ROLLBACK")
-            raise
+        with instrument.transaction(authority):
+            row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
+            valid = (row is not None and row["status"] == "open"
+                     and row["session"] == session() and row["agent"] == agent
+                     and row["lever_class"] == "other" and not (row["scope"] or "").strip()
+                     and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
+            deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
+            valid = valid and deadline > now()
+            if not valid:
+                refuse("grant", "this session's open, unexpired, unscoped other grant",
+                       f"grant {grant_id} does not satisfy that binding",
+                       "use the owner's recorded recovery authorization for this session")
+            with instrument.transaction(conn):
+                if deadline <= now():
+                    refuse("grant", "authority current at the role-changing transaction",
+                           f"grant {grant_id} expired while waiting",
+                           "use a current owner-authorized recovery grant")
+                conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
+                    grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
+                    roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
+                    grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
+                for operation in ("UPDATE", "DELETE"):
+                    conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
+                        BEFORE {operation} ON owner_role_grants BEGIN
+                        SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
+                prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
+                                     (grant_id,)).fetchone()
+                if prior is not None:
+                    if prior["participant"] != part["id"] or prior["roles"] != named:
+                        refuse("grant", "the same participant and roles for a recovered grant",
+                               f"grant {grant_id} already used", "declare a new owner-authorized grant")
+                else:
+                    current = participant_row(conn, part["id"])
+                    held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
+                    conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                 (grant_id, part["id"], named, current["roles"],
+                                  json.dumps(dict(row), sort_keys=True), why, stamp()))
+                    conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
+                                 (",".join(held), grant_id, part["id"]))
     except (sqlite3.Error, OSError, ValueError, TypeError, OverflowError) as error:
         refuse("grant", "a readable current hand grant and writable coordination store",
                type(error).__name__, "restore the stores before recovering roles")
     finally:
         if authority is not None:
-            authority.rollback()
             authority.close()
     result = participant_dict(participant_row(conn, part["id"]))
     result["owner_grant"] = grant_id
@@ -998,16 +987,7 @@ def core_revoke(conn, part, *, agent, participant, roles) -> dict:
 
 def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
                   capability_digest=None, harness=None, endpoint=None, probe=None) -> dict:
-    """A participant for a session that cannot bind itself.
-
-    A dispatched Codex or Grok worker has no harness session id in its
-    environment, so it could hold no participant and every mutation it
-    made refused class `participant`. The launcher mints a session id per
-    dispatch and sets it as CLAUDE_SESSION_ID, the older key
-    instrument.session() already admits. Only a dispatcher may issue one,
-    and the binding records who issued it and for which assignment, so a
-    participant nobody dispatched is visible as such.
-    """
+    """Issue a participant and its claimable work in one engine transition."""
     part = same_session(conn, part)
     require_role(part, ("dispatcher",))
     named = roles_of(roles)
@@ -1020,12 +1000,21 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         # is a grant, and a grant is a lead's.
         require_role(part, ("lead",))
     _, aid = parse_id(assignment, "A")
-    # The same lock as a self-bind, for the same reason: the conflict
-    # check reads and the mint writes, and two dispatchers minting for
-    # one session id would otherwise both read nothing there.
-    conn.execute("BEGIN IMMEDIATE")
-    try:
-        assignment_row(conn, aid)
+    work = assignment_row(conn, aid)
+    issued = []
+
+    def issue():
+        # _offer_to runs this under the engine's write lock. Nothing is
+        # enrolled unless this assignment can be offered to the new worker.
+        live = assignment_row(conn, aid)
+        if live["place"] == "offered" and (
+                live["holder"] is not None or live["agent_holder"] is not None
+                or (live["recipient"] and live["recipient"] not in named.split(","))):
+            refuse("recipient", "an unaddressed offer or a role the issued worker holds",
+                   f"A-{aid} offered to {live['recipient'] or 'nobody'}, "
+                   f"holder {live['holder'] or live['agent_holder'] or 'none'}",
+                   "reassign it to the intended role with the current generation, "
+                   "or dispatch a different assignment")
         row = conn.execute(
             "SELECT id FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -1049,11 +1038,13 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
              granted, stamp() if granted else None),
         ).lastrowid
         _install_capability(conn, pid, capability_digest)
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
-    return {**participant_dict(participant_row(conn, pid)), "session": key}
+        issued.append(pid)
+        return f"PT-{pid}"
+
+    _offer_to(conn, part, aid=aid, to=issue, generation=str(work["generation"]),
+              transition="address" if work["place"] == "offered" else "offer",
+              evidence="dispatch handoff", note="issued worker")
+    return {**participant_dict(participant_row(conn, issued[0])), "session": key}
 
 
 def core_who(conn, part) -> dict:
@@ -1091,20 +1082,31 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
     return assignment_dict(assignment_row(conn, sid))
 
 
+def _offer_to(conn, part, *, aid, to, generation, transition, evidence=None, note=None):
+    """One recipient update for offers, handoffs and returns to offered.
+
+    A recipient factory may enroll the dispatched participant inside the
+    same transaction. The engine owns locking, place checks and rollback;
+    advance owns the generation bump. Public operations check authority.
+    """
+    require_generation(assignment_row(conn, aid), generation)
+
+    def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
+        recipient = recipient_of(conn, to() if callable(to) else to)
+        conn.execute("UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
+                     (recipient, aid))
+
+    advance(conn, aid, transition, part, note=note, evidence=evidence, gate=gate)
+    return assignment_dict(assignment_row(conn, aid))
+
+
 def core_offer(conn, part, *, agent, assignment, to, generation) -> dict:
     part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
-    row = assignment_row(conn, aid)
-    require_generation(row, generation)
-    recipient = recipient_of(conn, to)
-
-    def gate(_subject):
-        require_generation(assignment_row(conn, aid), generation)
-        conn.execute("UPDATE assignments SET recipient = ? WHERE id = ?", (recipient, aid))
-
-    advance(conn, aid, "offer", part, note=recipient, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=to, generation=generation,
+                     transition="offer", note=to)
 
 
 def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -> dict:
@@ -1138,7 +1140,9 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
     require_generation(row, generation)
     if transition == "reassign":
         require_role(part, ("lead", "coordinator"))
-        recipient = recipient_of(conn, to)
+        recipient = to
+        if row["place"] == "offered":
+            transition = "address"
     else:
         held = machine.subject(conn, ASSIGNMENT, aid)
         if row["holder"] != part["id"] and not machine.lapsed(held):
@@ -1148,16 +1152,8 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
                    "or a lead reassigns it")
         recipient = row["recipient"]
 
-    def gate(_subject):
-        live = assignment_row(conn, aid)
-        require_generation(live, generation)
-        conn.execute(
-            "UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
-            (recipient, aid),
-        )
-
-    advance(conn, aid, transition, part, evidence=why, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=recipient, generation=generation,
+                     transition=transition, evidence=why)
 
 
 def core_release(conn, part, *, agent, assignment, why, generation) -> dict:
@@ -1573,8 +1569,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
     if not str(generation).isdigit():
         refuse("arguments", "--generation as a whole number", str(generation),
                "the generation printed by show")
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with instrument.transaction(conn):
         row = assignment_row(conn, aid)
         if not row["revision"]:
             refuse("revision", f"a candidate named on A-{aid}", "no revision",
@@ -1597,10 +1592,6 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
             (aid, part["id"], requirement, execution, revision, environment,
              observation, artifact, "stale" if stale else "current", reason, stamp()),
         )
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     row = conn.execute(
         "SELECT * FROM observations WHERE id = ?", (cursor.lastrowid,)
     ).fetchone()

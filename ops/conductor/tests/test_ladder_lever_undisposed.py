@@ -23,7 +23,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from test_ladder_lever import RUN_CAP, _completed, _LadderFixture
+from test_ladder_lever import RUN_CAP, _LadderFixture
 
 from ops.testkit import World, run
 
@@ -150,12 +150,12 @@ class _UndisposedFixture(_LadderFixture):
 
     def cited_probe(self, key: str):
         tool = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        return _completed(run(
+        return run(
             [sys.executable, str(tool), "cited", key],
             cwd=str(self.invoke_cwd),
             env=self.env(),
             timeout=RUN_CAP,
-        ))
+        )
 
     def plant_undisposed_audit(
         self,

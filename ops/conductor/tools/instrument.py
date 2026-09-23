@@ -34,6 +34,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NoReturn
@@ -203,7 +204,7 @@ def session(default: str = SESSION_UNKNOWN) -> str:
         try:
             conf_values = _laneconf().parse_file(Path(profile["source"]) / "ops/lane.conf")
             db = Path(profile["authority_environment"]["XDG_STATE_HOME"]) / conf_values["LANE_NAME"] / "state.db"
-            with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
+            with closing(connect_store(db)) as conn:
                 rows = conn.execute("SELECT session_id, harness FROM participants WHERE capability_digest = ?",
                                     (capability_digest(profile),)).fetchall()
             if len(rows) != 1 or rows[0][1] != profile["harness"]:
@@ -297,6 +298,53 @@ def state_db() -> Path:
     return state_dir() / "state.db"
 
 
+def connect_store(
+    path: Path, *, mode: str = "ro", timeout: float = 5,
+    isolation_level: str | None = "",
+) -> sqlite3.Connection:
+    """Open a store with explicit authority: read, update, or create.
+
+    Only rwc creates directories or a database. URI escaping keeps path
+    punctuation from becoming connection options. Readers open the named
+    file read-only; query-only mode also rejects DML and DDL, including
+    temporary tables. The caller owns schema,
+    row shape, absence/error policy and closing the returned connection.
+    """
+    if mode not in {"ro", "rw", "rwc"}:
+        raise ValueError(f"unknown store mode: {mode}")
+    path = Path(path).absolute()
+    if mode == "rwc":
+        path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path.as_uri() + f"?mode={mode}", uri=True,
+                           timeout=timeout, isolation_level=isolation_level)
+    try:
+        if mode == "ro":
+            conn.execute("PRAGMA query_only=ON")
+        return conn
+    except BaseException:
+        conn.close()
+        raise
+
+
+@contextmanager
+def transaction(conn: sqlite3.Connection):
+    """Own one immediate transaction, including the read that decides.
+
+    Commit on success; roll back on every failure, including commit failure
+    and process interruption. A nested call refuses at BEGIN before it can
+    affect its caller's transaction. Compose domain operations under one
+    owner instead of committing part of an enclosing operation.
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield conn
+        conn.commit()
+    except BaseException:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+
+
 SESSION_IDENTITY = """
 CREATE TABLE IF NOT EXISTS session_identity (
     session_id TEXT PRIMARY KEY,
@@ -328,7 +376,7 @@ def stored_identity() -> str:
     if not key or not path.is_file():
         return ""
     try:
-        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as con:
+        with closing(connect_store(path)) as con:
             # PRAGMA, not a SELECT against the schema table: that
             # table's name ends in the release branch's name, and
             # laneconf.py's literal scan reads the substring, not the
@@ -370,9 +418,7 @@ def set_identity(agent: str) -> str:
                "run under a harness that sets CLAUDE_CODE_SESSION_ID, or "
                "name the agent with WF_AGENT_OVERRIDE for one command")
     path = state_db()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(path, isolation_level=None) as con:
-        con.execute("BEGIN IMMEDIATE")
+    with closing(connect_store(path, mode="rwc", isolation_level=None)) as con, transaction(con):
         con.execute(SESSION_IDENTITY)
         con.execute(
             "INSERT INTO session_identity (session_id, agent, at)"
@@ -381,7 +427,6 @@ def set_identity(agent: str) -> str:
             " agent = excluded.agent, at = excluded.at",
             (key, agent.strip(), stamp()),
         )
-        con.execute("COMMIT")
     return key
 
 

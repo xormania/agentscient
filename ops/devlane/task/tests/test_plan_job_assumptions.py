@@ -57,15 +57,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptQuotesTheAssumptionRule(_PlanJob):
     """Measured, or a refusal; neither is a finding the plan names."""
 
-    def test_every_assumption_is_measured_or_made_a_refusal(self):
-        self.assertIn(MEASURED_OR_REFUSAL, self.words())
-
-    def test_an_assumption_that_is_neither_is_a_finding_against_the_plan(self):
-        self.assertIn(NEITHER_IS_A_FINDING, self.words())
-
-    def test_the_plan_says_so_of_itself(self):
-        self.assertIn(PLAN_SAYS_SO, self.words())
-
     def test_every_assumption_rule_sentence_is_present_together(self):
         required = (MEASURED_OR_REFUSAL, NEITHER_IS_A_FINDING, PLAN_SAYS_SO)
         self.assertGreater(len(required), 0)

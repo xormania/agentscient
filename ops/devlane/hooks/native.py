@@ -153,6 +153,8 @@ def normalize(harness, payload, *, event=None, cwd=None, home=None):
     if not isinstance(args, dict):
         raise ValueError("tool arguments must be an object")
     text(tool, "tool name")
+    if tool == "Result":
+        raise ValueError("reserved canonical tool name")
     def item(name, inp):
         return {**base, "tool_name": name, "tool_input": inp}
     if tool in SHELL_TOOLS:
@@ -209,6 +211,9 @@ def normalize(harness, payload, *, event=None, cwd=None, home=None):
         if len(fields) != 3:
             raise ValueError("malformed MCP tool")
         return [item("MCP", {"server": fields[1], "name": fields[2], "arguments": args})]
+    if harness == "claude" and tool == "StructuredOutput":
+        # The job's envelope, returned to the harness; launch._envelope reads it (LD-136).
+        return [item("Result", args)]
     if tool == "call_mcp_tool":
         return [item("MCP", {"server": args.get("ServerName"), "name": args.get("ToolName"), "arguments": args.get("Arguments")})]
     return [item("Read" if tool in READ_TOOLS else tool, args)]

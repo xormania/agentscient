@@ -15,7 +15,6 @@ import re
 import shutil
 import sqlite3
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -211,20 +210,19 @@ class MatrixHookTests(unittest.TestCase):
     def setUpClass(cls):
         """One Dispatcher store for the class, written by the real lever.
 
-        Built once and copied into each world: 71 cases share it, the lever
+        Built once and copied into each world: the cases share it, the lever
         is the only writer of the engine's rows, and a lever that refuses
         fails the fixture loudly rather than leaving a world that quietly
         refuses every dispatch below.
         """
-        tmp = Path(tempfile.mkdtemp(prefix="matrix-dispatcher-"))
-        conf = tmp / "lane.conf"
-        conf.write_text(f"LANE_NAME='{LANE_NAME}'\n", encoding="utf-8")
+        world = World(prefix="matrix-dispatcher-")
+        cls.addClassCleanup(world.close)
+        conf = world.plant_text("lane.conf", f"LANE_NAME='{LANE_NAME}'\n")
         result = run(
             [sys.executable, str(support.DISPATCHER_LEVER), "set", FIXTURE_SESSION,
              "--why", "the fixture's Dispatcher"],
-            cwd=str(tmp), timeout=support.RUN_CAP,
-            env=support.isolated_env(tmp, extra={
-                "XDG_STATE_HOME": str(tmp),
+            cwd=world.cwd, timeout=support.RUN_CAP,
+            env=world.env(extra={
                 "LANE_CONF": str(conf),
                 "WF_AGENT": "Fixture <fixture@example.invalid>",
                 "CLAUDE_CODE_SESSION_ID": FIXTURE_SESSION,
@@ -235,7 +233,7 @@ class MatrixHookTests(unittest.TestCase):
                 f"INVALID: dispatcher.py set exit {result.exit}: "
                 f"{result.stderr or result.stdout}"
             )
-        store = tmp / LANE_NAME / "state.db"
+        store = world.xdg_state / LANE_NAME / "state.db"
         if not store.is_file():
             raise support.PlantFailed(f"INVALID: the lever wrote no store at {store}")
         cls.dispatcher_store = store
@@ -680,6 +678,7 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(spelling=cmd):
                 self.assert_denied(self.run_bash(cmd), "hand-write")
         wall = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+                "ops/devlane/workflow/checks/",
                 "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
                 "ops/devlane/hooks/claude/engine.py")
         for target in CODE_ROOT_TARGETS:
@@ -728,6 +727,8 @@ class MatrixHookTests(unittest.TestCase):
         # the wall paths"): the rows and their tests guard the file that
         # defines them.
         for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+                       "ops/devlane/workflow/checks/lane.py",
+                       "ops/devlane/workflow/checks/ci_contexts.py",
                        "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
                        "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/test_matrix.py",
                        "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py",
@@ -827,7 +828,8 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "override")
 
-    def test_override_allows_dispatch_without_model_or_effort(self):
+    def test_dispatch_passes_when_every_preflight_condition_holds(self):
+        """Clean neighbour for override, inputs, scope, ancestry, vet and env."""
         self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- input-absent ---
@@ -846,9 +848,6 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "input-absent")
 
-    def test_input_absent_allows_existing_nonempty_resolved_files(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
-
     # --- scope-cap ---
 
     def test_scope_cap_refuses_a_scope_file_over_the_cap(self):
@@ -856,9 +855,6 @@ class MatrixHookTests(unittest.TestCase):
             self.run_bash(self.dispatch(scope_file=self.scope_big)),
             "scope-cap",
         )
-
-    def test_scope_cap_allows_a_scope_file_at_or_under_the_cap(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- bucket-command ---
 
@@ -965,9 +961,6 @@ class MatrixHookTests(unittest.TestCase):
         self.assertIn("conflict", proc.stdout)
         self.assertIn("conflict.txt", proc.stdout)
 
-    def test_stale_base_allows_when_origin_trunk_is_an_ancestor(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
-
     # --- contract-vet ---
 
     def test_contract_vet_refuses_when_cue_vet_fails(self):
@@ -984,9 +977,6 @@ class MatrixHookTests(unittest.TestCase):
             self.run_bash(self.dispatch(), env=self.env_without_cue()),
             "contract-vet",
         )
-
-    def test_contract_vet_allows_when_cue_vet_exits_zero(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- dispatch-env ---
 
@@ -1006,9 +996,6 @@ class MatrixHookTests(unittest.TestCase):
         for cmd in rows:
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "dispatch-env")
-
-    def test_dispatch_env_allows_when_pin_timeout_and_agent_are_in_the_text(self):
-        self.assert_allowed(self.run_bash(self.dispatch()))
 
     # --- prune ---
 

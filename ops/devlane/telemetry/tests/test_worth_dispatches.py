@@ -16,15 +16,7 @@ from pathlib import Path
 
 import test_worth as worth_contract
 
-from ops.testkit import Result, World, run
-
-
-class WorthResult(Result):
-    """Kit result retaining the legacy name used by the wiring contract."""
-
-    @property
-    def returncode(self):
-        return self.exit
+from ops.testkit import World, run
 
 MARKER = "DISPATCH-LEAK-MARKER"
 WINDOW_SINCE = "2026-08-22T09:00:00.000Z"
@@ -268,14 +260,7 @@ class DispatchMeterTests(unittest.TestCase):
             env=self._worth_env(env),
             timeout=60,
         )
-        return WorthResult(
-            result.argv,
-            result.exit,
-            result.stdout,
-            result.stderr,
-            result.duration,
-            result.cwd,
-        )
+        return result
 
     def _record_payload(
         self,

@@ -693,7 +693,7 @@ class ResumeFeedsTheBriefAndKeepsFlags(_ParserLaunch):
 class MissingEnvelopeKeyKeepsThePayload(_ParserLaunch):
     """F12 / a missing key refuses without discarding the parsed payload."""
 
-    def test_a_missing_spend_key_keeps_findings_counts_and_verdict(self):
+    def test_a_missing_spend_key_keeps_evidence_with_no_verdict(self):
         extra = {
             "job": "adversarial-review",
             "status": "ok",
@@ -724,14 +724,14 @@ class MissingEnvelopeKeyKeepsThePayload(_ParserLaunch):
             "a missing key is a refusal, not a default: "
             f"envelope={got!r}",
         )
-        self.assertIn("envelope-missing", note)
+        self.assertIn("schema-invalid", note)
         self.assertIn("spend", note)
         self.assertEqual(
             got.get("findings"), payload["findings"],
             "the parsed findings must survive a missing-key refusal: "
             f"envelope={got!r}",
         )
-        self.assertEqual(got.get("verdict"), "changes")
+        self.assertIsNone(got.get("verdict"))
         self.assertEqual(got.get("counts"), payload["counts"])
         self.assertEqual(got.get("artifacts"), payload["artifacts"])
         self.assertEqual(got.get("job"), "adversarial-review")

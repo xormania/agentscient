@@ -13,25 +13,12 @@ import time
 import unittest
 from pathlib import Path
 
-from ops.testkit import Result, Timeout, World, run
+from ops.testkit import Timeout, World, run
 
 BREAKER = Path(__file__).resolve().parents[1] / "breaker.py"
 EXIT_TRIPPED = 3
 ONCE_TIMEOUT = 30
 LIVE_TIMEOUT = 15
-
-
-class _Proc:
-    """Kit Result plus returncode so the BDD module stays green."""
-
-    def __init__(self, result: Result):
-        self.argv = result.argv
-        self.exit = result.exit
-        self.returncode = result.exit
-        self.stdout = result.stdout
-        self.stderr = result.stderr
-        self.duration = result.duration
-        self.cwd = result.cwd
 
 
 def claude_line(mid, out=10, inp=5, cached=100, content=None):
@@ -69,12 +56,12 @@ class BreakerCase(unittest.TestCase):
         return self.world.plant_text(self.stream, text)
 
     def run_once(self, *args):
-        return _Proc(run(
+        return run(
             [sys.executable, str(BREAKER), str(self.stream), "--once", *args],
             cwd=self.world.cwd,
             env=self.world.env(),
             timeout=ONCE_TIMEOUT,
-        ))
+        )
 
     def watch(self, *args, timeout=LIVE_TIMEOUT):
         return run(
@@ -255,13 +242,13 @@ class GrownReemitIsCountedLastWins(BreakerCase):
         self.grown_total = 60 + 20 + 70
 
     def run_once(self, cap):
-        return _Proc(run(
+        return run(
             [sys.executable, str(BREAKER), str(self.stream), "--once",
              "--cap", str(cap)],
             cwd=self.world.cwd,
             env=self.world.env(),
             timeout=ONCE_TIMEOUT,
-        ))
+        )
 
     def test_trips_just_below_the_grown_spend(self):
         self.assertEqual(self.run_once(self.grown_total - 1).exit,

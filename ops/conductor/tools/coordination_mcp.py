@@ -38,9 +38,23 @@ except ModuleNotFoundError:
     )
     raise SystemExit(2) from None
 
-PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
-LATEST_PROTOCOL = PROTOCOLS[-1]
-MAX_LINE = 65_536
+from mcp_transport import (  # noqa: E402
+    PROTOCOLS,
+    _reject_constant,
+)
+from mcp_transport import (  # noqa: E402
+    dispatch as dispatch_request,
+)
+from mcp_transport import (  # noqa: E402
+    error as _error,
+)
+from mcp_transport import (  # noqa: E402
+    result as _result,
+)
+from mcp_transport import (  # noqa: E402
+    serve as serve_stdio,
+)
+
 # The whole-response bound, measured on the serialised response and not
 # on the payload inside it: tools/call carries the payload twice, as
 # content text and as structuredContent, so a payload under the bound can
@@ -640,17 +654,6 @@ def _resources() -> list:
     return listed
 
 
-def _error(identifier, code, message, data=None) -> dict:
-    error = {"code": code, "message": message}
-    if data is not None:
-        error["data"] = data
-    return {"jsonrpc": "2.0", "id": identifier, "error": error}
-
-
-def _result(identifier, result) -> dict:
-    return {"jsonrpc": "2.0", "id": identifier, "result": result}
-
-
 def _call_result(identifier, payload) -> dict:
     return _result(identifier, {
         "content": [{"type": "text", "text": canonical(payload)}],
@@ -689,59 +692,17 @@ def _refusal_result(identifier, refusal: Refusal) -> dict:
     })
 
 
-def _params(request: dict) -> dict:
-    params = request.get("params", {})
-    if not isinstance(params, dict):
-        raise TypeError
-    if "_meta" in params and not isinstance(params["_meta"], dict):
-        raise TypeError
-    result = dict(params)
-    result.pop("_meta", None)
-    return result
-
-
-def _dispatch(config, request) -> dict | None:
-    if not isinstance(request, dict) or request.get("jsonrpc") != "2.0":
-        return _error(None, -32600, "Invalid Request")
-    identifier = request.get("id")
-    notification = "id" not in request
-    method = request.get("method")
-    if not isinstance(method, str):
-        return _error(identifier, -32600, "Invalid Request")
-    try:
-        params = _params(request)
-    except TypeError:
-        return None if notification else _error(identifier, -32602, "Invalid params")
-    if notification:
-        return None
-    if method == "initialize":
-        # Every method names the members it accepts and refuses the rest
-        # (X2#4). `ping` is the one exception, by ruling: it is a liveness
-        # check and JSON-RPC lets it carry anything.
-        if not set(params) <= {"protocolVersion", "capabilities", "clientInfo"}:
-            return _error(identifier, -32602, "Invalid params")
-        # A protocolVersion that is present and not a string is a
-        # malformed request, not an unknown version to negotiate past.
-        # `null` is present: absent is the only way to omit it (a95a8d#3).
-        if "protocolVersion" in params and not isinstance(
-                params["protocolVersion"], str):
-            return _error(identifier, -32602, "Invalid params")
-        requested = params.get("protocolVersion")
-        for name in ("capabilities", "clientInfo"):
-            if name in params and not isinstance(params[name], dict):
-                return _error(identifier, -32602, "Invalid params")
-        selected = requested if requested in PROTOCOLS else LATEST_PROTOCOL
-        return _result(identifier, {
-            "protocolVersion": selected,
-            "capabilities": {"tools": {"listChanged": False},
-                             "resources": {"subscribe": False, "listChanged": False}},
+def _dispatch(config, request):
+    return dispatch_request(
+        request, lambda identifier, method, params: _route(config, identifier, method, params),
+        server={
             "serverInfo": {"name": SERVER_NAME, "version": "1"},
             "instructions": INSTRUCTIONS,
-        })
-    if method == "ping":
-        # JSON-RPC allows extra members here and the contract says so:
-        # ping is a liveness check, not a domain call.
-        return _result(identifier, {})
+        }, strict_initialize=True,
+    )
+
+
+def _route(config, identifier, method, params):
     if method == "tools/list":
         if params:
             return _error(identifier, -32602, "Invalid params")
@@ -824,29 +785,8 @@ def _send(message) -> None:
     sys.stdout.flush()
 
 
-def _reject_constant(value):
-    raise ValueError(value)
-
-
-def serve(config) -> int:
-    source = sys.stdin.buffer
-    while True:
-        line = source.readline(MAX_LINE + 1)
-        if not line:
-            return 0
-        if len(line) > MAX_LINE:
-            while line and not line.endswith(b"\n"):
-                line = source.readline(MAX_LINE + 1)
-            _send(_error(None, -32700, "Parse error"))
-            continue
-        try:
-            request = json.loads(line, parse_constant=_reject_constant)
-        except (json.JSONDecodeError, UnicodeError, RecursionError, ValueError):
-            _send(_error(None, -32700, "Parse error"))
-            continue
-        response = _dispatch(config, request)
-        if response is not None:
-            _send(response)
+def serve(config):
+    return serve_stdio(sys.stdin.buffer, lambda request: _dispatch(config, request), _send)
 
 
 # -- the CLI ---------------------------------------------------------------

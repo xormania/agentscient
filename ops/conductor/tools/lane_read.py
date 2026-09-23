@@ -13,7 +13,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NoReturn
-from urllib.parse import quote
 
 # The shared instrument module sits beside this file; its directory goes
 # on the path so the import resolves however this file was loaded: as
@@ -21,6 +20,7 @@ from urllib.parse import quote
 # a copy a test staged with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import Refusal, refuse
 except ModuleNotFoundError:
     print(
@@ -31,6 +31,8 @@ except ModuleNotFoundError:
     raise SystemExit(2) from None
 
 sys.dont_write_bytecode = True
+
+from dispatch_observation import DispatchRecord  # noqa: E402
 
 SCHEMA = "agentscient.lane/v1"
 CONFIG_BYTES = 65_536
@@ -410,10 +412,10 @@ def _read_record(
 def _record_summary(
     record: dict[str, object], ident: str, evidence: str | None
 ) -> dict[str, object]:
-    nested = record.get("result") if isinstance(record.get("result"), dict) else {}
-    envelope = nested.get("envelope") if isinstance(nested.get("envelope"), dict) else {}
+    observation = DispatchRecord(record)
+    nested = observation.result
+    envelope = observation.envelope
     session = record.get("session") if isinstance(record.get("session"), dict) else {}
-    changed = nested.get("changed_paths")
     attempts = record.get("attempts")
     model = record.get("model")
     if isinstance(model, dict):
@@ -427,7 +429,7 @@ def _record_summary(
         "head": _text(nested.get("head")),
         "verdict": _text(envelope.get("verdict")),
         "counts": _aggregate(envelope.get("counts"), COUNT_KEYS),
-        "changed_count": len(changed) if isinstance(changed, list) else None,
+        "changed_count": observation.changed_count,
         "attempt_count": len(attempts) if isinstance(attempts, list) else None,
         "spend": _aggregate(session.get("spend"), SPEND_KEYS),
         "evidence": evidence,
@@ -518,11 +520,9 @@ def _alerts(config: dict[str, object], after: int, limit: int) -> dict[str, obje
         result = _base(name, "unavailable", "monitor database is unavailable")
         result.update({"events": [], "more": False, "next_after": after})
         return result
-    uri = f"file:{quote(str(database), safe='/')}?mode=ro"
     try:
-        connection = sqlite3.connect(uri, uri=True, timeout=0)
+        connection = instrument.connect_store(database, timeout=0)
         try:
-            connection.execute("PRAGMA query_only=ON")
             rows = connection.execute(
                 "SELECT id,route,consumer,condition_id,monitor,subject,state,"
                 "summary,evidence,observed_at,delivery FROM events "

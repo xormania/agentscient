@@ -130,7 +130,7 @@ def evaluate(payload, *, servers=()):
                     return refuse("unbound MCP operation", "bind the existing server catalogue and effective core authority")
             elif tool == "Continuation":
                 return refuse("unbound continuation input", "use a finite guarded command; input is not a fresh shell action")
-            elif tool not in {"Read", "Cancel", "Agent", "Task", "Workflow"}:
+            elif tool not in {"Read", "Cancel", "Agent", "Task", "Workflow", "Result"}:
                 return refuse("unknown native tool", "declare and verify its translation in the shared guard")
             if event == "PostToolUse" and any(row.get("engine") and row.get("event") == event for row in rows) and "tool_response" not in payload:
                 return refuse("unavailable post-tool result", "supply the verified native result reading")

@@ -245,6 +245,22 @@ and `participants` prints both, so a participant nobody dispatched is
 visible as such. `bind` is unchanged and stays the interactive session's
 verb.
 
+Binding and offering the assignment are one state-engine transaction. A
+drafted assignment is offered to the issued participant; an unaddressed or
+matching role offer is addressed to that participant. Another participant's
+offer, a role the issued participant does not hold, held work and finished
+work refuse without creating a participant or changing the assignment.
+Credential enrollment, recipient, generation and marking commit together or
+roll back together. The issuing dispatcher owns this handoff; it does not
+need the coordinator role and the worker does not gain permission to offer.
+The receipt still names the participant, issuer and assignment.
+
+`reassign` handles both offered and held work under its existing lead or
+coordinator authority and generation check. Offered work uses the machine's
+`address` transition. Thus a failed startup can be recovered through the
+existing reassignment operation, with its reason retained in the marking.
+Dispatch does not steal a named offer or infer that an existing worker died.
+
 Setting that id into the worker's environment is the launcher's half and
 belongs to the MCP package's second slice, not here. It is set as
 `CLAUDE_SESSION_ID`, the older key `instrument.session()` already admits
@@ -258,7 +274,8 @@ tests:
 
 | transition | from | to | actor | evidence | failure | hold | gate |
 |---|---|---|---|---|---|---|---|
-| offer | drafted | offered | any | none | `offered` | keep | lead or coordinator |
+| offer | drafted | offered | any | none | `offered` | keep | offer: lead or coordinator; bind-for: dispatcher; generation |
+| address | offered | offered | any | required (why) | `offered` | clear | reassign: lead or coordinator; bind-for: dispatcher with an unaddressed or matching role offer; generation |
 | claim | offered | held | any | none | `taken` | take | the named recipient; the branch is in the lock; generation |
 | release | held | offered | holder-or-lapsed | required (why) | `place` | clear | generation; bumps it |
 | reassign | held | offered | any | required (why) | `place` | clear | lead or coordinator; generation; bumps it |

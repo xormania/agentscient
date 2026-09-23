@@ -119,7 +119,7 @@ class _WatchFixture(unittest.TestCase):
     def plant_gh_sequence(self, sequence: list[list[dict]]) -> None:
         self.plant_gh_steps(sequence)
 
-    def plant_gh_steps(self, steps: list) -> None:
+    def plant_gh_steps(self, steps: list, *, delay: float = 0) -> None:
         """Like plant_gh_sequence, but a step that is a dict is an error
         exit: its `stderr` written, nothing on stdout, exit `exit`."""
         fixture = self.world.plant_text(
@@ -128,8 +128,9 @@ class _WatchFixture(unittest.TestCase):
         )
         log = self.world.tools.log_path("gh")
         script = f"""#!{sys.executable}
-import json, os, sys
+import json, os, sys, time
 from pathlib import Path
+time.sleep({delay!r})
 log = Path({str(log)!r})
 line = json.dumps({{"argv": sys.argv[1:], "cwd": os.getcwd()}}) + "\\n"
 fd = os.open(log, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
@@ -389,6 +390,15 @@ class ZeroRowsAbort(_WatchFixture):
 
 class PendingThenSettled(_WatchFixture):
     """4. IN_PROGRESS keeps polling; a later settled poll re-reads and settles."""
+
+    def test_poll_startup_time_is_not_multiplied_by_the_test_clock(self):
+        self.plant_gh_steps([
+            [{"name": "progress-check", "state": "IN_PROGRESS"}],
+            [{"name": "progress-check", "state": "SUCCESS"}],
+        ], delay=0.2)
+        proc = self.watch(expect_names="progress-check")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertEqual(int(self.counter.read_text()), 3)
 
     def test_in_progress_then_success_re_reads_and_settles(self):
         self.plant_gh_sequence(
