@@ -253,3 +253,538 @@ origin. The proof's test-suite termination policy and its
 process; `status` is the board line; `stop` before the terminal is
 closed, `export` before a claim about the run. Slice 2 adds the
 courier route on the same rows; nothing here is rewritten for it.
+
+## Slice 2 — persistent native conversation
+
+Standing: proposed, slice 2 of the plan (§11 "Slice 2"; the mechanics
+are §7 the courier and its traps, §9 stop and recovery, §12 the cases).
+Written by the contract session (agentscient-87, Claude Fable 5.1, grant
+335) against slice 1's text at 11d77a56 and the file split
+`ops/conductor/handoff/2026-09-23-sessions-slices-2-3-file-ownership.md`
+(cc8b5f5f). This section holds what the tests need: the shapes, the
+verbs, the refusals and the fixture set. Everything else is the plan's,
+cited, not restated. Nothing above this heading is rewritten.
+
+**Exit** (plan §11): participants on different harnesses exchange a
+request and a response in their existing sessions while work stays open;
+a second member on the same harness routes correctly; a restart or a
+timeout neither erases the obligation nor replays its effects.
+
+### Owners
+
+One owner per file (the split). S2 owns `courier.py`, `sessions.py`,
+`session_adapters/` (`framing.py`, `claude.py`, `__init__.py`, and new
+`codex.py`, `grok.py`, `channel.py`), the additive tables and verbs in
+`coordination.py`, and `coord_send`'s `key` in `coordination_mcp.py`.
+The wall (W, `matrix.py WALL_PATHS`) owns `profiles.py`, `native.py`,
+`enforcement.py` and `launch.py`; what this slice needs from them is in
+"Required of the wall" below, and until W lands the rows run against a
+planted fake of that surface, never the real one. The test world uses
+the source lane's name (`profiles.py:151` pins `LANE_CONF`).
+
+### The shapes
+
+**A route** is how queued messages reach one participant. Two routes:
+`stdout`, slice 1's courier armed as a Monitor inside a Claude TUI
+session (`courier.py watch`, unchanged in shape); `native`, the bridge
+below submitting through the member's protocol channel. One live route
+per participant, in `coordination.py`'s store:
+
+    delivery_routes(participant INTEGER PRIMARY KEY, route TEXT NOT NULL,
+                    member INTEGER, pid INTEGER NOT NULL,
+                    start_ticks TEXT NOT NULL, since TEXT NOT NULL,
+                    last_pass_at TEXT)
+
+A courier takes the row under the write lock with its own pid and start
+ticks. A second courier of either route for a participant whose holder
+is alive (pid plus ticks; a missing tick is never alive) refuses `route`
+naming the holder; a dead holder's row is taken over and the takeover is
+the new row's `since`. A printed receipt from the stdout route never
+suppresses a native delivery, because the two cannot hold one
+participant at once (plan §7, competing couriers).
+
+**A delivery attempt** (`AT-n`) is one submission of one message to one
+concrete participant at one generation:
+
+    delivery_attempts(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      message INTEGER NOT NULL, participant INTEGER NOT NULL,
+                      generation INTEGER NOT NULL, route TEXT NOT NULL,
+                      reserved_at TEXT NOT NULL, submitted_at TEXT,
+                      outcome TEXT, native_ref TEXT, error TEXT)
+
+Reserved before the submission, settled after it. `outcome` is one of
+`written` (the request left, no response yet: grok's acceptance),
+`accepted <native ref>` (the native response: codex's turn id),
+`unsupported <method>`, `failed <error>`, `uncertain <why>`, `accepted
+reconciled`. A NULL outcome older than `ATTEMPT_TTL` (60 s) is a crash
+between the two writes: the next pass asks the adapter's `observe` for
+the message in the native session's evidence; found reads `accepted
+reconciled`, not found reads `uncertain` and one new attempt is reserved.
+Nothing is resubmitted while an attempt is unresolved. At most
+`ATTEMPTS_OUTSTANDING` (4) attempts per participant are reserved and
+unsettled at once. The core's `deliver` is recorded once, on the first
+`written` or `accepted` outcome, with `delivery_ref` `native:AT-n:<ref>`;
+`acked_at` stays the recipient's own (`coord_ack`), never the bridge's.
+A role-addressed message is carried only by the courier of the run's
+single live holder of that role; with two live holders it is carried by
+neither, and `status` prints `ambiguous recipient <role>: PT-a, PT-b`
+for it (declared gap: no fixture in this slice). The attempt binds the
+concrete `PT-n`; the message row's `recipient` stays as sent.
+
+**A send request key** makes `send` idempotent per caller:
+
+    send_requests(participant INTEGER NOT NULL, key TEXT NOT NULL,
+                  digest TEXT NOT NULL, message INTEGER NOT NULL,
+                  at TEXT NOT NULL, PRIMARY KEY (participant, key))
+
+`digest` is sha256 over the canonical JSON of `to, purpose, body,
+assignment, decision, reply_to, artifact`. The same key with the same
+digest returns the existing message (`message M-n queued (repeated)`);
+the same key with another digest refuses `idempotency` and writes
+nothing; no key is slice 1's behaviour. Slice 3's event routing relies
+on this key.
+
+The three tables are additive `CREATE TABLE IF NOT EXISTS` rows in the
+core's schema; a store populated by the current schema opens with its
+rows intact.
+
+**The bridge** is a codex or grok member's own process: `sessions.py
+bridge --run R-n --member NAME`, launched by `start` in the member's
+pane under the profile's authority environment, in place of the harness
+itself. It spawns the harness with pipes through `profiles.py
+run-interactive --binding B -- <channel argv>`, speaks the protocol
+through `framing.Parser` (a reader thread feeds the parser; one writer
+lock; no SQLite transaction is ever held across a native call), takes
+the native id from the handshake, runs the profile's `guard.sh
+SessionStart` with that id so `initialize` binds the participant under
+the profile's own capability, then loops: lines on its stdin are
+operator text and go to `submit`; every `tick` it carries its
+participant's undelivered messages through the native route; native
+output goes to the pane, so `pane.log` holds it. The supervisor still
+binds nothing and carries no capability: the bridge is the member. Its
+pid is the member's pid, so liveness, `stop` and `export` are slice 1's.
+A delivery error never exits the bridge (plan §9): it records the
+outcome, backs off to `BACKOFF` (2 s, doubling to 60 s) and reports the
+degradation on its readiness. A Claude member has no bridge: slice 1's
+launch stands and its route is `stdout`.
+
+**Unix socket paths**: every socket path this slice or the tests bind
+(the tmux server's under `--tmux-socket`, and the world's) is under 108
+bytes, or the verb refuses `socket` naming the length before tmux is
+called. Measured on 2026-09-22 under a long `TMPDIR`.
+
+### The adapter boundary, extended
+
+Every adapter carries slice 1's five methods, these five, and
+`connect(argv, cwd=, stderr=)`, which opens the channel and returns
+`rpc` (measured 2026-09-23 at fed6a4ce: `do_bridge` calls it once);
+the supervisor and the bridge call no others. Helpers an adapter
+keeps beyond them (codex and grok's `reconcile`, `answer`,
+`refuse_channel`, `other_native`, `settled`, reached only inside
+`observe`) are adapter-private and no finding. The claude adapter's
+`handshake`, `submit` and `observe` refuse `transport`:
+
+| method | returns |
+|---|---|
+| `transport()` | `tui` (claude) or `protocol` (codex, grok) |
+| `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
+| `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
+| `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native`), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+
+`rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
+the parser and the writer lock, adapted from the proof's `RPC`
+(`SOURCES.md` gains the row). The claude adapter's `probe` measures the
+channel capability it left `unmeasured` in slice 1 and reads
+`unsupported channel` on the installed version, which is not a refusal.
+
+### Readiness, the three slice 2 dimensions
+
+| dimension | reading |
+|---|---|
+| tools | `ok <evidence>` when the native session shows the `coordination` acting server loaded: codex and grok, the adapter's `tool` or discovery frame naming it; claude, the profile home's debug log line for the server's connection, which reads `unmeasured no debug log` until the profile admits `--debug-file` (W's surface, not yet on the tree). `waiting tools` until then, never `ok` from the binding's server list alone |
+| ingress | `ok <route> pid=N` when a live `delivery_routes` row exists for the participant; `waiting courier` otherwise; `refused channel` when the bridge's last attempt read `unsupported`; `unmeasured the profile arms no courier` when no `*.json` in the member's profile names `courier.py watch`, so no route can exist by construction |
+| response | `ok M-n <latency>` when the member acked the readiness probe: when `start` runs from a bound shell, after `bound` it sends `inform` "readiness probe R-n SM-n <nonce>" to `PT-n` and waits for the recipient's own ack; `waiting ack M-n` until then; `unmeasured no starter participant` when the starter is unbound |
+
+`ready` now requires slice 1's five `ok` (with slice 1's rule that
+`role` may read `waiting grant`) and each of the three slice 2
+dimensions `ok` or `unmeasured <reason>`; `waiting` or `refused` on
+any of the three refuses `readiness`, naming the dimension. An
+`unmeasured` reading is a declared absence, never a pass in disguise:
+the line carries it. The readiness probe is an `inform`, so it leaves
+no obligation.
+
+### Verbs added
+
+| verb | effect |
+|---|---|
+| `bridge --run R-n --member NAME` | the member's own process, above; launched by `start`, runnable by hand for a reserved member; refuses `transport` for a claude member |
+| `join --run R-n --member NAME --participant PT-n` | records a participant the supervisor did not launch (the owner's own terminal, a session started before the run) as a member at `bound`, generation 1, no pid, `native_id` the participant's session id; `status` reads its process `unmanaged`; `stop` prints `unresolved unmanaged` and signals nothing |
+| `recover [--run R-n]` | the observer restart (plan §9): re-reads every live member's pid and ticks, pane and route row; a gone process moves `lose-<place>` with what was found; a live one is left alone; prints one line per member; exit 0 when every live member was found alive, 1 otherwise; never launches. A replacement is `start --member NAME --run R-n` after the loss, which mints the next generation and keeps the old row |
+| `input --run R-n --member NAME TEXT` | operator text to a protocol member: `send-keys -l` and `Enter` to the owned window, which is the bridge's stdin; refuses `transport` for a claude member (type in the pane) |
+| `status` | adds, per member, the route line `route <stdout|native> pid=N since <stamp>` or `route none`, and the attempts line `attempts reserved N written N accepted N uncertain N` |
+| `stop` | as slice 1, judging `absent`, `place` and `ownership` before its first move (A-481 #1), and when the starter is a bound participant sending each live member `inform` "stop requested R-n" before the drain |
+
+`courier.py` gains `--route stdout|native`; `native` is the bridge's
+in-process call (`carry(module, submit=...)`), never a second process.
+`coordination.py` gains `route --take stdout|native --member SM-n`,
+`route --release`, `attempt M-n --route R --generation G`, `attempted
+AT-n --outcome O [--ref REF] [--error TEXT]`, `attempts M-n`, `routes`,
+and `send --key K`; `coord_send` gains optional `key`.
+
+### Refusals added
+
+| class | when |
+|---|---|
+| `route` | a courier taking a route while a live holder of either route has the participant; found names the holder's route and pid |
+| `idempotency` | `send --key` reused with a different digest; found names the existing M-n |
+| `transport` | a protocol verb on a tui member or the reverse |
+| `channel` | the handshake or a submission failed on the protocol channel; found is the adapter's reading with the method |
+| `socket` | a unix socket path of 108 bytes or more; found is the length |
+| `unmanaged` | a verb that needs a pid on a joined member |
+
+### Required of the wall
+
+Stated as interface requirements; W lands them from one brief written
+from this section and slice 3's: (1) `profiles.py run-interactive`
+admits the codex `app-server --listen stdio://` and grok `agent stdio`
+argv shapes (T-486); (2) the profile's `guard.sh SessionStart` accepts
+the bridge's payload naming a codex thread id or a grok session id, and
+`initialize` binds it as slice 1 binds the claude launch id; (3) the
+interactive profile registers the `coordination` acting server for all
+three harnesses, and its start line names `courier.py watch` so a Claude
+member arms its route; (4) two members of one harness compose two
+profiles with nothing shared (slice 1's `WITHHELD` keys stay withheld).
+
+### Tests
+
+`ops/conductor/tests/test_session_messages.py` (sessions.py: bridge,
+join, recover, input, readiness, stop), `test_courier_native.py`
+(courier routes, attempts, the send key, the additive schema),
+`test_session_adapters_codex.py` and `test_session_adapters_grok.py`,
+all on `ops/testkit`, run by `ops/bin/suites.sh`. New fakes through the
+registry, no program in a test module (`docs/tests.md` rule 6, A-481
+#7): `fakes/session_codex.py` speaks the app-server shape above and
+emits `turn/started`, `item/agentMessage/delta`, `turn/completed` with
+its `threadId`; `fakes/session_grok.py` speaks the ACP shape and emits
+`session/update` and `_x.ai/session/prompt_complete`; each logs one JSON
+line per request it receives; each takes a spec that says which native
+id to answer, whether to answer -32601 to a method, and whether to die
+after a given request. Slice 1's fakes are S2's to extend and S3 does
+not touch them.
+
+The fixture set, the practical failures on the exit path (owner,
+2026-09-23: "practical issues, not theoretical"), each a row with an
+origin of this section:
+
+1. the cross-harness exchange: a claude member and a codex member; a
+   `request` from the claude participant is carried by the codex bridge
+   (one `AT-n` reserved then `accepted turn <id>`, `delivered_at` set with
+   the `native:` ref, `acked_at` NULL until the fake acks as its own
+   participant); the codex reply is carried to the claude world by the
+   stdout courier and printed;
+2. two codex members: a message to the second is written on the second
+   fake's channel only (the fakes' logs);
+3. `send --key` twice with one body → one `M-n`; a third with another
+   body → `idempotency`, no row;
+4. crash after submission: an attempt with NULL outcome past the ttl and
+   the fake's log showing the message → `accepted reconciled`, no second
+   `turn/start`; the log without it → `uncertain` and one new attempt;
+5. competing couriers: a live planted holder (the world owns it) on the
+   stdout route → the bridge refuses `route` naming its pid; the holder
+   reaped → the row taken over;
+6. -32601 to `turn/start` → `unsupported turn/start`, the message still
+   undelivered, ingress `refused channel`, the bridge alive after the
+   backoff;
+7. `recover` with the bridge alive → nothing moved, no launch; with the
+   bridge's pid reaped and reused by a planted child → `lost` with the
+   reading, the child not signalled; `start` again → generation 2, the
+   old row kept;
+8. `stop` on a stopped run → exit 2 and the marking row count unchanged;
+9. a `--tmux-socket` path of 108 bytes → `socket` before any tmux call
+   (the fake tmux log empty);
+10. `join` a bound participant → `bound`, generation 1, no pid; `stop
+    --terminate` → `unresolved unmanaged`, nothing signalled;
+11. the readiness probe: a fake that acks → `response ok M-n`; a fake
+    that never acks → `waiting ack M-n` and `start` exits 1 at the
+    timeout with the row at `bound`;
+12. the additive schema on a populated store: the rows before are the
+    rows after.
+
+Clean neighbours: a codex member reading all eight `ok`; a grok member
+the same through `session/prompt`; an `inform` submitted while the fake
+is busy (`toolOutput` into the active turn, `_x.ai/interject`); `input`
+reaching the bridge's stdin (the fake's log shows the operator text).
+No live harness runs in the suite; the live exchange is plan §13 step 3
+by hand, its readings to probe rows.
+
+## Slice 3 — Dispatcher integration
+
+Standing: proposed, slice 3 of the plan (§11 "Slice 3"; the mechanics
+are §8 the launch transaction, correlation, the scope cap and the
+event follow-through, §9 stop and recovery, §12 the cases). Written by
+the contract session (agentscient-87, Claude Fable 5.1, grant 335)
+against slice 2 above at b9bc1444, `coordination-mcp-lever.md` slice
+two (the four verbs' names and their standalone entry), and the file
+split at cc8b5f5f. As slice 2: the shapes, the verbs, the refusals and
+the fixture set; the plan for the rest.
+
+**Exit** (plan §11): a participant asks the Dispatcher for a job by
+message or by MCP verb and gets one record id back, at most once per
+request; the launch's outcome reaches the requester as a message with
+the record id, once, in order, and a Dispatcher restart between the
+ask and the launch neither loses the ask nor launches it twice.
+
+### Owners
+
+S3 owns three new modules under `ops/conductor/tools/`:
+`dispatch_intents.py` (the table and its verbs, through the core's
+`writer()`; it edits `coordination.py` nowhere), `dispatch_actions.py`
+(the four verbs on the CLI), `dispatch_mcp.py` (the same four as MCP
+tools, standalone entry), and `dispatch_events.py` (the follow-through);
+`dispatch.sh` under `ops/conductor/tools/` (not wall); tests
+`test_dispatch_actions.py`, `test_dispatch_mcp.py`,
+`test_dispatch_events.py` and `fakes/dispatch_*`, never `fakes/session_*`.
+The one registration line that adds the four tools to `CATALOGUE` in
+`coordination_mcp.py` is an integration commit by S2's owner after both
+land. The wall (W) owns `launch.py`; what this slice needs from it is in
+"Required of the wall". Until W lands, the rows run against a planted
+fake `dispatch.sh` and a planted job directory, never the real launcher.
+Cancellation of a running job is declared out of this slice: `close`
+and `--terminate` stay slice 1's and `launch.py`'s.
+
+### The shapes
+
+**A dispatch intent** (`DI-n`) is the ask persisted before anything is
+launched, in the core's store:
+
+    dispatch_intents(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     key TEXT NOT NULL, digest TEXT NOT NULL,
+                     requester INTEGER NOT NULL, dispatcher INTEGER NOT NULL,
+                     assignment INTEGER NOT NULL, generation INTEGER NOT NULL,
+                     job TEXT NOT NULL, harness TEXT NOT NULL,
+                     branch TEXT NOT NULL, scope_ref TEXT NOT NULL,
+                     inputs TEXT NOT NULL, correlation TEXT NOT NULL UNIQUE,
+                     phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
+                     launcher_ticks TEXT, reserved_at TEXT NOT NULL,
+                     launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+                     UNIQUE (requester, key))
+
+`digest` is sha256 over the canonical JSON of `assignment, job, harness,
+branch, scope_ref, inputs`. `correlation` is a uuid4 minted at the
+reservation and passed to the launcher; it is the only join between the
+intent and the job directory. `phase` is the machine `dispatch-intent`
+(engine, ttl 12 h): `reserved` → `launching` → `launched` → `closed`;
+`launching` → `uncertain` when the launcher exits without a `record:`
+line or dies (pid plus ticks; a missing tick is never alive);
+`uncertain` → `launched` on reconciliation (`reconcile`) or → `refused`
+(`refuse`) with the wrapper's refusal line as `error`; `reserved` →
+`refused` when validation fails after the row (never before it, so a
+refused ask is still a record). Transitions: `launch` (actor
+dispatcher), `mint` (dispatcher, evidence the record id), `close`
+(dispatcher, evidence `launch.py`'s closed reading), `lose`
+(dispatcher, evidence the pid reading), `reconcile` (dispatcher,
+evidence the `state.json` path), `refuse-reserved`, `refuse-launching`
+and `refuse-uncertain` (dispatcher, evidence the line; three
+transitions because the engine allows one source per transition; the
+verbs and the tests call them `refuse`). The launcher is the holder's own child: `launcher_pid` and
+`launcher_ticks` are its, read at spawn.
+
+**The launch, in order** (plan §8, the transaction boundary): the
+holder validates the ask; reserves the intent; commits; spawns
+`dispatch.sh --job J --harness H --branch B --scope-file <ref file>
+--input <assignment file> --for A-n --agent <ident> --detach
+--correlation <uuid>` with the intent's `--timeout` from `jobs.json`;
+moves `launching`; reads the wrapper's `record: <id>` and
+`launcher-pid:` lines; moves `launched` with the id; then answers. The
+scope file is a reference, never the assignment truncated (plan §8, the
+cap): one line naming `A-n`, the job, the contract path and ref, and
+the input file; the assignment's full text rides as `--input`, so
+`SCOPE_CAP` is never the reason an ask fails. A second ask with the same
+`(requester, key)` and digest returns the existing `DI-n` and its phase
+as `repeated`; with another digest refuses `idempotency`. The store is
+never held across the spawn.
+
+**Reconciliation**: an intent at `launching` whose launcher is gone
+moves `uncertain`; the holder then scans the jobs root (`$DISPATCH_JOBS`
+or `$XDG_STATE_HOME/<lane>/dispatch`) for a `*/state.json` carrying the
+intent's `correlation`; found moves `launched` with that record id;
+absent leaves `uncertain` and prints it, and the ask is never relaunched
+by the holder: the requester asks again with a new key or the owner
+launches by hand. Restart is `dispatch_actions.py recover`: every
+`launching` row reconciled, every `launched` row read through
+`launch.py status`; nothing launched.
+
+**Capacity**: at most `DISPATCH_CAPACITY` (env, default 6) intents at
+`launching` or `launched` with `launch.py` reading `running`; the next
+ask refuses `capacity` naming the count, and is not reserved.
+
+**Holder**: the four verbs act only for the participant whose role is
+`dispatcher` and who holds the `dispatcher` machine (`dispatcher.py`,
+holder_note the session id); a caller without the role refuses `role`,
+a dispatcher who is not the holder refuses `holder` with the remedy
+`dispatcher.py set`. Only the Dispatcher can call `launch`, so the
+caller is always the Dispatcher; the requester is the holder of the
+`--for A-n` assignment (XO ruling, 2026-09-23), and both are on the
+intent.
+
+**The programs it runs** (agentscient-10's five points, the Lead's
+ruling 2026-09-23), each an argv with no shell, each named by an
+environment key so a test plants a fake in its place:
+`DISPATCH_WRAPPER`, default `ops/conductor/tools/dispatch.sh`
+(`fakes/dispatch_wrapper.py` stands in); `DISPATCH_LAUNCHER`, default
+`ops/devlane/dispatch/launch.py` (`fakes/dispatch_launch.py`);
+`DISPATCH_MONITOR`, default `ops/conductor/tools/monitor.py`
+(`fakes/dispatch_digest.py`). A value that is not an executable file
+refuses `launcher` for the wrapper and the launcher, and `store` for
+the monitor, before any row is written. `DISPATCH_CAPACITY` defaults
+to 6. The jobs root is `$DISPATCH_JOBS`, else
+`$XDG_STATE_HOME/<lane>/dispatch`. Each intent's scope file is written
+at `<state dir>/dispatch-intents/DI-n/scope.txt` and that path is what
+`--scope-file` carries.
+
+**Verification names**: `collect --verify` takes a name keyed in the
+tracked table `ops/conductor/verifications.json` (`{name: [argv...]}`,
+read from the repository root, run from it); a caller's text never reaches
+`launch.py collect --verify`, and an unknown name refuses `verify`.
+
+### Verbs
+
+`ops/conductor/tools/dispatch_actions.py`, with slice 1's conventions
+(identity for writes, the wire):
+
+| verb | effect |
+|---|---|
+| `launch --for A-n --job J --harness H --branch B --scope-ref TEXT --input PATH --key K` | the launch above; prints `intent DI-n launched <record id>`; exit 0. `harness` is one of the worker harnesses in `lane.conf`'s model keys; `job` a key of `jobs.json`; `B` the assignment's branch; `A-n` open at the caller's generation |
+| `status DI-n` | `intent DI-n <phase> record <id|none> job <unlaunched|running|finished|tripped|DIED> closed <reading|none>`; reads only; no identity |
+| `wait DI-n [--timeout S] [--interval S]` | blocks until `launch.py wait` reads clean, not clean or the timeout; exit 0 clean, 1 not clean or timeout (a Finding, printed as `wait DI-n timeout after S`), never 2 for the timeout |
+| `collect DI-n --verify NAME` | `launch.py collect <record> --verify <argv from verifications.json>`; moves `close` with the reading; prints it |
+| `recover` | the restart above; one line per row touched; exit 0 |
+| `reconcile DI-n` | the scan above for one row |
+
+`ops/conductor/tools/dispatch_mcp.py` serves the same four (`launch`,
+`status`, `wait`, `collect`) as `coord_launch`, `coord_status`,
+`coord_wait`, `coord_collect` under `coordination-mcp-lever.md`'s tool
+shape (`Tool(name, verb, mutates, ...)`): `coord_launch` and
+`coord_collect` mutate, the others do not; the MCP entry binds the
+caller as `coordination_mcp.py` does and applies the same `role` and
+`holder` checks; the standalone entry (`python3 dispatch_mcp.py serve`)
+runs without the registration line, which is how the tests reach it.
+
+`ops/conductor/tools/dispatch_events.py route --consumer dispatch
+[--once] [--tick N]` is the follow-through (plan §8): it reads
+`monitor.py digest --consumer dispatch`, maps each event to the intent
+by the record id, and sends by the dispatch metric's own words
+(`monitor.py`, measured by agentscient-10 on 2026-09-23): `completion`
+and `no-op` → `inform` to the requester with the record id and the
+exit; `invalid` and `death` → `finding` to the Dispatcher and to the
+requester; `settling`, `running`, `unknown` and any other word → acked,
+never sent. The dispatch adapter reads a static id list (`params.ids`,
+at most 256, `monitor.py:129-137`), so each pass first writes a config
+under the state directory naming the launched intents' record ids,
+runs `monitor.py run --once` over it, then `digest`; there is no
+tracked `monitor.dispatch.json`. Each send is `send --key event:<event id>:<recipient>`
+(slice 2's key), so a replay of the digest sends nothing twice; the
+cursor is acked (`digest --ack`) only after every send of the batch is
+committed, so a failed send leaves the batch to the next pass. Events
+for a record with no intent are logged and acked, never sent.
+
+**The per-intent pass config** (XO ruling, 2026-09-23, withdrawing the
+seed reading written at 1df9fbf0, which rested on a false reading): the
+per-pass config names one monitor, one condition and one route per
+launched intent (`di-<n>`), never one shared `ids` list, because a
+shared list reset every baseline and re-sent old completions
+(agentscient-10's fix at 1d865da7). The monitor's first reading of a
+record emits its status ({"observations": 1, "events": 1}, measured by
+agentscient-10 on the real `monitor.py` at 8bf3d710; the earlier
+"events 0" came from a record with no `record.json`), so a job that
+finished before the router's first pass is reported by that first
+event, and a seed read would have sent it twice under two keys. There
+is no seed. Two rows for the test fix pass (agentscient-5c): an early
+finish gives exactly one inform; a later launch, added to the pass
+config beside it, repeats nothing for the first.
+
+### Refusals
+
+| class | when |
+|---|---|
+| `role` | the caller is not a `dispatcher` participant |
+| `holder` | the caller does not hold the `dispatcher` machine; needed `dispatcher.py set` |
+| `generation` | `--for A-n` is not open at the caller's generation |
+| `job` | `--job` is not a key of `jobs.json` |
+| `harness` | `--harness` is not a worker harness of `lane.conf` |
+| `idempotency` | the same `(requester, key)` with another digest; found names the `DI-n` |
+| `capacity` | the cap above; found is the count |
+| `launcher` | the wrapper refused; the intent is `refused`; found is the wrapper's own line verbatim (`stale-base`, `scope-cap`, …) |
+| `uncertain` | `wait` or `collect` on an intent at `uncertain`; needed `reconcile` |
+| `unknown` | `DI-n` not in the store |
+| `verify` | `--verify` not a key of `verifications.json` |
+| `correlation` | two `state.json` files carry one correlation |
+| `store` | the core's store absent or unwritable |
+
+### Required of the wall
+
+(1) `launch.py` admits `--correlation <uuid>` and writes it as
+`correlation` in the job directory's `state.json` at mint, before the
+`record:` line; (2) `dispatch.sh` (S3's) passes `--correlation` through
+unchanged and prints nothing new. Until (1) lands the reconciliation
+rows run over a planted `state.json` carrying the key.
+
+### Tests
+
+`ops/conductor/tests/test_dispatch_actions.py` (launch, status, wait,
+collect, recover, reconcile, the refusals), `test_dispatch_mcp.py`
+(the four tools over the standalone entry) and
+`test_dispatch_events.py` (the follow-through), all on `ops/testkit`.
+Fakes through the registry, no program in a test module (rule 6):
+`fakes/dispatch_wrapper.py` stands in for `dispatch.sh`: logs its argv as
+one JSON line, and per its spec prints `record: <id>` and
+`launcher-pid: <pid>` and writes `<jobs root>/<id>/state.json` with the
+correlation from its argv, or refuses with a given line, or exits
+without a `record:` line, or writes `state.json` then dies;
+`fakes/dispatch_launch.py` stands in for `launch.py` (`status`, `wait`,
+`collect` readings by spec, argv logged); `fakes/dispatch_digest.py`
+stands in for `monitor.py` (`run --once` takes the per-pass config and
+logs its ids; `digest` answers events by spec; `--ack` calls logged).
+
+The fixture set, the practical failures on the exit path, each a row
+with an origin of this section:
+
+1. the launch: a bound dispatcher holding the machine → one intent, the
+   fake wrapper's argv carrying `--for A-n`, `--detach`,
+   `--correlation <the row's uuid>` and a `--scope-file` of one line;
+   `launched` with the record id; `status` reads it;
+2. the same key twice → one row, `repeated`; another digest under the
+   key → `idempotency`, no row;
+3. the wrapper exits without a `record:` line → `uncertain`; with a
+   planted `state.json` carrying the correlation, `reconcile` →
+   `launched`; without it → still `uncertain` and a second `launch` with
+   the same key is `repeated`, never a second wrapper call (the log has
+   one line);
+4. the wrapper refuses `stale-base` → `launcher` with that line
+   verbatim, the intent `refused`;
+5. a dispatcher who is not the holder → `holder` before any row; a
+   worker → `role`;
+6. the seventh ask at the cap → `capacity`, not reserved;
+7. `wait` on a fake reading not clean → exit 1 and the reading; on the
+   timeout → exit 1 with `timeout`, not 2;
+8. `collect --verify tests` (a key) → the fake `launch.py` argv carries
+   the table's argv, and `closed`; `--verify 'rm -rf'` → `verify`, no
+   call;
+9. the follow-through: a digest of `completion` → one `inform` to the
+   assignment's holder with the record id, and the per-pass config the
+   fake received names that intent's record id; `death` → a `finding`
+   to the Dispatcher and the holder; `running` → acked, no message; the
+   same digest replayed → no second message; a send that fails (the store locked by the world) → the
+   cursor not acked;
+10. `recover` after a launcher death with `state.json` present → the row
+    `launched`, nothing launched (the wrapper log unchanged);
+11. the MCP entry: `coord_launch` over the standalone server with a bound
+    dispatcher → the same row as the CLI; without the role → the
+    server's `error` result carrying `role`.
+
+Clean neighbours: a launch with `--input` past `SCOPE_CAP` in size
+(the cap binds the scope file only); `status` by a worker (reads need
+no identity); an event for a record with no intent (acked, no send).
+No live launcher runs in the suite; the live ask is plan §13 step 4 by
+hand, its readings to probe rows.
