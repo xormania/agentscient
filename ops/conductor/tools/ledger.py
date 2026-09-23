@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         Refusal,
@@ -182,15 +183,14 @@ def reservation_agent() -> str:
 def reservation_writer() -> sqlite3.Connection:
     conn = machine.connect(create=True)
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        conn.execute(RESERVATIONS_SCHEMA)
-        columns = {r["name"] for r in conn.execute("PRAGMA table_info(ledger_reservations)")}
-        for name, kind in (("history_floor", "INTEGER NOT NULL DEFAULT 0"), ("history_source", "TEXT"),
-                           ("intent_path", "TEXT"), ("intent_sha256", "TEXT")):
-            if name not in columns:
-                conn.execute(f"ALTER TABLE ledger_reservations ADD COLUMN {name} {kind}")
-        conn.commit()
-    except Exception:
+        with instrument.transaction(conn):
+            conn.execute(RESERVATIONS_SCHEMA)
+            columns = {r["name"] for r in conn.execute("PRAGMA table_info(ledger_reservations)")}
+            for name, kind in (("history_floor", "INTEGER NOT NULL DEFAULT 0"), ("history_source", "TEXT"),
+                               ("intent_path", "TEXT"), ("intent_sha256", "TEXT")):
+                if name not in columns:
+                    conn.execute(f"ALTER TABLE ledger_reservations ADD COLUMN {name} {kind}")
+    except BaseException:
         conn.close()
         raise
     return conn
@@ -251,12 +251,10 @@ def reserve(
     winner = 0
     for attempt in range(2):
         try:
-            conn.execute("BEGIN IMMEDIATE")
-            number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
-            conn.commit()
+            with instrument.transaction(conn):
+                number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
             return number
         except sqlite3.IntegrityError:
-            conn.rollback()
             row = conn.execute(
                 "SELECT MAX(number) AS number FROM ledger_reservations WHERE ledger = ?",
                 (reservation_ledger(spec),),
@@ -264,10 +262,6 @@ def reserve(
             winner = int(row["number"] or 0)
             if attempt == 0:
                 continue
-        except Exception:
-            if conn.in_transaction:
-                conn.rollback()
-            raise
     refuse(
         "reservation",
         f"one unused number after {ident(spec, winner)}",
@@ -290,46 +284,38 @@ def own_reservation(
     occupied.update(archived or ())
     observed = max(occupied, default=0)
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        row = conn.execute(
-            "SELECT * FROM ledger_reservations "
-            "WHERE ledger = ? AND owner = ? AND filed_at IS NULL "
-            "ORDER BY number LIMIT 1",
-            (name, owner),
-        ).fetchone()
-        if row is not None:
-            number = int(row["number"])
-            conn.execute("UPDATE ledger_reservations SET history_floor = MAX(history_floor, ?) "
-                         "WHERE ledger = ? AND number = ?", (observed, name, number))
-            if history_source:
-                previous = json.loads(row["history_source"] or "[]")
-                conn.execute("UPDATE ledger_reservations SET history_source = ? WHERE ledger = ? AND number = ?",
-                             (json.dumps(sorted(set([*previous, *json.loads(history_source)]))), name, number))
-            # A completed exact intended publication can be retried after the
-            # receipt write failed. A same-number foreign file cannot be adopted.
-            taken = number in occupied or number in by_number(root, spec)
-            matching = False
-            if row["intent_path"] and row["intent_sha256"]:
-                path = root / row["intent_path"]
-                contain(root, path, Path(row["intent_path"]))
-                matching = (path.is_file() and not path.is_symlink()
-                            and hashlib.sha256(path.read_bytes()).hexdigest() == row["intent_sha256"])
-            conn.commit()
-            if taken and not matching:
-                refuse("reservation", f"unoccupied {ident(spec, number)} reserved by {owner}",
-                       "that number now has a record", "preserve both records; explicitly complete the owned row or reconcile the collision")
-            return number
-        number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
-        conn.commit()
-        return number
+        with instrument.transaction(conn):
+            row = conn.execute(
+                "SELECT * FROM ledger_reservations "
+                "WHERE ledger = ? AND owner = ? AND filed_at IS NULL "
+                "ORDER BY number LIMIT 1",
+                (name, owner),
+            ).fetchone()
+            if row is not None:
+                number = int(row["number"])
+                conn.execute("UPDATE ledger_reservations SET history_floor = MAX(history_floor, ?) "
+                             "WHERE ledger = ? AND number = ?", (observed, name, number))
+                if history_source:
+                    previous = json.loads(row["history_source"] or "[]")
+                    conn.execute("UPDATE ledger_reservations SET history_source = ? WHERE ledger = ? AND number = ?",
+                                 (json.dumps(sorted(set([*previous, *json.loads(history_source)]))), name, number))
+                # A completed exact intended publication can be retried after the
+                # receipt write failed. A same-number foreign file cannot be adopted.
+                taken = number in occupied or number in by_number(root, spec)
+                matching = False
+                if row["intent_path"] and row["intent_sha256"]:
+                    path = root / row["intent_path"]
+                    contain(root, path, Path(row["intent_path"]))
+                    matching = (path.is_file() and not path.is_symlink()
+                                and hashlib.sha256(path.read_bytes()).hexdigest() == row["intent_sha256"])
+            else:
+                number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
     except sqlite3.IntegrityError:
-        if conn.in_transaction:
-            conn.rollback()
         return reserve(conn, root, spec, owner, agent, observed=observed, history_source=history_source)
-    except Exception:
-        if conn.in_transaction:
-            conn.rollback()
-        raise
+    if row is not None and taken and not matching:
+        refuse("reservation", f"unoccupied {ident(spec, number)} reserved by {owner}",
+               "that number now has a record", "preserve both records; explicitly complete the owned row or reconcile the collision")
+    return number
 
 
 def file_reservation(
@@ -594,8 +580,7 @@ def do_check(root: Path, name: str) -> int:
 
 def prepare_intent(conn, root, spec, number, owner, relative, sha256):
     """Commit the intended publication before touching the filesystem."""
-    try:
-        conn.execute("BEGIN IMMEDIATE")
+    with instrument.transaction(conn):
         row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
                            (reservation_ledger(spec), number, owner)).fetchone()
         if row is None or (row["intent_sha256"] and
@@ -612,10 +597,6 @@ def prepare_intent(conn, root, spec, number, owner, relative, sha256):
         conn.execute("UPDATE ledger_reservations SET intent_path = ?, intent_sha256 = ? "
                      "WHERE ledger = ? AND number = ? AND owner = ?",
                      (str(relative), sha256, reservation_ledger(spec), number, owner))
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
 
 
 def publish_exclusive(root, relative, content):
@@ -736,19 +717,18 @@ def do_complete(root: Path, name: str, row_id: str, args: list[str]) -> int:
     owner = reservation_owner(root)
     conn = reservation_writer()
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
-                           (name, number, owner)).fetchone()
-        if row is None or (row["intent_sha256"] and
-                           (row["intent_sha256"] != expected or row["intent_path"] != str(relative))):
-            refuse("reservation", "this owner's reservation and unchanged intended row", row_id,
-                   "use the reserving session and its exact intended bytes")
-        if row["filed_at"] and row["path"] != str(relative):
-            refuse("reservation", "the original filed path", row["path"], "retain the filed receipt")
-        conn.execute("UPDATE ledger_reservations SET intent_path = ?, intent_sha256 = ? WHERE ledger = ? AND number = ?",
-                     (str(relative), expected, name, number))
-        file_reservation(conn, spec, number, owner, relative)
-        conn.commit()
+        with instrument.transaction(conn):
+            row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
+                               (name, number, owner)).fetchone()
+            if row is None or (row["intent_sha256"] and
+                               (row["intent_sha256"] != expected or row["intent_path"] != str(relative))):
+                refuse("reservation", "this owner's reservation and unchanged intended row", row_id,
+                       "use the reserving session and its exact intended bytes")
+            if row["filed_at"] and row["path"] != str(relative):
+                refuse("reservation", "the original filed path", row["path"], "retain the filed receipt")
+            conn.execute("UPDATE ledger_reservations SET intent_path = ?, intent_sha256 = ? WHERE ledger = ? AND number = ?",
+                         (str(relative), expected, name, number))
+            file_reservation(conn, spec, number, owner, relative)
     finally:
         conn.close()
     print(f"{row_id} {relative}")

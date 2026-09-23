@@ -70,6 +70,7 @@ from datetime import timedelta
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         EXIT_DONE,
@@ -363,8 +364,7 @@ def reader():
     path = machine.store_path()
     if not path.is_file():
         return None
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                           timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
     # `sqlite_schema` is the name SQLite 3.33 gave the table it has always
@@ -796,8 +796,7 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     # insert two first callers both read zero and both took roles above
     # worker: all three reviewers of round two reproduced two roots in
     # that window against b1d868b0.
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with instrument.transaction(conn):
         row = conn.execute(
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -835,10 +834,6 @@ def core_bind(conn, part, *, agent, roles, harness=None,
                 (key, agent, harness, named, endpoint, probe, stamp()),
             ).lastrowid
             _install_capability(conn, pid, capability_digest())
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     return {**participant_dict(participant_row(conn, pid)), "session": key}
 
 
@@ -888,59 +883,52 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
     grant_id = int(grant)
     authority = None
     try:
-        authority = sqlite3.connect(database_path().as_uri() + "?mode=rw", uri=True,
-                                    isolation_level=None, timeout=10)
+        authority = instrument.connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
         authority.row_factory = sqlite3.Row
-        authority.execute("BEGIN IMMEDIATE")
-        row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
-        valid = (row is not None and row["status"] == "open"
-                 and row["session"] == session() and row["agent"] == agent
-                 and row["lever_class"] == "other" and not (row["scope"] or "").strip()
-                 and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
-        deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
-        valid = valid and deadline > now()
-        if not valid:
-            refuse("grant", "this session's open, unexpired, unscoped other grant",
-                   f"grant {grant_id} does not satisfy that binding",
-                   "use the owner's recorded recovery authorization for this session")
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            if deadline <= now():
-                refuse("grant", "authority current at the role-changing transaction",
-                       f"grant {grant_id} expired while waiting",
-                       "use a current owner-authorized recovery grant")
-            conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
-                grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
-                roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
-                grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
-            for operation in ("UPDATE", "DELETE"):
-                conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
-                    BEFORE {operation} ON owner_role_grants BEGIN
-                    SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
-            prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
-                                 (grant_id,)).fetchone()
-            if prior is not None:
-                if prior["participant"] != part["id"] or prior["roles"] != named:
-                    refuse("grant", "the same participant and roles for a recovered grant",
-                           f"grant {grant_id} already used", "declare a new owner-authorized grant")
-            else:
-                current = participant_row(conn, part["id"])
-                held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
-                conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
-                             (grant_id, part["id"], named, current["roles"],
-                              json.dumps(dict(row), sort_keys=True), why, stamp()))
-                conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
-                             (",".join(held), grant_id, part["id"]))
-            conn.execute("COMMIT")
-        except BaseException:
-            conn.execute("ROLLBACK")
-            raise
+        with instrument.transaction(authority):
+            row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
+            valid = (row is not None and row["status"] == "open"
+                     and row["session"] == session() and row["agent"] == agent
+                     and row["lever_class"] == "other" and not (row["scope"] or "").strip()
+                     and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
+            deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
+            valid = valid and deadline > now()
+            if not valid:
+                refuse("grant", "this session's open, unexpired, unscoped other grant",
+                       f"grant {grant_id} does not satisfy that binding",
+                       "use the owner's recorded recovery authorization for this session")
+            with instrument.transaction(conn):
+                if deadline <= now():
+                    refuse("grant", "authority current at the role-changing transaction",
+                           f"grant {grant_id} expired while waiting",
+                           "use a current owner-authorized recovery grant")
+                conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
+                    grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
+                    roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
+                    grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
+                for operation in ("UPDATE", "DELETE"):
+                    conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
+                        BEFORE {operation} ON owner_role_grants BEGIN
+                        SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
+                prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
+                                     (grant_id,)).fetchone()
+                if prior is not None:
+                    if prior["participant"] != part["id"] or prior["roles"] != named:
+                        refuse("grant", "the same participant and roles for a recovered grant",
+                               f"grant {grant_id} already used", "declare a new owner-authorized grant")
+                else:
+                    current = participant_row(conn, part["id"])
+                    held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
+                    conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                 (grant_id, part["id"], named, current["roles"],
+                                  json.dumps(dict(row), sort_keys=True), why, stamp()))
+                    conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
+                                 (",".join(held), grant_id, part["id"]))
     except (sqlite3.Error, OSError, ValueError, TypeError, OverflowError) as error:
         refuse("grant", "a readable current hand grant and writable coordination store",
                type(error).__name__, "restore the stores before recovering roles")
     finally:
         if authority is not None:
-            authority.rollback()
             authority.close()
     result = participant_dict(participant_row(conn, part["id"]))
     result["owner_grant"] = grant_id
@@ -1581,8 +1569,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
     if not str(generation).isdigit():
         refuse("arguments", "--generation as a whole number", str(generation),
                "the generation printed by show")
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with instrument.transaction(conn):
         row = assignment_row(conn, aid)
         if not row["revision"]:
             refuse("revision", f"a candidate named on A-{aid}", "no revision",
@@ -1605,10 +1592,6 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
             (aid, part["id"], requirement, execution, revision, environment,
              observation, artifact, "stale" if stale else "current", reason, stamp()),
         )
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     row = conn.execute(
         "SELECT * FROM observations WHERE id = ?", (cursor.lastrowid,)
     ).fetchone()
