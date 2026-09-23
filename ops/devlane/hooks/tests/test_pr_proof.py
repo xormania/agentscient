@@ -71,6 +71,7 @@ class PrProofTests(unittest.TestCase):
                         "question": "q", "serve": "git log -1",
                         "expect": "x"}) + "\n",
         )
+        self.world.plant_text(self.repo / support.FINDINGS_TOOL, support.findings_vocabulary())
         self.world.git("add", "-A")
         self.world.git("commit", "-q", "-m", "fixture")
         audited = self.world.git("rev-parse", "HEAD").stdout.strip()

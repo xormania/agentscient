@@ -378,6 +378,21 @@ def audit_disposed(n=2):
     return tuple((f"{AUDIT_RECORD_ID}#{i}", "fixed") for i in range(1, n + 1))
 
 
+FINDINGS_TOOL = "ops/conductor/tools/findings.py"
+
+
+def findings_vocabulary():
+    """findings.py's DISPOSITIONS line as this tree carries it. A world plants
+    it at FINDINGS_TOOL so its head carries the vocabulary the
+    finding-disposition row reads there, and the rows follow the ledger's
+    words rather than a copy of them."""
+    source = Path(__file__).resolve().parents[4] / FINDINGS_TOOL
+    lines = [line for line in source.read_text(encoding="utf-8").splitlines()
+             if line.startswith("DISPOSITIONS = (")]
+    assert len(lines) == 1, f"INVALID: {FINDINGS_TOOL} carries {len(lines)} DISPOSITIONS lines"
+    return lines[0] + "\n"
+
+
 def proof_findings(*rows):
     """The `## Proof` lines the finding-disposition row reads: each finding
     named, its disposition token, and one line of judgement."""

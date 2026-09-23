@@ -97,6 +97,7 @@ class AuditAtTheHead(unittest.TestCase):
                         "question": "q", "serve": "git log -1",
                         "expect": "x"}) + "\n",
         )
+        self.world.plant_text(self.repo / support.FINDINGS_TOOL, support.findings_vocabulary())
         self.audited = self.commit("the tree the audit read")
 
     # -- the world ---------------------------------------------------------
@@ -730,6 +731,14 @@ class FindingDispositionsInProof(AuditAtTheHead):
         self.plant(body=self.body(*lines), head=head)
         reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
         self.assertRegex(reason, re.escape(f"{AUDIT}#1") + r"(?!\d)")
+
+    def test_a_vocabulary_unreadable_at_the_head_is_could_not_look(self):
+        self.world.git("rm", "-q", support.FINDINGS_TOOL)
+        self.audited = self.commit("the tree the audit read, findings.py gone")
+        head = self.close_audit()
+        self.plant(body=self.GOOD, head=head)
+        reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("could not look", reason)
 
     def test_the_docstring_table_names_the_disposition_row(self):
         table = self.hook.read_text(encoding="utf-8").split('"""', 2)[1]
