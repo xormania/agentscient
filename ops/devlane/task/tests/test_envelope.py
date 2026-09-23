@@ -280,5 +280,71 @@ class AMalformedEnvelopeIsInvalidNotACrash(_WorldCase):
         self.assertIsNotNone(envelope.validate(self._valid()))
 
 
+class APracticalLabelIsOptional(_WorldCase):
+    """A reviewer labels a finding `practical` at the source: `yes` with the
+    `failing` invocation someone will actually make, or `no` with none.
+    The pair is optional, so every envelope written before it stays valid.
+    Owner, relayed by the Lead through the XO, 2026-09-23 01:24Z: "get
+    moving - and make sure i NEVER have to say that again"; findings are
+    suggestions, rated by a concrete failure on the exit path."""
+
+    def labelled(self, practical, failing=None):
+        return envelope.finding("p2", "run.py §launch", "the battery is never armed",
+                                reproduce="python3 -m unittest x",
+                                practical=practical, failing=failing)
+
+    def built(self, *findings):
+        return envelope.build("security-audit", status="ok", verdict="changes",
+                              findings=list(findings), stamp=STAMP)
+
+    def test_an_old_four_field_finding_still_validates(self):
+        env = self.built(a_finding())
+        self.assertEqual(tuple(env["findings"][0]), envelope.FINDING_FIELDS)
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_a_practical_finding_carries_its_failing_invocation(self):
+        env = self.built(self.labelled("yes", "ops/bin/dispatch.sh review --for A-1"))
+        f = env["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]),
+                         ("yes", "ops/bin/dispatch.sh review --for A-1"))
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_a_finding_that_is_not_practical_names_no_failing(self):
+        env = self.built(self.labelled("no"))
+        f = env["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]), ("no", None))
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_practical_yes_without_a_failing_invocation_is_refused(self):
+        for failing in (None, "", "   "):
+            with self.subTest(failing=failing), self.assertRaises(envelope.EnvelopeError):
+                self.labelled("yes", failing)
+
+    def test_practical_no_with_a_failing_invocation_is_refused(self):
+        with self.assertRaises(envelope.EnvelopeError):
+            self.labelled("no", "python3 x")
+
+    def test_a_practical_that_is_not_yes_or_no_is_refused(self):
+        for value in ("maybe", True, "YES"):
+            with self.subTest(value=value), self.assertRaises(envelope.EnvelopeError):
+                self.labelled(value, "python3 x")
+
+    def test_failing_without_practical_is_refused(self):
+        with self.assertRaises(envelope.EnvelopeError):
+            envelope.finding("p2", "run.py §launch", "c", reproduce="x", failing="python3 x")
+
+    def test_the_label_survives_build_from_a_harness_object(self):
+        raw = {"severity": "p1", "where": "launch.py §mint", "claim": "c",
+               "reproduce": "python3 x", "practical": "yes", "failing": "python3 y"}
+        f = self.built(raw)["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]), ("yes", "python3 y"))
+
+    def test_a_label_smuggled_past_its_constructor_is_refused(self):
+        env = self.built(self.labelled("no"))
+        env["findings"][0]["failing"] = "python3 x"
+        with self.assertRaises(envelope.EnvelopeError):
+            envelope.validate(env)
+
+
 if __name__ == "__main__":
     unittest.main()

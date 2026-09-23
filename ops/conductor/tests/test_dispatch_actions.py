@@ -9,10 +9,12 @@ red on its own assertion rather than on a missing-file exit.
 The one command that reads this file is
 ``python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_actions.py``.
 
-Calibration gap: planted faults follow the implementation.
-``ops/testkit/cases.py`` calibrate anchors each mutant on the subject's
-text, and ``dispatch_actions.py`` is absent, so this module has no mutants
-file. Fakes live in ``fakes/`` and are planted through the registry.
+Planted faults: ``dispatch_actions_faults.py`` beside this module, anchored
+on agentscient-10's subject at bfa82f5b; its docstring names the calibrate
+command. Calibrated over the whole module at 02436b3c. Its three faults
+reach worker-role, not-holder and store-unwritable; a fault for each
+other row is a declared gap. Fakes live in ``fakes/`` and are planted
+through the registry.
 """
 
 from __future__ import annotations
@@ -354,7 +356,7 @@ class DispatchActions(unittest.TestCase):
                 )
             self.act("reconcile", "DI-1")
             shown = self.act("status", "DI-1")
-            self.assertRegex(shown.stdout, r"intent DI-1 launched record \S+")
+            self.assertRegex(shown.stdout, r"intent DI-1 launched record only\b")
             self.assertEqual(shown.exit, 0, shown.stderr)
 
     def test_a_relaunch_does_not_call_the_wrapper_again(self):

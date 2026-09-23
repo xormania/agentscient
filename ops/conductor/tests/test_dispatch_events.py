@@ -26,10 +26,12 @@ launched intent, never one shared `ids` list. The fake logs each
 config it is handed, and serves the events above its acked cursor, as
 monitor.py's digest does.
 
-Calibration gap (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#6):
-ROWS has no planted faults. ops/testkit/cases.py calibrate anchors each
-mutant on the subject's text, and dispatch_events.py is absent, so this
-module has no mutants file; the faults follow the implementation.
+Planted faults (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#6):
+dispatch_events_faults.py beside this module, anchored on agentscient-10's
+subject at bfa82f5b; its docstring names the calibrate command.
+Calibrated over the whole module at 0ae638fb. Its two faults reach
+completion-informs, early-finish-one-inform, later-launch-repeats-nothing
+and death-finds; a fault for each other row is a declared gap.
 """
 
 from __future__ import annotations
