@@ -354,7 +354,11 @@ pane under the profile's authority environment, in place of the harness
 itself. It spawns the harness with pipes through `profiles.py
 run-interactive --binding B -- <channel argv>`, speaks the protocol
 through `framing.Parser` (a reader thread feeds the parser; one writer
-lock; no SQLite transaction is ever held across a native call), takes
+lock; no SQLite transaction is ever held across a native call; a
+response whose id matches no request this side sent is dropped and
+written to `channel.log` with its id, never fatal, measured on grok
+1.0.40's mid-turn `skills-reload` response at 8191d6a1, while every
+other framing refusal ends the channel), takes
 the native id from the handshake, runs the profile's `guard.sh
 SessionStart` with that id so `initialize` binds the participant under
 the profile's own capability, then loops: lines on its stdin are
@@ -390,7 +394,7 @@ keeps beyond them (codex and grok's `reconcile`, `answer`,
 | `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
 | `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
 | `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
-| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed, with one exception: a grok `use_tool` call whose `rawInput.tool_name` is exactly `coordination__<tool>` with an input object is answered `allow-once`, read `permission coordination <tool> allowed`, because the coordination server is the lane's own and a member that can never call `coord_ack` or `coord_send` can never read `ok` on its response dimension; measured live by agentscient-b3 on grok 1.0.40, `session/request_permission` for `coordination__coord_probe` with options always-allow, allow-once, reject-once, the bridge's reject-once reading the call `failed`; everything else, `always-allow` included, stays declined; pre-approving the server in the profile's config is the wall's later shape, not tonight's), `done <turn>` |
 
 `rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
 the parser and the writer lock, adapted from the proof's `RPC`
@@ -819,10 +823,12 @@ record, with the reading that decided it. The trial never carries both.
 | path | owner | why |
 |---|---|---|
 | `ops/conductor/tools/onboard.py`, `ops/conductor/onboard-lever.md`, role guidance under `ops/conductor/`, `.claude/skills/*` | S4 | the one documented start path (I-01) and what a new session reads |
-| `ops/conductor/handoff/runbook-managed-sessions.md` (new) | S4 | the short runbook: start, inspect, stop, resume, disable |
+| `ops/conductor/handoff/runbook-managed-sessions.md` (new) | S4 | the short runbook: start, inspect, stop, resume, disable; it says in its first lines that `sessions start` is the one guarded start and that a bare `codex`, `grok` or `claude` launched by hand takes no profile (the 2026-09-19 debrief, `.xor/out/codex/fuckup.md` :346, left that unestablished and a reader expected otherwise) |
 | `ops/conductor/handoff/<date>-slice4-trial.md` (new) | S4 | the trial record: the acceptance matrix with evidence by id |
 | the trial deliverable's file (`coordination.py` for LD-123) | the dispatched worker of the trial job, never a management seat | the candidate is produced by the path under test |
 | the independent verifier's record | the verifier session, never the builder or the XO | I-10 and I-14 need a producer who wrote none of the candidate |
+| the thin onboard wrapper inside a codex or grok member's private native home (`profiles.py` `prepare_interactive`, the profile's skills directory) | the wall (a wall session, one PR, a planted row red then green), never S4 | the one connection the 2026-09-19 debrief found missing (`.xor/out/codex/fuckup.md` :82-84, :255-270): the guarded profile carried the hooks and no `onboard`, the operator's home carried `onboard` and no hooks; step 1's "onboard brief exit 0" per member cannot read for a codex or grok member until the wrapper is in the profile home. Measured 2026-09-23 at 1bd5e764: `grep -c onboard` reads 0 in `profiles.py` and `isolation.py` |
+| `ops/conductor/tools/instrument.py` `bind` for an owner-opened terminal (LD-125) | the wall for the minting in `instrument.py` (a wall path, `matrix.py` WALL_PATHS :239 at 89b11dab); S4, the session that takes the thread the minute slice 3 is green in the integration PR and nobody before then, for the `join` reading and the planted rows | the owner's own terminals must `join` a run (the 2026-09-19 ask, `.xor/out/codex/fuckup.md` :25); today `bind` refuses class `capability` for a plain terminal (`instrument.py` :175 at 89b11dab: no `coordination_capability` in a profile and no `COORDINATION_CAPABILITY` in the environment reads "missing or malformed credential") |
 
 ### The shapes
 
@@ -871,7 +877,7 @@ unmet does not advance; the trial record says which step stopped it.
 | 5 worker blocker | the dispatched worker | a question through acting MCP received by management while the assignment stays open; the record states whether the return path was live ingress or a checkpoint (never "live steering" for a one-shot route) | `ingress` | I-09 |
 | 6 result and verification | Dispatcher, then verifier | `coord_collect` result; the verifier's examination of the candidate against the objective; the omitted-behaviour case and the changed-candidate case each **fail** acceptance, with the failing line | `acceptance` | I-10 second half, I-14 |
 | 7 detach and recover | owner, then observer | `attach` and re-attach with the native sessions untouched; `recover` (slice 2) over the same pending and complete records; a process-loss case against a sacrificial member only, the `lose-<place>` marking and the replacement's next generation | `recovery` | I-11 |
-| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
+| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store, `acknowledged <stamp>` or `unacknowledged`, never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
 
 ### Refusals added
 
@@ -905,9 +911,38 @@ what follows is operating evidence, not more rows.
 
 ### Required of the wall
 
-None expected. Declared, not inferred: the LD-117 fallback is a wall fix
-(`unsafe-command.py`), so choosing the fallback adds one wall session
-whose deliverable is that row and nothing else.
+Two rows, declared. The `bind` minting for an owner-opened terminal is
+an `instrument.py` change ("The owner's terminals" below), one wall
+session's deliverable, red then green with the two planted rows there.
+The onboard wrapper inside a codex or grok member's
+private home is a `profiles.py` change (the owners table above), so
+slice 4 needs one wall session whose deliverable is that row, red then
+green with a planted row that reads the wrapper from the profile home
+and refuses its absence. Also declared, not inferred: the LD-117
+fallback is a wall fix (`unsafe-command.py`), so choosing the fallback
+adds a second wall session whose deliverable is that row and nothing
+else.
+
+### The owner's terminals
+
+A terminal the owner opened by hand joins a run as a member without a
+managed launch (plan §1, the first ask of 2026-09-19). `join` needs a
+bound participant, and `bind` today refuses class `capability` for a
+plain terminal (LD-125). The clause: `bind` in an owner-opened terminal
+mints the participant's private capability at bind time, writes it into
+that terminal's own profile home and nowhere shared, and refuses
+`capability` only when it can neither read nor mint one; the refusal
+names which. A bound plain terminal joins with the same eight readiness
+lines as a managed member, `enforcement` reading `unmeasured` until the
+hook profile is observed, never `ok` by default. The minting is a wall change:
+`instrument.py` is on the wall list (`matrix.py` WALL_PATHS :239 at
+89b11dab, read by the builder agentscient-10, who refused to write it
+under a grant of class `other`, the LD-131 shape), so it is one wall
+session's row, and slice 4's first non-wall item is the `join` reading
+and the planted rows, taken by the session the owners table names: a world with no profile and no
+environment capability binds, joins, and reads `unmeasured` on
+enforcement; the same world with a malformed capability refuses
+`capability` naming the malformation.
 
 ### Tests
 
