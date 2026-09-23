@@ -483,6 +483,33 @@ def refuse_unowned(run, found: str) -> None:
            "rename or close that session yourself, or start another run")
 
 
+def clear_dead_window(run, name: str) -> None:
+    """One window per member, named by the member: a later generation takes
+    the name from its predecessor's dead window, whose capture is already
+    in that generation's pane.log. tmux cannot resolve `=session:=name`
+    while a dead window and a new one share the name (measured, tmux 3.4),
+    so the dead one goes first; a live pane under the name refuses."""
+    session = run["tmux_session"]
+    listed = tmux(run["tmux_socket"], "list-windows", "-t", f"={session}:",
+                  "-F", "#{window_id} #{pane_dead} #{pane_id} #{window_name}")
+    if listed.returncode != 0:
+        refuse("tmux", f"tmux to list the windows of {session}",
+               listed.stderr.strip() or f"exit {listed.returncode}",
+               "inspect the tmux server on the run's socket")
+    for line in listed.stdout.splitlines():
+        window, dead, pane, found = (line.split(" ", 3) + ["", "", ""])[:4]
+        if found != name:
+            continue
+        if dead != "1":
+            refuse("place", f"no live pane in window {name} of {session}", f"pane {pane} live",
+                   f"sessions.py stop --run R-{run['id']} first")
+        killed = tmux(run["tmux_socket"], "kill-window", "-t", window)
+        if killed.returncode != 0:
+            refuse("tmux", f"tmux to close the dead window {window} of {name}",
+                   killed.stderr.strip() or f"exit {killed.returncode}",
+                   "inspect the tmux server on the run's socket")
+
+
 def launcher(argv: list[str], directory: Path, extra=None) -> tuple[list[str], Path]:
     """The pane's command: source a private env file, delete it, exec the argv.
 
@@ -909,6 +936,15 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
     session = run["tmux_session"]
     window = f"={session}:={member['name']}"
     owned = ownership(run)
+    if owned == "owned":
+        try:
+            clear_dead_window(run, member["name"])
+        except Refusal:
+            env_file.unlink(missing_ok=True)
+            raise
+        # The dead window may have been the session's last: then the
+        # session is gone and this start opens it again, owned.
+        owned = ownership(run)
     if owned == "owned":
         opening = ["new-window", "-d", "-P", "-F", "#{pane_id} #{pane_pid}", "-t", f"={session}:",
                    "-n", member["name"], "-c", tmux_literal(str(worktree)), *command]

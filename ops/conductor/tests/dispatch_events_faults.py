@@ -11,6 +11,11 @@ the clean subject:
 Anchored on agentscient-10's subject at bfa82f5b; calibrated over the
 whole module at 0ae638fb, with slice 2's `send --key` merged (clean
 green, every mutant caught).
+
+Declared gap: collected-before-router-informs-once (0e's F1 at
+d0cbc6b0) has no mutant yet. Its fault is the pass reading `launched`
+only, which is the subject as it stands; the mutant is anchored on
+agentscient-10's fix when it lands, whichever shape the fix takes.
 """
 
 from ops.testkit import Mutant
