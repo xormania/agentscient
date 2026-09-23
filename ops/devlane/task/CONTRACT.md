@@ -181,7 +181,8 @@ does not change the runner.
 
 ### The skeptic's finding
 
-A skeptic finding uses the existing four fields. `severity` is `p1`, `p2` or `p3`.
+A skeptic finding uses the existing four fields, and may carry the
+practical label (§The practical label). `severity` is `p1`, `p2` or `p3`.
 `where` is the practiced location: it has no whitespace and
 contains `/` or `.`. `claim` has this grammar:
 
@@ -190,6 +191,25 @@ contains `/` or `.`. `claim` has this grammar:
 The declared location is non-empty and has no parentheses. The claim is
 split at the first `; practiced: ` and the last `; misses: `. `reproduce`
 is a non-empty command; `null` is refused because an opinion is not a finding.
+
+### The practical label
+
+Findings are suggestions, and judging them needs a rating made where the
+evidence is. Any finding (a skeptic's, a review's, an audit's) may carry
+two more fields, both or neither: `practical` is `yes` or `no`, rated by
+a concrete failure on the change's exit path (a wrong result, a crash,
+or a bypassed refusal, on an invocation someone will actually make), and
+`failing` is that invocation as a command when `practical` is `yes` and
+`null` when it is `no`. A check-tests finding for a test that breaks a
+rule of `docs/tests.md` is `practical: yes`, because the wall refuses it
+at CI. The envelope (`envelope.py` `PRACTICAL_FIELDS`), the ladder's
+check-tests validator and the findings ledger admit the pair; a finding
+without it has the four fields alone, as every record before it does.
+The label is the reviewer's, and the disposition stays the session's: a
+labelled finding that is ruled rather than fixed is ruled with a
+judgement beginning `declined: not practical — `, which the
+`finding-disposition` row reads at `gh pr ready` (CONTRIB.md, the audit
+row).
 
 `verify` is deliberately callable on its own: it is the primitive the
 others lean on, and the one whose answer is mechanical — an exit code
