@@ -368,10 +368,18 @@ class _Scratch(unittest.TestCase):
         self.assertTrue(bindings, f"no binding for {member} under {self.state}")
         binding = json.loads(bindings[0].read_text(encoding="utf-8"))
         cap = binding["coordination_capability"]
+        # `who` reads the participant of the session in the environment, so
+        # it is asked as the member's launch identity (A-495 item d).
+        launch = json.loads(
+            (bindings[0].parent.parent / "launch.json").read_text(encoding="utf-8")
+        )
         result = run(
             [sys.executable, str(COORD), "who"],
             cwd=self.world.cwd,
-            env=self.env(extra={"COORDINATION_CAPABILITY": cap}),
+            env=self.env(
+                session=launch["launch_id"],
+                extra={"COORDINATION_CAPABILITY": cap},
+            ),
             timeout=TIMEOUT,
         )
         self.assertEqual(result.exit, 0, result.stderr)
