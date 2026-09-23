@@ -572,7 +572,18 @@ launched, in the core's store:
                      phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
                      launcher_ticks TEXT, reserved_at TEXT NOT NULL,
                      launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+                     reported_at TEXT,
                      UNIQUE (requester, key))
+
+`reported_at` is written once the router pass's sends for the intent
+commit, in that transaction; a pass watches every `launched` intent and
+every `closed` intent whose `reported_at` is NULL, so a job collected
+while the router was down, restarting or inside one tick still reaches
+its requester once (the reviewer agentscient-0e's F1 at d0cbc6b0:
+monitors built from `launched` alone, `collect` moving the row to
+`closed` with nothing sent; fixed at eec4eddc). A store from before the
+column gets it at the next writer, with already-closed intents marked
+`before reporting`, so an upgrade sends nothing old again.
 
 `digest` is sha256 over the canonical JSON of `assignment, job, harness,
 branch, scope_ref, inputs`. `correlation` is a uuid4 minted at the
