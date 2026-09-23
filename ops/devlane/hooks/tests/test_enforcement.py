@@ -731,6 +731,52 @@ class SharedEnforcement(unittest.TestCase):
         self.assertEqual(proc.stdout, str(self.repo) + "\nsynthetic\n")
         self.assertEqual(self.evaluate(command=native.bind_command("git commit -m blocked", str(self.repo)))["outcome"], "deny")
 
+    def test_every_member_profile_registers_the_coordination_acting_server(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (3): the interactive profile registers the `coordination` acting
+        # server for all three harnesses. Before it, a profile carried only the
+        # operator's own servers, and this host's ~/.grok/config.toml has none, so a
+        # grok member never read tools ok (agentscient-11's review of fed6a4ce, LD-134).
+        import tomllib
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        elsewhere = {"command": "python3", "args": ["/elsewhere/coordination_mcp.py", "serve"]}
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".codex/config.toml").write_text(
+            '[mcp_servers.agentscient_lane]\ncommand="python3"\nargs=["stable.py"]\n'
+            '[mcp_servers.coordination]\ncommand="python3"\nargs=["/elsewhere/coordination_mcp.py", "serve"]\n')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        (home / ".claude.json").write_text(json.dumps({"mcpServers": {"coordination": elsewhere}}))
+        server = {"command": str(Path(profiles.sys.executable).resolve()),
+                  "args": ["-B", str(root / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("member-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                profiles.validate(profiles.read_binding(binding["binding"]))
+                if harness == "claude":
+                    servers = json.loads((Path(binding["helper"]).parent / "mcp.json").read_text())["mcpServers"]
+                else:
+                    servers = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())["mcp_servers"]
+                expected = {**server, "env": {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}}
+                if harness == "codex":
+                    # The bridge declines every approval the app-server asks
+                    # (session_adapters/codex.py DECLINE), so codex approves this
+                    # server's tools; the core's role gate still runs in every verb.
+                    expected["default_tools_approval_mode"] = "approve"
+                    self.assertEqual(servers["agentscient_lane"]["args"], ["stable.py"])
+                self.assertEqual(servers.get("coordination"), expected)
+                self.assertIn("coordination", binding["servers"])
+                registered = servers["coordination"]
+                probe = run([registered["command"], *registered["args"][:-1], "check"],
+                            cwd=self.repo, env=self.env, timeout=60)
+                self.assertEqual(probe.exit, 0, probe.stderr)
+                self.assertEqual(json.loads(probe.stdout)["server"], "coordination")
+
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib
         root = Path(__file__).resolve().parents[4]
@@ -749,5 +795,5 @@ class SharedEnforcement(unittest.TestCase):
         server = config["mcp_servers"]["agentscient_lane"]
         self.assertEqual(server["args"], ["stable.py"])
         self.assertEqual(server["env"], {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]})
-        self.assertEqual(binding["servers"], ["agentscient_lane"])
+        self.assertEqual(binding["servers"], ["agentscient_lane", "coordination"])
         self.assertIn('hooks=false', (original / "config.toml").read_text())
