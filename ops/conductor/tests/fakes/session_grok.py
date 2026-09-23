@@ -1,38 +1,71 @@
-# testkit: exempt fixture program planted as the grok agent stdio peer
-"""ACP peer for the grok session adapter.
+# testkit: exempt fixture program planted as the grok ACP agent
+"""Fake Grok ACP agent for sessions slice 2.
 
-Planted through Tools. The registry spec names the session id, whether
-`initialize` advertises `authenticate`, a method answered -32601, a
-method after which the process exits, and the permission title it may
-ask. One JSON line per request goes to the requests log. The case
-spawns this through ops.testkit.run; `run` keeps the pipes, so the
-peer listens on the spec's unix socket and the case hands those pipes
-to channel.RPC.
+Planted through Tools.plant("grok", script=...) by the bridge rows
+(test_session_messages.py) and the adapter rows
+(test_session_adapters_grok.py). It answers only the contracted argv,
+`grok --no-auto-update agent stdio` (sessions-lever.md §The adapter
+boundary, extended, `channel`); any other argv is logged and refused
+`channel` on the wire. `--version` answers the profile's version probe.
 
-Emissions for `session/prompt` are written before the result, so a
-reader thread can demux them and the request still completes: a
-`session/update` agent_message_chunk, then `_x.ai/session/prompt_complete`,
-then `session/request_permission` when the spec names a title.
+The registry spec beside this executable (fakes/<name>.spec.json, or
+TESTKIT_FAKE_SPEC when it names this program's spec) says:
+
+- ``native_id``: the session id to answer; empty means ``session-<pid>``;
+- ``advertise_auth``: whether ``initialize`` advertises ``authenticate``
+  (default true);
+- ``reply``: the ``agent_message_chunk`` text;
+- ``turn``: the turn ``_x.ai/session/prompt_complete`` names (default
+  ``turn-1``);
+- ``permission_title``: when set, a prompt also asks
+  ``session/request_permission`` with that title, id ``perm-1``, offering
+  ACP's two options, ``allow-once`` (allow_once) and ``reject-once``
+  (reject_once);
+- ``reject_method``: the method answered -32601;
+- ``die_after``: the method after whose answer the process exits;
+- ``ack_probe``, ``ack``, ``send_reply``, and ``session`` with
+  ``capability``: the bridge rows' acks and replies, carried through
+  coordination.py as the member's own participant.
+
+Speaks JSON lines on stdio: ``initialize`` (protocolVersion 1),
+``authenticate``, ``session/new`` → ``sessionId`` and a ``session/update``
+``tool_call`` naming ``coordination``; ``session/prompt`` and
+``_x.ai/interject`` → a ``session/update`` ``agent_message_chunk``, then
+``_x.ai/session/prompt_complete``, then the permission request when the
+spec names a title, then the result.
+
+Two logs beside the spec. ``<name>.calls.jsonl``: one JSON line per line
+received, with this process's ``pid``, its ``ancestors`` (so a row can
+tell which member's bridge spawned it), its ``argv``, and either the
+request (``method``, ``id``, ``params``, ``native_id``) or the client's
+answer to a request this side sent (``response`` true, ``id``,
+``result`` or ``error``). ``<name>.emitted.jsonl``: every frame this side
+writes that is not a response, verbatim.
+
+The repository root is substituted once at plant; unsubstituted, the
+acks and replies are skipped.
 """
 from __future__ import annotations
 
 import json
 import os
-import socket
+import re
 import sys
-import time
 from pathlib import Path
+
+REPO = "@@REPO@@"
+CHANNEL_ARGV = ["--no-auto-update", "agent", "stdio"]
 
 
 def spec_path() -> Path | None:
+    exe = Path(sys.argv[0]).resolve()
+    own = exe.parent.parent / "fakes" / f"{exe.name}.spec.json"
     named = os.environ.get("TESTKIT_FAKE_SPEC", "")
     if named:
         path = Path(named)
-        if path.is_file():
+        if path.is_file() and path.name.startswith(exe.name + "."):
             return path
-    exe = Path(sys.argv[0]).resolve()
-    candidate = exe.parent.parent / "fakes" / f"{exe.name}.spec.json"
-    return candidate if candidate.is_file() else None
+    return own if own.is_file() else None
 
 
 def load_spec() -> dict:
@@ -46,187 +79,287 @@ def load_spec() -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def append(path: str, packet: dict) -> None:
-    line = json.dumps(packet, separators=(",", ":")) + "\n"
-    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+def ancestor_pids() -> list[int]:
+    found: list[int] = []
+    pid = os.getpid()
+    for _ in range(12):
+        status = Path(f"/proc/{pid}/status")
+        if not status.is_file():
+            break
+        ppid = None
+        for line in status.read_text(encoding="utf-8").splitlines():
+            if line.startswith("PPid:"):
+                ppid = int(line.split()[1])
+                break
+        if not ppid or ppid in found or ppid <= 1:
+            break
+        found.append(ppid)
+        pid = ppid
+    return found
+
+
+def append(suffix: str, entry: dict) -> None:
+    path = spec_path()
+    if path is None:
+        return
+    log = path.with_name(path.name.replace(".spec.json", suffix))
+    line = json.dumps(entry) + "\n"
+    fd = os.open(str(log), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
     try:
         os.write(fd, line.encode("utf-8"))
     finally:
         os.close(fd)
 
 
-def send(conn: socket.socket, packet: dict) -> None:
-    data = (json.dumps(packet, separators=(",", ":")) + "\n").encode("utf-8")
-    conn.setblocking(True)
-    conn.sendall(data)
-    conn.setblocking(False)
+def log_line(fields: dict) -> None:
+    entry = {"pid": os.getpid(), "ancestors": ancestor_pids(), "argv": sys.argv[1:]}
+    entry.update(fields)
+    append(".calls.jsonl", entry)
 
 
-def result_packet(ident, result: dict) -> dict:
-    return {"jsonrpc": "2.0", "id": ident, "result": result}
+def emit(payload: dict) -> None:
+    sys.stdout.write(json.dumps(payload) + "\n")
+    sys.stdout.flush()
 
 
-def error_packet(ident, code: int, message: str) -> dict:
-    return {"jsonrpc": "2.0", "id": ident, "error": {"code": code, "message": message}}
+def stream(req_id, value: dict, frames: list) -> None:
+    """The frames, then the result, as ACP orders a prompt's updates
+    before its answer; the frames are logged before either is written."""
+    for frame in frames:
+        append(".emitted.jsonl", frame)
+    for frame in frames:
+        emit(frame)
+    result(req_id, value)
 
 
-def packets(conn: socket.socket, stop: Path):
-    conn.setblocking(False)
-    buf = b""
-    while not stop.exists():
+def result(req_id, value: dict) -> None:
+    emit({"jsonrpc": "2.0", "id": req_id, "result": value})
+
+
+def method_not_found(req_id) -> None:
+    emit({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": {"code": -32601, "message": "Method not found"},
+    })
+
+
+def texts(node) -> list[str]:
+    found: list[str] = []
+    if isinstance(node, str):
+        found.append(node)
+    elif isinstance(node, dict):
+        for value in node.values():
+            found.extend(texts(value))
+    elif isinstance(node, list):
+        for value in node:
+            found.extend(texts(value))
+    return found
+
+
+def credentials() -> tuple[str, str] | None:
+    if REPO.startswith("@@"):
+        return None
+    spec = load_spec()
+    session = spec.get("session")
+    capability = spec.get("capability")
+    if isinstance(session, str) and session and isinstance(capability, str) and capability:
+        return session, capability
+    root = Path(os.environ.get("XDG_STATE_HOME", ""))
+    if not root.is_dir():
+        return None
+    ancestors = set(ancestor_pids())
+    matched = []
+    only = []
+    for launch_path in root.glob("*/sessions/*/*/launch.json"):
         try:
-            chunk = conn.recv(65536)
-        except BlockingIOError:
-            time.sleep(0.02)
+            launch = json.loads(launch_path.read_text(encoding="utf-8"))
+            binding = json.loads(
+                (launch_path.parent / "profile" / "binding.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
             continue
-        if chunk == b"":
-            return
-        buf += chunk
-        while b"\n" in buf:
-            raw, buf = buf.split(b"\n", 1)
-            text = raw.decode("utf-8").strip()
-            if not text:
-                continue
-            try:
-                packet = json.loads(text)
-            except ValueError:
-                continue
-            if isinstance(packet, dict):
-                yield packet
+        cap = binding.get("coordination_capability") if isinstance(binding, dict) else None
+        launch_id = launch.get("launch_id") if isinstance(launch, dict) else None
+        if not isinstance(cap, str) or not cap or not isinstance(launch_id, str) or not launch_id:
+            continue
+        pair = (launch_id, cap)
+        only.append(pair)
+        pid = launch.get("pid") if isinstance(launch, dict) else None
+        if isinstance(pid, str) and pid.isdigit():
+            pid = int(pid)
+        if isinstance(pid, int) and pid in ancestors:
+            matched.append(pair)
+    if len(matched) == 1:
+        return matched[0]
+    if len(only) == 1:
+        return only[0]
+    return None
 
 
-def initialize_result(spec: dict) -> dict:
-    result: dict = {"protocolVersion": 1}
-    if spec.get("advertise_authenticate"):
-        result["authMethods"] = [{"id": "token", "name": "token"}]
-    return result
+def coordination(*argv: str):
+    creds = credentials()
+    if creds is None:
+        return None
+    session, capability = creds
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    from ops.testkit import run
+    env = os.environ.copy()
+    env["CLAUDE_CODE_SESSION_ID"] = session
+    env["COORDINATION_CAPABILITY"] = capability
+    tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
+    try:
+        return run([sys.executable, tool, *argv], cwd=os.getcwd(), env=env, timeout=30)
+    except Exception:
+        return None
 
 
-def emit_prompt(conn: socket.socket, spec: dict) -> bool:
-    sid = spec["session_id"]
+def inbox() -> str:
+    shown = coordination("inbox")
+    if shown is None or shown.exit != 0:
+        return ""
+    return shown.stdout
+
+
+def ack_lines(predicate) -> None:
+    for line in inbox().splitlines():
+        if not predicate(line):
+            continue
+        for token in line.split():
+            if re.fullmatch(r"M-\d+", token):
+                coordination("ack", token)
+
+
+def native_id(spec: dict) -> str:
+    named = spec.get("native_id")
+    if isinstance(named, str) and named:
+        return named
+    return f"session-{os.getpid()}"
+
+
+def prompt_frames(spec: dict, native: str) -> list:
+    reply = spec.get("reply") if isinstance(spec.get("reply"), str) else "grok-reply-a503"
+    turn = spec.get("turn") if isinstance(spec.get("turn"), str) and spec.get("turn") else "turn-1"
     frames = [
-        {
-            "jsonrpc": "2.0",
-            "method": "session/update",
-            "params": {
-                "sessionId": sid,
-                "update": {
-                    "sessionUpdate": "agent_message_chunk",
-                    "content": {"type": "text", "text": spec.get("update_text", "")},
-                },
-            },
-        },
-        {
-            "jsonrpc": "2.0",
-            "method": "_x.ai/session/prompt_complete",
-            "params": {"sessionId": sid, "turn": spec.get("turn", "")},
-        },
+        {"jsonrpc": "2.0", "method": "session/update", "params": {
+            "sessionId": native,
+            "update": {"sessionUpdate": "agent_message_chunk",
+                       "content": {"type": "text", "text": reply}},
+        }},
+        {"jsonrpc": "2.0", "method": "_x.ai/session/prompt_complete",
+         "params": {"sessionId": native, "turn": turn}},
     ]
     title = spec.get("permission_title")
-    if title:
-        frames.append({
-            "jsonrpc": "2.0",
-            "id": "perm-1",
-            "method": "session/request_permission",
-            "params": {
-                "sessionId": sid,
-                "title": title,
-                "toolCall": {"toolCallId": "call-1", "title": title},
-            },
-        })
-    for frame in frames:
-        append(spec["emitted"], frame)
-        send(conn, frame)
-    return bool(title)
+    if isinstance(title, str) and title:
+        frames.append({"jsonrpc": "2.0", "id": "perm-1", "method": "session/request_permission",
+                       "params": {"sessionId": native, "title": title,
+                                  "toolCall": {"toolCallId": "call-1", "title": title},
+                                  "options": [
+                                      {"optionId": "allow-once", "name": "Allow",
+                                       "kind": "allow_once"},
+                                      {"optionId": "reject-once", "name": "Reject",
+                                       "kind": "reject_once"},
+                                  ]}})
+    return frames
 
 
-def converse(conn: socket.socket, spec: dict, stop: Path) -> None:
-    waiting = False
-    for packet in packets(conn, stop):
-        method = packet.get("method")
-        if waiting and not method:
-            append(spec["answers"], packet)
-            if packet.get("id") == "perm-1" or "decline" in json.dumps(packet):
-                waiting = False
-            continue
-        if not method:
-            append(spec["answers"], packet)
-            continue
-        append(spec["requests"], {
-            "method": method,
-            "id": packet.get("id"),
-            "params": packet.get("params") or {},
-        })
-        ident = packet.get("id")
-        if spec.get("die_after") == method:
-            if method == "initialize":
-                send(conn, result_packet(ident, initialize_result(spec)))
-            return
-        if spec.get("reject_method") == method:
-            send(conn, error_packet(ident, -32601, "Method not found"))
-            continue
-        if method == "initialize":
-            send(conn, result_packet(ident, initialize_result(spec)))
-        elif method == "authenticate":
-            send(conn, result_packet(ident, {}))
-        elif method == "session/new":
-            send(conn, result_packet(ident, {"sessionId": spec["session_id"]}))
-        elif method == "session/prompt":
-            waiting = emit_prompt(conn, spec)
-            send(conn, result_packet(ident, {}))
-        elif method == "_x.ai/interject":
-            send(conn, result_packet(ident, {}))
-        else:
-            send(conn, error_packet(ident, -32601, "Method not found"))
-
-
-def serve(spec: dict) -> int:
-    sock_path = Path(spec["socket"])
-    if sock_path.exists():
-        sock_path.unlink()
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        server.bind(str(sock_path))
-        server.listen(1)
-        server.settimeout(0.2)
-        Path(spec["ready"]).write_text(str(os.getpid()), encoding="utf-8")
-        stop = Path(spec["stop"])
-        conn = None
-        while conn is None:
-            if stop.exists():
-                return 0
-            try:
-                conn, _addr = server.accept()
-            except socket.timeout:
+def after_submit(spec: dict, params: dict) -> None:
+    blob = "\n".join(texts(params))
+    reply = spec.get("reply") if isinstance(spec.get("reply"), str) else "grok-reply-a503"
+    if "readiness probe" in blob:
+        if spec.get("ack_probe"):
+            ack_lines(lambda line: "readiness probe" in line)
+        return
+    if spec.get("send_reply") and blob.strip():
+        for line in inbox().splitlines():
+            if not any(part and part in line for part in texts(params)):
                 continue
+            sender = re.search(r"\bfrom (PT-\d+)\b", line)
+            if sender:
+                coordination("send", "--to", sender.group(1), "--purpose", "inform", "--body", reply)
+                break
+    if spec.get("ack"):
+        ack_lines(lambda line: True)
+
+
+def handle(raw: str, msg: dict) -> bool:
+    method = msg.get("method")
+    req_id = msg.get("id")
+    if not isinstance(method, str):
+        answer = {"response": True, "id": req_id, "raw": raw}
+        for key in ("result", "error"):
+            if key in msg:
+                answer[key] = msg[key]
+        log_line(answer)
+        return False
+    params = msg.get("params")
+    if not isinstance(params, dict):
+        params = {}
+    spec = load_spec()
+    native = native_id(spec)
+    log_line({"method": method, "id": req_id, "params": params, "native_id": native, "raw": raw})
+    die = spec.get("die_after") == method
+    if spec.get("reject_method") == method:
+        if req_id is not None:
+            method_not_found(req_id)
+        return die
+    if method == "initialize" and req_id is not None:
+        body = {"protocolVersion": 1}
+        if spec.get("advertise_auth", True):
+            body["authMethods"] = [{"id": "agent", "name": "agent"}]
+        result(req_id, body)
+    elif method == "authenticate" and req_id is not None:
+        result(req_id, {})
+    elif method == "session/new" and req_id is not None:
+        tool = {"jsonrpc": "2.0", "method": "session/update", "params": {
+            "sessionId": native,
+            "update": {"sessionUpdate": "tool_call", "toolCallId": "discover-1",
+                       "title": "coordination", "name": "coordination"},
+        }}
+        frames = [tool]
+        named = [entry.get("name") for entry in params.get("mcpServers") or []
+                 if isinstance(entry, dict)]
+        if "coordination" in named:
+            frames.append({"jsonrpc": "2.0", "method": "_x.ai/mcp/server_status", "params": {
+                "name": "coordination", "source": "local", "status": "ready",
+                "reason": "initialized",
+            }})
+        stream(req_id, {"sessionId": native}, frames)
+    elif method in {"session/prompt", "_x.ai/interject"} and req_id is not None:
+        stream(req_id, {"stopReason": "end_turn"}, prompt_frames(spec, native))
+        after_submit(spec, params)
+    elif req_id is not None:
+        method_not_found(req_id)
+    return die
+
+
+def main() -> int:
+    argv = sys.argv[1:]
+    if argv[:1] == ["--version"]:
+        sys.stdout.write("session-grok 0.0.0-fake\n")
+        return 0
+    if argv != CHANNEL_ARGV:
+        log_line({"refused": "channel"})
+        sys.stderr.write(
+            f"channel: expected {' '.join(CHANNEL_ARGV)}; found {argv!r}; "
+            "needed the contracted grok channel argv\n"
+        )
+        return 2
+    for raw in sys.stdin:
+        line = raw.strip()
+        if not line:
+            continue
         try:
-            converse(conn, spec, stop)
-        finally:
-            conn.close()
-    finally:
-        server.close()
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(msg, dict):
+            continue
+        if handle(line, msg):
+            return 0
     return 0
 
 
-def main(argv: list[str]) -> int:
-    spec = load_spec()
-    required = ("socket", "ready", "stop", "requests", "emitted", "answers", "session_id")
-    missing = [key for key in required if not spec.get(key)]
-    if missing or argv:
-        found = f"argv {argv!r}, missing {missing!r}"
-        sys.stderr.write(
-            "arguments: expected the registry spec and no argv; "
-            f"found {found}; needed the planted grok spec\n"
-        )
-        return 2
-    try:
-        return serve(spec)
-    except OSError as exc:
-        sys.stderr.write(
-            f"channel: expected a unix socket; found {exc}; needed a path the peer can bind\n"
-        )
-        return 2
-
-
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(main())

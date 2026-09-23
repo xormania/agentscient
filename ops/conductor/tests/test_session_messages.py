@@ -3,6 +3,23 @@
 Contract: ops/conductor/sessions-lever.md section Slice 2. Run from the
 repository root:
 python3 -m unittest discover -s ops/conductor/tests -p test_session_messages.py
+
+The codex and grok fakes log each line they receive with their own pid
+and their ancestors' pids, so a row can tell which member's bridge
+carried it. Every world's tmux server is killed at close on its private
+socket, through `run` with a timeout.
+
+The transport table's opposite side: `input` on a codex member is its
+clean neighbour in the same case. `bridge` on a codex member has no row
+of its own here; it is launched by `start` in every codex row, so a
+subject refusing it for every harness fails those rows (declared gap:
+no direct `bridge` neighbour).
+
+Planted faults: `session_messages_faults.py` beside this module, anchored
+on sessions.py at bf924ee7, for the join row. Declared gap: planted faults
+follow the implementation; the codex and grok member rows carry none
+while LD-134 keeps every such member from starting, and each names LD-134
+in its docstring.
 """
 from __future__ import annotations
 
@@ -114,6 +131,7 @@ class SessionMessages(unittest.TestCase):
             self._plant_tmux()
         self._plant_protocol("codex", FAKES / "session_codex.py")
         self._plant_protocol("grok", FAKES / "session_grok.py")
+        self._plant_credentials()
         self.configure(
             "codex", native_id="thread-codex-1", ack_probe=False, ack=False,
             send_reply=False, reply=REPLY, reject_method=None, die_after=None,
@@ -144,6 +162,7 @@ class SessionMessages(unittest.TestCase):
         spec_path = self.world.tools.spec_path("claude")
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
         spec["session_id"] = None
+        spec["ack_probe"] = True
         spec_path.write_text(json.dumps(spec, indent=1) + "\n", encoding="utf-8")
 
     def _plant_tmux(self) -> None:
@@ -153,6 +172,13 @@ class SessionMessages(unittest.TestCase):
         text = substitute(text, "@@LOG@@", str(log), label="tmux")
         text = substitute(text, "@@REPO@@", str(REPO), label="tmux")
         self.world.tools.plant("tmux", script=text)
+
+    def _plant_credentials(self) -> None:
+        """A credential file where each protocol harness's isolated home
+        links it from: the world's home, never the operator's."""
+        home = self.world.home.relative_to(self.world.root)
+        for harness in ("codex", "grok"):
+            self.world.plant_text(str(home / f".{harness}" / "auth.json"), "{}\n")
 
     def _plant_protocol(self, name: str, source: Path) -> None:
         text = substitute(shebang(source), "@@REPO@@", str(REPO), label=name)
@@ -384,6 +410,9 @@ class SessionMessages(unittest.TestCase):
         ``accepted turn <id>``, ``delivered_at`` set with the ``native:``
         ref, ``acked_at`` NULL until the fake acks. The codex reply is
         printed by the stdout courier in the claude session.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="cross-harness-exchange", origin=origin(1)):
@@ -439,10 +468,14 @@ class SessionMessages(unittest.TestCase):
             self.assertIn(REPLY, printed.stdout, printed.stderr)
 
     def test_two_codex_members_write_only_the_second_log(self):
-        """origin: sessions-lever.md#slice-2 2
+        """origin: sessions-lever.md#slice-2 2; 20260923T020912Z-review-codex-9d8b8c #1
 
         A message to the second codex member is written on the second
-        fake's channel only.
+        fake's channel only: every log line carrying the body names the
+        second bridge among its ancestors and never the first.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="two-codex-second-log", origin=origin(2)):
@@ -467,13 +500,17 @@ class SessionMessages(unittest.TestCase):
             second_pid = self.pid_of("two")
             first_pid = self.pid_of("one")
             self.assertIsNotNone(second_pid, "the second member recorded no pid")
+            self.assertIsNotNone(first_pid, "the first member recorded no pid")
             lines = [json.loads(line) for line in log.splitlines() if line.strip()]
             body_lines = [line for line in lines if SECOND_BODY in json.dumps(line)]
             self.assertTrue(body_lines, log)
-            self.assertTrue(all(line.get("pid") == second_pid for line in body_lines), body_lines)
+            # Each fake logs its own ancestry: the second member's bridge
+            # spawned the fake that received the body, the first's did not.
+            self.assertTrue(
+                all(second_pid in line.get("ancestors", []) for line in body_lines), body_lines,
+            )
             self.assertFalse(
-                any(line.get("pid") == first_pid and SECOND_BODY in json.dumps(line) for line in lines),
-                lines,
+                any(first_pid in line.get("ancestors", []) for line in body_lines), body_lines,
             )
 
     def test_method_not_found_leaves_the_bridge_alive(self):
@@ -482,6 +519,9 @@ class SessionMessages(unittest.TestCase):
         -32601 to ``turn/start`` records ``unsupported turn/start``, the
         message stays undelivered, ingress reads ``refused channel``, and
         the bridge is alive after the backoff.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="unsupported-turn-start", origin=origin(6)):
@@ -532,6 +572,9 @@ class SessionMessages(unittest.TestCase):
         nothing. With that pid reaped and reused by a world-owned child,
         the member is ``lost`` and the child is not signalled. ``start``
         again mints generation 2 and keeps the old row.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="recover-alive-reused-generation-2", origin=origin(7)):
@@ -637,7 +680,9 @@ class SessionMessages(unittest.TestCase):
 
         ``join`` records a bound participant at generation 1 with no pid.
         ``stop --terminate`` prints ``unresolved unmanaged`` and signals
-        nothing for that member.
+        nothing for that member, though a live holder's pid and ticks sit
+        on its row; the launched member beside it is stopped
+        (20260923T020912Z-review-codex-9d8b8c #3).
         """
         self.skip_without_tmux()
         with self.subTest(id="join-unmanaged", origin=origin(10)):
@@ -651,26 +696,46 @@ class SessionMessages(unittest.TestCase):
             self.assertIsNotNone(participant, bound.stdout)
             started = self.sessions(*self.start_argv("co"), session=LEAD_SESSION)
             run_id = self.started_run(started.stdout) or "R-1"
-            self.sessions(
+            self.assertEqual(started.exit, 0, started.stderr + started.stdout)
+            joined = self.sessions(
                 "join", "--run", run_id, "--member", "owner",
-                "--participant", participant.group(1),
+                "--participant", participant.group(1), "--team", str(self.team_path),
             )
+            self.assertEqual(joined.exit, 0, joined.stderr)
             status = self.sessions("status", identity=None).stdout
             self.assertRegex(status, r"\bowner\b")
             self.assertRegex(status, r"\bbound\b")
             self.assertRegex(status, r"\bgen 1\b")
             self.assertRegex(status, r"\bunmanaged\b")
             self.assertIsNone(self.pid_of("owner"), status)
+            launched = self.pid_of("co")
+            self.assertIsNotNone(launched, "the launched member recorded no pid")
+            # A live pid on the joined row, as a stale or fabricated one
+            # would be: the join, not a missing pid, is what leaves it
+            # unmanaged, so stop must still signal nothing for it.
             holder, _release = self.owned_holder()
+            with self.connect() as conn:
+                changed = conn.execute(
+                    "UPDATE session_member SET pid = ?, start_ticks = ? WHERE name = ?",
+                    (holder, self.proc_ticks(holder), "owner"),
+                ).rowcount
+            self.assertEqual(changed, 1, "the holder pid was not planted on the joined row")
             stopped = self.sessions("stop", "--terminate", "--run", run_id)
             combined = stopped.stdout + stopped.stderr
             self.assertIn("unresolved unmanaged", combined, combined)
             self.assertTrue(self._alive(holder), "stop signalled a pid the join did not own")
+            deadline = time.monotonic() + 10
+            while self._alive(launched) and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertFalse(self._alive(launched), "stop left the launched member running")
 
     def test_readiness_probe_acked(self):
         """origin: sessions-lever.md#slice-2 11
 
         A fake that acks the readiness probe reads ``response ok M-n``.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="readiness-acked", origin=origin(11)):
@@ -688,6 +753,9 @@ class SessionMessages(unittest.TestCase):
 
         A fake that never acks reads ``waiting ack M-n`` and ``start``
         exits 1 at the timeout with the row at ``bound``.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="readiness-never-acked", origin=origin(11)):
@@ -705,10 +773,22 @@ class SessionMessages(unittest.TestCase):
     def test_protocol_verbs_on_a_claude_member_refuse_transport(self):
         """origin: sessions-lever.md#slice-2 transport
 
-        ``bridge`` and ``input`` on a claude member refuse ``transport``.
+        ``bridge`` and ``input`` on a claude member refuse ``transport``;
+        ``input`` on a codex member in the same run does not
+        (20260923T020912Z-review-codex-9d8b8c #4).
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
+        run_id = None
         with self.subTest(id="transport-claude", origin="sessions-lever.md#slice-2 transport"):
+            self.plant_team(a_team(
+                claude_member("co", ["worker"]),
+                protocol_member("dispatcher", "codex", ["worker"]),
+            ))
+            self.configure("codex", native_id="thread-codex-transport", ack_probe=True,
+                           send_reply=False)
             self.bind_lead()
             started = self.sessions(*self.start_argv("co"), session=LEAD_SESSION)
             self.assertEqual(started.exit, 0, started.stderr)
@@ -729,11 +809,23 @@ class SessionMessages(unittest.TestCase):
                 ),
             )
             run_table(self, rows, lambda row: self.sessions(*row.argv))
+        with self.subTest(id="transport-input-codex", origin="sessions-lever.md#slice-2 transport"):
+            self.assertIsNotNone(run_id, "the claude member's run did not start")
+            codex = self.sessions(
+                *self.start_argv("dispatcher", "--run", run_id), session=LEAD_SESSION,
+            )
+            self.assertEqual(codex.exit, 0, codex.stderr + codex.stdout)
+            typed = self.sessions("input", "--run", run_id, "--member", "dispatcher", OPERATOR)
+            self.assertFalse(typed.stderr.startswith("transport:"), typed.stderr)
+            self.assertEqual(typed.exit, 0, typed.stderr)
 
     def test_a_codex_member_reads_all_eight_ok(self):
         """origin: sessions-lever.md#slice-2 clean
 
         A codex member reads all eight readiness dimensions ``ok``.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="codex-eight-ok", origin="sessions-lever.md#slice-2 clean"):
@@ -748,6 +840,9 @@ class SessionMessages(unittest.TestCase):
 
         A grok member reads all eight readiness dimensions ``ok`` through
         ``session/prompt``.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="grok-eight-ok", origin="sessions-lever.md#slice-2 clean"):
@@ -766,6 +861,9 @@ class SessionMessages(unittest.TestCase):
         """origin: sessions-lever.md#slice-2 clean
 
         ``input`` text is in the protocol fake's call log.
+
+        LD-134: red until ``profiles.py run-interactive`` admits the channel
+        argv; a codex or grok member cannot start before it.
         """
         self.skip_without_tmux()
         with self.subTest(id="input-reaches-fake-log", origin="sessions-lever.md#slice-2 clean"):

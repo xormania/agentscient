@@ -1,263 +1,352 @@
 # testkit: exempt fixture program planted as the codex app-server
-"""The codex app-server the slice 2 adapter rows drive.
+"""Fake Codex app-server for sessions slice 2.
 
-Speaks `app-server --listen stdio://`: one JSON line per request in the
-spec's log. Answers `initialize`, `thread/start` with the spec's
-`thread.id`, and `turn/start` with `turn.id`. Emits `thread/started`
-(the frame whose `threadId` is the native id), then `turn/started`,
-`item/agentMessage/delta` and `turn/completed`, each carrying that
-`threadId`. A spec `error_method` is answered -32601. `die_after` exits
-once that request has been answered.
+Planted through Tools.plant("codex", script=...) by the bridge rows
+(test_session_messages.py) and the adapter rows
+(test_session_adapters_codex.py). It answers only the contracted argv,
+`codex app-server --listen stdio://` (sessions-lever.md §The adapter
+boundary, extended, `channel`); any other argv is logged and refused
+`channel` on the wire. `--version` answers the profile's version probe.
 
-With `inbox` in the spec, the process is spawned through `ops.testkit.run`
-(its stdin is closed) and serves the inbox. Without `inbox`, the same
-dispatch reads stdio. `RPC` is the pipes the adapter's `handshake`,
-`submit` and `observe` drive against that process.
+The registry spec beside this executable (fakes/<name>.spec.json, or
+TESTKIT_FAKE_SPEC when it names this program's spec) says:
 
-origin: sessions-lever.md#slice-2 adapters
+- ``native_id``: the thread id to answer; empty means ``thread-<pid>``;
+- ``turn_id``: the turn id ``turn/start`` answers (default ``turn-1``);
+- ``reply``: the ``item/agentMessage/delta`` text;
+- ``reject_method``: the method answered -32601;
+- ``die_after``: the method after whose answer the process exits;
+- ``stream_deltas`` and ``stream_interval``: ``turn/start`` streams that
+  many ``item/agentMessage/delta`` frames, ``stream_interval`` seconds
+  apart, instead of one (a turn streaming across the bridge's tick);
+- ``ack_probe``, ``ack``, ``send_reply``, and ``session`` with
+  ``capability``: the bridge rows' acks and replies, carried through
+  coordination.py as the member's own participant.
+
+Speaks JSON lines on stdio, no ``jsonrpc`` field, the frame shapes of
+codex-cli 0.155.1's generated schema as the XO relayed b3's reading of
+it on 2026-09-23: ``initialize``, ``initialized``, ``thread/start`` →
+``thread.id``, then ``thread/started`` and ``mcpServer/startupStatus/updated``
+naming ``coordination`` ready; ``turn/start`` → ``turn.id``, then
+``turn/started``, ``item/agentMessage/delta`` and ``turn/completed``, each
+with that ``threadId`` and the turn as ``turn.id``; ``thread/read`` → the
+thread with every ``turn/start`` this process received as a turn.
+
+Two logs beside the spec. ``<name>.calls.jsonl``: one JSON line per line
+received, with this process's ``pid``, its ``ancestors`` (so a row can
+tell which member's bridge spawned it), its ``argv``, and either the
+request (``method``, ``id``, ``params``, ``native_id``) or the client's
+answer to a request this side sent (``response`` true, ``id``,
+``result`` or ``error``). ``<name>.emitted.jsonl``: every frame this side
+writes that is not a response, verbatim.
+
+The repository root is substituted once at plant; unsubstituted, the
+acks and replies are skipped.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
 
-
-class RPCError(Exception):
-    """A JSON-RPC error result. `code` is the number, `method` the request."""
-
-    def __init__(self, code: int, message: str, method: str):
-        super().__init__(f"{method} {code} {message}")
-        self.code = int(code)
-        self.message = message
-        self.method = method
+REPO = "@@REPO@@"
+CHANNEL_ARGV = ["app-server", "--listen", "stdio://"]
+TURNS: list = []
 
 
-class Closed(ConnectionError):
-    """The server died before answering `method`."""
-
-    def __init__(self, method: str):
-        super().__init__(method)
-        self.method = method
-
-
-def atomic_write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(text, encoding="utf-8")
-    os.replace(temporary, path)
+def spec_path() -> Path | None:
+    exe = Path(sys.argv[0]).resolve()
+    own = exe.parent.parent / "fakes" / f"{exe.name}.spec.json"
+    named = os.environ.get("TESTKIT_FAKE_SPEC", "")
+    if named:
+        path = Path(named)
+        if path.is_file() and path.name.startswith(exe.name + "."):
+            return path
+    return own if own.is_file() else None
 
 
-def log_request(log_path: str, raw: str) -> None:
-    line = raw.strip() + "\n"
-    fd = os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+def load_spec() -> dict:
+    path = spec_path()
+    if path is None:
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def ancestor_pids() -> list[int]:
+    found: list[int] = []
+    pid = os.getpid()
+    for _ in range(12):
+        status = Path(f"/proc/{pid}/status")
+        if not status.is_file():
+            break
+        ppid = None
+        for line in status.read_text(encoding="utf-8").splitlines():
+            if line.startswith("PPid:"):
+                ppid = int(line.split()[1])
+                break
+        if not ppid or ppid in found or ppid <= 1:
+            break
+        found.append(ppid)
+        pid = ppid
+    return found
+
+
+def append(suffix: str, entry: dict) -> None:
+    path = spec_path()
+    if path is None:
+        return
+    log = path.with_name(path.name.replace(".spec.json", suffix))
+    line = json.dumps(entry) + "\n"
+    fd = os.open(str(log), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
     try:
         os.write(fd, line.encode("utf-8"))
     finally:
         os.close(fd)
 
 
-def dispatch(spec: dict, raw: str) -> tuple[dict | None, list, bool]:
-    """One request. Returns the response object (or None for a
-    notification or a client response), the events to emit, and whether
-    the spec says to die after this method."""
-    obj = json.loads(raw)
-    method = obj.get("method")
-    ident = obj.get("id")
-    if method is None:
-        return None, [], False
-    die = spec.get("die_after") == method
-    if spec.get("error_method") == method and ident is not None:
-        error = {"id": ident, "error": {"code": -32601, "message": "Method not found"}}
-        return error, [], die
-    events: list = []
-    if method == "initialize":
-        result = {"userAgent": "session-codex-fake"}
-    elif method == "initialized":
-        return None, [], die
-    elif method == "thread/start":
-        result = {"thread": {"id": spec["thread_id"]}}
-        events = [{"method": "thread/started", "params": {"threadId": spec["thread_id"]}}]
-    elif method == "turn/start":
-        result = {"turn": {"id": spec["turn_id"]}}
-        thread_id = spec["thread_id"]
-        turn_id = spec["turn_id"]
-        events = [
-            {"method": "turn/started", "params": {"threadId": thread_id, "turnId": turn_id}},
-            {"method": "item/agentMessage/delta", "params": {
-                "threadId": thread_id, "delta": spec["delta"]}},
-            {"method": "turn/completed", "params": {"threadId": thread_id, "turnId": turn_id}},
-        ]
-    else:
-        result = {}
-    if ident is None:
-        return None, events, die
-    return {"id": ident, "result": result}, events, die
+def log_line(fields: dict) -> None:
+    entry = {"pid": os.getpid(), "ancestors": ancestor_pids(), "argv": sys.argv[1:]}
+    entry.update(fields)
+    append(".calls.jsonl", entry)
 
 
-def _alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return True
+def emit(payload: dict) -> None:
+    sys.stdout.write(json.dumps(payload) + "\n")
+    sys.stdout.flush()
 
 
-class RPC:
-    """The pipes `handshake`, `submit` and `observe` drive.
-
-    `request(method, params)` returns the result object (`thread` / `turn`).
-    A -32601 answer raises `RPCError`. A dead server raises `Closed`.
-    `notify(method, params)` and `respond(ident, result)` are logged and
-    return nothing. `frames()` is every notification emitted so far.
-    """
-
-    def __init__(self, spec_path: Path, box: dict | None = None):
-        self.spec_path = Path(spec_path)
-        self.spec = json.loads(self.spec_path.read_text(encoding="utf-8"))
-        self.box = box if box is not None else {}
-        self.inbox = Path(self.spec["inbox"])
-        self.outbox = Path(self.spec["outbox"])
-        self._n = 0
-        self._frames: list = []
-
-    def wait_ready(self, timeout: float = 5.0) -> None:
-        ready = Path(self.spec["ready"])
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            if self.box.get("error") is not None:
-                raise AssertionError(f"INVALID: app-server did not start: {self.box['error']}")
-            if ready.is_file() and ready.read_text(encoding="utf-8").strip().isdigit():
-                return
-            time.sleep(0.02)
-        raise AssertionError(
-            f"INVALID: app-server was not started through ops.testkit.run: {self.box!r}"
-        )
-
-    def frames(self) -> list:
-        return list(self._frames)
-
-    def request(self, method: str, params: dict | None = None) -> dict:
-        ident = f"{self._n:04d}"
-        self._n += 1
-        payload = {"id": ident, "method": method, "params": params or {}}
-        self._write(ident, payload)
-        body = self._wait(ident, method)
-        if "error" in body:
-            error = body["error"]
-            raise RPCError(int(error["code"]), str(error.get("message", "")), method)
-        return body.get("result", {})
-
-    def notify(self, method: str, params: dict | None = None) -> None:
-        ident = f"{self._n:04d}"
-        self._n += 1
-        self._write(ident, {"method": method, "params": params or {}})
-        self._wait_ack(ident)
-
-    def respond(self, ident: str, result: dict) -> None:
-        seq = f"{self._n:04d}"
-        self._n += 1
-        self._write(seq, {"id": ident, "result": result})
-        self._wait_ack(seq)
-
-    def _write(self, seq: str, payload: dict) -> None:
-        atomic_write(self.inbox / f"{seq}.json", json.dumps(payload))
-
-    def _wait(self, seq: str, method: str) -> dict:
-        path = self.outbox / f"{seq}.json"
-        events = self.outbox / f"{seq}.events.json"
-        deadline = time.time() + 3
-        while time.time() < deadline:
-            if path.is_file():
-                if events.is_file():
-                    self._frames.extend(json.loads(events.read_text(encoding="utf-8")))
-                return json.loads(path.read_text(encoding="utf-8"))
-            if self._dead():
-                break
-            time.sleep(0.02)
-        raise Closed(method)
-
-    def _wait_ack(self, seq: str) -> None:
-        path = self.outbox / f"{seq}.ack"
-        deadline = time.time() + 0.4
-        while time.time() < deadline:
-            if path.is_file():
-                return
-            if self._dead():
-                return
-            time.sleep(0.02)
-
-    def _dead(self) -> bool:
-        ready = Path(self.spec["ready"])
-        if not ready.is_file():
-            return False
-        text = ready.read_text(encoding="utf-8").strip()
-        return text.isdigit() and not _alive(int(text))
+def stream(req_id, value: dict, frames: list, interval: float = 0.0) -> None:
+    """The result, then its frames; the frames are logged first, so a
+    row reading the emitted log after the result never races them."""
+    for frame in frames:
+        append(".emitted.jsonl", frame)
+    result(req_id, value)
+    for frame in frames:
+        if interval:
+            time.sleep(interval)
+        emit(frame)
 
 
-def serve_inbox(spec: dict) -> int:
-    inbox = Path(spec["inbox"])
-    outbox = Path(spec["outbox"])
-    inbox.mkdir(parents=True, exist_ok=True)
-    outbox.mkdir(parents=True, exist_ok=True)
-    atomic_write(Path(spec["ready"]), str(os.getpid()))
-    seen: set[str] = set()
-    while not Path(spec["stop"]).exists():
-        pending = sorted(
-            path for path in inbox.iterdir()
-            if path.suffix == ".json" and path.name not in seen
-        )
-        for path in pending:
-            raw = path.read_text(encoding="utf-8").strip()
-            if not raw:
-                continue
-            seen.add(path.name)
-            response, events, die = dispatch(spec, raw)
-            log_request(spec["log"], raw)
-            stem = path.stem
-            if response is not None:
-                atomic_write(outbox / f"{stem}.json", json.dumps(response))
-            else:
-                atomic_write(outbox / f"{stem}.ack", "ok\n")
-            if events:
-                atomic_write(outbox / f"{stem}.events.json", json.dumps(events))
-            if die:
-                return 0
-        time.sleep(0.02)
-    return 0
+def result(req_id, value: dict) -> None:
+    emit({"id": req_id, "result": value})
 
 
-def serve_stdio(spec: dict) -> int:
-    for line in sys.stdin:
-        raw = line.strip()
-        if not raw:
+def method_not_found(req_id) -> None:
+    emit({"id": req_id, "error": {"code": -32601, "message": "Method not found"}})
+
+
+def texts(node) -> list[str]:
+    found: list[str] = []
+    if isinstance(node, str):
+        found.append(node)
+    elif isinstance(node, dict):
+        for value in node.values():
+            found.extend(texts(value))
+    elif isinstance(node, list):
+        for value in node:
+            found.extend(texts(value))
+    return found
+
+
+def credentials() -> tuple[str, str] | None:
+    if REPO.startswith("@@"):
+        return None
+    spec = load_spec()
+    session = spec.get("session")
+    capability = spec.get("capability")
+    if isinstance(session, str) and session and isinstance(capability, str) and capability:
+        return session, capability
+    root = Path(os.environ.get("XDG_STATE_HOME", ""))
+    if not root.is_dir():
+        return None
+    ancestors = set(ancestor_pids())
+    matched = []
+    only = []
+    for launch_path in root.glob("*/sessions/*/*/launch.json"):
+        try:
+            launch = json.loads(launch_path.read_text(encoding="utf-8"))
+            binding = json.loads(
+                (launch_path.parent / "profile" / "binding.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
             continue
-        response, events, die = dispatch(spec, raw)
-        log_request(spec["log"], raw)
-        if response is not None:
-            sys.stdout.write(json.dumps(response) + "\n")
-        for event in events:
-            sys.stdout.write(json.dumps(event) + "\n")
-        sys.stdout.flush()
-        if die:
+        cap = binding.get("coordination_capability") if isinstance(binding, dict) else None
+        launch_id = launch.get("launch_id") if isinstance(launch, dict) else None
+        if not isinstance(cap, str) or not cap or not isinstance(launch_id, str) or not launch_id:
+            continue
+        pair = (launch_id, cap)
+        only.append(pair)
+        pid = launch.get("pid") if isinstance(launch, dict) else None
+        if isinstance(pid, str) and pid.isdigit():
+            pid = int(pid)
+        if isinstance(pid, int) and pid in ancestors:
+            matched.append(pair)
+    if len(matched) == 1:
+        return matched[0]
+    if len(only) == 1:
+        return only[0]
+    return None
+
+
+def coordination(*argv: str):
+    creds = credentials()
+    if creds is None:
+        return None
+    session, capability = creds
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    from ops.testkit import run
+    env = os.environ.copy()
+    env["CLAUDE_CODE_SESSION_ID"] = session
+    env["COORDINATION_CAPABILITY"] = capability
+    tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
+    try:
+        return run([sys.executable, tool, *argv], cwd=os.getcwd(), env=env, timeout=30)
+    except Exception:
+        return None
+
+
+def inbox() -> str:
+    shown = coordination("inbox")
+    if shown is None or shown.exit != 0:
+        return ""
+    return shown.stdout
+
+
+def ack_lines(predicate) -> None:
+    for line in inbox().splitlines():
+        if not predicate(line):
+            continue
+        for token in line.split():
+            if re.fullmatch(r"M-\d+", token):
+                coordination("ack", token)
+
+
+def native_id(spec: dict) -> str:
+    named = spec.get("native_id")
+    if isinstance(named, str) and named:
+        return named
+    return f"thread-{os.getpid()}"
+
+
+def turn_id(spec: dict) -> str:
+    named = spec.get("turn_id")
+    return named if isinstance(named, str) and named else "turn-1"
+
+
+def turn_frames(spec: dict, native: str) -> list:
+    reply = spec.get("reply") if isinstance(spec.get("reply"), str) else "codex-reply-a503"
+    turn = turn_id(spec)
+    count = spec.get("stream_deltas")
+    deltas = [
+        {"method": "item/agentMessage/delta", "params": {"threadId": native, "delta": f"{reply}{index} "}}
+        for index in range(count)
+    ] if isinstance(count, int) and count > 0 else [
+        {"method": "item/agentMessage/delta", "params": {"threadId": native, "delta": reply}},
+    ]
+    return [
+        {"method": "turn/started", "params": {"threadId": native, "turn": {"id": turn}}},
+        *deltas,
+        {"method": "turn/completed", "params": {"threadId": native, "turn": {"id": turn}}},
+    ]
+
+
+def after_submit(spec: dict, params: dict) -> None:
+    blob = "\n".join(texts(params))
+    reply = spec.get("reply") if isinstance(spec.get("reply"), str) else "codex-reply-a503"
+    if "readiness probe" in blob:
+        if spec.get("ack_probe"):
+            ack_lines(lambda line: "readiness probe" in line)
+        return
+    if spec.get("send_reply") and blob.strip():
+        for line in inbox().splitlines():
+            if not any(part and part in line for part in texts(params)):
+                continue
+            sender = re.search(r"\bfrom (PT-\d+)\b", line)
+            if sender:
+                coordination("send", "--to", sender.group(1), "--purpose", "inform", "--body", reply)
+                break
+    if spec.get("ack"):
+        ack_lines(lambda line: True)
+
+
+def handle(raw: str, msg: dict) -> bool:
+    method = msg.get("method")
+    req_id = msg.get("id")
+    if not isinstance(method, str):
+        answer = {"response": True, "id": req_id, "raw": raw}
+        for key in ("result", "error"):
+            if key in msg:
+                answer[key] = msg[key]
+        log_line(answer)
+        return False
+    params = msg.get("params")
+    if not isinstance(params, dict):
+        params = {}
+    spec = load_spec()
+    native = native_id(spec)
+    log_line({"method": method, "id": req_id, "params": params, "native_id": native, "raw": raw})
+    die = spec.get("die_after") == method
+    if spec.get("reject_method") == method:
+        if req_id is not None:
+            method_not_found(req_id)
+        return die
+    if method == "initialize" and req_id is not None:
+        result(req_id, {"userAgent": "session-codex-fake", "capabilities": {}})
+    elif method == "initialized":
+        pass
+    elif method == "thread/start" and req_id is not None:
+        stream(req_id, {"thread": {"id": native}}, [
+            {"method": "thread/started", "params": {"threadId": native}},
+            {"method": "mcpServer/startupStatus/updated",
+             "params": {"name": "coordination", "status": "ready"}},
+        ])
+    elif method == "turn/start" and req_id is not None:
+        TURNS.append({"id": turn_id(spec), "params": params})
+        interval = spec.get("stream_interval")
+        stream(req_id, {"turn": {"id": turn_id(spec)}}, turn_frames(spec, native),
+               float(interval) if isinstance(interval, (int, float)) else 0.0)
+        after_submit(spec, params)
+    elif method == "thread/read" and req_id is not None:
+        result(req_id, {"thread": {"id": native, "turns": list(TURNS)}})
+    elif req_id is not None:
+        method_not_found(req_id)
+    return die
+
+
+def main() -> int:
+    argv = sys.argv[1:]
+    if argv[:1] == ["--version"]:
+        sys.stdout.write("session-codex 0.0.0-fake\n")
+        return 0
+    if argv != CHANNEL_ARGV:
+        log_line({"refused": "channel"})
+        sys.stderr.write(
+            f"channel: expected {' '.join(CHANNEL_ARGV)}; found {argv!r}; "
+            "needed the contracted codex channel argv\n"
+        )
+        return 2
+    for raw in sys.stdin:
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(msg, dict):
+            continue
+        if handle(line, msg):
             return 0
     return 0
 
 
-def main(argv: list[str]) -> int:
-    if "--listen" not in argv or "stdio://" not in argv or argv[-1] == "stdio://":
-        sys.stderr.write(
-            "channel: expected app-server --listen stdio:// SPEC; "
-            f"found {argv!r}; needed the stdio listener and a spec\n"
-        )
-        return 2
-    spec = json.loads(Path(argv[-1]).read_text(encoding="utf-8"))
-    if spec.get("inbox"):
-        return serve_inbox(spec)
-    return serve_stdio(spec)
-
-
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(main())

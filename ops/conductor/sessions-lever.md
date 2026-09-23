@@ -354,7 +354,11 @@ pane under the profile's authority environment, in place of the harness
 itself. It spawns the harness with pipes through `profiles.py
 run-interactive --binding B -- <channel argv>`, speaks the protocol
 through `framing.Parser` (a reader thread feeds the parser; one writer
-lock; no SQLite transaction is ever held across a native call), takes
+lock; no SQLite transaction is ever held across a native call; a
+response whose id matches no request this side sent is dropped and
+written to `channel.log` with its id, never fatal, measured on grok
+1.0.40's mid-turn `skills-reload` response at 8191d6a1, while every
+other framing refusal ends the channel), takes
 the native id from the handshake, runs the profile's `guard.sh
 SessionStart` with that id so `initialize` binds the participant under
 the profile's own capability, then loops: lines on its stdin are
@@ -390,7 +394,7 @@ keeps beyond them (codex and grok's `reconcile`, `answer`,
 | `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
 | `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
 | `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
-| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed, with one exception: a grok `use_tool` call whose `rawInput.tool_name` is exactly `coordination__<tool>` with an input object is answered `allow-once`, read `permission coordination <tool> allowed`, because the coordination server is the lane's own and a member that can never call `coord_ack` or `coord_send` can never read `ok` on its response dimension; measured live by agentscient-b3 on grok 1.0.40, `session/request_permission` for `coordination__coord_probe` with options always-allow, allow-once, reject-once, the bridge's reject-once reading the call `failed`; everything else, `always-allow` included, stays declined; pre-approving the server in the profile's config is the wall's later shape, not tonight's), `done <turn>` |
 
 `rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
 the parser and the writer lock, adapted from the proof's `RPC`
@@ -832,11 +836,22 @@ record, with the reading that decided it. The trial never carries both.
 assignment: the deliverable's id, the acceptance requirements (the
 contract clauses the fix must satisfy, by line), the candidate's
 starting ref, and the two controlled cases the verifier will plant (an
-omitted behaviour and a changed candidate). An objective without the two
-cases is refused `objective`.
+omitted behaviour and a changed candidate). It is written by
+`sessions.py trial objective <run> --deliverable <id> --clause <file:line>
+... --candidate <ref> --case omitted:<clause> --case changed:<ref>` into
+`<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
+a clause, the candidate or either case is refused `objective`.
 
-**The trial record** is a table with one row per acceptance id I-01 to
-I-14 (plan §13), each row `id | required result | evidence | reading`,
+**The trial record** is `ops/conductor/handoff/<date>-slice4-trial.md`,
+the date the run's start date in `YYYY-MM-DD`, checked by `sessions.py
+trial record <path>`, which refuses `evidence` on the first row without a
+reading or `not measured <why>` and exits 0 on a complete record. An
+acceptance claim is `sessions.py trial accept <run> --candidate <sha>
+--record <path>`, which refuses `acceptance` when `<sha>` is not the sha
+the verifier's row names or when any evidence cell reads `live` for a
+row whose command ran a planted fake. It is a table with one row per
+acceptance id I-01 to I-14 (plan §13), each row `id | required result |
+evidence | reading`,
 where `evidence` is a path plus sha, a record id, or a probe row id, and
 `reading` is the measured line, or `not measured` with why. A row whose
 evidence is a mock's pass is written `mock <name>`, never `live` (plan
@@ -847,9 +862,13 @@ never declares the September 16 objective complete.
 **The run export**: `sessions stop` (slice 1) then `telemetry` for the
 run, preserving every attempt including the failed ones, plus
 `coordination.py` `decisions` and `observations` for the run's
-participants, into `<state dir>/runs/R-n/export/` (plan §10). The export
-is complete when the runbook's export command exits 0 and names every
-member's pane log and the run's dispatch record ids.
+participants, into `<state dir>/runs/R-n/export/` (plan §10). The
+runbook's export command is `sessions.py export <run>`; it exits 0 only
+when it names every managed member's pane log and every dispatch record
+id the run launched, the ids read from the store's `coord_launch` rows
+(slice 3), and refuses `export` otherwise. A joined member has no pane
+log and is listed `joined <id> no pane log`, a declared absence, never a
+refusal.
 
 **The handoff** (plan §13): the candidate revision, the source-adaptation
 manifest (`SOURCES.md` rows), the actual configuration and command
@@ -873,7 +892,7 @@ unmet does not advance; the trial record says which step stopped it.
 | 5 worker blocker | the dispatched worker | a question through acting MCP received by management while the assignment stays open; the record states whether the return path was live ingress or a checkpoint (never "live steering" for a one-shot route) | `ingress` | I-09 |
 | 6 result and verification | Dispatcher, then verifier | `coord_collect` result; the verifier's examination of the candidate against the objective; the omitted-behaviour case and the changed-candidate case each **fail** acceptance, with the failing line | `acceptance` | I-10 second half, I-14 |
 | 7 detach and recover | owner, then observer | `attach` and re-attach with the native sessions untouched; `recover` (slice 2) over the same pending and complete records; a process-loss case against a sacrificial member only, the `lose-<place>` marking and the replacement's next generation | `recovery` | I-11 |
-| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store, `acknowledged <stamp>` or `unacknowledged`, never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
+| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, and per joined member whether the hold was acknowledged: the `inform` "stop requested" asks for no ack, so the accounting reads the member's own reply from the store (a `send --purpose inform --reply-to M-n` answering the stop-requested message M-n), `acknowledged <stamp>` with the reply's `created` stamp in ISO 8601 UTC, or `unacknowledged`, never a default (the 2026-09-19 debrief's F6, `.xor/out/codex/fuckup.md` :182-197: a hold counted before anyone acknowledged it); unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
 
 ### Refusals added
 
@@ -926,11 +945,13 @@ managed launch (plan §1, the first ask of 2026-09-19). `join` needs a
 bound participant, and `bind` today refuses class `capability` for a
 plain terminal (LD-125). The clause: `bind` in an owner-opened terminal
 mints the participant's private capability at bind time, writes it into
-that terminal's own profile home and nowhere shared, and refuses
-`capability` only when it can neither read nor mint one; the refusal
-names which. A bound plain terminal joins with the same eight readiness
-lines as a managed member, `enforcement` reading `unmeasured` until the
-hook profile is observed, never `ok` by default. The minting is a wall change:
+that terminal's own profile home, `<state dir>/runs/R-n/terminals/PT-n/home`,
+and nowhere shared, and refuses `capability` only when it can neither
+read nor mint one; the refusal names which, `missing` or `malformed
+<what>`. A bound plain terminal joins with the same eight readiness
+lines as a managed member plus a ninth line that `status` prints for
+every member, `enforcement unmeasured` until the hook profile is
+observed and `enforcement ok <profile id>` after, never `ok` by default. The minting is a wall change:
 `instrument.py` is on the wall list (`matrix.py` WALL_PATHS :239 at
 89b11dab, read by the builder agentscient-10, who refused to write it
 under a grant of class `other`, the LD-131 shape), so it is one wall
@@ -942,8 +963,13 @@ enforcement; the same world with a malformed capability refuses
 
 ### Tests
 
-Slice 4 owns no new suite. Its fixtures are the controlled cases and
-they live with the verifier's record, not under `ops/conductor/tests/`:
+Slice 4 owns one suite, `ops/conductor/tests/test_sessions_trial.py`
+with `sessions_trial_faults.py` beside it (written red by the reviewer
+agentscient-cf at 662f9407, 2026-09-23), rows by id for the four
+refusals, the trial record's shape, step 8's accounting and the
+owner's-terminal clause. The controlled cases below are planted in the
+live trial by the verifier and recorded in the verifier's record; the
+suite carries their fixture shape, the verifier carries their reading:
 
 - **omitted behaviour**: the candidate lacks one requirement clause; the
   verifier's acceptance reads `refused acceptance` naming the clause;

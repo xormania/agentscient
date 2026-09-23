@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -50,6 +52,55 @@ def channel_error(error) -> bool:
     return type(error).__name__ == "ChannelError" and hasattr(error, "reading")
 
 
+def carries_tool_output(documents) -> bool | None:
+    """Whether a TurnStartParams in the schema documents carries input,
+    threadId and toolOutput; None when no TurnStartParams was found."""
+    def walk(node, key=""):
+        if isinstance(node, dict):
+            if key == "TurnStartParams" or node.get("title") == "TurnStartParams":
+                yield node
+            for name, value in node.items():
+                yield from walk(value, name)
+        elif isinstance(node, list):
+            for value in node:
+                yield from walk(value)
+    found = [node for document in documents for node in walk(document)]
+    if not found:
+        return None
+    return any({"input", "threadId", "toolOutput"} <= set(node.get("properties") or {})
+               for node in found)
+
+
+def tool_output_capability(executable) -> str:
+    """The installed app-server's own schema, read for TurnStartParams.toolOutput,
+    which a busy submission relies on (the proof's compat.py, a944f31):
+    `supported`, `unsupported`, or `unverified <why>`."""
+    name = "TurnStartParams.toolOutput"
+    argv = [str(executable), "app-server", "generate-json-schema"]
+    try:
+        shown = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
+            [*argv, "--help"], capture_output=True, text=True, stdin=subprocess.DEVNULL,
+            timeout=common.PROBE_TIMEOUT, check=False)
+        if shown.returncode:
+            return f"unverified {name}: generate-json-schema --help exit {shown.returncode}"
+        with tempfile.TemporaryDirectory(prefix="codex-schema-") as out:
+            wanted = [*argv, "--out", out]
+            if "--experimental" in shown.stdout:
+                wanted.append("--experimental")
+            made = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
+                wanted, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                timeout=common.PROBE_TIMEOUT, check=False)
+            if made.returncode:
+                return f"unverified {name}: generate-json-schema exit {made.returncode}"
+            documents = [json.loads(path.read_text(encoding="utf-8")) for path in Path(out).rglob("*.json")]
+    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        return f"unverified {name}: {type(error).__name__}"
+    carried = carries_tool_output(documents)
+    if carried is None:
+        return f"unverified {name}: no TurnStartParams in {len(documents)} schema files"
+    return f"{'supported' if carried else 'unsupported'} {name} ({len(documents)} schema files)"
+
+
 def client() -> dict:
     """The clientInfo `initialize` names, under the lane conf's LANE_NAME."""
     lane = lane_name()
@@ -81,6 +132,13 @@ class Adapter(common.ProtocolAdapter):
 
     def channel(self, member, binding):
         return ["app-server", "--listen", "stdio://"]
+
+    def probe(self, executable):
+        """The version, and whether the app-server's schema carries the
+        toolOutput a busy submission sends."""
+        reading = super().probe(executable)
+        reading["capability"] = tool_output_capability(executable)
+        return reading
 
     def handshake(self, rpc):
         """`initialize`, `initialized`, `thread/start`; the thread id."""
