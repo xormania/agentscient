@@ -747,6 +747,13 @@ class TheTmuxAndLaunchRows(_Scratch):
         self.assertTrue(killed, f"no pane for {member}: {listed.stdout!r}")
 
     def test_an_unowned_session_of_the_run_name_refuses_ownership(self):
+        """origin: 20260922T215604Z-review-codex-f6777b#10
+        origin: 20260922T234512Z-review-codex-5b18d7#2
+
+        An unowned session of the run's name refuses ownership. The
+        session is created through the host tmux and proven present,
+        and unowned, before sessions.py runs.
+        """
         self.skip_without_tmux()
         with self.subTest(id="unowned-session", origin=origin_finding(10)):
             self.assertLess(
@@ -755,13 +762,21 @@ class TheTmuxAndLaunchRows(_Scratch):
                 f"private tmux socket must be under 108 bytes: {self.socket}",
             )
             name = "agentscient-R-1"
-            create = run(
-                ["tmux", "-S", str(self.socket), "new-session", "-d", "-s", name],
-                cwd=self.world.cwd,
-                env=self.world.env(),
-                timeout=TIMEOUT,
+            create = self.host_tmux(
+                "new-session", "-d", "-s", name, "sleep", "300",
             )
             self.assertEqual(create.exit, 0, create.stderr)
+            self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={name}"))
+            has = self.host_tmux("has-session", "-t", f"={name}")
+            self.assertEqual(
+                has.exit,
+                0,
+                f"unowned session was not created: {has.stderr}",
+            )
+            owner = self.host_tmux(
+                "show-options", "-t", f"={name}:", "-v", "@agentscient_owner",
+            )
+            self.assertNotEqual(owner.stdout.strip(), "R-1")
             proc = self.sessions(*self.start_argv())
             self.assert_refusal(proc, "ownership", case_id="unowned-session")
 
