@@ -11,9 +11,9 @@ The section names this module as slice 4's one suite. Its rows: the four
 refusals (`objective`, `acceptance`, `evidence`, `export`) on the verbs the
 section names, the trial record's shape, step 8's accounting, the ninth
 `enforcement` line, and the owner's-terminal clause. The owner's-terminal
-rows stay red until the wall session lands the `bind` minting in
-instrument.py (a wall path, LD-125): they are marked expected failures
-and turn red-for-real the commit the minting lands. The rows over the
+rows that need the `bind` minting stay red until the wall session lands
+it in instrument.py (a wall path, LD-125): they are marked expected
+failures and turn red-for-real the commit the minting lands. The rows over the
 repository's trial record skip, naming the reason, while no record
 exists. The controlled cases' readings are the verifier's; these rows
 carry their fixture shape.
@@ -467,8 +467,10 @@ class TheRecordCheck(_Trial):
 class TheOwnersTerminal(_Trial):
     """The owner's terminals: bind mints, join reads, the refusal names which.
 
-    Both rows are expected failures citing LD-125 until the wall session
-    lands the minting in instrument.py; they turn red-for-real that commit.
+    The unminted and malformed rows are expected failures citing LD-125
+    until the wall session lands the minting in instrument.py; they turn
+    red-for-real that commit. The no-run row is a plain row since
+    37775c0e.
     """
 
     @unittest.expectedFailure  # LD-125: the bind minting is the wall's, not yet landed
@@ -507,7 +509,6 @@ class TheOwnersTerminal(_Trial):
                 self.assertRegex(block, rf"(?m)^  {dimension} \S", block)
             self.assertRegex(block, r"(?m)^  enforcement unmeasured( .+)?$", block)
 
-    @unittest.expectedFailure  # LD-125: bind --run is the wall's minting, not yet landed
     def test_bind_naming_no_run_refuses_absent(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals, ruled at a1520df5
 
