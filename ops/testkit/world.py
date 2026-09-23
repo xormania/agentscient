@@ -33,6 +33,7 @@ import socket as socketlib
 import stat
 import subprocess
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -566,7 +567,15 @@ def make_executable(path: Path) -> Path:
 # started around the kit. It is given a grace, then killed, and refused.
 # ``close`` always finishes its cleanup and raises ``DaemonRefused`` last;
 # each of its lines is a refusal in the wire's shape (docs/wire.md),
-# class ``daemon``.
+# class ``daemon``. A refusal names a process by its program and the size
+# of its argv, never the argv's bytes, so nothing a case planted in an
+# argument or a stop's stderr reaches a log.
+#
+# A declared gap: a child that drops the world's HOME and outlives the
+# daemon that started it is neither adopted (its parent is gone) nor swept
+# (it carries no HOME). The kit's daemons inherit the world's environment
+# by construction; a subject that scrubs HOME from its children is not
+# covered (A-528 #3, record 20260923T030855Z-review-codex-8585d2).
 
 PROC = Path("/proc")
 POLL = 0.05
@@ -747,13 +756,13 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
         table = processes()
         new = {pid for pid, (_, started) in table.items()
                if before.get(pid, (None, None))[1] != started}
-        pids = (carrying(world.home, new) | matching(match, table)) - owned - taken - {os.getpid()}
+        pids = (carrying(world.home, new) | matching(match, new)) - owned - taken - {os.getpid()}
         if pids or time.monotonic() >= deadline:
             break
         time.sleep(POLL)
     if not pids:
         raise PlantFailed(
-            f"INVALID: daemon {name} started ({list(map(str, argv))!r} exited 0) but no new "
+            f"INVALID: daemon {name} started ({program(argv)} exited 0) but no new "
             f"process carries HOME={world.home} or the tokens {list(match)!r} within {timeout:g}s"
         )
     return Daemon(name, tuple(str(a) for a in argv), stop,
@@ -762,9 +771,10 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
 
 
 def adopt_daemon(world, name: str, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
-    """Record the daemon the subject left running: the holders of
-    ``socket``, narrowed by ``match`` when both are given, or the processes
-    ``match`` names."""
+    """Record the daemon the subject left running, and nothing outside this
+    world: the holders of ``socket``, a path inside the world's root,
+    narrowed by ``match`` when both are given; or, with no socket, the
+    processes carrying the world's HOME that ``match`` names."""
     _check_daemon(name, stop)
     match = tuple(str(t) for t in match)
     if socket is None and not match:
@@ -772,12 +782,17 @@ def adopt_daemon(world, name: str, stop, *, match=(), socket=None, timeout: floa
             f"INVALID: adopting daemon {name} needs socket= or match=; found neither; "
             "needed the socket it serves or the tokens of its command line"
         )
+    if socket is not None and not Path(socket).resolve().is_relative_to(world.root.resolve()):
+        raise PlantFailed(
+            f"INVALID: adopting daemon {name} needs a socket inside the world's root "
+            f"{world.root}; found {socket}; needed the socket the subject serves in this world"
+        )
     owned = {child.pid for child in world._children}
     taken = {pid for other in world._daemons for pid in other.pids}
     deadline = time.monotonic() + timeout
     while True:
         table = processes()
-        pids = socket_holders(socket, table) if socket is not None else set(table)
+        pids = socket_holders(socket, table) if socket is not None else carrying(world.home, table)
         if match:
             pids &= matching(match, table)
         pids -= owned | taken | {os.getpid()}
@@ -806,18 +821,34 @@ def _run_stop(world, daemon: Daemon) -> str:
     if daemon.stop is None:
         return "no stop declared"
     if callable(daemon.stop):
-        try:
-            daemon.stop()
-        except Exception as exc:  # noqa: BLE001 - the stop's failure is the reading, not a crash of close
-            return f"stop callable raised {type(exc).__name__}: {exc}"
-        return "stop callable returned"
+        said = []
+
+        def call():
+            try:
+                daemon.stop()
+            except BaseException as exc:  # noqa: BLE001 - the stop's failure is the reading, not a crash of close
+                said.append(f"stop callable raised {type(exc).__name__}")
+            else:
+                said.append("stop callable returned")
+
+        worker = threading.Thread(target=call, name=f"stop {daemon.name}", daemon=True)
+        worker.start()
+        worker.join(daemon.timeout)
+        return said[0] if said else f"stop callable outlived {daemon.timeout:g}s"
     try:
         result = run(daemon.stop, cwd=world.cwd, env=world.env(), timeout=daemon.timeout)
     except Timeout:
-        return f"stop {list(daemon.stop)!r} outlived {daemon.timeout:g}s"
-    except PlantFailed as exc:
-        return f"stop {list(daemon.stop)!r} did not start: {str(exc).splitlines()[0]}"
-    return f"stop exit {result.exit}, stderr {result.stderr.strip()[:200]!r}"
+        return f"stop {program(daemon.stop)} outlived {daemon.timeout:g}s"
+    except PlantFailed:
+        return f"stop {program(daemon.stop)} did not start"
+    return f"stop exit {result.exit}, stderr {len(result.stderr.encode())} bytes"
+
+
+def program(argv) -> str:
+    """An argv named by its program and its size, never its bytes."""
+    argv = [str(a) for a in argv]
+    size = sum(len(a.encode()) for a in argv)
+    return f"{Path(argv[0]).name if argv else '?'} with {max(len(argv) - 1, 0)} argument(s), {size} bytes"
 
 
 def _signal(pids, signum) -> None:
@@ -867,7 +898,8 @@ def sweep_daemons(world) -> str | None:
         time.sleep(POLL)
     if not stray:
         return None
-    seen = {pid: command_line(pid) or "?" for pid in sorted(stray)}
+    seen = {pid: program(_read(pid, "cmdline").decode("utf-8", "replace").split("\0")[:-1] or ["?"])
+            for pid in sorted(stray)}
     started = {pid: table[pid][1] for pid in stray}
     loose = Daemon("unrecorded", (), None, None, SWEEP_GRACE, started)
     _signal(loose.alive(), signal.SIGKILL)
@@ -876,7 +908,7 @@ def sweep_daemons(world) -> str | None:
         f"daemon: expected every process of this world recorded by world.daemon or owned; "
         f"found {len(seen)} alive {SWEEP_GRACE:g}s after close stopped the recorded ones, "
         f"started around the kit: "
-        + "; ".join(f"pid {pid} {cmd[:120]!r}" for pid, cmd in seen.items())
+        + "; ".join(f"pid {pid} {name}" for pid, name in seen.items())
         + f"; pids {loose.alive()} alive after SIGKILL"
         + "; needed world.daemon(name, start, stop), or world.adopt(name, stop, socket=) "
         "for one the subject starts"

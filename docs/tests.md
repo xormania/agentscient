@@ -51,9 +51,13 @@ its sources. Three primitives and one pattern on them:
   unrecorded. A daemon a case starts around the kit is a finding of the
   kind rule 5 names. A daemon the subject starts is recorded after the
   subject returns, with `world.adopt(name, stop, match=, socket=,
-  timeout=)`: the processes holding the unix socket bound at `socket`,
-  read from the kernel's socket table and narrowed by `match` when both
-  are given, or those `match` names. The case starts nothing, so the
+  timeout=)`: the processes holding the unix socket bound at `socket`, a
+  path inside the world's root, read from the kernel's socket table and
+  narrowed by `match` when both are given; or, with no socket, the
+  processes carrying the world's HOME that `match` names. Nothing outside
+  the world is adopted, and `world.daemon`'s `match` reads only the
+  processes its start made. A stop callable runs within the timeout. A
+  refusal names a process by its program and argv size, never its bytes. The case starts nothing, so the
   subject's own path is the one under test, and `close` stops an adopted
   daemon as it stops a started one.
 - **run** (`command.py`): one call, one result shape (argv, exit, stdout,
