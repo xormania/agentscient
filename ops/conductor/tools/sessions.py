@@ -1117,15 +1117,22 @@ def do_stop(rest):
             machine.move(conn, RUN, run["subject"], "stop", agent,
                          evidence="terminate" if terminate else f"drain {drain}s")
         members = [row for row in member_rows(conn, rid=run["id"]) if row["place"] in LIVE]
+    asked: dict[int, int] = {}
     if starter is not None:
         # From a bound shell each live member hears the stop before the drain.
         for row in members:
             if row["participant"] is not None:
                 sent = inform(agent, row["participant"], f"stop requested R-{run['id']}")
                 print(f"R-{run['id']} {row['name']} SM-{row['id']} stop requested: {sent}")
+                if re.fullmatch(r"M-\d+", sent):
+                    asked[row["id"]] = int(sent[2:])
+    # The drain waits for the managed members to exit and for each joined
+    # member's own reply to its stop request, whichever is later, up to --drain.
     deadline = time.monotonic() + drain
     while not terminate and time.monotonic() < deadline and any(
-            alive(row["pid"], row["start_ticks"]) for row in members):
+            alive(row["pid"], row["start_ticks"])
+            or (joined(row) and acknowledgment(conn, row, asked) == "unacknowledged")
+            for row in members):
         time.sleep(POLL)
     outcomes = []
     for row in members:
@@ -1134,6 +1141,7 @@ def do_stop(rest):
             # A joined participant is not the supervisor's to signal: it
             # leaves the run and its own terminal keeps it.
             outcome = "unresolved unmanaged"
+            outcome = f"{outcome} {acknowledgment(conn, row, asked)}"
             with conn:
                 machine.move(conn, MEMBER, row["subject"], f"stop-{row['place']}", agent, evidence=outcome)
                 conn.execute("UPDATE session_member SET outcome = ? WHERE id = ?", (outcome, row["id"]))
@@ -1170,6 +1178,23 @@ def do_stop(rest):
             print(f"R-{run['id']} stopped")
     return EXIT_DONE if all(outcome.startswith("stopped") for outcome in outcomes) and not left \
         else EXIT_FINDING
+
+
+def acknowledgment(conn, row, asked: dict[int, int]) -> str:
+    """Whether a joined member acknowledged its stop request (step 8).
+
+    The "stop requested" inform asks for no ack, so the reading is the
+    member's own reply in the store: an `inform` it sent with `--reply-to`
+    naming the request, `acknowledged <its queued_at>`, else `unacknowledged`,
+    never a default (the 2026-09-19 debrief's F6)."""
+    message = asked.get(row["id"])
+    if message is None:
+        return "unacknowledged no stop request reached it"
+    reply = conn.execute(
+        "SELECT queued_at FROM messages WHERE reply_to = ? AND sender = ? AND purpose = 'inform' "
+        "ORDER BY id LIMIT 1", (message, row["participant"]),
+    ).fetchone()
+    return f"acknowledged {reply['queued_at']}" if reply else "unacknowledged"
 
 
 def secrets_of(profile: str | None) -> list[str]:
