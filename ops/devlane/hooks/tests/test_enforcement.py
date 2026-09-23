@@ -116,6 +116,24 @@ class SharedEnforcement(unittest.TestCase):
         payload = self.canonical("write_stdin", session_id=1, chars="")
         self.assertEqual(enforcement.evaluate(native.normalize("codex", payload)[0])["outcome"], "allow")
 
+    def test_claude_structured_output_is_its_result_and_no_other_name_is(self):
+        # LD-136: a claude review returns its envelope by calling StructuredOutput;
+        # the guard refused it as an unknown tool, so A-527's record read invalid.
+        payload = self.canonical("StructuredOutput", verdict="clean", findings=[])
+        items = native.normalize("claude", payload, event="PreToolUse")
+        self.assertEqual([x["tool_name"] for x in items], ["Result"])
+        self.assertEqual(enforcement.evaluate(items[0])["outcome"], "allow")
+        after = {**payload, "hook_event_name": "PostToolUse", "tool_response": {"ok": True}}
+        self.assertEqual(enforcement.evaluate(native.normalize("claude", after, event="PostToolUse")[0])["outcome"], "allow")
+        for harness, tool in [("codex", "StructuredOutput"), ("grok", "StructuredOutput"), ("claude", "MysteryOutput")]:
+            with self.subTest(harness=harness, tool=tool):
+                out = enforcement.evaluate(native.normalize(harness, self.canonical(tool, x=1), event="PreToolUse")[0])
+                self.assertEqual(out["outcome"], "deny")
+                self.assertIn("found unknown native tool", out["reason"])
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness), self.assertRaisesRegex(ValueError, "reserved canonical tool"):
+                native.normalize(harness, self.canonical("Result", verdict="clean"), event="PreToolUse")
+
     def test_duplicate_native_fields_are_not_last_key_wins(self):
         with self.assertRaises(ValueError):
             native.loads('{"tool_name":"Read","tool_name":"Write"}')
