@@ -16,7 +16,7 @@ from pathlib import Path
 from ops.testkit import World, run
 
 TOOL = Path(__file__).resolve().parents[1] / "tools" / "watchdog.py"
-SIBLINGS = ("instrument.py", "laneconf.py")
+SIBLINGS = ("instrument.py", "laneconf.py", "dispatch_observation.py")
 BAD = "20260904T100000Z-tests-grok-bad001"
 GOOD = "20260904T200000Z-tests-grok-good01"
 

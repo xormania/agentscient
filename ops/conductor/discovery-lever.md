@@ -159,18 +159,20 @@ configuration key or query/resource argument. The descriptor grants exactly:
 - `ops/conductor/tools/lane_read.py`
 - `ops/conductor/tools/lane_mcp.py`
 - `ops/conductor/tools/lane_refs.py`
+- `ops/conductor/tools/mcp_transport.py`
+- `ops/conductor/tools/dispatch_observation.py`
 
 Open only these fixed components descriptor-relative without symlinks; no
 enumeration or caller path selector. Require regular files, at most 1 MiB
 each and 4 MiB total, a 10-second bootstrap deadline, and before/after
-identity, size and modification checks. Trusted launch must bind the three
+identity, size and modification checks. Trusted launch must bind the five
 executed modules to these same captured bytes; a separately claimed manifest
 does not establish that binding. The executed-byte gate below verifies this
 coupling separately from launcher authentication. Load and retain the bytes
 once before the first discovery acquisition. Close owned descriptors on every failure and
 normal shutdown. No adjacent-file, HOME, CWD, environment or inspected-repo
 fallback is allowed. FD numbers and filesystem timestamps enter no fingerprint.
-Use exactly the definition observation and sorted three-file implementation
+Use exactly the definition observation and sorted five-file implementation
 manifest recipe below; direct-object acquisition retains `git:null`.
 
 Config-only check/list operations and all seven old queries neither read boot
@@ -188,7 +190,7 @@ edit that counterpart or change its admission standing.
 ### Executed-byte binding gate
 
 The trusted launch owner supplies the retained artifact and a load path that
-binds each of the three modules' actual execution inputs to its captured bytes.
+binds each of the five modules' actual execution inputs to its captured bytes.
 The discovery boot custodian in `ops/conductor/tools/lane_mcp.py` owns checking
 that binding before calling acquisition, including its own entry module's
 load evidence. Execute retained buffers directly or establish byte-for-byte
@@ -201,7 +203,7 @@ share the bootstrap deadline and precede repository anchors and fingerprints.
 
 D-A47 includes the startup binding gate: an independent test producer plants
 boot artifact A and a different execution artifact B, with a harmless distinct
-execution marker in each of the three modules in turn. The fixture records
+execution marker in each of the five modules in turn. The fixture records
 the actual loader inputs and executed markers, computes the manifest itself,
 and requires A/B to refuse before any anchor access or discovery envelope.
 A/A and B/B clean neighbors must execute the corresponding markers and report
@@ -584,7 +586,7 @@ discovery-lever.md bytes (no normalization or separate compiled-data hash);
 adapter data is `{protocol:"discovery-acquisition/1",
 implementation:SHA256,git:{revision:SHA256,version:string}|null}`. implementation
 hashes canonical `[{path,revision},...]`, sorted by path, for lane_read.py,
-lane_mcp.py and lane_refs.py from trusted launch bytes. All paths here have
+lane_mcp.py, lane_refs.py, mcp_transport.py and dispatch_observation.py from trusted launch bytes. All paths here have
 the `ops/conductor/tools/` prefix. The direct-object implementation has git
 null. Config/contract/adapter source data is supplied by trusted boot, not
 record text or a repository read. The ordinary contract source fingerprint
@@ -837,7 +839,7 @@ supplied descriptor; unreadable means the component could not be examined.
 | changed-during-read | before/after identity, size or modification differs / fixed path | supply a stationary retained boot artifact and relaunch |
 | timeout | bootstrap exceeds 10 seconds / descriptor | supply a readable stationary boot artifact within the 10-second bootstrap deadline |
 | binding-unverified | no verifiable execution-input evidence / fixed module path | use a trusted loader that binds execution inputs to retained boot bytes and relaunch |
-| binding-mismatch | execution inputs differ from captured bytes / fixed module path | load the three discovery modules from the same retained boot bytes and relaunch |
+| binding-mismatch | execution inputs differ from captured bytes / fixed module path | load the five discovery modules from the same retained boot bytes and relaunch |
 
 Check descriptor usability first, capture components in bytewise fixed-path
 order with path/type checks before size/read checks, then verify execution
@@ -1016,7 +1018,7 @@ acceptance skip. This document neither executes nor approves those tests.
 | D-A44 | v3 old seven queries on unchanged v2 inputs | byte-identical; no broader cleanup |
 | D-A45 | known irrelevant key requested by another profile | same unknown-key envelope as nonexistent key; no prose/provenance leakage |
 | D-A46 | same failed source twice, then recovery | deterministic failure fingerprint; recovery changes snapshot |
-| D-A47 | two bounded launch artifacts via --discovery-boot-fd with changed contract bytes, fixed config and failing repo; separately changed implementation bytes; missing/rejected supplied boot; external pathname mutation after load; executed-byte binding gate A/B mismatch, unverified load, A/A and B/B controls for each module | independently computed contract revision/definition/source fingerprint changes with exact bytes while contract stays ok; sorted three-file manifest changes adapter identity, direct objects git:null; retained bytes do not reload; exact condition-specific boot refusals before anchors, check/list/old queries read no boot; actual execution markers and loader-input receipts bind executed bytes to reported identity; omitted-check/hash-A-execute-B counterparty fails; fixture/contract fingerprint remains planted; no host admission claim |
+| D-A47 | two bounded launch artifacts via --discovery-boot-fd with changed contract bytes, fixed config and failing repo; separately changed implementation bytes; missing/rejected supplied boot; external pathname mutation after load; executed-byte binding gate A/B mismatch, unverified load, A/A and B/B controls for each module | independently computed contract revision/definition/source fingerprint changes with exact bytes while contract stays ok; sorted five-file manifest changes adapter identity, direct objects git:null; retained bytes do not reload; exact condition-specific boot refusals before anchors, check/list/old queries read no boot; actual execution markers and loader-input receipts bind executed bytes to reported identity; omitted-check/hash-A-execute-B counterparty fails; fixture/contract fingerprint remains planted; no host admission claim |
 | D-A48 | valid config/boot, retained disabled, stable missing HEAD object; prod mapping Home through CLI/tool/resource; contrast verified HEAD followed by failed document read and measured/attempted implementation/lock fields | missing HEAD permits no Home-property tree_entry/read_blob, ownership unresolved, document_present and entrypoint null, evidence exactly ["contract"]; actual property attempt including failure or locked false/null gives ["contract","repo"]; mandatory repo source retains upstream failure without invented per-path attempts; wf-runtime example unchanged |
 | D-A49 | lane-mcp and lane-read concept rows; historical mapping heading/link | lane-mcp registry is ops/conductor/registry/lane_mcp.py.json, lane-read registry null; step 2 appends to existing file; mapping heading/link identify preserved history, no remeasurement |
 

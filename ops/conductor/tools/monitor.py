@@ -38,6 +38,8 @@ except ModuleNotFoundError:
     )
     raise SystemExit(2) from None
 
+from dispatch_observation import DispatchRecord
+
 HERE = Path(__file__).resolve()
 DEFAULT_CONFIG = HERE.parent.parent / "monitor.example.json"
 ID_RE = re.compile(r"[a-z][a-z0-9_-]{0,63}")
@@ -443,35 +445,20 @@ def read_dispatch(params: dict[str, object], now: datetime) -> list[dict[str, ob
             rows.append(_reading(ident, "unavailable", now, evidence=evidence, reason="record unreadable or malformed"))
             continue
         state = state or {}
-        result = rec.get("result") if isinstance(rec.get("result"), dict) else {}
-        envelope = result.get("envelope") if isinstance(result.get("envelope"), dict) else {}
-        changed = result.get("changed_paths")
-        metrics: dict[str, object] = {}
-        if isinstance(changed, list):
-            metrics["changed"] = len(changed)
-        spend = rec.get("session") if isinstance(rec.get("session"), dict) else {}
-        spend = spend.get("spend") if isinstance(spend.get("spend"), dict) else {}
-        for key in ("input", "cached", "output", "total"):
-            value = spend.get(key)
-            if type(value) is int and value >= 0:
-                metrics[key] = value
-        env_status = envelope.get("status")
-        if env_status in {"invalid", "tripped"}:
-            observed = "invalid"
-        elif rec.get("status") == "died":
-            observed = "death"
-        elif rec.get("status") == "closed" and env_status == "ok":
-            observed = "no-op" if rec.get("role") == "write" and changed == [] else "completion"
-        elif exit_status == "ok":
-            observed = "settling"
-        elif exit_status == "unavailable":
-            rows.append(_reading(ident, "unavailable", now, metrics=metrics, evidence=str(job_path / "exit"), reason="exit marker unavailable"))
-            continue
-        elif state_status == "unavailable":
-            rows.append(_reading(ident, "unavailable", now, metrics=metrics, evidence=str(state_path), reason="state unreadable or malformed"))
-            continue
-        else:
-            observed = _process_status(state.get("pid"), rec, state)
+        observation = DispatchRecord(rec)
+        metrics = observation.metrics()
+        observed = observation.outcome()
+        if observed is None:
+            if exit_status == "ok":
+                observed = "settling"
+            elif exit_status == "unavailable":
+                rows.append(_reading(ident, "unavailable", now, metrics=metrics, evidence=str(job_path / "exit"), reason="exit marker unavailable"))
+                continue
+            elif state_status == "unavailable":
+                rows.append(_reading(ident, "unavailable", now, metrics=metrics, evidence=str(state_path), reason="state unreadable or malformed"))
+                continue
+            else:
+                observed = _process_status(state.get("pid"), rec, state)
         metrics["status"] = observed
         attempts = rec.get("attempts") if isinstance(rec.get("attempts"), list) else []
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
