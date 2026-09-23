@@ -874,6 +874,10 @@ def _run_stop(world, daemon: Daemon) -> str:
         return f"stop {program(daemon.stop)} outlived {daemon.timeout:g}s"
     except PlantFailed:
         return f"stop {program(daemon.stop)} did not start"
+    except OSError as exc:
+        # A stop the host refuses to spawn is a reading too; close goes on to
+        # escalate, sweep and remove the root (A-535 #3).
+        return f"stop {program(daemon.stop)} did not start: {type(exc).__name__}"
     return f"stop exit {result.exit}, stderr {len(result.stderr.encode())} bytes"
 
 
@@ -881,7 +885,7 @@ def program(argv) -> str:
     """An argv named by its program and its size, never its bytes."""
     argv = [str(a) for a in argv]
     size = sum(len(a.encode()) for a in argv)
-    return f"{Path(argv[0]).name if argv else '?'} with {max(len(argv) - 1, 0)} argument(s), {size} bytes"
+    return f"{(Path(argv[0]).name or '?') if argv else '?'} with {max(len(argv) - 1, 0)} argument(s), {size} bytes"
 
 
 def _signal(pids, signum) -> None:
