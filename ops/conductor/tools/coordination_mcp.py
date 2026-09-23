@@ -182,7 +182,9 @@ CATALOGUE = (
     Tool("coord_send", "send", True,
          {"to": _text(), "purpose": _text("inform, request or finding"),
           "body": _text(), "assignment": _text(), "decision": _text(),
-          "reply_to": _text(), "artifact": _text()},
+          "reply_to": _text(), "artifact": _text(),
+          "key": _text("the caller's request key: the same key and payload return "
+                       "the first message, another payload refuses idempotency")},
          ("to", "purpose", "body"),
          "Queue a durable message to a participant or a role."),
     Tool("coord_inbox", "inbox", False, {"unresolved": _BOOL, "cursor": _CURSOR}, (),

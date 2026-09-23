@@ -6,7 +6,10 @@ beside the registry (fakes/<name>.spec.json) says which session id to
 bind: null or absent uses the launch id from --session-id; a string is
 that native id (the native-mismatch variant); empty skips the bind (the
 timeout-with-no-bind variant). It runs the profile's guard.sh
-SessionStart and then holds until the supervisor stops it.
+SessionStart and then holds until the supervisor stops it. A
+``bind_after_exit`` path in the spec makes it exit at once instead and
+leave a binder that runs SessionStart only after this process is gone,
+then writes that path (the exited-pane variant).
 """
 from __future__ import annotations
 
@@ -17,6 +20,8 @@ import time
 from pathlib import Path
 
 VERSION = "session-harness 0.0.0-fake"
+# How long the binder waits for the harness's pid to leave /proc.
+GONE_WAIT = 20.0
 
 
 def spec_path() -> Path | None:
@@ -127,6 +132,42 @@ def run_session_start(profile: Path, bind_id: str) -> int:
     return 0
 
 
+def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
+    """Fork a binder and return, so the caller exits at once.
+
+    The binder waits until this process has left /proc, runs SessionStart,
+    and writes ``marker`` with the guard's exit. No poll of the supervisor
+    can then find the process ok and the member bound at the same time
+    (origin: 20260922T215604Z-review-codex-f6777b#9).
+    """
+    parent = os.getpid()
+    if os.fork() != 0:
+        return
+    code = 1
+    try:
+        os.setsid()
+        null = os.open(os.devnull, os.O_RDWR)
+        for fd in (0, 1, 2):
+            os.dup2(null, fd)
+        deadline = time.monotonic() + GONE_WAIT
+        while Path(f"/proc/{parent}").exists():
+            if time.monotonic() >= deadline:
+                note = f"harness pid {parent} still in /proc after {GONE_WAIT}s, never bound\n"
+                break
+            time.sleep(0.02)
+        else:
+            note = f"bound after exit {run_session_start(profile, bind_id)}\n"
+            code = 0
+    except BaseException as error:  # the row reads why the binder failed
+        note = f"binder failed {error!r}\n"
+    try:
+        pending = marker.with_name(marker.name + ".new")
+        pending.write_text(note, encoding="utf-8")
+        os.replace(pending, marker)
+    finally:
+        os._exit(code)
+
+
 def hold() -> None:
     try:
         stream = sys.stdin
@@ -150,6 +191,10 @@ def main() -> int:
     spec = load_spec()
     bind_id = native_id(argv, spec)
     profile = profile_dir(argv)
+    after_exit = spec.get("bind_after_exit")
+    if after_exit and profile is not None and bind_id:
+        bind_after_exit(profile, bind_id, Path(after_exit))
+        return 0
     if profile is not None and bind_id:
         code = run_session_start(profile, bind_id)
         if code:

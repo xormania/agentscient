@@ -269,7 +269,12 @@ Not projected in slice one, and named so the omission is visible rather than
 discovered: `bind`, `bind-for`, `who`, `participants`, `grant`, `revoke`, `recover-roles`,
 `reassign`, `reopen`, `supersede`, `deliver`, `undelivered`, `withdraw`,
 `observations`, `ask`, `answer`, `decide`, `decision`, `decisions`,
-`reserve`, `free`, `resources`, `coverage`, `entry`. Decision support and
+`reserve`, `free`, `resources`, `coverage`, `entry`; and from the sessions
+contract's slice 2 (`sessions-lever.md`, "Verbs added"), the courier's
+route and attempt verbs `route`, `routes`, `attempt`, `attempted`,
+`attempts`, which are the courier process's own bookkeeping on a route it
+holds by pid, never a participant's call, and stay on the CLI where the
+courier runs them. Decision support and
 resource
 reservation are required operation groups of the objective's §7 and are a
 later slice of this package, not a gap in the core. The participant
