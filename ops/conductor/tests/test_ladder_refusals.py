@@ -36,7 +36,7 @@ from test_ladder_lever import (  # noqa: E402
     _LadderFixture,
 )
 
-from ops.testkit import RefusalCase, Result, refusal_wire  # noqa: E402
+from ops.testkit import RefusalCase, refusal_wire  # noqa: E402
 
 START_FORM = "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID"
 NEEDED_INPUT = "supply a readable input file"
@@ -240,9 +240,7 @@ class LadderRefusals(_LadderFixture):
             proc = self.invoke([subs.get(a, a) for a in argv], with_gh=row.with_gh)
         named = tuple(subs.get(n, n) for n in row.named)
         case = RefusalCase(row.id, tuple(argv or row.extra), row.cls, named=named, origin=row.origin)
-        result = Result(tuple(str(a) for a in proc.args), proc.returncode, proc.stdout or "", proc.stderr or "",
-                        0.0, str(self.invoke_cwd))
-        refusal = refusal_wire(case, result)
+        refusal = refusal_wire(case, proc)
         for word in row.lower_named:
             self.assertIn(word, refusal.line.lower(), refusal.line)
         for text in row.absent:

@@ -156,23 +156,6 @@ def fit_omission_forms(n: int, source: dict) -> list[dict]:
     return forms
 
 
-class _Proc:
-    """Kit Result plus the CompletedProcess names the inherited fixture reads."""
-
-    def __init__(self, result):
-        self.argv = result.argv
-        self.exit = result.exit
-        self.returncode = result.exit
-        self.stdout = result.stdout
-        self.stderr = result.stderr
-        self.duration = result.duration
-        self.cwd = result.cwd
-        self._result = result
-
-    def refusal(self, *, exit=2):
-        return self._result.refusal(exit=exit)
-
-
 class _V2Fixture(_LaneMcpFixture):
     """v1 fixture plus version-2 config, records and registries.
 
@@ -245,15 +228,13 @@ class _V2Fixture(_LaneMcpFixture):
             py.append("-B")
         argv = [*py, str(self.staged), "--config", str(cfg), *args]
         try:
-            return _Proc(
-                run(
+            return run(
                     argv,
                     cwd=self.cwd,
                     env=self.env(extra_env),
                     stdin=stdin,
                     timeout=cap,
                 )
-            )
         except Timeout as exc:
             self.fail(f"timed out: {argv}: {exc}")
 

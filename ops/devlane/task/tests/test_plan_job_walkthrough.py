@@ -59,33 +59,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptQuotesTheFirstRunWalkthrough(_PlanJob):
     """Every named environment, and the refusal beside each improvisation."""
 
-    def test_the_prompt_asks_for_a_walkthrough_of_the_first_run(self):
-        self.assertIn(WALKTHROUGH, self.words())
-
-    def test_the_walkthrough_names_the_snapshots_isolated_home(self):
-        self.assertIn(ISOLATED_HOME, self.words())
-
-    def test_the_walkthrough_names_what_tools_then_cannot_find(self):
-        self.assertIn(TOOLS_CANNOT_FIND, self.words())
-
-    def test_the_walkthrough_names_no_network(self):
-        self.assertIn(NO_NETWORK, self.words())
-
-    def test_the_walkthrough_names_the_read_only_git_directory(self):
-        self.assertIn(READ_ONLY_GIT, self.words())
-
-    def test_the_walkthrough_names_each_job_prompts_demands(self):
-        self.assertIn(JOB_PROMPT_DEMANDS, self.words())
-
-    def test_the_walkthrough_names_the_self_hosted_runners_workspace(self):
-        self.assertIn(RUNNER_WORKSPACE, self.words())
-
-    def test_the_walkthrough_names_where_a_worker_could_improvise(self):
-        self.assertIn(IMPROVISE, self.words())
-
-    def test_each_improvisation_point_has_its_refusal_written_beside_it(self):
-        self.assertIn(REFUSAL_BESIDE, self.words())
-
     def test_every_walkthrough_sentence_is_present_together(self):
         required = (
             WALKTHROUGH,

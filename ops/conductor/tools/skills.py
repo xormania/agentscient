@@ -33,6 +33,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import Refusal, emit, identity, refuse, session, stamp, state_dir
 except ModuleNotFoundError:
     print(
@@ -77,10 +78,9 @@ def db_path():
     return state_dir() / "skills.db"
 
 
-def con_():
+def con_() -> sqlite3.Connection:
     path = db_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(path)
+    con = instrument.connect_store(path, mode="rwc")
     con.execute("""CREATE TABLE IF NOT EXISTS skills(
         name TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT,
         description TEXT, status TEXT NOT NULL DEFAULT 'active',

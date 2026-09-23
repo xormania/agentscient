@@ -163,14 +163,14 @@ class SharedEnforcement(unittest.TestCase):
                 cwd.mkdir()
                 kwargs = {"source": root, "cwd": cwd, "home": home, "session": "issued-" + harness,
                           "agent": "Fixture <f@invalid>", "executable": "/usr/bin/true"}
-                _, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                worker_profile, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
                 capability = binding.get("coordination_capability")
                 self.assertIsInstance(capability, str)
                 self.assertRegex(capability, r"^[0-9a-f]{64}$")
                 self.assertNotIn(capability, seen)
                 seen.add(capability)
                 self.assertEqual(Path(binding["binding"]).stat().st_mode & 0o777, 0o600)
-                command, env = profiles.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
+                command, env = worker_profile.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
                 self.assertEqual(env["COORDINATION_CAPABILITY"], capability)
                 self.assertNotIn(capability, str(command))
                 for path in (binding["helper"], *binding["config_pins"]):
@@ -180,9 +180,9 @@ class SharedEnforcement(unittest.TestCase):
                 new = old.with_name(old.name + "-moved")
                 shutil.move(old, new)
                 kwargs.update(home=new / "home", cwd=new / "snapshot", relocated_from=old)
-                _, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
+                moved_profile, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
                 self.assertEqual(moved["coordination_capability"], capability)
-                profiles.validate(moved)
+                moved_profile.validate(moved)
 
     def test_coordination_capability_missing_or_malformed_refuses_profile(self):
         root = Path(__file__).resolve().parents[4]

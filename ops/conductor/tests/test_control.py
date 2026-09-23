@@ -58,12 +58,6 @@ def action(id, kind, argv, requires=(), tests=(), producer=AUTHOR, timeout=5):
     }
 
 
-def _completed(result):
-    return subprocess.CompletedProcess(
-        list(result.argv), result.exit, result.stdout, result.stderr
-    )
-
-
 class ControlTests(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="control-")
@@ -86,15 +80,13 @@ class ControlTests(unittest.TestCase):
     def cp(self, *args, agent=AUTHOR, timeout=RUN_CAP, input=None):
         extra = {"WF_AGENT": agent} if agent is not None else None
         env = self.world.env(extra=extra)
-        return _completed(
-            run(
+        return run(
                 [sys.executable, str(CONTROL), *args],
                 cwd=self.repo,
                 env=env,
                 stdin=input,
                 timeout=timeout,
             )
-        )
 
     def plan(self, actions, max_seconds=20):
         scope = (self.repo / "SCOPE.md").read_bytes()
@@ -350,15 +342,13 @@ class ControlTests(unittest.TestCase):
             payload = json.dumps(
                 {"tool_name": tool, "tool_input": inp, "cwd": str(self.repo)}
             )
-            return _completed(
-                run(
+            return run(
                     [sys.executable, str(HOOK), "--state", str(self.state)],
                     stdin=payload,
                     cwd=self.repo,
                     env=self.world.env(),
                     timeout=5,
                 )
-            )
 
         for tool, inp in [
             ("Read", {"file_path": str(self.repo / "SCOPE.md")}),

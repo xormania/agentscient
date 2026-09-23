@@ -50,25 +50,6 @@ BAD_MONITOR = "malformed_refs"
 OK_MONITOR = "healthy_refs"
 
 
-class _CompletedResult(Result):
-    """Kit result with the legacy fixture family's return-code spelling."""
-
-    @property
-    def returncode(self) -> int:
-        return self.exit
-
-
-def _completed(result: Result) -> _CompletedResult:
-    return _CompletedResult(
-        result.argv,
-        result.exit,
-        result.stdout,
-        result.stderr,
-        result.duration,
-        result.cwd,
-    )
-
-
 class _MalformedGitFixture(_GitRefsFixture):
     """Healthy git-refs sibling plus a planted malformed `.git` file."""
 
@@ -195,7 +176,7 @@ class _MalformedGitFixture(_GitRefsFixture):
             )
         except Timeout as exc:
             self.fail(f"monitor exceeded timeout: {exc}")
-        return _completed(result)
+        return result
 
     def _chmod(self, path: Path, mode: int) -> None:
         previous = stat.S_IMODE(path.stat().st_mode)

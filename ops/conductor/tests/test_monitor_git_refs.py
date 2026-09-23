@@ -45,25 +45,6 @@ PIPE_CAP = 1048576
 OID_RE = r"^[0-9a-f]{40}([0-9a-f]{24})?$"
 
 
-class _CompletedResult(Result):
-    """The inherited fixture still reads CompletedProcess.returncode."""
-
-    @property
-    def returncode(self) -> int:
-        return self.exit
-
-    @classmethod
-    def from_result(cls, result: Result) -> _CompletedResult:
-        return cls(
-            result.argv,
-            result.exit,
-            result.stdout,
-            result.stderr,
-            result.duration,
-            result.cwd,
-        )
-
-
 class _GitArgvLog:
     """Legacy array-lines view over the kit fake registry's call log."""
 
@@ -196,7 +177,7 @@ class _GitRefsFixture(_MonitorFixture):
                 0,
                 f"git {args} in {repo}: {proc.stderr or proc.stdout}",
             )
-        return _CompletedResult.from_result(proc)
+        return proc
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         self.world.plant_bytes(path, data)
@@ -248,7 +229,7 @@ class _GitRefsFixture(_MonitorFixture):
         cwd: Path | None = None,
         timeout: int | float | None = None,
         new_session: bool = False,
-    ) -> _CompletedResult:
+    ) -> Result:
         env = self.env(agent=agent, extra=extra)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
@@ -260,7 +241,7 @@ class _GitRefsFixture(_MonitorFixture):
             env=env,
             timeout=20 if timeout is None else timeout,
         )
-        return _CompletedResult.from_result(result)
+        return result
 
     def assert_one_ls_remote(self, repo: Path) -> list[str]:
         rows = self.ls_remote_argvs()

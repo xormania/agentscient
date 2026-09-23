@@ -65,10 +65,26 @@ its sources. Three primitives and one pattern on them:
   stderr, duration, cwd), one timeout policy: expiry kills and reaps the
   child and raises, naming the argv. A result reads its own refusal line
   into class, expected, found and needed.
+  Family helpers return this same `Result`, preserving its timing and
+  working directory. The read-only `returncode` spelling aliases `exit`
+  for existing assertions; helpers do not copy it into CompletedProcess
+  objects or family-specific result classes. Refusal helpers delegate to
+  `Result.refusal` or `refusal_wire` before checking domain-specific details.
+- **Checks** (`checks.py`): immutable name, argv, required inputs and timeout;
+  `execute_checks` preflights a complete plan and returns named `Result`s from
+  `run`, serially or concurrently. Missing inputs, duplicate names and empty
+  plans refuse. `suite_checks` proves a file partition and uses `suite.py`
+  for unittest discovery that rejects zero collected cases. Domain check
+  definitions stay outside the kit. The dev-lane adapter and its full/partial
+  distinction are specified in
+  [CONTRACT-ci.md](../ops/devlane/workflow/checks/CONTRACT-ci.md).
 - **Tools** (`fakes.py`, `fake_program.py`): one fake registry driven by
   data. A planted tool answers by argv from its spec, injects failure by
   data, and appends one JSON line per call to an append-only log. A
   wrapped real tool is logged the same way.
+  A custom executable that needs more than a response table lives in the
+  family's fixture directory and is planted through that registry. Its
+  program bytes are not embedded in a support module.
 - **cases** (`cases.py`): a case table addresses rows by id, never by
   count. `refusal_wire` asserts the wire on one row; `calibrate` runs a
   table against its planted faults and reports caught and quiet per
@@ -109,6 +125,19 @@ refusal, and the kit's own suite proves it from a temporary directory.
    case that pins a schema word, a mock's shape, a name, or an assertion
    that cannot fail is a declared gap wearing a pass; it is rewritten to
    run the subject against a planted fault, or dropped.
+
+Shared setup belongs in a fixture class with no `test_` methods. Inherit
+test methods only when the child deliberately changes the subject or
+inputs; borrowing helpers must not rerun the parent's cases. Generated
+case registration must not leave another module-level name bound to the
+same TestCase class: unittest discovers that alias too, even if its name
+starts with an underscore.
+
+Before retiring repeated checks, compare their fixtures and inputs as
+well as their assertions. Keep one owner for the behavior and record
+which retained case covers each removal. An existing comprehensive case
+can replace its repeated individual assertions; moving distinct scenarios
+into one method merely to lower the reported count is not a reduction.
 
 ## Invariants
 

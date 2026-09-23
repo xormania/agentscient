@@ -18,12 +18,11 @@ The fixture is the existing wrapper harness; this module does not restyle it.
 from __future__ import annotations
 
 import re
-import subprocess
 import unittest
 
 import test_dispatch_wrapper as wrap
 
-from ops.testkit import World, run
+from ops.testkit import Result, World, run
 
 # CONTRACT.md §Verbs: key shape accepted on the declared field.
 # The wrapper is pass-through; tests plant keys of that shape.
@@ -53,13 +52,6 @@ def flag_values(argv: list[str], flag: str) -> list[str]:
     return values
 
 
-def _completed(result):
-    """The kit's Result in the shape the wrapper fixture's parsers read."""
-    return subprocess.CompletedProcess(
-        list(result.argv), result.exit, result.stdout, result.stderr,
-    )
-
-
 class DispatcherAnswers(wrap._WrapperFixture):
     """Item 2 field on the wrapper; item 1 needs one review follow."""
 
@@ -78,15 +70,15 @@ class DispatcherAnswers(wrap._WrapperFixture):
     def invoke(self, flags, *, extra_env=None, timeout=30):
         argv = ["bash", str(wrap.WRAPPER), *flags]
         if not wrap.WRAPPER.is_file():
-            return subprocess.CompletedProcess(
-                args=argv, returncode=0, stdout="", stderr="",
+            return Result(
+                argv=tuple(argv), exit=0, stdout="", stderr="", duration=0.0, cwd=str(wrap.REPO),
             )
-        return _completed(run(
+        return run(
             argv,
             cwd=str(wrap.REPO),
             env=self.env(extra_env),
             timeout=timeout if timeout is not None else 30,
-        ))
+        )
 
     def answers_flags(self, answers: list[str], *extra: str, **kw) -> list[str]:
         self.assertTrue(answers, "plant: answers must be non-empty")

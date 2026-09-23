@@ -51,15 +51,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptQuotesTestsByFileAndWhyRed(_PlanJob):
     """The plan lists tests by file and the reason each is red at the ref."""
 
-    def test_the_plan_names_the_tests_by_file(self):
-        self.assertIn(TESTS_BY_FILE, self.words())
-
-    def test_the_plan_says_why_each_is_red_at_the_ref(self):
-        self.assertIn(WHY_RED, self.words())
-
-    def test_tests_by_file_and_why_red_are_one_deliverable_clause(self):
-        self.assertIn(FULL, self.words())
-
     def test_every_reds_sentence_is_present_together(self):
         required = (TESTS_BY_FILE, WHY_RED, FULL)
         self.assertGreater(len(required), 0)
