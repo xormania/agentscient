@@ -18,12 +18,14 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from live_store_guard import assert_unchanged, without_new_job_dirs
 
@@ -37,6 +39,7 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
 SIBLINGS = ("instrument.py", "laneconf.py")
 
 BRANCH = "onboard-lineage"
+ORIGIN_146 = "LD-146"
 REPO_USER = "Repo Config"
 REPO_EMAIL = "repo-config@example.invalid"
 RUN_CAP = 30
@@ -987,6 +990,61 @@ class TheLockLine(_OnboardFixture):
         self.assertNotIn("lock: none", stdout)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
+    def plant_unmeasured_lock(self) -> Path:
+        """The real lever beside the brief, and a lock whose one target's
+        measure is a logged tool that would answer after a minute."""
+        tools = self.repo / "ops" / "conductor" / "tools"
+        for name in ("deliverable.py", "instrument.py", "laneconf.py"):
+            self._plant_bytes(tools / name, (TOOL.parent / name).read_bytes())
+        measure = self.world.tools.plant("slow-measure", stdout="never\n", exit=0, delay=60)
+        lock = self.store.parent / "deliverable.json"
+        self.world.plant_text(lock, json.dumps({
+            "branches": ["lane/planted"], "why": "planted",
+            "targets": {"lane/planted": {"measure": str(measure), "until": "never"}},
+        }) + "\n")
+        return lock
+
+    def test_the_brief_reads_the_lock_unmeasured_inside_its_bound(self):
+        """origin: LD-146
+
+        A lock whose measure is slow no longer holds the brief: the lock
+        is read with ``show --unmeasured``, every target reads unmeasured,
+        and the measure is never run. The bound here is 3 s then 6 s."""
+        self.ready()
+        self.plant_unmeasured_lock()
+        with self.subTest(id="onboard-lock-unmeasured", origin=ORIGIN_146):
+            proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "3",
+                                          "ONBOARD_RETRY_TIMEOUT": "6"})
+            stdout = proc.stdout or ""
+            self.assertEqual(self.labelled_line(stdout, "target lane/planted"),
+                             "target lane/planted: until never; reading unmeasured; unmeasured")
+            self.assertIn("lane/planted", self.labelled_line(stdout, "lock"))
+            self.assertEqual(self.world.tools.calls("slow-measure"), [])
+            self.assertEqual(self.last_line(stdout), "brief complete")
+            self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_brief_asks_the_lever_for_show_unmeasured(self):
+        """origin: LD-146
+
+        The argv the brief gives the lever: a logged lever answers the lock
+        to ``show --unmeasured`` at once and to any other argv after a
+        minute, so a brief that asks for the measured form is unreachable."""
+        self.ready()
+        self.plant_lock()
+        fake = self.world.tools.plant(
+            "deliverable-argv", stdout=LOCK_STDOUT, exit=0, delay=60,
+            responses=[{"match": ["show --unmeasured"], "stdout": LOCK_STDOUT, "exit": 0, "delay": 0}],
+        )
+        for folder in (self.staged.parent, self.repo / "ops" / "conductor" / "tools"):
+            self._plant_bytes(folder / "deliverable.py", fake.read_bytes())
+        with self.subTest(id="onboard-lock-unmeasured-argv", origin=ORIGIN_146):
+            proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "3",
+                                          "ONBOARD_RETRY_TIMEOUT": "6"})
+            argvs = [row["argv"] for row in self.world.tools.calls("deliverable-argv")]
+            self.assertEqual(argvs, [["show", "--unmeasured"]])
+            self.assertIn("lane/session-a", self.labelled_line(proc.stdout or "", "lock"))
+            self.assertEqual(proc.exit, 0, self.combined(proc))
+
 
 class MissingLaw(_OnboardFixture):
     """2. A missing law file prints ABSENT and counts it; exit 1."""
@@ -1588,6 +1646,108 @@ class HandoffsSection(_OnboardFixture):
         self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.exit, 1, self.combined(proc))
+
+
+class TheMemberBrief(_OnboardFixture):
+    """LD-146: a brief run in a member, whose HOME is its private home and
+    whose launch binding names the operator's HOME and state root as its
+    authority, reads the stores where its siblings read them. The world's
+    repository is the binding's source: it carries the policy closure the
+    binding pins, the real brief and instrument, and the planted siblings.
+    The binding is generated after the tree is final, since validate
+    refuses a closure that changed after it."""
+
+    def plant_closure(self) -> None:
+        hooks = Path("ops") / "devlane" / "hooks"
+        names = [hooks / "claude" / p.name for p in (REPO / hooks / "claude").glob("*.py")]
+        names += [hooks / n for n in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
+        names += [Path("ops/conductor/tools") / n for n in ("onboard.py", *SIBLINGS, *HANDOFF_SIBLINGS)]
+        names += [Path("ops/devlane/harness/isolation.py")]
+        for name in names:
+            self._plant_bytes(self.repo / name, (REPO / name).read_bytes())
+        self.world.plant_text(self.repo / "ops" / "lane.conf", "LANE_NAME='agentscient'\n")
+
+    def plant_handoff(self) -> None:
+        """One package and one thread in the authority's state store, by
+        the real manager under the fixture's own HOME."""
+        env = self.env()
+        env["WF_AGENT"] = HANDOFF_AGENT
+        tool = self.repo / "ops" / "conductor" / "tools" / "handoff.py"
+        for argv in (("open", HANDOFF_TITLE, "--summary", "what was left"),
+                     ("thread", "H-1", THREAD_TITLE, "--body", "pick it up", "--to", "next session")):
+            proc = run([sys.executable, str(tool), *argv], cwd=self.repo, env=env, timeout=RUN_CAP)
+            self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertTrue((self.store.parent / "state.db").is_file(), "INVALID: store not planted")
+
+    def bind_member(self) -> tuple[Path, Path]:
+        """A grok interactive binding generated with the fixture's HOME as
+        the authority; the member's private home holds none of the stores."""
+        private = self.root / "private"
+        private.mkdir()
+        spec = importlib.util.spec_from_file_location(
+            "member_profiles", self.repo / "ops" / "devlane" / "hooks" / "profiles.py")
+        profiles = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(profiles)
+        authority = {"HOME": str(self.home), "XDG_STATE_HOME": str(self.home / ".local" / "state")}
+        with mock.patch.dict(os.environ, authority):
+            binding = profiles.generate("grok", self.root / "profile", source=self.repo,
+                                        cwd=self.repo, mode="interactive", home=private)
+        self.assertFalse((private / ".local").exists(), "INVALID: the private home holds a store")
+        return private, Path(binding["binding"])
+
+    def invoke_member(self, private: Path, binding: Path):
+        env = self.world.env({"LANE_CONF": str(self.repo / "ops" / "lane.conf")})
+        env.pop("XDG_STATE_HOME", None)
+        env.update({"HOME": str(private), "GROK_HOME": str(private),
+                    "AGENTSCIENT_HOOK_PROFILE": str(binding)})
+        self.assertNotIn("WF_AGENT", env)
+        return run([sys.executable, str(self.repo / "ops" / "conductor" / "tools" / "onboard.py")],
+                   cwd=self.repo, env=env, timeout=RUN_CAP)
+
+    def test_the_ledger_reads_the_authority_homes_store(self):
+        """origin: LD-146
+
+        The handwork store under the binding's authority HOME is the one
+        read; the member's own HOME holds none."""
+        self.ready()
+        self.plant_closure()
+        private, binding = self.bind_member()
+        with self.subTest(id="onboard-ledger-authority-home", origin=ORIGIN_146):
+            proc = self.invoke_member(private, binding)
+            stdout = proc.stdout or ""
+            ledger = self.labelled_line(stdout, "ledger")
+            self.assertNotIn("ABSENT", ledger)
+            self.assertIn("status: open=2, settled=4", ledger)
+            self.assertEqual(self.last_line(stdout), "brief complete")
+            self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_state_roots_follow_the_binding(self):
+        """origin: LD-146
+
+        The lock, the dispatch store and the handoff store under the
+        binding's XDG_STATE_HOME are the ones read, never the private
+        home's."""
+        self.ready()
+        self.world.plant_text(self.store.parent / "deliverable.json",
+                              '{"branches": ["lane/session-a"], "why": "planted"}\n')
+        self.plant_closure()
+        self.plant_handoff()
+        private, binding = self.bind_member()
+        with self.subTest(id="onboard-state-roots-follow-binding", origin=ORIGIN_146):
+            proc = self.invoke_member(private, binding)
+            stdout = proc.stdout or ""
+            lock = self.labelled_line(stdout, "lock")
+            self.assertIn("lane/session-a", lock)
+            dispatches = self.labelled_line(stdout, "dispatches")
+            self.assertIn(RUNNING_ID, dispatches)
+            self.assertNotIn(str(private), dispatches)
+            self.assertEqual(self.labelled_line(stdout, "handoffs"),
+                             "handoffs: open=1 taken=0 done=0")
+            self.assertIn(f"T-1 open [H-1] {THREAD_TITLE}", stdout)
+            self.assertNotIn(str(private), stdout)
+            self.assertEqual(self.last_line(stdout), "brief complete")
+            self.assertEqual(proc.exit, 0, self.combined(proc))
+
 
 class ReadsThatCouldNotLook(_OnboardFixture):
     """Origin LD-48, the gap its repair declared: the lock line learned to
