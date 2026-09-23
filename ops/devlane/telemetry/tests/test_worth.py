@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from ops.testkit import Result, World, run
+from ops.testkit import World, run
 
 HERE = Path(__file__).resolve()
 APP = HERE.parents[2]
@@ -30,14 +30,6 @@ NOW = "2026-08-22T12:00:00.000Z"
 DEFAULT_SINCE = "2026-08-21T12:00:00.000Z"
 WINDOW_SINCE = "2026-08-22T12:00:00.000Z"
 WINDOW_UNTIL = "2026-08-22T12:05:00.000Z"
-
-
-class WorthResult(Result):
-    """Kit Result with the CompletedProcess.returncode name assertions use."""
-
-    @property
-    def returncode(self):
-        return self.exit
 
 
 def iso_epoch(value):
@@ -116,23 +108,14 @@ class WorthContractTests(unittest.TestCase):
             })
         return self.world.env(extra)
 
-    def _wrap(self, result):
-        return WorthResult(
-            result.argv,
-            result.exit,
-            result.stdout,
-            result.stderr,
-            result.duration,
-            result.cwd,
-        )
 
     def _git(self, *args, when=None, check=True):
-        proc = self._wrap(run(
+        proc = run(
             ["git", *args],
             cwd=self.repo,
             env=self._git_env(when),
             timeout=TIMEOUT,
-        ))
+        )
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -394,12 +377,12 @@ class WorthContractTests(unittest.TestCase):
             str(self.grok),
         ]
         self.assertEqual(cmd.count("--now"), 1)
-        return self._wrap(run(
+        return run(
             cmd,
             cwd=self.world.cwd,
             env=self.world.env({"TZ": "Etc/GMT+11"}),
             timeout=TIMEOUT,
-        ))
+        )
 
     def _json_worth(self, verb, *args, now=NOW, repo=None):
         proc = self._run_worth(

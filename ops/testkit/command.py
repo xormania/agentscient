@@ -57,6 +57,11 @@ class Result:
     cwd: str
 
     @property
+    def returncode(self) -> int:
+        """The subprocess spelling, without a second result object."""
+        return self.exit
+
+    @property
     def lines(self) -> list[str]:
         return [ln for ln in self.stderr.splitlines() if ln.strip()]
 

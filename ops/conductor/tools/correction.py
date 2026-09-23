@@ -16,6 +16,7 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import Refusal, emit, refuse, state_dir
 except ModuleNotFoundError:
     print(
@@ -151,7 +152,7 @@ def _answer_row(key, at, root, scope_path, review_ids):
             at,
         )
     try:
-        con = sqlite3.connect(f"file:{store}?mode=ro", uri=True)
+        con = instrument.connect_store(store)
         con.row_factory = sqlite3.Row
         try:
             row = con.execute(

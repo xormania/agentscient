@@ -4,7 +4,6 @@ anchor guard, calibrate and sidebyside (docs/tests.md rules 2 and 3)."""
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -78,10 +77,10 @@ class Mutants(unittest.TestCase):
                 apply(Mutant("M-twice", REFUSER_REL, "sys", "x"), world.root)
             self.assertEqual(copy.read_bytes(), support.REFUSER.read_bytes(), "a refused mutant changes nothing")
             mutants = write_mutants(world.root / "faults.py", [Mutant("M-absent", REFUSER_REL, "no such anchor text", "x")])
-            proc = subprocess.run(
+            proc = run(
                 [sys.executable, str(support.KIT / "cases.py"), "calibrate", "--subject", REFUSER_REL,
                  "--mutants", str(mutants), "--command", "true", "--repo", str(support.REPO)],
-                cwd=str(support.REPO), capture_output=True, text=True, check=False, timeout=600,
+                cwd=support.REPO, env=world.env(), timeout=600,
             )
             self.assertEqual(proc.returncode, 2, proc.stderr)
             self.assertEqual(proc.stdout, "")
@@ -90,9 +89,9 @@ class Mutants(unittest.TestCase):
 
     def test_main_refuses_arguments_on_the_wire(self):
         for argv in ([], ["bogus"], ["calibrate", "--subject"], ["sidebyside", "--subject", "x"]):
-            with self.subTest(argv=argv):
-                proc = subprocess.run([sys.executable, str(support.KIT / "cases.py"), *argv],
-                                      cwd=str(support.REPO), capture_output=True, text=True, check=False, timeout=60)
+            with self.subTest(argv=argv), World() as world:
+                proc = run([sys.executable, str(support.KIT / "cases.py"), *argv],
+                           cwd=support.REPO, env=world.env(), timeout=60)
                 self.assertEqual(proc.returncode, 2)
                 self.assertRegex(proc.stderr.strip(), r"^arguments: expected .+; found .+; needed .+$")
                 self.assertEqual(proc.stdout, "")

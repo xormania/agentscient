@@ -49,6 +49,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import coordination
+    import instrument
     import machine
     from coordination import ROLES
     from instrument import (
@@ -287,8 +288,7 @@ def reader() -> sqlite3.Connection | None:
     if not path.is_file():
         return None
     try:
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                               timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
         held = {row["name"] for row in
                 conn.execute("SELECT name FROM sqlite_schema WHERE type = 'table'")}
@@ -322,8 +322,7 @@ def coordination_reader() -> sqlite3.Connection | None:
     if not path.is_file():
         return None
     try:
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                               timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.DatabaseError:
