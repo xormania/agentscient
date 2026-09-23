@@ -232,8 +232,9 @@ class _Trial(unittest.TestCase):
     def bind_lead(self) -> str:
         return self.bind(LEAD_SESSION, "lead,coordinator", capability=self.capability_of(LEAD_SESSION))
 
-    def start_co(self) -> str:
-        started = self.sessions("start", "--member", "co", "--team", str(self.team_path),
+    def start_co(self, member: str = "co") -> str:
+        """Start one member in a new run as the lead; the run id."""
+        started = self.sessions("start", "--member", member, "--team", str(self.team_path),
                                 "--ready-timeout", str(READY), session=LEAD_SESSION)
         match = re.search(r"\b(R-\d+)\b", started.stdout)
         self.assertIsNotNone(match, started.stdout + started.stderr)
@@ -246,6 +247,28 @@ class _Trial(unittest.TestCase):
 
     def run_dir(self, run_id: str) -> Path:
         return self.state / "runs" / run_id
+
+    def started_at(self, run_id: str) -> str:
+        with sqlite3.connect((self.state / "state.db").as_uri() + "?mode=ro", uri=True) as conn:
+            return conn.execute("SELECT started_at FROM session_run WHERE id = ?",
+                                (int(run_id[2:]),)).fetchone()[0]
+
+    def plant_launch(self, run_id: str, record: str = RECORD_ID) -> None:
+        """One intent that reached `record`, requested and dispatched by the
+        run's starter PT-1, reserved at the run's start, its record directory
+        under the jobs root (e0cee144: an intent that reached a record)."""
+        spec = importlib_spec(TOOLS / "dispatch_intents.py")
+        (self.world.root / "jobs" / record).mkdir(parents=True)
+        started = self.started_at(run_id)
+        with sqlite3.connect(self.state / "state.db") as conn:
+            conn.executescript(spec.SCHEMA)
+            serial = conn.execute("SELECT COUNT(*) FROM dispatch_intents").fetchone()[0] + 1
+            conn.execute(
+                "INSERT INTO dispatch_intents(key, digest, requester, dispatcher, assignment, generation,"
+                " job, harness, branch, scope_ref, inputs, correlation, subject, phase, record,"
+                " reserved_at, launched_at) VALUES (?, 'd1', 1, 1, 1, 1, 'review', 'claude',"
+                " 'lane/trial', 'scope', '[]', ?, ?, 'launched', ?, ?, ?)",
+                (f"k{serial}", f"corr-trial-{serial}", 990000 + serial, record, started, started))
 
 
 class TheObjective(_Trial):
@@ -626,23 +649,6 @@ class TheRunExport(_Trial):
         self.assertIn(stopped.exit, (0, 1), stopped.stderr)
         return run_id
 
-    def plant_launch(self, run_id: str) -> None:
-        """One intent that reached RECORD_ID, requested and dispatched by the
-        run's starter PT-1, reserved at the run's start, its record directory
-        under the jobs root (e0cee144: an intent that reached a record)."""
-        spec = importlib_spec(TOOLS / "dispatch_intents.py")
-        (self.world.root / "jobs" / RECORD_ID).mkdir(parents=True)
-        with sqlite3.connect(self.state / "state.db") as conn:
-            started = conn.execute("SELECT started_at FROM session_run WHERE id = ?",
-                                   (int(run_id[2:]),)).fetchone()[0]
-            conn.executescript(spec.SCHEMA)
-            conn.execute(
-                "INSERT INTO dispatch_intents(key, digest, requester, dispatcher, assignment, generation,"
-                " job, harness, branch, scope_ref, inputs, correlation, subject, phase, record,"
-                " reserved_at, launched_at) VALUES ('k1', 'd1', 1, 1, 1, 1, 'review', 'claude',"
-                " 'lane/trial', 'scope', '[]', 'corr-trial-1', 990001, 'launched', ?,"
-                " ?, ?)", (RECORD_ID, started, started))
-
     def test_a_complete_export_names_every_pane_log_and_record_id(self):
         """origin: sessions-lever.md#slice-4 the run export
 
@@ -681,6 +687,61 @@ class TheRunExport(_Trial):
                             named=("co", "pane.log")),
                 result,
             )
+
+
+class TheExportWindow(_Trial):
+    """Two runs of one starter never share a launch (sessions-lever.md at
+    7ef98cd6): the window ends at the earliest of the stop request, the
+    starter's next run's ``started_at``, and the export's own stamp."""
+
+    def two_runs(self) -> tuple[str, str]:
+        """R-1 and R-2, both started by the lead, R-1 still open; a launch
+        reserved at each run's start."""
+        self.plant_team("co", "co2")
+        self.bind_lead()
+        first = self.start_co("co")
+        second = self.start_co("co2")
+        self.assertNotEqual(first, second)
+        self.plant_launch(first, "rec-window-r1")
+        self.plant_launch(second, "rec-window-r2")
+        return first, second
+
+    def exported(self, run_id: str) -> str:
+        done = self.sessions("export", run_id, "--to", str(self.world.tmp / f"export-{run_id}"))
+        self.assertEqual(done.exit, 0, done.stderr)
+        return done.stdout
+
+    def test_an_open_runs_export_omits_the_next_runs_launch(self):
+        """origin: sessions-lever.md#slice-4 the run export, at 7ef98cd6
+
+        R-1's export, taken while R-1 is open and after the same starter
+        started R-2, names R-1's launch and omits R-2's. Red until
+        started_participant counts the starter (8a1bc757).
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="export-window-next-run", origin=origin("the run export")):
+            first, _second = self.two_runs()
+            out = self.exported(first)
+            self.assertIn("rec-window-r1", out, out)
+            self.assertNotIn("rec-window-r2", out, out)
+
+    def test_a_launch_after_the_next_start_is_the_next_runs_alone(self):
+        """origin: sessions-lever.md#slice-4 the run export, at 7ef98cd6
+
+        R-1 stopped after R-2 started: the launch reserved at R-2's start is
+        R-2's alone, and R-1's own launch is R-1's alone. Red until
+        started_participant counts the starter (8a1bc757).
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="export-window-stopped-later", origin=origin("the run export")):
+            first, second = self.two_runs()
+            stopped = self.sessions("stop", "--terminate", "--run", first, session=LEAD_SESSION)
+            self.assertIn(stopped.exit, (0, 1), stopped.stderr)
+            one, two = self.exported(first), self.exported(second)
+            self.assertIn("rec-window-r1", one, one)
+            self.assertNotIn("rec-window-r2", one, one)
+            self.assertIn("rec-window-r2", two, two)
+            self.assertNotIn("rec-window-r1", two, two)
 
 
 class TheTrialRecord(unittest.TestCase):
