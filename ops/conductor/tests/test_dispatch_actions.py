@@ -23,8 +23,8 @@ import os
 import re
 import sqlite3
 import sys
-import uuid
 import unittest
+import uuid
 from pathlib import Path
 
 from ops.testkit import RefusalCase, World, refusal_wire, run
@@ -154,7 +154,7 @@ class DispatchActions(unittest.TestCase):
         return name, [str(part) for part in table[name]]
 
     def _scope_cap(self) -> int:
-        match = re.search(r"^SCOPE_CAP='(\d+)'\s*$", self.conf.read_text(encoding="utf-8"), re.M)
+        match = re.search(r"^SCOPE_CAP='(\d+)'\s*$", self.conf.read_text(encoding="utf-8"), re.MULTILINE)
         self.assertIsNotNone(match, "the planted conf declares SCOPE_CAP")
         return int(match.group(1))
 
@@ -559,13 +559,13 @@ class DispatchActions(unittest.TestCase):
         origin = f"{ORIGIN} refusal store"
         with self.subTest(id="store-unwritable", origin=origin):
             self.assertTrue(self.state.is_dir(), self.state)
-            os.chmod(self.state, 0o555)
+            os.chmod(self.state, 0o500)
             try:
                 proc = self.launch(key="store-ask")
                 self.refuses(proc, "store-unwritable", "store", origin)
                 self.assertEqual(self.intent_count(), 0)
             finally:
-                os.chmod(self.state, 0o755)
+                os.chmod(self.state, 0o700)
 
     def test_a_non_executable_wrapper_refuses_launcher(self):
         """origin: sessions-lever.md#slice-3 programs"""
