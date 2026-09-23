@@ -722,6 +722,25 @@ def _rebuild(job, parsed, manifest, started, raw, spend,
     )
 
 
+def _bounded_timeout(definition, runtime):
+    """A direct job's timeout: the runtime's, bounded by the job's own
+    caps.timeout, and the cap when the runtime names none (dispatch
+    CONTRACT.md; 20260923T000804Z-review-codex-da66dd#3). With no cap and
+    no runtime value the old 300 stands; a value that is not a number is
+    passed through for verify.check to refuse."""
+    def numeric(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    requested = runtime.get("timeout")
+    caps = definition.get("caps")
+    cap = caps.get("timeout") if isinstance(caps, dict) else None
+    if not numeric(cap):
+        return 300 if requested is None else requested
+    if requested is None:
+        return cap
+    return min(requested, cap) if numeric(requested) else requested
+
+
 def _direct(require, runtime, manifest):
     """Delegate while supplying provenance verify's API cannot accept."""
     def raw_artifact():
@@ -1245,7 +1264,8 @@ def run(job, *, context, require, runtime, jobs=None,
         # Direct verification owns its envelope, including zero token spend;
         # rebuilding it here would make delegation only approximate.
         try:
-            return _direct(require, runtime, manifest)
+            bounded = dict(runtime, timeout=_bounded_timeout(definition, runtime))
+            return _direct(require, bounded, manifest)
         except (OSError, TypeError, ValueError) as exc:
             return _invalid(
                 job,
@@ -1315,7 +1335,8 @@ def main(argv=None) -> int:
             "effort": None,
             "role": arguments.role,
             "caps": {},
-            "timeout": 900,
+            # No timeout here: a direct job takes its own caps.timeout, and
+            # a harness job the runner's default (da66dd#3).
         },
     )
     print(json.dumps(result))
