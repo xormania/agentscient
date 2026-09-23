@@ -253,8 +253,7 @@ def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref
     part = the_dispatcher(conn, part)
     wrapper = intents.program("DISPATCH_WRAPPER", "launcher")
     launcher = intents.program("DISPATCH_LAUNCHER", "launcher")
-    spec = job_spec(job)
-    check_harness(harness)
+    intents.program("DISPATCH_MONITOR", "store")
     held = held_assignment(conn, assignment, branch)
     entries = input_entries(inputs)
     scope_ref = one_line(scope_ref, "--scope-ref")
@@ -278,11 +277,20 @@ def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref
     if repeated:
         return answer(found, repeated=True)
     di = found["id"]
+    # The job and the harness are judged after the row, so a refused ask
+    # is still a record (the contract's `reserved` -> `refused`).
+    try:
+        spec = job_spec(job)
+        check_harness(harness)
+    except Refusal as refusal:
+        intents.move(conn, di, "refuse-reserved", who, evidence=refusal.line(),
+                     error=refusal.line())
+        raise
     scope = intents.intent_dir(di) / "scope.txt"
     try:
         scope.parent.mkdir(parents=True, exist_ok=True)
-        scope.write_text(f"A-{aid} {job}: {scope_ref}; the assignment's text is the input "
-                         f"{entries[0]['path']}\n", encoding="utf-8")
+        scope.write_text(f"DI-{di} A-{aid} {job}: {scope_ref}; the assignment's text is the "
+                         f"input {entries[0]['path']}\n", encoding="utf-8")
     except OSError as error:
         line = f"scope file {scope}: {error.strerror}"
         intents.move(conn, di, "refuse-reserved", who, evidence=line, error=line)

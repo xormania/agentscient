@@ -4,13 +4,21 @@
 Contract: ops/conductor/sessions-lever.md, "Slice 3 — Dispatcher
 integration", the shapes. The table lives in the coordination core's
 store and is created here, through the core's own `writer()`; this
-module edits `coordination.py` nowhere. The place is the engine's
-(machine.py): `DI-n` is the subject id of machine `dispatch-intent`, as
-`A-n` and `M-n` are, and the `phase` column repeats the place inside the
-same transaction so a plain SELECT reads it.
+module edits `coordination.py` nowhere. `DI-n` is the table's own id; the
+place is the engine's (machine.py), on the subject the `subject` column
+names, and the `phase` column repeats the place inside the same
+transaction so a plain SELECT reads it.
 
-A library, not a command: `dispatch_actions.py` is its CLI and
-`dispatch_mcp.py` its MCP projection. Stdlib only.
+    dispatch_intents.py reserve --requester PT-n --dispatcher PT-n
+        --assignment A-n --key K --job J --harness H --branch B
+        --scope-ref TEXT --inputs PATH... [--correlation UUID]
+    dispatch_intents.py launch --correlation UUID
+    dispatch_intents.py mint --correlation UUID --record ID
+
+The three verbs move one intent a step at a time, for the Dispatcher
+alone; `dispatch_actions.py` is the launch that runs them in order with
+the wrapper between, and `dispatch_mcp.py` its MCP projection. Stdlib
+only.
 """
 
 from __future__ import annotations
@@ -30,7 +38,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import coordination
     import machine
-    from instrument import conf, refuse, stamp, state_dir
+    from instrument import Refusal, conf, emit, identity, refuse, stamp, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py, machine.py and coordination.py beside this tool; "
@@ -71,6 +79,7 @@ CREATE TABLE IF NOT EXISTS dispatch_intents(
     job TEXT NOT NULL, harness TEXT NOT NULL,
     branch TEXT NOT NULL, scope_ref TEXT NOT NULL,
     inputs TEXT NOT NULL, correlation TEXT NOT NULL UNIQUE,
+    subject INTEGER NOT NULL UNIQUE,
     phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
     launcher_ticks TEXT, reserved_at TEXT NOT NULL,
     launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
@@ -83,6 +92,15 @@ ROOT = Path(__file__).resolve().parents[3]
 # keys are iterated from this tuple so laneconf's closure check sees
 # each read (laneconf.py, `CONF_KEYS`).
 CONF_KEYS = ("DISPATCH_WRAPPER", "DISPATCH_LAUNCHER", "DISPATCH_MONITOR", "DISPATCH_CAPACITY")
+# The contract's defaults ("The programs it runs"), for a lane conf that
+# does not declare a key; a value it does declare, or the environment's,
+# always wins.
+DEFAULTS = {
+    "DISPATCH_WRAPPER": "ops/conductor/tools/dispatch.sh",
+    "DISPATCH_LAUNCHER": "ops/devlane/dispatch/launch.py",
+    "DISPATCH_MONITOR": "ops/conductor/tools/monitor.py",
+    "DISPATCH_CAPACITY": "6",
+}
 # What each move writes beside the place, in the move's own transaction.
 STAMPED = {"mint": "launched_at", "reconcile": "launched_at", "close": "closed_at"}
 
@@ -141,7 +159,7 @@ def row(conn, di: int):
     found = None
     if conn is not None:
         found = conn.execute(
-            "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+            "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "
             "WHERE i.id = ?", (di,)).fetchone()
     if found is None:
         refuse("unknown", "an intent id in the store", f"DI-{di}",
@@ -151,26 +169,36 @@ def row(conn, di: int):
 
 def by_key(conn, requester: int, key: str):
     return conn.execute(
-        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "
         "WHERE i.requester = ? AND i.key = ?", (requester, key)).fetchone()
+
+
+def by_correlation(conn, correlation: str):
+    found = conn.execute(
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "
+        "WHERE i.correlation = ?", (correlation,)).fetchone()
+    if found is None:
+        refuse("unknown", "an intent with this correlation in the store", correlation or "none",
+               "the correlation reserve printed")
+    return found
 
 
 def by_record(conn, record: str):
     return conn.execute(
-        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "
         "WHERE i.record = ?", (record,)).fetchone()
 
 
 def in_phases(conn, phases) -> list:
     marks = ",".join("?" for _ in phases)
     return conn.execute(
-        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.id "  # noqa: S608 - placeholders only
+        "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "  # noqa: S608 - placeholders only
         f"WHERE s.place IN ({marks}) ORDER BY i.id", tuple(phases)).fetchall()
 
 
 def reserve(conn, agent: str, *, key: str, digest: str, requester: int, dispatcher: int,
             assignment: int, generation: int, job: str, harness: str, branch: str,
-            scope_ref: str, inputs: list):
+            scope_ref: str, inputs: list, correlation: str | None = None):
     """The intent row at `reserved`: (row, repeated).
 
     The same (requester, key) with the same digest is the row already
@@ -185,12 +213,13 @@ def reserve(conn, agent: str, *, key: str, digest: str, requester: int, dispatch
         return repeat(existing, digest), True
     sid = machine.create(conn, INTENT, agent, note=f"key {key}")
     try:
-        conn.execute(
-            "INSERT INTO dispatch_intents(id, key, digest, requester, dispatcher, assignment, "
-            "generation, job, harness, branch, scope_ref, inputs, correlation, phase, "
+        cursor = conn.execute(
+            "INSERT INTO dispatch_intents(key, digest, requester, dispatcher, assignment, "
+            "generation, job, harness, branch, scope_ref, inputs, correlation, subject, phase, "
             "reserved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reserved', ?)",
-            (sid, key, digest, requester, dispatcher, assignment, generation, job, harness,
-             branch, scope_ref, json.dumps(inputs, sort_keys=True), str(uuid.uuid4()), stamp()),
+            (key, digest, requester, dispatcher, assignment, generation, job, harness,
+             branch, scope_ref, json.dumps(inputs, sort_keys=True),
+             correlation or str(uuid.uuid4()), sid, stamp()),
         )
     except sqlite3.IntegrityError:
         winner = by_key(conn, requester, key)
@@ -199,7 +228,7 @@ def reserve(conn, agent: str, *, key: str, digest: str, requester: int, dispatch
         if winner is None:
             raise
         return repeat(winner, digest), True
-    return row(conn, sid), False
+    return row(conn, cursor.lastrowid), False
 
 
 def repeat(existing, digest: str):
@@ -226,7 +255,8 @@ def move(conn, di: int, transition: str, agent: str, *, evidence: str, **columns
         conn.execute(f"UPDATE dispatch_intents SET {assignments} WHERE id = ?",  # noqa: S608 - names are this module's own
                      (*(updates[name] for name in names), di))
 
-    machine.move(conn, INTENT, di, transition, agent, evidence=evidence, gate=gate)
+    machine.move(conn, INTENT, row(conn, di)["subject"], transition, agent,
+                 evidence=evidence, gate=gate)
     return row(conn, di)
 
 
@@ -252,7 +282,17 @@ def intent_dict(found) -> dict:
 # -- the programs, the jobs root and the launcher's liveness ----------------
 
 def settings() -> dict:
-    return {key: conf(key) for key in CONF_KEYS}
+    found = {}
+    for key in CONF_KEYS:
+        try:
+            found[key] = conf(key)
+        except Refusal as refusal:
+            if refusal.kind != "conf-key":
+                raise
+            found[key] = DEFAULTS[key]
+        except KeyError:
+            found[key] = DEFAULTS[key]
+    return found
 
 
 def program(key: str, kind: str) -> list[str]:
@@ -329,3 +369,111 @@ def scan(correlation: str) -> list:
         if isinstance(data, dict) and data.get("correlation") == correlation:
             found.append((path.parent.name, path, data))
     return found
+
+
+# -- the verbs ---------------------------------------------------------------
+
+def usage() -> str:
+    return ("reserve --requester PT-n --dispatcher PT-n --assignment A-n --key K --job J "
+            "--harness H --branch B --scope-ref TEXT --inputs PATH... [--correlation UUID] "
+            "| launch --correlation UUID | mint --correlation UUID --record ID")
+
+
+def options(rest, *, required, optional=(), repeated=()) -> dict:
+    found = {}
+    index = 0
+    while index < len(rest):
+        word = rest[index]
+        name = word[2:].replace("-", "_") if word.startswith("--") else None
+        if name not in (*required, *optional, *repeated) or index + 1 >= len(rest):
+            refuse("arguments", usage(), word, usage())
+        if name in repeated:
+            found.setdefault(name, [])
+            index += 1
+            while index < len(rest) and not rest[index].startswith("--"):
+                found[name].append(rest[index])
+                index += 1
+            continue
+        if name in found:
+            refuse("arguments", f"--{word[2:]} once", f"--{word[2:]} twice", usage())
+        found[name] = rest[index + 1]
+        index += 2
+    missing = [name for name in (*required, *repeated) if not found.get(name)]
+    if missing:
+        refuse("arguments", usage(), "no --" + missing[0].replace("_", "-"), usage())
+    return found
+
+
+def the_dispatcher(conn):
+    part = coordination.bound_participant(conn)
+    coordination.require_role(part, ("dispatcher",))
+    return part
+
+
+def do_reserve(rest) -> int:
+    given = options(rest, required=("requester", "dispatcher", "assignment", "key", "job",
+                                    "harness", "branch", "scope_ref"),
+                    optional=("correlation",), repeated=("inputs",))
+    identity()
+    conn = writer()
+    part = the_dispatcher(conn)
+    requester = coordination.parse_id(given["requester"], ("PT",))[1]
+    dispatcher = coordination.parse_id(given["dispatcher"], ("PT",))[1]
+    aid = coordination.parse_id(given["assignment"], ("A",))[1]
+    assignment = coordination.assignment_row(conn, aid)
+    entries = []
+    for text in given["inputs"]:
+        path = Path(text).resolve()
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            refuse("arguments", "--inputs naming readable files", f"{text}: {error.strerror}",
+                   "name the files holding the assignment's text")
+        entries.append({"path": str(path), "sha256": hashlib.sha256(data).hexdigest()})
+    digest = digest_of(assignment=aid, job=given["job"], harness=given["harness"],
+                       branch=given["branch"], scope_ref=given["scope_ref"], inputs=entries)
+    found, repeated = reserve(
+        conn, coordination.actor(part), key=given["key"], digest=digest, requester=requester,
+        dispatcher=dispatcher, assignment=aid, generation=assignment["generation"],
+        job=given["job"], harness=given["harness"], branch=given["branch"],
+        scope_ref=given["scope_ref"], inputs=entries, correlation=given.get("correlation"))
+    print(f"intent DI-{found['id']} {found['place']} correlation {found['correlation']}"
+          + (" (repeated)" if repeated else ""))
+    return 0
+
+
+def do_step(verb, rest) -> int:
+    given = options(rest, required=("correlation", "record") if verb == "mint"
+                    else ("correlation",))
+    identity()
+    conn = writer()
+    part = the_dispatcher(conn)
+    found = by_correlation(conn, given["correlation"])
+    if verb == "mint":
+        found = move(conn, found["id"], "mint", coordination.actor(part),
+                     evidence=given["record"], record=given["record"])
+    else:
+        found = move(conn, found["id"], "launch", coordination.actor(part),
+                     evidence=f"by hand, correlation {found['correlation']}")
+    print(f"intent DI-{found['id']} {found['place']} record {found['record'] or 'none'}")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    try:
+        verb, rest = (argv[0], argv[1:]) if argv else ("", [])
+        if verb == "reserve":
+            return do_reserve(rest)
+        if verb in ("launch", "mint"):
+            return do_step(verb, rest)
+        refuse("arguments", "a verb: reserve, launch or mint", verb or "none", usage())
+    except Refusal as refusal:
+        return emit(refusal)
+    except sqlite3.DatabaseError as error:
+        return emit(Refusal("store", f"a usable store at {machine.store_path()}",
+                            f"{type(error).__name__}: {error}",
+                            "run again once the store is free"))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

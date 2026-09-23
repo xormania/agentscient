@@ -122,11 +122,15 @@ def one_pass(consumer: str) -> list:
     program = intents.program("DISPATCH_MONITOR", "store")
     base = state_dir() / "dispatch-events" / consumer
     config, state = base / "monitor.json", base / "monitor"
-    conn = intents.writer()
-    part = coordination.bound_participant(conn)
     send = sender()
+    # Reads first, on a read-only connection: a store another session
+    # holds for writing still yields the digest, and the batch then waits
+    # unacked for the writer below. A store with no intents yet is made
+    # by the writer, as before.
+    view = intents.reader() or intents.writer()
+    part = coordination.bound_participant(view)
     launched = [(found["id"], found["record"])
-                for found in intents.in_phases(conn, ("launched",)) if found["record"]][-MAX_IDS:]
+                for found in intents.in_phases(view, ("launched",)) if found["record"]][-MAX_IDS:]
     try:
         base.mkdir(parents=True, exist_ok=True)
         config.write_text(json.dumps(config_for(launched, consumer), indent=1) + "\n",
@@ -143,6 +147,7 @@ def one_pass(consumer: str) -> list:
         refuse("store", "the digest as JSON with events", "unreadable output",
                "repair the monitor, then run the pass again")
     lines = []
+    conn = intents.writer() if events else None
     for event in events:
         record = str(event.get("subject") or "")
         match = WORD.match(str(event.get("summary") or ""))
