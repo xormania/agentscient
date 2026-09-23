@@ -134,6 +134,7 @@ unit=''
 stage=''
 scope_file=''
 assignment=''
+correlation=''
 # Repeated --input flags preserve their order for launch.py's append action.
 inputs=()
 follows=()
@@ -159,7 +160,7 @@ usage() {
 usage: dispatch.sh --job JOB --harness {grok,codex,claude} --scope-file FILE (--branch BRANCH | --worktree DIR)
                    [--model MODEL] [--effort EFFORT] [--unit UNIT] [--stage STAGE]
                    [--input PATH]... [--follows RECORD_ID] [--timeout SECONDS] [--agent 'Name <address>']
-                   [--for ASSIGNMENT] [--dry-run] [--detach]
+                   [--for ASSIGNMENT] [--correlation UUID] [--dry-run] [--detach]
 One job to one harness through the branch's own launcher; --detach prints the
 record id and launcher pid and returns. Contract: ops/devlane/dispatch/CONTRACT.md.
 USAGE
@@ -178,6 +179,7 @@ while (($#)); do
         --stage) need_value "$@"; stage=$2; shift 2 ;;
         --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
         --for) need_value "$@"; assignment=$2; shift 2 ;;
+        --correlation) need_value "$@"; correlation=$2; shift 2 ;;
         --input) need_value "$@"; inputs+=("$2"); shift 2 ;;
         --follows) need_value "$@"; follows+=("$2"); shift 2 ;;
         --answers) need_value "$@"; answers+=("$2"); shift 2 ;;
@@ -298,6 +300,9 @@ argv=("$LAUNCHER_PIN" "$job" --harness "$harness" --model "$model" --ref "$ref")
 [[ -z $unit ]] || argv+=(--unit "$unit")
 [[ -z $stage ]] || argv+=(--stage "$stage")
 [[ -z $assignment ]] || argv+=(--for "$assignment")
+# The intent's join to its job directory (sessions-lever.md, slice 3):
+# passed through unchanged; launch.py writes it into state.json.
+[[ -z $correlation ]] || argv+=(--correlation "$correlation")
 argv+=(--scope "$scope")
 for input in "${inputs[@]}"; do
     argv+=(--input "$input")
