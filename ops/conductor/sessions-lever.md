@@ -987,7 +987,10 @@ that terminal's own profile home, `<state dir>/runs/R-n/terminals/PT-n/home`,
 and nowhere shared, and refuses `capability` only when it can neither
 read nor mint one; the refusal names which, `missing` or `malformed
 <what>`. The terminal names its run: `bind --run R-n` in a terminal
-with no managed launch, refused `missing` when `R-n` names no run;
+with no managed launch, refused class `absent` when `R-n` names no run
+(the class an unknown run takes everywhere in this lever; `missing` and
+`malformed <what>` are the found of a `capability` refusal, never a
+class);
 the mint writes `<home>/profile.json` carrying the coordination
 capability and prints `profile <path>`, and every later verb in that
 terminal reads it through `AGENTSCIENT_HOOK_PROFILE`, exported by the
