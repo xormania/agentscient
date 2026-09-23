@@ -8,7 +8,9 @@ the way Claude Code accepts one, `--session-id`.
 
 Slice 2 ("The adapter boundary, extended"): a Claude member is a TUI, so
 its `transport` is `tui`, it has no protocol `channel`, and its route is
-slice 1's stdout courier. `probe` now measures the channel capability:
+slice 1's stdout courier. It carries the boundary's `handshake`, `submit`
+and `observe` so every adapter has the same ten methods; each refuses
+`transport` on the wire, because there is no channel for it to act on. `probe` now measures the channel capability:
 the installed Claude Code's help names `--dangerously-load-development-channels`
 or it reads `unsupported channel`, which is a reading, not a refusal.
 
@@ -28,6 +30,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+# The instrument module sits in the tools directory above this one.
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from instrument import refuse
 
 REPO = Path(__file__).resolve().parents[4]
 PROFILES = REPO / "ops" / "devlane" / "hooks" / "profiles.py"
@@ -79,6 +85,23 @@ class Adapter:
     def channel(self, member, binding):
         """A TUI has no protocol channel; the bridge refuses it."""
         return None
+
+    def _no_channel(self, verb):
+        refuse("transport", f"a protocol adapter, codex or grok, for {verb}",
+               "claude, transport tui with no channel",
+               "a claude member's route is courier.py watch in its own pane")
+
+    def handshake(self, rpc):
+        """No channel to open: refuses `transport`."""
+        self._no_channel("handshake")
+
+    def submit(self, rpc, text, *, busy):
+        """No channel to submit on: refuses `transport`."""
+        self._no_channel("submit")
+
+    def observe(self, rpc, frame):
+        """No channel to read: refuses `transport`."""
+        self._no_channel("observe")
 
     def argv(self, member, binding, launch_id):
         """The fixed launch argv for the profile's run-interactive, never operator text."""
