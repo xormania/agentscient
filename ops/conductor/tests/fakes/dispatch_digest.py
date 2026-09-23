@@ -2,9 +2,10 @@
 """Stand-in for monitor.py on the dispatch follow-through.
 
 sessions-lever.md slice 3, "The programs it runs": `run --once` reads the
-per-pass config and logs the record ids it names; `digest` answers the
-events in the spec file beside this program; `--ack` is logged, and
-unless the spec sets `replay` the next digest is empty.
+per-pass config and logs it and the record ids it names; `digest`
+answers the events in the spec file beside this program whose id is above
+the acked cursor, as monitor.py's digest does; `--ack` moves the cursor to
+the last event served. The spec's `replay` serves every event regardless.
 
 The spec is `<this-program>.spec.json`: `{"replay": false, "events":
 [...]}`. Each event is a monitor digest event (id, route, consumer,
@@ -53,6 +54,25 @@ def collect_ids(value) -> list[str]:
     return found
 
 
+def acked_through() -> int:
+    """The last event id acked; 0 before any ack."""
+    try:
+        return int(cursor_path().read_text(encoding="utf-8").strip() or 0)
+    except (OSError, ValueError):
+        return 0
+
+
+def config_body(argv: list[str]):
+    """The per-pass config as JSON, or None when absent or unreadable."""
+    config, _ids = config_ids(argv)
+    if not config:
+        return None
+    try:
+        return json.loads(Path(config).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def config_ids(argv: list[str]) -> tuple[str | None, list[str]]:
     config = None
     if "--config" in argv:
@@ -80,6 +100,7 @@ def log_call(argv: list[str], ids: list[str], config: str | None) -> None:
         "argv": argv,
         "cwd": os.getcwd(),
         "config": config,
+        "body": config_body(argv),
         "ids": ids,
         "ack": "--ack" in argv,
     }) + "\n"
@@ -139,11 +160,15 @@ def serve_digest(argv: list[str], spec: dict) -> int:
     asked = consumer_of(argv)
     if asked not in (None, "dispatch"):
         events = []
-    if cursor_path().is_file() and not replay:
-        events = []
+    if not replay:
+        cursor = acked_through()
+        events = [event for event in events
+                  if isinstance(event, dict) and isinstance(event.get("id"), int)
+                  and event["id"] > cursor]
     emit({"events": events, "more": False})
-    if "--ack" in argv:
-        cursor_path().write_text("acked\n", encoding="utf-8")
+    if "--ack" in argv and events:
+        last = max(event["id"] for event in events if isinstance(event.get("id"), int))
+        cursor_path().write_text(f"{max(last, acked_through())}\n", encoding="utf-8")
     return 0
 
 

@@ -19,6 +19,17 @@ The monitor is `fakes/dispatch_digest.py`, planted through the registry
 at `DISPATCH_MONITOR`. An intent is planted through `dispatch_intents.py`
 (reserve, the `launch` transition, `mint`), never by a hand write of the
 store. The join between those calls is the intent's correlation.
+
+The per-intent pass config (sessions-lever.md, "The per-intent pass
+config"): each pass names one monitor, one condition and one route per
+launched intent, never one shared `ids` list. The fake logs each
+config it is handed, and serves the events above its acked cursor, as
+monitor.py's digest does.
+
+Calibration gap (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#6):
+ROWS has no planted faults. ops/testkit/cases.py calibrate anchors each
+mutant on the subject's text, and dispatch_events.py is absent, so this
+module has no mutants file; the faults follow the implementation.
 """
 
 from __future__ import annotations
@@ -53,6 +64,7 @@ HOLDER = "sess-events-holder"
 DISPATCHER_SESSION = "sess-events-dispatcher"
 BRANCH = "lane/session-20260923-events"
 ORIGIN = "sessions-lever.md#slice-3 9"
+PASS_CONFIG = "sessions-lever.md#slice-3 the per-intent pass config"
 EXIT_ALONE = re.compile(r"(?<![0-9])0(?![0-9])")
 
 
@@ -81,6 +93,8 @@ ROWS = _by_id((
     Row("send-fails-unacked", ORIGIN, "completion", "rec-locked"),
     Row("record-without-intent", "sessions-lever.md#slice-3 clean", "completion", "rec-stranger"),
     Row("once-returns", ORIGIN, "running", "rec-once"),
+    Row("early-finish-one-inform", PASS_CONFIG, "completion", "rec-early"),
+    Row("later-launch-repeats-nothing", PASS_CONFIG, "completion", "rec-first"),
 ))
 
 
@@ -214,10 +228,10 @@ class DispatchFollowThrough(unittest.TestCase):
                            "--record", row.record, session=DISPATCHER_SESSION)
         self.assertEqual(minted.exit, 0, minted.stderr)
 
-    def serve(self, row: Row, *, replay: bool = False) -> None:
+    def serve(self, row: Row, *, replay: bool = False, event_id: int = 1) -> None:
         """The digest this pass returns. Summary is the monitor's status field."""
         event = {
-            "id": 1,
+            "id": event_id,
             "route": "dispatch-status",
             "consumer": "dispatch",
             "condition": "dispatch-status",
@@ -245,6 +259,38 @@ class DispatchFollowThrough(unittest.TestCase):
 
     def acks(self) -> list[dict]:
         return [call for call in self.calls() if call.get("ack")]
+
+    def configs(self) -> list[dict]:
+        """The pass config each `run --once` was handed, as the fake read it."""
+        return [call.get("body") for call in self.calls()
+                if "run" in call.get("argv", []) and "--once" in call.get("argv", [])]
+
+    def per_intent(self, config, records: tuple[str, ...], row: Row) -> dict[str, tuple]:
+        """Each record's own monitor, condition and route in one pass config.
+
+        One monitor per launched intent, its `params.ids` naming that
+        record alone; one condition on that monitor; one route on that
+        condition. A shared `ids` list fails here."""
+        self.assertIsInstance(config, dict, f"{row.id}: the pass config: {config!r}")
+        monitors = config.get("monitors") or {}
+        conditions = config.get("conditions") or {}
+        routes = config.get("routes") or {}
+        named = {name: tuple((body.get("params") or {}).get("ids") or ())
+                 for name, body in monitors.items()}
+        self.assertEqual(sorted(named.values()), sorted((record,) for record in records),
+                         f"{row.id}: one monitor per intent, each naming its record: {named!r}")
+        own: dict[str, tuple] = {}
+        for name, ids in named.items():
+            watching = [c for c, body in conditions.items() if body.get("monitor") == name]
+            self.assertEqual(len(watching), 1, f"{row.id}: conditions on {name}: {conditions!r}")
+            routed = [r for r, body in routes.items() if body.get("condition") == watching[0]]
+            self.assertEqual(len(routed), 1, f"{row.id}: routes on {watching[0]}: {routes!r}")
+            own[ids[0]] = (
+                (name, monitors[name]),
+                (watching[0], conditions[watching[0]]),
+                (routed[0], routes[routed[0]]),
+            )
+        return own
 
     def ids_logged(self) -> list[str]:
         found: list[str] = []
@@ -313,6 +359,8 @@ class DispatchFollowThrough(unittest.TestCase):
         self.assertEqual(len(dispatcher), 1, f"{row.id} dispatcher: {dispatcher!r}")
         self.assertIn(row.record, self.payload(holder[0]))
         self.assertIn(row.record, self.payload(dispatcher[0]))
+        # Both sends, then the ack (20260923T020916Z-review-codex-5a41cd#6).
+        self.assertEqual(len(self.acks()), 1, self.calls())
 
     def test_running_is_acked_and_not_sent(self):
         """A running event is acked and never sent."""
@@ -384,6 +432,46 @@ class DispatchFollowThrough(unittest.TestCase):
                 if "run" in call.get("argv", []) and "--once" in call.get("argv", [])]
         self.assertEqual(len(runs), 1, self.calls())
         self.assertTrue(any("digest" in call.get("argv", []) for call in self.calls()), self.calls())
+
+    def test_an_early_finish_gives_exactly_one_inform(self):
+        """A job that finished before the router's first pass is reported by
+        the monitor's first event and by nothing else: there is no seed.
+        origin: the per-intent pass config; 20260923T020916Z-review-codex-5a41cd#7"""
+        row = ROWS["early-finish-one-inform"]
+        self.plant_launched(row)
+        self.serve(row)
+        self.route()
+        self.route()
+        lines = self.about(HOLDER, "inform", row.record)
+        self.assertEqual(len(lines), 1, f"{row.id}: {lines!r}")
+        configs = self.configs()
+        self.assertEqual(len(configs), 2, self.calls())
+        for config in configs:
+            self.per_intent(config, (row.record,), row)
+
+    def test_a_later_launch_repeats_nothing_for_the_first(self):
+        """A later launch joins the pass config beside the first intent. The
+        first keeps its own monitor, condition and route unchanged, so its
+        baseline holds, and it is not informed again.
+        origin: the per-intent pass config; 20260923T020916Z-review-codex-5a41cd#7"""
+        row = ROWS["later-launch-repeats-nothing"]
+        later = Row(row.id, row.origin, "completion", "rec-later")
+        self.plant_launched(row)
+        self.serve(row)
+        self.route()
+        self.plant_launched(later)
+        self.serve(later, event_id=2)
+        self.route()
+        configs = self.configs()
+        self.assertEqual(len(configs), 2, self.calls())
+        first = self.per_intent(configs[0], (row.record,), row)
+        second = self.per_intent(configs[1], (row.record, later.record), row)
+        self.assertEqual(second[row.record], first[row.record],
+                         f"{row.id}: the first intent's entries changed when the later one joined")
+        self.assertEqual(len(self.about(HOLDER, "inform", row.record)), 1,
+                         self.about(HOLDER, "inform", row.record))
+        self.assertEqual(len(self.about(HOLDER, "inform", later.record)), 1,
+                         self.about(HOLDER, "inform", later.record))
 
 
 if __name__ == "__main__":
