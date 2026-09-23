@@ -1021,7 +1021,7 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         live = assignment_row(conn, aid)
         if live["place"] == "offered" and (
                 live["holder"] is not None or live["agent_holder"] is not None
-                or live["recipient"] and live["recipient"] not in named.split(",")):
+                or (live["recipient"] and live["recipient"] not in named.split(","))):
             refuse("recipient", "an unaddressed offer or a role the issued worker holds",
                    f"A-{aid} offered to {live['recipient'] or 'nobody'}, "
                    f"holder {live['holder'] or live['agent_holder'] or 'none'}",
