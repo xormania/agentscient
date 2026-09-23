@@ -48,6 +48,9 @@ COURIER = TOOLS / "courier.py"
 FAKES = Path(__file__).resolve().parent / "fakes"
 LANE = "agentscient"
 TIMEOUT = 45.0
+# A carry is the bridge's next pass after a send, never the send's return:
+# a row reading the store or a fake's log waits this long for it.
+CARRY_WAIT = 20.0
 READY = 15
 AGENT = "Sessions Tester <noreply@example.test>"
 LEAD_SESSION = "lead-already-bound"
@@ -317,6 +320,22 @@ class SessionMessages(unittest.TestCase):
         self.assertTrue(db.is_file(), "state.db is absent")
         return sqlite3.connect(db)
 
+    def until(self, probe, timeout: float = CARRY_WAIT):
+        """``probe()`` until it returns a true value or the wait ends; the
+        last value either way, so the row's own assertion reads it."""
+        deadline = time.monotonic() + timeout
+        while True:
+            value = probe()
+            if value or time.monotonic() >= deadline:
+                return value
+            time.sleep(0.2)
+
+    def log_holding(self, name: str, needle: str) -> str:
+        """The fake's call log once it carries ``needle``, else as it stands
+        when the wait ends."""
+        self.until(lambda: needle in self.log_text(name))
+        return self.log_text(name)
+
     def attempt_outcomes(self, message_id: int | None = None) -> list:
         with self.connect() as conn:
             try:
@@ -434,19 +453,20 @@ class SessionMessages(unittest.TestCase):
                 self.coord_as(
                     "co", "send", "--to", participant, "--purpose", "request", "--body", CARRY,
                 )
-            outcomes = self.attempt_outcomes()
-            self.assertTrue(
-                any(isinstance(item, str) and item.startswith("accepted turn ") for item in outcomes),
-                outcomes,
-            )
+            row = self.until(
+                lambda: (found := self.message_row(CARRY)) is not None and found[1] is not None
+                and found
+            ) or self.message_row(CARRY)
+            self.assertIsNotNone(row, f"no message {CARRY!r}")
+            self.assertIsNotNone(row[1], row)
+            # The request's own attempts: the readiness probe's are the
+            # member's too, and are not this carry.
+            outcomes = self.attempt_outcomes(row[0])
             self.assertEqual(
                 sum(1 for item in outcomes if isinstance(item, str) and item.startswith("accepted turn ")),
                 1,
                 outcomes,
             )
-            row = self.message_row(CARRY)
-            self.assertIsNotNone(row, f"no message {CARRY!r}")
-            self.assertIsNotNone(row[1], row)
             self.assertRegex(row[2] or "", r"^native:AT-\d+:")
             self.assertIsNone(row[3], row)
             self.configure("codex", ack=True)
@@ -454,18 +474,28 @@ class SessionMessages(unittest.TestCase):
                 self.sessions(
                     "input", "--run", run_id, "--member", "dispatcher", "ack-the-request",
                 )
-            acked = self.message_row(CARRY)
+            acked = self.until(
+                lambda: (found := self.message_row(CARRY)) is not None and found[3] is not None
+                and found
+            ) or self.message_row(CARRY)
             self.assertIsNotNone(acked[3], acked)
             creds = self.member_creds("co")
             self.assertIsNotNone(creds, "the claude member has no capability")
             session, cap = creds
-            printed = run(
-                [sys.executable, str(COURIER), "watch", "--once"],
-                cwd=self.world.cwd,
-                env=self.env(session=session, extra={"COORDINATION_CAPABILITY": cap}),
-                timeout=TIMEOUT,
-            )
-            self.assertIn(REPLY, printed.stdout, printed.stderr)
+            seen: list = []
+
+            def watched() -> bool:
+                printed = run(
+                    [sys.executable, str(COURIER), "watch", "--once"],
+                    cwd=self.world.cwd,
+                    env=self.env(session=session, extra={"COORDINATION_CAPABILITY": cap}),
+                    timeout=TIMEOUT,
+                )
+                seen.append(printed.stdout + printed.stderr)
+                return REPLY in printed.stdout
+
+            self.until(watched)
+            self.assertIn(REPLY, "".join(seen), seen)
 
     def test_two_codex_members_write_only_the_second_log(self):
         """origin: sessions-lever.md#slice-2 2; 20260923T020912Z-review-codex-9d8b8c #1
@@ -495,7 +525,7 @@ class SessionMessages(unittest.TestCase):
                     "send", "--to", participant, "--purpose", "request",
                     "--body", SECOND_BODY, session=LEAD_SESSION,
                 )
-            log = self.log_text("codex")
+            log = self.log_holding("codex", SECOND_BODY)
             self.assertIn(SECOND_BODY, log, log)
             second_pid = self.pid_of("two")
             first_pid = self.pid_of("one")
@@ -579,7 +609,9 @@ class SessionMessages(unittest.TestCase):
         self.skip_without_tmux()
         with self.subTest(id="recover-alive-reused-generation-2", origin=origin(7)):
             self.plant_team(a_team(protocol_member("dispatcher", "codex", ["worker"])))
-            self.configure("codex", native_id="thread-codex-7", ack_probe=True, send_reply=False)
+            # Real codex answers every thread/start with a new thread id, so
+            # generation 2 must not inherit generation 1's (b3's reading).
+            self.configure("codex", native_id="", ack_probe=True, send_reply=False)
             self.bind_lead()
             started = self.sessions(*self.start_argv("dispatcher"), session=LEAD_SESSION)
             run_id = self.started_run(started.stdout)
@@ -872,8 +904,10 @@ class SessionMessages(unittest.TestCase):
             self.bind_lead()
             started = self.sessions(*self.start_argv("dispatcher"), session=LEAD_SESSION)
             run_id = self.started_run(started.stdout) or "R-1"
-            self.sessions("input", "--run", run_id, "--member", "dispatcher", OPERATOR)
-            self.assertIn(OPERATOR, self.log_text("codex"))
+            given = self.sessions("input", "--run", run_id, "--member", "dispatcher", OPERATOR)
+            self.assertEqual(given.exit, 0, given.stderr + given.stdout)
+            log = self.log_holding("codex", OPERATOR)
+            self.assertIn(OPERATOR, log)
 
 
 if __name__ == "__main__":
