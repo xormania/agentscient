@@ -57,8 +57,10 @@ env_keys=("${!MODEL_@}" "${!EFFORT_@}" "${!EXECUTABLE_@}")
 # GRAFT_INSTALL is saved and restored but never required: the tracked conf declares it
 # empty, and a worktree has no local conf, so without the restore the environment's
 # install path would be emptied on the way to the launcher and no worker would get
-# Graft (LD-13).
-saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL)
+# Graft (LD-13). TMUX_TMPDIR and XAI_API_KEY are the same shape: declared empty
+# for the closure, read from the environment by the sessions lever and by the
+# harnesses the launcher starts.
+saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL TMUX_TMPDIR XAI_API_KEY)
 for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
