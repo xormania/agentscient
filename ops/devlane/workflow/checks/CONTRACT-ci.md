@@ -36,11 +36,12 @@ The GitHub workflow only prepares checkout, PATH and record refs, supplies
 TERM_WALL, and invokes the full gate. Its lane and app jobs, triggers,
 concurrency, timeouts and pinned checkout remain. The workflow uses JSON
 syntax within its .yml file, a YAML subset read by the standard JSON parser;
-the former handwritten YAML parser is retired. The configuration closure
-check reads that same format. Contract tests inspect executable argv and
+the former test-only handwritten YAML parser is retired. The configuration
+closure and PR-readiness readers consume that same format. PR readiness also
+retains YAML reads for older refs. Contract tests inspect executable argv and
 conditions, not step names, and prove that disabling the gate is detected.
 
-The adapter and kit are wall machinery and join the existing wall path
+The CI checks and kit are wall machinery and join the existing wall path
 classification. This is an isolated wall change under the owner's instruction
 to make this PR. One producer implements and verifies it; an independent
 producer is absent, as permitted for owner-directed dev-lane work.

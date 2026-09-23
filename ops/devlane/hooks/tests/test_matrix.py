@@ -678,6 +678,7 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(spelling=cmd):
                 self.assert_denied(self.run_bash(cmd), "hand-write")
         wall = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+                "ops/devlane/workflow/checks/",
                 "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
                 "ops/devlane/hooks/claude/engine.py")
         for target in CODE_ROOT_TARGETS:
@@ -727,6 +728,7 @@ class MatrixHookTests(unittest.TestCase):
         # defines them.
         for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
                        "ops/devlane/workflow/checks/lane.py",
+                       "ops/devlane/workflow/checks/ci_contexts.py",
                        "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
                        "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/test_matrix.py",
                        "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py",

@@ -11,6 +11,10 @@ import json
 import unittest
 from pathlib import Path
 
+from ops.devlane.workflow.checks.ci_contexts import (
+    DerivationError,
+    workflow_job_names,
+)
 from ops.testkit import World
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -89,6 +93,14 @@ class CiTwoJobs(unittest.TestCase):
             for step in job["steps"]:
                 step["name"] = "arbitrary display label"
         self.assert_contract(self.doc)
+
+    def test_pr_readiness_derives_current_jobs_and_refuses_broken_json(self):
+        self.assertEqual(workflow_job_names(ROOT), ["app", "lane"])
+        for payload in ('{"jobs": {}}', '{"jobs": []}', '{"jobs": {"app": null}}', '{broken'):
+            with self.subTest(payload=payload):
+                self.world.plant_text("cwd/.github/workflows/ci.yml", payload)
+                with self.assertRaises(DerivationError):
+                    workflow_job_names(self.world.cwd)
 
     def test_disabled_partial_hidden_and_duplicated_execution_is_detected(self):
         mutations = {

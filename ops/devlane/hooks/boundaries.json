@@ -529,7 +529,7 @@
     "Edit",
     "MultiEdit"
    ],
-   "trigger": "a write to a wall path (.github/workflows, ops/bin/suites.sh, ops/devlane/workflow/checks/lane.py, probes.py, laneconf.py, the hook registry, rows and engine, ops/devlane/hooks/tests/, ops/testkit/, ops/devlane/task/jobs.json) without a grant of lever class wall; or a wall grant writing a non-wall code path",
+   "trigger": "a write to a wall path (.github/workflows, ops/bin/suites.sh, ops/devlane/workflow/checks/, probes.py, laneconf.py, the hook registry, rows and engine, ops/devlane/hooks/tests/, ops/testkit/, ops/devlane/task/jobs.json) without a grant of lever class wall; or a wall grant writing a non-wall code path",
    "evidence": "an open grant of lever class wall leading the command; the session touches wall paths only",
    "gate": "wall_write",
    "engine": false,
