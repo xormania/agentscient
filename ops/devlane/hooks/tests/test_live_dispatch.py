@@ -61,8 +61,10 @@ class LiveDispatch(unittest.TestCase):
         self.elsewhere = self.world.root / "elsewhere"
         self.elsewhere.mkdir()
         self.world.git("init", "-q", "-b", "dev", cwd=self.elsewhere)
-        self.store = self.world.home / ".local/state/agentscient/dispatch"
         self.env = self.world.env()
+        # Where launch.py's _jobs_root writes: the world sets XDG_STATE_HOME
+        # apart from HOME, so a gate reading HOME alone is caught (A-541 #1).
+        self.store = Path(self.env["XDG_STATE_HOME"]) / "agentscient/dispatch"
 
     def _subject(self):
         staged = self.world.stage(HOOK, siblings=("miss.py", "command_shape.py"))
@@ -86,10 +88,11 @@ class LiveDispatch(unittest.TestCase):
             self.world.plant_text(root / "exit", "0\n")
         return root
 
-    def run_bash(self, command, cwd=None):
+    def run_bash(self, command, cwd=None, env=None):
         cwd = cwd or self.repo
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(cwd)})
-        return run([sys.executable, str(self.hook)], cwd=str(cwd), env=self.env, stdin=payload, timeout=TIMEOUT)
+        return run([sys.executable, str(self.hook)], cwd=str(cwd), env=env or self.env, stdin=payload,
+                   timeout=TIMEOUT)
 
     def refusal(self, proc, command):
         self.assertEqual(proc.exit, 0, proc.stderr)
@@ -122,6 +125,29 @@ class LiveDispatch(unittest.TestCase):
         self.refusal(self.run_bash(f"git -C {self.repo} merge dev", cwd=self.elsewhere), "git -C")
         self.refusal(self.run_bash("git merge dev", cwd=self.repo / "ops"), "subdirectory")
         self.refusal(self.run_bash("git fetch -q origin && git merge origin/dev"), "a second statement")
+
+    def test_the_store_is_the_one_the_launcher_resolves(self):
+        # origin: 20260923T050106Z-review-codex-3e82cf#1. launch.py's _jobs_root:
+        # DISPATCH_JOBS, then XDG_STATE_HOME, then HOME's .local/state.
+        jobs = self.world.root / "jobs"
+        home_store = self.world.home / ".local/state/agentscient/dispatch"
+        without_xdg = {k: v for k, v in self.env.items() if k != "XDG_STATE_HOME"}
+        cases = {
+            "XDG_STATE_HOME": (self.store, self.env),
+            "DISPATCH_JOBS": (jobs, {**self.env, "DISPATCH_JOBS": str(jobs)}),
+            "HOME": (home_store, without_xdg),
+        }
+        for name, (store, env) in cases.items():
+            with self.subTest(store=name):
+                self.store = store
+                root = self.dispatch(RECORD, source=self.repo)
+                self.assertIn(RECORD, self.refusal(self.run_bash("git merge dev", env=env), name))
+                shutil.rmtree(root)
+        # Clean neighbour: a dispatch under HOME while XDG_STATE_HOME names
+        # another store is not the launcher's store and is not read.
+        self.store = home_store
+        self.dispatch(RECORD, source=self.repo)
+        self.allowed(self.run_bash("git merge dev"), "a store the launcher does not use")
 
     def test_a_grant_is_no_escape(self):
         self.dispatch(RECORD, source=self.repo)

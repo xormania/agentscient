@@ -1311,6 +1311,21 @@ def dispatch_running(path):
     return True
 
 
+def dispatch_store(lane):
+    """The store launch.py's _jobs_root writes: DISPATCH_JOBS, else
+    XDG_STATE_HOME, else HOME's .local/state, then the lane's dispatch
+    directory. None when no override is set and no lane is named. Reading
+    HOME alone admitted every dispatch launched under either override
+    (20260923T050106Z-review-codex-3e82cf#1)."""
+    jobs = os.environ.get("DISPATCH_JOBS")
+    if jobs:
+        return jobs
+    if not lane:
+        return None
+    state = os.environ.get("XDG_STATE_HOME") or os.path.join(os.environ.get("HOME", ""), ".local", "state")
+    return os.path.join(state, lane, DISPATCH_STORE)
+
+
 def live_dispatch(toks, cwd, lane):
     """git merge, pull, checkout, reset or rebase in a worktree a running
     dispatch was launched from refuses, naming the record."""
@@ -1321,10 +1336,8 @@ def live_dispatch(toks, cwd, lane):
         return None
     # `git -C <worktree>` from outside the lane still moves that worktree.
     lane = lane_conf(repo_root(directory)).get("LANE_NAME") or lane
-    if not lane:
-        return None
-    store = os.path.join(STATE_DIR, lane, DISPATCH_STORE)
-    if not os.path.isdir(store):
+    store = dispatch_store(lane)
+    if not store or not os.path.isdir(store):
         return None
     try:
         names = sorted(os.listdir(store))
