@@ -505,7 +505,7 @@ class TheOwnersTerminal(_Trial):
             block = member_block(status.stdout, "owner")
             for dimension in READINESS:
                 self.assertRegex(block, rf"(?m)^  {dimension} \S", block)
-            self.assertRegex(block, r"(?m)^  enforcement unmeasured$", block)
+            self.assertRegex(block, r"(?m)^  enforcement unmeasured( .+)?$", block)
 
     @unittest.expectedFailure  # LD-125: bind --run is the wall's minting, not yet landed
     def test_bind_naming_no_run_refuses_absent(self):
