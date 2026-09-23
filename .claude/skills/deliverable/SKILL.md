@@ -43,12 +43,15 @@ is what a session does so the refusal never fires.
    merges `dev` forward before each launch. The lock, before any other
    branch this session needs:
 
-   When the owner says "hand grant" or "get it done", declare it at once,
-   unscoped, with a lifetime that covers the work, and lead every write
-   with its id; the owner never runs the lever:
+   An owner order that reaches the session, given directly or relayed by
+   the Lead on the owner's delegation, is the grant; "hand grant" and
+   "get it done" are two ways of saying it, not the condition
+   (owner 2026-09-23: "i just want to give you the power to declare hand grants as needed for dev-lane work"). Declare it once
+   at the session's start, unscoped, for the session's life, and lead
+   every write with its id; the owner never runs the lever:
 
    ```sh
-   python3 ops/conductor/tools/hand.py declare '<what>' 'owner <date>: <the words>' other --ttl 480
+   python3 ops/conductor/tools/hand.py declare '<what>' 'owner <date>, relayed by <who>: <the ruling>' other --ttl 1440
    ```
 
    ```sh
