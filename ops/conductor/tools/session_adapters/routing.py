@@ -89,7 +89,8 @@ def label(member: dict) -> str:
 def select(member: dict, binding: dict, transport: str, others=()) -> dict:
     """The route this member takes, keyed by its instance, never its harness.
 
-    `others` is the run's other live members, each as `(member, binding)`.
+    `others` is the run's other live members, each as `(member, binding)`;
+    a member may be a dict or the store's sqlite3.Row.
     Two members of one run under one name refuse `team`; a member that
     shares a profile, an evidence directory, a native home or the
     coordination capability with another refuses `profile`, naming both
@@ -97,9 +98,11 @@ def select(member: dict, binding: dict, transport: str, others=()) -> dict:
     "harness", "route"}`; the route row itself is the courier's to take.
     """
     route = route_for(transport)
+    member = dict(member)
     mine = instance(member, binding)
     for other, other_binding in others:
-        if other.get("id") == member.get("id"):
+        other = dict(other)
+        if member.get("id") is not None and other.get("id") == member.get("id"):
             continue
         if other.get("name") == member.get("name"):
             refuse("team", f"one live member named {member.get('name')} in the run",
