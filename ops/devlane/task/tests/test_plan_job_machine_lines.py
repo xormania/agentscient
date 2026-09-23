@@ -53,21 +53,6 @@ class _PlanJob(unittest.TestCase):
 class PlanPromptQuotesTheDriversGrammar(_PlanJob):
     """Machine lines in the driver's grammar sit at the end of the plan."""
 
-    def test_machine_lines_are_at_the_end_of_the_plan(self):
-        self.assertIn(AT_THE_END, self.words())
-
-    def test_the_prompt_quotes_the_slice_line_grammar(self):
-        self.assertIn(SLICE_LINE, self.plan_prompt())
-
-    def test_the_prompt_quotes_the_bucket_line_grammar(self):
-        self.assertIn(BUCKET_LINE, self.plan_prompt())
-
-    def test_the_prompt_names_tab_separated_lines(self):
-        self.assertIn(TAB_SEPARATED, self.words())
-
-    def test_an_m_slice_needs_exactly_two_named_s_buckets(self):
-        self.assertIn(TWO_NAMED_S, self.words())
-
     def test_every_machine_line_sentence_is_present_together(self):
         required = (
             AT_THE_END,

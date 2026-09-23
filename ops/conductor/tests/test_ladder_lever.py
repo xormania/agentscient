@@ -31,14 +31,13 @@ import os
 import shlex
 import shutil
 import stat
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 from live_store_guard import IGNORE, TOLERATE_NEW
 
-from ops.testkit import Timeout, World, run
+from ops.testkit import RefusalCase, Timeout, World, refusal_wire, run
 from ops.testkit.world import make_executable
 
 REPO = Path(__file__).resolve().parents[3]
@@ -221,11 +220,6 @@ def _git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
     return result.stdout
 
 
-def _completed(result) -> subprocess.CompletedProcess:
-    """The kit's Result in the shape the family's assertions read."""
-    return subprocess.CompletedProcess(list(result.argv), result.exit, result.stdout, result.stderr)
-
-
 FAKES = Path(__file__).resolve().parent / "fakes"
 
 
@@ -245,7 +239,6 @@ LAUNCH_PY = _fake("launch")
 LAND_PY = _fake("land")
 
 FINDINGS_PY = _fake("findings")
-
 
 
 class _LadderFixture(unittest.TestCase):
@@ -499,7 +492,7 @@ class _LadderFixture(unittest.TestCase):
         })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = _completed(run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -513,7 +506,7 @@ class _LadderFixture(unittest.TestCase):
             cwd=cwd or self.repo,
             env=self.git_env(),
             timeout=RUN_CAP,
-        ))
+        )
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -572,10 +565,7 @@ class _LadderFixture(unittest.TestCase):
             ("ops/conductor/tools/land.py", self.stub_dir / "land.py"),
             ("ops/conductor/tools/findings.py", self.stub_dir / "findings.py"),
         ):
-            body = (
-                "#!/usr/bin/env python3\n"
-                + src.read_text(encoding="utf-8")
-            )
+            body = src.read_text(encoding="utf-8")
             dest_path = dest / rel
             self._plant_bytes(dest_path, body.encode("utf-8"))
             self._make_executable(dest_path)
@@ -750,12 +740,12 @@ class _LadderFixture(unittest.TestCase):
     ):
         env = self.env(agent=agent, extra=extra_env, with_gh=with_gh)
         try:
-            return _completed(run(
+            return run(
                 [sys.executable, str(self.staged), *argv],
                 cwd=cwd or self.invoke_cwd,
                 env=env,
                 timeout=RUN_CAP,
-            ))
+            )
         except Timeout as exc:
             self.fail(f"ladder exceeded {RUN_CAP}s: {exc}")
 
@@ -1001,25 +991,9 @@ class _LadderFixture(unittest.TestCase):
         return name in WRITE_STAGES or str(name).startswith("code")
 
     def assert_refusal(self, proc, class_name: str, *, named: tuple[str, ...] = ()) -> str:
-        err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err or proc.stdout)
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-        lower = lines[0].lower()
         token = class_name.lower().replace("_", "-")
-        self.assertIn(token, lower, lines[0])
-        for word in ("expected", "found", "needed"):
-            self.assertIn(word, lower, lines[0])
-        self.assertLess(lower.index("expected"), lower.index("found"), lines[0])
-        self.assertLess(lower.index("found"), lower.index("needed"), lines[0])
-        self.assertEqual(
-            (proc.stdout or "").strip(),
-            "",
-            "refusal text belongs on stderr, not stdout",
-        )
-        for item in named:
-            self.assertIn(item, lines[0], lines[0])
-        return lines[0]
+        case = RefusalCase(token, (), token, named=named)
+        return refusal_wire(case, proc).line
 
     def assert_stopped(
         self,

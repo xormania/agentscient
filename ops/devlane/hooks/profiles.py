@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import tomllib
 from functools import cache
 from pathlib import Path
@@ -33,11 +34,55 @@ def source_pins(source):
     hooks = source / "ops/devlane/hooks"
     files = list((hooks / "claude").glob("*.py"))
     files += [hooks / name for name in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
-    files += list((source / "ops/conductor/tools").glob("*.py"))
+    files += list((source / "ops/conductor/tools").rglob("*.py"))
     files += [source / "ops/lane.conf", source / "ops/devlane/harness/isolation.py"]
-    if not files or any(not p.is_file() or p.is_symlink() for p in files):
+    local = source / "ops/lane.local.conf"
+    if local.exists() or local.is_symlink():
+        files.append(local)
+    if not files or any(not p.is_file() or p.resolve() != p for p in files):
         raise ValueError("unavailable stable policy closure")
     return {str(path): digest(path) for path in sorted(set(files))}
+
+
+def freeze_runtime(source, destination):
+    """Publish a private byte copy of the trusted installation's policy closure.
+
+    The caller supplies its installation, never the worker's candidate tree.
+    Verify both sides of the copy so an overlapping edit cannot mint mixed pins.
+    The native transport makes the whole published directory read-only.
+    """
+    source, destination = Path(source).resolve(strict=True), Path(destination).absolute()
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("worker runtime already exists without its binding")
+    pins = source_pins(source)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".runtime-", dir=destination.parent))
+    try:
+        expected = {}
+        for name, sha in pins.items():
+            target = staging / Path(name).relative_to(source)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(Path(name).read_bytes())
+            expected[str(target)] = sha
+        if source_pins(staging) != expected or source_pins(source) != pins:
+            raise ValueError("trusted policy changed while freezing worker runtime")
+        staging.rename(destination)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return destination
+
+
+def verify_runtime(binding, source, *, previous=None):
+    """Check retained bytes before importing any Python from an issued runtime."""
+    source = Path(source).absolute()
+    previous = Path(previous) if previous is not None else source
+    if source.resolve(strict=True) != source or binding["source"] != str(previous):
+        raise ValueError("worker runtime is not its issued directory")
+    expected = {str(source / Path(name).relative_to(previous)): sha
+                for name, sha in binding["pins"].items()}
+    if source_pins(source) != expected:
+        raise ValueError("issued worker runtime changed")
 
 
 def fallback(harness, event):
@@ -215,11 +260,12 @@ def relocate(binding, old_root, new_root):
     old_root, new_root = Path(old_root), Path(new_root)
     if binding["mode"] != "worker" or Path(binding["binding"]) != old_root / "enforcement/binding.json":
         raise ValueError("relocation is not the recorded worker profile")
-    if source_pins(binding["source"]) != binding["pins"]:
-        raise ValueError("relocated policy closure changed")
     def moved(path):
         p = Path(path)
         return str(new_root / p.relative_to(old_root)) if p.is_relative_to(old_root) else str(p)
+    pins = {moved(path): sha for path, sha in binding["pins"].items()}
+    if source_pins(moved(binding["source"])) != pins:
+        raise ValueError("relocated policy closure changed")
     configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     if expected != binding["config_pins"]:
@@ -230,8 +276,11 @@ def relocate(binding, old_root, new_root):
     if Path(moved(binding["helper"])).read_text() != helper_text(binding):
         raise ValueError("relocated helper changed")
     revised = {**binding}
-    for key in ("cwd", "home", "helper", "binding"):
+    for key in ("source", "cwd", "home", "helper", "binding"):
         revised[key] = moved(binding[key])
+    revised["pins"] = pins
+    revised["authority_environment"] = {**binding["authority_environment"],
+                                        "LANE_CONF": moved(binding["authority_environment"]["LANE_CONF"])}
     configs = configuration(revised["harness"], Path(revised["home"]), Path(revised["helper"]), Path(revised["cwd"]), revised.get("native_settings"))
     revised["config_pins"] = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     revised["helper_sha256"] = hashlib.sha256(helper_text(revised).encode()).hexdigest()
@@ -401,6 +450,8 @@ def native_launch(binding, argv, env):
     protected = {str(Path(binding["source"]) / "ops/devlane/hooks"),
                  str(Path(binding["source"]) / "ops/conductor/tools"),
                  *binding["pins"], binding["helper"], binding["binding"], *binding["config_pins"]}
+    if binding["mode"] == "worker" and Path(binding["source"]) == Path(binding["binding"]).parent.parent / "runtime":
+        protected.add(binding["source"])
     for path in sorted(protected):
         command += ["--ro-bind", path, path]
     out["AGENTSCIENT_HOOK_PROFILE"] = binding["binding"]

@@ -15,6 +15,7 @@ is staged, so each assertion is the red, not a missing-file error.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shlex
@@ -104,37 +105,14 @@ REQUIRED_DEFAULTS = {
 
 DECL_RE = re.compile(r"^([A-Z][A-Z0-9_]*)='([^']*)'\s*$")
 
-TWO_JOB_WORKFLOW = """\
-name: ci
-"on": [push]
-jobs:
-  lane:
-    runs-on: self-hosted
-    steps:
-      - run: echo lane
-  app:
-    runs-on: self-hosted
-    steps:
-      - run: echo app
-"""
-
-THREE_JOB_WORKFLOW = """\
-name: ci
-"on": [push]
-jobs:
-  lane:
-    runs-on: self-hosted
-    steps:
-      - run: echo lane
-  app:
-    runs-on: self-hosted
-    steps:
-      - run: echo app
-  extra:
-    runs-on: self-hosted
-    steps:
-      - run: echo extra
-"""
+TWO_JOB_WORKFLOW = json.dumps({"name": "ci", "on": ["push"], "jobs": {
+    "lane": {"runs-on": "self-hosted", "steps": [{"run": "echo lane"}]},
+    "app": {"runs-on": "self-hosted", "steps": [{"run": "echo app"}]},
+}})
+THREE_JOB_WORKFLOW = json.dumps({**json.loads(TWO_JOB_WORKFLOW), "jobs": {
+    **json.loads(TWO_JOB_WORKFLOW)["jobs"],
+    "extra": {"runs-on": "self-hosted", "steps": [{"run": "echo extra"}]},
+}})
 
 
 def conf_text(**overrides: object) -> str:
@@ -679,9 +657,9 @@ class ClosureVerb(_LaneconfFixture):
         self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
         yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertEqual(yml, TWO_JOB_WORKFLOW)
-        self.assertIn("\n  lane:\n", yml)
-        self.assertIn("\n  app:\n", yml)
-        self.assertNotIn("\n  extra:\n", yml)
+        self.assertIn("lane", json.loads(yml)["jobs"])
+        self.assertIn("app", json.loads(yml)["jobs"])
+        self.assertNotIn("extra", json.loads(yml)["jobs"])
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         self.assertEqual(proc.exit, 0, self.combined(proc))
 
@@ -699,7 +677,7 @@ class ClosureVerb(_LaneconfFixture):
         self.assertNotIn("extra", keys["CHECK_NAMES"].split())
         yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertEqual(yml, THREE_JOB_WORKFLOW)
-        self.assertIn("\n  extra:\n", yml)
+        self.assertIn("extra", json.loads(yml)["jobs"])
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
         self.assertEqual(proc.exit, 1, text)
@@ -745,9 +723,9 @@ class ClosureVerb(_LaneconfFixture):
         self.assertEqual(len(names), 2)
         yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertEqual(yml, TWO_JOB_WORKFLOW)
-        self.assertIn("\n  lane:\n", yml)
-        self.assertIn("\n  app:\n", yml)
-        self.assertNotIn(f"\n  {extra}:\n", yml)
+        self.assertIn("lane", json.loads(yml)["jobs"])
+        self.assertIn("app", json.loads(yml)["jobs"])
+        self.assertNotIn(extra, json.loads(yml)["jobs"])
         self.assertEqual(len(names), 2)
         self.assertNotEqual(set(names), {"lane", "app"})
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
@@ -1920,4 +1898,3 @@ class ProvisionalWorkerProvenanceAndPrecedence(_WorkerLaneconfFixture):
 
 if __name__ == "__main__":
     unittest.main()
-

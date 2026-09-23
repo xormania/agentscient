@@ -24,7 +24,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -177,29 +176,9 @@ def _unified_patch(relpath: str, before: str, after: str) -> str:
     return f"diff --git a/{relpath} b/{relpath}\n{body}"
 
 
-def _completed(result: Result) -> subprocess.CompletedProcess:
-    """The kit's Result in the shape the family's assertions read."""
-    return subprocess.CompletedProcess(
-        list(result.argv), result.exit, result.stdout, result.stderr
-    )
-
-
-def _as_result(proc) -> Result:
-    if isinstance(proc, Result):
-        return proc
-    return Result(
-        tuple(proc.args or ()),
-        proc.returncode,
-        proc.stdout or "",
-        proc.stderr or "",
-        0.0,
-        "",
-    )
-
-
 def assert_refusal_wire(testcase: unittest.TestCase, proc, class_name: str) -> None:
     """Pin `class: expected …; found …; needed …` as a leading token."""
-    refusal = _as_result(proc).refusal()
+    refusal = proc.refusal()
     token = class_name.lower().replace("_", "-")
     testcase.assertEqual(
         refusal.cls,
@@ -307,7 +286,7 @@ class _LeverFixture(unittest.TestCase):
         })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = _completed(run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -321,7 +300,7 @@ class _LeverFixture(unittest.TestCase):
             cwd=cwd or self.repo,
             env=self.git_env(),
             timeout=RUN_CAP,
-        ))
+        )
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -371,12 +350,12 @@ class _LeverFixture(unittest.TestCase):
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         try:
-            return _completed(run(
+            return run(
                 [str(self.staged), *argv],
                 cwd=self.repo,
                 env=env,
                 timeout=timeout,
-            ))
+            )
         except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
@@ -654,9 +633,9 @@ class TheLeverFile(unittest.TestCase):
 
 class RefusalShape(_LeverFixture):
     def test_embedded_class_token_is_not_a_refusal(self):
-        proc = subprocess.CompletedProcess(
-            args=["fixture.sh"],
-            returncode=2,
+        proc = Result(
+            argv=("fixture.sh",), duration=0.0, cwd="",
+            exit=2,
             stdout="",
             stderr="not-identity garbage expected x; found y; needed z\n",
         )
@@ -664,9 +643,9 @@ class RefusalShape(_LeverFixture):
             self.assert_refusal(proc, "identity")
 
     def test_abort_exit_is_not_a_refusal(self):
-        proc = subprocess.CompletedProcess(
-            args=["fixture.sh"],
-            returncode=3,
+        proc = Result(
+            argv=("fixture.sh",), duration=0.0, cwd="",
+            exit=3,
             stdout="",
             stderr=(
                 "identity: expected Name <address>; found unset; "
@@ -831,13 +810,13 @@ class MakeCopies(_LeverFixture):
         self.assertEqual(shas, "1", "make commits once")
         body = self.git("log", "-1", "--format=%B", cwd=made)
         self.assertEqual(body.returncode, 0, body.stderr)
-        parsed = _completed(run(
+        parsed = run(
             ["git", "interpret-trailers", "--parse"],
             cwd=made,
             env=self.git_env(),
             stdin=body.stdout,
             timeout=RUN_CAP,
-        ))
+        )
         self.assertEqual(parsed.returncode, 0, parsed.stderr)
         trailers = parsed.stdout
         self.assertRegex(

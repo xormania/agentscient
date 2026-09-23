@@ -145,6 +145,7 @@ except c.Refusal as error:
         proc = subprocess.Popen([sys.executable, "-B", "-c", source, str(TOOLS),
                                  str(store), grant], cwd=self.world.cwd, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.world.own(proc)
         try:
             saw_hand_lock = False
             until = time.monotonic() + 1.5

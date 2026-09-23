@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from pathlib import Path
 # binds a local named now.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import Refusal, identity, lane_name, refuse, state_root
     from instrument import now as utc_now
 except ModuleNotFoundError:
@@ -944,7 +946,7 @@ def _connect(path: Path, *, write: bool) -> sqlite3.Connection | None:
             path.mkdir(parents=True, exist_ok=True)
             if path.is_symlink() or not path.is_dir() or db.is_symlink() or (db.exists() and not db.is_file()):
                 refuse("state", "a real state directory and regular monitor.db", str(db), "remove the unsafe destination")
-            conn = sqlite3.connect(db, timeout=30)
+            conn = instrument.connect_store(db, mode="rwc", timeout=30)
             conn.executescript(SCHEMA)
             return conn
         except (OSError, sqlite3.Error) as exc:
@@ -954,7 +956,7 @@ def _connect(path: Path, *, write: bool) -> sqlite3.Connection | None:
     try:
         if db.is_symlink() or not db.is_file():
             refuse("state", "monitor.db to be a regular file", str(db), "remove the unsafe database destination")
-        return sqlite3.connect(f"{db.absolute().as_uri()}?mode=ro", uri=True, timeout=30)
+        return instrument.connect_store(db, timeout=30)
     except sqlite3.Error as exc:
         refuse("state", f"a readable SQLite state at {db}", type(exc).__name__, "repair or replace the state database")
 
@@ -964,22 +966,20 @@ def _claim_due(conn: sqlite3.Connection, config: dict[str, object], now_epoch: f
     monitors = config["monitors"]
     schedules = config["schedules"]
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        for ident, monitor in monitors.items():
-            schedule = schedules[monitor["schedule"]]
-            fingerprint = _fingerprint({"monitor": monitor, "schedule": schedule})
-            row = conn.execute("SELECT fingerprint,next_due FROM schedules WHERE monitor=?", (ident,)).fetchone()
-            active = monitor["enabled"] and schedule["enabled"]
-            if not active:
-                conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,NULL) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=NULL", (ident, fingerprint))
-                continue
-            clock_rewound = row is not None and row[1] is not None and row[1] - now_epoch > schedule["every_s"]
-            if row is None or row[0] != fingerprint or row[1] is None or now_epoch >= row[1] or clock_rewound:
-                due.append(ident)
-                conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,?) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=excluded.next_due", (ident, fingerprint, now_epoch + schedule["every_s"]))
-        conn.commit()
+        with instrument.transaction(conn):
+            for ident, monitor in monitors.items():
+                schedule = schedules[monitor["schedule"]]
+                fingerprint = _fingerprint({"monitor": monitor, "schedule": schedule})
+                row = conn.execute("SELECT fingerprint,next_due FROM schedules WHERE monitor=?", (ident,)).fetchone()
+                active = monitor["enabled"] and schedule["enabled"]
+                if not active:
+                    conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,NULL) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=NULL", (ident, fingerprint))
+                    continue
+                clock_rewound = row is not None and row[1] is not None and row[1] - now_epoch > schedule["every_s"]
+                if row is None or row[0] != fingerprint or row[1] is None or now_epoch >= row[1] or clock_rewound:
+                    due.append(ident)
+                    conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,?) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=excluded.next_due", (ident, fingerprint, now_epoch + schedule["every_s"]))
     except sqlite3.Error as exc:
-        conn.rollback()
         refuse("state", "valid writable monitor state", type(exc).__name__, "repair or replace the state database")
     return due
 
@@ -1009,100 +1009,98 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
     monitors = config["monitors"]
     routes = config["routes"]
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        known_conditions = set(conditions)
-        stale = conn.execute("SELECT DISTINCT condition_id FROM condition_state").fetchall()
-        for (condition_id,) in stale:
-            if condition_id not in known_conditions:
-                conn.execute(
-                    "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
-                    (_fingerprint({"removed": condition_id}), condition_id),
-                )
-        for ident, condition in conditions.items():
-            monitor_id = condition["monitor"]
-            fingerprint = _fingerprint({"condition": condition, "source": monitors[monitor_id]})
-            if not condition["enabled"] or not monitors[monitor_id]["enabled"]:
-                conn.execute(
-                    "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
-                    (_fingerprint({"inactive": fingerprint}), ident),
-                )
-                continue
-            if monitor_id not in observations:
-                continue
-            for reading in observations[monitor_id]:
-                if set(reading) != READING_KEYS:
-                    raise ValueError("reader returned an invalid reading shape")
-                subject = reading["subject"]
-                generation = _canonical(reading["generation"])
-                row = conn.execute(
-                    "SELECT fingerprint,generation,epoch,baseline,matching,pending,last_emit,sequence FROM condition_state WHERE condition_id=? AND subject=?",
-                    (ident, subject),
-                ).fetchone()
-                if row is None:
-                    epoch, baseline, matching, pending, last_emit, sequence = 1, None, False, False, None, 0
-                elif row[0] != fingerprint or row[1] != generation:
-                    epoch, baseline, matching, pending, last_emit, sequence = row[2] + 1, None, False, False, None, row[7]
-                else:
-                    epoch, baseline, matching, pending, last_emit, sequence = row[2], row[3], bool(row[4]), bool(row[5]), row[6], row[7]
-                op = condition["op"]
-                field = condition["field"]
-                known = field is None or field in reading["metrics"]
-                current = reading["metrics"].get(field) if field is not None else None
-                if op in {"gt", "lt"}:
-                    numeric = _finite_number(current)
-                    matches = bool(reading["state"] == "ok" and known and numeric and (current > condition["threshold"] if op == "gt" else current < condition["threshold"]))
-                elif op == "unavailable":
-                    matches = reading["state"] == "unavailable"
-                else:
-                    current_json = _canonical(current) if known else None
-                    matches = bool(known and (baseline is None or current_json != baseline))
-                entered = matches and not matching
-                if entered:
-                    pending = True
-                    sequence += 1
-                if not matches:
-                    pending = False
-                eligible = last_emit is None or now_epoch - last_emit >= condition["cooldown_s"]
-                should_emit = matches and pending and eligible
-                if should_emit:
-                    active_routes = [
-                        (route_id, route) for route_id, route in routes.items()
-                        if route["enabled"] and route["condition"] == ident
-                    ]
-                    while any(
-                        conn.execute(
-                            "SELECT 1 FROM events WHERE dedup_key=?",
-                            (_fingerprint([ident, subject, epoch, sequence, route_id]),),
-                        ).fetchone()
-                        for route_id, _route in active_routes
-                    ):
+        with instrument.transaction(conn):
+            known_conditions = set(conditions)
+            stale = conn.execute("SELECT DISTINCT condition_id FROM condition_state").fetchall()
+            for (condition_id,) in stale:
+                if condition_id not in known_conditions:
+                    conn.execute(
+                        "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
+                        (_fingerprint({"removed": condition_id}), condition_id),
+                    )
+            for ident, condition in conditions.items():
+                monitor_id = condition["monitor"]
+                fingerprint = _fingerprint({"condition": condition, "source": monitors[monitor_id]})
+                if not condition["enabled"] or not monitors[monitor_id]["enabled"]:
+                    conn.execute(
+                        "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
+                        (_fingerprint({"inactive": fingerprint}), ident),
+                    )
+                    continue
+                if monitor_id not in observations:
+                    continue
+                for reading in observations[monitor_id]:
+                    if set(reading) != READING_KEYS:
+                        raise ValueError("reader returned an invalid reading shape")
+                    subject = reading["subject"]
+                    generation = _canonical(reading["generation"])
+                    row = conn.execute(
+                        "SELECT fingerprint,generation,epoch,baseline,matching,pending,last_emit,sequence FROM condition_state WHERE condition_id=? AND subject=?",
+                        (ident, subject),
+                    ).fetchone()
+                    if row is None:
+                        epoch, baseline, matching, pending, last_emit, sequence = 1, None, False, False, None, 0
+                    elif row[0] != fingerprint or row[1] != generation:
+                        epoch, baseline, matching, pending, last_emit, sequence = row[2] + 1, None, False, False, None, row[7]
+                    else:
+                        epoch, baseline, matching, pending, last_emit, sequence = row[2], row[3], bool(row[4]), bool(row[5]), row[6], row[7]
+                    op = condition["op"]
+                    field = condition["field"]
+                    known = field is None or field in reading["metrics"]
+                    current = reading["metrics"].get(field) if field is not None else None
+                    if op in {"gt", "lt"}:
+                        numeric = _finite_number(current)
+                        matches = bool(reading["state"] == "ok" and known and numeric and (current > condition["threshold"] if op == "gt" else current < condition["threshold"]))
+                    elif op == "unavailable":
+                        matches = reading["state"] == "unavailable"
+                    else:
+                        current_json = _canonical(current) if known else None
+                        matches = bool(known and (baseline is None or current_json != baseline))
+                    entered = matches and not matching
+                    if entered:
+                        pending = True
                         sequence += 1
-                    for route_id, route in active_routes:
-                        delivery = "unsupported" if route["adapter"] == "unsupported" else ("stdout" if route["adapter"] == "stdout" else "queued")
-                        dedup = _fingerprint([ident, subject, epoch, sequence, route_id])
-                        evidence = _canonical(reading["evidence"])
-                        summary = _event_summary(condition, reading)
-                        cursor = conn.execute(
-                            "INSERT OR IGNORE INTO events(route,consumer,condition_id,monitor,subject,state,summary,evidence,observed_at,delivery,dedup_key) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                            (route_id, route["consumer"], ident, monitor_id, subject, reading["state"], summary, evidence, reading["observed_at"], delivery, dedup),
-                        )
-                        if cursor.rowcount:
-                            event_id = cursor.lastrowid
-                            emitted.append({"id": event_id, "route": route_id, "consumer": route["consumer"], "condition": ident, "monitor": monitor_id, "subject": subject, "state": reading["state"], "summary": summary, "evidence": reading["evidence"], "observed_at": reading["observed_at"], "delivery": delivery})
-                    pending = False
-                    last_emit = now_epoch
-                    if op == "changed":
+                    if not matches:
+                        pending = False
+                    eligible = last_emit is None or now_epoch - last_emit >= condition["cooldown_s"]
+                    should_emit = matches and pending and eligible
+                    if should_emit:
+                        active_routes = [
+                            (route_id, route) for route_id, route in routes.items()
+                            if route["enabled"] and route["condition"] == ident
+                        ]
+                        while any(
+                            conn.execute(
+                                "SELECT 1 FROM events WHERE dedup_key=?",
+                                (_fingerprint([ident, subject, epoch, sequence, route_id]),),
+                            ).fetchone()
+                            for route_id, _route in active_routes
+                        ):
+                            sequence += 1
+                        for route_id, route in active_routes:
+                            delivery = "unsupported" if route["adapter"] == "unsupported" else ("stdout" if route["adapter"] == "stdout" else "queued")
+                            dedup = _fingerprint([ident, subject, epoch, sequence, route_id])
+                            evidence = _canonical(reading["evidence"])
+                            summary = _event_summary(condition, reading)
+                            cursor = conn.execute(
+                                "INSERT OR IGNORE INTO events(route,consumer,condition_id,monitor,subject,state,summary,evidence,observed_at,delivery,dedup_key) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                                (route_id, route["consumer"], ident, monitor_id, subject, reading["state"], summary, evidence, reading["observed_at"], delivery, dedup),
+                            )
+                            if cursor.rowcount:
+                                event_id = cursor.lastrowid
+                                emitted.append({"id": event_id, "route": route_id, "consumer": route["consumer"], "condition": ident, "monitor": monitor_id, "subject": subject, "state": reading["state"], "summary": summary, "evidence": reading["evidence"], "observed_at": reading["observed_at"], "delivery": delivery})
+                        pending = False
+                        last_emit = now_epoch
+                        if op == "changed":
+                            baseline = current_json
+                            matches = False
+                    elif op == "changed" and known and not matches:
                         baseline = current_json
-                        matches = False
-                elif op == "changed" and known and not matches:
-                    baseline = current_json
-                conn.execute(
-                    "INSERT INTO condition_state(condition_id,subject,fingerprint,generation,epoch,baseline,matching,pending,last_emit,sequence) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(condition_id,subject) DO UPDATE SET fingerprint=excluded.fingerprint,generation=excluded.generation,epoch=excluded.epoch,baseline=excluded.baseline,matching=excluded.matching,pending=excluded.pending,last_emit=excluded.last_emit,sequence=excluded.sequence",
-                    (ident, subject, fingerprint, generation, epoch, baseline, int(matches), int(pending), last_emit, sequence),
-                )
-        conn.commit()
+                    conn.execute(
+                        "INSERT INTO condition_state(condition_id,subject,fingerprint,generation,epoch,baseline,matching,pending,last_emit,sequence) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(condition_id,subject) DO UPDATE SET fingerprint=excluded.fingerprint,generation=excluded.generation,epoch=excluded.epoch,baseline=excluded.baseline,matching=excluded.matching,pending=excluded.pending,last_emit=excluded.last_emit,sequence=excluded.sequence",
+                        (ident, subject, fingerprint, generation, epoch, baseline, int(matches), int(pending), last_emit, sequence),
+                    )
     except (sqlite3.Error, TypeError, ValueError) as exc:
-        conn.rollback()
         refuse("state", "valid monitor state and adapter readings", type(exc).__name__, "repair state or the named reader")
     return emitted
 
@@ -1150,43 +1148,34 @@ def digest(state: Path, consumer: str, limit: int, max_bytes: int, ack: bool) ->
         return _packed({"events": [], "more": False})
     try:
         try:
-            if ack:
-                conn.execute("BEGIN IMMEDIATE")
-            cursor_row = conn.execute("SELECT event_id FROM cursors WHERE consumer=?", (consumer,)).fetchone()
-            cursor = cursor_row[0] if cursor_row else 0
-            rows = conn.execute(
-                "SELECT id,route,consumer,condition_id,monitor,subject,state,summary,evidence,observed_at,delivery FROM events WHERE consumer=? AND delivery IN ('queued','unsupported') AND id>? ORDER BY id LIMIT ?",
-                (consumer, cursor, limit + 1),
-            ).fetchall()
-            events: list[dict[str, object]] = []
-            for row in rows[:limit]:
-                candidate = [*events, _event_from_row(row)]
-                if len(_packed({"events": candidate, "more": False})) > max_bytes:
-                    break
-                events = candidate
-            more_row = conn.execute(
-                "SELECT 1 FROM events WHERE consumer=? AND delivery IN ('queued','unsupported') AND id>? LIMIT 1",
-                (consumer, events[-1]["id"] if events else cursor),
-            ).fetchone()
-            payload = {"events": events, "more": more_row is not None}
-            body = _packed(payload)
-            if len(body) > max_bytes:
-                refuse("arguments", f"--max-bytes large enough for digest metadata ({len(body)})", max_bytes, "raise --max-bytes")
-            if ack and events:
-                conn.execute(
-                    "INSERT INTO cursors(consumer,event_id) VALUES(?,?) ON CONFLICT(consumer) DO UPDATE SET event_id=MAX(cursors.event_id,excluded.event_id)",
-                    (consumer, events[-1]["id"]),
-                )
-            if ack:
-                conn.commit()
+            with instrument.transaction(conn) if ack else nullcontext():
+                cursor_row = conn.execute("SELECT event_id FROM cursors WHERE consumer=?", (consumer,)).fetchone()
+                cursor = cursor_row[0] if cursor_row else 0
+                rows = conn.execute(
+                    "SELECT id,route,consumer,condition_id,monitor,subject,state,summary,evidence,observed_at,delivery FROM events WHERE consumer=? AND delivery IN ('queued','unsupported') AND id>? ORDER BY id LIMIT ?",
+                    (consumer, cursor, limit + 1),
+                ).fetchall()
+                events: list[dict[str, object]] = []
+                for row in rows[:limit]:
+                    candidate = [*events, _event_from_row(row)]
+                    if len(_packed({"events": candidate, "more": False})) > max_bytes:
+                        break
+                    events = candidate
+                more_row = conn.execute(
+                    "SELECT 1 FROM events WHERE consumer=? AND delivery IN ('queued','unsupported') AND id>? LIMIT 1",
+                    (consumer, events[-1]["id"] if events else cursor),
+                ).fetchone()
+                payload = {"events": events, "more": more_row is not None}
+                body = _packed(payload)
+                if len(body) > max_bytes:
+                    refuse("arguments", f"--max-bytes large enough for digest metadata ({len(body)})", max_bytes, "raise --max-bytes")
+                if ack and events:
+                    conn.execute(
+                        "INSERT INTO cursors(consumer,event_id) VALUES(?,?) ON CONFLICT(consumer) DO UPDATE SET event_id=MAX(cursors.event_id,excluded.event_id)",
+                        (consumer, events[-1]["id"]),
+                    )
             return body
-        except Refusal:
-            if ack:
-                conn.rollback()
-            raise
         except (sqlite3.Error, TypeError, ValueError, json.JSONDecodeError) as exc:
-            if ack:
-                conn.rollback()
             refuse("state", "a valid monitor database", type(exc).__name__, "repair or replace the state database")
     finally:
         conn.close()

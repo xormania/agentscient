@@ -153,3 +153,7 @@ for _rows, _cls in ((ENVELOPE_STOP_CASES, EnvelopeStops), (SKEPTIC_ANSWERS_CASES
     assert len(_ids) == len(set(_ids)), "rows are addressed by id"
     for _row in _rows:
         setattr(_cls, "test_" + _row.id.replace("-", "_"), _method(_row))
+
+# unittest discovers class objects even under private names. Do not leave
+# a second reference to SkepticAnswers for it to collect again.
+del _cls

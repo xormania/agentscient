@@ -35,7 +35,7 @@ def _stamp(hours_ago):
     return at.strftime("%Y-%m-%dT%H:%M:%S.%f") + "000Z"  # the CLI writes nanoseconds
 
 
-class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
+class _CredentialFixture(unittest.TestCase):
     def setUp(self):
         self.iso = _isolation()
         self.world = World(prefix="cred-age-")
@@ -55,6 +55,8 @@ class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
     def build(self, harness, name):
         return Path(self.iso.build_home(harness, self.tmp / name, env=self.env))
 
+
+class ACredentialPastItsRefreshLifetimeIsRefused(_CredentialFixture):
     def test_a_grok_credential_older_than_the_lifetime_is_refused_naming_the_login(self):
         self.plant("grok", self.credential(31))
         with self.assertRaises(self.iso.NotIsolated) as caught:
@@ -85,7 +87,7 @@ class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in home.iterdir()), ["auth.json"])
 
 
-class ARenewedCredentialIsCarriedBackToTheHost(ACredentialPastItsRefreshLifetimeIsRefused):
+class ARenewedCredentialIsCarriedBackToTheHost(_CredentialFixture):
     """LD-41 (2026-09-15): the CLI renews by renaming a new file over the
     symlink build_home planted, so the renewal (a new refresh token and a
     new create_time) stayed in the job home and the host copy aged out.

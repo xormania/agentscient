@@ -141,16 +141,6 @@ class DoctorFixture(unittest.TestCase):
         out = proc.stdout + proc.stderr
         return proc, out
 
-    def test_an_unknown_argument_refuses_arguments_on_the_wire(self):
-        """instrument-conventions.md §The refusal wire: one stderr line,
-        exit 2, stdout empty; the class token leads."""
-        proc, _ = self._run("--bogus")
-        wire = proc.refusal(exit=2)
-        self.assertEqual(wire.cls, "arguments")
-        self.assertTrue(wire.expected)
-        self.assertTrue(wire.found)
-        self.assertTrue(wire.needed)
-
     def _write_settings(self, path: Path, payload) -> bytes:
         before = path.read_bytes() if path.exists() else b""
         text = json.dumps(payload, indent=2) + "\n"
@@ -160,6 +150,18 @@ class DoctorFixture(unittest.TestCase):
         loaded = json.loads(after.decode("utf-8"))
         self.assertIsInstance(loaded, dict, "planted settings must still parse")
         return after
+
+
+class TestArguments(DoctorFixture):
+    def test_an_unknown_argument_refuses_arguments_on_the_wire(self):
+        """instrument-conventions.md §The refusal wire: one stderr line,
+        exit 2, stdout empty; the class token leads."""
+        proc, _ = self._run("--bogus")
+        wire = proc.refusal(exit=2)
+        self.assertEqual(wire.cls, "arguments")
+        self.assertTrue(wire.expected)
+        self.assertTrue(wire.found)
+        self.assertTrue(wire.needed)
 
 
 class TestListProbes(DoctorFixture):
