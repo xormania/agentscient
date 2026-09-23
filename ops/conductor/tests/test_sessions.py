@@ -28,6 +28,7 @@ import shutil
 import signal
 import sqlite3
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -56,6 +57,10 @@ AGENT = "Sessions Tester <noreply@example.test>"
 LANE = "agentscient"
 TIMEOUT = 60.0
 READY = 15
+# The world's root, whatever the ambient temp dir: a unix socket path
+# is at most 107 bytes, and the private tmux socket lives in the world.
+SHORT_ROOT = "/tmp"
+SOCKET_LIMIT = 108
 LEAD_SESSION = "lead-already-bound"
 WORKER_SESSION = "worker-already-bound"
 HOST_TMUX = shutil.which("tmux")
@@ -121,6 +126,33 @@ class ThePresence(unittest.TestCase):
         self.assertFalse(state.exists(), f"status created {state}")
 
 
+class TheSocketPath(unittest.TestCase):
+    """origin: 20260923T003033Z-review-codex-c99cc9#2
+
+    A long ambient temp dir, cached before the world opens, still leaves the
+    world under SHORT_ROOT and its tmux socket under SOCKET_LIMIT bytes.
+    """
+
+    def test_a_long_cached_temp_dir_keeps_the_socket_short(self):
+        holder = World(prefix="sessions-long-")
+        self.addCleanup(holder.close)
+        long_dir = holder.root / ("t" * 120)
+        long_dir.mkdir()
+        saved = tempfile.tempdir
+        tempfile.tempdir = str(long_dir)
+        self.addCleanup(setattr, tempfile, "tempdir", saved)
+        with self.subTest(id="socket-under-long-tmpdir",
+                          origin="20260923T003033Z-review-codex-c99cc9#2"):
+            self.assertEqual(tempfile.gettempdir(), str(long_dir))
+            scratch = _Scratch()
+            world = scratch.open_world("sessions-")
+            self.addCleanup(world.close)
+            socket = world.tmp / "tmux.sock"
+            self.assertEqual(world.root.parent, Path(SHORT_ROOT))
+            self.assertLess(len(os.fsencode(str(socket))), SOCKET_LIMIT, str(socket))
+            self.assertEqual(tempfile.gettempdir(), str(long_dir))
+
+
 class _Scratch(unittest.TestCase):
     """Hermetic world, planted fake harness, private tmux socket."""
 
@@ -128,15 +160,15 @@ class _Scratch(unittest.TestCase):
         """A world rooted under /tmp, so the private tmux socket it owns
         stays under 108 bytes. origin: 20260922T215604Z-review-codex-f6777b#10
         """
-        saved = os.environ.get("TMPDIR")
-        os.environ["TMPDIR"] = "/tmp"
+        # tempfile caches its directory at the first call, so TMPDIR set
+        # here is not read; tempfile.tempdir is what mkdtemp consults.
+        # origin: 20260923T003033Z-review-codex-c99cc9#2
+        saved = tempfile.tempdir
+        tempfile.tempdir = SHORT_ROOT
         try:
             return World(prefix=prefix)
         finally:
-            if saved is None:
-                os.environ.pop("TMPDIR", None)
-            else:
-                os.environ["TMPDIR"] = saved
+            tempfile.tempdir = saved
 
     def setUp(self):
         self.world = self.open_world("sessions-")
@@ -145,6 +177,11 @@ class _Scratch(unittest.TestCase):
         self.xdg = self.world.xdg_state
         self.state = self.xdg / LANE
         self.socket = self.world.tmp / "tmux.sock"
+        if len(os.fsencode(str(self.socket))) >= SOCKET_LIMIT:
+            raise AssertionError(
+                f"INVALID: private tmux socket must be under {SOCKET_LIMIT} bytes: "
+                f"{self.socket}"
+            )
         self.team_path = self.world.plant_text(
             "team.json",
             json.dumps(a_team(claude_member("grunt", ["worker"]))) + "\n",
