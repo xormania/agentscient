@@ -10,7 +10,11 @@ no SQLite transaction across a native call. `RPC(reader, writer)` speaks
 over a stream pair it is handed, as the proof's did; `Channel(argv)`
 spawns the harness and is an `RPC` over the process's pipes. Every received line goes
 through `framing.Parser`; a line it refuses ends the channel with that
-reading, as the proof's reader ended on a non-JSON line.
+reading, as the proof's reader ended on a non-JSON line. One refusal does
+not: a response whose id matches no request this side sent is dropped,
+kept in `strays` and written as one line to the log. grok 1.0.40 sends
+one on its own (`"id":"skills-reload"`) after its tool calls, and ending
+the channel on it lost the turn's later frames.
 
 A request the other side sends and a notification are not answered here:
 they wait on `frames` for the adapter's `observe`, which answers a
@@ -95,10 +99,12 @@ class RPC:
     codex's app-server does not.
     """
 
-    def __init__(self, reader, writer, *, jsonrpc: bool = True):
+    def __init__(self, reader, writer, *, jsonrpc: bool = True, log=None):
         self.jsonrpc = jsonrpc
         self.reader = reader
         self.writer = writer
+        self.log = log
+        self.strays: list = []
         self._text = isinstance(writer, io.TextIOBase)
         self.parser = framing.Parser()
         self.frames: queue.Queue = queue.Queue()
@@ -168,6 +174,16 @@ class RPC:
         except queue.Empty:
             return None
 
+    def note(self, reading: str) -> None:
+        """Keep a dropped frame's reading, and write it to the log if any."""
+        self.strays.append(reading)
+        if self.log is None:
+            return
+        line = f"channel: dropped {reading}\n"
+        with contextlib.suppress(OSError, ValueError):
+            self.log.write(line if isinstance(self.log, io.TextIOBase) else line.encode("utf-8"))
+            self.log.flush()
+
     def _read(self) -> None:
         try:
             for raw in self.reader:
@@ -176,9 +192,18 @@ class RPC:
                 if not line:
                     continue
                 with self._book:
-                    frame = self.parser.feed(line)
-                    pending = (None if "method" in frame
+                    try:
+                        frame = self.parser.feed(line)
+                    except framing.Refused as refused:
+                        if not refused.stray:
+                            raise
+                        frame = None
+                        stray = refused.reading
+                    pending = (None if frame is None or "method" in frame
                                else self._pending.pop(frame.get("id"), None))
+                if frame is None:
+                    self.note(stray)
+                    continue
                 if pending is None:
                     self.frames.put(frame)
                 elif "error" in frame:
@@ -213,7 +238,8 @@ class Channel(RPC):
             stderr=stderr if stderr is not None else subprocess.DEVNULL,
             env=env, cwd=cwd,
         )
-        super().__init__(self.process.stdout, self.process.stdin, jsonrpc=jsonrpc)
+        log = stderr if hasattr(stderr, "write") else None
+        super().__init__(self.process.stdout, self.process.stdin, jsonrpc=jsonrpc, log=log)
 
     @property
     def pid(self) -> int:

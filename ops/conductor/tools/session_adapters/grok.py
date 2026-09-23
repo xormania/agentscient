@@ -37,17 +37,49 @@ common = _common()
 # `session/prompt` stays open until the turn ends; a submission reads
 # `written` when no refusal came back within this grace.
 PROMPT_GRACE = 2.0
-UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
+# The namespace of grok's own tools, search_tool and use_tool among them.
+MACHINERY = "grok_build"
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
 
 
-def tool_name(update: dict) -> str | None:
+def channel_error(error) -> bool:
+    """A ChannelError from any load of channel.py. Modules here are loaded by
+    path, so one file can yield two classes and `except` on one misses the
+    other (a caller's own RPC, as the adapter rows build)."""
+    return type(error).__name__ == "ChannelError" and hasattr(error, "reading")
+
+
+def tool_reading(update: dict) -> str | None:
+    """A tool frame's reading. Grok reaches MCP tools through two of its own
+    (measured on 1.0.40, 2026-09-23): `search_tool` {query, limit} finds a
+    server's tools and reads `activity discovery <query>`, never a tool;
+    `use_tool` {tool_name "<server>__<tool>", tool_input} calls one and reads
+    `tool <server> <tool>`. A target without both halves or without an input
+    object reads `tool use_tool`. The split and the target check are the
+    proof's (evidence.py, d7707b3); the name comes from rawInput, never the
+    display title."""
     meta = update.get("_meta") if isinstance(update.get("_meta"), dict) else {}
     tool = meta.get("x.ai/tool") if isinstance(meta.get("x.ai/tool"), dict) else None
+    raw = update.get("rawInput") if isinstance(update.get("rawInput"), dict) else {}
+    if tool is not None and tool.get("namespace") == MACHINERY:
+        if tool.get("name") == "search_tool":
+            query = raw.get("query")
+            return f"activity discovery {query}" if isinstance(query, str) else "activity discovery"
+        if tool.get("name") == "use_tool":
+            target = raw.get("tool_name")
+            server, _, name = target.partition("__") if isinstance(target, str) else ("", "", "")
+            if server and name and isinstance(raw.get("tool_input"), dict):
+                return f"tool {server} {name}"
+            return "tool use_tool"
     if tool is not None and tool.get("name"):
+        name = str(tool["name"])
+        server, _, bare = name.partition("__")
+        if tool.get("namespace") == "mcp" and server and bare:
+            return f"tool {server} {bare}"
         namespace = tool.get("namespace")
-        return f"{namespace}/{tool['name']}" if namespace else str(tool["name"])
+        return f"tool {namespace}/{name}" if namespace else f"tool {name}"
     title = update.get("title")
-    return str(title) if title else None
+    return f"tool {title}" if title else None
 
 
 def acp_servers(binding) -> list:
@@ -88,7 +120,7 @@ class Adapter(common.ProtocolAdapter):
     # The directory the harness was spawned in, kept from `connect`.
     cwd = None
     # The MCP servers `session/new` names, kept from `channel`.
-    servers: list = []
+    servers = ()
 
     def channel(self, member, binding):
         self.servers = acp_servers(binding)
@@ -125,7 +157,9 @@ class Adapter(common.ProtocolAdapter):
             method = "session/new"
             opened = rpc.request(method, {"cwd": self.workdir(rpc), "mcpServers": self.servers},
                                  timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             self.refuse_channel(method, error)
         native = opened.get("sessionId") if isinstance(opened, dict) else None
         if not isinstance(native, str) or not native:
@@ -144,17 +178,23 @@ class Adapter(common.ProtocolAdapter):
                             {"sessionId": self.native, "text": text,
                              "interjectionId": str(uuid.uuid4())},
                             timeout=common.SUBMIT_TIMEOUT)
-            except common.channel.ChannelError as error:
+            except Exception as error:
+                if not channel_error(error):
+                    raise
                 return self.settled("_x.ai/interject", error)
             return "written"
         try:
             pending = rpc.send("session/prompt", {"sessionId": self.native,
                                                   "prompt": [{"type": "text", "text": text}]})
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return self.settled("session/prompt", error)
         try:
             pending.wait(PROMPT_GRACE)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             if not error.reading.startswith("no answer within"):
                 return self.settled("session/prompt", error)
         return "written"
@@ -181,8 +221,7 @@ class Adapter(common.ProtocolAdapter):
                 content = update.get("content") if isinstance(update.get("content"), dict) else {}
                 return f"output {content.get('text', '')}"
             if kind in ("tool_call", "tool_call_update"):
-                name = tool_name(update)
-                return f"tool {name}" if name else "activity active"
+                return tool_reading(update) or "activity active"
             return "activity active"
         if method == "_x.ai/mcp/server_status":
             if params.get("name") == common.SERVER and params.get("status") == "ready":
