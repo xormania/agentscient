@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS dispatch_intents(
     phase TEXT NOT NULL, record TEXT, launcher_pid INTEGER,
     launcher_ticks TEXT, reserved_at TEXT NOT NULL,
     launched_at TEXT, closed_at TEXT, outcome TEXT, error TEXT,
+    reported_at TEXT,
     UNIQUE (requester, key));
 """
 TABLE = "dispatch_intents"
@@ -110,6 +111,15 @@ def writer() -> sqlite3.Connection:
     try:
         conn = coordination.writer()
         conn.executescript(SCHEMA)
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({TABLE})")}
+        if "reported_at" not in columns:
+            # A store from before the follow-through kept closed intents: the
+            # ones already closed are marked, so the first pass after the
+            # column lands reports none of them again.
+            with conn:
+                conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN reported_at TEXT")
+                conn.execute(f"UPDATE {TABLE} SET reported_at = 'before reporting' "  # noqa: S608 - the module's own table
+                             "WHERE phase = 'closed'")
     except sqlite3.DatabaseError as error:
         refuse("store", f"a writable SQLite store at {machine.store_path()}", str(error),
                "restore or move the store aside; the engine never rebuilds one to order")
@@ -187,6 +197,23 @@ def by_record(conn, record: str):
     return conn.execute(
         "SELECT i.*, s.place FROM dispatch_intents i JOIN subjects s ON s.id = i.subject "
         "WHERE i.record = ?", (record,)).fetchone()
+
+
+def watched(conn) -> list:
+    """The intents whose outcome is still to reach the requester: every one
+    at `launched`, and every one `closed` before its event was sent (a job
+    waited and collected while the router was down or inside one tick)."""
+    rows = in_phases(conn, ("launched", "closed"))
+    return [found for found in rows if found["place"] == "launched"
+            or ("reported_at" in found.keys()  # noqa: SIM118 - a Row's `in` reads values, not names
+                and found["reported_at"] is None)]
+
+
+def reported(conn, di: int) -> None:
+    """The intent's outcome was sent; a closed intent leaves the pass."""
+    with conn:
+        conn.execute(f"UPDATE {TABLE} SET reported_at = ? WHERE id = ? AND reported_at IS NULL",  # noqa: S608 - the module's own table
+                     (stamp(), di))
 
 
 def in_phases(conn, phases) -> list:

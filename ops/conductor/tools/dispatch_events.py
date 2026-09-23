@@ -9,7 +9,7 @@ classes, identity for writes.
     dispatch_events.py route --consumer C [--once] [--tick N]
 
 Each pass writes a monitor config under the state directory with one
-monitor, condition and route per launched intent, named `di-<n>`, each
+monitor, condition and route per watched intent, named `di-<n>`, each
 reading that intent's one record id (the dispatch adapter reads a static
 id list), runs `monitor.py run --once` over it, reads `digest --consumer C`
 and sends by the dispatch metric's own word: `completion` and `no-op`
@@ -19,6 +19,12 @@ record no intent carries, is acked and never sent. Each send carries
 `key event:<event id>:<recipient>`, so a digest served twice sends once;
 the cursor is acked only after every send of the batch is committed,
 so a failed send leaves the batch to the next pass.
+
+A watched intent is one at `launched`, or one `closed` whose outcome was
+never sent: `collect` closes an intent, and a job waited and collected
+while the router was down, restarting, or inside one tick would
+otherwise leave the pass before its event, and the requester would hear
+nothing. An intent is marked `reported_at` once its outcome is sent.
 
 One monitor per intent, measured with monitor.py on 2026-09-23: a
 condition's fingerprint covers its monitor's params, so one shared id
@@ -130,7 +136,7 @@ def one_pass(consumer: str) -> list:
     view = intents.reader() or intents.writer()
     part = coordination.bound_participant(view)
     launched = [(found["id"], found["record"])
-                for found in intents.in_phases(view, ("launched",)) if found["record"]][-MAX_IDS:]
+                for found in intents.watched(view) if found["record"]][-MAX_IDS:]
     try:
         base.mkdir(parents=True, exist_ok=True)
         config.write_text(json.dumps(config_for(launched, consumer), indent=1) + "\n",
@@ -167,6 +173,7 @@ def one_pass(consumer: str) -> list:
                         key=f"event:{event.get('id')}:{to}")
             lines.append(f"event {event.get('id')} DI-{found['id']} {word} "
                          f"{purpose} {to} {sent.get('message')}")
+        intents.reported(conn, found["id"])
     if events:
         # Acked by count from the unmoved cursor: the same events the
         # batch read, never one that arrived after it.
