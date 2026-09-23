@@ -21,16 +21,19 @@ import tempfile
 from pathlib import Path
 
 
-def _common():
-    path = Path(__file__).with_name("__init__.py")
-    spec = importlib.util.spec_from_file_location("session_adapters_common", path)
+def _load(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-common = _common()
-from instrument import lane_name  # noqa: E402 - on the path _common appended
+common = _load("session_adapters_common", Path(__file__).with_name("__init__.py"))
+# By path, not by name: a module named instrument already in sys.modules
+# may be a copy another caller loaded from a tree since deleted, whose
+# lane conf reader is gone with it.
+lane_name = _load("session_adapters_instrument",
+                  Path(__file__).resolve().parent.parent / "instrument.py").lane_name
 
 # What the bridge answers to each request the app-server may send: every
 # approval declined, every question left unanswered, nothing granted.

@@ -838,8 +838,8 @@ contract clauses the fix must satisfy, by line), the candidate's
 starting ref, and the two controlled cases the verifier will plant (an
 omitted behaviour and a changed candidate). It is written by
 `sessions.py trial objective <run> --deliverable <id> --clause <file:line>
-... --candidate <ref> --case omitted:<clause> --case changed:<ref>` into
-`<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
+... --candidate <ref> --case omitted:<clause> --case changed:<ref>
+[--fake <name> ...]` into `<state dir>/runs/R-n/objective.json`; a call missing the deliverable,
 a clause, the candidate or either case is refused `objective`.
 
 **The trial record** is `ops/conductor/handoff/<date>-slice4-trial.md`,
@@ -847,9 +847,16 @@ the date the run's start date in `YYYY-MM-DD`, checked by `sessions.py
 trial record <path>`, which refuses `evidence` on the first row without a
 reading or `not measured <why>` and exits 0 on a complete record. An
 acceptance claim is `sessions.py trial accept <run> --candidate <sha>
---record <path>`, which refuses `acceptance` when `<sha>` is not the sha
-the verifier's row names or when any evidence cell reads `live` for a
-row whose command ran a planted fake. It is a table with one row per
+--record <path>`, which refuses `acceptance` when `<sha>` is not the
+40-hex sha in row I-14's evidence cell (`verified <sha>`, the
+verifier's row; a cell without one refuses `acceptance` naming the
+absence), when any clause in the run's `objective.json` appears by its
+`file:line` token in no row's evidence or reading (the omitted
+behaviour, refused naming the clause), or when an evidence cell reads
+`live` while its row's reading names a program the objective's `fakes`
+list declares planted, or reads `mock <name>` and `live` together.
+`objective.json` therefore carries `fakes`, the planted programs by
+name, possibly empty and always present. It is a table with one row per
 acceptance id I-01 to I-14 (plan §13), each row `id | required result |
 evidence | reading`,
 where `evidence` is a path plus sha, a record id, or a probe row id, and
