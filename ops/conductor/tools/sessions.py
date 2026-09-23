@@ -23,6 +23,7 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py trial objective R-n --deliverable ID --clause FILE:LINE ... --candidate REF
                       --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
     sessions.py trial record PATH
+    sessions.py trial accept R-n --candidate SHA --record PATH
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -2157,7 +2158,70 @@ def trial_record(rest):
     return EXIT_DONE
 
 
-TRIAL = {"objective": trial_objective, "record": trial_record}
+def cited(clause: str, rows: dict) -> bool:
+    token = re.compile(r"(?<![\w/.-])" + re.escape(clause) + r"(?!\d)")
+    return any(token.search(row["evidence"]) or token.search(row["reading"]) for row in rows.values())
+
+
+def trial_accept(rest):
+    """`trial accept R-n --candidate SHA --record PATH`: the acceptance
+    claim, checked against the run's objective; a read. Refused
+    `acceptance` on a candidate that is not I-14's verified sha, an
+    objective clause cited by no row, or a mock written as live."""
+    if not rest or rest[0].startswith("--"):
+        refuse("arguments", "the run id first, trial accept R-n", rest[0] if rest else "none", usage())
+    rid = run_number(rest[0])
+    options = gathered(rest[1:], single=("candidate", "record"))
+    missing = [f"--{name}" for name in ("candidate", "record") if not options.get(name)]
+    if missing:
+        refuse("arguments", "trial accept R-n --candidate SHA --record PATH", "no " + ", no ".join(missing),
+               usage())
+    conn = reader()
+    try:
+        run = chosen_run(conn, {"run": f"R-{rid}"}, places=("open", "stopping", "stopped"))
+    finally:
+        if conn is not None:
+            conn.close()
+    objective_file = objective_path(run["id"])
+    try:
+        objective = json.loads(objective_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        refuse("acceptance", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
+               f"sessions.py trial objective R-{run['id']} before any acceptance")
+    rows = checked_record(options["record"])
+    evidence = rows["I-14"]["evidence"]
+    verified = VERIFIED.search(evidence)
+    if verified is None:
+        refuse("acceptance", "I-14's evidence cell as verified <40-hex sha>, the verifier's row",
+               f"I-14 evidence {evidence!r}, no verified sha", "the verifier writes verified <sha> in I-14")
+    candidate = options["candidate"]
+    if candidate.lower() != verified.group(1):
+        refuse("acceptance", f"the candidate to be the verified sha {verified.group(1)}",
+               f"candidate {candidate}", "verify the candidate as it stands, or accept the verified sha")
+    uncited = [clause for clause in objective.get("clauses", []) if not cited(clause, rows)]
+    if uncited:
+        refuse("acceptance", "every objective clause cited by its file:line in a row's evidence or reading",
+               "no row cites " + ", ".join(uncited), "measure the clause and cite it, or the candidate omits it")
+    fakes = objective.get("fakes", [])
+    for key in TRIAL_IDS:
+        row = rows[key]
+        if not LIVE.search(row["evidence"]):
+            continue
+        if MOCK.search(row["evidence"]):
+            refuse("acceptance", f"{key}'s evidence as mock <name> or live, one of them",
+                   f"{key} evidence {row['evidence']!r}", "a mock's pass is written mock <name>, never live")
+        planted = [fake for fake in fakes
+                   if re.search(r"(?<![\w-])" + re.escape(fake) + r"(?![\w-])", row["reading"])]
+        if planted:
+            refuse("acceptance", f"{key}'s live evidence read from no planted program",
+                   f"{key} reading names {', '.join(planted)}, declared planted in the objective's fakes",
+                   f"write {key}'s evidence as mock {planted[0]}, or measure it live")
+    print(f"accepted R-{run['id']} {verified.group(1)} record {options['record']} "
+          f"{len(objective.get('clauses', []))} clauses cited")
+    return EXIT_DONE
+
+
+TRIAL = {"objective": trial_objective, "record": trial_record, "accept": trial_accept}
 
 
 def do_trial(rest):
