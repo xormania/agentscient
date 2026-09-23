@@ -274,8 +274,8 @@ tests:
 
 | transition | from | to | actor | evidence | failure | hold | gate |
 |---|---|---|---|---|---|---|---|
-| offer | drafted | offered | any | none | `offered` | keep | lead or coordinator |
-| address | offered | offered | any | required (why) | `offered` | clear | reassign: lead or coordinator; bind-for: an unaddressed or matching role offer; generation |
+| offer | drafted | offered | any | none | `offered` | keep | offer: lead or coordinator; bind-for: dispatcher; generation |
+| address | offered | offered | any | required (why) | `offered` | clear | reassign: lead or coordinator; bind-for: dispatcher with an unaddressed or matching role offer; generation |
 | claim | offered | held | any | none | `taken` | take | the named recipient; the branch is in the lock; generation |
 | release | held | offered | holder-or-lapsed | required (why) | `place` | clear | generation; bumps it |
 | reassign | held | offered | any | required (why) | `place` | clear | lead or coordinator; generation; bumps it |
