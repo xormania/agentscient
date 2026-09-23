@@ -526,6 +526,21 @@ def coordination_server(harness, source):
     return server
 
 
+def install_member_skills(harness, home, source):
+    """Copy the entry points under ops/devlane/hooks/member-skills into a codex or grok
+    member's private home (sessions-lever.md, "Required of the wall"). build_home leaves
+    credentials only, and grok 1.0.40 loads the checkout's .claude/skills only in a
+    trusted project, so without these a member finds no onboard skill. Copied, never
+    linked, so nothing in the home reaches outside it; claude reads the checkout itself."""
+    if harness not in {"codex", "grok"}:
+        return
+    for skill in sorted((Path(source) / "ops/devlane/hooks/member-skills").glob("*/SKILL.md")):
+        target = Path(home) / "skills" / skill.parent.name / "SKILL.md"
+        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with os.fdopen(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as copy:
+            copy.write(skill.read_text())
+
+
 def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
@@ -556,6 +571,7 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable)
         settings["mcp_servers"] = {**settings.get("mcp_servers", {}), "coordination": coordination_server(harness, source)}
     # Use exactly the existing credential leaves and renewal-custody mechanism.
     home = isolation.build_home(harness, dest / "home", env=env)
+    install_member_skills(harness, home, source)
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
                     agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
                     credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env})
