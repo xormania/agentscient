@@ -15,11 +15,15 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py status [--run R-n] [--member NAME]
     sessions.py attach --member NAME [--run R-n]
     sessions.py stop [--run R-n] [--terminate] [--drain SEC]
-    sessions.py export [--run R-n] --to DIR
+    sessions.py export [R-n | --run R-n] [--to DIR]
     sessions.py bridge --run R-n --member NAME [--tick SEC]
     sessions.py join --run R-n --member NAME --participant PT-n [--team FILE]
     sessions.py recover [--run R-n]
     sessions.py input --run R-n --member NAME TEXT
+    sessions.py trial objective R-n --deliverable ID --clause FILE:LINE ... --candidate REF
+                      --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
+    sessions.py trial record PATH
+    sessions.py trial accept R-n --candidate SHA --record PATH
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -479,6 +483,33 @@ def refuse_unowned(run, found: str) -> None:
            "rename or close that session yourself, or start another run")
 
 
+def clear_dead_window(run, name: str) -> None:
+    """One window per member, named by the member: a later generation takes
+    the name from its predecessor's dead window, whose capture is already
+    in that generation's pane.log. tmux cannot resolve `=session:=name`
+    while a dead window and a new one share the name (measured, tmux 3.4),
+    so the dead one goes first; a live pane under the name refuses."""
+    session = run["tmux_session"]
+    listed = tmux(run["tmux_socket"], "list-windows", "-t", f"={session}:",
+                  "-F", "#{window_id} #{pane_dead} #{pane_id} #{window_name}")
+    if listed.returncode != 0:
+        refuse("tmux", f"tmux to list the windows of {session}",
+               listed.stderr.strip() or f"exit {listed.returncode}",
+               "inspect the tmux server on the run's socket")
+    for line in listed.stdout.splitlines():
+        window, dead, pane, found = (line.split(" ", 3) + ["", "", ""])[:4]
+        if found != name:
+            continue
+        if dead != "1":
+            refuse("place", f"no live pane in window {name} of {session}", f"pane {pane} live",
+                   f"sessions.py stop --run R-{run['id']} first")
+        killed = tmux(run["tmux_socket"], "kill-window", "-t", window)
+        if killed.returncode != 0:
+            refuse("tmux", f"tmux to close the dead window {window} of {name}",
+                   killed.stderr.strip() or f"exit {killed.returncode}",
+                   "inspect the tmux server on the run's socket")
+
+
 def launcher(argv: list[str], directory: Path, extra=None) -> tuple[list[str], Path]:
     """The pane's command: source a private env file, delete it, exec the argv.
 
@@ -621,6 +652,23 @@ def is_ready(found: dict[str, str]) -> bool:
     head = all(found[d].startswith("ok") for d in SLICE1)
     role = found["role"].startswith("ok") or found["role"].startswith("waiting grant")
     return head and role and all(found[d].startswith(("ok", "unmeasured")) for d in SLICE2)
+
+
+def enforcement(member, found: dict[str, str]) -> str:
+    """The ninth line status prints (slice 4, the owner's terminals): `ok
+    <profile>` only once the hook profile is observed, never by default.
+
+    Observed means the profile checks ok and the participant was bound
+    under the member's own launch id: only the profile's SessionStart hook
+    binds so (`initialize` compares the launch id), so the bind is the
+    hook's act. A bridge binds under the native id its handshake returned,
+    and a joined member has no profile of ours; both read unmeasured."""
+    if joined(member):
+        return "unmeasured joined, no hook profile of ours"
+    if (found["profile"].startswith("ok") and member["launch_id"]
+            and found["identity"] == f"ok {member['launch_id']}"):
+        return f"ok {member['profile']}"
+    return "unmeasured no bind under the launch id by the profile's hook seen"
 
 
 def readiness_lines(found: dict[str, str]) -> list[str]:
@@ -889,6 +937,15 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
     window = f"={session}:={member['name']}"
     owned = ownership(run)
     if owned == "owned":
+        try:
+            clear_dead_window(run, member["name"])
+        except Refusal:
+            env_file.unlink(missing_ok=True)
+            raise
+        # The dead window may have been the session's last: then the
+        # session is gone and this start opens it again, owned.
+        owned = ownership(run)
+    if owned == "owned":
         opening = ["new-window", "-d", "-P", "-F", "#{pane_id} #{pane_pid}", "-t", f"={session}:",
                    "-n", member["name"], "-c", tmux_literal(str(worktree)), *command]
     elif owned == "absent":
@@ -1037,6 +1094,7 @@ def do_status(rest):
                       f"process {alive}")
                 for line in readiness_lines(found):
                     print(line)
+                print(f"  enforcement {enforcement(member, found)}")
                 print(f"  {route_line(conn, member['participant'])}")
                 print(f"  {attempts_line(conn, member['participant'])}")
                 for line in ambiguous_lines(conn, member["participant"]):
@@ -1117,15 +1175,22 @@ def do_stop(rest):
             machine.move(conn, RUN, run["subject"], "stop", agent,
                          evidence="terminate" if terminate else f"drain {drain}s")
         members = [row for row in member_rows(conn, rid=run["id"]) if row["place"] in LIVE]
+    asked: dict[int, int] = {}
     if starter is not None:
         # From a bound shell each live member hears the stop before the drain.
         for row in members:
             if row["participant"] is not None:
                 sent = inform(agent, row["participant"], f"stop requested R-{run['id']}")
                 print(f"R-{run['id']} {row['name']} SM-{row['id']} stop requested: {sent}")
+                if re.fullmatch(r"M-\d+", sent):
+                    asked[row["id"]] = int(sent[2:])
+    # The drain waits for the managed members to exit and for each joined
+    # member's own reply to its stop request, whichever is later, up to --drain.
     deadline = time.monotonic() + drain
     while not terminate and time.monotonic() < deadline and any(
-            alive(row["pid"], row["start_ticks"]) for row in members):
+            alive(row["pid"], row["start_ticks"])
+            or (joined(row) and acknowledgment(conn, row, asked) == "unacknowledged")
+            for row in members):
         time.sleep(POLL)
     outcomes = []
     for row in members:
@@ -1134,6 +1199,7 @@ def do_stop(rest):
             # A joined participant is not the supervisor's to signal: it
             # leaves the run and its own terminal keeps it.
             outcome = "unresolved unmanaged"
+            outcome = f"{outcome} {acknowledgment(conn, row, asked)}"
             with conn:
                 machine.move(conn, MEMBER, row["subject"], f"stop-{row['place']}", agent, evidence=outcome)
                 conn.execute("UPDATE session_member SET outcome = ? WHERE id = ?", (outcome, row["id"]))
@@ -1172,6 +1238,23 @@ def do_stop(rest):
         else EXIT_FINDING
 
 
+def acknowledgment(conn, row, asked: dict[int, int]) -> str:
+    """Whether a joined member acknowledged its stop request (step 8).
+
+    The "stop requested" inform asks for no ack, so the reading is the
+    member's own reply in the store: an `inform` it sent with `--reply-to`
+    naming the request, `acknowledged <its queued_at>`, else `unacknowledged`,
+    never a default (the 2026-09-19 debrief's F6)."""
+    message = asked.get(row["id"])
+    if message is None:
+        return "unacknowledged no stop request reached it"
+    reply = conn.execute(
+        "SELECT queued_at FROM messages WHERE reply_to = ? AND sender = ? AND purpose = 'inform' "
+        "ORDER BY id LIMIT 1", (message, row["participant"]),
+    ).fetchone()
+    return f"acknowledged {reply['queued_at']}" if reply else "unacknowledged"
+
+
 def secrets_of(profile: str | None) -> list[str]:
     """The binding's capability and every credential_environment value."""
     if not profile:
@@ -1191,21 +1274,81 @@ def scrub(text: str, secrets: list[str]) -> str:
     return text
 
 
+def launched_records(conn, run, participants: set[int]) -> list:
+    """The dispatch records the run launched: the store's coord_launch rows
+    (slice 3's intents) that reached a record, requested or dispatched by
+    one of the run's participants since the run started. A store with no
+    intents table has launched none."""
+    if not participants:
+        return []
+    marks = ",".join("?" for _ in participants)
+    try:
+        return conn.execute(
+            "SELECT id, record, requester, dispatcher FROM dispatch_intents "  # noqa: S608 - placeholders only
+            f"WHERE record IS NOT NULL AND reserved_at >= ? "
+            f"AND (requester IN ({marks}) OR dispatcher IN ({marks})) ORDER BY id",
+            (run["started_at"], *participants, *participants)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+
+
+def run_rows(conn, sql: str, participants: set[int]) -> list[dict]:
+    """A coordination table's rows for the run's participants, or none."""
+    if not participants:
+        return []
+    marks = ",".join("?" for _ in participants)
+    try:
+        bound = [*participants] * sql.count("{marks}")
+        return [dict(row) for row in conn.execute(sql.format(marks=marks), bound)]
+    except sqlite3.OperationalError:
+        return []
+
+
 def do_export(rest):
-    options = parse(rest, required=("to",), optional=("run",))
+    """The run export (slice 4, the shapes): every managed member's pane log
+    and every dispatch record the run launched, named, or refused `export`
+    before anything is written. A joined member has no pane log and is
+    listed `joined PT-n no pane log`, a declared absence."""
+    rest = list(rest)
+    positional = rest.pop(0) if rest and not rest[0].startswith("--") else None
+    options = parse(rest, optional=("run", "to"))
+    if positional is not None:
+        if "run" in options and options["run"] != positional:
+            refuse("arguments", "one run", f"{positional} and --run {options['run']}", usage())
+        options["run"] = positional
     identity()
     conn = reader()
     try:
         run = chosen_run(conn, options, places=("open", "stopping", "stopped"))
         members = member_rows(conn, rid=run["id"])
+        participants = {row["participant"] for row in members if row["participant"] is not None}
+        records = launched_records(conn, run, participants)
+        decisions = run_rows(conn, "SELECT * FROM decisions WHERE asked_by IN ({marks}) "
+                             "OR decided_by IN ({marks}) ORDER BY id", participants)
+        observations = run_rows(conn, "SELECT * FROM observations WHERE producer IN ({marks}) "
+                                "ORDER BY id", participants)
     finally:
         if conn is not None:
             conn.close()
-    dest = Path(options["to"]).absolute()
+    import dispatch_intents
+    jobs = dispatch_intents.jobs_root()
+    missing = []
+    for row in members:
+        if not joined(row) and not (Path(row["evidence"]) / "pane.log").is_file():
+            missing.append(f"{row['name']} SM-{row['id']} has no pane.log at {Path(row['evidence']) / 'pane.log'}")
+    for found in records:
+        if not (jobs / found["record"]).is_dir():
+            missing.append(f"DI-{found['id']} record {found['record']} is not under {jobs}")
+    if missing:
+        refuse("export", "every managed member's pane log and every record the run launched",
+               "; ".join(missing), "restore them, or export before the jobs root is reclaimed")
+    dest = (Path(options["to"]) if "to" in options
+            else state_dir() / "runs" / f"R-{run['id']}" / "export").absolute()
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     secrets = sorted({s for row in members for s in secrets_of(row["profile"])}, key=len, reverse=True)
     failures: list[str] = []
     files = 0
+    named: list[str] = []
 
     def write(relative: str, text: str) -> None:
         nonlocal files
@@ -1222,9 +1365,15 @@ def do_export(rest):
         entry["process_identity"] = {"pid": row["pid"], "start_ticks": row["start_ticks"],
                                      "alive": found["process"].startswith("ok")}
         described.append(entry)
+        if joined(row):
+            named.append(f"{row['name']} joined PT-{row['participant']} no pane log")
+            continue
         folder = row["name"] if row["generation"] == 1 else f"{row['name']}-gen-{row['generation']}"
         adapter = load_adapter(row["harness"])
-        retained = adapter.diagnostics(row["evidence"]) if adapter is not None else []
+        retained = list(adapter.diagnostics(row["evidence"]) if adapter is not None else [])
+        pane = str(Path(row["evidence"]) / "pane.log")
+        if pane not in retained:
+            retained.append(pane)
         exported = []
         for source in retained:
             name = Path(source).name
@@ -1235,20 +1384,30 @@ def do_export(rest):
                 continue
             write(f"{folder}/{name}", text)
             exported.append(f"{folder}/{name}")
+            if name == "pane.log":
+                named.append(f"{row['name']} pane log {dest / folder / name}")
         write(f"{folder}/diagnostics.json", json.dumps(exported, indent=1) + "\n")
+    for found in records:
+        named.append(f"DI-{found['id']} record {found['record']}")
     summary = {
         "run": dict(run),
         "team_sha256": run["team_sha256"],
         "tmux": {"socket": run["tmux_socket"], "session": run["tmux_session"]},
         "members": described,
+        "records": [dict(found) for found in records],
+        "decisions": decisions,
+        "observations": observations,
+        "telemetry": "not exported: the run's telemetry is read from each record under the jobs root",
         "exported_at": stamp(),
         "omitted": "each binding's coordination_capability and credential_environment values",
     }
     write("run.json", json.dumps(summary, indent=1, default=str) + "\n")
+    for line in named:
+        print(line)
     if failures:
         print(f"partial {dest} ({len(members)} members, {files} files); first failure: {failures[0]}")
         return EXIT_FINDING
-    print(f"exported {dest} ({len(members)} members, {files} files)")
+    print(f"exported {dest} ({len(members)} members, {len(records)} records, {files} files)")
     return EXIT_DONE
 
 
@@ -1886,10 +2045,233 @@ def do_input(rest):
     return EXIT_DONE
 
 
+# -- slice 4: the trial -------------------------------------------------------------
+
+CLAUSE = re.compile(r"\S+:\d+")
+
+
+def objective_path(rid: int) -> Path:
+    return state_dir() / "runs" / f"R-{rid}" / "objective.json"
+
+
+def gathered(rest, *, single=(), repeated=()):
+    """--options where a repeated one gathers every value after it up to
+    the next --option; anything else refuses `arguments`."""
+    found: dict = {name: [] for name in repeated}
+    current = None
+    for token in rest:
+        if token.startswith("--"):
+            name = token[2:]
+            if name not in single and name not in repeated:
+                refuse("arguments", "a known option", token, usage())
+            if name in single and name in found:
+                refuse("arguments", f"--{name} once", f"--{name} twice", usage())
+            current = name
+            if name in single:
+                found[name] = None
+            continue
+        if current is None:
+            refuse("arguments", "an --option before each value", token, usage())
+        if current in single:
+            if found[current] is not None:
+                refuse("arguments", f"one value after --{current}", token, usage())
+            found[current] = token
+        else:
+            found[current].append(token)
+    return found
+
+
+def trial_objective(rest):
+    """The objective record (slice 4, the shapes), written by the CO before
+    any assignment; a later call rewrites it. Refused `objective` when a part
+    is missing."""
+    if not rest or rest[0].startswith("--"):
+        refuse("arguments", "the run id first, trial objective R-n", rest[0] if rest else "none", usage())
+    rid = run_number(rest[0])
+    options = gathered(rest[1:], single=("deliverable", "candidate"), repeated=("clause", "case", "fake"))
+    agent = identity()
+    missing = [part for part, held in (("--deliverable", options.get("deliverable")),
+                                        ("--clause", options["clause"]),
+                                        ("--candidate", options.get("candidate"))) if not held]
+    cases = {}
+    for case in options["case"]:
+        kind, _, value = case.partition(":")
+        if kind not in ("omitted", "changed") or not value or kind in cases:
+            refuse("objective", "each case once, omitted:<clause> and changed:<ref>", case,
+                   "pass --case omitted:<file:line> --case changed:<ref>")
+        cases[kind] = value
+    missing += [f"--case {kind}:" for kind in ("omitted", "changed") if kind not in cases]
+    if missing:
+        refuse("objective", "the deliverable, a clause, the candidate and both controlled cases",
+               "no " + ", no ".join(missing), "pass every part")
+    malformed = [clause for clause in options["clause"] if not CLAUSE.fullmatch(clause)]
+    if malformed:
+        refuse("objective", "each clause as file:line", " ".join(malformed), "name each clause by its line")
+    if cases["omitted"] not in options["clause"]:
+        refuse("objective", "the omitted case naming one of the clauses", cases["omitted"],
+               "pass --case omitted:<one of the --clause values>")
+    conn = reader()
+    try:
+        run = chosen_run(conn, {"run": f"R-{rid}"}, places=("open", "stopping", "stopped"))
+    finally:
+        if conn is not None:
+            conn.close()
+    path = objective_path(run["id"])
+    record = {
+        "run": f"R-{run['id']}",
+        "deliverable": options["deliverable"],
+        "clauses": options["clause"],
+        "candidate": options["candidate"],
+        "cases": [f"{kind}:{cases[kind]}" for kind in ("omitted", "changed")],
+        "fakes": options["fake"],
+        "written_by": agent,
+        "written_at": stamp(),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_write(path, json.dumps(record, indent=1) + "\n")
+    print(f"objective R-{run['id']} {options['deliverable']} {len(options['clause'])} clauses "
+          f"{len(options['fake'])} fakes written {path}")
+    return EXIT_DONE
+
+
+TRIAL_IDS = tuple(f"I-{n:02d}" for n in range(1, 15))
+TRIAL_ROW = re.compile(r"I-\d{2}")
+NOT_MEASURED = re.compile(r"not measured\b\s*(.*)", re.IGNORECASE)
+VERIFIED = re.compile(r"(?<![\w-])verified ([0-9a-f]{40})(?![0-9a-f])")
+LIVE = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
+MOCK = re.compile(r"(?<![\w/.-])mock\s+\S+")
+
+
+def checked_record(path_text: str) -> dict:
+    """The trial record's fourteen rows by id, `id | required result |
+    evidence | reading`, each read or declared `not measured <why>`; the
+    first row that is not refuses `evidence`. Other tables (the AC
+    crosswalk) are not read."""
+    path = Path(path_text)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        refuse("evidence", "a readable trial record", f"{path}: {exc.__class__.__name__}",
+               "pass the record's path, ops/conductor/handoff/<date>-slice4-trial.md")
+    rows: dict = {}
+    for number, line in enumerate(lines, 1):
+        body = line.strip()
+        if not body.startswith("|"):
+            continue
+        body = body[1:-1] if body.endswith("|") else body[1:]
+        cells = [cell.strip() for cell in body.split("|")]
+        if not TRIAL_ROW.fullmatch(cells[0]):
+            continue
+        key = cells[0]
+        if key not in TRIAL_IDS:
+            refuse("evidence", "rows I-01 to I-14", f"{key} at line {number}", "one row per acceptance id")
+        if key in rows:
+            refuse("evidence", f"one {key} row", f"{key} again at line {number}", "keep one row per id")
+        if len(cells) != 4:
+            refuse("evidence", f"{key} as id | required result | evidence | reading",
+                   f"{len(cells)} cells at line {number}", "four cells per row")
+        rows[key] = {"required": cells[1], "evidence": cells[2], "reading": cells[3], "line": number}
+    for key in TRIAL_IDS:
+        if key not in rows:
+            refuse("evidence", "a row for each of I-01 to I-14", f"no {key} row in {path}",
+                   f"add {key} with its reading or not measured <why>")
+        reading = rows[key]["reading"]
+        declared = NOT_MEASURED.match(reading)
+        if not reading or (declared and not declared.group(1).strip()):
+            refuse("evidence", f"{key} with a reading or not measured <why>",
+                   f"{key} reading {reading!r} at line {rows[key]['line']}",
+                   "write the measured line, or not measured and why")
+    return rows
+
+
+def trial_record(rest):
+    """`trial record PATH`: a read; exit 0 on a complete trial record."""
+    if len(rest) != 1:
+        refuse("arguments", "trial record PATH", " ".join(rest) or "no path", usage())
+    rows = checked_record(rest[0])
+    unmeasured = sum(1 for row in rows.values() if NOT_MEASURED.match(row["reading"]))
+    print(f"record {rest[0]} {len(rows)} rows read, {unmeasured} not measured")
+    return EXIT_DONE
+
+
+def cited(clause: str, rows: dict) -> bool:
+    token = re.compile(r"(?<![\w/.-])" + re.escape(clause) + r"(?!\d)")
+    return any(token.search(row["evidence"]) or token.search(row["reading"]) for row in rows.values())
+
+
+def trial_accept(rest):
+    """`trial accept R-n --candidate SHA --record PATH`: the acceptance
+    claim, checked against the run's objective; a read. Refused
+    `acceptance` on a candidate that is not I-14's verified sha, an
+    objective clause cited by no row, or a mock written as live."""
+    if not rest or rest[0].startswith("--"):
+        refuse("arguments", "the run id first, trial accept R-n", rest[0] if rest else "none", usage())
+    rid = run_number(rest[0])
+    options = gathered(rest[1:], single=("candidate", "record"))
+    missing = [f"--{name}" for name in ("candidate", "record") if not options.get(name)]
+    if missing:
+        refuse("arguments", "trial accept R-n --candidate SHA --record PATH", "no " + ", no ".join(missing),
+               usage())
+    conn = reader()
+    try:
+        run = chosen_run(conn, {"run": f"R-{rid}"}, places=("open", "stopping", "stopped"))
+    finally:
+        if conn is not None:
+            conn.close()
+    objective_file = objective_path(run["id"])
+    try:
+        objective = json.loads(objective_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        refuse("acceptance", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
+               f"sessions.py trial objective R-{run['id']} before any acceptance")
+    rows = checked_record(options["record"])
+    evidence = rows["I-14"]["evidence"]
+    verified = VERIFIED.search(evidence)
+    if verified is None:
+        refuse("acceptance", "I-14's evidence cell as verified <40-hex sha>, the verifier's row",
+               f"I-14 evidence {evidence!r}, no verified sha", "the verifier writes verified <sha> in I-14")
+    candidate = options["candidate"]
+    if candidate.lower() != verified.group(1):
+        refuse("acceptance", f"the candidate to be the verified sha {verified.group(1)}",
+               f"candidate {candidate}", "verify the candidate as it stands, or accept the verified sha")
+    uncited = [clause for clause in objective.get("clauses", []) if not cited(clause, rows)]
+    if uncited:
+        refuse("acceptance", "every objective clause cited by its file:line in a row's evidence or reading",
+               "no row cites " + ", ".join(uncited), "measure the clause and cite it, or the candidate omits it")
+    fakes = objective.get("fakes", [])
+    for key in TRIAL_IDS:
+        row = rows[key]
+        if not LIVE.search(row["evidence"]):
+            continue
+        if MOCK.search(row["evidence"]):
+            refuse("acceptance", f"{key}'s evidence as mock <name> or live, one of them",
+                   f"{key} evidence {row['evidence']!r}", "a mock's pass is written mock <name>, never live")
+        planted = [fake for fake in fakes
+                   if re.search(r"(?<![\w-])" + re.escape(fake) + r"(?![\w-])", row["reading"])]
+        if planted:
+            refuse("acceptance", f"{key}'s live evidence read from no planted program",
+                   f"{key} reading names {', '.join(planted)}, declared planted in the objective's fakes",
+                   f"write {key}'s evidence as mock {planted[0]}, or measure it live")
+    print(f"accepted R-{run['id']} {verified.group(1)} record {options['record']} "
+          f"{len(objective.get('clauses', []))} clauses cited")
+    return EXIT_DONE
+
+
+TRIAL = {"objective": trial_objective, "record": trial_record, "accept": trial_accept}
+
+
+def do_trial(rest):
+    verb = rest[0] if rest else ""
+    if verb not in TRIAL:
+        refuse("arguments", "trial " + " | ".join(TRIAL), verb or "no verb", usage())
+    return TRIAL[verb](rest[1:])
+
+
 VERBS = {
     "doctor": do_doctor, "start": do_start, "status": do_status,
     "attach": do_attach, "stop": do_stop, "export": do_export,
     "bridge": do_bridge, "join": do_join, "recover": do_recover, "input": do_input,
+    "trial": do_trial,
 }
 
 
