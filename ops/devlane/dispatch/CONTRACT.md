@@ -1203,7 +1203,11 @@ absence is historical and must not be read as "none answered".
   measured killing live work that day: A-483 timed out keeping one
   commit, and record 20260922T231526Z-code-grok-312c63 was still
   committing red rows as its limit came near. A job that needs another
-  value changes this line first.
+  value changes this line first. The task runner's direct jobs
+  (`ops/devlane/task/run.py`; verify) are bounded by the same cap: a
+  runtime timeout above the job's `caps.timeout` is not admitted, and a
+  runtime that names none takes the cap
+  (20260923T000804Z-review-codex-da66dd#3).
 - `brief.coordination` is the acting plane beside that read plane
   (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
   directive"). A codex dispatch that names an assignment receives three
