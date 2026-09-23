@@ -35,6 +35,9 @@ PROFILES = REPO / "ops" / "devlane" / "hooks" / "profiles.py"
 ORIGIN = "sessions-lever.md"
 REVIEW = "20260922T215604Z-review-codex-f6777b"
 METHODS = ("argv", "observe_identity", "probe", "stop", "diagnostics")
+# sessions-lever.md §The adapter boundary, extended: slice 2's five.
+EXTENDED = ("transport", "channel", "handshake", "submit", "observe")
+EXTENDED_ORIGIN = f"{ORIGIN}#the-adapter-boundary-extended"
 LAUNCH_ID = "11111111-1111-4111-8111-111111111111"
 PROBE_TOKEN = "session-slice1-version-9.9.9"
 FAKES = Path(__file__).resolve().parent / "fakes"
@@ -135,7 +138,7 @@ class TheFramingParser(unittest.TestCase):
 
 
 class TheClaudeAdapter(unittest.TestCase):
-    """The five supervisor methods, the profile launch argv, probe, stop, diagnostics.
+    """The adapter's ten methods, the profile launch argv, probe, stop, diagnostics.
 
     Declared gap: planted faults follow the implementation; no mutants file.
     """
@@ -174,10 +177,13 @@ class TheClaudeAdapter(unittest.TestCase):
         return found
 
     def test_the_adapter_exposes_the_five_methods_and_no_others_the_supervisor_calls(self):
-        """origin: 20260922T215604Z-review-codex-f6777b#22"""
-        with self.subTest(id="adapter-five-methods", origin=origin_finding(22)):
+        """origin: 20260922T215604Z-review-codex-f6777b#22, and the extended
+        boundary: "Every adapter carries slice 1's five methods and these
+        five; the supervisor and the bridge call no others." The name is
+        slice 1's, kept because P-sessions1-adapter-five-methods greps it."""
+        with self.subTest(id="adapter-five-methods", origin=f"{origin_finding(22)}; {EXTENDED_ORIGIN}"):
             found = self.supervisor_methods(self.adapter())
-            self.assertEqual(found, set(METHODS), f"supervisor methods: {sorted(found)}")
+            self.assertEqual(found, set(METHODS + EXTENDED), f"adapter methods: {sorted(found)}")
 
     def test_argv_is_the_profile_run_interactive_launch(self):
         """origin: 20260922T215604Z-review-codex-f6777b#23"""
@@ -217,8 +223,12 @@ class TheClaudeAdapter(unittest.TestCase):
             )
 
     def test_probe_runs_the_executable_and_reports_version_and_capability(self):
-        """origin: 20260922T215604Z-review-codex-f6777b#24"""
-        with self.subTest(id="claude-probe-channel", origin=origin_finding(24)):
+        """origin: 20260922T215604Z-review-codex-f6777b#24, and the extended
+        boundary: the claude adapter's probe "measures the channel
+        capability it left `unmeasured` in slice 1 and reads `unsupported
+        channel` on the installed version, which is not a refusal." The
+        planted executable's help does not name the channel flag."""
+        with self.subTest(id="claude-probe-channel", origin=f"{origin_finding(24)}; {EXTENDED_ORIGIN}"):
             marker = self.world.root / "probe-ran"
             script = fake_text(PROBE_SRC, MARKER=str(marker), TOKEN=PROBE_TOKEN)
             exe = self.world.tools.plant("claude-probe", script=script)
@@ -232,7 +242,8 @@ class TheClaudeAdapter(unittest.TestCase):
             self.assertTrue(marker.is_file(), "probe did not execute the planted executable")
             self.assertIsInstance(reading, dict)
             self.assertIn("capability", reading)
-            self.assertIn("unmeasured", str(reading["capability"]))
+            self.assertNotIn("error", reading, "probe raised; unsupported is a reading, not a refusal")
+            self.assertEqual(reading["capability"], "unsupported channel")
             self.assertIn(PROBE_TOKEN, json.dumps(reading))
 
     def owned_holder(self) -> tuple[int, callable]:
