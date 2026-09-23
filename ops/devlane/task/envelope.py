@@ -39,12 +39,52 @@ import re
 FIELDS = ("job", "status", "verdict", "counts", "findings",
           "artifacts", "spend", "stamp", "note")
 FINDING_FIELDS = ("severity", "where", "claim", "reproduce")
+#: The optional label a reviewer sets at the source: `practical` yes with
+#: the `failing` invocation someone will actually make, or no with none.
+#: A finding carries both or neither, so every older record stays valid.
+PRACTICAL_FIELDS = ("practical", "failing")
+PRACTICAL = ("yes", "no")
+FINDING_SHAPES = (FINDING_FIELDS, FINDING_FIELDS + PRACTICAL_FIELDS)
 SPEND_FIELDS = ("harness", "total", "out", "runs")
 STAMP_FIELDS = ("ref", "started", "ended")
 
 STATUSES = ("ok", "invalid", "tripped")
 VERDICTS = ("approve", "changes")
 SEVERITIES = ("p1", "p2", "p3")
+
+_FINDING_PROPERTIES = {
+    "severity": {"type": "string", "enum": list(SEVERITIES)},
+    "where": {"type": "string"},
+    "claim": {"type": "string"},
+    "reproduce": {"type": ["string", "null"]},
+}
+
+
+def _finding_shape(**label):
+    return {"type": "object",
+            "properties": {**_FINDING_PROPERTIES, **label},
+            "required": [*FINDING_FIELDS, *label],
+            "additionalProperties": False}
+
+
+#: The pair rule as the schema states it: no label, `yes` with the failing
+#: invocation, or `no` with none. Half a label matches no shape, so the
+#: claude path, which checks its object against this schema alone, refuses
+#: what `finding` refuses. A blank `failing` is `finding`'s alone. The
+#: field types stand beside the shapes, so a checker that reads no `anyOf`
+#: still refuses a finding of the wrong type or with a key missing.
+FINDING_SCHEMA = {
+    **_finding_shape(practical={"type": "string", "enum": list(PRACTICAL)},
+                     failing={"type": ["string", "null"]}),
+    "required": list(FINDING_FIELDS),
+    "anyOf": [
+        _finding_shape(),
+        _finding_shape(practical={"type": "string", "enum": ["yes"]},
+                       failing={"type": "string"}),
+        _finding_shape(practical={"type": "string", "enum": ["no"]},
+                       failing={"type": "null"}),
+    ],
+}
 
 #: Longer than any path this lane produces, far shorter than a review.
 HANDLE_MAX = 512
@@ -72,17 +112,7 @@ ENVELOPE_SCHEMA = {
         },
         "findings": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "severity": {"type": "string", "enum": list(SEVERITIES)},
-                    "where": {"type": "string"},
-                    "claim": {"type": "string"},
-                    "reproduce": {"type": ["string", "null"]},
-                },
-                "required": list(FINDING_FIELDS),
-                "additionalProperties": False,
-            },
+            "items": FINDING_SCHEMA,
         },
         "artifacts": {
             "type": "object",
@@ -314,8 +344,13 @@ def _handle(name, value):
     return value
 
 
-def finding(severity, where, claim, reproduce=None):
-    """One finding, normalized. A blank reproduction is an absent one."""
+def finding(severity, where, claim, reproduce=None, practical=None,
+            failing=None):
+    """One finding, normalized. A blank reproduction is an absent one.
+
+    `practical` is optional. Given, it is yes with the `failing`
+    invocation that shows the failure on the exit path, or no with none;
+    a finding without it has exactly FINDING_FIELDS, as before."""
     if severity not in SEVERITIES:
         raise EnvelopeError(
             f"severity {severity!r} is not one of {list(SEVERITIES)}")
@@ -326,7 +361,32 @@ def finding(severity, where, claim, reproduce=None):
     return {"severity": severity,
             "where": _text(where, "where"),
             "claim": _text(claim, "claim"),
-            "reproduce": reproduce.strip() if reproduce else None}
+            "reproduce": reproduce.strip() if reproduce else None,
+            **_practical(practical, failing)}
+
+
+def _practical(practical, failing):
+    if isinstance(failing, str) and not failing.strip():
+        failing = None
+    if practical is None:
+        if failing is not None:
+            raise EnvelopeError(
+                "failing names an invocation but practical is absent: "
+                "label the finding yes or no")
+        return {}
+    if not isinstance(practical, str) or practical not in PRACTICAL:
+        raise EnvelopeError(
+            f"practical {practical!r} is not one of {list(PRACTICAL)}")
+    if failing is not None and not isinstance(failing, str):
+        raise EnvelopeError("failing must be a command string or None")
+    if practical == "yes" and failing is None:
+        raise EnvelopeError(
+            "a practical finding names the failing invocation")
+    if practical == "no" and failing is not None:
+        raise EnvelopeError(
+            "a finding that is not practical names no failing invocation")
+    return {"practical": practical,
+            "failing": failing.strip() if failing else None}
 
 
 def tally(findings):
@@ -384,10 +444,9 @@ def build(job, *, status, verdict=None, findings=(), artifacts=None,
     be disabled undetected, because each was covering for the other.
     """
     normalized = [
-        f if isinstance(f, dict) and tuple(f) == FINDING_FIELDS
-        else finding(**dict(zip(FINDING_FIELDS, (
-            f.get("severity"), f.get("where"), f.get("claim"),
-            f.get("reproduce")), strict=True)))
+        f if isinstance(f, dict) and tuple(f) in FINDING_SHAPES
+        else finding(**{key: f.get(key)
+                        for key in FINDING_FIELDS + PRACTICAL_FIELDS})
         for f in findings]
     env = {
         "job": _text(job, "job"),
@@ -471,9 +530,10 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
         raise EnvelopeError(
             "an invalid envelope must say why it could not look")
     for f in env["findings"]:
-        if tuple(f) != FINDING_FIELDS:
+        if tuple(f) not in FINDING_SHAPES:
             raise EnvelopeError(
-                f"finding fields {list(f)} are not {list(FINDING_FIELDS)}")
+                f"finding fields {list(f)} are not {list(FINDING_FIELDS)}, "
+                f"with or without {list(PRACTICAL_FIELDS)}")
         # `finding` is the one place a finding's rules live; re-running
         # it is how they get checked here without being restated here.
         if finding(**f) != f:

@@ -65,11 +65,15 @@ SCOPE_REFERENCE = re.compile(
 )
 COLUMNS = ("key", "record", "job", "stage", "harness", "model", "unit", "ref", "verdict",
            "n", "severity", "where", "claim", "reproduce", "disposition", "evidence", "disposed_at", "disposed_by")
+# A reviewer's optional label (ops/devlane/task/envelope.py PRACTICAL_FIELDS).
+# Exported only on a row that carries it, so older rows keep their shape.
+LABEL_COLUMNS = ("practical", "failing")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS findings (
     key TEXT PRIMARY KEY, record TEXT NOT NULL, job TEXT, stage TEXT, harness TEXT, model TEXT,
     unit TEXT, ref TEXT, verdict TEXT, n INTEGER, severity TEXT, "where" TEXT, claim TEXT, reproduce TEXT,
-    disposition TEXT NOT NULL DEFAULT 'open', evidence TEXT, disposed_at TEXT, disposed_by TEXT
+    disposition TEXT NOT NULL DEFAULT 'open', evidence TEXT, disposed_at TEXT, disposed_by TEXT,
+    practical TEXT, failing TEXT
 )
 """
 CALIBRATION_SCHEMA = """
@@ -204,9 +208,22 @@ def connect():
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     connection.execute(SCHEMA)
+    # A store made before the label has no columns for it; add them.
+    have = {row[1] for row in connection.execute("PRAGMA table_info(findings)")}
+    for column in LABEL_COLUMNS:
+        if column not in have:
+            connection.execute(f"ALTER TABLE findings ADD COLUMN {column} TEXT")
     connection.execute(CALIBRATION_SCHEMA)
     connection.commit()
     return connection
+
+
+def exported(row):
+    """One export row: COLUMNS, and the label only when the finding carried it."""
+    out = {c: row[c] for c in COLUMNS}
+    if row["practical"] is not None:
+        out.update({c: row[c] for c in LABEL_COLUMNS})
+    return out
 
 
 def record_rows():
@@ -227,6 +244,7 @@ def record_rows():
                 "where": f.get("where") or f.get("file") or None,
                 "claim": f.get("claim") or f.get("finding") or f.get("title") or "",
                 "reproduce": f.get("reproduce"),
+                "practical": f.get("practical"), "failing": f.get("failing"),
             }
 
 
@@ -238,11 +256,14 @@ def do_import(argv):
     n = 0
     for r in record_rows():
         con.execute(
-            'INSERT INTO findings (key, record, job, stage, harness, model, unit, ref, verdict, n, severity, "where", claim, reproduce)'
-            " VALUES (:key, :record, :job, :stage, :harness, :model, :unit, :ref, :verdict, :n, :severity, :where, :claim, :reproduce)"
+            'INSERT INTO findings (key, record, job, stage, harness, model, unit, ref, verdict, n, severity, "where", claim, reproduce,'
+            " practical, failing)"
+            " VALUES (:key, :record, :job, :stage, :harness, :model, :unit, :ref, :verdict, :n, :severity, :where, :claim, :reproduce,"
+            " :practical, :failing)"
             " ON CONFLICT(key) DO UPDATE SET record=excluded.record, job=excluded.job, stage=excluded.stage, harness=excluded.harness,"
             ' model=excluded.model, unit=excluded.unit, ref=excluded.ref, verdict=excluded.verdict, severity=excluded.severity,'
-            ' "where"=excluded."where", claim=excluded.claim, reproduce=excluded.reproduce', r)
+            ' "where"=excluded."where", claim=excluded.claim, reproduce=excluded.reproduce,'
+            " practical=excluded.practical, failing=excluded.failing", r)
         n += 1
     con.commit()
     print(f"imported {n} finding(s) from {RECORDS}")
@@ -331,7 +352,7 @@ def do_export(argv):
         refuse("arguments", "nothing, --calibration or --write [PATH] after export", " ".join(argv), "drop or correct it")
     con = connect()
     if write_to is not None:
-        rows = [json.dumps({c: row[c] for c in COLUMNS}, sort_keys=True) + "\n"
+        rows = [json.dumps(exported(row), sort_keys=True) + "\n"
                 for row in con.execute("SELECT * FROM findings ORDER BY record, n")]
         write_to.parent.mkdir(parents=True, exist_ok=True)
         write_to.write_text("".join(rows), encoding="utf-8")
@@ -351,7 +372,7 @@ def do_export(argv):
         sys.stdout.write(text)
         return 0
     for row in con.execute("SELECT * FROM findings ORDER BY record, n"):
-        sys.stdout.write(json.dumps({c: row[c] for c in COLUMNS}, sort_keys=True) + "\n")
+        sys.stdout.write(json.dumps(exported(row), sort_keys=True) + "\n")
     return 0
 
 
