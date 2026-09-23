@@ -82,6 +82,23 @@ def tool_reading(update: dict) -> str | None:
     return f"tool {title}" if title else None
 
 
+def coordination_call(call: dict) -> str | None:
+    """The coordination tool a permission request asks for, or None: only a
+    use_tool call in grok's own namespace whose rawInput names exactly
+    `coordination__<tool>` with an input object (sessions-lever.md, slice 2,
+    observe; the XO's ruling (a) of 2026-09-23)."""
+    meta = call.get("_meta") if isinstance(call.get("_meta"), dict) else {}
+    tool = meta.get("x.ai/tool") if isinstance(meta.get("x.ai/tool"), dict) else {}
+    if tool.get("name") != "use_tool" or tool.get("namespace") != MACHINERY:
+        return None
+    raw = call.get("rawInput") if isinstance(call.get("rawInput"), dict) else {}
+    target = raw.get("tool_name")
+    prefix = f"{common.SERVER}__"
+    if not isinstance(target, str) or not target.startswith(prefix) or len(target) == len(prefix):
+        return None
+    return target[len(prefix):] if isinstance(raw.get("tool_input"), dict) else None
+
+
 def acp_servers(binding) -> list:
     """The binding's native MCP servers as ACP `session/new` entries.
 
@@ -235,11 +252,20 @@ class Adapter(common.ProtocolAdapter):
 
     def answer(self, rpc, frame, method, params, other):
         """Decline what the agent asks: the offered reject option, else
-        cancelled; the prompt is printed to the pane, not kept."""
+        cancelled; the prompt is printed to the pane, not kept. The one
+        exception is a call on the lane's own coordination server, answered
+        with the offered allow-once and never with always-allow."""
         if method == "session/request_permission":
             call = params.get("toolCall") if isinstance(params.get("toolCall"), dict) else {}
             title = call.get("title") or params.get("title") or method
             options = [entry for entry in params.get("options") or [] if isinstance(entry, dict)]
+            wanted = coordination_call(call)
+            once = next((entry.get("optionId") for entry in options
+                         if entry.get("kind") == "allow_once" and entry.get("optionId")), None)
+            if wanted is not None and once is not None:
+                rpc.answer(frame, result={"outcome": {"outcome": "selected", "optionId": once}})
+                print(f"permission asked: {title}; answered {once}", flush=True)
+                return other or f"permission {common.SERVER} {wanted} allowed"
             reject = next((entry.get("optionId") for entry in options
                            if str(entry.get("kind", "")).startswith("reject")), None)
             outcome = ({"outcome": "selected", "optionId": reject} if reject
