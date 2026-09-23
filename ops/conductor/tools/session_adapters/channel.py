@@ -6,7 +6,9 @@ extended": `rpc` is this module. Adapted from the proof's asyncio `RPC`
 (Source: /home/scientdb/projects/poc/multi-harness-proof@a944f31,
 mhproof/rpc.py `RPC.request`, `RPC.notify`, `RPC.read`, `RPC.close`),
 made synchronous with a thread, so the bridge can hold no event loop and
-no SQLite transaction across a native call. Every received line goes
+no SQLite transaction across a native call. `RPC(reader, writer)` speaks
+over a stream pair it is handed, as the proof's did; `Channel(argv)`
+spawns the harness and is an `RPC` over the process's pipes. Every received line goes
 through `framing.Parser`; a line it refuses ends the channel with that
 reading, as the proof's reader ended on a non-JSON line.
 
@@ -20,6 +22,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib.util
+import io
 import json
 import queue
 import subprocess
@@ -84,20 +87,19 @@ class Pending:
         return self.result if isinstance(self.result, dict) else {}
 
 
-class Channel:
-    """A harness process spoken to over newline-delimited JSON on its pipes.
+class RPC:
+    """Newline-delimited JSON over a reader and a writer: pipes or a socket's
+    files, in text or binary mode.
 
     `jsonrpc` says whether frames carry `"jsonrpc": "2.0"`: grok's ACP does,
     codex's app-server does not.
     """
 
-    def __init__(self, argv, *, jsonrpc: bool = True, env=None, cwd=None, stderr=None):
+    def __init__(self, reader, writer, *, jsonrpc: bool = True):
         self.jsonrpc = jsonrpc
-        self.process = subprocess.Popen(  # noqa: S603 - argv is a list, never a shell string
-            [str(part) for part in argv], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=stderr if stderr is not None else subprocess.DEVNULL,
-            env=env, cwd=cwd,
-        )
+        self.reader = reader
+        self.writer = writer
+        self._text = isinstance(writer, io.TextIOBase)
         self.parser = framing.Parser()
         self.frames: queue.Queue = queue.Queue()
         self.dead = threading.Event()
@@ -109,10 +111,6 @@ class Channel:
         self._reader = threading.Thread(target=self._read, name="channel-reader", daemon=True)
         self._reader.start()
 
-    @property
-    def pid(self) -> int:
-        return self.process.pid
-
     def packet(self, **fields) -> dict:
         return {**({"jsonrpc": "2.0"} if self.jsonrpc else {}), **fields}
 
@@ -120,10 +118,10 @@ class Channel:
         if self.dead.is_set():
             raise ChannelError(str(packet.get("method", "write")),
                                self.failure or "the channel is closed")
-        data = (json.dumps(packet) + "\n").encode("utf-8")
+        line = json.dumps(packet) + "\n"
         try:
-            self.process.stdin.write(data)
-            self.process.stdin.flush()
+            self.writer.write(line if self._text else line.encode("utf-8"))
+            self.writer.flush()
         except (BrokenPipeError, OSError, ValueError) as error:
             raise ChannelError(str(packet.get("method", "write")),
                                f"write failed: {error}") from None
@@ -172,8 +170,9 @@ class Channel:
 
     def _read(self) -> None:
         try:
-            for raw in self.process.stdout:
-                line = raw.decode("utf-8", errors="replace").strip()
+            for raw in self.reader:
+                text = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
+                line = text.strip()
                 if not line:
                     continue
                 with self._book:
@@ -198,10 +197,31 @@ class Channel:
             for pending in left:
                 pending.settle(error={"code": None, "message": self.failure})
 
+    def close(self):
+        """Close the writer: the other side reads its end of input."""
+        with contextlib.suppress(OSError, ValueError):
+            self.writer.close()
+
+
+class Channel(RPC):
+    """A harness process spoken to over its stdin and stdout."""
+
+    def __init__(self, argv, *, jsonrpc: bool = True, env=None, cwd=None, stderr=None):
+        self.cwd = cwd
+        self.process = subprocess.Popen(  # noqa: S603 - argv is a list, never a shell string
+            [str(part) for part in argv], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=stderr if stderr is not None else subprocess.DEVNULL,
+            env=env, cwd=cwd,
+        )
+        super().__init__(self.process.stdout, self.process.stdin, jsonrpc=jsonrpc)
+
+    @property
+    def pid(self) -> int:
+        return self.process.pid
+
     def close(self) -> int | None:
         """Close stdin, then terminate and kill if the process stays."""
-        with contextlib.suppress(OSError):
-            self.process.stdin.close()
+        super().close()
         try:
             return self.process.wait(CLOSE_WAIT)
         except subprocess.TimeoutExpired:
