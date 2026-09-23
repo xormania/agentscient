@@ -43,6 +43,7 @@ COORD = TOOLS / "coordination.py"
 FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
+HOLDER_SRC = FAKES / "session_holder.py"
 ORIGIN = "sessions-lever.md"
 FINDING = "20260922T215604Z-review-codex-f6777b"
 
@@ -304,21 +305,13 @@ class _Scratch(unittest.TestCase):
         nonce = str(time.time_ns())
         ready = self.world.tmp / f"holder-{nonce}.ready"
         stop = self.world.tmp / f"holder-{nonce}.stop"
-        script = (
-            f"#!{sys.executable}\n"
-            "import os, time, pathlib\n"
-            f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
-            f"stop = pathlib.Path({str(stop)!r})\n"
-            "while not stop.exists():\n"
-            "    time.sleep(0.05)\n"
-        )
-        self.world.tools.plant("holder", script=script)
+        self.world.tools.plant("holder", script=_fake_text(HOLDER_SRC))
         box: dict = {}
 
         def invoke() -> None:
             try:
                 box["result"] = run(
-                    [str(self.world.bin / "holder")],
+                    [str(self.world.bin / "holder"), str(ready), str(stop)],
                     cwd=self.world.cwd,
                     env=self.world.env(),
                     timeout=120,
