@@ -354,7 +354,11 @@ pane under the profile's authority environment, in place of the harness
 itself. It spawns the harness with pipes through `profiles.py
 run-interactive --binding B -- <channel argv>`, speaks the protocol
 through `framing.Parser` (a reader thread feeds the parser; one writer
-lock; no SQLite transaction is ever held across a native call), takes
+lock; no SQLite transaction is ever held across a native call; a
+response whose id matches no request this side sent is dropped and
+written to `channel.log` with its id, never fatal, measured on grok
+1.0.40's mid-turn `skills-reload` response at 8191d6a1, while every
+other framing refusal ends the channel), takes
 the native id from the handshake, runs the profile's `guard.sh
 SessionStart` with that id so `initialize` binds the participant under
 the profile's own capability, then loops: lines on its stdin are
