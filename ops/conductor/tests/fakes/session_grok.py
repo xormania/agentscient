@@ -219,7 +219,10 @@ def coordination(*argv: str):
         sys.path.insert(0, REPO)
     from ops.testkit import run
     env = os.environ.copy()
-    env["CLAUDE_CODE_SESSION_ID"] = session
+    # The participant resolves by the capability's digest under the member's
+    # profile; an alias naming the launch id conflicts with the registered
+    # native id and inbox refuses session-profile (b3's reading, 2026-09-23).
+    env.pop("CLAUDE_CODE_SESSION_ID", None)
     env["COORDINATION_CAPABILITY"] = capability
     tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
     try:
@@ -293,8 +296,11 @@ def after_submit(spec: dict, params: dict) -> None:
             ack_lines(lambda line: "readiness probe" in line)
         return
     if spec.get("send_reply") and blob.strip():
+        # The carried message names its id, `[coordination M-n]`; the inbox
+        # line for it starts with that id.
+        carried = set(re.findall(r"\bM-\d+\b", blob))
         for line in inbox().splitlines():
-            if not any(part and part in line for part in texts(params)):
+            if not line.split() or line.split()[0] not in carried:
                 continue
             sender = re.search(r"\bfrom (PT-\d+)\b", line)
             if sender:

@@ -5,7 +5,11 @@ Planted through Tools.plant("codex", script=...) by the bridge rows
 (test_session_messages.py) and the adapter rows
 (test_session_adapters_codex.py). It answers only the contracted argv,
 `codex app-server --listen stdio://` (sessions-lever.md §The adapter
-boundary, extended, `channel`); any other argv is logged and refused
+boundary, extended, `channel`), alone or after the one top-level flag
+profiles.py run-interactive puts before it,
+`--dangerously-bypass-hook-trust` (`codex --help` lists it under the
+top-level options and `codex app-server --help` does not, so the real CLI
+takes it before the subcommand); any other argv is logged and refused
 `channel` on the wire. `--version` answers the profile's version probe.
 
 The registry spec beside this executable (fakes/<name>.spec.json, or
@@ -54,6 +58,8 @@ from pathlib import Path
 
 REPO = "@@REPO@@"
 CHANNEL_ARGV = ["app-server", "--listen", "stdio://"]
+# The top-level flag the member's profile adds before the subcommand.
+PROFILE_FLAG = "--dangerously-bypass-hook-trust"
 TURNS: list = []
 
 
@@ -204,7 +210,10 @@ def coordination(*argv: str):
         sys.path.insert(0, REPO)
     from ops.testkit import run
     env = os.environ.copy()
-    env["CLAUDE_CODE_SESSION_ID"] = session
+    # The participant resolves by the capability's digest under the member's
+    # profile; an alias naming the launch id conflicts with the registered
+    # native id and inbox refuses session-profile (b3's reading, 2026-09-23).
+    env.pop("CLAUDE_CODE_SESSION_ID", None)
     env["COORDINATION_CAPABILITY"] = capability
     tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
     try:
@@ -266,8 +275,11 @@ def after_submit(spec: dict, params: dict) -> None:
             ack_lines(lambda line: "readiness probe" in line)
         return
     if spec.get("send_reply") and blob.strip():
+        # The carried message names its id, `[coordination M-n]`; the inbox
+        # line for it starts with that id.
+        carried = set(re.findall(r"\bM-\d+\b", blob))
         for line in inbox().splitlines():
-            if not any(part and part in line for part in texts(params)):
+            if not line.split() or line.split()[0] not in carried:
                 continue
             sender = re.search(r"\bfrom (PT-\d+)\b", line)
             if sender:
@@ -326,7 +338,7 @@ def main() -> int:
     if argv[:1] == ["--version"]:
         sys.stdout.write("session-codex 0.0.0-fake\n")
         return 0
-    if argv != CHANNEL_ARGV:
+    if argv not in (CHANNEL_ARGV, [PROFILE_FLAG, *CHANNEL_ARGV]):
         log_line({"refused": "channel"})
         sys.stderr.write(
             f"channel: expected {' '.join(CHANNEL_ARGV)}; found {argv!r}; "
