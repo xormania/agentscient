@@ -108,6 +108,9 @@ SOCKET_LIMIT = 108
 TICK = 2
 BACKOFF_START = 2
 BACKOFF_MAX = 60
+# The bridge hears at most this many frames before it looks at operator
+# input and its carry clock, so a streaming turn never starves either.
+FRAMES_PER_PASS = 32
 SERVER = "coordination"
 # Claude Code's debug log line for the acting server's connection; the
 # member's own file first (--debug-file), then the home's debug directory.
@@ -273,6 +276,34 @@ def team_member(team: dict, name: str, path: Path) -> dict:
 def executable_of(member: dict) -> str | None:
     named = member.get("executable")
     return named or shutil.which(member["harness"])
+
+
+@cache
+def routing():
+    """session_adapters/routing.py: the route each member takes, and the
+    refusal when two members of a run would share what one instance owns."""
+    spec = importlib.util.spec_from_file_location("session_routing", ADAPTERS / "routing.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_bindings(conn, run, sid: int) -> list:
+    """The run's other members holding a profile, each with its binding: what
+    a new member's profile must share nothing with. A reserved member with a
+    profile is a launch in flight and counts. A binding that cannot be read
+    is passed as {}, so its profile and evidence directories are still
+    compared; never dropped as if the member were absent."""
+    others = []
+    for row in member_rows(conn, rid=run["id"]):
+        if row["id"] == sid or not row["profile"] or row["place"] not in ("reserved", *LIVE):
+            continue
+        try:
+            binding = json.loads((Path(row["profile"]) / "binding.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            binding = {}
+        others.append((dict(row), binding if isinstance(binding, dict) else {}))
+    return others
 
 
 @cache
@@ -829,6 +860,11 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
                last_line(checked),"fix what the profile refusal names, then start again")
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
     profile = str(binding_path.parent)
+    # Several members of one harness in one run: each routes by its own
+    # instance, and a profile sharing anything with another refuses here,
+    # before a pane opens (sessions-lever.md slice 2, "A route").
+    route = routing().select({**dict(member_row(conn, sid)), "profile": profile}, binding,
+                             adapter.transport(), others=run_bindings(conn, run, sid))
     launch_id = str(uuid.uuid4())
     extra = {}
     if adapter.transport() == "protocol":
@@ -887,7 +923,7 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
         "generation": generation, "pane": pane, "pid": pid, "start_ticks": ticks,
         "launch_id": launch_id, "argv": argv, "tmux_socket": run["tmux_socket"],
         "tmux_session": session, "worktree": str(worktree), "profile": profile,
-        "launched_at": stamp(), "launched_by": agent,
+        "route": route["route"], "launched_at": stamp(), "launched_by": agent,
     }
     private_write(directory / "launch.json", json.dumps(record, indent=1) + "\n")
     with conn:
@@ -1581,6 +1617,11 @@ class Bridge:
                 raise
             passed = [{"message": None, "outcome": f"failed {refusal.line()}"}]
             self.say(f"· {refusal.line()}")
+        except sqlite3.OperationalError as error:
+            # A store another session holds past the busy timeout ("database
+            # is locked") is a delivery error: back off, never exit.
+            passed = [{"message": None, "outcome": f"failed store: {error}"}]
+            self.say(f"· store: {error}")
         settled = [entry["outcome"] for entry in passed if entry.get("attempt")]
         if settled:
             self.state["last_attempt"] = settled[-1]
@@ -1599,11 +1640,14 @@ class Bridge:
         threading.Thread(target=self.read_stdin, name="bridge-stdin", daemon=True).start()
         due = time.monotonic()
         while True:
-            frame = self.rpc.next_frame(POLL)
-            if frame is not None:
+            heard = 0
+            while heard < FRAMES_PER_PASS:
+                frame = self.rpc.next_frame(POLL if heard == 0 else 0)
+                if frame is None:
+                    break
                 self.heard(self.adapter.observe(self.rpc, frame))
-                continue
-            if self.rpc.dead.is_set():
+                heard += 1
+            if heard == 0 and self.rpc.dead.is_set():
                 self.say(f"bridge: the harness closed: {self.rpc.failure}")
                 return EXIT_ABORT
             while not self.lines.empty():
