@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Managed sessions, slice 1: one managed native participant per member.
+"""Managed sessions: one managed native participant per member (slice 1),
+and its persistent native conversation (slice 2).
 
 Contract: ops/conductor/sessions-lever.md. Inherits
 ops/conductor/instrument-conventions.md: the refusal wire, the four exit
@@ -15,10 +16,18 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py attach --member NAME [--run R-n]
     sessions.py stop [--run R-n] [--terminate] [--drain SEC]
     sessions.py export [--run R-n] --to DIR
+    sessions.py bridge --run R-n --member NAME [--tick SEC]
+    sessions.py join --run R-n --member NAME --participant PT-n [--team FILE]
+    sessions.py recover [--run R-n]
+    sessions.py input --run R-n --member NAME TEXT
 
-Message delivery (join, recover), the Codex and Grok adapters and dispatch
-actions are later slices; a verb this page does not list refuses
-`arguments`. Reads need no identity and never create the store.
+Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
+`bridge`, which spawns the harness through the profile, speaks its
+protocol through `session_adapters/channel.py` and carries the member's
+messages on the native route; a claude member's route is slice 1's
+stdout courier. Readiness reads tools, ingress and response. Dispatch
+actions are slice 3; a verb this page does not list refuses `arguments`.
+Reads need no identity and never create the store.
 
 The tmux handling adapts the proof's operator-owned tmux lifecycle
 (Source: /home/scientdb/projects/poc/multi-harness-proof@a944f31,
@@ -33,12 +42,15 @@ import hashlib
 import importlib.util
 import json
 import os
+import queue
 import re
 import shlex
 import shutil
+import signal
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from functools import cache
@@ -52,11 +64,13 @@ try:
     import machine
     from coordination import ROLES
     from instrument import (
+        EXIT_ABORT,
         EXIT_DONE,
         EXIT_FINDING,
         Refusal,
         emit,
         identity,
+        parse_stamp,
         refuse,
         stamp,
         state_dir,
@@ -83,11 +97,22 @@ NAME = re.compile(r"[a-z][a-z0-9-]{0,31}")
 RUN_ID = re.compile(r"^R-(\d+)$")
 OWNER_OPTION = "@agentscient_owner"
 READINESS = ("process", "profile", "identity", "participant", "role", "tools", "ingress", "response")
-SLICE2 = ("tools", "ingress", "response")
 LIVE = ("launched", "bound", "ready")
 STEP_TIMEOUT = 120
 TMUX_TIMEOUT = 10
 POLL = 0.2
+# A unix socket path of this many bytes or more cannot be bound (sun_path).
+SOCKET_LIMIT = 108
+# The bridge carries every TICK seconds; a delivery error backs off from
+# BACKOFF_START, doubling to BACKOFF_MAX (sessions-lever.md, The bridge).
+TICK = 2
+BACKOFF_START = 2
+BACKOFF_MAX = 60
+SERVER = "coordination"
+# Claude Code's debug log line for the acting server's connection; the
+# member's own file first (--debug-file), then the home's debug directory.
+CLAUDE_DEBUG = "claude-debug.txt"
+TOOLS_LINE = re.compile(r'MCP server "coordination".*connected', re.IGNORECASE)
 # Keys the pane never inherits: the operator's own coordination
 # capability and harness identity, and the tmux client's own markers.
 WITHHELD = (
@@ -390,6 +415,7 @@ def quiet_env() -> dict[str, str]:
 
 
 def tmux(socket: str | None, *args: str, timeout: float = TMUX_TIMEOUT) -> subprocess.CompletedProcess:
+    check_socket(socket)
     binary = shutil.which("tmux")
     if binary is None:
         refuse("tmux", "tmux on PATH", "absent", "install tmux; sessions run in an owned tmux session")
@@ -422,14 +448,15 @@ def refuse_unowned(run, found: str) -> None:
            "rename or close that session yourself, or start another run")
 
 
-def launcher(argv: list[str], directory: Path) -> tuple[list[str], Path]:
+def launcher(argv: list[str], directory: Path, extra=None) -> tuple[list[str], Path]:
     """The pane's command: source a private env file, delete it, exec the argv.
 
     Every environment value reaches the pane through a mode-600 file, never
     a command line; the operator's capability and harness ids never reach it.
+    `extra` overlays the environment: a bridge's profile authority values.
     """
     lines = ["unset " + " ".join(WITHHELD) + " 2>/dev/null"]
-    for key, value in sorted(quiet_env().items()):
+    for key, value in sorted({**quiet_env(), **(extra or {})}.items()):
         if SHELL_KEY.fullmatch(key) and key not in ("_", "PWD", "OLDPWD", "SHLVL"):
             lines.append(f"{key}={shlex.quote(value)}")
     path = directory / "launch.env"
@@ -499,26 +526,39 @@ def alive(pid: int | None, ticks: str | None) -> bool:
 
 
 def readiness(member, *, check_profile: bool = True) -> dict[str, str]:
-    """The eight dimensions, read now; slice 2's three are unmeasured."""
+    """The eight dimensions, read now (sessions-lever.md, Readiness, and
+    Slice 2's tools, ingress and response)."""
     found: dict[str, str] = {}
-    found["process"] = process_reading(member["pid"], member["start_ticks"])
-    found["profile"] = profile_reading(member["profile"]) if check_profile else (
-        f"ok {member['profile']}" if member["profile"] else "waiting profile")
+    managed = not joined(member)
+    if managed:
+        found["process"] = process_reading(member["pid"], member["start_ticks"])
+        found["profile"] = profile_reading(member["profile"]) if check_profile else (
+            f"ok {member['profile']}" if member["profile"] else "waiting profile")
+    else:
+        found["process"] = "unmanaged"
+        found["profile"] = "unmeasured unmanaged"
     adapter = load_adapter(member["harness"])
     conn = coordination_reader()
     try:
         # The native id is the adapter's to observe; the participant row
-        # is then read under that id.
-        native = (adapter.observe_identity(conn, member["launch_id"])
-                  if adapter is not None and conn is not None and member["launch_id"] else None)
+        # is then read under that id. A joined member's is the one recorded.
+        if not managed:
+            native = member["native_id"]
+        else:
+            native = (adapter.observe_identity(conn, member["launch_id"])
+                      if adapter is not None and conn is not None and member["launch_id"] else None)
         bound = participant_by(conn, "session_id", native) if native else None
         digest = profile_digest(member["profile"])
         other = participant_by(conn, "capability_digest", digest) if digest else None
+        delivery = delivery_readiness(member, adapter, bound, conn)
     finally:
         if conn is not None:
             conn.close()
     refused = native_refusal(member["evidence"])
-    if other is not None and other["session_id"] != member["launch_id"]:
+    # A bridge binds under the native id its handshake returned, which it
+    # records before the bind; a TUI binds under the launch id.
+    ours = {member["launch_id"], member["native_id"]} - {None}
+    if other is not None and other["session_id"] not in ours:
         found["identity"] = f"refused native {other['session_id']}, launched as {member['launch_id']}"
     elif refused is not None and bound is None:
         found["identity"] = f"refused native {refused}, launched as {member['launch_id']}"
@@ -535,15 +575,21 @@ def readiness(member, *, check_profile: bool = True) -> dict[str, str]:
         missing = [role for role in member["roles"].split(",") if role not in held]
         found["role"] = (f"ok {bound['roles']}" if not missing
                          else f"waiting grant PT-{bound['id']} --roles {','.join(missing)}")
-    for dimension in SLICE2:
-        found[dimension] = "unmeasured slice 2"
+    found.update(delivery)
     return found
 
 
+SLICE1 = ("process", "profile", "identity", "participant")
+SLICE2 = ("tools", "ingress", "response")
+
+
 def is_ready(found: dict[str, str]) -> bool:
-    """The first five ok; role may wait on a lead's grant (sessions-lever.md)."""
-    head = all(found[d].startswith("ok") for d in ("process", "profile", "identity", "participant"))
-    return head and (found["role"].startswith("ok") or found["role"].startswith("waiting grant"))
+    """Slice 1's dimensions ok, role ok or waiting a lead's grant, and each of
+    slice 2's three ok or unmeasured; a waiting or refused one is not ready
+    (XO 87's ruling of 2026-09-23 on sessions-lever.md, Slice 2)."""
+    head = all(found[d].startswith("ok") for d in SLICE1)
+    role = found["role"].startswith("ok") or found["role"].startswith("waiting grant")
+    return head and role and all(found[d].startswith(("ok", "unmeasured")) for d in SLICE2)
 
 
 def readiness_lines(found: dict[str, str]) -> list[str]:
@@ -694,6 +740,7 @@ def last_line(done: subprocess.CompletedProcess) -> str:
 def do_start(rest):
     options = parse(rest, required=("member",),
                     optional=("team", "run", "worktree", "ready-timeout", "tmux-socket"))
+    check_socket(options.get("tmux-socket") or os.environ.get("AGENTSCIENT_TMUX_SOCKET"))
     agent = identity()
     path = team_path(options)
     team, team_sha = load_team(path)
@@ -704,8 +751,8 @@ def do_start(rest):
     worktree = check_worktree(options)
     adapter = load_adapter(member["harness"])
     if adapter is None:
-        refuse("team", "a member whose harness has an adapter in slice 1 (claude)",
-               f"{member['name']} on {member['harness']}", "slice 2 adds the codex and grok adapters")
+        refuse("team", "a member whose harness has an adapter under session_adapters/",
+               f"{member['name']} on {member['harness']}", "add the harness's adapter")
     lead = check_authority(member)
     conn = writer()
     with conn:
@@ -783,28 +830,45 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
     profile = str(binding_path.parent)
     launch_id = str(uuid.uuid4())
-    argv = [str(part) for part in adapter.argv(member, binding, launch_id)]
+    extra = {}
+    if adapter.transport() == "protocol":
+        # The pane runs the member's bridge, which spawns the harness; the
+        # bridge acts under the profile's authority values. PATH stays the
+        # operator's: the bridge resolves bwrap and nothing else by it.
+        argv = [sys.executable, str(Path(__file__).resolve()), "bridge",
+                "--run", f"R-{run['id']}", "--member", member["name"]]
+        extra = {key: value for key, value in binding["authority_environment"].items()
+                 if key != "PATH"}
+    else:
+        argv = [str(part) for part in adapter.argv(member, binding, launch_id)]
     pane_log = directory / "pane.log"
     pane_log.touch(mode=0o600)
-    command, env_file = launcher(argv, directory)
+    # The bridge reads its launch and profile from the row, so both are
+    # written before the pane can start.
+    with conn:
+        conn.execute("UPDATE session_member SET launch_id = ?, profile = ? WHERE id = ?",
+                     (launch_id, profile, sid))
+    command, env_file = launcher(argv, directory, extra)
     session = run["tmux_session"]
     window = f"={session}:={member['name']}"
     owned = ownership(run)
     if owned == "owned":
         opening = ["new-window", "-d", "-P", "-F", "#{pane_id} #{pane_pid}", "-t", f"={session}:",
-                   "-n", member["name"], "-c", str(worktree), *command]
+                   "-n", member["name"], "-c", tmux_literal(str(worktree)), *command]
     elif owned == "absent":
         opening = ["new-session", "-d", "-P", "-F", "#{pane_id} #{pane_pid}", "-s", session,
-                   "-n", member["name"], "-c", str(worktree), *command,
+                   "-n", member["name"], "-c", tmux_literal(str(worktree)), *command,
                    ";", "set-option", "-t", f"={session}:", OWNER_OPTION, f"R-{run['id']}"]
     else:
         env_file.unlink(missing_ok=True)
         refuse_unowned(run, owned)
     # One tmux invocation, so the window keeps its dead pane and its
-    # capture before the process in it can exit.
+    # capture before the process in it can exit. tmux expands `-c` and the
+    # pipe-pane command as formats (measured, tmux 3.4), so `#` is doubled.
     created = tmux(run["tmux_socket"], *opening,
                    ";", "set-option", "-w", "-t", window, "remain-on-exit", "on",
-                   ";", "pipe-pane", "-o", "-t", window, "cat >> " + shlex.quote(str(pane_log)))
+                   ";", "pipe-pane", "-o", "-t", window,
+                   tmux_literal("cat >> " + shlex.quote(str(pane_log))))
     printed = created.stdout.split()
     if created.returncode != 0 or len(printed) < 2 or not printed[1].isdigit():
         env_file.unlink(missing_ok=True)
@@ -825,7 +889,7 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
         "tmux_session": session, "worktree": str(worktree), "profile": profile,
         "launched_at": stamp(), "launched_by": agent,
     }
-    (directory / "launch.json").write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
+    private_write(directory / "launch.json", json.dumps(record, indent=1) + "\n")
     with conn:
         conn.execute(
             "UPDATE session_member SET launch_id = ?, pid = ?, start_ticks = ?, pane = ?, profile = ? "
@@ -842,11 +906,14 @@ def member_row(conn, sid: int):
 
 
 def settle(conn, agent, member, run, sid, generation, pane, lead, timeout):
-    """Wait for identity and participant; bind, grant through the lead, ready."""
+    """Wait for identity and participant; bind, probe, grant through the lead, ready."""
     deadline = time.monotonic() + timeout
     granted = False
+    starter = starter_participant()
     while True:
         row = member_row(conn, sid)
+        if row["place"] == "bound" and row["participant"] is not None:
+            send_probe(agent, row, run, starter)
         found = readiness(row, check_profile=False)
         if found["identity"].startswith("refused native"):
             record_readiness(conn, sid, found)
@@ -925,14 +992,19 @@ def do_status(rest):
         for run in runs:
             print(f"R-{run['id']} {run['place']} {run['name']} tmux {run['tmux_session']}")
             for member in member_rows(conn, rid=run["id"], name=options.get("member")):
-                found = readiness(member, check_profile=member["place"] in LIVE)
-                alive = "ok" if found["process"].startswith("ok") else "gone"
+                found = readiness(member, check_profile=member["place"] in LIVE and not joined(member))
+                alive = ("ok" if found["process"].startswith("ok")
+                         else found["process"] if found["process"] == "unmanaged" else "gone")
                 participant = f"PT-{member['participant']}" if member["participant"] else "-"
                 print(f"R-{run['id']} {member['name']} SM-{member['id']} {member['place']} "
                       f"{participant} gen {member['generation']} pane {member['pane'] or '-'} "
                       f"process {alive}")
                 for line in readiness_lines(found):
                     print(line)
+                print(f"  {route_line(conn, member['participant'])}")
+                print(f"  {attempts_line(conn, member['participant'])}")
+                for line in ambiguous_lines(conn, member["participant"]):
+                    print(f"  {line}")
     return EXIT_DONE
 
 
@@ -953,6 +1025,10 @@ def do_attach(rest):
     finally:
         if conn is not None:
             conn.close()
+    if joined(member):
+        refuse("unmanaged", f"a pane the supervisor owns for {member['name']}",
+               f"SM-{member['id']} joined as PT-{member['participant']}",
+               "attach to that participant's own terminal")
     if not member["pane"]:
         refuse("absent", f"a pane for {member['name']} SM-{member['id']}", "none",
                "sessions.py start --member NAME")
@@ -997,6 +1073,7 @@ def do_stop(rest):
     owner = ownership(run)
     if owner not in ("owned", "absent"):
         refuse_unowned(run, owner)
+    starter = starter_participant()
     conn = writer()
     with conn:
         run = run_row(conn, run["id"])
@@ -1004,6 +1081,12 @@ def do_stop(rest):
             machine.move(conn, RUN, run["subject"], "stop", agent,
                          evidence="terminate" if terminate else f"drain {drain}s")
         members = [row for row in member_rows(conn, rid=run["id"]) if row["place"] in LIVE]
+    if starter is not None:
+        # From a bound shell each live member hears the stop before the drain.
+        for row in members:
+            if row["participant"] is not None:
+                sent = inform(agent, row["participant"], f"stop requested R-{run['id']}")
+                print(f"R-{run['id']} {row['name']} SM-{row['id']} stop requested: {sent}")
     deadline = time.monotonic() + drain
     while not terminate and time.monotonic() < deadline and any(
             alive(row["pid"], row["start_ticks"]) for row in members):
@@ -1011,6 +1094,16 @@ def do_stop(rest):
     outcomes = []
     for row in members:
         adapter = load_adapter(row["harness"])
+        if joined(row):
+            # A joined participant is not the supervisor's to signal: it
+            # leaves the run and its own terminal keeps it.
+            outcome = "unresolved unmanaged"
+            with conn:
+                machine.move(conn, MEMBER, row["subject"], f"stop-{row['place']}", agent, evidence=outcome)
+                conn.execute("UPDATE session_member SET outcome = ? WHERE id = ?", (outcome, row["id"]))
+            outcomes.append(outcome)
+            print(f"R-{run['id']} {row['name']} SM-{row['id']} {outcome}")
+            continue
         if row["pid"] is None:
             outcome = "unresolved no pid recorded"
         elif row["start_ticks"] is None:
@@ -1073,7 +1166,7 @@ def do_export(rest):
         if conn is not None:
             conn.close()
     dest = Path(options["to"]).absolute()
-    dest.mkdir(parents=True, exist_ok=True)
+    dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     secrets = sorted({s for row in members for s in secrets_of(row["profile"])}, key=len, reverse=True)
     failures: list[str] = []
     files = 0
@@ -1081,8 +1174,8 @@ def do_export(rest):
     def write(relative: str, text: str) -> None:
         nonlocal files
         target = dest / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(scrub(text, secrets), encoding="utf-8")
+        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_write(target, scrub(text, secrets))
         files += 1
 
     described = []
@@ -1123,19 +1216,642 @@ def do_export(rest):
     return EXIT_DONE
 
 
-LATER = {"join": "slice 2", "recover": "slice 2"}
+# -- slice 2: shared helpers -------------------------------------------------------
+
+def tmux_literal(text: str) -> str:
+    """A string tmux reads as a format with every `#` kept: `##` is a
+    literal `#`, so a path naming one never expands (A-492)."""
+    return text.replace("#", "##")
+
+
+def socket_path(socket: str) -> Path:
+    """Where tmux binds a socket named by -S (a path) or -L (a name)."""
+    if "/" in socket:
+        return Path(socket).absolute()
+    base = os.environ.get("TMUX_TMPDIR") or "/tmp"  # noqa: S108 - tmux's own default directory
+    return Path(base) / f"tmux-{os.getuid()}" / socket
+
+
+def check_socket(socket: str | None) -> None:
+    """A unix socket path of SOCKET_LIMIT bytes or more refuses `socket`
+    before tmux is called: the kernel would refuse the bind."""
+    if not socket:
+        return
+    path = socket_path(socket)
+    size = len(str(path).encode("utf-8"))
+    if size >= SOCKET_LIMIT:
+        refuse("socket", f"a unix socket path under {SOCKET_LIMIT} bytes",
+               f"{size} bytes: {path}",
+               "name a shorter --tmux-socket, or set TMUX_TMPDIR to a shorter directory")
+
+
+def private_write(path: Path, text: str) -> None:
+    """A file only its owner reads, whatever the umask (A-492)."""
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
+        handle.write(text)
+
+
+def joined(row) -> bool:
+    """A member `join` recorded: a participant with no launch of ours."""
+    return row["launch_id"] is None and row["native_id"] is not None
+
+
+def bridge_state(member) -> dict:
+    try:
+        state = json.loads((Path(member["evidence"]) / "bridge.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return state if isinstance(state, dict) else {}
+
+
+def route_of(conn, participant: int | None):
+    """The live-or-dead route row of a participant, or None."""
+    if conn is None or participant is None:
+        return None
+    try:
+        return conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                            (participant,)).fetchone()
+    except sqlite3.OperationalError:
+        return None
+
+
+def route_line(conn, participant: int | None) -> str:
+    row = route_of(conn, participant)
+    if row is None:
+        return "route none"
+    state = "alive" if coordination.holder_alive(row) else "dead"
+    return f"route {row['route']} pid={row['pid']} since {row['since']}, {state}"
+
+
+def attempts_line(conn, participant: int | None) -> str:
+    counts = dict.fromkeys(("reserved", "written", "accepted", "uncertain"), 0)
+    if conn is not None and participant is not None:
+        try:
+            rows = conn.execute("SELECT outcome FROM delivery_attempts WHERE participant = ?",
+                                (participant,)).fetchall()
+        except sqlite3.OperationalError:
+            rows = []
+        for row in rows:
+            word = (row["outcome"] or "reserved").split()[0]
+            if word in counts:
+                counts[word] += 1
+    return "attempts " + " ".join(f"{word} {count}" for word, count in counts.items())
+
+
+def ambiguous_lines(conn, participant: int | None) -> list[str]:
+    """`ambiguous recipient <role>: PT-a, PT-b` for each role message two
+    live holders could carry; read as the member's own participant."""
+    if conn is None or participant is None:
+        return []
+    try:
+        rows = conn.execute(
+            "SELECT m.id, m.recipient FROM messages m JOIN subjects s ON s.id = m.id "
+            "WHERE m.delivered_at IS NULL AND s.place = 'open' ORDER BY m.id").fetchall()
+        mine = conn.execute("SELECT roles FROM participants WHERE id = ?", (participant,)).fetchone()
+    except sqlite3.OperationalError:
+        return []
+    if mine is None:
+        return []
+    lines = []
+    for row in rows:
+        if row["recipient"] not in mine["roles"].split(","):
+            continue
+        holders = coordination.live_holders(conn, row["recipient"])
+        if len(holders) > 1:
+            lines.append(f"ambiguous recipient {row['recipient']}: "
+                         + ", ".join(f"PT-{pid}" for pid in holders) + f" (M-{row['id']})")
+    return lines
+
+
+@cache
+def adapter_common():
+    """The adapters' shared module, for the envelope the bridge submits."""
+    path = ADAPTERS / "__init__.py"
+    spec = importlib.util.spec_from_file_location("session_adapters_bridge_common", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def starter_participant():
+    """The participant this shell is bound as, or None when it is unbound
+    or its binding does not authenticate."""
+    conn = coordination_reader()
+    if conn is None:
+        return None
+    try:
+        return coordination.maybe_participant(conn)
+    except (Refusal, sqlite3.Error):
+        return None
+    finally:
+        conn.close()
+
+
+def inform(agent: str, participant: int, body: str) -> str:
+    """Queue an `inform` from this shell's participant; the M-n, or the refusal line."""
+    try:
+        conn = coordination.writer()
+    except sqlite3.Error as error:
+        return f"store: {error}"
+    try:
+        shown = coordination.CORE["send"](conn, coordination.bound_participant(conn),
+                                          agent=agent, to=f"PT-{participant}",
+                                          purpose="inform", body=body)
+    except Refusal as refusal:
+        return refusal.line()
+    except sqlite3.Error as error:
+        return f"store: {error}"
+    finally:
+        conn.close()
+    return shown["message"]
+
+
+# -- slice 2: the three delivery readings ---------------------------------------------
+
+def claude_tools(member) -> str:
+    """The coordination server's connection line in Claude Code's debug log
+    for this launch, under the profile's home or the authority home."""
+    if not member["profile"] or not member["launch_id"]:
+        return "waiting tools"
+    try:
+        binding = json.loads((Path(member["profile"]) / "binding.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "waiting tools"
+    homes = [binding.get("home"), (binding.get("authority_environment") or {}).get("HOME")]
+    logs = [Path(member["evidence"]) / CLAUDE_DEBUG]
+    logs += [Path(home) / ".claude" / "debug" / f"{member['launch_id']}.txt"
+             for home in dict.fromkeys(home for home in homes if home)]
+    read = False
+    for log in logs:
+        try:
+            text = log.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        read = True
+        if TOOLS_LINE.search(text):
+            return f"ok {SERVER} connected, {log}"
+    # No log at all is a reading the lane cannot take yet, not a wait: the
+    # profile does not admit --debug-file (XO 87, 2026-09-23).
+    return "waiting tools" if read else "unmeasured no debug log"
+
+
+def arms_courier(member) -> bool:
+    """Whether the member's profile names `courier.py watch` in any of its
+    files: the start line a Claude member arms its route from (Required of
+    the wall, 3)."""
+    if not member["profile"]:
+        return False
+    for path in Path(member["profile"]).glob("*.json"):
+        try:
+            if "courier.py watch" in path.read_text(encoding="utf-8", errors="replace"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def response_reading(member, conn) -> str:
+    try:
+        probe = json.loads((Path(member["evidence"]) / "probe.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "waiting probe"
+    message = probe.get("message")
+    if not message:
+        return f"unmeasured {probe.get('why') or 'no starter participant'}"
+    try:
+        row = conn.execute("SELECT queued_at, acked_at, acked_by FROM messages WHERE id = ?",
+                           (int(message.split("-")[1]),)).fetchone() if conn is not None else None
+    except (sqlite3.OperationalError, ValueError, IndexError):
+        row = None
+    if row is None or not row["acked_at"] or row["acked_by"] != member["participant"]:
+        return f"waiting ack {message}"
+    latency = (parse_stamp(row["acked_at"]) - parse_stamp(row["queued_at"])).total_seconds()
+    return f"ok {message} {latency:.1f}s"
+
+
+def delivery_readiness(member, adapter, bound, conn) -> dict[str, str]:
+    """tools, ingress and response (sessions-lever.md, slice 2)."""
+    found: dict[str, str] = {}
+    protocol = adapter is not None and adapter.transport() == "protocol"
+    state = bridge_state(member)
+    if joined(member):
+        found["tools"] = "unmeasured unmanaged"
+    elif protocol:
+        found["tools"] = state.get("tools") or "waiting tools"
+    else:
+        found["tools"] = claude_tools(member)
+    last = str(state.get("last_attempt") or "")
+    route = route_of(conn, bound["id"]) if bound is not None else None
+    if protocol and last.startswith("unsupported"):
+        found["ingress"] = f"refused channel {last}"
+    elif route is not None and coordination.holder_alive(route):
+        found["ingress"] = f"ok {route['route']} pid={route['pid']}"
+    elif not protocol and not joined(member) and not arms_courier(member):
+        found["ingress"] = "unmeasured the profile arms no courier"
+    else:
+        found["ingress"] = "waiting courier"
+    found["response"] = response_reading(member, conn)
+    return found
+
+
+def send_probe(agent: str, row, run, starter) -> None:
+    """After `bound`, the readiness probe: an `inform` to the member from
+    the starter's own participant, recorded in probe.json either way."""
+    directory = Path(row["evidence"])
+    path = directory / "probe.json"
+    if path.exists():
+        return
+    record = {"run": f"R-{run['id']}", "member": f"SM-{row['id']}", "at": stamp()}
+    if starter is None:
+        record.update(message=None, why="no starter participant")
+    else:
+        nonce = uuid.uuid4().hex[:12]
+        sent = inform(agent, row["participant"],
+                      f"readiness probe R-{run['id']} SM-{row['id']} {nonce}")
+        if sent.startswith("M-"):
+            record.update(message=sent, nonce=nonce, starter=f"PT-{starter['id']}")
+        else:
+            record.update(message=None, why=f"probe refused: {sent}")
+    directory.mkdir(parents=True, exist_ok=True)
+    private_write(path, json.dumps(record, indent=1) + "\n")
+
+
+# -- slice 2: the bridge ------------------------------------------------------------
+
+def guard_session_start(binding, native: str, directory: Path) -> None:
+    """The profile's own SessionStart with the bridge's payload, so
+    `initialize` binds the participant under the profile's capability."""
+    payload = {"hook_event_name": "SessionStart", "session_id": native,
+               "cwd": binding["cwd"], "source": "startup"}
+    env = {key: value for key, value in os.environ.items() if key not in WITHHELD}
+    env["AGENTSCIENT_LAUNCH_SESSION"] = native
+    argv = ["/bin/sh", str(binding["helper"]), "SessionStart"]
+    try:
+        done = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
+            argv, input=json.dumps(payload), capture_output=True, text=True,
+            timeout=STEP_TIMEOUT, env=env, check=False,
+        )
+        text = f"$ {shlex.join(argv)}\nexit {done.returncode}\n{done.stdout}{done.stderr}"
+    except (OSError, subprocess.TimeoutExpired) as error:
+        text = f"$ {shlex.join(argv)}\n{type(error).__name__}: {error}\n"
+    fd = os.open(str(directory / "guard.log"), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(fd, "a", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def act_as(binding, native: str) -> None:
+    """This process acts as the member's participant from here on: the
+    profile's capability and the native id, nothing inherited."""
+    for key in WITHHELD:
+        os.environ.pop(key, None)
+    os.environ["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
+    os.environ["CLAUDE_SESSION_ID"] = native
+
+
+class Bridge:
+    """The loop of one protocol member: frames, operator lines, carries."""
+
+    def __init__(self, adapter, rpc, member, directory: Path, tick: int):
+        self.adapter = adapter
+        self.rpc = rpc
+        self.member = member
+        self.directory = directory
+        self.tick = tick
+        self.busy = False
+        self.mid_line = False
+        self.backoff = 0
+        self.lines: queue.Queue = queue.Queue()
+        self.state = {"native": adapter.native, "tools": None, "last_attempt": None,
+                      "degraded": None, "backoff": 0, "updated_at": stamp()}
+
+    def save(self) -> None:
+        self.state["updated_at"] = stamp()
+        self.state["backoff"] = self.backoff
+        private_write(self.directory / "bridge.json", json.dumps(self.state, indent=1) + "\n")
+
+    def say(self, text: str) -> None:
+        if self.mid_line:
+            print(flush=True)
+            self.mid_line = False
+        print(text, flush=True)
+
+    def read_stdin(self) -> None:
+        for line in sys.stdin:
+            text = line.rstrip("\n")
+            if text:
+                self.lines.put(text)
+
+    def heard(self, reading: str) -> None:
+        if reading.startswith("output "):
+            print(reading[len("output "):], end="", flush=True)
+            self.mid_line = True
+            return
+        if reading.startswith(f"tool {SERVER}"):
+            self.state["tools"] = f"ok {reading[len('tool '):]}"
+            self.save()
+        if reading == "activity active":
+            self.busy = True
+            return
+        if reading.startswith("done") or reading == "activity idle":
+            self.busy = False
+        self.say(f"· {reading}")
+
+    def submit(self, row) -> str:
+        outcome = self.adapter.submit(self.rpc, adapter_common().envelope(row), busy=self.busy)
+        if outcome.startswith(("accepted", "written")):
+            self.busy = True
+        self.say(f"· carried {row['message']}: {outcome}")
+        return outcome
+
+    def observe(self, message: str) -> str:
+        return self.adapter.observe(self.rpc, {"reconcile": message})
+
+    def carry(self) -> float:
+        """One pass; the seconds until the next. A delivery error never
+        ends the bridge: it records, backs off and reads degraded."""
+        import courier
+        try:
+            courier.route_step(coordination, "pass")
+            passed = courier.carry(coordination, self.submit, observe=self.observe,
+                                   generation=self.member["generation"])
+        except Refusal as refusal:
+            if refusal.kind == "route":
+                raise
+            passed = [{"message": None, "outcome": f"failed {refusal.line()}"}]
+            self.say(f"· {refusal.line()}")
+        settled = [entry["outcome"] for entry in passed if entry.get("attempt")]
+        if settled:
+            self.state["last_attempt"] = settled[-1]
+        bad = [outcome for outcome in (entry["outcome"] for entry in passed)
+               if outcome.split()[0] in ("unsupported", "failed", "uncertain")]
+        if bad:
+            self.backoff = min(max(BACKOFF_START, self.backoff * 2), BACKOFF_MAX)
+            self.state["degraded"] = bad[-1]
+        elif settled:
+            self.backoff = 0
+            self.state["degraded"] = None
+        self.save()
+        return self.backoff or self.tick
+
+    def loop(self) -> int:
+        threading.Thread(target=self.read_stdin, name="bridge-stdin", daemon=True).start()
+        due = time.monotonic()
+        while True:
+            frame = self.rpc.next_frame(POLL)
+            if frame is not None:
+                self.heard(self.adapter.observe(self.rpc, frame))
+                continue
+            if self.rpc.dead.is_set():
+                self.say(f"bridge: the harness closed: {self.rpc.failure}")
+                return EXIT_ABORT
+            while not self.lines.empty():
+                outcome = self.adapter.submit(self.rpc, self.lines.get(), busy=self.busy)
+                if outcome.startswith(("accepted", "written")):
+                    self.busy = True
+                self.say(f"· input {outcome}")
+            if time.monotonic() >= due:
+                due = time.monotonic() + self.carry()
+
+
+def stop_signal(signum, frame):
+    raise KeyboardInterrupt
+
+
+def do_bridge(rest):
+    """A codex or grok member's own process, in its pane. `start` launches it
+    under the profile's authority values except PATH, which stays the
+    operator's: the bridge resolves bwrap by it and nothing else."""
+    options = parse(rest, required=("run", "member"), optional=("tick",))
+    identity()
+    tick = seconds(options, "tick", TICK)
+    conn = writer()
+    run = chosen_run(conn, options, places=("open",))
+    member = newest_member(conn, run, options["member"])
+    adapter = load_adapter(member["harness"])
+    transport = adapter.transport() if adapter is not None else "none"
+    if transport != "protocol":
+        refuse("transport", "a protocol member, codex or grok, for the bridge",
+               f"{member['name']} on {member['harness']}, transport {transport}",
+               "a claude member has no bridge: its route is courier.py watch in its own pane")
+    if joined(member):
+        refuse("unmanaged", f"a member the supervisor launched for the bridge of {member['name']}",
+               f"SM-{member['id']} joined as PT-{member['participant']}",
+               "a joined participant carries its own route")
+    if not member["profile"]:
+        refuse("profile", f"a prepared profile for {member['name']} SM-{member['id']}", "none",
+               "sessions.py start --member NAME prepares it and launches the bridge")
+    binding = json.loads((Path(member["profile"]) / "binding.json").read_text(encoding="utf-8"))
+    directory = Path(member["evidence"])
+    directory.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(directory / "channel.log"), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    signal.signal(signal.SIGTERM, stop_signal)
+    signal.signal(signal.SIGHUP, stop_signal)
+    with os.fdopen(fd, "ab") as channel_log:
+        rpc = adapter.connect(adapter.argv(member, binding, member["launch_id"]),
+                              cwd=member["worktree"], stderr=channel_log)
+        try:
+            return bridge_session(conn, adapter, rpc, member, run, binding, directory, tick)
+        except KeyboardInterrupt:
+            return EXIT_DONE
+        finally:
+            rpc.close()
+
+
+def bridge_session(conn, adapter, rpc, member, run, binding, directory, tick):
+    import courier
+    native = adapter.handshake(rpc)
+    with conn:
+        conn.execute("UPDATE session_member SET native_id = ? WHERE id = ?", (native, member["id"]))
+    private_write(directory / "native.json", json.dumps(
+        {"native": native, "launch_id": member["launch_id"], "harness": member["harness"],
+         "at": stamp()}, indent=1) + "\n")
+    guard_session_start(binding, native, directory)
+    looked = coordination_reader()
+    try:
+        bound = participant_by(looked, "session_id", native)
+    finally:
+        if looked is not None:
+            looked.close()
+    digest = profile_digest(member["profile"])
+    if bound is None or bound["capability_digest"] != digest:
+        found = ("no participant" if bound is None
+                 else f"PT-{bound['id']} under another capability")
+        refuse("native", f"a participant bound to native {native} under this profile's capability",
+               found, f"read {directory / 'guard.log'}; the profile's SessionStart binds it")
+    act_as(binding, native)
+    held = courier.take_route(coordination, "native", member=f"SM-{member['id']}")
+    bridge = Bridge(adapter, rpc, member, directory, tick)
+    bridge.save()
+    print(f"bridge {member['name']} SM-{member['id']} R-{run['id']} native {native} "
+          f"as PT-{bound['id']}; route native pid={held['pid'] if held else 'none'}", flush=True)
+    try:
+        return bridge.loop()
+    finally:
+        if held is not None:
+            try:
+                courier.route_step(coordination, "release")
+            except Refusal as refusal:
+                print(refusal.line(), flush=True)
+
+
+# -- slice 2: join, recover, input ------------------------------------------------------
+
+def do_join(rest):
+    options = parse(rest, required=("run", "member", "participant"), optional=("team",))
+    agent = identity()
+    path = team_path(options)
+    team, _ = load_team(path)
+    member = team_member(team, options["member"], path)
+    _, pid = coordination.parse_id(options["participant"], "PT")
+    looked = coordination_reader()
+    try:
+        held = (looked.execute("SELECT * FROM participants WHERE id = ?", (pid,)).fetchone()
+                if looked is not None else None)
+    except sqlite3.OperationalError:
+        held = None
+    finally:
+        if looked is not None:
+            looked.close()
+    if held is None:
+        refuse("absent", "a bound participant of this store", options["participant"],
+               "coordination.py participants lists them")
+    if held["harness"] not in (None, member["harness"]):
+        refuse("team", f"a {member['harness']} participant for {member['name']}",
+               f"PT-{pid} on {held['harness']}", "join the member the participant's harness runs")
+    conn = writer()
+    with conn:
+        run = run_row(conn, run_number(options["run"]))
+        if run is None:
+            refuse("absent", "a run of this store", options["run"], "sessions.py status lists the runs")
+        if run["place"] != "open":
+            refuse("place", "an open run", f"R-{run['id']} at {run['place']}", "start a new run")
+        clash = launched_elsewhere(conn, member["name"])
+        if clash is not None:
+            refuse("place", f"{member['name']} not live in an open run",
+                   f"SM-{clash['id']} in R-{clash['run']} at {clash['place']}",
+                   f"sessions.py stop --run R-{clash['run']} first")
+        previous = member_rows(conn, rid=run["id"], name=member["name"])
+        generation = previous[-1]["generation"] + 1 if previous else 1
+        subject = machine.create(conn, MEMBER, agent, note=f"R-{run['id']} {member['name']} joined")
+        sid = conn.execute(
+            "INSERT INTO session_member(subject, run, name, harness, roles, generation, native_id, "
+            "participant, worktree, evidence, started_by, started_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (subject, run["id"], member["name"], member["harness"], ",".join(member["roles"]),
+             generation, held["session_id"], pid, str(REPO),
+             str(member_dir(run["id"], member["name"], generation)), agent, stamp()),
+        ).lastrowid
+    machine.move(conn, MEMBER, subject, "launch", agent,
+                 evidence=f"joined PT-{pid}: not launched by the supervisor")
+    machine.move(conn, MEMBER, subject, "bind", agent, evidence=f"native {held['session_id']} PT-{pid}")
+    print(f"joined {member['name']} SM-{sid} as PT-{pid} in R-{run['id']} at bound gen {generation}")
+    return EXIT_DONE
+
+
+def pane_reading(run, row) -> str:
+    if not row["pane"]:
+        return "pane none"
+    if shutil.which("tmux") is None:
+        return "pane unread: tmux absent"
+    shown = tmux(run["tmux_socket"], "display-message", "-p", "-t", row["pane"], "#{pane_dead}")
+    if shown.returncode != 0:
+        return f"pane {row['pane']} gone"
+    return f"pane {row['pane']} " + ("dead" if shown.stdout.strip() == "1" else "live")
+
+
+def do_recover(rest):
+    """The observer restart: read every live member; a gone process is lost."""
+    options = parse(rest, optional=("run",))
+    agent = identity()
+    conn = writer()
+    if "run" in options:
+        runs = [chosen_run(conn, options)]
+    else:
+        runs = [row for row in conn.execute(
+            "SELECT r.*, s.place FROM session_run r JOIN subjects s ON s.id = r.subject ORDER BY r.id")
+            if row["place"] in ("open", "stopping")]
+    if not runs:
+        print("no open runs")
+        return EXIT_DONE
+    every = True
+    for run in runs:
+        for row in member_rows(conn, rid=run["id"]):
+            if row["place"] not in LIVE:
+                continue
+            head = f"R-{run['id']} {row['name']} SM-{row['id']}"
+            route = route_line(conn, row["participant"])
+            if joined(row):
+                print(f"{head} unmanaged PT-{row['participant']}; {route}")
+                continue
+            reading = process_reading(row["pid"], row["start_ticks"])
+            pane = pane_reading(run, row)
+            if reading.startswith("ok"):
+                print(f"{head} alive {reading.removeprefix('ok ')}; {pane}; {route}")
+                continue
+            every = False
+            evidence = f"recover: process {reading}; {pane}; {route}"
+            machine.move(conn, MEMBER, row["subject"], f"lose-{row['place']}", agent, evidence=evidence)
+            with conn:
+                conn.execute("UPDATE session_member SET outcome = ? WHERE id = ?",
+                             (f"lost {reading}", row["id"]))
+            print(f"{head} lost {reading}; {pane}; {route}")
+    return EXIT_DONE if every else EXIT_FINDING
+
+
+def do_input(rest):
+    """Operator text to a protocol member's bridge: its pane's stdin."""
+    tokens = list(rest)
+    if not tokens or tokens[-1].startswith("--") or len(tokens) % 2 == 0:
+        refuse("arguments", "input --run R-n --member NAME TEXT, the text last",
+               " ".join(tokens) or "no arguments", usage())
+    text = tokens.pop()
+    options = parse(tokens, required=("run", "member"))
+    identity()
+    conn = reader()
+    try:
+        run = chosen_run(conn, options, places=("open",))
+        member = newest_member(conn, run, options["member"])
+    finally:
+        if conn is not None:
+            conn.close()
+    if joined(member):
+        refuse("unmanaged", f"a pane the supervisor owns for {member['name']}",
+               f"SM-{member['id']} joined as PT-{member['participant']}", "type in that participant's own terminal")
+    adapter = load_adapter(member["harness"])
+    if adapter is None or adapter.transport() != "protocol":
+        refuse("transport", "a protocol member, codex or grok, for input",
+               f"{member['name']} on {member['harness']}",
+               f"type in the pane: sessions.py attach --member {member['name']}")
+    if not member["pane"]:
+        refuse("absent", f"a pane for {member['name']} SM-{member['id']}", "none",
+               "sessions.py start --member NAME")
+    owner = ownership(run)
+    if owner == "absent":
+        refuse("absent", f"tmux session {run['tmux_session']}", "no such session",
+               f"sessions.py status --run R-{run['id']}")
+    if owner != "owned":
+        refuse_unowned(run, owner)
+    typed = tmux(run["tmux_socket"], "send-keys", "-t", member["pane"], "-l", text,
+                 ";", "send-keys", "-t", member["pane"], "Enter")
+    if typed.returncode != 0:
+        refuse("tmux", f"tmux to type into pane {member['pane']}",
+               typed.stderr.strip() or f"exit {typed.returncode}", "inspect the run's tmux server")
+    print(f"input to {member['name']} SM-{member['id']} pane {member['pane']}: {len(text)} characters")
+    return EXIT_DONE
+
+
 VERBS = {
     "doctor": do_doctor, "start": do_start, "status": do_status,
     "attach": do_attach, "stop": do_stop, "export": do_export,
+    "bridge": do_bridge, "join": do_join, "recover": do_recover, "input": do_input,
 }
 
 
 def main(argv: list[str]) -> int:
     verb = argv[1] if len(argv) > 1 else ""
     try:
-        if verb in LATER:
-            refuse("arguments", "a slice 1 verb: " + ", ".join(VERBS), f"{verb}, which is {LATER[verb]}",
-                   "the courier route lands in slice 2; sessions-lever.md lists slice 1")
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(VERBS), verb or "no verb",
                    "name one verb; the module doc has the arguments")
