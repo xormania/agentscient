@@ -84,7 +84,7 @@ checked after is the record that was wrong today.
    python3 ops/conductor/tools/deliverable.py show
    ```
 
-   Every grant settled with evidence; this session's branches removed from the lock (`deliverable.py remove`) when the
+   Every grant settled with evidence: the standing grant declared at the session's start settles here, at close, and not before (owner 2026-09-23); this session's branches removed from the lock (`deliverable.py remove`) when the
    deliverable has landed, or left set with the reason in the handoff.
    Landed is a reading: when the lock carries a target, `deliverable.py
    done <branch>` prints it or refuses `target` with the reading found,

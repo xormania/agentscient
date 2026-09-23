@@ -28,8 +28,8 @@ def _common():
 
 
 common = _common()
+from instrument import lane_name  # noqa: E402 - on the path _common appended
 
-CLIENT = {"name": "agentscient-sessions", "title": "agentscient sessions bridge", "version": "2"}
 # What the bridge answers to each request the app-server may send: every
 # approval declined, every question left unanswered, nothing granted.
 DECLINE = {
@@ -41,7 +41,19 @@ DECLINE = {
     "applyPatchApproval": {"decision": "denied"},
     "execCommandApproval": {"decision": "denied"},
 }
-UNKNOWN = {"code": -32601, "message": "not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
+
+def channel_error(error) -> bool:
+    """A ChannelError from any load of channel.py. Modules here are loaded by
+    path, so one file can yield two classes and `except` on one misses the
+    other (a caller's own RPC, as the adapter rows build)."""
+    return type(error).__name__ == "ChannelError" and hasattr(error, "reading")
+
+
+def client() -> dict:
+    """The clientInfo `initialize` names, under the lane conf's LANE_NAME."""
+    lane = lane_name()
+    return {"name": f"{lane}-sessions", "title": f"{lane} sessions bridge", "version": "2"}
 
 
 def thread_of(params) -> str | None:
@@ -51,6 +63,14 @@ def thread_of(params) -> str | None:
     if named is None and isinstance(params.get("thread"), dict):
         named = params["thread"].get("id")
     return named if isinstance(named, str) else None
+
+
+def turn_of(params) -> str | None:
+    """The turn a frame names: `turn.id` in the installed schema (0.155.1),
+    `turnId` where a frame carries the id flat."""
+    turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
+    named = turn.get("id") or params.get("turnId")
+    return named if isinstance(named, str) and named else None
 
 
 class Adapter(common.ProtocolAdapter):
@@ -66,12 +86,14 @@ class Adapter(common.ProtocolAdapter):
         """`initialize`, `initialized`, `thread/start`; the thread id."""
         method = "initialize"
         try:
-            rpc.request(method, {"clientInfo": CLIENT, "capabilities": {"experimentalApi": True}},
+            rpc.request(method, {"clientInfo": client(), "capabilities": {"experimentalApi": True}},
                         timeout=common.SUBMIT_TIMEOUT)
             rpc.notify("initialized")
             method = "thread/start"
             started = rpc.request(method, {}, timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             self.refuse_channel(method, error)
         thread = started.get("thread") if isinstance(started, dict) else None
         native = thread.get("id") if isinstance(thread, dict) else None
@@ -87,11 +109,13 @@ class Adapter(common.ProtocolAdapter):
         params = {"threadId": self.native, "input": [{"type": "text", "text": text}]}
         if busy:
             params = {"threadId": self.native, "input": [],
-                      "toolOutput": {"name": common.SERVER, "namespace": "agentscient",
+                      "toolOutput": {"name": common.SERVER, "namespace": lane_name(),
                                      "output": text}}
         try:
             result = rpc.request("turn/start", params, timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return self.settled("turn/start", error)
         turn = result.get("turn") if isinstance(result, dict) else None
         ident = turn.get("id") if isinstance(turn, dict) else None
@@ -104,7 +128,9 @@ class Adapter(common.ProtocolAdapter):
         try:
             read = rpc.request("thread/read", {"threadId": self.native, "includeTurns": True},
                                timeout=common.SUBMIT_TIMEOUT)
-        except common.channel.ChannelError as error:
+        except Exception as error:
+            if not channel_error(error):
+                raise
             return f"unseen {message}: thread/read {error.reading}"
         if common.marker(message) in json.dumps(read, ensure_ascii=False):
             return f"seen {message}"
@@ -122,12 +148,10 @@ class Adapter(common.ProtocolAdapter):
         if other is not None:
             return other
         if method == "turn/started":
-            turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
-            self.turn = turn.get("id") or self.turn
+            self.turn = turn_of(params) or self.turn
             return "activity active"
         if method == "turn/completed":
-            turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
-            done, self.turn = turn.get("id") or self.turn, None
+            done, self.turn = turn_of(params) or self.turn, None
             return f"done {done}"
         if method == "item/agentMessage/delta":
             return f"output {params.get('delta', '')}"
@@ -146,12 +170,21 @@ class Adapter(common.ProtocolAdapter):
     def answer(self, rpc, frame, method, params):
         """Decline what the app-server asks; the prompt is printed, not kept."""
         other = self.other_native(thread_of(params))
+        title = self.title(params, method)
         if method in DECLINE:
             rpc.answer(frame, result=DECLINE[method])
-            title = (params.get("reason") or params.get("command") or params.get("message")
-                     or method)
-            if isinstance(title, list):
-                title = " ".join(str(part) for part in title)
+            print(f"permission asked: {title}; answered {json.dumps(DECLINE[method])}", flush=True)
             return other or f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
-        return other or f"permission {method} declined"
+        print(f"permission asked: {title}; answered declined, not handled", flush=True)
+        return other or f"permission {title}"
+
+    @staticmethod
+    def title(params, method) -> str:
+        """What the prompt asked, for the pane: its title, reason, command or
+        message, else the method."""
+        title = (params.get("title") or params.get("reason") or params.get("command")
+                 or params.get("message") or method)
+        if isinstance(title, list):
+            title = " ".join(str(part) for part in title)
+        return str(title)
