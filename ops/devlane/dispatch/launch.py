@@ -1795,6 +1795,21 @@ def _commit_record(repo, path, rec, subject=None):
     _git(repo, "commit", "--only", "-m", msg, "--", str(rel), env=env)
 
 
+def _requested_timeout():
+    """DISPATCH_TIMEOUT from the invoking environment, in seconds, or None
+    when it is unset. Read before anything is minted or spawned, so a value
+    the launcher cannot use is refused on the wire rather than raised after
+    the harness is running (20260923T000804Z-review-codex-da66dd#1)."""
+    raw = os.environ.get("DISPATCH_TIMEOUT")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        _refuse("timeout", "DISPATCH_TIMEOUT as a positive finite number of seconds",
+                repr(raw), "unset DISPATCH_TIMEOUT or give it a number of seconds")
+
+
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     harness = rec["harness"]["name"]
     bound_job_dir, snapshot = _bound_snapshot(rec)
@@ -1905,6 +1920,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
                 "inspect co_doc.py and the native capability evidence before resuming")
     rec["harness"]["argv"] = argv
+    requested = _requested_timeout()
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -1936,8 +1952,6 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         # The job's cap bounds the environment (CONTRACT.md, the Lead's
         # ruling 2026-09-22): DISPATCH_TIMEOUT may lower a cap, never raise
         # it, and what it asked for is recorded beside what was applied.
-        requested = (float(os.environ["DISPATCH_TIMEOUT"])
-                     if "DISPATCH_TIMEOUT" in os.environ else None)
         if requested is not None and (job_timeout is None or requested <= float(job_timeout)):
             timeout, source = requested, "DISPATCH_TIMEOUT"
         elif job_timeout is not None:
@@ -2124,6 +2138,7 @@ def _launch(args):
             "none",
             "draft or name the assignment and relaunch with --for",
         )
+    _requested_timeout()
     mode = job.get("snapshot")
     if job.get("withheld") and mode == "whole":
         _refuse("history-vs-withheld", "one of history or withholding", f"both on {args.job}", "declare fileset")
