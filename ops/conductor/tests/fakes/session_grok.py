@@ -26,6 +26,7 @@ TESTKIT_FAKE_SPEC when it names this program's spec) says:
   (``_meta`` ``x.ai/tool`` ``grok_build``/``use_tool``) carrying this
   object verbatim as ``rawInput``, as grok 1.0.40 asks before a call on
   an MCP server (sessions-lever.md, ``observe``'s permission exception);
+  ``permission_tool`` ``[namespace, name]`` replaces that ``_meta`` tool;
 - ``permission_options``: ``[optionId, kind]`` pairs replacing the two
   default options; live grok offers ``always-allow`` (allow_always) too;
 - ``stray_id``: when set, a prompt's frames carry, after the first
@@ -271,7 +272,9 @@ def prompt_frames(spec: dict, native: str) -> list:
         raw = spec.get("permission_raw_input")
         if isinstance(raw, dict):
             call["rawInput"] = raw
-            call["_meta"] = {"x.ai/tool": {"namespace": "grok_build", "name": "use_tool"}}
+            named = spec.get("permission_tool")
+            namespace, name = named if isinstance(named, list) else ["grok_build", "use_tool"]
+            call["_meta"] = {"x.ai/tool": {"namespace": namespace, "name": name}}
         pairs = spec.get("permission_options")
         if not isinstance(pairs, list):
             pairs = [["allow-once", "allow_once"], ["reject-once", "reject_once"]]

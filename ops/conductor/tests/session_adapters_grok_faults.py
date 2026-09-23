@@ -9,7 +9,8 @@ the rows named in each note must go red on its mutant:
         --mutants ops/conductor/tests/session_adapters_grok_faults.py \\
         --command "python3 -m unittest discover -s ops/conductor/tests -p test_session_adapters_grok.py"
 
-Anchored on the subject at bf924ee7 (#277). An anchor that no longer
+Anchored on the subject at bf924ee7 (#277); the six permission mutants on
+b3's ea986978 (A-527). An anchor that no longer
 matches once refuses class anchor; re-measure it against the subject.
 """
 
@@ -56,5 +57,56 @@ MUTANTS = [
         'return "activity active"',
         "the coordination server's ready status is not read as the tool "
         "(grok-session-new-mcp-named)",
+    ),
+    Mutant(
+        "M-coordination-declined",
+        SUBJECT,
+        "            if wanted is not None and once is not None:\n",
+        "            if False:\n",
+        "the coordination call is declined like every other "
+        "(grok-permission-coordination-allowed; A-527, b3's live reading)",
+    ),
+    Mutant(
+        "M-any-server-allowed",
+        SUBJECT,
+        '    prefix = f"{common.SERVER}__"\n',
+        '    prefix = ""\n',
+        "a use_tool call on any server is allowed (grok-permission-other-server, "
+        "grok-permission-prefix-only)",
+    ),
+    Mutant(
+        "M-empty-tool-allowed",
+        SUBJECT,
+        " or len(target) == len(prefix):\n",
+        ":\n",
+        "coordination__ with no tool is allowed (grok-permission-no-tool)",
+    ),
+    Mutant(
+        "M-no-input-allowed",
+        SUBJECT,
+        '    return target[len(prefix):] if isinstance(raw.get("tool_input"), dict) else None\n',
+        "    return target[len(prefix):]\n",
+        "a call with no input object is allowed (grok-permission-no-input, "
+        "grok-permission-input-not-object)",
+    ),
+    Mutant(
+        "M-always-allow-chosen",
+        SUBJECT,
+        '                         if entry.get("kind") == "allow_once" and entry.get("optionId")), None)\n',
+        '                         if str(entry.get("kind", "")).startswith("allow") and entry.get("optionId")), None)\n',
+        "always-allow is chosen when offered first (grok-permission-coordination-allowed, "
+        "grok-permission-no-allow-once)",
+    ),
+    Mutant(
+        "M-any-tool-allowed",
+        SUBJECT,
+        '    if tool.get("name") != "use_tool" or tool.get("namespace") != MACHINERY:\n'
+        "        return None\n"
+        "    raw = call.get",
+        "    if False:\n"
+        "        return None\n"
+        "    raw = call.get",
+        "a call that is not grok's own use_tool is allowed (grok-permission-not-use-tool, "
+        "grok-permission-other-namespace)",
     ),
 ]

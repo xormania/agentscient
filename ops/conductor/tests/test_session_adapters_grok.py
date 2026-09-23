@@ -32,8 +32,8 @@ input object is answered `allow-once` and reads `permission coordination
 1.0.40, `session/request_permission` for `coordination__coord_probe`
 offering always-allow, allow-once and reject-once. Its neighbours stay
 declined: another server's tool, a target with no tool, a call with no
-input object, and always-allow is never chosen (origin: A-527, b3's live
-reading, and the contract line).
+input object, a call that is not grok's own use_tool, and always-allow is
+never chosen (origin: A-527, b3's live reading, and the contract line).
 
 A response whose id matches no request the bridge sent, as grok 1.0.40
 sends `skills-reload` mid-turn, is dropped and written to the channel's
@@ -287,14 +287,15 @@ class TheGrokAdapter(unittest.TestCase):
                 return None
             time.sleep(0.02)
 
-    def permission_reading(self, raw_input: dict, options=LIVE_OPTIONS):
+    def permission_reading(self, raw_input: dict, options=LIVE_OPTIONS, tool=None):
         """The adapter's reading of a `use_tool` permission request carrying
-        ``raw_input``, and the answer the peer received."""
+        ``raw_input``, and the answer the peer received; ``tool`` replaces
+        the request's `_meta` tool, `[namespace, name]`."""
         adapter = self.adapter()
         if adapter is None:
             return None, None, "no adapter"
         rpc = self.spawn(permission_title=USE_TOOL_TITLE, permission_raw_input=raw_input,
-                         permission_options=options)
+                         permission_options=options, permission_tool=tool)
         try:
             adapter.handshake(rpc)
             adapter.submit(rpc, OPERATOR_TEXT, busy=False)
@@ -321,25 +322,28 @@ class TheGrokAdapter(unittest.TestCase):
 
     def test_observe_every_other_use_tool_stays_declined(self):
         """origin: A-527, b3's live reading; sessions-lever.md observe at 7952a9a6"""
+        probe = {"tool_name": "coordination__coord_probe", "tool_input": {}}
         rows = [
             ("grok-permission-other-server", {"tool_name": "shell__run", "tool_input": {"cmd": "ls"}},
-             LIVE_OPTIONS),
+             LIVE_OPTIONS, None),
             ("grok-permission-no-tool", {"tool_name": "coordination__", "tool_input": {}},
-             LIVE_OPTIONS),
-            ("grok-permission-no-input", {"tool_name": "coordination__coord_probe"}, LIVE_OPTIONS),
+             LIVE_OPTIONS, None),
+            ("grok-permission-no-input", {"tool_name": "coordination__coord_probe"},
+             LIVE_OPTIONS, None),
             ("grok-permission-input-not-object",
-             {"tool_name": "coordination__coord_probe", "tool_input": "{}"}, LIVE_OPTIONS),
+             {"tool_name": "coordination__coord_probe", "tool_input": "{}"}, LIVE_OPTIONS, None),
             ("grok-permission-prefix-only",
-             {"tool_name": "xcoordination__coord_probe", "tool_input": {}}, LIVE_OPTIONS),
-            ("grok-permission-no-allow-once",
-             {"tool_name": "coordination__coord_probe", "tool_input": {}},
-             [["always-allow", "allow_always"], ["reject-once", "reject_once"]]),
+             {"tool_name": "xcoordination__coord_probe", "tool_input": {}}, LIVE_OPTIONS, None),
+            ("grok-permission-no-allow-once", probe,
+             [["always-allow", "allow_always"], ["reject-once", "reject_once"]], None),
+            ("grok-permission-not-use-tool", probe, LIVE_OPTIONS, ["grok_build", "run_command"]),
+            ("grok-permission-other-namespace", probe, LIVE_OPTIONS, ["mcp", "use_tool"]),
         ]
-        for ident, raw_input, options in rows:
+        for ident, raw_input, options, tool in rows:
             with self.subTest(id=ident, origin=ORIGIN_527):
                 self.world.tools.log_path("grok").write_text("", encoding="utf-8")
                 self.emitted_path.write_text("", encoding="utf-8")
-                reading, answer, error = self.permission_reading(raw_input, options)
+                reading, answer, error = self.permission_reading(raw_input, options, tool)
                 self.assertIsNone(error, error)
                 self.assertEqual((reading, answer), (f"permission {USE_TOOL_TITLE}", "reject-once"))
 
