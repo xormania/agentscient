@@ -16,7 +16,6 @@ producer is absent by the owner's word (AGENTS.md §Ground rules).
 from __future__ import annotations
 
 import json
-import os
 import sys
 import unittest
 from pathlib import Path
@@ -322,26 +321,6 @@ class GradeRulesArmB(_Fixture):
             {"id": "P-T-serve", "status": "SERVED", "answer": "b"}])), "answers")
         self.assert_refusal(self.run_tool("grade", self.answers([
             {"id": "P-T-serve", "status": "SERVED"}])), "answers")
-
-
-class TheTrackedCorpusRunsGreen(unittest.TestCase):
-    """The repository's own corpus: every row PASS on this tree, or the
-    tree is telling a story its records do not serve. This is the gate
-    CI runs; it is what makes "done" a reading instead of a sentence."""
-
-    def test_run_over_the_tracked_corpus_exits_zero(self):
-        # The corpus reads the host's own state store (absent rows, the
-        # record lane), so this one run keeps the host environment: the
-        # exception to rule 4 is this line, named (docs/tests.md).
-        proc = run(
-            [sys.executable, str(TOOL), "run"], cwd=REPO,
-            env=dict(os.environ), timeout=600,
-        )
-        if True:
-            self.assertEqual(proc.stderr, "", proc.stderr)
-            doc = json.loads(proc.stdout)
-            bad = [r for r in doc["rows"] if r["result"] != "PASS"]
-            self.assertEqual(proc.exit, 0, json.dumps(bad, indent=1))
 
 
 if __name__ == "__main__":

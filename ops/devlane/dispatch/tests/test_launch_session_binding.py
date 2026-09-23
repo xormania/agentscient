@@ -35,6 +35,10 @@ the store inside every case of this suite.
       launcher's own, on the wire, and no worker ran
   L6  a dispatch that names an assignment leaves a participant in the
       store for the id it minted, carrying bound_for and bound_by
+  L7  a write job that names no assignment is refused before anything is
+      minted: no job directory, no record, no child (LD-116)
+  L8  a write job that names one reaches bind-for, as L6 does for a read
+      job
 """
 
 from __future__ import annotations
@@ -148,6 +152,11 @@ class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
         self.assertFalse(
             self.witness.is_file(),
             "the harness CLI ran although the binding was refused")
+        self.assertEqual(list(self.jobs_root.iterdir()), [],
+                         "a refused handoff left a staged job and private worker home")
+        records = self.repo / ".dev" / "records" / "dispatches"
+        self.assertEqual(list(records.glob("*.json")), [],
+                         "a refused handoff left a dispatch record")
 
     def test_a_dispatch_naming_an_assignment_leaves_a_bound_participant(self):
         """L6, the whole point: dispatched=1 rather than dispatched=0."""
@@ -172,3 +181,46 @@ class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
         self.assertEqual(
             env.get(SESSION_KEY), minted,
             "the worker was bound under one session and run under another")
+
+    def test_a_write_job_that_names_no_assignment_is_refused_before_the_mint(self):
+        """L7. origin: LD-116 (ops/conductor/handoff/lane-defects/LD-116.md).
+
+        Every job installs a worker-mode hook profile, and a worker profile
+        with no issued participant denies every hook call. Record
+        20260922T212631Z-code-grok-123236, author-tests with no --for, spent
+        196,151 tokens that way and closed tripped. A write job without an
+        assignment is refused on the wire before the launcher mints an id,
+        a job directory, a profile or a record.
+        """
+        for job in ("implement", "author-tests"):
+            with self.subTest(job=job):
+                code, out, err = self.dispatch(self.argv_for(job, harness="grok"), assign=False)
+                lines = err.strip().splitlines()
+                self.assertEqual(code, 2, f"a write job with no --for exited {code}: {err!r}")
+                self.assertEqual(out, "", "a refusal prints nothing on stdout")
+                self.assertEqual(len(lines), 1, f"one refusal line on stderr: {err!r}")
+                self.assertRegex(
+                    lines[0],
+                    r"^participant: expected an assignment \(--for A-n\) to issue this worker a "
+                    r"participant through bind-for; found none; needed .*--for")
+                self.assertFalse(self.witness.is_file(), "the worker ran with no assignment")
+                self.assertEqual(list(self.jobs_root.iterdir()), [],
+                                 "a job directory or worker home was created before the refusal")
+                records = self.repo / ".dev" / "records" / "dispatches"
+                self.assertEqual(sorted(records.glob("*.json")) if records.is_dir() else [], [],
+                                 "a dispatch record was written before the refusal")
+
+    def test_a_write_job_naming_an_assignment_reaches_bind_for(self):
+        """L8, the clean neighbour of L7."""
+        key = self.dispatcher_session()
+        aid = self.assignment(key)
+        os.environ[SESSION_KEY] = key
+        self.addCleanup(os.environ.pop, SESSION_KEY, None)
+        rec, witness, _out, _err = self.launch_ok(
+            argv=self.argv_for("implement", harness="grok", extra=("--for", aid)))
+        minted = (rec.get("session") or {}).get("id")
+        self.assertTrue(minted, "the record carries no minted session id")
+        env = witness.get("env") or {}
+        own = self.core("who", session=minted, profile=env["AGENTSCIENT_HOOK_PROFILE"])
+        self.assertEqual(own.returncode, 0, own.stderr)
+        self.assertIn(minted, own.stdout)

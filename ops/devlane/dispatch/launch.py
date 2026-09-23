@@ -10,6 +10,7 @@ import faulthandler
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import re
 import shutil
@@ -615,12 +616,12 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
 COORD_MCP_SERVER = "coordination"
-# The launcher's own tree, never the worker's snapshot: this script's
+# The launcher's frozen runtime, never the worker's snapshot: this script's
 # `import coordination` resolves from `sys.path[0]`, its own directory, so
 # running it from a path the worker can write would let a worker-rewritten
 # core answer with the dispatcher's own authority (finding 1 of
 # 20260916T151749Z-review-codex-ef6db7).
-COORD_MCP_PINNED = APP.parents[1] / "conductor" / "tools" / "coordination_mcp.py"
+COORD_MCP_REL = Path("ops/conductor/tools/coordination_mcp.py")
 COORD_MCP_CONFIG_VERSION = 1
 # The capability list is declared here and proved against the server's own
 # catalogue by a case, rather than read out of the server at launch: the
@@ -642,7 +643,7 @@ COORD_MCP_HARNESSES = ("codex",)
 COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF",
                  "AGENTSCIENT_HOOK_PROFILE")
 COORD_MCP_ABSENT = {
-    "unresolved": "the launcher's own tree has no "
+    "unresolved": "the issued worker runtime has no "
                   "ops/conductor/tools/coordination_mcp.py"}
 COORD_MCP_UNBOUND = {
     "unresolved": "the dispatch named no assignment, so the core bound no "
@@ -734,7 +735,7 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
         return {"unresolved": f"the acting server is wired for "
                               f"{', '.join(COORD_MCP_HARNESSES)} today; this "
                               f"dispatch is {harness}"}, None
-    tool = COORD_MCP_PINNED
+    tool = Path(job_dir) / "runtime" / COORD_MCP_REL
     if not tool.is_file():
         return dict(COORD_MCP_ABSENT), None
     if not participant:
@@ -1460,14 +1461,11 @@ def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
     return path, ran, stream_id, mismatch
 
 
-ENVELOPE_KEYS = ("job", "status", "verdict", "counts", "findings",
-                 "artifacts", "spend", "stamp", "note")
+ENVELOPE_KEYS = ENVELOPE.FIELDS
 
 
 def _invalid(job, ref_sha, note):
-    return {"job": job, "status": "invalid", "verdict": None, "counts": {},
-            "findings": [], "artifacts": {}, "spend": {},
-            "stamp": {"ref": ref_sha}, "note": note}
+    return ENVELOPE.invalid(job, note, stamp={"ref": ref_sha})
 
 
 def _invalidate_envelope(data, note):
@@ -1524,46 +1522,6 @@ def _json_objects(text):
         if isinstance(candidate, dict):
             found.append(candidate)
     return found
-
-
-def _schema_valid(data):
-    def matches(value, schema):
-        kinds = schema.get("type")
-        kinds = [kinds] if isinstance(kinds, str) else kinds
-        checks = {"object": lambda: isinstance(value, dict),
-                  "array": lambda: isinstance(value, list),
-                  "string": lambda: isinstance(value, str),
-                  "integer": lambda: isinstance(value, int) and not isinstance(value, bool),
-                  "number": lambda: isinstance(value, (int, float)) and not isinstance(value, bool),
-                  "boolean": lambda: isinstance(value, bool),
-                  "null": lambda: value is None}
-        if kinds and not any(checks[kind]() for kind in kinds):
-            return False
-        if "enum" in schema and value not in schema["enum"]:
-            return False
-        if isinstance(value, (int, float)) and "minimum" in schema and value < schema["minimum"]:
-            return False
-        if isinstance(value, list) and "items" in schema:
-            return all(matches(item, schema["items"]) for item in value)
-        if isinstance(value, dict):
-            properties = schema.get("properties", {})
-            if any(key not in value for key in schema.get("required", [])):
-                return False
-            extra = set(value) - set(properties)
-            additional = schema.get("additionalProperties", True)
-            if extra and additional is False:
-                return False
-            if any(not matches(value[key], properties[key])
-                   for key in set(value) & set(properties)):
-                return False
-            if isinstance(additional, dict) and any(
-                    not matches(value[key], additional) for key in extra):
-                return False
-        return True
-
-    return (matches(data, ENVELOPE.ENVELOPE_SCHEMA)
-            and not (data.get("status") == "invalid"
-                     and data.get("verdict") == "approve"))
 
 
 def _most_envelope_shaped(objects, *, last=False):
@@ -1655,11 +1613,6 @@ def _agy_envelope(raw):
             raise ValueError("malformed terminal result structured_output")
     else:
         data = json.loads(result["response"])
-    # Keep semantic checks in their canonical owner, including diagnostic
-    # field names; schema validation also enforces exact scalar types.
-    ENVELOPE.validate(data)
-    if not _schema_valid(data):
-        raise ValueError("schema-invalid: object does not match ENVELOPE_SCHEMA")
     return data
 
 
@@ -1718,14 +1671,14 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
                         data = candidate
         if data is None:
             data = next((item for item in reversed(objects)
-                         if _schema_valid(item)), None)
+                         if ENVELOPE.schema_valid(item)), None)
         if data is None:
             cause = "no-last-message"
     elif harness == "grok" and objects:
         # JSON output is the final top-level object; an earlier object can be
         # narration or a diagnostic and is not the requested result.
         data = next((item for item in reversed(objects)
-                     if _schema_valid(item)), None)
+                     if ENVELOPE.schema_valid(item)), None)
         if data is None:
             data = _most_envelope_shaped(objects, last=True)
     if data is None and cause is None:
@@ -1739,18 +1692,16 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
                    if cause != "envelope-parse"
                    else "envelope-parse: no JSON object on stdout")
         data = _invalid(job, ref_sha, refusal)
-    elif harness is not None and not _schema_valid(data):
-        cause = "schema-invalid"
-        data = dict(data)
-        data.update(status="invalid", verdict=None,
-                    note="schema-invalid: object does not match ENVELOPE_SCHEMA")
-    elif harness is None:
-        missing = [key for key in ENVELOPE_KEYS if key not in data]
-        if missing:
-            data["status"] = "invalid"
-            prior = data.get("note")
-            refusal = f"envelope-missing: {', '.join(missing)}"
-            data["note"] = f"{prior}; {refusal}" if prior else refusal
+    else:
+        try:
+            ENVELOPE.validate(data)
+        except ENVELOPE.EnvelopeError as exc:
+            cause = "envelope-invalid" if ENVELOPE.schema_valid(data) else "schema-invalid"
+            refusal = f"{cause}: {exc}"
+            # Retain the worker's evidence and claimed tally, never repair it
+            # into an approval. All carriers share this acceptance boundary.
+            data = (_invalidate_envelope(dict(data), refusal)
+                    if isinstance(data, dict) else _invalid(job, ref_sha, refusal))
     stamp = data.get("stamp")
     if not isinstance(stamp, dict):
         data["stamp"] = {}
@@ -1793,6 +1744,26 @@ def _commit_record(repo, path, rec, subject=None):
         msg += f"\n\nOverride: {item['refusal']}: {item['reason']}"
     _git(repo, "add", "--intent-to-add", "--", str(rel), env=env)
     _git(repo, "commit", "--only", "-m", msg, "--", str(rel), env=env)
+
+
+def _requested_timeout():
+    """DISPATCH_TIMEOUT from the invoking environment, in seconds, or None
+    when it is unset. Read before anything is minted or spawned, so a value
+    the launcher cannot use is refused on the wire rather than raised after
+    the harness is running (20260923T000804Z-review-codex-da66dd#1). NaN,
+    an infinity, zero and a negative parse as floats and bound nothing; NaN
+    also serialises as a bare token strict JSON rejects (#2)."""
+    raw = os.environ.get("DISPATCH_TIMEOUT")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        value = None
+    if value is None or not math.isfinite(value) or value <= 0:
+        _refuse("timeout", "DISPATCH_TIMEOUT as a positive finite number of seconds",
+                repr(raw), "unset DISPATCH_TIMEOUT or give it a number of seconds")
+    return value
 
 
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
@@ -1905,6 +1876,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
                 "inspect co_doc.py and the native capability evidence before resuming")
     rec["harness"]["argv"] = argv
+    requested = _requested_timeout()
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -1933,14 +1905,18 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         (job_dir / "state.json").write_text(json.dumps(state) + "\n")
         job_timeout = (job_caps or {}).get("timeout")
         wall_default = _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
-        timeout = float(os.environ.get(
-            "DISPATCH_TIMEOUT",
-            job_timeout if job_timeout is not None else wall_default,
-        ))
+        # The job's cap bounds the environment (CONTRACT.md, the Lead's
+        # ruling 2026-09-22): DISPATCH_TIMEOUT may lower a cap, never raise
+        # it, and what it asked for is recorded beside what was applied.
+        if requested is not None and (job_timeout is None or requested <= float(job_timeout)):
+            timeout, source = requested, "DISPATCH_TIMEOUT"
+        elif job_timeout is not None:
+            timeout, source = float(job_timeout), "job"
+        else:
+            timeout, source = float(wall_default), "default"
         rec["caps"]["timeout"] = timeout
-        rec["caps"]["timeout_source"] = (
-            "DISPATCH_TIMEOUT" if "DISPATCH_TIMEOUT" in os.environ
-            else "job" if job_timeout is not None else "default")
+        rec["caps"]["timeout_source"] = source
+        rec["caps"]["timeout_requested"] = requested
         grace = float(os.environ.get("DISPATCH_STREAM_GRACE", "120"))
         started_clock = monotonic()
         runtime_note = None
@@ -2108,6 +2084,17 @@ def _launch(args):
     if args.harness == "claude" and role == "write":
         _refuse("write-role-unadmitted", "a write row with a containment entry",
                 "none for claude", "run the containment probe or use codex or grok")
+    # Every job installs a worker-mode hook profile, and one with no issued
+    # participant denies every hook call, so a write job without an assignment
+    # would spend its budget refused (LD-116). Refused before anything is minted.
+    if role == "write" and not args.assignment:
+        CORRECTION.refuse(
+            "participant",
+            "an assignment (--for A-n) to issue this worker a participant through bind-for",
+            "none",
+            "draft or name the assignment and relaunch with --for",
+        )
+    _requested_timeout()
     mode = job.get("snapshot")
     if job.get("withheld") and mode == "whole":
         _refuse("history-vs-withheld", "one of history or withholding", f"both on {args.job}", "declare fileset")
@@ -2247,8 +2234,13 @@ def _launch(args):
                 "inspect co_doc.py before dispatching this worker")
     bound = None
     if args.assignment:
-        bound = _bind_worker(binding_session, args.assignment,
-                             args.harness, agent, capability_digest=worker_digest)
+        try:
+            bound = _bind_worker(binding_session, args.assignment,
+                                 args.harness, agent, capability_digest=worker_digest)
+        except Refused:
+            # This launch owns only fresh staging: no record or child exists.
+            shutil.rmtree(job_dir)
+            raise
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
     coord_meta, coord_server = _coordination_mcp(

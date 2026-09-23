@@ -126,7 +126,7 @@ class AFindingWithoutAReproductionSaysSo(_WorldCase):
             findings=[a_finding(reproduce=None), a_finding()], stamp=STAMP)
         self.assertEqual(env["counts"]["opinions"], 1)
 
-    def test_a_finding_keeps_the_contract_key_order(self):
+    def test_a_finding_constructor_keeps_the_contract_key_order(self):
         # Same reason the top-level key set is ordered: two envelopes
         # from two runs are read side by side, and a field that moves
         # costs the reader the diff.
@@ -136,8 +136,9 @@ class AFindingWithoutAReproductionSaysSo(_WorldCase):
         env["findings"][0] = {"claim": f["claim"], "severity": f["severity"],
                               "where": f["where"],
                               "reproduce": f["reproduce"]}
-        with self.assertRaises(envelope.EnvelopeError):
-            envelope.validate(env)
+        built = envelope.build("sweep", status="ok", verdict="changes",
+                               findings=env["findings"], stamp=STAMP)
+        self.assertEqual(tuple(built["findings"][0]), envelope.FINDING_FIELDS)
 
     def test_a_finding_needs_a_severity_a_where_and_a_claim(self):
         for kwargs in ({"severity": "p4"}, {"where": ""}, {"claim": ""}):
@@ -188,6 +189,23 @@ class EverySoTaskReturnsTheSameShape(_WorldCase):
         env["transcript"] = "...the whole conversation..."
         with self.assertRaises(envelope.EnvelopeError):
             envelope.validate(env)
+
+    def test_parsed_json_member_order_and_optional_commit_are_accepted(self):
+        env = envelope.build("verify", status="ok", verdict="changes",
+                             findings=[a_finding("p1")], stamp=STAMP)
+        env["findings"] = [dict(reversed(list(env["findings"][0].items())))]
+        env["commit"] = {"body": "Original change", "subject": "Repair"}
+        env = dict(reversed(list(env.items())))
+        self.assertIs(envelope.validate(env), env)
+
+    def test_count_types_cannot_compare_equal_to_integers(self):
+        for value in (True, 1.0):
+            with self.subTest(value=value):
+                env = envelope.build("verify", status="ok", verdict="changes",
+                                     findings=[a_finding("p1")], stamp=STAMP)
+                env["counts"]["p1"] = value
+                with self.assertRaises(envelope.EnvelopeError):
+                    envelope.validate(env)
 
     def test_spend_is_present_even_when_nothing_was_spent(self):
         env = envelope.build("verify", status="ok", verdict="approve",
@@ -278,6 +296,72 @@ class AMalformedEnvelopeIsInvalidNotACrash(_WorldCase):
     def test_the_valid_envelope_these_cases_corrupt_still_passes(self):
         """The positive control: without the plant, validate accepts."""
         self.assertIsNotNone(envelope.validate(self._valid()))
+
+
+class APracticalLabelIsOptional(_WorldCase):
+    """A reviewer labels a finding `practical` at the source: `yes` with the
+    `failing` invocation someone will actually make, or `no` with none.
+    The pair is optional, so every envelope written before it stays valid.
+    Owner, relayed by the Lead through the XO, 2026-09-23 01:24Z: "get
+    moving - and make sure i NEVER have to say that again"; findings are
+    suggestions, rated by a concrete failure on the exit path."""
+
+    def labelled(self, practical, failing=None):
+        return envelope.finding("p2", "run.py §launch", "the battery is never armed",
+                                reproduce="python3 -m unittest x",
+                                practical=practical, failing=failing)
+
+    def built(self, *findings):
+        return envelope.build("security-audit", status="ok", verdict="changes",
+                              findings=list(findings), stamp=STAMP)
+
+    def test_an_old_four_field_finding_still_validates(self):
+        env = self.built(a_finding())
+        self.assertEqual(tuple(env["findings"][0]), envelope.FINDING_FIELDS)
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_a_practical_finding_carries_its_failing_invocation(self):
+        env = self.built(self.labelled("yes", "ops/bin/dispatch.sh review --for A-1"))
+        f = env["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]),
+                         ("yes", "ops/bin/dispatch.sh review --for A-1"))
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_a_finding_that_is_not_practical_names_no_failing(self):
+        env = self.built(self.labelled("no"))
+        f = env["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]), ("no", None))
+        self.assertIsNotNone(envelope.validate(env))
+
+    def test_practical_yes_without_a_failing_invocation_is_refused(self):
+        for failing in (None, "", "   "):
+            with self.subTest(failing=failing), self.assertRaises(envelope.EnvelopeError):
+                self.labelled("yes", failing)
+
+    def test_practical_no_with_a_failing_invocation_is_refused(self):
+        with self.assertRaises(envelope.EnvelopeError):
+            self.labelled("no", "python3 x")
+
+    def test_a_practical_that_is_not_yes_or_no_is_refused(self):
+        for value in ("maybe", True, "YES"):
+            with self.subTest(value=value), self.assertRaises(envelope.EnvelopeError):
+                self.labelled(value, "python3 x")
+
+    def test_failing_without_practical_is_refused(self):
+        with self.assertRaises(envelope.EnvelopeError):
+            envelope.finding("p2", "run.py §launch", "c", reproduce="x", failing="python3 x")
+
+    def test_the_label_survives_build_from_a_harness_object(self):
+        raw = {"severity": "p1", "where": "launch.py §mint", "claim": "c",
+               "reproduce": "python3 x", "practical": "yes", "failing": "python3 y"}
+        f = self.built(raw)["findings"][0]
+        self.assertEqual((f["practical"], f["failing"]), ("yes", "python3 y"))
+
+    def test_a_label_smuggled_past_its_constructor_is_refused(self):
+        env = self.built(self.labelled("no"))
+        env["findings"][0]["failing"] = "python3 x"
+        with self.assertRaises(envelope.EnvelopeError):
+            envelope.validate(env)
 
 
 if __name__ == "__main__":

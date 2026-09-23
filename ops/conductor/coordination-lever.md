@@ -55,6 +55,19 @@ projects only its own. Profiles, their directory permissions, and the trusted
 operator's filesystem are credential custody: this does not claim isolation
 from arbitrary code running with that same operating-system account.
 
+An owner terminal may use `bind --run R-n` without a capability. The run must
+exist. Bind mints a private token, enrolls its digest and the run in the same
+participant transaction, and writes a 0600 owner-terminal-profile/1 pointer
+at `<state dir>/runs/R-n/terminals/PT-n/home/profile.json`. It prints only
+`profile <path>`. Every verb accepts that path through `--profile PATH` or
+`AGENTSCIENT_HOOK_PROFILE`; conflicting declarations refuse. Reads verify
+the pointer's participant, run and digest against the enrolled row. Invalid
+path components, symlinked ancestors and mismatched enrollment refuse.
+If writing the pointer or committing enrollment fails, neither survives.
+A terminal rebind authenticates its existing pointer and preserves its run
+and digest. A bound participant without a terminal pointer uses `join` to
+associate with a run; rebind does not convert or rekey its credential.
+
 Self-bind requires the new caller's capability; a re-bind proves the existing
 one and never replaces its digest. `bind-for` receives only a capability digest
 for the worker, from an authenticated dispatcher. The launcher creates the
@@ -245,6 +258,22 @@ and `participants` prints both, so a participant nobody dispatched is
 visible as such. `bind` is unchanged and stays the interactive session's
 verb.
 
+Binding and offering the assignment are one state-engine transaction. A
+drafted assignment is offered to the issued participant; an unaddressed or
+matching role offer is addressed to that participant. Another participant's
+offer, a role the issued participant does not hold, held work and finished
+work refuse without creating a participant or changing the assignment.
+Credential enrollment, recipient, generation and marking commit together or
+roll back together. The issuing dispatcher owns this handoff; it does not
+need the coordinator role and the worker does not gain permission to offer.
+The receipt still names the participant, issuer and assignment.
+
+`reassign` handles both offered and held work under its existing lead or
+coordinator authority and generation check. Offered work uses the machine's
+`address` transition. Thus a failed startup can be recovered through the
+existing reassignment operation, with its reason retained in the marking.
+Dispatch does not steal a named offer or infer that an existing worker died.
+
 Setting that id into the worker's environment is the launcher's half and
 belongs to the MCP package's second slice, not here. It is set as
 `CLAUDE_SESSION_ID`, the older key `instrument.session()` already admits
@@ -258,7 +287,8 @@ tests:
 
 | transition | from | to | actor | evidence | failure | hold | gate |
 |---|---|---|---|---|---|---|---|
-| offer | drafted | offered | any | none | `offered` | keep | lead or coordinator |
+| offer | drafted | offered | any | none | `offered` | keep | offer: lead or coordinator; bind-for: dispatcher; generation |
+| address | offered | offered | any | required (why) | `offered` | clear | reassign: lead or coordinator; bind-for: dispatcher with an unaddressed or matching role offer; generation |
 | claim | offered | held | any | none | `taken` | take | the named recipient; the branch is in the lock; generation |
 | release | held | offered | holder-or-lapsed | required (why) | `place` | clear | generation; bumps it |
 | reassign | held | offered | any | required (why) | `place` | clear | lead or coordinator; generation; bumps it |
@@ -453,7 +483,7 @@ reconciliation the caller still owes.
 
 | verb | effect |
 |---|---|
-| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
+| `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n`; in an owner's terminal `--run R-n` names the run an owner's terminal joins and refuses `absent` when it names no run (sessions-lever.md, the owner's terminals). Every verb takes `--profile PATH`, read as `AGENTSCIENT_HOOK_PROFILE` is, and refuses `arguments` when both name different profiles |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
 | `recover-roles --grant ID --roles R[,R] --why TEXT` | the owner's current hand grant restores this session's roles, with a receipt |
@@ -473,7 +503,7 @@ reconciliation the caller still owes.
 | `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |
 | `show A-n` | the row, its marking, its observations and its open messages |
-| `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF]` | prints `message M-n queued` |
+| `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF] [--key K]` | prints `message M-n queued`; with `--key`, the same key and payload again prints the existing `message M-n queued (repeated)`, another payload refuses `idempotency` (sessions slice 2) |
 | `deliver M-n --ref REF` | the transport's receipt |
 | `ack M-n` | the recipient's acknowledgment |
 | `resolve M-n --evidence READING` | the obligation answered |
@@ -481,6 +511,12 @@ reconciliation the caller still owes.
 | `inbox [--unresolved]` | messages to this participant or its roles |
 | `outstanding [--to WHO]` | requests and findings not yet resolved |
 | `undelivered [--to WHO]` | queued to the caller and not yet delivered |
+| `route --take ROUTE [--member SM-n]` | the courier takes the caller's delivery route (`stdout` or `native`) with its own pid and start ticks; a live holder refuses `route` (sessions slice 2) |
+| `route --release` | the courier gives its route row back |
+| `routes` | every live and dead route row |
+| `attempt M-n --route ROUTE --generation N` | reserves one delivery attempt before the submission; prints `attempt AT-n reserved` |
+| `attempted AT-n --outcome O [--ref REF] [--error TEXT]` | settles the attempt (`written`, `accepted`, `unsupported`, `failed`, `uncertain`); the first `written` or `accepted` records the message's `deliver` |
+| `attempts M-n` | the attempts of one message, newest first |
 | `observe A-n --observation TEXT --revision SHA --generation N [--stale] [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
 | `observations A-n [--all]` | current observations, `--all` includes stale |
 | `ask --question TEXT --alternatives TEXT [--assignment A-n]` | prints `decision DC-n` |

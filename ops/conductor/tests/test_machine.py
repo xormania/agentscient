@@ -237,6 +237,12 @@ class TheDeclaration(_Scratch):
             self.machine.connect(create=False)
         self.assertEqual(caught.exception.kind, "store")
         self.assertFalse(self.store.exists(), "a read created the store")
+        with self.machine.connect(create=True) as writer:
+            writer.execute("CREATE TABLE read_probe(n INTEGER)")
+        with self.machine.connect(create=False) as reader:
+            self.assertEqual(reader.execute("SELECT count(*) FROM read_probe").fetchone()[0], 0)
+            with self.assertRaises(sqlite3.OperationalError):
+                reader.execute("INSERT INTO read_probe VALUES (1)")
 
 
 class TheSubjects(_Scratch):
@@ -425,7 +431,7 @@ class TheSubjects(_Scratch):
         self.conn.close()
 
         def take(agent: str) -> str:
-            conn = self.machine.connect(create=False)
+            conn = self.machine.connect(create=False, write=True)
             try:
                 for _ in range(20):
                     try:

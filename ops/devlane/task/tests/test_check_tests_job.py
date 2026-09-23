@@ -36,8 +36,11 @@ OTHER_JOBS = (
 # the implementer under grant 149 after the plan and adjudicate entries
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
+# Re-pinned 2026-09-22 (grant 332): every job's caps.timeout moved to
+# 3600 (dispatch CONTRACT.md, owner 2026-09-22). LD-31 stays open: this
+# digest moves with any entry, a representation pin the contract does not own.
 OTHERS_SHA256 = (
-    "d9c37a956db7685a9582f5a8148a1f7727bec6490b1e7e6257cd75daa941c1e3"  # re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
+    "7c436d7a0a4c25eed0310d86cec674a74e278badd286068b4871e5d016d1cc05"  # previous: 1a6e9f32 re-pinned 2026-09-23 (grant 332): adversarial-review and security-audit ask for the practical label; before that, previous: d9c37a95 re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
 )
 
 D1_PROMPT = (
@@ -205,7 +208,7 @@ class _JobsPin(unittest.TestCase):
 class CheckTestsKeepsItsRole(_JobsPin):
     """Item 1 — adapter, role, snapshot, caps, and constraints stay."""
 
-    def test_check_tests_keeps_role_read_snapshot_whole_caps_1800(self):
+    def test_check_tests_keeps_role_read_snapshot_whole_caps_3600(self):
         mutant = {
             "role": "write",
             "snapshot": "diff",
@@ -216,7 +219,8 @@ class CheckTestsKeepsItsRole(_JobsPin):
         self.assertEqual(self.spec.get("snapshot"), "whole")
         caps = self.spec.get("caps")
         self.assertIsInstance(caps, dict, "check-tests must declare caps")
-        self.assertEqual(caps.get("timeout"), 1800)
+        # Every job's caps.timeout is 3600 (dispatch CONTRACT.md, owner 2026-09-22).
+        self.assertEqual(caps.get("timeout"), 3600)
 
     def test_check_tests_keeps_adapter_harness_and_read_constraints(self):
         mutant = {"adapter": "direct", "constraints": ["write the report"]}

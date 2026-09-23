@@ -71,6 +71,7 @@ class PrProofTests(unittest.TestCase):
                         "question": "q", "serve": "git log -1",
                         "expect": "x"}) + "\n",
         )
+        self.world.plant_text(self.repo / support.FINDINGS_TOOL, support.findings_vocabulary())
         self.world.git("add", "-A")
         self.world.git("commit", "-q", "-m", "fixture")
         audited = self.world.git("rev-parse", "HEAD").stdout.strip()
@@ -159,7 +160,9 @@ class PrProofTests(unittest.TestCase):
         self.assertEqual(proc.stdout.strip(), "", proc.stdout)
 
     GOOD = ("## What\n\nx\n\n## Proof\n\nRows at the head: P-FIX-1.\n"
-            f"Security audit: {support.AUDIT_RECORD_ID}.\n\n## Why\n\ny\n")
+            f"Security audit: {support.AUDIT_RECORD_ID}.\n"
+            + support.proof_findings(*support.audit_disposed())
+            + "\n## Why\n\ny\n")
 
     def test_ready_and_merge_pass_with_proof_rows_at_a_green_head(self):
         self.plant(body=self.GOOD)
@@ -184,6 +187,59 @@ class PrProofTests(unittest.TestCase):
         reason = self.refusal(self.run_bash("gh pr merge 12 --merge"))
         self.assertIn("P-FIX-NOPE", reason)
         self.assertNotIn("P-FIX-1,", reason)
+
+    def test_a_bare_family_prefix_in_prose_is_not_an_id(self):
+        # origin: #278, refused at the flip twice on 2026-09-23 ("found absent:
+        # P-278"): prose saying "all seven P-278 rows PASS" was read as a row id.
+        # The same shape refused #271 and #274. An id is P-<family>-<leaf>; a bare
+        # family, followed by a space, a full stop, an asterisk or the line's end,
+        # names no row.
+        body = self.GOOD.replace(
+            "Rows at the head: P-FIX-1.\n",
+            "Rows at the head: P-FIX-1. All the P-FIX rows PASS; P-FIX* are the fixture's.\n"
+            "The family is P-FIX.\nP-FIX\n")
+        self.plant(body=body)
+        self.allowed(self.run_bash("gh pr ready 12"))
+        self.allowed(self.run_bash("gh pr merge 12 --merge"))
+
+    def test_a_proof_naming_only_a_bare_family_names_no_row(self):
+        # The clean neighbour of the row above: with no full id beside it, a bare
+        # family is still no proof.
+        self.plant(body="## Proof\n\nall the P-FIX rows PASS\n")
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertNotIn("found absent", reason)
+
+    def test_an_id_runs_to_its_last_word_character(self):
+        # origin: A-539 (record 20260923T044640Z-review-codex-5f987b#1): with no right
+        # boundary, "P-FIX-1\u00e9" and "P-FIX-1-" were read as the row P-FIX-1 and the
+        # flip passed. The whole token is the id, so each is named absent.
+        for token in ("P-FIX-1\u00e9", "P-FIX-1-", "P-FIX\u00e9-1"):
+            with self.subTest(token=token):
+                self.plant(body=self.GOOD.replace("P-FIX-1.", token + "."))
+                reason = self.refusal(self.run_bash("gh pr ready 12"))
+                self.assertIn("found absent: " + token, reason)
+
+    def test_an_id_whose_leaf_ends_in_a_hyphen_is_absent_even_as_a_corpus_row(self):
+        # origin: A-544 (record 20260923T054308Z-review-codex-ec5e36#2): the corpus
+        # readers take any string id, so a row named "P-FIX-1-" made that token
+        # present and the flip passed. A leaf ends in a word character; a token
+        # that does not is never a row, whatever the corpus carries.
+        corpus = self.repo / CORPUS
+        for token in ("P-FIX-1-", "P-FIX-1--"):
+            with self.subTest(token=token):
+                self.world.plant_text(corpus, corpus.read_text(encoding="utf-8") + json.dumps(
+                    {"id": token, "kind": "serve", "lane": "git", "question": "q",
+                     "serve": "git log -1", "expect": "x"}) + "\n")
+                self.world.git("add", "-A")
+                self.world.git("commit", "-q", "-m", "fixture: a row id ending in a hyphen")
+                self.head = self.world.git("rev-parse", "HEAD").stdout.strip()
+                self.plant(body=self.GOOD.replace("P-FIX-1.", token + "."))
+                for command in ("gh pr ready 12", "gh pr merge 12 --merge"):
+                    reason = self.refusal(self.run_bash(command))
+                    self.assertIn("found absent: " + token, reason)
+        # Clean neighbour: the full id beside it still passes.
+        self.plant(body=self.GOOD)
+        self.allowed(self.run_bash("gh pr ready 12"))
 
     def test_a_head_not_fetched_here_refuses_with_the_fetch(self):
         self.plant(body=self.GOOD, head="0" * 40)

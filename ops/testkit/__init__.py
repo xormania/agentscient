@@ -7,9 +7,12 @@ other way in.
 """
 
 from .cases import Mutant, RefusalCase, calibrate, refusal_wire, run_table, sidebyside
-from .command import NotOnTheWire, Refusal, Result, Timeout, run
+from .checks import Check, execute_checks, suite_checks
+from .command import NotOnTheWire, Refusal, Result, Timeout, parse_wire, run
 from .fakes import Tools
 from .world import (
+    Daemon,
+    DaemonRefused,
     PlantFailed,
     Watch,
     World,
@@ -22,6 +25,9 @@ from .world import (
 )
 
 __all__ = [
+    "Check",
+    "Daemon",
+    "DaemonRefused",
     "Mutant",
     "NotOnTheWire",
     "PlantFailed",
@@ -34,8 +40,10 @@ __all__ = [
     "World",
     "calibrate",
     "compare",
+    "execute_checks",
     "hermetic_env",
     "make_executable",
+    "parse_wire",
     "plant_bytes",
     "plant_text",
     "refusal_wire",
@@ -43,4 +51,5 @@ __all__ = [
     "run",
     "run_table",
     "sidebyside",
+    "suite_checks",
 ]

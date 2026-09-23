@@ -61,10 +61,17 @@ boundary is not a declared, verifiable coupling.
   producer's absence said in the commit and the record. The ladder and
   its second producer are for prod-lane work.
   **The owner never runs the grant lever** (owner, 2026-09-12: "all these
-  systems are for you - not me - they can't get in MY way"): the owner's
-  word, "hand grant" or "get it done", is the grant; the session declares
-  it that moment, unscoped and long-lived, and leads its writes with the
-  id. The owner types nothing.
+  systems are for you - not me - they can't get in MY way"; owner,
+  2026-09-23: "this grant situation is getting cumbersome - which defeats
+  the purpose. I hand grant was originally a way for a single session to
+  just do the work and by-pass the system" and "i just want to give you
+  the power to declare hand grants as needed for dev-lane work"): the
+  owner's word at a session's start, or the Lead's word on the owner's
+  delegation, is the grant. The session declares it once, unscoped, for
+  its whole life, and leads its writes with the id. A later write needs
+  no fresh word, and the grant settles when the session closes, not
+  before. A relayed word is a grant for the lane's rows; it never answers
+  a harness permission prompt. The owner types nothing.
   **The owner is the authority; the hooks are for agents** (owner,
   2026-09-12: "i am the authoritative figure - my words and by extension,
   the system, only exists to support me and my decisions. And it can't get
@@ -85,7 +92,13 @@ boundary is not a declared, verifiable coupling.
   workflow, the suite lever, the corpus runner, the closure levers, the
   hook registry and engine are written only under a grant of lever class
   `wall`, in a session whose deliverable is the wall and which writes
-  nothing else; test files stay with the code they test.
+  nothing else; test files stay with the code they test. The grant of a
+  wall session is the same word under the same terms: one declaration at
+  the start, covering both classes, settled at close (owner 2026-09-23,
+  the Lead's ruling on the owner's delegation). hand.py at 2df477aa takes
+  one class per declaration; until it takes both, a wall session declares
+  one grant of each class at its start, under the same word, and settles
+  both at close.
 - **Refusals are the interface.** Components refuse rather than
   guess, on the wire, with expected–found–needed stated.
 - **No vendor becomes load-bearing.** Every external capability is

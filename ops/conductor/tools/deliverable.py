@@ -5,8 +5,9 @@
                                                  name the branches work may aim at, and the target
     deliverable.py add BRANCH... --why TEXT [--measure CMD --until TEXT]
                                                  name more beside the ones named (a second session)
-    deliverable.py show                          print the lock, or "no lock"; each target with its
-                                                 live reading and met or short
+    deliverable.py show [--unmeasured]           print the lock, or "no lock"; each target with its
+                                                 live reading and met or short; --unmeasured runs
+                                                 no measure and reads each target unmeasured
     deliverable.py done BRANCH                   run the target's measure: print the reading when it
                                                  carries the --until text, else refuse `target`
     deliverable.py remove BRANCH... [--unmet TEXT]
@@ -31,6 +32,12 @@ text its output must carry; show prints the reading beside the target
 every time the lock is read, done is the reading and nothing else, and a
 branch is not lifted while its target is short unless the reason is
 said. A measure that cannot run reads unreachable, never met.
+
+show --unmeasured (LD-146) prints the lock and every target without
+running a measure, each reading `unmeasured` where met or short would
+stand. The onboard brief reads the lock this way: show ran 44 measures one
+after another in 1m54.208s on 2026-09-23, and the brief's reads are bound
+at 5 s and 20 s. An unmeasured line is never a reading; done is.
 """
 
 from __future__ import annotations
@@ -120,9 +127,11 @@ def reading(target):
     return False, (lines[0] if lines else "no output")
 
 
-def target_line(branch, target):
-    met, line = reading(target)
+def target_line(branch, target, measured=True):
     owner = f" (by {target['by']})" if target.get("by") else ""
+    if not measured:
+        return f"target {branch}: until {target['until']}; reading unmeasured; unmeasured{owner}"
+    met, line = reading(target)
     return (f"target {branch}: until {target['until']}; reading {line}; "
             f"{'met' if met else 'short'}{owner}")
 
@@ -322,7 +331,11 @@ def do_done(args):
     return 0
 
 
-def do_show(_args):
+def do_show(args):
+    if args not in ([], ["--unmeasured"]):
+        refuse("arguments", "show, or show --unmeasured", " ".join(args),
+               "name no option, or --unmeasured alone")
+    measured = not args
     path = lock_path()
     try:
         text = path.read_text(encoding="utf-8")
@@ -335,7 +348,7 @@ def do_show(_args):
     except ValueError:
         return 0
     for branch, target in (data.get("targets") or {}).items():
-        print(target_line(branch, target))
+        print(target_line(branch, target, measured))
     return 0
 
 

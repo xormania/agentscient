@@ -116,6 +116,24 @@ class SharedEnforcement(unittest.TestCase):
         payload = self.canonical("write_stdin", session_id=1, chars="")
         self.assertEqual(enforcement.evaluate(native.normalize("codex", payload)[0])["outcome"], "allow")
 
+    def test_claude_structured_output_is_its_result_and_no_other_name_is(self):
+        # LD-136: a claude review returns its envelope by calling StructuredOutput;
+        # the guard refused it as an unknown tool, so A-527's record read invalid.
+        payload = self.canonical("StructuredOutput", verdict="clean", findings=[])
+        items = native.normalize("claude", payload, event="PreToolUse")
+        self.assertEqual([x["tool_name"] for x in items], ["Result"])
+        self.assertEqual(enforcement.evaluate(items[0])["outcome"], "allow")
+        after = {**payload, "hook_event_name": "PostToolUse", "tool_response": {"ok": True}}
+        self.assertEqual(enforcement.evaluate(native.normalize("claude", after, event="PostToolUse")[0])["outcome"], "allow")
+        for harness, tool in [("codex", "StructuredOutput"), ("grok", "StructuredOutput"), ("claude", "MysteryOutput")]:
+            with self.subTest(harness=harness, tool=tool):
+                out = enforcement.evaluate(native.normalize(harness, self.canonical(tool, x=1), event="PreToolUse")[0])
+                self.assertEqual(out["outcome"], "deny")
+                self.assertIn("found unknown native tool", out["reason"])
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness), self.assertRaisesRegex(ValueError, "reserved canonical tool"):
+                native.normalize(harness, self.canonical("Result", verdict="clean"), event="PreToolUse")
+
     def test_duplicate_native_fields_are_not_last_key_wins(self):
         with self.assertRaises(ValueError):
             native.loads('{"tool_name":"Read","tool_name":"Write"}')
@@ -145,14 +163,14 @@ class SharedEnforcement(unittest.TestCase):
                 cwd.mkdir()
                 kwargs = {"source": root, "cwd": cwd, "home": home, "session": "issued-" + harness,
                           "agent": "Fixture <f@invalid>", "executable": "/usr/bin/true"}
-                _, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                worker_profile, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
                 capability = binding.get("coordination_capability")
                 self.assertIsInstance(capability, str)
                 self.assertRegex(capability, r"^[0-9a-f]{64}$")
                 self.assertNotIn(capability, seen)
                 seen.add(capability)
                 self.assertEqual(Path(binding["binding"]).stat().st_mode & 0o777, 0o600)
-                command, env = profiles.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
+                command, env = worker_profile.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
                 self.assertEqual(env["COORDINATION_CAPABILITY"], capability)
                 self.assertNotIn(capability, str(command))
                 for path in (binding["helper"], *binding["config_pins"]):
@@ -162,9 +180,9 @@ class SharedEnforcement(unittest.TestCase):
                 new = old.with_name(old.name + "-moved")
                 shutil.move(old, new)
                 kwargs.update(home=new / "home", cwd=new / "snapshot", relocated_from=old)
-                _, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
+                moved_profile, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
                 self.assertEqual(moved["coordination_capability"], capability)
-                profiles.validate(moved)
+                moved_profile.validate(moved)
 
     def test_coordination_capability_missing_or_malformed_refuses_profile(self):
         root = Path(__file__).resolve().parents[4]
@@ -454,6 +472,121 @@ class SharedEnforcement(unittest.TestCase):
                     command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
                     self.assertIn("/usr/bin/true", command)
 
+    def test_the_bridge_channel_argv_is_admitted_whole_and_nothing_near_it(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (1), T-486; found by agentscient-5c 2026-09-23 03:05Z: every codex
+        # and grok member read `process refused gone`, run-interactive refusing the
+        # adapters' channel() argv as "unknown native command".
+        root = Path(__file__).resolve().parents[4]
+        channels = {"codex": ["app-server", "--listen", "stdio://"],
+                    "grok": ["--no-auto-update", "agent", "stdio"]}
+        near = {
+            "codex": [["app-server"], ["app-server", "--listen"], ["app-server", "--listen", "ws://127.0.0.1:4500"],
+                      ["app-server", "--listen=stdio://"], ["app-server", "--listen", "stdio://", "--model", "fixture"],
+                      ["app-server", "--listen", "stdio://", "-c", 'model_reasoning_effort="high"'],
+                      ["--model", "fixture", "app-server", "--listen", "stdio://"], ["app-server", "daemon"],
+                      ["app-server", "proxy"], ["app-server", "--listen", "stdio://", "--", "A plain prompt"]],
+            "grok": [["agent", "stdio"], ["--no-auto-update"], ["--no-auto-update", "agent"],
+                     ["--no-auto-update", "agent", "serve"], ["--no-auto-update", "agent", "headless"],
+                     ["--no-auto-update", "agent", "stdio", "--sandbox=none"],
+                     ["--model", "fixture", "--no-auto-update", "agent", "stdio"],
+                     ["--no-auto-update", "agent", "stdio", "--", "A plain prompt"]],
+        }
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("channel-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            for owner, channel in channels.items():
+                if owner != harness:
+                    with self.subTest(harness=harness, channel=owner), self.assertRaises(ValueError):
+                        profiles.native_launch(binding, ["/usr/bin/true", *channel], self.env)
+            if harness not in channels:
+                continue
+            with self.subTest(harness=harness, channel=harness):
+                try:
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *channels[harness]], self.env)
+                except ValueError as refusal:
+                    self.fail(f"refused the bridge's channel argv: {refusal}")
+                self.assertEqual(command[command.index("/usr/bin/true") + 1:],
+                                 {"codex": ["--dangerously-bypass-hook-trust", *channels["codex"]],
+                                  "grok": channels["grok"]}[harness])
+            for args in near[harness]:
+                with self.subTest(harness=harness, args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+
+    def test_claude_interactive_admits_a_launch_session_id(self):
+        # origin: ops/conductor/sessions-lever.md at 13664232, "Identity, without
+        # impersonation": the supervisor passes its launch id as `claude --session-id`.
+        root = Path(__file__).resolve().parents[4]
+        launch = "0b5d2c4e-7a31-4f6e-9c2d-3e8f1a6b9d07"
+        binding = profiles.generate("claude", self.world.root / "interactive-session-id", source=root,
+                                    cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+        for args in (["--session-id", launch], ["--session-id=" + launch],
+                     ["--model", "fixture", "--session-id", launch, "--", "A plain prompt"]):
+            with self.subTest(args=args):
+                try:
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+                except ValueError as refusal:
+                    self.fail(f"refused an admitted launch id: {refusal}")
+                at = command.index("--session-id")
+                self.assertEqual(command[at + 1], launch)
+        # claude refuses anything but a UUID itself; the launcher refuses it first.
+        for args in (["--session-id"], ["--session-id="], ["--session-id", "--help"],
+                     ["--session-id", "foreign"], ["--session-id=foreign"], ["--session-id", launch + "0"],
+                     ["--session-id", launch[:-1]], ["--session-id", launch.replace("-", "")],
+                     ["--session-id", launch + "\n"]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+        for harness in ("codex", "grok", "agy"):
+            other = profiles.generate(harness, self.world.root / ("interactive-session-id-" + harness), source=root,
+                                      cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            with self.subTest(harness=harness), self.assertRaises(ValueError):
+                profiles.native_launch(other, ["/usr/bin/true", "--session-id", launch], self.env)
+
+    def test_claude_launch_session_id_binds_only_the_native_session_it_names(self):
+        # origin: 20260922T213639Z-review-codex-202757#1, from its reproduce field: the
+        # interactive profile bound the hook's session_id without comparing it to the
+        # admitted --session-id, so the terminal registered under a session the launch
+        # never named.
+        root = Path(__file__).resolve().parents[4]
+        core = enforcement.load("test_launch_session_coordination", root / "ops/conductor/tools/coordination.py")
+        with core.writer():
+            pass
+        intended = "0b5d2c4e-7a31-4f6e-9c2d-3e8f1a6b9d07"
+        observed = "ffffffff-ffff-4fff-8fff-ffffffffffff"
+
+        def launched(name, args, inherited=None):
+            binding = profiles.generate("claude", self.world.root / name, source=root, cwd=self.repo, mode="interactive",
+                                        executable="/usr/bin/true", agent="Fixture <fixture@example.invalid>")
+            _, env = profiles.native_launch(binding, ["/usr/bin/true", *args], {**self.env, **(inherited or {})})
+            return binding, env
+
+        def stored(session):
+            with core.reader() as conn:
+                return conn.execute("SELECT count(*) FROM participants WHERE session_id = ?", (session,)).fetchone()[0]
+
+        binding, env = launched("launch-mismatch", ["--session-id", intended])
+        with patch.dict(os.environ, env, clear=True):
+            with self.assertRaisesRegex(ValueError, f"^native: expected the launch session id {intended}; found {observed};"):
+                profiles.initialize(binding, {"session_id": observed}, instrument=enforcement.instrument)
+        self.assertEqual((stored(observed), stored(intended)), (0, 0))
+
+        binding, env = launched("launch-match", ["--session-id=" + intended])
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(profiles.initialize(binding, {"session_id": intended}, instrument=enforcement.instrument), intended)
+        self.assertEqual(stored(intended), 1)
+
+        # Clean neighbours: no launch id admitted, so the hook's session binds as before,
+        # whatever the caller's environment carried in, and a prompt that reads like the
+        # option names nothing.
+        for name, args in (("launch-none", []), ("launch-prompt", ["--", "--session-id"])):
+            native = "native-" + name
+            binding, env = launched(name, args, {"AGENTSCIENT_LAUNCH_SESSION": intended})
+            with self.subTest(args=args):
+                self.assertNotIn("AGENTSCIENT_LAUNCH_SESSION", env)
+                with patch.dict(os.environ, env, clear=True):
+                    self.assertEqual(profiles.initialize(binding, {"session_id": native}, instrument=enforcement.instrument), native)
+                self.assertEqual(stored(native), 1)
+
     def test_worker_argv_preserves_launcher_sandbox_identity_and_mcp(self):
         root = Path(__file__).resolve().parents[4]
         arguments = {
@@ -616,6 +749,121 @@ class SharedEnforcement(unittest.TestCase):
         self.assertEqual(proc.stdout, str(self.repo) + "\nsynthetic\n")
         self.assertEqual(self.evaluate(command=native.bind_command("git commit -m blocked", str(self.repo)))["outcome"], "deny")
 
+    def test_every_member_profile_registers_the_coordination_acting_server(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (3): the interactive profile registers the `coordination` acting
+        # server for all three harnesses. Before it, a profile carried only the
+        # operator's own servers, and this host's ~/.grok/config.toml has none, so a
+        # grok member never read tools ok (agentscient-11's review of fed6a4ce, LD-134).
+        import tomllib
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        elsewhere = {"command": "python3", "args": ["/elsewhere/coordination_mcp.py", "serve"]}
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".codex/config.toml").write_text(
+            '[mcp_servers.agentscient_lane]\ncommand="python3"\nargs=["stable.py"]\n'
+            '[mcp_servers.coordination]\ncommand="python3"\nargs=["/elsewhere/coordination_mcp.py", "serve"]\n')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        (home / ".claude.json").write_text(json.dumps({"mcpServers": {"coordination": elsewhere}}))
+        server = {"command": str(Path(profiles.sys.executable).resolve()),
+                  "args": ["-B", str(root / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("member-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                profiles.validate(profiles.read_binding(binding["binding"]))
+                if harness == "claude":
+                    servers = json.loads((Path(binding["helper"]).parent / "mcp.json").read_text())["mcpServers"]
+                else:
+                    servers = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())["mcp_servers"]
+                expected = {**server, "env": {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]}}
+                if harness == "codex":
+                    # The bridge declines every approval the app-server asks
+                    # (session_adapters/codex.py DECLINE), so codex approves this
+                    # server's tools; the core's role gate still runs in every verb.
+                    expected["default_tools_approval_mode"] = "approve"
+                    self.assertEqual(servers["agentscient_lane"]["args"], ["stable.py"])
+                self.assertEqual(servers.get("coordination"), expected)
+                self.assertIn("coordination", binding["servers"])
+                registered = servers["coordination"]
+                probe = run([registered["command"], *registered["args"][:-1], "check"],
+                            cwd=self.repo, env=self.env, timeout=60)
+                self.assertEqual(probe.exit, 0, probe.stderr)
+                self.assertEqual(json.loads(probe.stdout)["server"], "coordination")
+
+    def test_a_codex_or_grok_member_home_carries_the_onboard_entry_point(self):
+        # origin: ops/conductor/sessions-lever.md at e0cee144, "Required of the wall":
+        # the onboard wrapper inside a codex or grok member's private home, a planted
+        # row that reads it from the profile home and refuses its absence. The home
+        # build_home makes holds credentials only, so without it a member finds no
+        # onboard skill: grok 1.0.40 loads the checkout's .claude/skills only in a
+        # trusted project, and `grok inspect --json` under a fresh GROK_HOME reads
+        # projectTrusted false and no onboard among its skills (measured 2026-09-23).
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        shared = ".claude/skills/onboard/SKILL.md"
+        self.assertTrue((root / shared).is_file(), shared)
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("onboard-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                if harness == "claude":
+                    # claude reads the checkout's own .claude/skills; its home gets nothing.
+                    self.assertFalse(entry.exists(), entry)
+                    continue
+                self.assertTrue(entry.is_file(), f"{harness}: no onboard entry point at {entry}")
+                self.assertFalse(entry.is_symlink(), f"{harness}: {entry} reaches outside the private home")
+                text = entry.read_text()
+                self.assertTrue(text.startswith("---\nname: onboard\n"), text[:80])
+                self.assertIn(shared, text)
+                self.assertIn("git rev-parse --show-toplevel", text)
+                self.assertIn("expected", text)
+                profiles.validate(profiles.read_binding(binding["binding"]))
+
+    def test_a_member_skill_replaced_after_preparation_fails_the_check(self):
+        # origin: A-538 (record 20260923T044553Z-review-codex-00cb7a#2): validate() never
+        # hashed the copied skill, so <home>/skills/onboard/SKILL.md replaced after
+        # preparation passed `profiles.py check` and reached the member.
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        for harness in ("codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("tamper-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                check = ["check", "--binding", binding["binding"]]
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(profiles.main(check), 0)
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                entry.write_text("tampered")
+                with self.assertRaisesRegex(ValueError, "native hook configuration changed"):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
+                err = io.StringIO()
+                with redirect_stdout(io.StringIO()), redirect_stderr(err):
+                    self.assertEqual(profiles.main(check), 2)
+                self.assertIn("native hook configuration changed", err.getvalue())
+                entry.unlink()
+                with self.assertRaises(OSError):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
+
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib
         root = Path(__file__).resolve().parents[4]
@@ -634,5 +882,5 @@ class SharedEnforcement(unittest.TestCase):
         server = config["mcp_servers"]["agentscient_lane"]
         self.assertEqual(server["args"], ["stable.py"])
         self.assertEqual(server["env"], {"AGENTSCIENT_HOOK_PROFILE": binding["binding"]})
-        self.assertEqual(binding["servers"], ["agentscient_lane"])
+        self.assertEqual(binding["servers"], ["agentscient_lane", "coordination"])
         self.assertIn('hooks=false', (original / "config.toml").read_text())

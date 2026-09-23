@@ -73,7 +73,7 @@ TOOL = TOOLS / "coordination_mcp.py"
 CORE_TOOL = TOOLS / "coordination.py"
 LEVER = REPO / "ops" / "conductor" / "coordination-mcp-lever.md"
 LOCK_LEVER = TOOLS / "deliverable.py"
-SIBLINGS = ("instrument.py",)
+SIBLINGS = ("instrument.py", "mcp_transport.py")
 
 # The real-core class binds two sessions that share one agent string,
 # because the participant and not the agent is the authority.
@@ -101,9 +101,7 @@ TIMEOUT = 30.0
 # the lane literal guard exempts four files by name and laneconf.py is
 # wall, so the server carries no lane literal instead.
 SERVER = "coordination"
-PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
 LATEST = "2025-06-18"
-MAX_LINE = 65_536
 DOMAIN_REFUSAL = -32000
 RESPONSE_BYTES = 16_384
 
@@ -345,14 +343,6 @@ def payload(result):
     return json.loads(result.stdout)
 
 
-class CoordinationMcpPresence(unittest.TestCase):
-    def test_the_tool_file_is_present(self):
-        self.assertTrue(
-            TOOL.is_file(),
-            f"the contract's subject is absent: {TOOL.relative_to(REPO)}",
-        )
-
-
 class CoordinationMcpCli(unittest.TestCase):
     """The CLI projection: exit 2, one stderr line, stdout empty."""
 
@@ -526,30 +516,6 @@ class CoordinationMcpTransport(unittest.TestCase):
             self.assertEqual(result.get("protocolVersion"), LATEST)
             self.assertIn("instructions", result)
 
-    def test_an_unsupported_protocol_falls_back_to_the_newest_supported(self):
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(subject, self.initialize(protocol="1999-01-01"))
-            self.assertEqual(answer(answers)["result"]["protocolVersion"], LATEST)
-
-    def test_a_protocol_version_that_is_not_a_string_is_invalid_params(self):
-        """X#4: a malformed request, not an unknown version to negotiate past."""
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(subject, {
-                "jsonrpc": "2.0", "id": 12, "method": "initialize",
-                "params": {"protocolVersion": []}})
-            self.assertEqual(answer(answers)["error"]["code"], -32602)
-
-    def test_every_declared_protocol_is_accepted(self):
-        with World() as world:
-            subject = Subject(world)
-            for wanted in PROTOCOLS:
-                with self.subTest(protocol=wanted):
-                    _result, answers = self.serve(
-                        subject, self.initialize(protocol=wanted))
-                    self.assertEqual(
-                        answer(answers)["result"]["protocolVersion"], wanted)
 
     def test_each_method_refuses_a_member_it_does_not_accept(self):
         """Pins: initialize accepts protocolVersion, capabilities and
@@ -584,35 +550,6 @@ class CoordinationMcpTransport(unittest.TestCase):
                         "params": {"bogus": 1}})
                     self.assertEqual(answer(answers)["error"]["code"], -32602)
 
-    def test_a_clean_initialize_still_negotiates(self):
-        """The clean neighbour of the case above: every declared member,
-        each of the declared type, answers a negotiated result."""
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(subject, {
-                "jsonrpc": "2.0", "id": 22, "method": "initialize",
-                "params": {"protocolVersion": LATEST, "capabilities": {},
-                           "clientInfo": {"name": "t", "version": "1"}}})
-            self.assertEqual(
-                answer(answers)["result"]["protocolVersion"], LATEST)
-
-    def test_ping_carrying_extra_members_still_answers(self):
-        """X#4's other half: JSON-RPC allows them and the contract says so."""
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(subject, {
-                "jsonrpc": "2.0", "id": 13, "method": "ping",
-                "params": {"bogus": 1}})
-            self.assertEqual(answer(answers)["result"], {})
-
-    def test_a_notification_is_answered_with_silence(self):
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(
-                subject,
-                {"jsonrpc": "2.0", "method": "notifications/initialized"},
-                self.initialize(identifier=2))
-            self.assertEqual([item.get("id") for item in answers], [2], answers)
 
     def test_an_unknown_method_is_a_method_not_found(self):
         with World() as world:
@@ -621,16 +558,6 @@ class CoordinationMcpTransport(unittest.TestCase):
                 subject, {"jsonrpc": "2.0", "id": 3, "method": "tools/invent"})
             self.assertEqual(answer(answers)["error"]["code"], -32601)
 
-    def test_an_oversized_line_is_drained_and_the_next_line_still_answers(self):
-        with World() as world:
-            subject = Subject(world)
-            flood = json.dumps({"jsonrpc": "2.0", "id": 4, "method": "ping",
-                                "params": {"pad": "x" * (MAX_LINE + 2048)}})
-            _result, answers = self.serve(
-                subject, raw=[flood, json.dumps(self.initialize(identifier=5))])
-            codes = [item.get("error", {}).get("code") for item in answers]
-            self.assertIn(-32700, codes, answers)
-            self.assertIn(5, [item.get("id") for item in answers], answers)
 
     def test_the_tool_list_is_the_contract_catalogue(self):
         with World() as world:
@@ -1256,7 +1183,7 @@ class CoordinationMcpRealCore(unittest.TestCase):
             "reply_to": "M-1", "artifact": FIXTURE_REVISION, "message": "M-1",
             "observation": "a reading", "execution": "20260916T010203Z-job-x",
             "environment": "the world", "state": "held", "cursor": "1",
-            "stale": False, "unresolved": True,
+            "stale": False, "unresolved": True, "key": "k-1",
         }
         schemas = self.schemas()
         self.assertTrue(schemas, "the server advertises no tools")

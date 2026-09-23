@@ -57,8 +57,13 @@ env_keys=("${!MODEL_@}" "${!EFFORT_@}" "${!EXECUTABLE_@}")
 # GRAFT_INSTALL is saved and restored but never required: the tracked conf declares it
 # empty, and a worktree has no local conf, so without the restore the environment's
 # install path would be emptied on the way to the launcher and no worker would get
-# Graft (LD-13).
-saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL)
+# Graft (LD-13). TMUX_TMPDIR and XAI_API_KEY are the same shape: declared empty
+# for the closure, read from the environment by the sessions lever and by the
+# harnesses the launcher starts. DISPATCH_RECLAIM and DISPATCH_RECLAIM_DAYS are
+# declared with values and read by the launcher, so without the restore an
+# exported DISPATCH_RECLAIM=off read 'on' there and the sweep ran anyway.
+saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL TMUX_TMPDIR XAI_API_KEY
+    DISPATCH_RECLAIM DISPATCH_RECLAIM_DAYS)
 for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
@@ -134,6 +139,7 @@ unit=''
 stage=''
 scope_file=''
 assignment=''
+correlation=''
 # Repeated --input flags preserve their order for launch.py's append action.
 inputs=()
 follows=()
@@ -159,7 +165,7 @@ usage() {
 usage: dispatch.sh --job JOB --harness {grok,codex,claude} --scope-file FILE (--branch BRANCH | --worktree DIR)
                    [--model MODEL] [--effort EFFORT] [--unit UNIT] [--stage STAGE]
                    [--input PATH]... [--follows RECORD_ID] [--timeout SECONDS] [--agent 'Name <address>']
-                   [--for ASSIGNMENT] [--dry-run] [--detach]
+                   [--for ASSIGNMENT] [--correlation UUID] [--dry-run] [--detach]
 One job to one harness through the branch's own launcher; --detach prints the
 record id and launcher pid and returns. Contract: ops/devlane/dispatch/CONTRACT.md.
 USAGE
@@ -178,6 +184,7 @@ while (($#)); do
         --stage) need_value "$@"; stage=$2; shift 2 ;;
         --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
         --for) need_value "$@"; assignment=$2; shift 2 ;;
+        --correlation) need_value "$@"; correlation=$2; shift 2 ;;
         --input) need_value "$@"; inputs+=("$2"); shift 2 ;;
         --follows) need_value "$@"; follows+=("$2"); shift 2 ;;
         --answers) need_value "$@"; answers+=("$2"); shift 2 ;;
@@ -298,6 +305,10 @@ argv=("$LAUNCHER_PIN" "$job" --harness "$harness" --model "$model" --ref "$ref")
 [[ -z $unit ]] || argv+=(--unit "$unit")
 [[ -z $stage ]] || argv+=(--stage "$stage")
 [[ -z $assignment ]] || argv+=(--for "$assignment")
+# The intent's join to its job directory (sessions-lever.md, slice 3) is not
+# passed to the launcher: the pinned launch.py admits no --correlation and
+# argparse exits 2 on it (A-524 #1). A detached launch writes it as the
+# launcher log's first line instead, which dispatch_intents.scan reads.
 argv+=(--scope "$scope")
 for input in "${inputs[@]}"; do
     argv+=(--input "$input")
@@ -349,7 +360,8 @@ detach_wait=${DETACH_WAIT:-60}
     rm -f -- "$launch_log"
     refuse "expected DETACH_WAIT as positive whole seconds; found $detach_wait; needed set DETACH_WAIT to a positive integer"
 }
-setsid nohup env WF_AGENT="$agent" "${argv[@]}" >"$launch_log" 2>&1 </dev/null &
+[[ -z $correlation ]] || printf 'correlation: %s\n' "$correlation" >"$launch_log"
+setsid nohup env WF_AGENT="$agent" "${argv[@]}" >>"$launch_log" 2>&1 </dev/null &
 launcher_pid=$!
 record_line=''
 for ((attempt = 0; attempt < detach_wait * 100; attempt++)); do

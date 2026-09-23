@@ -86,7 +86,7 @@ framework is needed. These are implementation obligations, not live passes.
 | `harness/isolation.py`: `HARNESSES`, `build_home(harness, root, env=None)`, `dispatch_env(harness, home=None, env=None)`, `isolated(harness, root, env=None)` | Use the exact isolation data and refusal rules in its module contract. Return the existing home Path, environment dict and `(env, flags)` respectively. No auth filename, discovery variable or store path may be guessed from the name agy. |
 | `launch.py`: `_harness_meta(name, role, job_dir, env)` | For agy, record `harness.containment='policy'` under the trusted-host boundary. The sandbox label is `always-proceed`; argv uses the measured `--dangerously-skip-permissions`, with policy containment. `isolation.store` follows measured `sessions.{under,path}`; until available, refuse `unsupported-capability` before minting a store, never use the Claude `$HOME/.claude` else-branch. |
 | `launch.py`: `_effort_argv(harness, effort)`, `_argv(...)`, `_child_env(...)` | Preserve existing callers; add the resolved executable input to `_argv` separately from its harness-name discriminator. The measured transport is `[executable, *isolation_flags, '--print=', '--model', model, '--input-format', 'stream-json', '--output-format', 'stream-json', '--disable-slash-commands', '--dangerously-skip-permissions', '--add-dir', snapshot]`, plus `['--effort', effort]` only for low/medium/high. Feed exactly one UTF-8 NDJSON `{"event":"user","message":{"content":prompt_text}}` line through stdin and close it. Preserve prompt Unicode/newlines as JSON string content; no prompt on argv. The bare `--print` consumes the following flag; text stdin with empty print is not a prompt; `--mode plan` is ineffective with slash commands disabled. Keep the canonical schema in the brief and preserve the existing result parser. No vendor schema flag is admitted. |
-| `launch.py`: `_envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None)` | Preserve raw stdout/stderr; decode only the measured terminal result carrier for this attempt, not arbitrary intermediate JSON. The agy branch must reject missing, ambiguous, truncated or malformed terminal results and vendor errors even beside a plausible envelope. Apply task.ENVELOPE_SCHEMA and `task/envelope.py:validate` to the extracted canonical object, including nullable verdict/reproduce, counts, invalid/tripped verdicts and optional commit. Return the existing invalid/null-verdict result with a cause on failure. Vendor schema acceptance or exit 0 alone never certifies work. Do not rewrite legacy extraction or adopt generic C2 output grants here. |
+| `launch.py`: `_envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None)` | Preserve raw stdout/stderr; retain each harness's response extraction. The agy branch must reject missing, ambiguous, truncated or malformed terminal results and vendor errors even beside a plausible envelope. Every extracted result, including legacy raw output, passes through `task/envelope.py:validate`, which owns schema and semantic acceptance: counts, invalid/tripped verdicts, handles and optional commit. JSON member order does not change acceptance. A selected semantic failure cannot fall back to an earlier clean result. Return invalid with a null verdict and a cause on failure, retaining the reported findings and counts. Vendor schema acceptance or exit 0 alone never certifies work. Do not adopt generic C2 output grants here. |
 | `launch.py`: `_stream(job_dir, harness, session, snapshot, ref_sha, role='read')`, `_resume`, `_close` | Preserve `(path, ran, stream_id, mismatch)`; missing observations are None, mismatch is a reason string. Fresh launch must obtain a unique native session id, bind it to this job/attempt and snapshot, and discover only its measured isolated store. Never pick the newest unrelated stream. Check explicit conversation identity and cwd/ref evidence, two concurrent sessions, foreign/malformed streams and relocation. `--conversation <recorded-id>` succeeded in the host observation; implicit `--continue` is not used. Resume uses the recorded id only, rechecks isolation/permissions and the recorded executable against current worker selection, preserves model/effort/lineage and prior findings, and refuses changed selection or an unavailable store before attempt/marker mutation. No implicit latest-session continuation; unsupported resume blocks resume alone. |
 | `launch.py` / `record.py`: model and attribution | Retain `model.requested`, `model.ran`, `model.read_from`; add agy-only `model.provider = {id, read_from, unresolved}` with nonempty strings for measured id/source and null unresolved, or null id/source and a nonempty unresolved reason. Source is launcher-read native session evidence, never worker prose, harness name or a model prefix. A requested alias may differ from ran; record both. Foreign session or contradictory native identity invalidates the result. Missing model/provider remains explicit and prevents attributed write settlement, not an unrelated read operation. Provider evidence selects a verified vendor address at commit time; no fallback to requested identity or guessed address for agy. Old record fields/validation and legacy attribution remain compatible. |
 | `telemetry/usage.py`: `agy_sessions(root: Path, repo: str or None)`; launch `_spend` and pulse reader | Add the existing reader-shaped iterator over the measured isolated root; each row has `harness='agy'`, `session`, `model`, `started`, `ended`, `messages`, `tokens`, `incomplete`, `note`. Nullable observations need a reason in note; tokens is null or `{input, cached, output, total}` with nonnegative integer or null values. Match session and repo before counting. Prove native event selectors, delta/cumulative/reset rules, duplicate identity, cache/thinking overlap and resumed totals with known synthetic totals. A total is known only when its currency is measured and complete; never add an overlapping cache/thinking count. Missing/malformed/truncated evidence stays incomplete/unresolved, not zero. `_spend` returns measured fields/source or its existing `{unresolved, looked_in}`; pulse consumes the same currency without exposing transcript content. No guessed price or cost-unit conversion. |
@@ -1178,7 +1178,18 @@ absence is historical and must not be read as "none answered".
 - `caps.timeout` (seconds) resolves in one order: `DISPATCH_TIMEOUT`
   from the invoking environment, else the job's own `caps.timeout` in
   `jobs.json`, else 900 — and `caps.timeout_source` names the layer
-  that answered: `DISPATCH_TIMEOUT`, `job`, or `default`. The job
+  that answered: `DISPATCH_TIMEOUT`, `job`, or `default`. The job's
+  cap bounds the environment (the Lead's ruling, 2026-09-22 23:39Z,
+  relayed by the XO): a `DISPATCH_TIMEOUT` above the job's
+  `caps.timeout` is not admitted as given; the job's cap is applied and
+  the source is `job`. At or below the cap, or on a job with no cap, it
+  is admitted and the source is `DISPATCH_TIMEOUT`, so the environment
+  can lower a job's cap and never raise it. `caps.timeout_requested`
+  records the value `DISPATCH_TIMEOUT` asked for beside the one
+  applied, in seconds, and is `null` when the variable is unset. A
+  `DISPATCH_TIMEOUT` that is not a positive finite number of seconds is
+  refused, class `timeout`, before anything is minted or spawned
+  (20260923T000804Z-review-codex-da66dd#1 and #2). The job
   layer exists because runtime is a property of the job, not of the
   session that happens to launch it: author-tests proves every
   assertion red before green, its successful runs measure p50 928s
@@ -1186,6 +1197,17 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- Every job in `jobs.json` declares `caps.timeout` 3600 (owner,
+  2026-09-22, relayed by the Lead: "raise them to 60 mins - we're
+  shooting ourselves in the foot"). The 1800s author-tests cap was
+  measured killing live work that day: A-483 timed out keeping one
+  commit, and record 20260922T231526Z-code-grok-312c63 was still
+  committing red rows as its limit came near. A job that needs another
+  value changes this line first. The task runner's direct jobs
+  (`ops/devlane/task/run.py`; verify) are bounded by the same cap: a
+  runtime timeout above the job's `caps.timeout` is not admitted, and a
+  runtime that names none takes the cap
+  (20260923T000804Z-review-codex-da66dd#3).
 - `brief.coordination` is the acting plane beside that read plane
   (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
   directive"). A codex dispatch that names an assignment receives three
@@ -1214,6 +1236,14 @@ absence is historical and must not be read as "none answered".
   `ops/bin/dispatch.sh --for A-n` wrapper carries that explicit assignment
   through to the launcher. The transport for terminal messages does not
   issue a worker binding or confer dispatch authority.
+
+  `bind-for` commits the worker identity, credential enrollment and addressed
+  offer together in the coordination core before the child starts. Dispatch
+  does not perform a separate offer or choose assignment transitions. A core
+  refusal is forwarded unchanged and removes this launch's fresh staging
+  directory; no child or dispatch record is created. An offered assignment
+  left by a later startup failure can use the core's existing `reassign`
+  operation with its current generation and a reason before another dispatch.
 
   For every dispatch adapter, `session.binding_id` retains the lane session
   selected before launch; `session.id` separately records the harness's native

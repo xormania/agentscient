@@ -26,7 +26,6 @@ import json
 import os
 import re
 import stat
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -65,8 +64,8 @@ AT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
 ENTRY_KEYS = ("at", "kind", "what", "detail", "agent", "worktree", "via")
 
 
-class HookContractTest(unittest.TestCase):
-    """Pins H1-H7 of the crossing-recorder behavior contract."""
+class _HookFixture(unittest.TestCase):
+    """Share the World and hook plumbing without inheriting test cases."""
 
     maxDiff = None
 
@@ -101,15 +100,12 @@ class HookContractTest(unittest.TestCase):
         return self.world.env(extra=extra)
 
     def run_cmd(self, argv, cwd, env=None, expect=0):
-        result = run(
+        proc = run(
             argv,
             cwd=str(cwd),
             env=env if env is not None else self.env_for(),
             timeout=RUN_CAP,
             expect=None,
-        )
-        proc = subprocess.CompletedProcess(
-            list(result.argv), result.exit, result.stdout, result.stderr
         )
         if expect is not None:
             self.assertEqual(
@@ -336,7 +332,9 @@ class HookContractTest(unittest.TestCase):
         )
         return short
 
-    # ------------------------------------------------------------------- tests
+
+class HookContractTest(_HookFixture):
+    """Pins H1-H7 of the crossing-recorder behavior contract."""
 
     def test_h1_install_copies_both_hooks_and_reruns_quietly(self):
         """H1: install.sh run inside a repo copies both hooks into the
@@ -801,7 +799,7 @@ class HookContractTest(unittest.TestCase):
         )
 
 
-class ReviewFindingsContractTest(HookContractTest):
+class ReviewFindingsContractTest(_HookFixture):
     """PR #25 Codex-review findings, pinned red-first on this head."""
 
     def test_configured_hookspath_is_refused_not_silently_bypassed(self):
@@ -862,7 +860,7 @@ class ReviewFindingsContractTest(HookContractTest):
             )
 
 
-class SecondReviewFindingsContractTest(HookContractTest):
+class SecondReviewFindingsContractTest(_HookFixture):
     """PR #25 second Codex review (head f5824f5), pinned red-first."""
 
     def test_explicitly_empty_hookspath_is_also_refused(self):

@@ -15,7 +15,7 @@ attribution only. Authority is checked inside these functions, never in
 a hook: the hook engine cannot see MCP tool calls, so a check that lived
 there would not run when the MCP projection calls the same function.
 
-    coordination.py bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]
+    coordination.py bind --roles R[,R] [--run R-n] [--harness H] [--endpoint E] [--probe TEXT]
     coordination.py bind-for --session ID --roles R[,R] --for A-n --capability-digest SHA256 [--harness H]
     coordination.py grant PT-n --roles R[,R]
     coordination.py recover-roles --grant ID --roles R[,R] --why TEXT
@@ -35,10 +35,13 @@ there would not run when the MCP projection calls the same function.
     coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
     coordination.py send --to WHO --purpose P --body TEXT [--assignment A-n]
-                         [--decision DC-n] [--reply-to M-n] [--artifact REF]
+                         [--decision DC-n] [--reply-to M-n] [--artifact REF] [--key K]
     coordination.py deliver M-n --ref REF | ack M-n | resolve M-n --evidence READING
     coordination.py withdraw M-n --why TEXT | inbox [--unresolved] | outstanding [--to WHO]
     coordination.py undelivered [--to WHO]
+    coordination.py route --take stdout|native [--member SM-n] | route --release | routes
+    coordination.py attempt M-n --route R --generation G | attempts M-n
+    coordination.py attempted AT-n --outcome O [--ref REF] [--error TEXT]
     coordination.py observe A-n --observation TEXT --revision SHA --generation N
                             [--stale] [--execution REC] [--artifact REF]
                             [--requirement REF] [--environment TEXT]
@@ -51,11 +54,17 @@ there would not run when the MCP projection calls the same function.
     coordination.py coverage [--requirement REF] | brief
     coordination.py entry [--role R]
 
+In an owner's terminal (sessions-lever.md, the owner's terminals) bind
+also takes --run R-n, the run it joins, refused `absent` when it names
+none; and every verb takes --profile PATH, the hook profile read in
+place of AGENTSCIENT_HOOK_PROFILE.
+
 Reads need no identity and no participant and never create the store.
 """
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import os
@@ -70,6 +79,7 @@ from datetime import timedelta
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         EXIT_DONE,
@@ -172,7 +182,13 @@ ENTRY = {
 }
 PURPOSES = ("inform", "request", "finding")
 OBLIGATIONS = ("request", "finding")
-ID = re.compile(r"^(PT|DC|A|M|E|R)-(\d+)$")
+# Slice 2 of sessions-lever.md: one live route per participant, a delivery
+# attempt reserved before each native submission and settled after it.
+ROUTES = ("stdout", "native")
+OUTCOMES = ("written", "accepted", "unsupported", "failed", "uncertain")
+ATTEMPT_TTL = 60
+ATTEMPTS_OUTSTANDING = 4
+ID = re.compile(r"^(PT|DC|AT|A|M|E|R)-(\d+)$")
 READING = re.compile(
     r"^(?:[0-9a-f]{7,40}|#\d+|\d{8}T\d{6}Z-[\w-]+|P-[\w-]+)$", re.IGNORECASE
 )
@@ -180,11 +196,12 @@ READING = re.compile(
 T = machine.Transition
 ASSIGNMENT = machine.Machine(
     name="assignment",
-    version=1,
+    version=2,
     initial="drafted",
     places=("drafted", "offered", "held", "submitted", "verified", "accepted", "superseded"),
     transitions=(
         T("offer", "drafted", "offered", "any", "none", "offered", "keep"),
+        T("address", "offered", "offered", "any", "required", "offered", "clear"),
         T("claim", "offered", "held", "any", "none", "taken", "take"),
         T("release", "held", "offered", "holder-or-lapsed", "required", "place", "clear"),
         T("reassign", "held", "offered", "any", "required", "place", "clear"),
@@ -252,6 +269,22 @@ CREATE TABLE IF NOT EXISTS decisions(
 CREATE TABLE IF NOT EXISTS resources(
     id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, assignment INTEGER,
     holder INTEGER, note TEXT);
+"""
+# Additive, and outside STORE_TABLES on purpose: a store populated before
+# slice 2 still reads, and its first writer adds these with its rows intact.
+DELIVERY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS delivery_routes(
+    participant INTEGER PRIMARY KEY, route TEXT NOT NULL, member INTEGER,
+    pid INTEGER NOT NULL, start_ticks TEXT NOT NULL, since TEXT NOT NULL,
+    last_pass_at TEXT);
+CREATE TABLE IF NOT EXISTS delivery_attempts(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, message INTEGER NOT NULL,
+    participant INTEGER NOT NULL, generation INTEGER NOT NULL, route TEXT NOT NULL,
+    reserved_at TEXT NOT NULL, submitted_at TEXT, outcome TEXT, native_ref TEXT,
+    error TEXT);
+CREATE TABLE IF NOT EXISTS send_requests(
+    participant INTEGER NOT NULL, key TEXT NOT NULL, digest TEXT NOT NULL,
+    message INTEGER NOT NULL, at TEXT NOT NULL, PRIMARY KEY (participant, key));
 """
 
 
@@ -328,7 +361,8 @@ def ensure_columns(conn) -> None:
     for name, kind in (("bound_by", "INTEGER"), ("bound_for", "INTEGER"),
                        ("granted_by", "INTEGER"), ("granted_at", "TEXT"),
                        ("revoked_by", "INTEGER"), ("revoked_at", "TEXT"),
-                       ("owner_grant", "INTEGER"), ("capability_digest", "TEXT")):
+                       ("owner_grant", "INTEGER"), ("capability_digest", "TEXT"),
+                       ("terminal_run", "INTEGER")):
         if name not in have:
             conn.execute(f"ALTER TABLE participants ADD COLUMN {name} {kind}")
 
@@ -336,6 +370,7 @@ def ensure_columns(conn) -> None:
 def writer():
     conn = machine.connect(create=True)
     conn.executescript(SCHEMA)
+    conn.executescript(DELIVERY_SCHEMA)
     ensure_columns(conn)
     for declared in (ASSIGNMENT, MESSAGE, RESOURCE):
         machine.declare(conn, declared)
@@ -362,8 +397,7 @@ def reader():
     path = machine.store_path()
     if not path.is_file():
         return None
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                           timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
     # `sqlite_schema` is the name SQLite 3.33 gave the table it has always
@@ -775,7 +809,7 @@ def no_store(**rest) -> dict:
 # -- the core: one function per verb, keyed by the wire name in CORE ----------
 
 def core_bind(conn, part, *, agent, roles, harness=None,
-              endpoint=None, probe=None) -> dict:
+              endpoint=None, probe=None, run=None) -> dict:
     """This session's own participant, and no other session's.
 
     `part` is None here by construction: binding is how a session comes
@@ -795,50 +829,77 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     # insert two first callers both read zero and both took roles above
     # worker: all three reviewers of round two reproduced two roots in
     # that window against b1d868b0.
-    conn.execute("BEGIN IMMEDIATE")
+    pointer = None
+    minted = False
     try:
-        row = conn.execute(
-            "SELECT * FROM participants WHERE session_id = ?", (key,)
-        ).fetchone()
-        if row is not None:
-            _authenticate(row)
-            # A re-bind is how a session refreshes where it can be reached
-            # and what its last probe said. It is not how it changes what
-            # it may do: Codex reproduced a bound worker re-binding itself
-            # as a lead and drafting its own work against 05b8aebe.
-            if set(named.split(",")) != set(row["roles"].split(",")):
-                refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
-                       "a re-bind refreshes the endpoint and the probe; "
-                       "a lead grants roles with grant")
-            conn.execute(
-                "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
-                "probe = ?, bound_at = ? WHERE id = ?",
-                (agent, harness, endpoint, probe, stamp(), row["id"]),
-            )
-            pid = row["id"]
-        else:
-            bootstrap = conn.execute(
-                "SELECT COUNT(*) AS n FROM participants"
-            ).fetchone()["n"] == 0
-            if not bootstrap and named != "worker":
-                # Authority is a chain and the store's first participant is
-                # its root. Announcing yourself is worth worker and nothing
-                # else; everything above it is somebody's grant.
-                refuse("role", "worker for a self-bind after the first participant",
-                       named,
-                       "bind --roles worker, then a lead grants the rest with "
-                       "grant PT-n --roles R")
-            pid = conn.execute(
-                "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-                "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (key, agent, harness, named, endpoint, probe, stamp()),
-            ).lastrowid
-            _install_capability(conn, pid, capability_digest())
-        conn.execute("COMMIT")
+        with instrument.transaction(conn):
+            rid = run_named(conn, run) if run is not None else None
+            if rid is not None and instrument.hook_profile() is not None:
+                refuse("arguments", "--run only in an owner terminal", "a managed profile",
+                       "use the managed member's existing run")
+            row = conn.execute(
+                "SELECT * FROM participants WHERE session_id = ?", (key,)
+            ).fetchone()
+            if row is not None:
+                _authenticate(row)
+                if rid is not None:
+                    if row["terminal_run"] != rid:
+                        refuse("capability", "the run enrolled for this terminal", "a different or unminted run",
+                               "use the existing terminal pointer; join associates other bound participants")
+                    profile = instrument.terminal_profile()
+                    if profile is None:
+                        refuse("capability", "this terminal's existing pointer", "missing profile",
+                               "name the pointer through --profile or AGENTSCIENT_HOOK_PROFILE")
+                    pointer = instrument.terminal_pointer(run, f"PT-{row['id']}")
+                # A re-bind is how a session refreshes where it can be reached
+                # and what its last probe said. It is not how it changes what
+                # it may do: Codex reproduced a bound worker re-binding itself
+                # as a lead and drafting its own work against 05b8aebe.
+                if set(named.split(",")) != set(row["roles"].split(",")):
+                    refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
+                           "a re-bind refreshes the endpoint and the probe; "
+                           "a lead grants roles with grant")
+                conn.execute(
+                    "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
+                    "probe = ?, bound_at = ? WHERE id = ?",
+                    (agent, harness, endpoint, probe, stamp(), row["id"]),
+                )
+                pid = row["id"]
+            else:
+                bootstrap = conn.execute(
+                    "SELECT COUNT(*) AS n FROM participants"
+                ).fetchone()["n"] == 0
+                if not bootstrap and named != "worker":
+                    # Authority is a chain and the store's first participant is
+                    # its root. Announcing yourself is worth worker and nothing
+                    # else; everything above it is somebody's grant.
+                    refuse("role", "worker for a self-bind after the first participant",
+                           named,
+                           "bind --roles worker, then a lead grants the rest with "
+                           "grant PT-n --roles R")
+                pid = conn.execute(
+                    "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+                    "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (key, agent, harness, named, endpoint, probe, stamp()),
+                ).lastrowid
+                if rid is None:
+                    _install_capability(conn, pid, capability_digest())
+                else:
+                    declared = (os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+                                or "COORDINATION_CAPABILITY" in os.environ)
+                    token = instrument.capability_value() if declared else instrument.mint_token()
+                    _install_capability(conn, pid, hashlib.sha256(token.encode("ascii")).hexdigest())
+                    conn.execute("UPDATE participants SET terminal_run = ? WHERE id = ?", (rid, pid))
+                    pointer = instrument.mint_terminal_profile(run, f"PT-{pid}", token)
+                    minted = True
     except BaseException:
-        conn.execute("ROLLBACK")
+        if minted:
+            instrument.remove_terminal_profile(run, f"PT-{pid}", token)
         raise
-    return {**participant_dict(participant_row(conn, pid)), "session": key}
+    shown = {**participant_dict(participant_row(conn, pid)), "session": key}
+    if pointer is not None:
+        shown["profile"] = str(pointer)
+    return shown
 
 
 def core_grant(conn, part, *, agent, participant, roles) -> dict:
@@ -887,59 +948,52 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
     grant_id = int(grant)
     authority = None
     try:
-        authority = sqlite3.connect(database_path().as_uri() + "?mode=rw", uri=True,
-                                    isolation_level=None, timeout=10)
+        authority = instrument.connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
         authority.row_factory = sqlite3.Row
-        authority.execute("BEGIN IMMEDIATE")
-        row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
-        valid = (row is not None and row["status"] == "open"
-                 and row["session"] == session() and row["agent"] == agent
-                 and row["lever_class"] == "other" and not (row["scope"] or "").strip()
-                 and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
-        deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
-        valid = valid and deadline > now()
-        if not valid:
-            refuse("grant", "this session's open, unexpired, unscoped other grant",
-                   f"grant {grant_id} does not satisfy that binding",
-                   "use the owner's recorded recovery authorization for this session")
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            if deadline <= now():
-                refuse("grant", "authority current at the role-changing transaction",
-                       f"grant {grant_id} expired while waiting",
-                       "use a current owner-authorized recovery grant")
-            conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
-                grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
-                roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
-                grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
-            for operation in ("UPDATE", "DELETE"):
-                conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
-                    BEFORE {operation} ON owner_role_grants BEGIN
-                    SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
-            prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
-                                 (grant_id,)).fetchone()
-            if prior is not None:
-                if prior["participant"] != part["id"] or prior["roles"] != named:
-                    refuse("grant", "the same participant and roles for a recovered grant",
-                           f"grant {grant_id} already used", "declare a new owner-authorized grant")
-            else:
-                current = participant_row(conn, part["id"])
-                held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
-                conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
-                             (grant_id, part["id"], named, current["roles"],
-                              json.dumps(dict(row), sort_keys=True), why, stamp()))
-                conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
-                             (",".join(held), grant_id, part["id"]))
-            conn.execute("COMMIT")
-        except BaseException:
-            conn.execute("ROLLBACK")
-            raise
+        with instrument.transaction(authority):
+            row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
+            valid = (row is not None and row["status"] == "open"
+                     and row["session"] == session() and row["agent"] == agent
+                     and row["lever_class"] == "other" and not (row["scope"] or "").strip()
+                     and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
+            deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
+            valid = valid and deadline > now()
+            if not valid:
+                refuse("grant", "this session's open, unexpired, unscoped other grant",
+                       f"grant {grant_id} does not satisfy that binding",
+                       "use the owner's recorded recovery authorization for this session")
+            with instrument.transaction(conn):
+                if deadline <= now():
+                    refuse("grant", "authority current at the role-changing transaction",
+                           f"grant {grant_id} expired while waiting",
+                           "use a current owner-authorized recovery grant")
+                conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
+                    grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
+                    roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
+                    grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
+                for operation in ("UPDATE", "DELETE"):
+                    conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
+                        BEFORE {operation} ON owner_role_grants BEGIN
+                        SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
+                prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
+                                     (grant_id,)).fetchone()
+                if prior is not None:
+                    if prior["participant"] != part["id"] or prior["roles"] != named:
+                        refuse("grant", "the same participant and roles for a recovered grant",
+                               f"grant {grant_id} already used", "declare a new owner-authorized grant")
+                else:
+                    current = participant_row(conn, part["id"])
+                    held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
+                    conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                 (grant_id, part["id"], named, current["roles"],
+                                  json.dumps(dict(row), sort_keys=True), why, stamp()))
+                    conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
+                                 (",".join(held), grant_id, part["id"]))
     except (sqlite3.Error, OSError, ValueError, TypeError, OverflowError) as error:
         refuse("grant", "a readable current hand grant and writable coordination store",
                type(error).__name__, "restore the stores before recovering roles")
     finally:
         if authority is not None:
-            authority.rollback()
             authority.close()
     result = participant_dict(participant_row(conn, part["id"]))
     result["owner_grant"] = grant_id
@@ -998,16 +1052,7 @@ def core_revoke(conn, part, *, agent, participant, roles) -> dict:
 
 def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
                   capability_digest=None, harness=None, endpoint=None, probe=None) -> dict:
-    """A participant for a session that cannot bind itself.
-
-    A dispatched Codex or Grok worker has no harness session id in its
-    environment, so it could hold no participant and every mutation it
-    made refused class `participant`. The launcher mints a session id per
-    dispatch and sets it as CLAUDE_SESSION_ID, the older key
-    instrument.session() already admits. Only a dispatcher may issue one,
-    and the binding records who issued it and for which assignment, so a
-    participant nobody dispatched is visible as such.
-    """
+    """Issue a participant and its claimable work in one engine transition."""
     part = same_session(conn, part)
     require_role(part, ("dispatcher",))
     named = roles_of(roles)
@@ -1020,12 +1065,21 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         # is a grant, and a grant is a lead's.
         require_role(part, ("lead",))
     _, aid = parse_id(assignment, "A")
-    # The same lock as a self-bind, for the same reason: the conflict
-    # check reads and the mint writes, and two dispatchers minting for
-    # one session id would otherwise both read nothing there.
-    conn.execute("BEGIN IMMEDIATE")
-    try:
-        assignment_row(conn, aid)
+    work = assignment_row(conn, aid)
+    issued = []
+
+    def issue():
+        # _offer_to runs this under the engine's write lock. Nothing is
+        # enrolled unless this assignment can be offered to the new worker.
+        live = assignment_row(conn, aid)
+        if live["place"] == "offered" and (
+                live["holder"] is not None or live["agent_holder"] is not None
+                or (live["recipient"] and live["recipient"] not in named.split(","))):
+            refuse("recipient", "an unaddressed offer or a role the issued worker holds",
+                   f"A-{aid} offered to {live['recipient'] or 'nobody'}, "
+                   f"holder {live['holder'] or live['agent_holder'] or 'none'}",
+                   "reassign it to the intended role with the current generation, "
+                   "or dispatch a different assignment")
         row = conn.execute(
             "SELECT id FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -1049,11 +1103,13 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
              granted, stamp() if granted else None),
         ).lastrowid
         _install_capability(conn, pid, capability_digest)
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
-    return {**participant_dict(participant_row(conn, pid)), "session": key}
+        issued.append(pid)
+        return f"PT-{pid}"
+
+    _offer_to(conn, part, aid=aid, to=issue, generation=str(work["generation"]),
+              transition="address" if work["place"] == "offered" else "offer",
+              evidence="dispatch handoff", note="issued worker")
+    return {**participant_dict(participant_row(conn, issued[0])), "session": key}
 
 
 def core_who(conn, part) -> dict:
@@ -1091,20 +1147,31 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
     return assignment_dict(assignment_row(conn, sid))
 
 
+def _offer_to(conn, part, *, aid, to, generation, transition, evidence=None, note=None):
+    """One recipient update for offers, handoffs and returns to offered.
+
+    A recipient factory may enroll the dispatched participant inside the
+    same transaction. The engine owns locking, place checks and rollback;
+    advance owns the generation bump. Public operations check authority.
+    """
+    require_generation(assignment_row(conn, aid), generation)
+
+    def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
+        recipient = recipient_of(conn, to() if callable(to) else to)
+        conn.execute("UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
+                     (recipient, aid))
+
+    advance(conn, aid, transition, part, note=note, evidence=evidence, gate=gate)
+    return assignment_dict(assignment_row(conn, aid))
+
+
 def core_offer(conn, part, *, agent, assignment, to, generation) -> dict:
     part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
-    row = assignment_row(conn, aid)
-    require_generation(row, generation)
-    recipient = recipient_of(conn, to)
-
-    def gate(_subject):
-        require_generation(assignment_row(conn, aid), generation)
-        conn.execute("UPDATE assignments SET recipient = ? WHERE id = ?", (recipient, aid))
-
-    advance(conn, aid, "offer", part, note=recipient, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=to, generation=generation,
+                     transition="offer", note=to)
 
 
 def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -> dict:
@@ -1138,7 +1205,9 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
     require_generation(row, generation)
     if transition == "reassign":
         require_role(part, ("lead", "coordinator"))
-        recipient = recipient_of(conn, to)
+        recipient = to
+        if row["place"] == "offered":
+            transition = "address"
     else:
         held = machine.subject(conn, ASSIGNMENT, aid)
         if row["holder"] != part["id"] and not machine.lapsed(held):
@@ -1148,16 +1217,8 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
                    "or a lead reassigns it")
         recipient = row["recipient"]
 
-    def gate(_subject):
-        live = assignment_row(conn, aid)
-        require_generation(live, generation)
-        conn.execute(
-            "UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
-            (recipient, aid),
-        )
-
-    advance(conn, aid, transition, part, evidence=why, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=recipient, generation=generation,
+                     transition=transition, evidence=why)
 
 
 def core_release(conn, part, *, agent, assignment, why, generation) -> dict:
@@ -1419,12 +1480,31 @@ def core_assignments(conn, part, *, state=None, to=None) -> dict:
     return {"assignments": [assignment_dict(row) for row in shown]}
 
 
+QUEUE_MESSAGE = ("INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
+                 "assignment, decision, reply_to, queued_at) "
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+
 def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision=None,
-              reply_to=None, artifact=None) -> dict:
+              reply_to=None, artifact=None, key=None) -> dict:
+    """With `key`, idempotent per caller (sessions-lever.md, Slice 2): the
+    same key with the same payload returns the message it first queued,
+    marked `repeated`; with another payload it refuses `idempotency` and
+    writes nothing. Without a key, every send queues a new message."""
     part = same_session(conn, part)
     if purpose not in PURPOSES:
         refuse("arguments", "a purpose of " + ", ".join(PURPOSES), purpose,
                "an inform carries no obligation; a request and a finding do")
+    digest = None
+    if key is not None:
+        if not isinstance(key, str) or not key.strip() or len(key) > 200:
+            refuse("arguments", "a non-empty key of at most 200 characters", repr(key),
+                   "name the caller's own request key")
+        digest = send_digest(to=to, purpose=purpose, body=body, assignment=assignment,
+                             decision=decision, reply_to=reply_to, artifact=artifact)
+        repeated = keyed_message(conn, part, key, digest)
+        if repeated is not None:
+            return repeated
     recipient = recipient_of(conn, to)
     aid = parse_id(assignment, "A")[1] if assignment else None
     did = parse_id(decision, "DC")[1] if decision else None
@@ -1432,12 +1512,36 @@ def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision
     if aid is not None:
         assignment_row(conn, aid)
     sid = machine.create(conn, MESSAGE, actor(part))
-    conn.execute(
-        "INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
-        "assignment, decision, reply_to, queued_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp()),
-    )
+    queued = (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp())
+    if key is None:
+        conn.execute(QUEUE_MESSAGE, queued)
+        return message_dict(message_row(conn, sid))
+
+    def take_key(conn):
+        # The key's row and the message's row land in one transaction under
+        # the write lock. A send that lost the key to a concurrent one never
+        # wrote a message row, so no courier can carry what it queued: the
+        # restart or the race does not replay the effect.
+        if keyed_message(conn, part, key, digest) is not None:
+            return False
+        conn.execute(QUEUE_MESSAGE, queued)
+        conn.execute("INSERT INTO send_requests(participant, key, digest, message, at) "
+                     "VALUES (?, ?, ?, ?, ?)", (part["id"], key, digest, sid, stamp()))
+        return True
+
+    try:
+        with instrument.transaction(conn):
+            took = take_key(conn)
+    except Refusal:
+        # Another payload took the key after the check above: the subject
+        # this send opened carries no message and is withdrawn, never deleted.
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named another payload")
+        raise
+    if not took:
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named a message")
+        return keyed_message(conn, part, key, digest)
     return message_dict(message_row(conn, sid))
 
 
@@ -1573,8 +1677,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
     if not str(generation).isdigit():
         refuse("arguments", "--generation as a whole number", str(generation),
                "the generation printed by show")
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with instrument.transaction(conn):
         row = assignment_row(conn, aid)
         if not row["revision"]:
             refuse("revision", f"a candidate named on A-{aid}", "no revision",
@@ -1597,10 +1700,6 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
             (aid, part["id"], requirement, execution, revision, environment,
              observation, artifact, "stale" if stale else "current", reason, stamp()),
         )
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
     row = conn.execute(
         "SELECT * FROM observations WHERE id = ?", (cursor.lastrowid,)
     ).fetchone()
@@ -1973,6 +2072,395 @@ def core_entry(conn, part, *, role=None) -> dict:
             "ladder": "ops/conductor/coordination-lever.md"}
 
 
+# -- delivery: routes, attempts, send keys (sessions-lever.md, Slice 2) -------
+
+def process_ticks(pid) -> str | None:
+    """Start ticks for a live process; absent, malformed and zombie records are gone."""
+    try:
+        with open(f"/proc/{int(pid)}/stat", encoding="utf-8") as handle:
+            text = handle.read()
+    except (OSError, ValueError, TypeError):
+        return None
+    try:
+        fields = text.rsplit(")", 1)[1].split()
+        return None if fields[0] in {"Z", "X", "x"} else fields[19]
+    except IndexError:
+        return None
+
+
+def holder_alive(row) -> bool:
+    """A route's holder is alive when its pid still carries the recorded
+    start ticks; a missing tick is never alive."""
+    return bool(row["start_ticks"]) and process_ticks(row["pid"]) == row["start_ticks"]
+
+
+def has_table(conn, name: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?", (name,)
+    ).fetchone() is not None
+
+
+def route_dict(row) -> dict:
+    return {
+        "participant": f"PT-{row['participant']}", "route": row["route"],
+        "member": f"SM-{row['member']}" if row["member"] is not None else None,
+        "pid": row["pid"], "start_ticks": row["start_ticks"], "since": row["since"],
+        "last_pass_at": row["last_pass_at"], "alive": holder_alive(row),
+    }
+
+
+def attempt_dict(row) -> dict:
+    return {
+        "attempt": f"AT-{row['id']}", "id": row["id"], "message": f"M-{row['message']}",
+        "participant": f"PT-{row['participant']}", "generation": row["generation"],
+        "route": row["route"], "reserved_at": row["reserved_at"],
+        "submitted_at": row["submitted_at"], "outcome": row["outcome"],
+        "native_ref": row["native_ref"], "error": row["error"],
+    }
+
+
+def holder_line(row) -> str:
+    return f"{row['route']} route held by pid={row['pid']} since {row['since']}"
+
+
+def core_route(conn, part, *, action, pid, start_ticks, route=None, member=None) -> dict:
+    """A courier's route: `take`, `pass` or `release`, by the holder's pid
+    and start ticks. One verb, so the CLI and the core offer the same
+    table; the three moves are the functions below."""
+    part = same_session(conn, part)
+    if not isinstance(pid, int) or pid < 1 or not start_ticks:
+        refuse("arguments", "the holder's pid and its start ticks", f"pid={pid} start={start_ticks}",
+               "name the route from the courier's own live process")
+    if action == "take":
+        return route_take(conn, part, route=route, pid=pid, start_ticks=start_ticks,
+                          member=member)
+    if action == "pass":
+        return route_pass(conn, part, pid=pid, start_ticks=start_ticks)
+    if action == "release":
+        return route_release(conn, part, pid=pid, start_ticks=start_ticks)
+    return refuse("arguments", "a route action of take, pass or release", str(action),
+                  "route --take stdout|native or route --release")
+
+
+def member_id(member) -> int | None:
+    if member is None or isinstance(member, int):
+        return member
+    match = re.fullmatch(r"SM-(\d+)", str(member))
+    if match is None:
+        refuse("id", "a member id like SM-1", str(member), "the id sessions.py status prints")
+    return int(match.group(1))
+
+
+def route_take(conn, part, *, route, pid, start_ticks, member=None) -> dict:
+    """One live route per participant, taken under the write lock.
+
+    A second courier of either route refuses while the holder lives; a dead
+    holder's row is taken over and the takeover is the new row's `since`
+    (plan §7, competing couriers).
+    """
+    if route not in ROUTES:
+        refuse("arguments", "a route of " + " or ".join(ROUTES), str(route),
+               "stdout for a TUI session's courier, native for a bridge")
+    member = member_id(member)
+
+    def take(conn):
+        row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                           (part["id"],)).fetchone()
+        moment = stamp()
+        if row is not None and (row["pid"], row["start_ticks"]) == (pid, str(start_ticks)):
+            conn.execute("UPDATE delivery_routes SET route = ?, member = ?, last_pass_at = ? "
+                         "WHERE participant = ?", (route, member, moment, part["id"]))
+            return None
+        if row is not None and holder_alive(row):
+            refuse("route", f"no live courier holding PT-{part['id']}", holder_line(row),
+                   "stop that courier first; a route is taken over only from a dead holder")
+        conn.execute("INSERT OR REPLACE INTO delivery_routes(participant, route, member, pid, "
+                     "start_ticks, since, last_pass_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (part["id"], route, member, pid, str(start_ticks), moment, moment))
+        return None if row is None else holder_line(row)
+
+    with instrument.transaction(conn):
+        previous = take(conn)
+    shown = route_dict(conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                                    (part["id"],)).fetchone())
+    shown["took_over"] = previous
+    return shown
+
+
+def route_pass(conn, part, *, pid, start_ticks) -> dict:
+    """A courier's pass stamps the route it still holds; one that lost it refuses."""
+    moment = stamp()
+    changed = conn.execute(
+        "UPDATE delivery_routes SET last_pass_at = ? WHERE participant = ? AND pid = ? "
+        "AND start_ticks = ?", (moment, part["id"], pid, str(start_ticks))).rowcount
+    row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                       (part["id"],)).fetchone()
+    if not changed:
+        refuse("route", f"the route PT-{part['id']} took with pid={pid}",
+               holder_line(row) if row is not None else "no route row",
+               "take the route again; another courier holds it or it was released")
+    return route_dict(row)
+
+
+def route_release(conn, part, *, pid, start_ticks) -> dict:
+    """The holder gives its route up; a live holder that is not the caller refuses."""
+
+    def release(conn):
+        row = conn.execute("SELECT * FROM delivery_routes WHERE participant = ?",
+                           (part["id"],)).fetchone()
+        if row is None:
+            return None
+        mine = (row["pid"], row["start_ticks"]) == (pid, str(start_ticks))
+        if not mine and holder_alive(row):
+            refuse("route", f"a route held by pid={pid} or by a dead holder", holder_line(row),
+                   "the holding courier releases its own route")
+        conn.execute("DELETE FROM delivery_routes WHERE participant = ?", (part["id"],))
+        return holder_line(row)
+
+    with instrument.transaction(conn):
+        released = release(conn)
+    return {"participant": f"PT-{part['id']}", "released": released}
+
+
+def core_routes(conn, part) -> dict:
+    """Every route row; a store without the table has taken no route yet."""
+    if conn is None:
+        return no_store(routes=[])
+    if not has_table(conn, "delivery_routes"):
+        return {"routes": [], "table": "absent: no writer since slice 2's tables"}
+    rows = conn.execute("SELECT * FROM delivery_routes ORDER BY participant").fetchall()
+    return {"routes": [route_dict(row) for row in rows]}
+
+
+def live_holders(conn, role: str) -> list[int]:
+    """Participants holding `role` whose courier holds a live route."""
+    if not has_table(conn, "delivery_routes"):
+        return []
+    rows = conn.execute(
+        "SELECT r.*, p.roles FROM delivery_routes r JOIN participants p ON p.id = r.participant "
+        "ORDER BY r.participant").fetchall()
+    return [row["participant"] for row in rows
+            if role in row["roles"].split(",") and holder_alive(row)]
+
+
+def carriable(conn, part) -> dict:
+    """What this participant's courier carries now, and what no courier may.
+
+    A message to `PT-n` is carried by that participant's courier. A
+    role-addressed message is carried only by the courier of the single
+    live holder of that role; with two live holders it is carried by
+    neither and is listed as ambiguous (plan §7, role-addressed messages).
+    The live holders are read across the store's routes, not per run: the
+    core knows no runs.
+    """
+    part = same_session(conn, part)
+    if conn is None:
+        return no_store(carry=[], ambiguous=[])
+    rows = conn.execute(
+        "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+        "WHERE m.delivered_at IS NULL AND s.place = 'open' ORDER BY m.id"
+    ).fetchall()
+    carry, ambiguous = [], []
+    for row in rows:
+        if not addressed(part, row["recipient"]):
+            continue
+        if row["recipient"] == f"PT-{part['id']}":
+            carry.append(message_dict(row))
+            continue
+        holders = live_holders(conn, row["recipient"])
+        if holders == [part["id"]]:
+            carry.append(message_dict(row))
+        elif len(holders) > 1:
+            ambiguous.append({"message": f"M-{row['id']}", "role": row["recipient"],
+                              "holders": [f"PT-{pid}" for pid in holders]})
+    return {"carry": carry, "ambiguous": ambiguous}
+
+
+def member_kin(conn, pid: int) -> list[int]:
+    """The participants of every generation of the member PT-`pid` is: the
+    same run and member name in sessions.py's `session_member`, in the
+    same store. `pid` alone when no member row names it or the store has
+    no such table. Attempt exclusion and reconciliation key on these, so a
+    replacement generation sees, waits on and settles what its
+    predecessor left unsettled (A-522 #1): a restart neither erases the
+    obligation nor replays its effects."""
+    if not has_table(conn, "session_member"):
+        return [pid]
+    rows = conn.execute(
+        "SELECT DISTINCT k.participant FROM session_member m JOIN session_member k "
+        "ON k.run = m.run AND k.name = m.name "
+        "WHERE m.participant = ? AND k.participant IS NOT NULL ORDER BY k.participant",
+        (pid,)).fetchall()
+    return [row[0] for row in rows] or [pid]
+
+
+def marks(values) -> str:
+    """One `?` per value, for an `IN (...)` whose values stay bound."""
+    return ",".join("?" for _ in values)
+
+
+def attempt_row(conn, aid: int):
+    row = None
+    if conn is not None and has_table(conn, "delivery_attempts"):
+        row = conn.execute("SELECT * FROM delivery_attempts WHERE id = ?", (aid,)).fetchone()
+    if row is None:
+        refuse("unknown", "a delivery attempt id in the store", f"AT-{aid}",
+               "an id printed by attempts")
+    return row
+
+
+def core_attempt(conn, part, *, message, route, generation) -> dict:
+    """Reserve one submission of one message to this participant, before it.
+
+    Nothing is resubmitted while an attempt of the message is unsettled, and
+    at most ATTEMPTS_OUTSTANDING attempts per participant are unsettled at
+    once, a participant counting with its member's earlier generations
+    (member_kin). A delivered message may take a later attempt: its outcome settles
+    that attempt and never records `deliver` again. The courier does not
+    select a delivered message; `carriable` is where that holds.
+    """
+    part = same_session(conn, part)
+    _, mid = parse_id(message, "M")
+    if route not in ROUTES:
+        refuse("arguments", "a route of " + " or ".join(ROUTES), str(route),
+               "the route the courier holds")
+    stated = str(generation)
+    if not stated.isdigit() or int(stated) < 1:
+        refuse("arguments", "--generation as a whole number of one or more", stated,
+               "the member's generation sessions.py status prints")
+    row = message_row(conn, mid)
+    if not addressed(part, row["recipient"]):
+        refuse("recipient", f"the recipient {row['recipient']} of M-{mid}",
+               f"PT-{part['id']} ({part['roles']})", "the recipient's own courier carries it")
+
+    def reserve(conn):
+        current = message_row(conn, mid)
+        if current["place"] != "open":
+            refuse("place", f"an open message M-{mid}", f"M-{mid} {current['place']}",
+                   "a resolved or withdrawn message is not carried")
+        kin = member_kin(conn, part["id"])
+        pending = conn.execute(
+            f"SELECT * FROM delivery_attempts WHERE message = ? AND participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL ORDER BY id", (mid, *kin)).fetchone()
+        if pending is not None:
+            refuse("place", f"no unsettled attempt of M-{mid}",
+                   f"AT-{pending['id']} reserved {pending['reserved_at']}, unsettled",
+                   "settle it with attempted, or let the next pass reconcile it past the ttl")
+        held = conn.execute(
+            f"SELECT COUNT(*) FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL", kin).fetchone()[0]
+        if held >= ATTEMPTS_OUTSTANDING:
+            refuse("place", f"fewer than {ATTEMPTS_OUTSTANDING} unsettled attempts for PT-{part['id']}",
+                   f"{held} unsettled", "settle or reconcile the outstanding attempts first")
+        return conn.execute(
+            "INSERT INTO delivery_attempts(message, participant, generation, route, reserved_at) "
+            "VALUES (?, ?, ?, ?, ?)", (mid, part["id"], int(stated), route, stamp())).lastrowid
+
+    with instrument.transaction(conn):
+        aid = reserve(conn)
+    return attempt_dict(attempt_row(conn, aid))
+
+
+def outcome_text(outcome, ref, error) -> str:
+    """The recorded outcome, one of the contract's six shapes."""
+    needs = {"accepted": ref, "unsupported": ref or error, "failed": error, "uncertain": error}
+    if outcome not in OUTCOMES:
+        refuse("arguments", "an outcome of " + ", ".join(OUTCOMES), str(outcome),
+               "written, accepted with --ref, unsupported with the method, failed or "
+               "uncertain with --error")
+    if outcome == "written":
+        return "written"
+    if not needs[outcome]:
+        refuse("arguments", f"an outcome {outcome} with its reading",
+               "no --ref" if outcome == "accepted" else "no --error",
+               "accepted takes --ref; unsupported the method; failed and uncertain --error")
+    return f"{outcome} {needs[outcome]}"
+
+
+def core_attempted(conn, part, *, attempt, outcome, ref=None, error=None) -> dict:
+    """Settle an attempt after the submission; the first written or accepted
+    one records the core's `deliver` once, ref `native:AT-n:<ref>`. The
+    recipient's own `ack` is never written here."""
+    part = same_session(conn, part)
+    _, aid = parse_id(attempt, "AT")
+    text = outcome_text(outcome, ref, error)
+
+    def settle(conn):
+        row = attempt_row(conn, aid)
+        if row["participant"] not in member_kin(conn, part["id"]):
+            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}, "
+                   "or of a later generation of its member",
+                   f"PT-{part['id']}", "the courier that reserved it settles it")
+        if row["outcome"] is not None:
+            refuse("place", f"an unsettled attempt AT-{aid}", f"settled {row['outcome']}",
+                   "reserve a new attempt; a settled one is not rewritten")
+        conn.execute("UPDATE delivery_attempts SET outcome = ?, native_ref = ?, error = ?, "
+                     "submitted_at = ? WHERE id = ?", (text, ref, error, stamp(), aid))
+        if outcome in ("written", "accepted"):
+            conn.execute("UPDATE messages SET delivered_at = ?, delivery_ref = ? "
+                         "WHERE id = ? AND delivered_at IS NULL",
+                         (stamp(), f"native:AT-{aid}:{ref or 'written'}", row["message"]))
+
+    with instrument.transaction(conn):
+        settle(conn)
+    return attempt_dict(attempt_row(conn, aid))
+
+
+def core_attempts(conn, part, *, message=None) -> dict:
+    """The attempts of one message, or of every message, oldest first."""
+    if conn is None:
+        return no_store(attempts=[])
+    if not has_table(conn, "delivery_attempts"):
+        return {"attempts": [], "table": "absent: no writer since slice 2's tables"}
+    if message is None:
+        rows = conn.execute("SELECT * FROM delivery_attempts ORDER BY id").fetchall()
+    else:
+        _, mid = parse_id(message, "M")
+        rows = conn.execute("SELECT * FROM delivery_attempts WHERE message = ? ORDER BY id",
+                            (mid,)).fetchall()
+    return {"attempts": [attempt_dict(row) for row in rows]}
+
+
+def stale_attempts(conn, part) -> dict:
+    """This participant's unsettled attempts, and its member's earlier
+    generations', reserved longer than ATTEMPT_TTL ago: a crash between
+    the submission and its settlement."""
+    part = same_session(conn, part)
+    if conn is None or not has_table(conn, "delivery_attempts"):
+        return {"stale": []}
+    kin = member_kin(conn, part["id"])
+    rows = conn.execute(f"SELECT * FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+                        "AND outcome IS NULL ORDER BY id", kin).fetchall()
+    moment = now()
+    stale = [row for row in rows
+             if (moment - parse_stamp(row["reserved_at"])).total_seconds() > ATTEMPT_TTL]
+    return {"stale": [attempt_dict(row) for row in stale]}
+
+
+def send_digest(*, to, purpose, body, assignment, decision, reply_to, artifact) -> str:
+    payload = {"to": to, "purpose": purpose, "body": body, "assignment": assignment,
+               "decision": decision, "reply_to": reply_to, "artifact": artifact}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def keyed_message(conn, part, key: str, digest: str):
+    """The message a key already named, or None; another digest refuses."""
+    if not has_table(conn, "send_requests"):
+        return None
+    row = conn.execute("SELECT * FROM send_requests WHERE participant = ? AND key = ?",
+                       (part["id"], key)).fetchone()
+    if row is None:
+        return None
+    if row["digest"] != digest:
+        refuse("idempotency", f"key {key} with the payload it first named",
+               f"M-{row['message']} under that key with another payload",
+               "reuse a key only for the same message; a new message takes a new key")
+    shown = message_dict(message_row(conn, row["message"]))
+    shown["repeated"] = True
+    return shown
+
+
 CORE = {
     "bind": core_bind, "bind-for": core_bind_for, "grant": core_grant,
     "revoke": core_revoke,
@@ -1992,19 +2480,59 @@ CORE = {
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
     "recover-roles": core_recover_roles,
     "coverage": core_coverage, "brief": core_brief, "entry": core_entry,
+    "route": core_route, "routes": core_routes, "attempt": core_attempt,
+    "attempted": core_attempted, "attempts": core_attempts,
 }
 
 
 # -- the CLI projection: parse argv, call the function, print -----------------
 
+def run_named(conn, run: str) -> int:
+    """The sessions lever's run `bind --run` names, or refuse `absent`: a
+    terminal with no managed launch names the run it joins (sessions-lever.md,
+    the owner's terminals). A store no run was started in has none."""
+    named = re.fullmatch(r"R-(\d+)", run)
+    row = None
+    if named:
+        try:
+            row = conn.execute("SELECT id FROM session_run WHERE id = ?", (int(named[1]),)).fetchone()
+        except sqlite3.OperationalError:
+            row = None
+    if row is None:
+        refuse("absent", "a run the sessions lever started, R-n", f"no run {run}",
+               "sessions.py status lists the runs; bind --run names one of them")
+    return row["id"]
+
+
+def profile_named(rest: list[str]) -> list[str]:
+    """Take `--profile PATH` off a verb's arguments and hand it to every read
+    of the hook profile, as AGENTSCIENT_HOOK_PROFILE would; the flag and a
+    different exported profile are two answers, refused `arguments`."""
+    places = [index for index, word in enumerate(rest) if word == "--profile"]
+    if not places:
+        return rest
+    if len(places) > 1 or places[0] + 1 >= len(rest):
+        refuse("arguments", "--profile PATH once", " ".join(rest[places[0]:]) or "--profile",
+               "name the terminal's profile.json once")
+    path = rest[places[0] + 1]
+    exported = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    if exported and exported != path:
+        refuse("arguments", "one hook profile", f"--profile {path} and AGENTSCIENT_HOOK_PROFILE {exported}",
+               "drop one; the terminal reads a single profile")
+    os.environ["AGENTSCIENT_HOOK_PROFILE"] = path
+    return rest[:places[0]] + rest[places[0] + 2:]
+
+
 def do_bind(rest):
     agent = identity()
-    _, opts = parse(rest, 0, required=("roles",), optional=("harness", "endpoint", "probe"))
+    _, opts = parse(rest, 0, required=("roles",), optional=("run", "harness", "endpoint", "probe"))
     with writer() as conn:
         shown = CORE["bind"](conn, None, agent=agent,
                              roles=opts["roles"], harness=opts.get("harness"),
-                             endpoint=opts.get("endpoint"), probe=opts.get("probe"))
+                             endpoint=opts.get("endpoint"), probe=opts.get("probe"), run=opts.get("run"))
     print(f"participant {shown['participant']} bound to session {shown['session']}")
+    if "profile" in shown:
+        print(f"profile {shown['profile']}")
 
 
 def do_bind_for(rest):
@@ -2235,15 +2763,16 @@ def do_send(rest):
     agent = identity()
     _, opts = parse(
         rest, 0, required=("to", "purpose", "body"),
-        optional=("assignment", "decision", "reply-to", "artifact"),
+        optional=("assignment", "decision", "reply-to", "artifact", "key"),
     )
     with writer() as conn:
         shown = CORE["send"](conn, bound_participant(conn), agent=agent, to=opts["to"],
                              purpose=opts["purpose"], body=opts["body"],
                              assignment=opts.get("assignment"),
                              decision=opts.get("decision"),
-                             reply_to=opts.get("reply-to"), artifact=opts.get("artifact"))
-    print(f"message {shown['message']} queued")
+                             reply_to=opts.get("reply-to"), artifact=opts.get("artifact"),
+                             key=opts.get("key"))
+    print(f"message {shown['message']} queued" + (" (repeated)" if shown.get("repeated") else ""))
 
 
 def do_deliver(rest):
@@ -2328,6 +2857,94 @@ def do_outstanding(rest):
     for row in shown["outstanding"]:
         seen = f", acknowledged {row['acked_at']}" if row["acked_at"] else ", not acknowledged"
         print(message_line(row) + seen)
+    return EXIT_DONE
+
+
+# -- delivery: verbs ---------------------------------------------------------
+
+def do_route(rest):
+    """`route --take R [--member SM-n]` or `route --release`, held by the
+    calling process's parent: the shell or courier that ran this verb."""
+    identity()
+    _, opts = parse(rest, 0, optional=("take", "member"), flags=("release",))
+    if ("take" in opts) == bool(opts.get("release")):
+        refuse("arguments", "one of --take stdout|native or --release",
+               "both" if "take" in opts else "neither", usage())
+    holder = os.getppid()
+    ticks = process_ticks(holder)
+    with writer() as conn:
+        if opts.get("release"):
+            shown = CORE["route"](conn, bound_participant(conn), action="release",
+                                  pid=holder, start_ticks=ticks)
+            print(f"released {shown['released']}" if shown["released"] else "no route held")
+            return EXIT_DONE
+        shown = CORE["route"](conn, bound_participant(conn), action="take", route=opts["take"],
+                              pid=holder, start_ticks=ticks, member=opts.get("member"))
+    tail = f"; took over from {shown['took_over']}" if shown["took_over"] else ""
+    print(f"route {shown['route']} held by pid={shown['pid']} for {shown['participant']}{tail}")
+    return EXIT_DONE
+
+
+def do_routes(rest):
+    parse(rest, 0)
+    shown = CORE["routes"](reader(), None)
+    if shown.get("store") == "absent":
+        print("no store")
+        return EXIT_DONE
+    if "table" in shown:
+        print(f"no routes: {shown['table']}")
+        return EXIT_DONE
+    if not shown["routes"]:
+        print("no routes")
+        return EXIT_DONE
+    for row in shown["routes"]:
+        member = f" {row['member']}" if row["member"] else ""
+        print(f"{row['participant']}{member} route {row['route']} pid={row['pid']} "
+              f"since {row['since']}, {'alive' if row['alive'] else 'dead'}")
+    return EXIT_DONE
+
+
+def do_attempt(rest):
+    identity()
+    (raw,), opts = parse(rest, 1, required=("route", "generation"))
+    with writer() as conn:
+        shown = CORE["attempt"](conn, bound_participant(conn), message=raw,
+                                route=opts["route"], generation=opts["generation"])
+    print(f"attempt {shown['attempt']} reserved for {shown['message']}")
+    return EXIT_DONE
+
+
+def do_attempted(rest):
+    identity()
+    (raw,), opts = parse(rest, 1, required=("outcome",), optional=("ref", "error"))
+    with writer() as conn:
+        shown = CORE["attempted"](conn, bound_participant(conn), attempt=raw,
+                                  outcome=opts["outcome"], ref=opts.get("ref"),
+                                  error=opts.get("error"))
+    print(f"attempt {shown['attempt']} {shown['outcome']}")
+    return EXIT_DONE
+
+
+def attempt_line(row: dict) -> str:
+    return (f"{row['attempt']} {row['message']} to {row['participant']} generation "
+            f"{row['generation']} route {row['route']} reserved {row['reserved_at']}: "
+            f"{row['outcome'] or 'unsettled'}")
+
+
+def do_attempts(rest):
+    (raw,), _ = parse(rest, 1)
+    shown = CORE["attempts"](reader(), None, message=raw)
+    if shown.get("store") == "absent":
+        print("no store")
+        return EXIT_DONE
+    if "table" in shown:
+        print(f"no attempts: {shown['table']}")
+        return EXIT_DONE
+    if not shown["attempts"]:
+        print(f"no attempts of {raw}")
+        return EXIT_DONE
+    for row in shown["attempts"]:
+        print(attempt_line(row))
     return EXIT_DONE
 
 
@@ -2619,6 +3236,8 @@ VERBS = {
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
     "recover-roles": do_recover_roles,
     "coverage": do_coverage, "brief": do_brief, "entry": do_entry,
+    "route": do_route, "routes": do_routes, "attempt": do_attempt,
+    "attempted": do_attempted, "attempts": do_attempts,
 }
 
 
@@ -2628,7 +3247,7 @@ def main(argv: list[str]) -> int:
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(sorted(VERBS)), verb or "no verb",
                    "name one verb; the module doc has the arguments")
-        return VERBS[verb](argv[2:]) or EXIT_DONE
+        return VERBS[verb](profile_named(argv[2:])) or EXIT_DONE
     except Refusal as refusal:
         return emit(refusal)
 

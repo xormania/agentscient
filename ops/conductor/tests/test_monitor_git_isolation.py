@@ -50,7 +50,7 @@ class GitObservationIsolation(git_refs._GitRefsFixture):
         self.worker_cwd.mkdir()
         self.staged = self.world.stage(
             monitor_base.TOOL,
-            siblings=(monitor_base.LANECONF.name, monitor_base.INSTRUMENT.name),
+            siblings=monitor_base.SIBLINGS,
         )
         self.config = self.conf_dir / "monitor.json"
         self._workers = []

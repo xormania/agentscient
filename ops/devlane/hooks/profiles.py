@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import tomllib
 from functools import cache
 from pathlib import Path
@@ -33,11 +34,55 @@ def source_pins(source):
     hooks = source / "ops/devlane/hooks"
     files = list((hooks / "claude").glob("*.py"))
     files += [hooks / name for name in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
-    files += list((source / "ops/conductor/tools").glob("*.py"))
+    files += list((source / "ops/conductor/tools").rglob("*.py"))
     files += [source / "ops/lane.conf", source / "ops/devlane/harness/isolation.py"]
-    if not files or any(not p.is_file() or p.is_symlink() for p in files):
+    local = source / "ops/lane.local.conf"
+    if local.exists() or local.is_symlink():
+        files.append(local)
+    if not files or any(not p.is_file() or p.resolve() != p for p in files):
         raise ValueError("unavailable stable policy closure")
     return {str(path): digest(path) for path in sorted(set(files))}
+
+
+def freeze_runtime(source, destination):
+    """Publish a private byte copy of the trusted installation's policy closure.
+
+    The caller supplies its installation, never the worker's candidate tree.
+    Verify both sides of the copy so an overlapping edit cannot mint mixed pins.
+    The native transport makes the whole published directory read-only.
+    """
+    source, destination = Path(source).resolve(strict=True), Path(destination).absolute()
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("worker runtime already exists without its binding")
+    pins = source_pins(source)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".runtime-", dir=destination.parent))
+    try:
+        expected = {}
+        for name, sha in pins.items():
+            target = staging / Path(name).relative_to(source)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(Path(name).read_bytes())
+            expected[str(target)] = sha
+        if source_pins(staging) != expected or source_pins(source) != pins:
+            raise ValueError("trusted policy changed while freezing worker runtime")
+        staging.rename(destination)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return destination
+
+
+def verify_runtime(binding, source, *, previous=None):
+    """Check retained bytes before importing any Python from an issued runtime."""
+    source = Path(source).absolute()
+    previous = Path(previous) if previous is not None else source
+    if source.resolve(strict=True) != source or binding["source"] != str(previous):
+        raise ValueError("worker runtime is not its issued directory")
+    expected = {str(source / Path(name).relative_to(previous)): sha
+                for name, sha in binding["pins"].items()}
+    if source_pins(source) != expected:
+        raise ValueError("issued worker runtime changed")
 
 
 def fallback(harness, event):
@@ -129,7 +174,8 @@ def configuration(harness, native_home, helper, cwd, settings=None):
 
 
 def generate(harness, destination, *, source, cwd, mode, home=None, session=None,
-             agent=None, servers=(), executable=None, native_settings=None, credential_environment=None):
+             agent=None, servers=(), executable=None, native_settings=None, credential_environment=None,
+             member_skills=False):
     if harness not in HARNESSES or mode not in {"interactive", "worker"}:
         raise ValueError("unknown harness or startup mode")
     if mode == "worker" and not session:
@@ -151,6 +197,10 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                  "LANE_CONF": str(source / "ops/lane.conf")}
     if agent:
         authority["WF_AGENT_OVERRIDE"] = agent
+    member_skills = bool(member_skills) and harness in MEMBER_SKILL_HARNESSES
+    config_pins = {str(p): digest(p) for p in configs}
+    if member_skills:
+        config_pins.update(member_skill_pins(native_home, source))
     binding = {"schema": "shared-hook-profile/1", "harness": harness, "mode": mode,
                "source": str(source), "cwd": str(cwd), "home": str(native_home),
                "helper": str(helper), "binding": str(dest / "binding.json"),
@@ -159,7 +209,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "servers": list(servers), "authority_environment": authority,
                "native_settings": native_settings,
                "credential_environment": credential_environment or {},
-               "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
+               "pins": source_pins(source), "config_pins": config_pins, "member_skills": member_skills,
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
     binding["helper_sha256"] = hashlib.sha256(helper_text(binding).encode()).hexdigest()
@@ -195,6 +245,8 @@ def validate(binding):
         raise ValueError("agy lacks a verified immediate post-tool/start decision channel for these required rows")
     expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected_pins = {str(path): hashlib.sha256(content.encode()).hexdigest() for path, content in expected_configs.items()}
+    if binding.get("member_skills"):
+        expected_pins.update(member_skill_pins(binding["home"], binding["source"]))
     if expected_pins != binding["config_pins"]:
         raise ValueError("profile does not project the shared guard")
     for path, expected in binding["config_pins"].items():
@@ -215,11 +267,12 @@ def relocate(binding, old_root, new_root):
     old_root, new_root = Path(old_root), Path(new_root)
     if binding["mode"] != "worker" or Path(binding["binding"]) != old_root / "enforcement/binding.json":
         raise ValueError("relocation is not the recorded worker profile")
-    if source_pins(binding["source"]) != binding["pins"]:
-        raise ValueError("relocated policy closure changed")
     def moved(path):
         p = Path(path)
         return str(new_root / p.relative_to(old_root)) if p.is_relative_to(old_root) else str(p)
+    pins = {moved(path): sha for path, sha in binding["pins"].items()}
+    if source_pins(moved(binding["source"])) != pins:
+        raise ValueError("relocated policy closure changed")
     configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     if expected != binding["config_pins"]:
@@ -230,8 +283,11 @@ def relocate(binding, old_root, new_root):
     if Path(moved(binding["helper"])).read_text() != helper_text(binding):
         raise ValueError("relocated helper changed")
     revised = {**binding}
-    for key in ("cwd", "home", "helper", "binding"):
+    for key in ("source", "cwd", "home", "helper", "binding"):
         revised[key] = moved(binding[key])
+    revised["pins"] = pins
+    revised["authority_environment"] = {**binding["authority_environment"],
+                                        "LANE_CONF": moved(binding["authority_environment"]["LANE_CONF"])}
     configs = configuration(revised["harness"], Path(revised["home"]), Path(revised["helper"]), Path(revised["cwd"]), revised.get("native_settings"))
     revised["config_pins"] = {str(p): hashlib.sha256(content.encode()).hexdigest() for p, content in configs.items()}
     revised["helper_sha256"] = hashlib.sha256(helper_text(revised).encode()).hexdigest()
@@ -273,11 +329,20 @@ def codex_config_args(tokens):
     return result
 
 
+# The harnesses a managed session runs as a member (sessions-lever.md, Slice 2).
+MEMBER_HARNESSES = ("claude", "codex", "grok")
+# The sessions bridge's protocol channel per harness (sessions-lever.md, Slice 2,
+# "Required of the wall" (1)): admitted only whole, with nothing before or after it.
+CHANNELS = {"codex": ("app-server", "--listen", "stdio://"), "grok": ("--no-auto-update", "agent", "stdio")}
+
+
 def interactive_args(harness, tokens):
     """Admit session UI arguments, never alternate native authority/configuration."""
+    if tuple(tokens) == CHANNELS.get(harness):
+        return list(tokens)
     groups = {
         "codex": {"value": "--model -m", "flag": "--no-alt-screen --strict-config --help -h --version -V"},
-        "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd",
+        "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd", "uuid": "--session-id",
                    "optional": "--resume -r", "flag": "--continue -c --print -p --verbose --include-partial-messages --include-hook-events --help -h --version -v"},
         "grok": {"value": "--model -m --reasoning-effort --effort --output-format --max-turns",
                  "prompt": "--single -p", "optional": "--resume -r",
@@ -323,6 +388,8 @@ def interactive_args(harness, tokens):
             index += 1
         if value.startswith("-") or (not value and kind != "prompt"):
             raise ValueError("native option has an ambiguous or missing value: " + name)
+        if kind == "uuid" and not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", value, re.IGNORECASE):
+            raise ValueError("native option requires a UUID: " + name)
         result += [name, value]
     return result
 
@@ -356,6 +423,12 @@ def native_launch(binding, argv, env):
         out["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
         out.pop(key, None)
+    # The admitted launch id reaches the hook through the child environment, never
+    # the binding, which one profile keeps across launches; initialize compares it.
+    out.pop("AGENTSCIENT_LAUNCH_SESSION", None)
+    options = tokens[:tokens.index("--")] if "--" in tokens else tokens
+    if binding["mode"] == "interactive" and "--session-id" in options:
+        out["AGENTSCIENT_LAUNCH_SESSION"] = options[options.index("--session-id") + 1]
     if binding["mode"] == "worker":
         out["CLAUDE_SESSION_ID"] = binding["session"]
     for key in ("CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE", "BOUNDARIES_PATH", "PYTHONPATH", "PYTHONSTARTUP"):
@@ -384,6 +457,8 @@ def native_launch(binding, argv, env):
     protected = {str(Path(binding["source"]) / "ops/devlane/hooks"),
                  str(Path(binding["source"]) / "ops/conductor/tools"),
                  *binding["pins"], binding["helper"], binding["binding"], *binding["config_pins"]}
+    if binding["mode"] == "worker" and Path(binding["source"]) == Path(binding["binding"]).parent.parent / "runtime":
+        protected.add(binding["source"])
     for path in sorted(protected):
         command += ["--ro-bind", path, path]
     out["AGENTSCIENT_HOOK_PROFILE"] = binding["binding"]
@@ -403,6 +478,10 @@ def initialize(binding, native_payload, *, instrument):
     session = binding["session"] if binding["mode"] == "worker" else native_id
     if not isinstance(session, str) or not session.strip() or len(session) > 128:
         raise ValueError("native/issued session identity unavailable")
+    launch = os.environ.get("AGENTSCIENT_LAUNCH_SESSION")
+    if binding["mode"] == "interactive" and launch and launch != session:
+        raise ValueError(f"native: expected the launch session id {launch}; found {session}; "
+                         "needed the native session the launch named: relaunch the profile, never rebind it")
     os.environ.pop("AGENTSCIENT_HOOK_PROFILE", None)
     os.environ["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
     for key in ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID", "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID"):
@@ -492,6 +571,44 @@ def capture_custody(binding):
     return carry_back
 
 
+def coordination_server(harness, source):
+    """The acting coordination server a member's profile registers (sessions-lever.md,
+    Slice 2, "Required of the wall" (3)), replacing any operator copy of that name. It
+    resolves its caller through AGENTSCIENT_HOOK_PROFILE, which normalized_settings
+    adds. The codex bridge declines every approval its app-server asks, so codex
+    approves this server's tools; the core's role gate still runs inside every verb."""
+    server = {"command": str(Path(sys.executable).resolve()),
+              "args": ["-B", str(Path(source) / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+    if harness == "codex":
+        server["default_tools_approval_mode"] = "approve"
+    return server
+
+
+MEMBER_SKILL_HARNESSES = ("codex", "grok")
+
+
+def member_skill_pins(home, source):
+    """Each copy install_member_skills writes, pinned to its source's digest, so a copy
+    replaced after preparation fails validate() like any native configuration (A-538 #2)."""
+    return {str(Path(home) / "skills" / skill.parent.name / "SKILL.md"): digest(skill)
+            for skill in sorted((Path(source) / "ops/devlane/hooks/member-skills").glob("*/SKILL.md"))}
+
+
+def install_member_skills(harness, home, source):
+    """Copy the entry points under ops/devlane/hooks/member-skills into a codex or grok
+    member's private home (sessions-lever.md, "Required of the wall"). build_home leaves
+    credentials only, and grok 1.0.40 loads the checkout's .claude/skills only in a
+    trusted project, so without these a member finds no onboard skill. Copied, never
+    linked, so nothing in the home reaches outside it; claude reads the checkout itself."""
+    if harness not in MEMBER_SKILL_HARNESSES:
+        return
+    for skill in sorted((Path(source) / "ops/devlane/hooks/member-skills").glob("*/SKILL.md")):
+        target = Path(home) / "skills" / skill.parent.name / "SKILL.md"
+        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with os.fdopen(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as copy:
+            copy.write(skill.read_text())
+
+
 def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
@@ -518,11 +635,15 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable)
                     servers.update(existing.get("projects", {}).get(str(Path(cwd).resolve()), {}).get("mcpServers", {}))
         if servers:
             settings["mcp_servers"] = servers
+    if harness in MEMBER_HARNESSES:
+        settings["mcp_servers"] = {**settings.get("mcp_servers", {}), "coordination": coordination_server(harness, source)}
     # Use exactly the existing credential leaves and renewal-custody mechanism.
     home = isolation.build_home(harness, dest / "home", env=env)
+    install_member_skills(harness, home, source)
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
                     agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
-                    credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env})
+                    credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env},
+                    member_skills=True)
 
 
 def main(argv=None):

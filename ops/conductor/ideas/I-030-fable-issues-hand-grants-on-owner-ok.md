@@ -2,7 +2,7 @@
 
 - recorded: 2026-09-16, session agentscient-11 (Fable, lane/session-20260915-e), mid-evening of the token-efficiency deliverable
 - source: owner, verbatim below
-- disposition: open
+- disposition: superseded 2026-09-23 by the owner's grant ruling (AGENTS.md, "The owner never runs the grant lever")
 
 ## In the owner's words
 
@@ -33,8 +33,24 @@ banner to declare itself.
   its session id) and is not authority for any other;
 - the wall class stays as it is: a wall grant is still declared in the
   session whose deliverable is the wall, and the master session may
-  relay the owner's ok but not hold the wall grant itself;
+  relay the owner's ok but not hold the wall grant itself (superseded
+  2026-09-23: the Lead's word on the owner's delegation is the grant, and
+  a wall session's one declaration at its start covers both classes);
 - the hard rows are unchanged (a commit to the trunk, a claim without a
   reading, a ready or merge without proof, a forced push, a prune).
 
 Hardens through the register as a D- row when the owner rules.
+
+## Superseded, 2026-09-23
+
+> this grant situation is getting cumbersome - which defeats the purpose. I hand grant was originally a way for a single session to just do the work and by-pass the system
+
+> i just want to give you the power to declare hand grants as needed for dev-lane work
+
+The owner's words, relayed by the Lead. The Lead's ruling on them: the
+owner's word at a session's start, or the Lead's word on the owner's
+delegation, is the grant; no fresh word, no scope, no settle before
+close; one declaration spanning both classes in a wall session; the
+hard rows unchanged. The session receiving the grant declares it itself,
+so no session issues a grant to another, which is what this idea asked
+for.

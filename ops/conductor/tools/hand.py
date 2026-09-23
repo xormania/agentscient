@@ -16,6 +16,7 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import (
         Refusal,
         authority_home,
@@ -73,8 +74,7 @@ def database_path():
 
 def connect():
     path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+    connection = instrument.connect_store(path, mode="rwc")
     connection.row_factory = sqlite3.Row
     connection.execute(SCHEMA)
     connection.commit()

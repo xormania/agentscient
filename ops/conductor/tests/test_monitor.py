@@ -43,7 +43,7 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "monitor.py"
 EXAMPLE = REPO / "ops" / "conductor" / "monitor.example.json"
 LANECONF = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 INSTRUMENT = REPO / "ops" / "conductor" / "tools" / "instrument.py"
-SIBLINGS = ("laneconf.py", "instrument.py")
+SIBLINGS = ("laneconf.py", "instrument.py", "dispatch_observation.py")
 
 AGENT = "Monitor Tester <monitor-tester@example.invalid>"
 BAD_AGENT = "JustAName"
@@ -110,25 +110,6 @@ def _tree_files(root: Path) -> tuple[str, ...]:
         if path.is_file():
             names.append(str(path.relative_to(root)))
     return tuple(sorted(names))
-
-
-class _CompletedResult(Result):
-    """The inherited fixture still reads CompletedProcess.returncode."""
-
-    @property
-    def returncode(self) -> int:
-        return self.exit
-
-    @classmethod
-    def from_result(cls, result: Result) -> "_CompletedResult":
-        return cls(
-            result.argv,
-            result.exit,
-            result.stdout,
-            result.stderr,
-            result.duration,
-            result.cwd,
-        )
 
 
 class _MonitorFixture(unittest.TestCase):
@@ -288,7 +269,7 @@ class _MonitorFixture(unittest.TestCase):
         cwd: Path | None = None,
         timeout: int | float | None = None,
         new_session: bool = False,
-    ) -> _CompletedResult:
+    ) -> Result:
         env = self.env(agent=agent, extra=extra)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
@@ -303,7 +284,7 @@ class _MonitorFixture(unittest.TestCase):
             env=env,
             timeout=RUN_CAP if timeout is None else timeout,
         )
-        return _CompletedResult.from_result(result)
+        return result
 
     def cfg_args(self, config: Path | None = None) -> list[str]:
         path = config if config is not None else self.config
@@ -374,7 +355,7 @@ class _MonitorFixture(unittest.TestCase):
             self.assert_int_count(data[key], key)
         return data
 
-    def run_counts(self, **kw) -> tuple[_CompletedResult, dict]:
+    def run_counts(self, **kw) -> tuple[Result, dict]:
         proc = self.run_once(**kw)
         data = self.parse_json(proc, expect_exit=0)
         self.assertIsInstance(data, dict, data)
@@ -383,7 +364,7 @@ class _MonitorFixture(unittest.TestCase):
             self.assert_int_count(data[key], key)
         return proc, data
 
-    def digest_data(self, **kw) -> tuple[_CompletedResult, dict]:
+    def digest_data(self, **kw) -> tuple[Result, dict]:
         proc = self.digest(**kw)
         data = self.parse_json(proc, expect_exit=0)
         self.assertIsInstance(data, dict, data)
@@ -887,7 +868,7 @@ class _MonitorFixture(unittest.TestCase):
         self.assertFalse(marker.exists(), "plant: sleep marker still absent")
         self.assertFalse(self.counter.exists(), "plant: counter still absent")
 
-    def run_gh_mock(self, *argv: str, timeout: float = 5) -> _CompletedResult:
+    def run_gh_mock(self, *argv: str, timeout: float = 5) -> Result:
         self.assertTrue(self.gh.is_file(), "INVALID: gh mock not planted")
         self.assertTrue(os.access(self.gh, os.X_OK), "INVALID: gh mock not executable")
         result = run(
@@ -896,7 +877,7 @@ class _MonitorFixture(unittest.TestCase):
             env=self.world.env({"PATH": self.path_without_gh()}),
             timeout=timeout,
         )
-        return _CompletedResult.from_result(result)
+        return result
 
     def rate_payload(self, **buckets) -> dict:
         return {"resources": buckets}

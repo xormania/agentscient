@@ -9,6 +9,33 @@ ops/conductor/permission-surface.md and the existing harness isolation contract.
 
 ## Common decision
 
+### Issued worker runtime (LD-119, LD-142)
+
+`isolation.install_enforcement` copies the launcher's trusted policy closure
+into the new job's `runtime/`, independently of the candidate snapshot. It
+verifies the bytes before publication and refuses a source change during the
+copy. The closure includes the hooks, conductor Python helpers (including
+nested modules), lane configuration and optional local overrides, and the
+credential custody owner. Worker-native startup mounts the complete runtime
+read-only alongside the existing protected profile and configuration.
+
+The guard and acting coordination MCP server use this same issued runtime.
+Editing or merging the launcher checkout affects subsequent jobs; an active
+job retains its bytes, identity and capability through submission, credential
+carry-back and resume. The trusted installer checks retained pins before
+loading runtime Python. Relocation rebases paths only after checking those
+same bytes. A missing, changed or symlink-substituted runtime refuses; resume
+never regenerates policy or credentials to make a mismatch pass.
+
+Legacy jobs retain their original installation pins and refusal behavior;
+this change does not silently migrate already-issued profiles. Interactive
+profile preparation is unchanged. Regression cases are in
+`dispatch/tests/test_launch_runtime.py`; native write-protection needs a host
+where bubblewrap user namespaces work, separately from the offline guard and
+coordination tests.
+
+### Lifecycle evaluation
+
 `enforcement.evaluate(payload)` consumes a validated canonical lifecycle payload
 and returns an explicit decision: allow, deny or ask, a reason and additional
 context. Pre-tool order is no-subagents, unsafe-command (including amend), matrix,

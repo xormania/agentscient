@@ -123,16 +123,15 @@ not embedded reports. Workers leave the declared zero spend placeholder;
 the launcher resolves measured spend, declaring unavailable evidence
 instead of treating that placeholder as a measurement.
 
-**Current acceptance defect (C1 baseline):** `run.py` calls
-`envelope.validate`, while launch uses `_schema_valid`, adding only an
-invalid-plus-approve check to the schema. Shared JSON shape therefore does
-not establish shared counts/status/handle acceptance. The optional write
-job `commit` transport also needs later reconciliation with the validator's
-fixed fields. C1 changes neither validator, schema nor transport; later
-acceptance work must preserve harness response extraction and provenance.
-Reproduce with `sed -n '240,310p' ops/devlane/task/envelope.py`,
-`sed -n '297,335p' ops/devlane/task/run.py` and
-`sed -n '708,745p' ops/devlane/dispatch/launch.py` at the dispatch baseline.
+`envelope.validate` applies both the JSON schema and the semantic rules.
+Dispatch applies it after extracting the selected response for every harness,
+including legacy raw results. Schema matching alone may identify a response;
+it cannot accept one. A selected response that fails semantic validation is
+invalid with a null verdict and a diagnostic. Its findings and asserted counts
+remain available for inspection; an earlier clean response cannot replace it.
+`run.py` uses the same validator for bare and wrapped results, including the
+optional `commit` object. JSON member order is immaterial at these boundaries;
+constructors continue to emit the declared key order.
 
 **Named temporary exception — inline planning reassignment.** The owner
 brief authorized the immediate read-only architecture review to return
@@ -181,7 +180,8 @@ does not change the runner.
 
 ### The skeptic's finding
 
-A skeptic finding uses the existing four fields. `severity` is `p1`, `p2` or `p3`.
+A skeptic finding uses the existing four fields, and may carry the
+practical label (§The practical label). `severity` is `p1`, `p2` or `p3`.
 `where` is the practiced location: it has no whitespace and
 contains `/` or `.`. `claim` has this grammar:
 
@@ -190,6 +190,25 @@ contains `/` or `.`. `claim` has this grammar:
 The declared location is non-empty and has no parentheses. The claim is
 split at the first `; practiced: ` and the last `; misses: `. `reproduce`
 is a non-empty command; `null` is refused because an opinion is not a finding.
+
+### The practical label
+
+Findings are suggestions, and judging them needs a rating made where the
+evidence is. Any finding (a skeptic's, a review's, an audit's) may carry
+two more fields, both or neither: `practical` is `yes` or `no`, rated by
+a concrete failure on the change's exit path (a wrong result, a crash,
+or a bypassed refusal, on an invocation someone will actually make), and
+`failing` is that invocation as a command when `practical` is `yes` and
+`null` when it is `no`. A check-tests finding for a test that breaks a
+rule of `docs/tests.md` is `practical: yes`, because the wall refuses it
+at CI. The envelope (`envelope.py` `PRACTICAL_FIELDS`), the ladder's
+check-tests validator and the findings ledger admit the pair; a finding
+without it has the four fields alone, as every record before it does.
+The label is the reviewer's, and the disposition stays the session's: a
+labelled finding that is ruled rather than fixed is ruled with a
+judgement beginning `declined: not practical — `, which the
+`finding-disposition` row reads at `gh pr ready` (CONTRIB.md, the audit
+row).
 
 `verify` is deliberately callable on its own: it is the primitive the
 others lean on, and the one whose answer is mechanical — an exit code

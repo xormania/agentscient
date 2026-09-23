@@ -65,6 +65,38 @@ import fileset  # noqa: E402
 import verify  # noqa: E402
 
 
+class SharedEnvelopeAcceptance(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="run-envelope-")
+        self.addCleanup(self.world.close)
+
+    def test_bare_and_wrapped_results_use_the_shared_validator(self):
+        valid = envelope.build("implement", status="ok", verdict="changes",
+                               findings=[envelope.finding("p1", "a.py", "fault", "repro")],
+                               stamp={"ref": "candidate"})
+        valid["commit"] = {"subject": "Repair", "body": "Original change"}
+        valid = dict(reversed(list(valid.items())))
+        for wrapper in (None, "envelope", "result", "output"):
+            for tally in (1, 0, True):
+                with self.subTest(wrapper=wrapper, tally=tally):
+                    candidate = json.loads(json.dumps(valid))
+                    candidate["counts"]["p1"] = tally
+                    raw = candidate if wrapper is None else {wrapper: candidate}
+                    parsed = run._parse_envelope(json.dumps(raw).encode())
+                    if type(tally) is int and tally == 1:
+                        self.assertEqual(parsed, candidate)
+                    else:
+                        self.assertIsNone(parsed)
+
+    def test_later_semantic_failure_does_not_restore_an_earlier_approval(self):
+        clean = envelope.build("verify", status="ok", verdict="approve",
+                               stamp={"ref": "candidate"})
+        broken = json.loads(json.dumps(clean))
+        broken["findings"] = [envelope.finding("p1", "a.py", "fault", "repro")]
+        raw = (json.dumps(clean) + "\n" + json.dumps(broken)).encode()
+        self.assertIsNone(run._parse_envelope(raw))
+
+
 def _fake_stdout():
     """The fake harness answer as data for ``world.tools``."""
     stdout_mode = os.environ.get("TASK_RUN_STDOUT") or "envelope"
@@ -753,6 +785,45 @@ class DirectDelegatesToVerify(_TempRun):
             self.record_path.exists(),
             "direct runs no harness",
         )
+
+
+class TheDirectJobIsBoundedByItsCap(_TempRun):
+    """20260923T000804Z-review-codex-da66dd#3 and dispatch CONTRACT.md: a
+    direct job is bounded by its caps.timeout. At cc28e441 verify.check
+    got runtime.get("timeout", 300), so a runtime of 7200 ran under a 3600
+    cap, and a runtime naming none fell back to 300, never to the cap.
+    A runtime below the cap is the clean neighbour."""
+
+    def _applied(self, runtime_timeout):
+        self.jobs["verify"]["caps"] = {"timeout": 3600, "turns": 150}
+        seen = []
+        original = verify.check
+
+        def wrapped(*args, **kwargs):
+            seen.append(kwargs.get("timeout"))
+            return original(*args, **kwargs)
+
+        self._patch_attr(verify, "check", wrapped)
+        self._patch_attr(getattr(run, "verify", None), "check", wrapped)
+        env = self.call_run(
+            "verify",
+            jobs=self.jobs,
+            require={"scope": "python exits 0", "constraints": [],
+                     "claim": "python exits 0", "command": [sys.executable, "-c", "pass"]},
+            runtime={"harness": "direct", "role": "read", "timeout": runtime_timeout},
+        )
+        self.assertEqual(env.get("status"), "ok", env.get("note"))
+        self.assertTrue(seen, "direct must delegate to verify.check")
+        return seen[-1]
+
+    def test_a_runtime_above_the_cap_applies_the_cap(self):
+        self.assertEqual(self._applied(7200), 3600)
+
+    def test_a_runtime_naming_no_timeout_applies_the_cap(self):
+        self.assertEqual(self._applied(None), 3600)
+
+    def test_a_runtime_below_the_cap_is_applied(self):
+        self.assertEqual(self._applied(30), 30)
 
 
 # ---------------------------------------------------------------------------

@@ -96,10 +96,14 @@ EXTERNAL_ENV_KEYS = {
     # Supplied by the finite controller to children and the read-only doctor.
     "CONTROL_STATE",
     "AGENTSCIENT_HOOK_PROFILE",
+    "AGENTSCIENT_LAUNCH_SESSION",
     "COORDINATION_CAPABILITY",
     "AGENTSCIENT_ORG",
     "AGENTSCIENT_ROOT",
     "AGENTSCIENT_SIBLINGS",
+    # The sessions lever's tmux socket and the attach-inside-tmux test
+    # (sessions-lever.md: the socket and attach sections).
+    "AGENTSCIENT_TMUX_SOCKET",
     "BASH_SOURCE",
     "BASH_REMATCH",
     "BOUNDARIES_PATH",
@@ -143,6 +147,7 @@ EXTERNAL_ENV_KEYS = {
     "TERM_WALL",
     "THREADS_OUT",
     "TMPDIR",
+    "TMUX",
     "WATCH_TICK_SCALE",
     "WATCHDOG_TICK",
     "WF_AGENT",
@@ -391,33 +396,17 @@ def _reads(text: str) -> set[str]:
 
 
 def _workflow_jobs(text: str) -> set[str]:
-    """Read the direct keys of a workflow's top-level jobs mapping."""
-    lines = iter(text.splitlines())
-    for line in lines:
-        if re.fullmatch(r"(['\"]?)jobs\1:\s*(?:#.*)?", line):
-            break
-    else:
-        return set()
-
-    indent: int | None = None
-    jobs: set[str] = set()
-    for line in lines:
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        leading = len(line) - len(line.lstrip())
-        if leading == 0:
-            break
-        if indent is None:
-            indent = leading
-        if leading != indent:
-            continue
-        match = re.fullmatch(
-            r"\s*(['\"]?)([A-Za-z0-9_.-]+)\1:(?:\s.*)?",
-            line,
-        )
-        if match:
-            jobs.add(match.group(2))
-    return jobs
+    """The workflow uses JSON syntax within YAML (CONTRACT-ci.md)."""
+    try:
+        doc = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ConfigError("workflow", "the workflow in JSON syntax", "unreadable workflow",
+                          "restore the shared CI format") from exc
+    jobs = doc.get("jobs") if isinstance(doc, dict) else None
+    if not isinstance(jobs, dict) or not jobs:
+        raise ConfigError("workflow", "a nonempty workflow jobs mapping", repr(jobs),
+                          "declare the required jobs")
+    return set(jobs)
 
 
 def closure() -> int:
@@ -491,6 +480,16 @@ def _literal_exempt(rel: str, line: str, needle: str) -> bool:
             (
                 "ops/conductor/tools/lane_read.py",
                 'SCHEMA = "agentscient.lane/v1"',
+            ),
+            # The sessions lever's contract fixes its team schema and its
+            # tmux owner option by name (sessions-lever.md).
+            (
+                "ops/conductor/tools/sessions.py",
+                'SCHEMA_NAME = "agentscient-team/1"',
+            ),
+            (
+                "ops/conductor/tools/sessions.py",
+                'OWNER_OPTION = "@agentscient_owner"',
             ),
             (
                 "ops/conductor/tools/lane_mcp.py",

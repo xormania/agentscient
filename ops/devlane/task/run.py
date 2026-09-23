@@ -295,19 +295,12 @@ def _write(path, data):
 
 
 def _candidate_envelope(value):
-    if isinstance(value, dict) and tuple(value) == envelope.FIELDS:
-        try:
-            return envelope.validate(value)
-        except envelope.EnvelopeError:
-            return None
+    candidates = [value]
     if isinstance(value, dict):
-        for key in ("envelope", "result", "output"):
-            nested = value.get(key)
-            if isinstance(nested, dict) and tuple(nested) == envelope.FIELDS:
-                try:
-                    return envelope.validate(nested)
-                except envelope.EnvelopeError:
-                    pass
+        candidates.extend(value.get(key) for key in ("envelope", "result", "output"))
+    for candidate in candidates:
+        if envelope.schema_valid(candidate):
+            return candidate
     return None
 
 
@@ -330,7 +323,10 @@ def _parse_envelope(data):
         candidate = _candidate_envelope(value)
         if candidate is not None:
             answer = candidate
-    return answer
+    try:
+        return envelope.validate(answer)
+    except envelope.EnvelopeError:
+        return None
 
 
 def _load_breaker():
@@ -720,6 +716,25 @@ def _rebuild(job, parsed, manifest, started, raw, spend,
         stamp=_stamp(manifest["ref"], started, _now()),
         note="; ".join(notes) if notes else None,
     )
+
+
+def _bounded_timeout(definition, runtime):
+    """A direct job's timeout: the runtime's, bounded by the job's own
+    caps.timeout, and the cap when the runtime names none (dispatch
+    CONTRACT.md; 20260923T000804Z-review-codex-da66dd#3). With no cap and
+    no runtime value the old 300 stands; a value that is not a number is
+    passed through for verify.check to refuse."""
+    def numeric(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    requested = runtime.get("timeout")
+    caps = definition.get("caps")
+    cap = caps.get("timeout") if isinstance(caps, dict) else None
+    if not numeric(cap):
+        return 300 if requested is None else requested
+    if requested is None:
+        return cap
+    return min(requested, cap) if numeric(requested) else requested
 
 
 def _direct(require, runtime, manifest):
@@ -1245,7 +1260,8 @@ def run(job, *, context, require, runtime, jobs=None,
         # Direct verification owns its envelope, including zero token spend;
         # rebuilding it here would make delegation only approximate.
         try:
-            return _direct(require, runtime, manifest)
+            bounded = dict(runtime, timeout=_bounded_timeout(definition, runtime))
+            return _direct(require, bounded, manifest)
         except (OSError, TypeError, ValueError) as exc:
             return _invalid(
                 job,
@@ -1315,7 +1331,8 @@ def main(argv=None) -> int:
             "effort": None,
             "role": arguments.role,
             "caps": {},
-            "timeout": 900,
+            # No timeout here: a direct job takes its own caps.timeout, and
+            # a harness job the runner's default (da66dd#3).
         },
     )
     print(json.dumps(result))
