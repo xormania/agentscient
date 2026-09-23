@@ -295,19 +295,12 @@ def _write(path, data):
 
 
 def _candidate_envelope(value):
-    if isinstance(value, dict) and tuple(value) == envelope.FIELDS:
-        try:
-            return envelope.validate(value)
-        except envelope.EnvelopeError:
-            return None
+    candidates = [value]
     if isinstance(value, dict):
-        for key in ("envelope", "result", "output"):
-            nested = value.get(key)
-            if isinstance(nested, dict) and tuple(nested) == envelope.FIELDS:
-                try:
-                    return envelope.validate(nested)
-                except envelope.EnvelopeError:
-                    pass
+        candidates.extend(value.get(key) for key in ("envelope", "result", "output"))
+    for candidate in candidates:
+        if envelope.schema_valid(candidate):
+            return candidate
     return None
 
 
@@ -330,7 +323,10 @@ def _parse_envelope(data):
         candidate = _candidate_envelope(value)
         if candidate is not None:
             answer = candidate
-    return answer
+    try:
+        return envelope.validate(answer)
+    except envelope.EnvelopeError:
+        return None
 
 
 def _load_breaker():

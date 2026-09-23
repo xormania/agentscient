@@ -65,6 +65,38 @@ import fileset  # noqa: E402
 import verify  # noqa: E402
 
 
+class SharedEnvelopeAcceptance(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="run-envelope-")
+        self.addCleanup(self.world.close)
+
+    def test_bare_and_wrapped_results_use_the_shared_validator(self):
+        valid = envelope.build("implement", status="ok", verdict="changes",
+                               findings=[envelope.finding("p1", "a.py", "fault", "repro")],
+                               stamp={"ref": "candidate"})
+        valid["commit"] = {"subject": "Repair", "body": "Original change"}
+        valid = dict(reversed(list(valid.items())))
+        for wrapper in (None, "envelope", "result", "output"):
+            for tally in (1, 0, True):
+                with self.subTest(wrapper=wrapper, tally=tally):
+                    candidate = json.loads(json.dumps(valid))
+                    candidate["counts"]["p1"] = tally
+                    raw = candidate if wrapper is None else {wrapper: candidate}
+                    parsed = run._parse_envelope(json.dumps(raw).encode())
+                    if type(tally) is int and tally == 1:
+                        self.assertEqual(parsed, candidate)
+                    else:
+                        self.assertIsNone(parsed)
+
+    def test_later_semantic_failure_does_not_restore_an_earlier_approval(self):
+        clean = envelope.build("verify", status="ok", verdict="approve",
+                               stamp={"ref": "candidate"})
+        broken = json.loads(json.dumps(clean))
+        broken["findings"] = [envelope.finding("p1", "a.py", "fault", "repro")]
+        raw = (json.dumps(clean) + "\n" + json.dumps(broken)).encode()
+        self.assertIsNone(run._parse_envelope(raw))
+
+
 def _fake_stdout():
     """The fake harness answer as data for ``world.tools``."""
     stdout_mode = os.environ.get("TASK_RUN_STDOUT") or "envelope"

@@ -34,7 +34,7 @@ from __future__ import annotations
 import json
 import re
 
-#: Key order is part of the shape: a caller diffing two envelopes, or a
+#: Constructors keep key order: a caller diffing two envelopes, or a
 #: reviewer reading one, sees the same fields in the same places.
 FIELDS = ("job", "status", "verdict", "counts", "findings",
           "artifacts", "spend", "stamp", "note")
@@ -69,8 +69,8 @@ def _finding_shape(**label):
 
 #: The pair rule as the schema states it: no label, `yes` with the failing
 #: invocation, or `no` with none. Half a label matches no shape, so the
-#: claude path, which checks its object against this schema alone, refuses
-#: what `finding` refuses. A blank `failing` is `finding`'s alone. The
+#: schema selection refuses what `finding` refuses. A blank `failing`
+#: is checked by `finding` during semantic validation. The
 #: field types stand beside the shapes, so a checker that reads no `anyOf`
 #: still refuses a finding of the wrong type or with a key missing.
 FINDING_SCHEMA = {
@@ -143,6 +143,48 @@ ENVELOPE_SCHEMA = {
     "required": list(FIELDS),
     "additionalProperties": False,
 }
+
+
+def schema_valid(data):
+    """Match the shared wire shape without judging a result's semantics."""
+    def matches(value, schema):
+        kinds = schema.get("type")
+        kinds = [kinds] if isinstance(kinds, str) else kinds
+        checks = {"object": lambda: isinstance(value, dict),
+                  "array": lambda: isinstance(value, list),
+                  "string": lambda: isinstance(value, str),
+                  "integer": lambda: isinstance(value, int) and not isinstance(value, bool),
+                  "number": lambda: isinstance(value, (int, float)) and not isinstance(value, bool),
+                  "boolean": lambda: isinstance(value, bool),
+                  "null": lambda: value is None}
+        if kinds and not any(checks[kind]() for kind in kinds):
+            return False
+        if "anyOf" in schema and not any(matches(value, branch)
+                                         for branch in schema["anyOf"]):
+            return False
+        if "enum" in schema and value not in schema["enum"]:
+            return False
+        if isinstance(value, (int, float)) and "minimum" in schema and value < schema["minimum"]:
+            return False
+        if isinstance(value, list) and "items" in schema:
+            return all(matches(item, schema["items"]) for item in value)
+        if isinstance(value, dict):
+            properties = schema.get("properties", {})
+            if any(key not in value for key in schema.get("required", [])):
+                return False
+            extra = set(value) - set(properties)
+            additional = schema.get("additionalProperties", True)
+            if extra and additional is False:
+                return False
+            if any(not matches(value[key], properties[key])
+                   for key in set(value) & set(properties)):
+                return False
+            if isinstance(additional, dict) and any(
+                    not matches(value[key], additional) for key in extra):
+                return False
+        return True
+
+    return matches(data, ENVELOPE_SCHEMA)
 
 
 class EnvelopeError(ValueError):
@@ -490,7 +532,7 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
     """Re-check a built or parsed envelope. Returns it, or raises."""
     if not isinstance(env, dict):
         raise EnvelopeError("an envelope is a dict")
-    if tuple(key for key in env if key != "commit") != FIELDS:
+    if set(env) - {"commit"} != set(FIELDS):
         raise EnvelopeError(
             f"envelope fields {list(env)} are not the contract's "
             f"{list(FIELDS)}")
@@ -530,7 +572,7 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
         raise EnvelopeError(
             "an invalid envelope must say why it could not look")
     for f in env["findings"]:
-        if tuple(f) not in FINDING_SHAPES:
+        if not any(set(f) == set(shape) for shape in FINDING_SHAPES):
             raise EnvelopeError(
                 f"finding fields {list(f)} are not {list(FINDING_FIELDS)}, "
                 f"with or without {list(PRACTICAL_FIELDS)}")
@@ -569,4 +611,6 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
                 f"found {value!r}; needed the exact declared output handle")
     _spend(env["spend"])
     _stamp(env["stamp"])
+    if not schema_valid(env):
+        raise EnvelopeError("object does not match ENVELOPE_SCHEMA")
     return env
