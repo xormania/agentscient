@@ -679,18 +679,20 @@ cursor is acked (`digest --ack`) only after every send of the batch is
 committed, so a failed send leaves the batch to the next pass. Events
 for a record with no intent are logged and acked, never sent.
 
-**The seed reading** (XO ruling, 2026-09-23, from agentscient-10's
-measurement with the real `monitor.py`): the `changed` condition takes
-a record's first reading as its baseline and emits nothing for it, so a
-job that finishes before the router's first pass, or while the router
-is down, would never inform anyone. On the first pass that sees a
-launched intent, `route` takes a direct `launch.py status` reading of
-it. A terminal reading sends the mapped inform or finding at once with
-key `seed:<record id>:<recipient>`; a `running` reading sends nothing
-and the monitor's later event covers it. Only one of the two ever
-fires, because the monitor emits nothing for the baseline. The rows for
-it come in the test fix pass (agentscient-5c), not in A-510's running
-scope.
+**The per-intent pass config** (XO ruling, 2026-09-23, withdrawing the
+seed reading written at 1df9fbf0, which rested on a false reading): the
+per-pass config names one monitor, one condition and one route per
+launched intent (`di-<n>`), never one shared `ids` list, because a
+shared list reset every baseline and re-sent old completions
+(agentscient-10's fix at 1d865da7). The monitor's first reading of a
+record emits its status ({"observations": 1, "events": 1}, measured by
+agentscient-10 on the real `monitor.py` at 8bf3d710; the earlier
+"events 0" came from a record with no `record.json`), so a job that
+finished before the router's first pass is reported by that first
+event, and a seed read would have sent it twice under two keys. There
+is no seed. Two rows for the test fix pass (agentscient-5c): an early
+finish gives exactly one inform; a later launch, added to the pass
+config beside it, repeats nothing for the first.
 
 ### Refusals
 
