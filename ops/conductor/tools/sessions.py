@@ -121,11 +121,14 @@ SERVER = "coordination"
 CLAUDE_DEBUG = "claude-debug.txt"
 TOOLS_LINE = re.compile(r'MCP server "coordination".*connected', re.IGNORECASE)
 # Keys the pane never inherits: the operator's own coordination
-# capability and harness identity, and the tmux client's own markers.
+# capability and harness identity, the tmux client's own markers, and the
+# operator's git repository overrides, which would point the member's git
+# at whatever tree the operator's shell carried instead of its own (A-538).
 WITHHELD = (
     "COORDINATION_CAPABILITY", "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID",
     "CODEX_THREAD_ID", "CODEX_SESSION_ID", "GROK_SESSION_ID",
     "AGENTSCIENT_HOOK_PROFILE", "AGENTSCIENT_LAUNCH_SESSION", "TMUX", "TMUX_PANE",
+    "GIT_DIR", "GIT_WORK_TREE",
 )
 SHELL_KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 NATIVE_REFUSAL = re.compile(r"native: expected the launch session id \S+; found ([^;\s]+);")
