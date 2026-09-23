@@ -73,8 +73,6 @@ class IssuedRuntime(ls.CoordinationCore, unittest.TestCase):
                            session=leader)
         self.assertEqual(result.returncode, 0, result.stderr)
         participant = re.search(r"participant (PT-\d+)", result.stdout).group(1)
-        result = self.core("offer", assignment, "--to", participant, "--generation", "1", session=leader)
-        self.assertEqual(result.returncode, 0, result.stderr)
         result = run([sys.executable, str(ls.REPO / "ops/conductor/tools/deliverable.py"),
                       "add", "work", "--why", "runtime regression"], cwd=self.repo, env=self.env)
         self.assertEqual(result.exit, 0, result.stderr)

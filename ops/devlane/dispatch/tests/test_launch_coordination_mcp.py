@@ -39,10 +39,11 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 import launch_support as ls
 
-from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+from ops.testkit import World, run  # noqa: F401 - _TempLaunch owns the world
 
 SERVER = "coordination"
 LANE_KEY = "agentscient_lane"
@@ -353,6 +354,42 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
             f"a config bound to one session answered under another: "
             f"stdout={done.stdout!r} stderr={done.stderr!r}")
         self.assertEqual(done.stderr.split(":", 1)[0], "state")
+
+    def test_the_issued_worker_can_claim_before_start_and_submit_through_its_mcp(self):
+        lock = run([sys.executable, str(ACTING.with_name("deliverable.py")),
+                    "add", "work", "--why", "dispatch handoff regression"],
+                   cwd=self.repo, env={**self.env, "WF_AGENT": ls.FIXTURE_DISPATCHER})
+        self.assertEqual(lock.exit, 0, lock.stderr)
+        launch = self.load_launch()
+        attempt = launch._run_attempt
+        claims = []
+
+        def before_start(rec, job_dir, **kwargs):
+            config = self.written(rec)
+            session = rec["session"]["binding_id"]
+            path = self.acting(rec)["config"]
+            shown = self.call(path, session, "coord_show", {"assignment": config["assignment"]})
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            offered = json.loads(shown.stdout)
+            self.assertEqual((offered["place"], offered["recipient"]),
+                             ("offered", config["participant"]))
+            claimed = self.call(path, session, "coord_claim", {
+                "assignment": config["assignment"], "branch": config["branch"],
+                "generation": offered["generation"]})
+            self.assertEqual(claimed.returncode, 0, claimed.stderr)
+            claims.append(json.loads(claimed.stdout))
+            return attempt(rec, job_dir, **kwargs)
+
+        with patch.object(launch, "_run_attempt", side_effect=before_start):
+            rec, witness, aid = self.dispatched()
+        self.assertEqual(len(claims), 1)
+        self.assertTrue(witness.get("argv"), "the worker did not run")
+        submitted = self.call(self.acting(rec)["config"], rec["session"]["binding_id"],
+                              "coord_submit", {"assignment": aid, "evidence": self.ref,
+                                               "revision": self.ref,
+                                               "generation": claims[0]["generation"]})
+        self.assertEqual(submitted.returncode, 0, submitted.stderr)
+        self.assertEqual(json.loads(submitted.stdout)["place"], "submitted")
 
 
 class ARelocatedCoordinationConfigIsRewiredOnResume(_Acting):

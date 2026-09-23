@@ -180,11 +180,12 @@ READING = re.compile(
 T = machine.Transition
 ASSIGNMENT = machine.Machine(
     name="assignment",
-    version=1,
+    version=2,
     initial="drafted",
     places=("drafted", "offered", "held", "submitted", "verified", "accepted", "superseded"),
     transitions=(
         T("offer", "drafted", "offered", "any", "none", "offered", "keep"),
+        T("address", "offered", "offered", "any", "required", "offered", "clear"),
         T("claim", "offered", "held", "any", "none", "taken", "take"),
         T("release", "held", "offered", "holder-or-lapsed", "required", "place", "clear"),
         T("reassign", "held", "offered", "any", "required", "place", "clear"),
@@ -998,16 +999,7 @@ def core_revoke(conn, part, *, agent, participant, roles) -> dict:
 
 def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
                   capability_digest=None, harness=None, endpoint=None, probe=None) -> dict:
-    """A participant for a session that cannot bind itself.
-
-    A dispatched Codex or Grok worker has no harness session id in its
-    environment, so it could hold no participant and every mutation it
-    made refused class `participant`. The launcher mints a session id per
-    dispatch and sets it as CLAUDE_SESSION_ID, the older key
-    instrument.session() already admits. Only a dispatcher may issue one,
-    and the binding records who issued it and for which assignment, so a
-    participant nobody dispatched is visible as such.
-    """
+    """Issue a participant and its claimable work in one engine transition."""
     part = same_session(conn, part)
     require_role(part, ("dispatcher",))
     named = roles_of(roles)
@@ -1020,12 +1012,21 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         # is a grant, and a grant is a lead's.
         require_role(part, ("lead",))
     _, aid = parse_id(assignment, "A")
-    # The same lock as a self-bind, for the same reason: the conflict
-    # check reads and the mint writes, and two dispatchers minting for
-    # one session id would otherwise both read nothing there.
-    conn.execute("BEGIN IMMEDIATE")
-    try:
-        assignment_row(conn, aid)
+    work = assignment_row(conn, aid)
+    issued = []
+
+    def issue():
+        # _offer_to runs this under the engine's write lock. Nothing is
+        # enrolled unless this assignment can be offered to the new worker.
+        live = assignment_row(conn, aid)
+        if live["place"] == "offered" and (
+                live["holder"] is not None or live["agent_holder"] is not None
+                or (live["recipient"] and live["recipient"] not in named.split(","))):
+            refuse("recipient", "an unaddressed offer or a role the issued worker holds",
+                   f"A-{aid} offered to {live['recipient'] or 'nobody'}, "
+                   f"holder {live['holder'] or live['agent_holder'] or 'none'}",
+                   "reassign it to the intended role with the current generation, "
+                   "or dispatch a different assignment")
         row = conn.execute(
             "SELECT id FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -1049,11 +1050,13 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
              granted, stamp() if granted else None),
         ).lastrowid
         _install_capability(conn, pid, capability_digest)
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
-    return {**participant_dict(participant_row(conn, pid)), "session": key}
+        issued.append(pid)
+        return f"PT-{pid}"
+
+    _offer_to(conn, part, aid=aid, to=issue, generation=str(work["generation"]),
+              transition="address" if work["place"] == "offered" else "offer",
+              evidence="dispatch handoff", note="issued worker")
+    return {**participant_dict(participant_row(conn, issued[0])), "session": key}
 
 
 def core_who(conn, part) -> dict:
@@ -1091,20 +1094,31 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
     return assignment_dict(assignment_row(conn, sid))
 
 
+def _offer_to(conn, part, *, aid, to, generation, transition, evidence=None, note=None):
+    """One recipient update for offers, handoffs and returns to offered.
+
+    A recipient factory may enroll the dispatched participant inside the
+    same transaction. The engine owns locking, place checks and rollback;
+    advance owns the generation bump. Public operations check authority.
+    """
+    require_generation(assignment_row(conn, aid), generation)
+
+    def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
+        recipient = recipient_of(conn, to() if callable(to) else to)
+        conn.execute("UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
+                     (recipient, aid))
+
+    advance(conn, aid, transition, part, note=note, evidence=evidence, gate=gate)
+    return assignment_dict(assignment_row(conn, aid))
+
+
 def core_offer(conn, part, *, agent, assignment, to, generation) -> dict:
     part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
-    row = assignment_row(conn, aid)
-    require_generation(row, generation)
-    recipient = recipient_of(conn, to)
-
-    def gate(_subject):
-        require_generation(assignment_row(conn, aid), generation)
-        conn.execute("UPDATE assignments SET recipient = ? WHERE id = ?", (recipient, aid))
-
-    advance(conn, aid, "offer", part, note=recipient, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=to, generation=generation,
+                     transition="offer", note=to)
 
 
 def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -> dict:
@@ -1138,7 +1152,9 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
     require_generation(row, generation)
     if transition == "reassign":
         require_role(part, ("lead", "coordinator"))
-        recipient = recipient_of(conn, to)
+        recipient = to
+        if row["place"] == "offered":
+            transition = "address"
     else:
         held = machine.subject(conn, ASSIGNMENT, aid)
         if row["holder"] != part["id"] and not machine.lapsed(held):
@@ -1148,16 +1164,8 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
                    "or a lead reassigns it")
         recipient = row["recipient"]
 
-    def gate(_subject):
-        live = assignment_row(conn, aid)
-        require_generation(live, generation)
-        conn.execute(
-            "UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
-            (recipient, aid),
-        )
-
-    advance(conn, aid, transition, part, evidence=why, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    return _offer_to(conn, part, aid=aid, to=recipient, generation=generation,
+                     transition=transition, evidence=why)
 
 
 def core_release(conn, part, *, agent, assignment, why, generation) -> dict:

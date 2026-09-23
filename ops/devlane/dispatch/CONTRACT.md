@@ -1237,6 +1237,14 @@ absence is historical and must not be read as "none answered".
   through to the launcher. The transport for terminal messages does not
   issue a worker binding or confer dispatch authority.
 
+  `bind-for` commits the worker identity, credential enrollment and addressed
+  offer together in the coordination core before the child starts. Dispatch
+  does not perform a separate offer or choose assignment transitions. A core
+  refusal is forwarded unchanged and removes this launch's fresh staging
+  directory; no child or dispatch record is created. An offered assignment
+  left by a later startup failure can use the core's existing `reassign`
+  operation with its current generation and a reason before another dispatch.
+
   For every dispatch adapter, `session.binding_id` retains the lane session
   selected before launch; `session.id` separately records the harness's native
   conversation id used for resume. Reading a native stream may update only

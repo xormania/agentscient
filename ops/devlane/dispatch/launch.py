@@ -2234,8 +2234,13 @@ def _launch(args):
                 "inspect co_doc.py before dispatching this worker")
     bound = None
     if args.assignment:
-        bound = _bind_worker(binding_session, args.assignment,
-                             args.harness, agent, capability_digest=worker_digest)
+        try:
+            bound = _bind_worker(binding_session, args.assignment,
+                                 args.harness, agent, capability_digest=worker_digest)
+        except Refused:
+            # This launch owns only fresh staging: no record or child exists.
+            shutil.rmtree(job_dir)
+            raise
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
     coord_meta, coord_server = _coordination_mcp(
