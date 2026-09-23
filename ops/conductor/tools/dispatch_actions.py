@@ -411,6 +411,23 @@ def verification(name: str) -> list:
     return argv
 
 
+def collected_reading(record: str) -> str | None:
+    """The record's own word that the collect happened: `result.collected`
+    in <jobs root>/<id>/record.json, which launch.py writes and prints
+    nothing about (A-525 #2); None when it is not there to read."""
+    try:
+        data = json.loads((intents.jobs_root() / record / "record.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    result = data.get("result") if isinstance(data, dict) else None
+    collected = result.get("collected") if isinstance(result, dict) else None
+    if not isinstance(collected, dict):
+        return None
+    verify = collected.get("verify") if isinstance(collected.get("verify"), dict) else {}
+    return (f"{record} collected head={collected.get('head')} "
+            f"verify exit={verify.get('exit')} at={collected.get('at')}")
+
+
 def act_collect(conn, part, *, agent, intent, verify) -> dict:
     part = the_dispatcher(conn, part)
     found = intents.row(conn, intents.parse_id(intent))
@@ -424,7 +441,12 @@ def act_collect(conn, part, *, agent, intent, verify) -> dict:
     reading = run([*launcher, "collect", found["record"], "--verify", shlex.join(argv)],
                   cwd=worktree_of(found["branch"]), timeout=limit)
     line = next((text for text in reversed(reading.stdout.splitlines()) if text.strip()), "")
-    if reading.returncode not in (0, 1) or not line:
+    if reading.returncode == 0:
+        # launch.py collects, exits 0 and prints nothing; the exit is the
+        # act and the record its reading, never a printed line.
+        line = (collected_reading(found["record"]) or line
+                or f"{found['record']} collect exit 0; no result.collected in its record.json")
+    elif reading.returncode != 1 or not line:
         refuse("launcher", f"launch.py collect to verify DI-{found['id']}",
                refusal_in(reading.stderr) or f"exit {reading.returncode}",
                "act on the launcher's needed clause")
