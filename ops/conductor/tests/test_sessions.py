@@ -26,6 +26,7 @@ import os
 import re
 import shutil
 import signal
+import sqlite3
 import sys
 import threading
 import time
@@ -917,6 +918,27 @@ class TheTmuxAndLaunchRows(_Scratch):
 class TheCleanNeighbours(_Scratch):
     """Cold start, populated store, second member, attach, stop, export."""
 
+    def check_cold_start(self, proc) -> None:
+        """What a clean cold start shows: ready with role waiting on a
+        lead's grant, the member a worker, and no lead in the store."""
+        started = re.search(
+            r"started co SM-\d+ as (PT-\d+) in R-\d+ pane %\d+ gen \d+",
+            proc.stdout,
+        )
+        self.assertIsNotNone(started, proc.stdout)
+        participant = started.group(1)
+        self.assert_readiness(
+            proc.stdout, role_waiting=f"grant {participant} --roles lead"
+        )
+        who = re.search(
+            r"participant (PT-\d+) (\S+) session", self.store_who("co")
+        )
+        self.assertIsNotNone(who, "who printed no participant line")
+        self.assertEqual(who.group(1), participant)
+        self.assertEqual(who.group(2).split(","), ["worker"])
+        leads = self.coord("participants", "--role", "lead")
+        self.assertEqual(leads.stdout.strip(), "no participants")
+
     def test_cold_start_on_an_empty_store_binds_a_worker_and_no_lead(self):
         """The first native bind in an empty store is a worker; lead comes
         only from a lead's grant (sessions-lever.md at c1a69a78, A-495 b)."""
@@ -925,23 +947,27 @@ class TheCleanNeighbours(_Scratch):
         with self.subTest(id="cold-start", origin=origin_finding(11)):
             proc = self.sessions(*self.start_argv("co"))
             self.assertEqual(proc.exit, 0, proc.stderr)
-            started = re.search(
-                r"started co SM-\d+ as (PT-\d+) in R-\d+ pane %\d+ gen \d+",
-                proc.stdout,
-            )
-            self.assertIsNotNone(started, proc.stdout)
-            participant = started.group(1)
-            self.assert_readiness(
-                proc.stdout, role_waiting=f"grant {participant} --roles lead"
-            )
-            who = re.search(
-                r"participant (PT-\d+) (\S+) session", self.store_who("co")
-            )
-            self.assertIsNotNone(who, "who printed no participant line")
-            self.assertEqual(who.group(1), participant)
-            self.assertEqual(who.group(2).split(","), ["worker"])
-            leads = self.coord("participants", "--role", "lead")
-            self.assertEqual(leads.stdout.strip(), "no participants")
+            self.check_cold_start(proc)
+
+    def test_cold_start_catches_a_planted_lead_promotion(self):
+        """The fixture row for cold-start (docs/tests.md rule 3): the first
+        bound participant of an empty store is promoted to lead, and the
+        cold-start checks must fail on it. The promotion is planted in the
+        store after start returns, so it reaches who and participants; the
+        readiness line was printed before it and is not what catches it."""
+        self.skip_without_tmux()
+        self.plant_team(a_team(claude_member("co", ["lead"])))
+        with self.subTest(id="cold-start-planted-lead", origin=ORIGIN):
+            proc = self.sessions(*self.start_argv("co"))
+            self.assertEqual(proc.exit, 0, proc.stderr)
+            with sqlite3.connect(self.state / "state.db") as conn:
+                promoted = conn.execute(
+                    "UPDATE participants SET roles = 'lead,worker' "
+                    "WHERE id = (SELECT MIN(id) FROM participants)"
+                ).rowcount
+            self.assertEqual(promoted, 1, "the planted promotion did not land")
+            with self.assertRaises(AssertionError):
+                self.check_cold_start(proc)
 
     def test_start_on_a_populated_store_keeps_the_lead_and_binds_worker(self):
         self.skip_without_tmux()
