@@ -6,6 +6,12 @@ supervisor calls these five methods and no others: `argv`, `observe_identity`,
 `profiles.py run-interactive` path unchanged; the launch identity is passed
 the way Claude Code accepts one, `--session-id`.
 
+Slice 2 ("The adapter boundary, extended"): a Claude member is a TUI, so
+its `transport` is `tui`, it has no protocol `channel`, and its route is
+slice 1's stdout courier. `probe` now measures the channel capability:
+the installed Claude Code's help names `--dangerously-load-development-channels`
+or it reads `unsupported channel`, which is a reading, not a refusal.
+
 `diagnostics` adapts the proof's retention of a window's terminal capture
 as evidence, by path (Source:
 /home/scientdb/projects/poc/multi-harness-proof@a944f31, mhproof/sessions.py
@@ -28,6 +34,7 @@ PROFILES = REPO / "ops" / "devlane" / "hooks" / "profiles.py"
 PROBE_TIMEOUT = 10
 STOP_WAIT = 5.0
 EVIDENCE = ("pane.log", "stderr.log", "launch.json")
+CHANNEL_FLAG = "--dangerously-load-development-channels"
 
 
 def _start_ticks(pid: int) -> str | None:
@@ -48,10 +55,30 @@ def _wait_gone(pid: int, start: str, seconds: float) -> bool:
     return _start_ticks(pid) != start
 
 
+def _channel_capability(executable) -> str:
+    try:
+        done = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
+            [str(executable), "--help"], capture_output=True, text=True,
+            stdin=subprocess.DEVNULL, timeout=PROBE_TIMEOUT, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"unresolved channel: {type(error).__name__}: {error}"
+    if CHANNEL_FLAG in (done.stdout or "") + (done.stderr or ""):
+        return f"channel {CHANNEL_FLAG}"
+    return "unsupported channel"
+
+
 class Adapter:
     """Claude Code's native TUI, launched through the profile."""
 
     harness = "claude"
+
+    def transport(self):
+        return "tui"
+
+    def channel(self, member, binding):
+        """A TUI has no protocol channel; the bridge refuses it."""
+        return None
 
     def argv(self, member, binding, launch_id):
         """The fixed launch argv for the profile's run-interactive, never operator text."""
@@ -74,8 +101,8 @@ class Adapter:
         return None if row is None else row[0]
 
     def probe(self, executable):
-        """The installed version; the channel capability is slice 2's to measure."""
-        reading = {"executable": str(executable), "capability": "unmeasured slice 2"}
+        """The installed version and the channel capability its help names."""
+        reading = {"executable": str(executable), "capability": _channel_capability(executable)}
         try:
             done = subprocess.run(  # noqa: S603 - argv is a list, never a shell string
                 [str(executable), "--version"], capture_output=True, text=True,
