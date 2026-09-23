@@ -1540,6 +1540,9 @@ def _schema_valid(data):
                   "null": lambda: value is None}
         if kinds and not any(checks[kind]() for kind in kinds):
             return False
+        if "anyOf" in schema and not any(matches(value, branch)
+                                         for branch in schema["anyOf"]):
+            return False
         if "enum" in schema and value not in schema["enum"]:
             return False
         if isinstance(value, (int, float)) and "minimum" in schema and value < schema["minimum"]:

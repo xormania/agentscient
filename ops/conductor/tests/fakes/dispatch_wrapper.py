@@ -6,7 +6,8 @@ One JSON argv line per call, on the kit log beside this plant. The spec
 
 - ``launch`` (default): print ``record: <id>`` and ``launcher-pid: <pid>``,
   and write ``<jobs root>/<id>/state.json`` whose ``correlation`` is the
-  ``--correlation`` argument
+  ``--correlation`` argument. ``<id>`` is the spec key ``record`` when
+  set, else ``rec-`` and the correlation's alphanumerics
 - ``refuse``: print ``line`` on stderr and exit ``code`` (default 3),
   with no ``record:`` line
 - ``no-record``: exit ``code`` (default 0) with no ``record:`` line
@@ -92,14 +93,16 @@ def jobs_root() -> Path:
     return Path("dispatch")
 
 
-def record_id(correlation: str | None) -> str:
+def record_id(correlation: str | None, spec: dict) -> str:
+    if spec.get("record"):
+        return str(spec["record"])
     if not correlation:
         return "rec-none"
     return "rec-" + re.sub(r"[^0-9a-zA-Z]", "", correlation)
 
 
-def write_state(correlation: str | None) -> str:
-    ident = record_id(correlation)
+def write_state(correlation: str | None, spec: dict) -> str:
+    ident = record_id(correlation, spec)
     directory = jobs_root() / ident
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "state.json"
@@ -124,9 +127,9 @@ def main() -> int:
     if mode == "no-record":
         return int(spec.get("code") or 0)
     if mode == "write-die":
-        write_state(correlation)
+        write_state(correlation, spec)
         return int(spec.get("code") or 1)
-    ident = write_state(correlation)
+    ident = write_state(correlation, spec)
     sys.stdout.write(f"record: {ident}\n")
     sys.stdout.write(f"launcher-pid: {os.getpid()}\n")
     sys.stdout.flush()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The courier: carries queued coordination messages into a session.
 
-    courier.py watch [--tick N] [--once]
+    courier.py watch [--tick N] [--once] [--route stdout]
 
 A session arms this as a Monitor. Each pass it asks the coordination core
 for its own inbox, prints one line for every message no transport has
@@ -21,12 +21,24 @@ The participant is this process's own, resolved by the core from the
 session id in the environment. The courier names no participant and takes
 none: a courier that could choose whose messages to carry could deliver
 another participant's inbox into this session.
+
+Slice 2 (sessions-lever.md, "The shapes"): a courier holds its
+participant's route in the core's `delivery_routes` by its own pid and
+start ticks, stamps it every pass and gives it up when it stops, so a
+second courier of either route refuses `route` while this one lives.
+`watch` is the stdout route. The native route is the bridge's in-process
+call, `carry(module, submit=...)`, never a second process: from this CLI
+`--route native` refuses `transport`. A native pass reserves an attempt
+before each submission and settles it after; a reservation left
+unsettled past the ttl is reconciled through `observe` before anything
+new is submitted, and no transaction is held across a submission.
 """
 
 import sys
 
 sys.dont_write_bytecode = True
 
+import os  # noqa: E402
 import time  # noqa: E402
 
 try:
@@ -53,6 +65,10 @@ INBOX_VERB = "inbox"
 INBOX_KEY = "messages"
 UNDELIVERED_KEY = "undelivered"
 DELIVER_VERB = "deliver"
+ROUTE_VERB = "route"
+ATTEMPT_VERB = "attempt"
+ATTEMPTED_VERB = "attempted"
+OUTCOMES = ("written", "accepted", "unsupported", "failed", "uncertain")
 UNDELIVERED_VERB = "undelivered"
 TICK_DEFAULT = 30
 REF_PREFIX = "courier"
@@ -111,12 +127,8 @@ def line(row, at: str) -> str:
             f"from {row.get('sender')}: {row.get('body')}")
 
 
-def carry(module) -> int:
-    """One pass: every waiting message printed and recorded delivered.
-
-    The store is opened for writing because recording the receipt is a
-    write; the read alone would not be enough to close the gap it finds.
-    """
+def opened(module):
+    """The store for writing and this process's own participant."""
     opener = getattr(module, CORE_WRITER, None)
     resolver = getattr(module, CORE_RESOLVE, None)
     if not callable(opener) or not callable(resolver):
@@ -124,10 +136,52 @@ def carry(module) -> int:
                "absent from coordination.py",
                "land the store opener and the participant resolver")
     conn = opener()
-    part = resolver(conn)
+    return conn, resolver(conn)
+
+
+def carriable(module, conn, part) -> list:
+    """What this participant's courier carries now. With slice 2's core, a
+    role-addressed message only when this participant is the single live
+    holder of the role; before it, every undelivered message addressed here."""
+    reading = getattr(module, "carriable", None)
+    if callable(reading):
+        return [row for row in reading(conn, part)["carry"] if isinstance(row, dict)]
+    return undelivered(module, conn, part)
+
+
+def holder() -> tuple[int, str | None]:
+    """This process's pid and start ticks: what a route is held by."""
+    pid = os.getpid()
+    ticks = None
+    try:
+        with open(f"/proc/{pid}/stat", encoding="utf-8") as handle:
+            ticks = handle.read().rsplit(")", 1)[1].split()[19]
+    except (OSError, IndexError):
+        pass
+    return pid, ticks
+
+
+def carry(module, submit=None, *, observe=None, generation=1):
+    """One pass. Without `submit`, the stdout route: every waiting message
+    printed and recorded delivered, and the count returned. With it, the
+    native route: see `carry_native`.
+
+    The store is opened for writing because recording the receipt is a
+    write; the read alone would not be enough to close the gap it finds.
+    """
+    if submit is not None:
+        return carry_native(module, submit, observe=observe, generation=generation)
+    conn, part = opened(module)
+    try:
+        return carry_stdout(module, conn, part)
+    finally:
+        conn.close()
+
+
+def carry_stdout(module, conn, part) -> int:
     deliver = verb(module, DELIVER_VERB)
     carried = 0
-    for row in undelivered(module, conn, part):
+    for row in carriable(module, conn, part):
         message = row.get("message")
         if not isinstance(message, str):
             continue
@@ -148,23 +202,125 @@ def carry(module) -> int:
     return carried
 
 
+def settle_outcome(outcome: str) -> dict:
+    """An adapter's submission reading as `attempted`'s arguments."""
+    word, _, rest = str(outcome).partition(" ")
+    if word not in OUTCOMES:
+        return {"outcome": "uncertain", "error": f"unread submission outcome: {outcome}"}
+    if word == "written":
+        return {"outcome": "written"}
+    if word in ("accepted", "unsupported"):
+        return {"outcome": word, "ref": rest or None, "error": None if rest else outcome}
+    return {"outcome": word, "error": rest or outcome}
+
+
+def carry_native(module, submit, *, observe=None, generation=1) -> list:
+    """One native pass: reconcile, then reserve, submit and settle each message.
+
+    A reservation unsettled past the core's ttl is a crash between the
+    submission and its settlement. `observe(message)` reads the native
+    session's evidence for it: `seen` settles it `accepted reconciled`, and
+    anything else settles it `uncertain`, after which the message is
+    carried again below with one new attempt. `submit(row)` returns the
+    adapter's reading. Each core write is its own transaction; none is
+    open while `submit` or `observe` runs.
+    """
+    conn, part = opened(module)
+    attempt = verb(module, ATTEMPT_VERB)
+    attempted = verb(module, ATTEMPTED_VERB)
+    passed = []
+    try:
+        for stale in module.stale_attempts(conn, part)["stale"]:
+            reading = observe(stale["message"]) if observe is not None else "unseen: no observer"
+            if str(reading).startswith("seen"):
+                shown = attempted(conn, part, attempt=stale["attempt"], outcome="accepted",
+                                  ref="reconciled")
+            else:
+                shown = attempted(conn, part, attempt=stale["attempt"], outcome="uncertain",
+                                  error=str(reading))
+            passed.append({"message": stale["message"], "attempt": stale["attempt"],
+                           "outcome": shown["outcome"]})
+        for row in carriable(module, conn, part):
+            try:
+                reserved = attempt(conn, part, message=row["message"], route="native",
+                                   generation=generation)
+            except Refusal as refusal:
+                if refusal.kind != "place":
+                    raise
+                passed.append({"message": row["message"], "attempt": None,
+                               "outcome": f"held {refusal.found}"})
+                continue
+            outcome = submit(row)
+            shown = attempted(conn, part, attempt=reserved["attempt"],
+                              **settle_outcome(outcome))
+            passed.append({"message": row["message"], "attempt": reserved["attempt"],
+                           "outcome": shown["outcome"]})
+    finally:
+        conn.close()
+    return passed
+
+
+def take_route(module, route: str, *, member=None) -> dict | None:
+    """Hold this participant's route, or refuse `route` naming the live holder.
+    A core without routes (before slice 2) holds none and says so by None."""
+    table = getattr(module, CORE_TABLE, {})
+    if not (isinstance(table, dict) and callable(table.get(ROUTE_VERB))):
+        return None
+    pid, ticks = holder()
+    conn, part = opened(module)
+    try:
+        return table[ROUTE_VERB](conn, part, action="take", route=route, pid=pid,
+                                 start_ticks=ticks, member=member)
+    finally:
+        conn.close()
+
+
+def route_step(module, action: str) -> dict | None:
+    """`pass` stamps the route this process holds; `release` gives it up."""
+    table = getattr(module, CORE_TABLE, {})
+    if not (isinstance(table, dict) and callable(table.get(ROUTE_VERB))):
+        return None
+    pid, ticks = holder()
+    conn, part = opened(module)
+    try:
+        return table[ROUTE_VERB](conn, part, action=action, pid=pid, start_ticks=ticks)
+    finally:
+        conn.close()
+
+
 def watch(tick: int, once: bool) -> int:
     module = core()
-    while True:
-        carry(module)
-        if once:
-            return 0
-        time.sleep(tick)
+    held = take_route(module, "stdout")
+    try:
+        while True:
+            if held is not None:
+                route_step(module, "pass")
+            carry(module)
+            if once:
+                return 0
+            time.sleep(tick)
+    finally:
+        if held is not None:
+            route_step(module, "release")
 
 
 def cli(argv: list[str]) -> tuple[int, bool]:
     if not argv or argv[0] != "watch":
-        refuse("arguments", "watch [--tick N] [--once]",
+        refuse("arguments", "watch [--tick N] [--once] [--route stdout]",
                repr(argv) if argv else "no verb", "use the declared verb")
     rest, tick, once = argv[1:], TICK_DEFAULT, False
     while rest:
         if rest[0] == "--once":
             once, rest = True, rest[1:]
+            continue
+        if rest[0] == "--route":
+            named = rest[1] if len(rest) > 1 else "no value"
+            if named == "native":
+                refuse("transport", "the stdout route from this CLI", "--route native",
+                       "the native route is the bridge's own call: sessions.py bridge")
+            if named != "stdout":
+                refuse("arguments", "--route stdout or native", named, "pass --route stdout")
+            rest = rest[2:]
             continue
         if rest[0] == "--tick":
             if len(rest) < 2 or not rest[1].isdigit() or int(rest[1]) < 1:
@@ -173,7 +329,7 @@ def cli(argv: list[str]) -> tuple[int, bool]:
                        "pass --tick 30")
             tick, rest = int(rest[1]), rest[2:]
             continue
-        refuse("arguments", "watch [--tick N] [--once]", repr(rest[0]),
+        refuse("arguments", "watch [--tick N] [--once] [--route stdout]", repr(rest[0]),
                "use the declared options")
     return tick, once
 
