@@ -454,6 +454,47 @@ class SharedEnforcement(unittest.TestCase):
                     command, _ = profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
                     self.assertIn("/usr/bin/true", command)
 
+    def test_the_bridge_channel_argv_is_admitted_whole_and_nothing_near_it(self):
+        # origin: ops/conductor/sessions-lever.md at 8d854675, Slice 2, "Required of
+        # the wall" (1), T-486; found by agentscient-5c 2026-09-23 03:05Z: every codex
+        # and grok member read `process refused gone`, run-interactive refusing the
+        # adapters' channel() argv as "unknown native command".
+        root = Path(__file__).resolve().parents[4]
+        channels = {"codex": ["app-server", "--listen", "stdio://"],
+                    "grok": ["--no-auto-update", "agent", "stdio"]}
+        near = {
+            "codex": [["app-server"], ["app-server", "--listen"], ["app-server", "--listen", "ws://127.0.0.1:4500"],
+                      ["app-server", "--listen=stdio://"], ["app-server", "--listen", "stdio://", "--model", "fixture"],
+                      ["app-server", "--listen", "stdio://", "-c", 'model_reasoning_effort="high"'],
+                      ["--model", "fixture", "app-server", "--listen", "stdio://"], ["app-server", "daemon"],
+                      ["app-server", "proxy"], ["app-server", "--listen", "stdio://", "--", "A plain prompt"]],
+            "grok": [["agent", "stdio"], ["--no-auto-update"], ["--no-auto-update", "agent"],
+                     ["--no-auto-update", "agent", "serve"], ["--no-auto-update", "agent", "headless"],
+                     ["--no-auto-update", "agent", "stdio", "--sandbox=none"],
+                     ["--model", "fixture", "--no-auto-update", "agent", "stdio"],
+                     ["--no-auto-update", "agent", "stdio", "--", "A plain prompt"]],
+        }
+        for harness in profiles.HARNESSES:
+            binding = profiles.generate(harness, self.world.root / ("channel-" + harness), source=root,
+                                        cwd=self.repo, mode="interactive", executable="/usr/bin/true")
+            for owner, channel in channels.items():
+                if owner != harness:
+                    with self.subTest(harness=harness, channel=owner), self.assertRaises(ValueError):
+                        profiles.native_launch(binding, ["/usr/bin/true", *channel], self.env)
+            if harness not in channels:
+                continue
+            with self.subTest(harness=harness, channel=harness):
+                try:
+                    command, _ = profiles.native_launch(binding, ["/usr/bin/true", *channels[harness]], self.env)
+                except ValueError as refusal:
+                    self.fail(f"refused the bridge's channel argv: {refusal}")
+                self.assertEqual(command[command.index("/usr/bin/true") + 1:],
+                                 {"codex": ["--dangerously-bypass-hook-trust", *channels["codex"]],
+                                  "grok": channels["grok"]}[harness])
+            for args in near[harness]:
+                with self.subTest(harness=harness, args=args), self.assertRaises(ValueError):
+                    profiles.native_launch(binding, ["/usr/bin/true", *args], self.env)
+
     def test_claude_interactive_admits_a_launch_session_id(self):
         # origin: ops/conductor/sessions-lever.md at 13664232, "Identity, without
         # impersonation": the supervisor passes its launch id as `claude --session-id`.
