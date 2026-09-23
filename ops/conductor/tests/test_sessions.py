@@ -334,12 +334,14 @@ class _Scratch(unittest.TestCase):
         case = RefusalCase(id=case_id, argv=proc.argv[2:], cls=klass, origin=ORIGIN)
         return refusal_wire(case, proc).line
 
-    def assert_readiness(self, text: str) -> None:
+    def assert_readiness(self, text: str, *, role_waiting: str | None = None) -> None:
         """origin: 20260922T215604Z-review-codex-f6777b#11
 
         ``ready`` requires process, profile, identity, participant and
         role to read ok, never waiting or refused. Slice 2 reads
-        unmeasured and never ok.
+        unmeasured and never ok. ``role_waiting`` is the one exception the
+        contract allows: a request above worker with no lead's grant reads
+        ``role waiting <role_waiting>`` and the member is still ready.
         """
         found = {dim: [] for dim in READINESS}
         pattern = re.compile(
@@ -351,6 +353,17 @@ class _Scratch(unittest.TestCase):
                 found[match.group(1)].append(match.group(2))
         for dim in ("process", "profile", "identity", "participant", "role"):
             states = found[dim]
+            if dim == "role" and role_waiting is not None:
+                self.assertRegex(
+                    text,
+                    re.compile(
+                        rf"(?:^|\s)role\s*:?\s*waiting\s+{re.escape(role_waiting)}\s*$",
+                        re.MULTILINE,
+                    ),
+                )
+                self.assertNotIn("ok", states, f"role reads ok: {text!r}")
+                self.assertNotIn("refused", states, f"role reads refused: {text!r}")
+                continue
             self.assertIn("ok", states, f"{dim} must read ok, found {states!r} in {text!r}")
             self.assertNotIn("waiting", states, f"{dim} reads waiting: {text!r}")
             self.assertNotIn("refused", states, f"{dim} reads refused: {text!r}")
@@ -904,19 +917,31 @@ class TheTmuxAndLaunchRows(_Scratch):
 class TheCleanNeighbours(_Scratch):
     """Cold start, populated store, second member, attach, stop, export."""
 
-    def test_cold_start_on_an_empty_store_binds_lead(self):
+    def test_cold_start_on_an_empty_store_binds_a_worker_and_no_lead(self):
+        """The first native bind in an empty store is a worker; lead comes
+        only from a lead's grant (sessions-lever.md at c1a69a78, A-495 b)."""
         self.skip_without_tmux()
         self.plant_team(a_team(claude_member("co", ["lead"])))
         with self.subTest(id="cold-start", origin=origin_finding(11)):
             proc = self.sessions(*self.start_argv("co"))
             self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assert_readiness(proc.stdout)
-            self.assertRegex(
+            started = re.search(
+                r"started co SM-\d+ as (PT-\d+) in R-\d+ pane %\d+ gen \d+",
                 proc.stdout,
-                r"started co SM-\d+ as PT-\d+ in R-\d+ pane %\d+ gen \d+",
             )
-            who = self.store_who("co")
-            self.assertIn("lead", who)
+            self.assertIsNotNone(started, proc.stdout)
+            participant = started.group(1)
+            self.assert_readiness(
+                proc.stdout, role_waiting=f"grant {participant} --roles lead"
+            )
+            who = re.search(
+                r"participant (PT-\d+) (\S+) session", self.store_who("co")
+            )
+            self.assertIsNotNone(who, "who printed no participant line")
+            self.assertEqual(who.group(1), participant)
+            self.assertEqual(who.group(2).split(","), ["worker"])
+            leads = self.coord("participants", "--role", "lead")
+            self.assertEqual(leads.stdout.strip(), "no participants")
 
     def test_start_on_a_populated_store_keeps_the_lead_and_binds_worker(self):
         self.skip_without_tmux()
