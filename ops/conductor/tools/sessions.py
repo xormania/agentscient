@@ -2186,7 +2186,7 @@ def trial_accept(rest):
     try:
         objective = json.loads(objective_file.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        refuse("acceptance", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
+        refuse("objective", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
                f"sessions.py trial objective R-{run['id']} before any acceptance")
     rows = checked_record(options["record"])
     evidence = rows["I-14"]["evidence"]
