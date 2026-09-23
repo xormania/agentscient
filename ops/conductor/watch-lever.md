@@ -13,10 +13,11 @@ executable.
 (argparse, json, subprocess, time). It shells to the `gh` CLI found on
 PATH — and only to `gh` — so tests may stub it with a fake executable.
 
-Test apparatus: `WATCH_TICK_SCALE`, when set, scales the poll sleep
-and the elapsed reading together, so the interval floor stays on the
-wire while a suite does not wait through real polls. Unset means real
-time. The suite sets it to 0.02; nothing else does.
+Test apparatus: `WATCH_TICK_SCALE`, when set, scales requested poll sleeps
+while counting their declared logical interval. Subprocess startup and other
+work consume actual elapsed time once; they are never divided by the scale.
+This keeps the interval floor on the wire without amplifying host scheduling
+delays. Unset means real time. The suite sets it to 0.02; nothing else does.
 
 ## The pinned reading
 
