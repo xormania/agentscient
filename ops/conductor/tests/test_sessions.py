@@ -44,6 +44,8 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 HOLDER_SRC = FAKES / "session_holder.py"
+CODEX_SRC = FAKES / "session_codex.py"
+GROK_SRC = FAKES / "session_grok.py"
 ADAPTER_SRC = FAKES / "session_adapter_claude.py"
 REVIEW = "20260923T003033Z-review-codex-c99cc9"
 ORIGIN = "sessions-lever.md"
@@ -484,20 +486,26 @@ class TheRefusalTable(_Scratch):
         """Declared gap: planted faults follow the implementation; no mutants file.
 
         origin: 20260922T215604Z-review-codex-f6777b#4
-        An undeclared verb and option, neither of them the four examples
-        frobnicate, join, recover and --nope, refuse arguments.
+        An undeclared verb and option, neither of them the examples
+        frobnicate and --nope, refuse arguments. ``join`` and ``recover``
+        are slice 2 verbs: ``join`` without ``--run`` and ``recover`` with
+        an option it does not declare or a malformed run id refuse
+        arguments naming what is wrong (sessions-lever.md slice 2).
         """
         extra_verb = "v" + hashlib.sha256(b"sessions-lever arguments").hexdigest()[:12]
         extra_option = "--" + hashlib.sha256(b"sessions-lever option").hexdigest()[:12]
         rows = (
             RefusalCase(id="unknown-verb", argv=("frobnicate",),
                         cls="arguments", origin=ORIGIN),
-            RefusalCase(id="slice2-join", argv=("join",),
+            RefusalCase(id="join-without-run", argv=("join",),
                         cls="arguments", origin=ORIGIN,
-                        named=("join",)),
-            RefusalCase(id="slice2-recover", argv=("recover",),
+                        named=("--run",)),
+            RefusalCase(id="recover-undeclared-option", argv=("recover", "--member", "grunt"),
                         cls="arguments", origin=ORIGIN,
-                        named=("recover",)),
+                        named=("--member",)),
+            RefusalCase(id="recover-malformed-run", argv=("recover", "--run", "nonsense"),
+                        cls="arguments", origin=ORIGIN,
+                        named=("nonsense",)),
             RefusalCase(id="unknown-option", argv=("status", "--nope"),
                         cls="arguments", origin=ORIGIN),
             RefusalCase(id="undeclared-verb", argv=(extra_verb,),
@@ -1689,8 +1697,16 @@ class TheSupervisorBoundaries(_Scratch):
 
 
 class TheDoctorDefaultTeam(_Scratch):
-    def test_doctor_reports_missing_adapter_for_codex_and_grok(self):
-        with self.subTest(id="doctor-missing-adapter", origin=ORIGIN):
+    def test_doctor_reads_the_codex_and_grok_adapters(self):
+        """origin: sessions-lever.md slice 2
+
+        Slice 2 lands the codex and grok adapters: ``doctor`` reads each
+        protocol member's planted executable and its adapter ``ok`` and
+        exits 0 (slice 1's ``missing adapter`` reading is withdrawn).
+        """
+        with self.subTest(id="doctor-protocol-adapters", origin=ORIGIN):
+            for name, source in (("codex", CODEX_SRC), ("grok", GROK_SRC)):
+                self.world.tools.plant(name, script=_fake_text(source))
             team = a_team(
                 claude_member("co", ["lead"]),
                 {"name": "dispatcher", "harness": "codex", "roles": ["dispatcher"]},
@@ -1698,10 +1714,17 @@ class TheDoctorDefaultTeam(_Scratch):
             )
             path = self.plant_team(team)
             proc = self.sessions("doctor", "--team", str(path), identity=None)
-            self.assertEqual(proc.exit, 1, proc.stdout)
+            self.assertEqual(proc.exit, 0, proc.stdout)
             text = proc.stdout
-            self.assertIn("adapter", text)
-            self.assertTrue("codex" in text and "grok" in text, text)
+            for member, harness in (("dispatcher", "codex"), ("grunt", "grok")):
+                self.assertIn(
+                    f"ok adapter {member} ({harness}): "
+                    f"ops/conductor/tools/session_adapters/{harness}.py", text,
+                )
+                self.assertIn(
+                    f"ok executable {member} ({harness}): {self.world.bin / harness}", text,
+                )
+            self.assertNotIn("missing adapter", text)
 
 
 if __name__ == "__main__":
