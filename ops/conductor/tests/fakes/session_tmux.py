@@ -38,6 +38,8 @@ def main() -> int:
         env=os.environ.copy(),
         timeout=30,
     )
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
     return result.exit
 
 

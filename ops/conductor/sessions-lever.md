@@ -99,7 +99,7 @@ Each is one of `ok <evidence>`, `waiting <what>`, `refused <class>`, or
 |---|---|
 | process | `ok pid=N start=TICKS` from `/proc/N/stat`, or `waiting`/`refused` |
 | profile | `ok <profile dir>` when `profiles.py check` exits 0 on it; its refusal line otherwise |
-| identity | `ok <session id>` when a participant bound to the launch id appears in the coordination store; `refused native` when one appears bound to another id |
+| identity | `ok <session id>` when a participant bound to the launch id appears in the coordination store; `refused native` when the store shows a participant for this member under another id, or when the member's `pane.log` carries the profile's own `native` refusal line (the profile refuses a mismatched payload before any bind) |
 | participant | `ok PT-n` |
 | role | `ok <roles>` when the store's roles cover the request; `waiting grant PT-n --roles <missing>` otherwise |
 | tools | `unmeasured slice 2` |
@@ -124,10 +124,17 @@ carries a participant's capability, never binds on a member's behalf,
 never grants: a role above `worker` is granted by the live lead, either
 the operator's own lead capability in `COORDINATION_CAPABILITY` when
 `start` runs from the lead's shell, or by the lead's own
-`coordination.py grant` afterwards, which `status` then observes. An
-empty store's first bind is the store's own rule (the first participant
-is lead) and is measured by the cold-start test; a populated store is
-the ordinary case and is never wiped.
+`coordination.py grant` afterwards, which `status` then observes. The
+first native bind in an empty store is a worker like every other
+(`initialize` binds `worker` and the core never promotes); lead comes
+only from a lead's grant or an owner-authorized recovery, and the
+cold-start row asserts worker and no lead. On a store that does not
+exist or lacks the coordination schema, `start` creates the schema
+through the core's writer and writes no participant row, because the
+profile's `initialize` refuses a missing store and the first bind must
+stay the profile's (slice 1; the cleaner form, `initialize` creating
+the store it binds into, is a wall change filed for after slice 1). A
+populated store is the ordinary case and is never wiped.
 
 ### tmux ownership
 
