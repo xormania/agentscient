@@ -656,6 +656,24 @@ class TheOwnerTerminal(unittest.TestCase):
         self.refused(lambda: self.m.mint_terminal_profile("R-3", "PT-7", "cd" * 32))
         self.assertEqual(Path(path).read_text(), before)
 
+    def test_mint_token_is_a_fresh_capability_each_call(self):
+        # agentscient-10's side calls it before the INSERT: the token, then the row.
+        first, second = self.m.mint_token(), self.m.mint_token()
+        for token in (first, second):
+            self.assertRegex(token, r"\A[0-9a-f]{64}\Z")
+        self.assertNotEqual(first, second)
+
+    def test_a_failed_commit_removes_only_the_pointer_it_wrote(self):
+        # A COMMIT that fails after the file exists leaves a pointer whose participant
+        # never landed; the retry reuses the id, and O_EXCL would refuse it.
+        path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
+        self.assertFalse(self.m.remove_terminal_profile("R-3", "PT-7", "cd" * 32))
+        self.assertTrue(Path(path).is_file())
+        self.assertTrue(self.m.remove_terminal_profile("R-3", "PT-7", self.CAP))
+        self.assertFalse(Path(path).exists())
+        self.assertFalse(self.m.remove_terminal_profile("R-3", "PT-7", self.CAP))
+        self.assertEqual(Path(self.m.mint_terminal_profile("R-3", "PT-7", "cd" * 32)), path)
+
     def test_mint_refuses_a_malformed_run_terminal_or_capability(self):
         for run_id, terminal, capability in [("R-x", "PT-1", self.CAP), ("R-1", "PT-1/..", self.CAP),
                                              ("R-1", "PT-1", "zz"), ("R-1", "PT-1", None)]:
