@@ -203,11 +203,13 @@ class Adapter(common.ProtocolAdapter):
             return self.reconcile(rpc, str(frame["reconcile"]))
         method = frame.get("method")
         params = frame.get("params") if isinstance(frame.get("params"), dict) else {}
-        if "id" in frame and method is not None:
-            return self.answer(rpc, frame, method, params)
+        # Another thread's frame is refused before anything is sent: a
+        # request naming it is that session's to answer, never this bridge's.
         other = self.other_native(thread_of(params))
         if other is not None:
             return other
+        if "id" in frame and method is not None:
+            return self.answer(rpc, frame, method, params)
         if method == "turn/started":
             self.turn = turn_of(params) or self.turn
             return "activity active"
@@ -229,16 +231,16 @@ class Adapter(common.ProtocolAdapter):
         return f"native {named}" if named else f"other {method}"
 
     def answer(self, rpc, frame, method, params):
-        """Decline what the app-server asks; the prompt is printed, not kept."""
-        other = self.other_native(thread_of(params))
+        """Decline what the app-server asks of this thread; the prompt is
+        printed, not kept. observe has refused another thread's request."""
         title = self.title(params, method)
         if method in DECLINE:
             rpc.answer(frame, result=DECLINE[method])
             print(f"permission asked: {title}; answered {json.dumps(DECLINE[method])}", flush=True)
-            return other or f"permission {title}"
+            return f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
         print(f"permission asked: {title}; answered declined, not handled", flush=True)
-        return other or f"permission {title}"
+        return f"permission {title}"
 
     @staticmethod
     def title(params, method) -> str:
