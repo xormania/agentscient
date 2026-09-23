@@ -2102,7 +2102,7 @@ TRIAL_IDS = tuple(f"I-{n:02d}" for n in range(1, 15))
 TRIAL_ROW = re.compile(r"I-\d{2}")
 NOT_MEASURED = re.compile(r"not measured\b\s*(.*)", re.IGNORECASE)
 VERIFIED = re.compile(r"(?<![\w-])verified ([0-9a-f]{40})(?![0-9a-f])")
-LIVE = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
+LIVE_CELL = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
 MOCK = re.compile(r"(?<![\w/.-])mock\s+\S+")
 
 
@@ -2205,7 +2205,7 @@ def trial_accept(rest):
     fakes = objective.get("fakes", [])
     for key in TRIAL_IDS:
         row = rows[key]
-        if not LIVE.search(row["evidence"]):
+        if not LIVE_CELL.search(row["evidence"]):
             continue
         if MOCK.search(row["evidence"]):
             refuse("acceptance", f"{key}'s evidence as mock <name> or live, one of them",
