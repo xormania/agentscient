@@ -390,7 +390,7 @@ keeps beyond them (codex and grok's `reconcile`, `answer`,
 | `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
 | `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
 | `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
-| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native`), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
 
 `rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
 the parser and the writer lock, adapted from the proof's `RPC`
@@ -788,3 +788,145 @@ Clean neighbours: a launch with `--input` past `SCOPE_CAP` in size
 no identity); an event for a record with no intent (acked, no send).
 No live launcher runs in the suite; the live ask is plan §13 step 4 by
 hand, its readings to probe rows.
+
+## Slice 4 — operational trial and closure
+
+Standing: proposed, from plan §11 "Slice 4" and §13 "Live trial and final
+acceptance" (`.xor/in/multi-agents/agentscient-dev-lane-multi-harness-integration-plan-2026-09-22.md`),
+written 2026-09-23 at the Lead's order so slice 4 starts the minute
+slice 3 lands. Slice 4 adds no machinery: it runs what slices 1 to 3
+built on one bounded real deliverable, with independent verification,
+and closes the integration with evidence by acceptance id. Where a
+slice 1 to 3 clause already covers a row, this section cites it and
+adds nothing.
+
+### The trial deliverable
+
+The trial is a real defect with a fix that runs through the whole path
+(plan §13: "one already-authorized small deliverable ... actual
+repository tools and an artifact/candidate"):
+
+| order | deliverable | why it qualifies |
+|---|---|---|
+| trial | LD-123: `coordination.py` `offer` and `reassign` refuse an assignment already `offered`, so a coordinator cannot re-target work offered to the wrong participant (met live on A-479, 2026-09-22; ruled by the Lead: a coordinator may re-target an offered assignment, the prior offer kept in the marking) | one file, one verb pair, a planted fault the fixture set already knows (an `offered` row), a fix a dispatched worker can carry and a verifier can examine against the contract |
+| fallback | LD-117: the amend-published row in `unsafe-command.py` judges the cwd's HEAD, never the repository named by `git -C` | taken only when LD-123 is refused at its start (its file under another slice's open edit, or the store refusing the planted row); a hook row is wall, so the fallback's fix is a wall session's and the trial then exercises the wall boundary instead of the coordination store |
+
+The XO names which one at the trial's start, in the run's objective
+record, with the reading that decided it. The trial never carries both.
+
+### Owners
+
+| path | owner | why |
+|---|---|---|
+| `ops/conductor/tools/onboard.py`, `ops/conductor/onboard-lever.md`, role guidance under `ops/conductor/`, `.claude/skills/*` | S4 | the one documented start path (I-01) and what a new session reads |
+| `ops/conductor/handoff/runbook-managed-sessions.md` (new) | S4 | the short runbook: start, inspect, stop, resume, disable |
+| `ops/conductor/handoff/<date>-slice4-trial.md` (new) | S4 | the trial record: the acceptance matrix with evidence by id |
+| the trial deliverable's file (`coordination.py` for LD-123) | the dispatched worker of the trial job, never a management seat | the candidate is produced by the path under test |
+| the independent verifier's record | the verifier session, never the builder or the XO | I-10 and I-14 need a producer who wrote none of the candidate |
+
+### The shapes
+
+**The objective record**, one file, written by the CO before any
+assignment: the deliverable's id, the acceptance requirements (the
+contract clauses the fix must satisfy, by line), the candidate's
+starting ref, and the two controlled cases the verifier will plant (an
+omitted behaviour and a changed candidate). An objective without the two
+cases is refused `objective`.
+
+**The trial record** is a table with one row per acceptance id I-01 to
+I-14 (plan §13), each row `id | required result | evidence | reading`,
+where `evidence` is a path plus sha, a record id, or a probe row id, and
+`reading` is the measured line, or `not measured` with why. A row whose
+evidence is a mock's pass is written `mock <name>`, never `live` (plan
+§13: "No result is labeled live merely because a mock matched"). The
+crosswalk AC-01 to AC-14 is a second table over the same evidence; it
+never declares the September 16 objective complete.
+
+**The run export**: `sessions stop` (slice 1) then `telemetry` for the
+run, preserving every attempt including the failed ones, plus
+`coordination.py` `decisions` and `observations` for the run's
+participants, into `<state dir>/runs/R-n/export/` (plan §10). The export
+is complete when the runbook's export command exits 0 and names every
+member's pane log and the run's dispatch record ids.
+
+**The handoff** (plan §13): the candidate revision, the source-adaptation
+manifest (`SOURCES.md` rows), the actual configuration and command
+examples, acceptance evidence by id, native version and probe results,
+trial timings, total usage where the harness exposes it, known gaps, and
+the disable and rollback procedure. Written as a `handoff.py` package
+with one thread per open gap.
+
+### The trial steps, as transitions
+
+Each step is a transition in the run's workflow (docs/workflow.md):
+actor, evidence duty, failure class, gate. A step whose evidence duty is
+unmet does not advance; the trial record says which step stopped it.
+
+| step | actor | evidence duty | failure class | gate |
+|---|---|---|---|---|
+| 1 start | owner's terminal | `sessions start` line per member with eight `ok` or declared `unmeasured` (slice 2 readiness), onboard brief exit 0, enforcement observed separately from readiness | `readiness` | I-01, I-02, I-03 |
+| 2 objective and conflict | CO, then XO | the objective record; one controlled conflict: two claims on one resource, the refusal line, the release, the later progress, all from the store | `conflict` | I-10 first half |
+| 3 cross-harness question | a persistent member | a `send` to another harness's member, its native delivery (slice 2 `delivery_attempts`), the reply in the recipient's existing session, delivery and acknowledgment latency from the store's stamps | `ingress` | I-05, I-04 |
+| 4 dispatch | Dispatcher | `coord_launch` of a catalogue job with full input references and `--for A-n` (slice 3), the execution identity received by requester and XO from the store, not by message | `launch` | I-07 |
+| 5 worker blocker | the dispatched worker | a question through acting MCP received by management while the assignment stays open; the record states whether the return path was live ingress or a checkpoint (never "live steering" for a one-shot route) | `ingress` | I-09 |
+| 6 result and verification | Dispatcher, then verifier | `coord_collect` result; the verifier's examination of the candidate against the objective; the omitted-behaviour case and the changed-candidate case each **fail** acceptance, with the failing line | `acceptance` | I-10 second half, I-14 |
+| 7 detach and recover | owner, then observer | `attach` and re-attach with the native sessions untouched; `recover` (slice 2) over the same pending and complete records; a process-loss case against a sacrificial member only, the `lose-<place>` marking and the replacement's next generation | `recovery` | I-11 |
+| 8 stop and export | XO | `stop` accounting for owned sessions and detached jobs, unrelated tmux resources surviving (measured by a server list before and after); the run export with failed attempts kept | `export` | I-12, I-13 |
+
+### Refusals added
+
+| class | when |
+|---|---|
+| `objective` | an objective record without the deliverable id, the requirements by clause, or the two controlled cases |
+| `acceptance` | an acceptance claim whose candidate sha is not the verified sha (stale evidence), or whose evidence is a mock written as live; the controlled cases must be refused here or the verifier is not independent |
+| `evidence` | a trial record row with neither a reading nor `not measured <why>` |
+| `export` | an export missing a member's pane log or a dispatch record id the run launched |
+
+Every other refusal in the trial is one of slices 1 to 3 and keeps its
+class there.
+
+### Closure
+
+Closure is measured, not declared:
+
+1. the trial record has a reading or a declared absence in all fourteen
+   rows, and rows I-10 and I-14 read `refused` for both controlled cases;
+2. `ops/bin/suites.sh` green on the integrated candidate, and the
+   repository's required checks on its PR;
+3. the runbook's five commands (start, inspect, stop, resume, disable)
+   each measured once in the record with their exit;
+4. the disable procedure measured: the managed-session entry point
+   disabled, coordination history and dispatch records intact, the
+   existing CLI, dispatch and read-MCP paths still usable, no branch
+   history touched.
+
+At closure the dev-lane change stops expanding (plan §13, last line);
+what follows is operating evidence, not more rows.
+
+### Required of the wall
+
+None expected. Declared, not inferred: the LD-117 fallback is a wall fix
+(`unsafe-command.py`), so choosing the fallback adds one wall session
+whose deliverable is that row and nothing else.
+
+### Tests
+
+Slice 4 owns no new suite. Its fixtures are the controlled cases and
+they live with the verifier's record, not under `ops/conductor/tests/`:
+
+- **omitted behaviour**: the candidate lacks one requirement clause; the
+  verifier's acceptance reads `refused acceptance` naming the clause;
+- **changed candidate**: the candidate sha moves after verification; the
+  acceptance reads `refused acceptance` naming both shas;
+- **process loss**: a sacrificial member's process is ended outside the
+  supervisor; `recover` marks `lose-<place>`, a replacement mints the
+  next generation, the old row stays (slice 2 `recover`);
+- **stop leaves strangers alone**: a tmux server on another socket
+  started before the run survives `stop`; the server list before and
+  after is the reading (slice 1 tmux ownership).
+
+The existing suites are the regression floor: slices 1 to 3's modules,
+`test_dispatch_wrapper`, `test_handoff`, `test_monitor*`, and the
+read-MCP rows, all green at the candidate. A probes corpus row per
+acceptance id (`P-sessions4-I-nn`) serves the trial record's evidence
+cell, so the hand-over of the trial is computable (docs/probes.md).
