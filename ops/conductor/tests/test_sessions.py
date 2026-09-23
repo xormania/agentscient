@@ -69,6 +69,9 @@ SOCKET_LIMIT = 108
 LEAD_SESSION = "lead-already-bound"
 WORKER_SESSION = "worker-already-bound"
 HOST_TMUX = shutil.which("tmux")
+# A recorded tmux server's stop, and each of the kit's escalations after it.
+SERVER_STOP = 10.0
+ORIGIN_DAEMON = "docs/tests.md Daemons; the kit's measure at a93368b5"
 
 READINESS = (
     "process",
@@ -102,6 +105,23 @@ def a_team(*members, name: str = "lane", tmux: str = "agentscient") -> dict:
 
 def claude_member(name: str, roles: list[str]) -> dict:
     return {"name": name, "harness": "claude", "roles": roles}
+
+
+def carrying_home(home: str) -> list[int]:
+    """The live processes whose environment carries ``HOME=<home>``: what
+    the kit's sweep reads as a process of the world."""
+    wanted = b"HOME=" + os.fsencode(home)
+    found = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            environ = (entry / "environ").read_bytes()
+        except OSError:
+            continue
+        if wanted in environ.split(b"\0"):
+            found.append(int(entry.name))
+    return sorted(found)
 
 
 class ThePresence(unittest.TestCase):
@@ -187,11 +207,12 @@ class _Scratch(unittest.TestCase):
                 f"INVALID: private tmux socket must be under {SOCKET_LIMIT} bytes: "
                 f"{self.socket}"
             )
-        # Registered after world.close, so it runs first: the server and the
-        # harness holding in its panes outlive the world otherwise, one of
-        # each per row that starts a member (the XO, 2026-09-23: 1,212 tmux
-        # servers and 2,266 python processes left under /tmp/sessions-*).
-        self.addCleanup(self.stop_server)
+        # The server and the harness holding in its panes are recorded with
+        # the kit as the rows start them, and close stops them (the XO,
+        # 2026-09-23: 1,212 tmux servers and 2,266 python processes had been
+        # left under /tmp/sessions-*).
+        self._server = None
+        self._servers = 0
         self.team_path = self.world.plant_text(
             "team.json",
             json.dumps(a_team(claude_member("grunt", ["worker"]))) + "\n",
@@ -263,12 +284,14 @@ class _Scratch(unittest.TestCase):
     def sessions(self, *argv: str, identity: str | None = AGENT,
                  session: str | None = None, timeout: float = TIMEOUT,
                  extra: dict[str, str] | None = None):
-        return run(
+        result = run(
             [*self.tool_argv(), *argv],
             cwd=self.world.cwd,
             env=self.env(identity=identity, session=session, extra=extra),
             timeout=timeout,
         )
+        self.own_server()
+        return result
 
     def coord(self, *argv: str, session: str = LEAD_SESSION, expect: int | None = 0):
         return run(
@@ -356,10 +379,73 @@ class _Scratch(unittest.TestCase):
                 "tmux is absent; private-socket rows need it"
             )
 
-    def stop_server(self) -> None:
-        """Kill this world's tmux server, if a row started one."""
+    # -- the tmux server, recorded with the kit ----------------------------
+
+    def server_running(self) -> bool:
+        """Whether a tmux server answers on this world's socket."""
+        if not HOST_TMUX or not self.socket.exists():
+            return False
+        probe = run(
+            [HOST_TMUX, "-S", str(self.socket), "list-sessions"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        return probe.exit == 0
+
+    def own_server(self) -> None:
+        """Record the tmux server a subject call left on this world's socket
+        with the kit, ``world.adopt`` by the socket, so close stops it and
+        the harness in its panes, proves them gone, and refuses class
+        ``daemon`` for a survivor (docs/tests.md, Daemons)."""
+        if self._server is not None and self._server.alive():
+            return
+        if not self.server_running():
+            return
+        box: dict = {}
+        self._servers += 1
+        box["daemon"] = self._server = self.world.adopt(
+            f"tmux-{self._servers}", lambda: self.stop_recorded(box["daemon"]),
+            socket=self.socket, timeout=SERVER_STOP,
+        )
+
+    def start_server(self, *argv: str) -> None:
+        """A tmux session the case starts itself: through ``world.daemon``
+        when no recorded server is up, since a daemon started around the kit
+        is a finding; on the recorded server otherwise."""
+        if self._server is not None and self._server.alive():
+            done = run(
+                [HOST_TMUX, "-S", str(self.socket), *argv],
+                cwd=self.world.cwd,
+                env=self.world.env(),
+                timeout=TIMEOUT,
+            )
+            self.assertEqual(done.exit, 0, done.stderr)
+            return
+        box: dict = {}
+        self._servers += 1
+        box["daemon"] = self._server = self.world.daemon(
+            f"tmux-{self._servers}", [HOST_TMUX, "-S", str(self.socket), *argv],
+            lambda: self.stop_recorded(box["daemon"]),
+            socket=self.socket, timeout=SERVER_STOP,
+        )
+
+    def stop_recorded(self, daemon) -> None:
+        """A recorded server's stop: tmux's own kill-server on the socket,
+        then SIGTERM to any of its recorded processes still up, which is
+        every one of them when the socket file is gone (the kit's measure
+        at a93368b5: the teardown skipped on a missing socket file)."""
         if HOST_TMUX and self.socket.exists():
-            self.host_tmux("kill-server")
+            with contextlib.suppress(Exception):
+                run(
+                    [HOST_TMUX, "-S", str(self.socket), "kill-server"],
+                    cwd=self.world.cwd,
+                    env=self.world.env(),
+                    timeout=SERVER_STOP,
+                )
+        for pid in daemon.alive():
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.kill(pid, signal.SIGTERM)
 
     def host_tmux(self, *argv: str, expect: int | None = None):
         """The host tmux on this world's private socket.
@@ -698,6 +784,24 @@ class TheRefusalTable(_Scratch):
 class TheTmuxAndLaunchRows(_Scratch):
     """Fixtures that own a private tmux socket or a launched member."""
 
+    def test_close_stops_a_server_whose_socket_file_is_gone(self):
+        """origin: docs/tests.md, Daemons; the kit's measure at a93368b5
+
+        A started member's tmux server and the harness in its pane are
+        recorded with the kit, so with the socket file removed the case's
+        cleanups still stop them: close raises no refusal, and no process
+        carries the world's HOME after it.
+        """
+        self.skip_without_tmux()
+        with self.subTest(id="server-socket-file-gone", origin=ORIGIN_DAEMON):
+            started = self.sessions(*self.start_argv())
+            self.assertEqual(started.exit, 0, started.stderr + started.stdout)
+            self.assertTrue(self.socket.exists(), "the start left no socket")
+            self.socket.unlink()
+            home = str(self.world.home)
+            self.doCleanups()
+            self.assertEqual(carrying_home(home), [])
+
     def session_name(self, run_id: str) -> str:
         return f"agentscient-{run_id}"
 
@@ -731,10 +835,7 @@ class TheTmuxAndLaunchRows(_Scratch):
         by the member. origin: 20260922T234512Z-review-codex-5b18d7#1
         """
         session = self.session_name(run_id)
-        self.host_tmux(
-            "new-session", "-d", "-s", session, "-n", member, "sleep", "300",
-            expect=0,
-        )
+        self.start_server("new-session", "-d", "-s", session, "-n", member, "sleep", "300")
         self.host_tmux(
             "set-option", "-t", f"={session}:", "remain-on-exit", "on",
             expect=0,
@@ -860,10 +961,7 @@ class TheTmuxAndLaunchRows(_Scratch):
                 f"private tmux socket must be under 108 bytes: {self.socket}",
             )
             name = "agentscient-R-1"
-            create = self.host_tmux(
-                "new-session", "-d", "-s", name, "sleep", "300",
-            )
-            self.assertEqual(create.exit, 0, create.stderr)
+            self.start_server("new-session", "-d", "-s", name, "sleep", "300")
             self.addCleanup(lambda: self.host_tmux("kill-session", "-t", f"={name}"))
             has = self.host_tmux("has-session", "-t", f"={name}")
             self.assertEqual(
@@ -1672,6 +1770,7 @@ class TheSupervisorBoundaries(_Scratch):
             tool, log = self.staged_tool()
             proc = run([sys.executable, str(tool), *self.start_argv()],
                        cwd=self.world.cwd, env=self.env(), timeout=TIMEOUT)
+            self.own_server()
             self.assertEqual(proc.exit, 0, proc.stderr)
             launches = list((self.state / "sessions").glob("*/grunt/launch.json"))
             self.assertEqual(len(launches), 1, launches)
