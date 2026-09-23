@@ -128,8 +128,13 @@ the operator's own lead capability in `COORDINATION_CAPABILITY` when
 first native bind in an empty store is a worker like every other
 (`initialize` binds `worker` and the core never promotes); lead comes
 only from a lead's grant or an owner-authorized recovery, and the
-cold-start row asserts worker and no lead. A populated store is the
-ordinary case and is never wiped.
+cold-start row asserts worker and no lead. On a store that does not
+exist or lacks the coordination schema, `start` creates the schema
+through the core's writer and writes no participant row, because the
+profile's `initialize` refuses a missing store and the first bind must
+stay the profile's (slice 1; the cleaner form, `initialize` creating
+the store it binds into, is a wall change filed for after slice 1). A
+populated store is the ordinary case and is never wiped.
 
 ### tmux ownership
 
