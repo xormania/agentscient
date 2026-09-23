@@ -586,18 +586,36 @@ def install_enforcement(harness, root, *, source, cwd, home, session, agent,
     leaves and session stores remain owned by build_home/dispatch_env.
     """
     import importlib.util
-    path = Path(source).resolve() / "ops/devlane/hooks/profiles.py"
-    spec = importlib.util.spec_from_file_location("worker_hook_profile", path)
-    profiles = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(profiles)
+
+    def load_profiles(root):
+        path = Path(root) / "ops/devlane/hooks/profiles.py"
+        spec = importlib.util.spec_from_file_location("worker_hook_profile", path)
+        module = importlib.util.module_from_spec(spec)
+        # Read checked source bytes, never a retained bytecode cache.
+        exec(compile(path.read_bytes(), str(path), "exec"), module.__dict__)  # noqa: S102 - trusted or pin-checked source
+        return module
+
     destination = Path(root).absolute()
     binding_path = destination / "binding.json"
     try:
+        source = Path(source).resolve(strict=True)
+        profiles = load_profiles(source)
         if binding_path.exists():
             binding = profiles.read_binding(binding_path)
+            runtime = destination.parent / "runtime"
+            previous = Path(relocated_from) / "runtime" if relocated_from else runtime
+            if binding["source"] == str(previous):
+                # The trusted installer verifies the retained closure BEFORE
+                # importing it. Neither a changed checkout nor candidate code
+                # can replace an existing job's policy or private capability.
+                profiles.verify_runtime(binding, runtime, previous=previous)
+                source = runtime
+                profiles = load_profiles(source)
+            # Legacy profiles retain their original source and pin checks;
+            # a resume must never silently bless changed policy bytes.
             if relocated_from:
                 binding = profiles.relocate(binding, relocated_from, destination.parent)
-            expected = {"harness": harness, "source": str(Path(source).resolve()),
+            expected = {"harness": harness, "source": str(source),
                         "cwd": str(Path(cwd).resolve()), "mode": "worker", "session": session,
                         "home": str(Path(home).resolve()) if home else str(destination),
                         "servers": list(servers)}
@@ -605,6 +623,8 @@ def install_enforcement(harness, root, *, source, cwd, home, session, agent,
                 raise ValueError("resumed worker hook binding changed")
             profiles.validate(binding)
         else:
+            source = profiles.freeze_runtime(source, destination.parent / "runtime")
+            profiles = load_profiles(source)
             binding = profiles.generate(harness, destination, source=source, cwd=cwd,
                                         home=home, mode="worker", session=session, agent=agent,
                                         executable=executable, servers=servers)

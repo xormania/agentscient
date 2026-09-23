@@ -131,7 +131,8 @@ class TheActingServerIsSourcedFromThePinnedTreeNotTheSnapshot(_Acting):
     the server started would have the acting server, and everything it
     does with the dispatcher's own authority, run its own code instead.
     The Lead's ruling: the server runs from a path the worker cannot
-    write, the launcher's pinned tree rather than the snapshot.
+    write, a frozen copy of the launcher's pinned tree rather than the
+    candidate snapshot or the still-changing installation.
     """
 
     def test_a_worker_owned_tree_on_the_snapshot_is_not_the_source(self):
@@ -152,10 +153,11 @@ class TheActingServerIsSourcedFromThePinnedTreeNotTheSnapshot(_Acting):
         self.assertNotIn(
             "POISON-1", script.read_text(encoding="utf-8"),
             f"the acting server ran the worker's own planted tree: {script}")
-        self.assertEqual(
-            script.resolve(), ACTING.resolve(),
-            f"the acting server did not source from the launcher's own "
-            f"pinned tree: {server!r}")
+        binding_path = Path(rec["snapshot"]["root"]).parent / "enforcement/binding.json"
+        binding = json.loads(binding_path.read_text())
+        self.assertEqual(script.resolve(), Path(binding["source"]) / "ops/conductor/tools/coordination_mcp.py")
+        self.assertEqual(script.read_bytes(), ACTING.read_bytes())
+        self.assertNotEqual(script.resolve(), ACTING.resolve())
 
 
 class TheEdgeToTheActingServerIsDeclaredAndChecked(_Acting):

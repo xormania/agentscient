@@ -616,12 +616,12 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
 COORD_MCP_SERVER = "coordination"
-# The launcher's own tree, never the worker's snapshot: this script's
+# The launcher's frozen runtime, never the worker's snapshot: this script's
 # `import coordination` resolves from `sys.path[0]`, its own directory, so
 # running it from a path the worker can write would let a worker-rewritten
 # core answer with the dispatcher's own authority (finding 1 of
 # 20260916T151749Z-review-codex-ef6db7).
-COORD_MCP_PINNED = APP.parents[1] / "conductor" / "tools" / "coordination_mcp.py"
+COORD_MCP_REL = Path("ops/conductor/tools/coordination_mcp.py")
 COORD_MCP_CONFIG_VERSION = 1
 # The capability list is declared here and proved against the server's own
 # catalogue by a case, rather than read out of the server at launch: the
@@ -643,7 +643,7 @@ COORD_MCP_HARNESSES = ("codex",)
 COORD_MCP_ENV = ("CLAUDE_SESSION_ID", "XDG_STATE_HOME", "LANE_CONF",
                  "AGENTSCIENT_HOOK_PROFILE")
 COORD_MCP_ABSENT = {
-    "unresolved": "the launcher's own tree has no "
+    "unresolved": "the issued worker runtime has no "
                   "ops/conductor/tools/coordination_mcp.py"}
 COORD_MCP_UNBOUND = {
     "unresolved": "the dispatch named no assignment, so the core bound no "
@@ -735,7 +735,7 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
         return {"unresolved": f"the acting server is wired for "
                               f"{', '.join(COORD_MCP_HARNESSES)} today; this "
                               f"dispatch is {harness}"}, None
-    tool = COORD_MCP_PINNED
+    tool = Path(job_dir) / "runtime" / COORD_MCP_REL
     if not tool.is_file():
         return dict(COORD_MCP_ABSENT), None
     if not participant:
