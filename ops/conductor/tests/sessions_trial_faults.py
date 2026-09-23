@@ -8,7 +8,8 @@ the clean subject:
         --mutants ops/conductor/tests/sessions_trial_faults.py \\
         --command "python3 -m unittest discover -s ops/conductor/tests -p test_sessions_trial.py"
 
-Anchored on sessions.py at da3e5e06, before slice 4's accounting and
+Anchored on sessions.py at 293d4d25 (each anchor counted once), before
+slice 4's accounting and
 export refusal exist; the anchors move with that change and are re-read
 then. Not yet calibrated: every row is red on the subject, so the clean
 run is red and calibrate reports ok false. The owner's-terminal rows have
