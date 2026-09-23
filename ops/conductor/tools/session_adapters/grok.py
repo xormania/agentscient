@@ -37,7 +37,7 @@ common = _common()
 # `session/prompt` stays open until the turn ends; a submission reads
 # `written` when no refusal came back within this grace.
 PROMPT_GRACE = 2.0
-UNKNOWN = {"code": -32601, "message": "not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
 
 
 def tool_name(update: dict) -> str | None:
@@ -138,19 +138,27 @@ class Adapter(common.ProtocolAdapter):
                 return f"tool {name}" if name else "activity active"
             return "activity active"
         if method == "_x.ai/session/prompt_complete":
-            return f"done {params.get('promptId') or params.get('stopReason') or 'prompt'}"
+            done = params.get("promptId") or params.get("turn") or params.get("stopReason")
+            return f"done {done or 'prompt'}"
         named = params.get("sessionId")
         return f"native {named}" if named else f"other {method}"
 
     def answer(self, rpc, frame, method, params, other):
+        """Decline what the agent asks: the offered reject option, else
+        cancelled; the prompt is printed to the pane, not kept."""
         if method == "session/request_permission":
             call = params.get("toolCall") if isinstance(params.get("toolCall"), dict) else {}
+            title = call.get("title") or params.get("title") or method
             options = [entry for entry in params.get("options") or [] if isinstance(entry, dict)]
             reject = next((entry.get("optionId") for entry in options
                            if str(entry.get("kind", "")).startswith("reject")), None)
             outcome = ({"outcome": "selected", "optionId": reject} if reject
                        else {"outcome": "cancelled"})
             rpc.answer(frame, result={"outcome": outcome})
-            return other or f"permission {call.get('title') or method}"
+            offered = ", ".join(str(entry.get("optionId")) for entry in options) or "none"
+            print(f"permission asked: {title}; offered {offered}; answered "
+                  f"{reject or 'cancelled'}", flush=True)
+            return other or f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
-        return other or f"permission {method} declined"
+        print(f"permission asked: {method}; answered declined, not handled", flush=True)
+        return other or f"permission {method}"

@@ -152,11 +152,14 @@ class Adapter(common.ProtocolAdapter):
     def answer(self, rpc, frame, method, params):
         """Decline what the app-server asks; the prompt is printed, not kept."""
         other = self.other_native(thread_of(params))
+        title = self.title(params, method)
         if method in DECLINE:
             rpc.answer(frame, result=DECLINE[method])
-            return other or f"permission {self.title(params, method)}"
+            print(f"permission asked: {title}; answered {json.dumps(DECLINE[method])}", flush=True)
+            return other or f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
-        return other or f"permission {self.title(params, method)}"
+        print(f"permission asked: {title}; answered declined, not handled", flush=True)
+        return other or f"permission {title}"
 
     @staticmethod
     def title(params, method) -> str:
