@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -693,16 +694,46 @@ class _WatchdogFixture(unittest.TestCase):
     ) -> Result:
         env = self.env(xdg=xdg, extra=extra_env)
         timeout_tool = self.world.require("timeout")
-        mutator = None
         if mutate is not None:
-            def _run_mutate():
-                time.sleep(mutate_after)
-                mutate()
-
-            mutator = threading.Thread(target=_run_mutate)
-            mutator.start()
-        try:
-            return run(
+            # After-start fixtures must observe the actual backlog boundary.
+            # A host startup delay must not turn a live record into backlog.
+            command = [sys.executable, "-u", str(self.staged), *argv]
+            started = time.monotonic()
+            out_path = self.world.plant_text("watchdog-loop.stdout", "")
+            err_path = self.world.plant_text("watchdog-loop.stderr", "")
+            with out_path.open("w+") as out, err_path.open("w+") as err:
+                child = self.world.own(subprocess.Popen(command, cwd=REPO, env=env,
+                                                       stdout=out, stderr=err))
+                try:
+                    deadline = time.monotonic() + RUN_CAP
+                    while True:
+                        out.seek(0)
+                        first = out.readline()
+                        if first:
+                            self.assertTrue(first.startswith("watchdog armed:"), first)
+                            break
+                        self.assertIsNone(child.poll(), "watchdog exited before arming")
+                        self.assertLess(time.monotonic(), deadline, "watchdog did not arm")
+                        time.sleep(0.01)
+                    time.sleep(mutate_after)
+                    mutate()
+                    try:
+                        child.wait(timeout=max(0, seconds - mutate_after))
+                    except subprocess.TimeoutExpired:
+                        child.terminate()
+                finally:
+                    if child.poll() is None:
+                        child.terminate()
+                    try:
+                        child.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait(timeout=2)
+                out.seek(0)
+                err.seek(0)
+                return Result(tuple(command), child.returncode, out.read(), err.read(),
+                              time.monotonic() - started, str(REPO))
+        return run(
                     [
                         timeout_tool,
                         "--signal=TERM",
@@ -717,9 +748,6 @@ class _WatchdogFixture(unittest.TestCase):
                     env=env,
                     timeout=seconds + 3,
                 )
-        finally:
-            if mutator is not None:
-                mutator.join(timeout=2)
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -1342,6 +1370,10 @@ class NoCopy(_WatchdogFixture):
         """LD-70: the flag is for backlog. A job directory that appears
         while the watcher runs is a live condition and is unchanged."""
         self.ensure_store()
+        staged = self.staged.read_text()
+        anchor = "    sys.exit(main())"
+        self.assertEqual(staged.count(anchor), 1)
+        self.world.plant_text(self.staged, staged.replace(anchor, "    time.sleep(0.3)\n" + anchor))
 
         def plant_it():
             self.plant_no_copy(NOCOPY_ID)
