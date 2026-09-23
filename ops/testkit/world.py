@@ -270,9 +270,7 @@ class World:
         stops it: the stop, then SIGTERM, then SIGKILL, each within
         ``timeout``, and refuses class ``daemon`` when its own stop did not
         bring it down."""
-        daemon = start_daemon(self, name, start, stop, match=match, socket=socket, timeout=timeout)
-        self._daemons.append(daemon)
-        return daemon
+        return start_daemon(self, name, start, stop, match=match, socket=socket, timeout=timeout)
 
     def adopt(self, name: str, stop=None, *, match=(), socket=None, timeout: float = 10.0):
         """Record a daemon the subject started, so the case starts nothing
@@ -751,7 +749,9 @@ class Daemon:
 
 
 def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
-    """Run ``argv`` in the world and record the daemon it leaves running."""
+    """Run ``argv`` in the world and record the daemon it leaves running,
+    in the world's list for close. A start that fails is judged after what
+    it left is recorded, so close stops a half-started daemon (A-535 #2)."""
     from .command import Timeout, run
     _check_daemon(name, stop)
     # The start's own mark: ``match`` reads only the processes that carry it,
@@ -764,18 +764,19 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
     before = processes()
     # A refusal names the start by program and size, never its argv, stdout
     # or stderr, which may carry a credential (A-535 #4).
+    failed = None
     try:
         result = run(argv, cwd=world.cwd, env=env, timeout=timeout)
     except Timeout:
-        raise Timeout(f"daemon {name} start {program(argv)} outlived {timeout:g}s; killed and reaped") from None
-    if result.exit != 0:
-        raise PlantFailed(
-            f"INVALID: daemon {name} start {program(argv)} exited {result.exit} (wanted 0), "
-            f"stdout {len(result.stdout.encode())} bytes, stderr {len(result.stderr.encode())} bytes"
-        )
+        failed = (Timeout, f"daemon {name} start {program(argv)} outlived {timeout:g}s; killed and reaped")
+    else:
+        if result.exit != 0:
+            failed = (PlantFailed,
+                      (f"INVALID: daemon {name} start {program(argv)} exited {result.exit} (wanted 0), "
+                       f"stdout {len(result.stdout.encode())} bytes, stderr {len(result.stderr.encode())} bytes"))
     owned = {child.pid for child in world._children}
     taken = {pid for other in world._daemons for pid in other.pids}
-    deadline = time.monotonic() + timeout
+    deadline = time.monotonic() + (0 if failed else timeout)
     while True:
         table = processes()
         new = {pid for pid, (_, started) in table.items()
@@ -784,14 +785,21 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
         if pids or time.monotonic() >= deadline:
             break
         time.sleep(POLL)
-    if not pids:
+    daemon = None
+    if pids:
+        daemon = Daemon(name, tuple(str(a) for a in argv), stop,
+                        Path(socket) if socket is not None else None, timeout,
+                        {pid: table[pid][1] for pid in pids})
+        world._daemons.append(daemon)
+    if failed is not None:
+        kind, text = failed
+        raise kind(f"{text}; {len(pids)} process(es) it left recorded for close")
+    if daemon is None:
         raise PlantFailed(
             f"INVALID: daemon {name} started ({program(argv)} exited 0) but no new "
             f"process carries HOME={world.home} or its {len(match)} match token(s) within {timeout:g}s"
         )
-    return Daemon(name, tuple(str(a) for a in argv), stop,
-                  Path(socket) if socket is not None else None, timeout,
-                  {pid: table[pid][1] for pid in pids})
+    return daemon
 
 
 def adopt_daemon(world, name: str, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
