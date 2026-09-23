@@ -10,6 +10,7 @@ import faulthandler
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import re
 import shutil
@@ -1795,6 +1796,26 @@ def _commit_record(repo, path, rec, subject=None):
     _git(repo, "commit", "--only", "-m", msg, "--", str(rel), env=env)
 
 
+def _requested_timeout():
+    """DISPATCH_TIMEOUT from the invoking environment, in seconds, or None
+    when it is unset. Read before anything is minted or spawned, so a value
+    the launcher cannot use is refused on the wire rather than raised after
+    the harness is running (20260923T000804Z-review-codex-da66dd#1). NaN,
+    an infinity, zero and a negative parse as floats and bound nothing; NaN
+    also serialises as a bare token strict JSON rejects (#2)."""
+    raw = os.environ.get("DISPATCH_TIMEOUT")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        value = None
+    if value is None or not math.isfinite(value) or value <= 0:
+        _refuse("timeout", "DISPATCH_TIMEOUT as a positive finite number of seconds",
+                repr(raw), "unset DISPATCH_TIMEOUT or give it a number of seconds")
+    return value
+
+
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     harness = rec["harness"]["name"]
     bound_job_dir, snapshot = _bound_snapshot(rec)
@@ -1905,6 +1926,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         _refuse("enforcement", "a pinned protected worker hook profile", str(exc),
                 "inspect co_doc.py and the native capability evidence before resuming")
     rec["harness"]["argv"] = argv
+    requested = _requested_timeout()
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -1933,14 +1955,18 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         (job_dir / "state.json").write_text(json.dumps(state) + "\n")
         job_timeout = (job_caps or {}).get("timeout")
         wall_default = _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
-        timeout = float(os.environ.get(
-            "DISPATCH_TIMEOUT",
-            job_timeout if job_timeout is not None else wall_default,
-        ))
+        # The job's cap bounds the environment (CONTRACT.md, the Lead's
+        # ruling 2026-09-22): DISPATCH_TIMEOUT may lower a cap, never raise
+        # it, and what it asked for is recorded beside what was applied.
+        if requested is not None and (job_timeout is None or requested <= float(job_timeout)):
+            timeout, source = requested, "DISPATCH_TIMEOUT"
+        elif job_timeout is not None:
+            timeout, source = float(job_timeout), "job"
+        else:
+            timeout, source = float(wall_default), "default"
         rec["caps"]["timeout"] = timeout
-        rec["caps"]["timeout_source"] = (
-            "DISPATCH_TIMEOUT" if "DISPATCH_TIMEOUT" in os.environ
-            else "job" if job_timeout is not None else "default")
+        rec["caps"]["timeout_source"] = source
+        rec["caps"]["timeout_requested"] = requested
         grace = float(os.environ.get("DISPATCH_STREAM_GRACE", "120"))
         started_clock = monotonic()
         runtime_note = None
@@ -2108,6 +2134,17 @@ def _launch(args):
     if args.harness == "claude" and role == "write":
         _refuse("write-role-unadmitted", "a write row with a containment entry",
                 "none for claude", "run the containment probe or use codex or grok")
+    # Every job installs a worker-mode hook profile, and one with no issued
+    # participant denies every hook call, so a write job without an assignment
+    # would spend its budget refused (LD-116). Refused before anything is minted.
+    if role == "write" and not args.assignment:
+        CORRECTION.refuse(
+            "participant",
+            "an assignment (--for A-n) to issue this worker a participant through bind-for",
+            "none",
+            "draft or name the assignment and relaunch with --for",
+        )
+    _requested_timeout()
     mode = job.get("snapshot")
     if job.get("withheld") and mode == "whole":
         _refuse("history-vs-withheld", "one of history or withholding", f"both on {args.job}", "declare fileset")
