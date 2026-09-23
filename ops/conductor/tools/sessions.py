@@ -96,7 +96,7 @@ WITHHELD = (
 )
 SHELL_KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 NATIVE_REFUSAL = re.compile(r"native: expected the launch session id \S+; found ([^;\s]+);")
-LAUNCHER ='set -a; . "$0"; set +a; rm -f -- "$0"; exec "$@"'
+LAUNCHER = 'set -a; . "$0"; set +a; rm -f -- "$0"; exec "$@"'
 
 T = machine.Transition
 MEMBER = machine.Machine(
@@ -937,10 +937,13 @@ def do_attach(rest):
     if shown.returncode != 0:
         refuse("absent", f"the pane of {member['name']} SM-{member['id']} in tmux session "
                f"{run['tmux_session']}", shown.stderr.strip() or f"exit {shown.returncode}", needed)
+    # The exact window was proved above; tmux resolves a window name
+    # exactly before it tries a prefix, so the attach names it plainly.
+    target = f"={run['tmux_session']}:{member['name']}"
     verb = "switch-client" if os.environ.get("TMUX") else "attach-session"
     binary = shutil.which("tmux")
     os.execv(binary, [binary,  # noqa: S606 - attach hands this terminal to tmux, argv a list
-*socket_args(run["tmux_socket"]), verb, "-t", window])
+                      *socket_args(run["tmux_socket"]), verb, "-t", target])
     return EXIT_DONE
 
 
