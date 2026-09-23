@@ -1614,7 +1614,12 @@ def response_reading(member, conn) -> str:
         return "waiting probe"
     message = probe.get("message")
     if not message:
-        return f"unmeasured {probe.get('why') or 'no starter participant'}"
+        why = probe.get("why") or "no starter participant"
+        # A send the store refused is not a measurement: not ready, and
+        # send_probe sends again (A-522 #4).
+        if why.startswith(PROBE_REFUSED):
+            return f"waiting probe, the send refused: {why.removeprefix(PROBE_REFUSED)}"
+        return f"unmeasured {why}"
     try:
         row = conn.execute("SELECT queued_at, acked_at, acked_by FROM messages WHERE id = ?",
                            (int(message.split("-")[1]),)).fetchone() if conn is not None else None
@@ -1651,13 +1656,23 @@ def delivery_readiness(member, adapter, bound, conn) -> dict[str, str]:
     return found
 
 
+PROBE_REFUSED = "probe refused: "
+
+
 def send_probe(agent: str, row, run, starter) -> None:
     """After `bound`, the readiness probe: an `inform` to the member from
-    the starter's own participant, recorded in probe.json either way."""
+    the starter's own participant, recorded in probe.json either way. A
+    send the store refused is sent again on the next call, in this start's
+    wait or the next start's; any other record stands."""
     directory = Path(row["evidence"])
     path = directory / "probe.json"
     if path.exists():
-        return
+        try:
+            held = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            held = {}
+        if not str(held.get("why") or "").startswith(PROBE_REFUSED):
+            return
     record = {"run": f"R-{run['id']}", "member": f"SM-{row['id']}", "at": stamp()}
     if starter is None:
         record.update(message=None, why="no starter participant")
@@ -1668,7 +1683,7 @@ def send_probe(agent: str, row, run, starter) -> None:
         if sent.startswith("M-"):
             record.update(message=sent, nonce=nonce, starter=f"PT-{starter['id']}")
         else:
-            record.update(message=None, why=f"probe refused: {sent}")
+            record.update(message=None, why=f"{PROBE_REFUSED}{sent}")
     directory.mkdir(parents=True, exist_ok=True)
     private_write(path, json.dumps(record, indent=1) + "\n")
 
