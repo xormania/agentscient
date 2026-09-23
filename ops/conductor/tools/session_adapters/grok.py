@@ -55,9 +55,23 @@ class Adapter(common.ProtocolAdapter):
 
     harness = "grok"
     jsonrpc = True
+    # The directory the harness was spawned in, kept from `connect`.
+    cwd = None
 
     def channel(self, member, binding):
         return ["--no-auto-update", "agent", "stdio"]
+
+    def connect(self, argv, *, env=None, cwd=None, stderr=None):
+        """The channel, and the directory it runs in kept for `session/new`."""
+        self.cwd = cwd
+        return super().connect(argv, env=env, cwd=cwd, stderr=stderr)
+
+    def workdir(self, rpc) -> str:
+        """The directory the session works in: the one the harness was
+        spawned in (the channel's, else `connect`'s), and the bridge's own
+        only when neither was given. ACP asks for an absolute path."""
+        named = getattr(rpc, "cwd", None) or self.cwd
+        return str(Path(named).absolute()) if named else os.getcwd()
 
     def handshake(self, rpc):
         """`initialize`, `authenticate` when advertised, `session/new`; the session id."""
@@ -76,7 +90,7 @@ class Adapter(common.ProtocolAdapter):
                 rpc.request(method, {"methodId": chosen, "_meta": {"headless": True}},
                             timeout=common.SUBMIT_TIMEOUT)
             method = "session/new"
-            opened = rpc.request(method, {"cwd": os.getcwd(), "mcpServers": []},
+            opened = rpc.request(method, {"cwd": self.workdir(rpc), "mcpServers": []},
                                  timeout=common.SUBMIT_TIMEOUT)
         except common.channel.ChannelError as error:
             self.refuse_channel(method, error)
