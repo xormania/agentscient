@@ -273,6 +273,18 @@ class World:
         self._daemons.append(daemon)
         return daemon
 
+    def adopt(self, name: str, stop=None, *, match=(), socket=None, timeout: float = 10.0):
+        """Record a daemon the subject started, so the case starts nothing
+        and the subject's own path is the one under test. It is the
+        processes holding the unix socket bound at ``socket`` and, when
+        ``match`` is given too, whose command line holds every token; or,
+        with no socket, the processes ``match`` names. One of the two is
+        required. ``close`` stops it as it stops a daemon ``daemon``
+        started."""
+        daemon = adopt_daemon(self, name, stop, match=match, socket=socket, timeout=timeout)
+        self._daemons.append(daemon)
+        return daemon
+
     # -- git -------------------------------------------------------------
 
     def git(self, *args: str, cwd=None, check: bool = True, timeout: float = 60):
@@ -639,6 +651,38 @@ def descendants(roots, table) -> set[int]:
     return found
 
 
+def socket_holders(path, pids) -> set[int]:
+    """The pids holding a unix socket bound at ``path``, read from the
+    kernel's socket table and each pid's descriptors, never from the file."""
+    names = {str(path), str(Path(path).resolve())}
+    inodes = set()
+    for line in _read_table("net/unix").splitlines()[1:]:
+        fields = line.split(maxsplit=7)
+        if len(fields) == 8 and fields[7] in names:
+            inodes.add(f"socket:[{fields[6]}]")
+    if not inodes:
+        return set()
+    held = set()
+    for pid in pids:
+        try:
+            descriptors = list((PROC / str(pid) / "fd").iterdir())
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            with contextlib.suppress(OSError):
+                if os.readlink(descriptor) in inodes:
+                    held.add(pid)
+                    break
+    return held
+
+
+def _read_table(name: str) -> str:
+    try:
+        return (PROC / name).read_text()
+    except OSError:
+        return ""
+
+
 def socket_state(path) -> str:
     if path is None:
         return "none declared"
@@ -693,10 +737,7 @@ class Daemon:
 def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
     """Run ``argv`` in the world and record the daemon it leaves running."""
     from .command import run
-    if not name or not isinstance(name, str):
-        raise PlantFailed(f"INVALID: a daemon needs a name, found {name!r}")
-    if not (stop is None or callable(stop) or (isinstance(stop, (list, tuple)) and stop)):
-        raise PlantFailed(f"INVALID: the stop of daemon {name} is an argv, a callable or None, found {stop!r}")
+    _check_daemon(name, stop)
     before = processes()
     run(argv, cwd=world.cwd, env=world.env(), timeout=timeout, expect=0)
     owned = {child.pid for child in world._children}
@@ -718,6 +759,46 @@ def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout
     return Daemon(name, tuple(str(a) for a in argv), stop,
                   Path(socket) if socket is not None else None, timeout,
                   {pid: table[pid][1] for pid in pids})
+
+
+def adopt_daemon(world, name: str, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
+    """Record the daemon the subject left running: the holders of
+    ``socket``, narrowed by ``match`` when both are given, or the processes
+    ``match`` names."""
+    _check_daemon(name, stop)
+    match = tuple(str(t) for t in match)
+    if socket is None and not match:
+        raise PlantFailed(
+            f"INVALID: adopting daemon {name} needs socket= or match=; found neither; "
+            "needed the socket it serves or the tokens of its command line"
+        )
+    owned = {child.pid for child in world._children}
+    taken = {pid for other in world._daemons for pid in other.pids}
+    deadline = time.monotonic() + timeout
+    while True:
+        table = processes()
+        pids = socket_holders(socket, table) if socket is not None else set(table)
+        if match:
+            pids &= matching(match, table)
+        pids -= owned | taken | {os.getpid()}
+        if pids or time.monotonic() >= deadline:
+            break
+        time.sleep(POLL)
+    if not pids:
+        raise PlantFailed(
+            f"INVALID: daemon {name} to adopt, but no live process holds the socket "
+            f"{str(socket) if socket is not None else '(none declared)'} with the tokens "
+            f"{list(match)!r} within {timeout:g}s"
+        )
+    return Daemon(name, (), stop, Path(socket) if socket is not None else None, timeout,
+                  {pid: table[pid][1] for pid in pids})
+
+
+def _check_daemon(name, stop) -> None:
+    if not name or not isinstance(name, str):
+        raise PlantFailed(f"INVALID: a daemon needs a name, found {name!r}")
+    if not (stop is None or callable(stop) or (isinstance(stop, (list, tuple)) and stop)):
+        raise PlantFailed(f"INVALID: the stop of daemon {name} is an argv, a callable or None, found {stop!r}")
 
 
 def _run_stop(world, daemon: Daemon) -> str:
@@ -797,5 +878,6 @@ def sweep_daemons(world) -> str | None:
         f"started around the kit: "
         + "; ".join(f"pid {pid} {cmd[:120]!r}" for pid, cmd in seen.items())
         + f"; pids {loose.alive()} alive after SIGKILL"
-        + "; needed world.daemon(name, start, stop) for it"
+        + "; needed world.daemon(name, start, stop), or world.adopt(name, stop, socket=) "
+        "for one the subject starts"
     )

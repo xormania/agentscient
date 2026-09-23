@@ -49,7 +49,13 @@ its sources. Three primitives and one pattern on them:
   line per daemon in the wire's shape, class `daemon`, when a daemon's
   own stop did not bring it down or a process of the world was left
   unrecorded. A daemon a case starts around the kit is a finding of the
-  kind rule 5 names.
+  kind rule 5 names. A daemon the subject starts is recorded after the
+  subject returns, with `world.adopt(name, stop, match=, socket=,
+  timeout=)`: the processes holding the unix socket bound at `socket`,
+  read from the kernel's socket table and narrowed by `match` when both
+  are given, or those `match` names. The case starts nothing, so the
+  subject's own path is the one under test, and `close` stops an adopted
+  daemon as it stops a started one.
 - **run** (`command.py`): one call, one result shape (argv, exit, stdout,
   stderr, duration, cwd), one timeout policy: expiry kills and reaps the
   child and raises, naming the argv. A result reads its own refusal line
@@ -105,7 +111,8 @@ The names a tests job's note joins with `reused:`:
 
 - `testkit.world` — hermetic by default, ambient by name, PATH the
   world's own bin under `host_path=False`, children reaped.
-- `testkit.daemon` — every daemon recorded by `world.daemon`, stopped in
+- `testkit.daemon` — every daemon recorded by `world.daemon` or
+  `world.adopt`, stopped in
   reverse at close with the stop, SIGTERM and SIGKILL, proven gone by pid
   and socket; a stop that fails, or a process of the world left
   unrecorded, refuses class `daemon`.
