@@ -813,6 +813,39 @@ class SharedEnforcement(unittest.TestCase):
                 self.assertIn("expected", text)
                 profiles.validate(profiles.read_binding(binding["binding"]))
 
+    def test_a_member_skill_replaced_after_preparation_fails_the_check(self):
+        # origin: A-538 (record 20260923T044553Z-review-codex-00cb7a#2): validate() never
+        # hashed the copied skill, so <home>/skills/onboard/SKILL.md replaced after
+        # preparation passed `profiles.py check` and reached the member.
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        for harness in ("codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("tamper-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                check = ["check", "--binding", binding["binding"]]
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(profiles.main(check), 0)
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                entry.write_text("tampered")
+                with self.assertRaisesRegex(ValueError, "native hook configuration changed"):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
+                err = io.StringIO()
+                with redirect_stdout(io.StringIO()), redirect_stderr(err):
+                    self.assertEqual(profiles.main(check), 2)
+                self.assertIn("native hook configuration changed", err.getvalue())
+                entry.unlink()
+                with self.assertRaises(OSError):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
+
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib
         root = Path(__file__).resolve().parents[4]

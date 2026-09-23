@@ -129,7 +129,8 @@ def configuration(harness, native_home, helper, cwd, settings=None):
 
 
 def generate(harness, destination, *, source, cwd, mode, home=None, session=None,
-             agent=None, servers=(), executable=None, native_settings=None, credential_environment=None):
+             agent=None, servers=(), executable=None, native_settings=None, credential_environment=None,
+             member_skills=False):
     if harness not in HARNESSES or mode not in {"interactive", "worker"}:
         raise ValueError("unknown harness or startup mode")
     if mode == "worker" and not session:
@@ -151,6 +152,10 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                  "LANE_CONF": str(source / "ops/lane.conf")}
     if agent:
         authority["WF_AGENT_OVERRIDE"] = agent
+    member_skills = bool(member_skills) and harness in MEMBER_SKILL_HARNESSES
+    config_pins = {str(p): digest(p) for p in configs}
+    if member_skills:
+        config_pins.update(member_skill_pins(native_home, source))
     binding = {"schema": "shared-hook-profile/1", "harness": harness, "mode": mode,
                "source": str(source), "cwd": str(cwd), "home": str(native_home),
                "helper": str(helper), "binding": str(dest / "binding.json"),
@@ -159,7 +164,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "servers": list(servers), "authority_environment": authority,
                "native_settings": native_settings,
                "credential_environment": credential_environment or {},
-               "pins": source_pins(source), "config_pins": {str(p): digest(p) for p in configs},
+               "pins": source_pins(source), "config_pins": config_pins, "member_skills": member_skills,
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
                "executable_sha256": digest(executable) if executable else None}
     binding["helper_sha256"] = hashlib.sha256(helper_text(binding).encode()).hexdigest()
@@ -195,6 +200,8 @@ def validate(binding):
         raise ValueError("agy lacks a verified immediate post-tool/start decision channel for these required rows")
     expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
     expected_pins = {str(path): hashlib.sha256(content.encode()).hexdigest() for path, content in expected_configs.items()}
+    if binding.get("member_skills"):
+        expected_pins.update(member_skill_pins(binding["home"], binding["source"]))
     if expected_pins != binding["config_pins"]:
         raise ValueError("profile does not project the shared guard")
     for path, expected in binding["config_pins"].items():
@@ -526,13 +533,23 @@ def coordination_server(harness, source):
     return server
 
 
+MEMBER_SKILL_HARNESSES = ("codex", "grok")
+
+
+def member_skill_pins(home, source):
+    """Each copy install_member_skills writes, pinned to its source's digest, so a copy
+    replaced after preparation fails validate() like any native configuration (A-538 #2)."""
+    return {str(Path(home) / "skills" / skill.parent.name / "SKILL.md"): digest(skill)
+            for skill in sorted((Path(source) / "ops/devlane/hooks/member-skills").glob("*/SKILL.md"))}
+
+
 def install_member_skills(harness, home, source):
     """Copy the entry points under ops/devlane/hooks/member-skills into a codex or grok
     member's private home (sessions-lever.md, "Required of the wall"). build_home leaves
     credentials only, and grok 1.0.40 loads the checkout's .claude/skills only in a
     trusted project, so without these a member finds no onboard skill. Copied, never
     linked, so nothing in the home reaches outside it; claude reads the checkout itself."""
-    if harness not in {"codex", "grok"}:
+    if harness not in MEMBER_SKILL_HARNESSES:
         return
     for skill in sorted((Path(source) / "ops/devlane/hooks/member-skills").glob("*/SKILL.md")):
         target = Path(home) / "skills" / skill.parent.name / "SKILL.md"
@@ -574,7 +591,8 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable)
     install_member_skills(harness, home, source)
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
                     agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
-                    credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env})
+                    credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env},
+                    member_skills=True)
 
 
 def main(argv=None):
