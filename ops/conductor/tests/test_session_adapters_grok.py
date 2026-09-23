@@ -35,6 +35,12 @@ declined: another server's tool, a target with no tool, a call with no
 input object, a call that is not grok's own use_tool, and always-allow is
 never chosen (origin: A-527, b3's live reading, and the contract line).
 
+A permission request naming another session reads `refused native <id>`
+and is never answered, the coordination call included: an answer would
+grant a tool in a conversation the bridge does not own (A-522 #2, record
+20260923T040605Z-review-codex-6ed2cb, grok.py observe and answer at
+c4dd8f12). The clean neighbour is the own-session allow-once row.
+
 A response whose id matches no request the bridge sent, as grok 1.0.40
 sends `skills-reload` mid-turn, is dropped and written to the channel's
 log, and the turn's later frames still arrive (origin: A-527, aa's
@@ -81,6 +87,8 @@ LIVE_OPTIONS = [["always-allow", "allow_always"], ["allow-once", "allow_once"],
                 ["reject-once", "reject_once"]]
 STRAY = "skills-reload"
 ORIGIN_527 = "A-527; sessions-lever.md observe, permission exception, 7952a9a6"
+ORIGIN_522 = "A-522 #2, 20260923T040605Z-review-codex-6ed2cb"
+FOREIGN_PERMISSION = "perm-foreign"
 OPERATOR_TEXT = "operator line for gee"
 CHANNEL_TAIL = ["--no-auto-update", "agent", "stdio"]
 HANDSHAKE = ["initialize", "session/new"]
@@ -118,6 +126,11 @@ def channel_module(adapter_module, fallback: Path, name: str):
     if module is not None and hasattr(module, "Channel"):
         return module
     return load_module(fallback, name)
+
+
+def grok_channel_error(error) -> bool:
+    """A ChannelError from any by-path load of channel.py."""
+    return type(error).__name__ == "ChannelError"
 
 
 def selected(result) -> str | None:
@@ -346,6 +359,62 @@ class TheGrokAdapter(unittest.TestCase):
                 reading, answer, error = self.permission_reading(raw_input, options, tool)
                 self.assertIsNone(error, error)
                 self.assertEqual((reading, answer), (f"permission {USE_TOOL_TITLE}", "reject-once"))
+
+    def answered_before_sentinel(self, rpc, ident: str) -> bool | None:
+        """Whether the peer received an answer to ``ident``. A sentinel
+        request goes after it; the peer reads its input in order, so once
+        the sentinel's answer is back any earlier answer is in its log.
+        None when the sentinel never came back."""
+        try:
+            rpc.request("sentinel/ping", {}, timeout=3)
+        except Exception as exc:
+            if not grok_channel_error(exc):
+                return None
+        if "sentinel/ping" not in (self.methods() or []):
+            return None
+        return any(call.get("response") and call.get("id") == ident
+                   for call in self.world.tools.calls("grok"))
+
+    def test_a_foreign_permission_request_is_refused_unanswered(self):
+        """origin: A-522 #2, 20260923T040605Z-review-codex-6ed2cb"""
+        rows = [
+            ("grok-permission-foreign-coordination",
+             {"tool_name": "coordination__coord_probe", "tool_input": {}}),
+            ("grok-permission-foreign-other-tool",
+             {"tool_name": "shell__run", "tool_input": {"cmd": "ls"}}),
+        ]
+        for ident, raw_input in rows:
+            with self.subTest(id=ident, origin=ORIGIN_522):
+                adapter = self.adapter()
+                reading = None
+                answered = None
+                error = None
+                if adapter is not None:
+                    rpc = self.spawn()
+                    frame = {
+                        "jsonrpc": "2.0", "id": FOREIGN_PERMISSION,
+                        "method": "session/request_permission",
+                        "params": {
+                            "sessionId": OTHER_SESSION, "title": USE_TOOL_TITLE,
+                            "toolCall": {
+                                "toolCallId": "call-foreign", "title": USE_TOOL_TITLE,
+                                "rawInput": raw_input,
+                                "_meta": {"x.ai/tool": {"namespace": "grok_build",
+                                                        "name": "use_tool"}},
+                            },
+                            "options": [{"optionId": ident_, "name": ident_, "kind": kind}
+                                        for ident_, kind in LIVE_OPTIONS],
+                        },
+                    }
+                    try:
+                        adapter.handshake(rpc)
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            reading = adapter.observe(rpc, frame)
+                        answered = self.answered_before_sentinel(rpc, FOREIGN_PERMISSION)
+                    except Exception as exc:
+                        error = exc
+                self.assertIsNone(error, error)
+                self.assertEqual((reading, answered), (f"refused native {OTHER_SESSION}", False))
 
     def test_a_stray_response_mid_turn_is_dropped_and_logged(self):
         """origin: A-527, aa's e8cae56c; sessions-lever.md the bridge at 7952a9a6"""
