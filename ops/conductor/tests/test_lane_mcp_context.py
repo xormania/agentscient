@@ -15,8 +15,7 @@ check|serve|query TOOL [JSON]`. No live dispatch store, tracked
 record, real job registry, network, or harness call.
 
 World owns HOME, the XDG roots and TMPDIR; every subprocess goes
-through run with a timeout. A missing entrypoint is already pinned by
-test_lane_mcp.TestLaneMcpPresence; this file stages the same
+through run with a timeout. A missing entrypoint fails the endpoint integration checks; this file stages the same
 copy-tool-bytes stand-in so each assertion fails on the v2 promise
 when the subject is absent.
 """
@@ -25,10 +24,13 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib.util
 import json
 import re
 import sys
+import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from test_lane_mcp import (
     CONSUMER,
@@ -171,6 +173,8 @@ class _V2Fixture(_LaneMcpFixture):
             for path in (
                 READ,
                 READ.with_name("instrument.py"),
+                READ.with_name("mcp_transport.py"),
+                READ.with_name("dispatch_observation.py"),
                 READ.with_name("laneconf.py"),
             )
             if path.is_file()
@@ -2290,7 +2294,36 @@ class TestLaneMcpContextSurfaceGaps(_V2Fixture):
             self.assertIn(phrase, dumped_v2)
 
 
-if __name__ == "__main__":
-    import unittest
+class DiscoveryImplementationIdentity(unittest.TestCase):
+    def test_new_shared_dependencies_participate_in_the_implementation_fingerprint(self):
+        with World(prefix="discovery-identity-") as world:
+            staged = world.stage(READ.with_name("lane_refs.py"), siblings=(
+                "lane_read.py", "lane_mcp.py", "instrument.py", "mcp_transport.py", "dispatch_observation.py",
+            ))
+            with patch.object(sys, "path", [str(staged.parent), *sys.path]), patch.dict(sys.modules):
+                sys.modules.pop("lane_read", None)
+                spec = importlib.util.spec_from_file_location("refs_under_test", staged)
+                refs = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(refs)
 
+                def fingerprint():
+                    acquisition = refs.Acquisition({"discovery": {"anchors": {}}},
+                                                   contract_bytes=b"synthetic fixed contract")
+                    try:
+                        return acquisition.definitions["adapter"]["implementation"]
+                    finally:
+                        acquisition.close()
+
+                original = fingerprint()
+                for name in ("mcp_transport.py", "dispatch_observation.py"):
+                    with self.subTest(dependency=name):
+                        path = staged.parent / name
+                        data = path.read_text()
+                        world.plant_text(path, data + "\n# planted implementation change\n")
+                        self.assertNotEqual(fingerprint(), original)
+                        world.plant_text(path, data)
+                        self.assertEqual(fingerprint(), original)
+
+
+if __name__ == "__main__":
     unittest.main()

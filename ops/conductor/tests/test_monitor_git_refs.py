@@ -100,7 +100,7 @@ class _GitRefsFixture(_MonitorFixture):
         self.staged = self.world.stage(
             TOOL,
             "monitor.py",
-            siblings=("laneconf.py", "instrument.py"),
+            siblings=("laneconf.py", "instrument.py", "dispatch_observation.py"),
         )
         self.config = self.conf_dir / "monitor.json"
         self._workers = []
