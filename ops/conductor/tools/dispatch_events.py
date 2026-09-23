@@ -8,9 +8,10 @@ classes, identity for writes.
 
     dispatch_events.py route --consumer C [--once] [--tick N]
 
-Each pass writes a monitor config under the state directory naming the
-launched intents' record ids (the dispatch adapter reads a static id
-list), runs `monitor.py run --once` over it, reads `digest --consumer C`
+Each pass writes a monitor config under the state directory with one
+monitor, condition and route per launched intent, named `di-<n>`, each
+reading that intent's one record id (the dispatch adapter reads a static
+id list), runs `monitor.py run --once` over it, reads `digest --consumer C`
 and sends by the dispatch metric's own word: `completion` and `no-op`
 an `inform` to the requester, `invalid` and `death` a `finding` to the
 Dispatcher and the requester; every other word, and an event for a
@@ -18,6 +19,14 @@ record no intent carries, is acked and never sent. Each send carries
 `key event:<event id>:<recipient>`, so a digest served twice sends once;
 the cursor is acked only after every send of the batch is committed,
 so a failed send leaves the batch to the next pass.
+
+One monitor per intent, measured with monitor.py on 2026-09-23: a
+condition's fingerprint covers its monitor's params, so one shared id
+list reset every record's baseline whenever a job launched or closed,
+and each launched record's status was emitted again. Per intent, a
+record's condition is untouched by its neighbours; its first reading
+emits the status it holds, so a job that ended before the router's first
+pass is still reported.
 """
 
 from __future__ import annotations
@@ -55,16 +64,22 @@ def usage() -> str:
     return "route --consumer C [--once] [--tick N]"
 
 
-def config_for(records: list, consumer: str) -> dict:
+def config_for(launched: list, consumer: str) -> dict:
+    """One monitor, condition and route per (intent id, record) pair."""
+    store = str(intents.jobs_root())
+    names = [(f"di-{di}", record) for di, record in launched]
     return {
         "version": 1,
         "schedules": {"pass": {"enabled": True, "every_s": 1}},
-        "monitors": {"jobs": {"enabled": True, "adapter": "dispatch", "schedule": "pass",
-                              "params": {"store": str(intents.jobs_root()), "ids": records}}},
-        "conditions": {"job_change": {"enabled": True, "monitor": "jobs", "op": "changed",
-                                      "field": "status", "threshold": None, "cooldown_s": 0}},
-        "routes": {"jobs": {"enabled": True, "condition": "job_change", "adapter": "queue",
-                            "consumer": consumer}},
+        "monitors": {name: {"enabled": True, "adapter": "dispatch", "schedule": "pass",
+                            "params": {"store": store, "ids": [record]}}
+                     for name, record in names},
+        "conditions": {name: {"enabled": True, "monitor": name, "op": "changed",
+                              "field": "status", "threshold": None, "cooldown_s": 0}
+                       for name, _record in names},
+        "routes": {name: {"enabled": True, "condition": name, "adapter": "queue",
+                          "consumer": consumer}
+                   for name, _record in names},
     }
 
 
@@ -110,16 +125,16 @@ def one_pass(consumer: str) -> list:
     conn = intents.writer()
     part = coordination.bound_participant(conn)
     send = sender()
-    records = [found["record"] for found in intents.in_phases(conn, ("launched",))
-               if found["record"]][-MAX_IDS:]
+    launched = [(found["id"], found["record"])
+                for found in intents.in_phases(conn, ("launched",)) if found["record"]][-MAX_IDS:]
     try:
         base.mkdir(parents=True, exist_ok=True)
-        config.write_text(json.dumps(config_for(records, consumer), indent=1) + "\n",
+        config.write_text(json.dumps(config_for(launched, consumer), indent=1) + "\n",
                           encoding="utf-8")
     except OSError as error:
         refuse("store", f"a writable pass config at {config}", error.strerror,
                "make the state directory writable")
-    if records:
+    if launched:
         monitor(program, config, state, "run", "--once")
     try:
         events = json.loads(monitor(program, config, state, "digest", "--consumer", consumer,
