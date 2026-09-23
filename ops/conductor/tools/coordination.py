@@ -15,7 +15,7 @@ attribution only. Authority is checked inside these functions, never in
 a hook: the hook engine cannot see MCP tool calls, so a check that lived
 there would not run when the MCP projection calls the same function.
 
-    coordination.py bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]
+    coordination.py bind --roles R[,R] [--run R-n] [--harness H] [--endpoint E] [--probe TEXT]
     coordination.py bind-for --session ID --roles R[,R] --for A-n --capability-digest SHA256 [--harness H]
     coordination.py grant PT-n --roles R[,R]
     coordination.py recover-roles --grant ID --roles R[,R] --why TEXT
@@ -56,6 +56,7 @@ Reads need no identity and no participant and never create the store.
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import os
@@ -330,7 +331,8 @@ def ensure_columns(conn) -> None:
     for name, kind in (("bound_by", "INTEGER"), ("bound_for", "INTEGER"),
                        ("granted_by", "INTEGER"), ("granted_at", "TEXT"),
                        ("revoked_by", "INTEGER"), ("revoked_at", "TEXT"),
-                       ("owner_grant", "INTEGER"), ("capability_digest", "TEXT")):
+                       ("owner_grant", "INTEGER"), ("capability_digest", "TEXT"),
+                       ("terminal_run", "INTEGER")):
         if name not in have:
             conn.execute(f"ALTER TABLE participants ADD COLUMN {name} {kind}")
 
@@ -776,7 +778,7 @@ def no_store(**rest) -> dict:
 # -- the core: one function per verb, keyed by the wire name in CORE ----------
 
 def core_bind(conn, part, *, agent, roles, harness=None,
-              endpoint=None, probe=None) -> dict:
+              endpoint=None, probe=None, run=None) -> dict:
     """This session's own participant, and no other session's.
 
     `part` is None here by construction: binding is how a session comes
@@ -796,45 +798,77 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     # insert two first callers both read zero and both took roles above
     # worker: all three reviewers of round two reproduced two roots in
     # that window against b1d868b0.
-    with instrument.transaction(conn):
-        row = conn.execute(
-            "SELECT * FROM participants WHERE session_id = ?", (key,)
-        ).fetchone()
-        if row is not None:
-            _authenticate(row)
-            # A re-bind is how a session refreshes where it can be reached
-            # and what its last probe said. It is not how it changes what
-            # it may do: Codex reproduced a bound worker re-binding itself
-            # as a lead and drafting its own work against 05b8aebe.
-            if set(named.split(",")) != set(row["roles"].split(",")):
-                refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
-                       "a re-bind refreshes the endpoint and the probe; "
-                       "a lead grants roles with grant")
-            conn.execute(
-                "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
-                "probe = ?, bound_at = ? WHERE id = ?",
-                (agent, harness, endpoint, probe, stamp(), row["id"]),
-            )
-            pid = row["id"]
-        else:
-            bootstrap = conn.execute(
-                "SELECT COUNT(*) AS n FROM participants"
-            ).fetchone()["n"] == 0
-            if not bootstrap and named != "worker":
-                # Authority is a chain and the store's first participant is
-                # its root. Announcing yourself is worth worker and nothing
-                # else; everything above it is somebody's grant.
-                refuse("role", "worker for a self-bind after the first participant",
-                       named,
-                       "bind --roles worker, then a lead grants the rest with "
-                       "grant PT-n --roles R")
-            pid = conn.execute(
-                "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-                "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (key, agent, harness, named, endpoint, probe, stamp()),
-            ).lastrowid
-            _install_capability(conn, pid, capability_digest())
-    return {**participant_dict(participant_row(conn, pid)), "session": key}
+    pointer = None
+    minted = False
+    try:
+        with instrument.transaction(conn):
+            rid = run_named(conn, run) if run is not None else None
+            if rid is not None and instrument.hook_profile() is not None:
+                refuse("arguments", "--run only in an owner terminal", "a managed profile",
+                       "use the managed member's existing run")
+            row = conn.execute(
+                "SELECT * FROM participants WHERE session_id = ?", (key,)
+            ).fetchone()
+            if row is not None:
+                _authenticate(row)
+                if rid is not None:
+                    if row["terminal_run"] != rid:
+                        refuse("capability", "the run enrolled for this terminal", "a different or unminted run",
+                               "use the existing terminal pointer; join associates other bound participants")
+                    profile = instrument.terminal_profile()
+                    if profile is None:
+                        refuse("capability", "this terminal's existing pointer", "missing profile",
+                               "name the pointer through --profile or AGENTSCIENT_HOOK_PROFILE")
+                    pointer = instrument.terminal_pointer(run, f"PT-{row['id']}")
+                # A re-bind is how a session refreshes where it can be reached
+                # and what its last probe said. It is not how it changes what
+                # it may do: Codex reproduced a bound worker re-binding itself
+                # as a lead and drafting its own work against 05b8aebe.
+                if set(named.split(",")) != set(row["roles"].split(",")):
+                    refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
+                           "a re-bind refreshes the endpoint and the probe; "
+                           "a lead grants roles with grant")
+                conn.execute(
+                    "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
+                    "probe = ?, bound_at = ? WHERE id = ?",
+                    (agent, harness, endpoint, probe, stamp(), row["id"]),
+                )
+                pid = row["id"]
+            else:
+                bootstrap = conn.execute(
+                    "SELECT COUNT(*) AS n FROM participants"
+                ).fetchone()["n"] == 0
+                if not bootstrap and named != "worker":
+                    # Authority is a chain and the store's first participant is
+                    # its root. Announcing yourself is worth worker and nothing
+                    # else; everything above it is somebody's grant.
+                    refuse("role", "worker for a self-bind after the first participant",
+                           named,
+                           "bind --roles worker, then a lead grants the rest with "
+                           "grant PT-n --roles R")
+                pid = conn.execute(
+                    "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+                    "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (key, agent, harness, named, endpoint, probe, stamp()),
+                ).lastrowid
+                if rid is None:
+                    _install_capability(conn, pid, capability_digest())
+                else:
+                    declared = (os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+                                or "COORDINATION_CAPABILITY" in os.environ)
+                    token = instrument.capability_value() if declared else instrument.mint_token()
+                    _install_capability(conn, pid, hashlib.sha256(token.encode("ascii")).hexdigest())
+                    conn.execute("UPDATE participants SET terminal_run = ? WHERE id = ?", (rid, pid))
+                    pointer = instrument.mint_terminal_profile(run, f"PT-{pid}", token)
+                    minted = True
+    except BaseException:
+        if minted:
+            instrument.remove_terminal_profile(run, f"PT-{pid}", token)
+        raise
+    shown = {**participant_dict(participant_row(conn, pid)), "session": key}
+    if pointer is not None:
+        shown["profile"] = str(pointer)
+    return shown
 
 
 def core_grant(conn, part, *, agent, participant, roles) -> dict:
@@ -1988,14 +2022,52 @@ CORE = {
 
 # -- the CLI projection: parse argv, call the function, print -----------------
 
+def run_named(conn, run: str) -> int:
+    """The sessions lever's run `bind --run` names, or refuse `absent`: a
+    terminal with no managed launch names the run it joins (sessions-lever.md,
+    the owner's terminals). A store no run was started in has none."""
+    named = re.fullmatch(r"R-(\d+)", run)
+    row = None
+    if named:
+        try:
+            row = conn.execute("SELECT id FROM session_run WHERE id = ?", (int(named[1]),)).fetchone()
+        except sqlite3.OperationalError:
+            row = None
+    if row is None:
+        refuse("absent", "a run the sessions lever started, R-n", f"no run {run}",
+               "sessions.py status lists the runs; bind --run names one of them")
+    return row["id"]
+
+
+def profile_named(rest: list[str]) -> list[str]:
+    """Take `--profile PATH` off a verb's arguments and hand it to every read
+    of the hook profile, as AGENTSCIENT_HOOK_PROFILE would; the flag and a
+    different exported profile are two answers, refused `arguments`."""
+    places = [index for index, word in enumerate(rest) if word == "--profile"]
+    if not places:
+        return rest
+    if len(places) > 1 or places[0] + 1 >= len(rest):
+        refuse("arguments", "--profile PATH once", " ".join(rest[places[0]:]) or "--profile",
+               "name the terminal's profile.json once")
+    path = rest[places[0] + 1]
+    exported = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    if exported and exported != path:
+        refuse("arguments", "one hook profile", f"--profile {path} and AGENTSCIENT_HOOK_PROFILE {exported}",
+               "drop one; the terminal reads a single profile")
+    os.environ["AGENTSCIENT_HOOK_PROFILE"] = path
+    return rest[:places[0]] + rest[places[0] + 2:]
+
+
 def do_bind(rest):
     agent = identity()
-    _, opts = parse(rest, 0, required=("roles",), optional=("harness", "endpoint", "probe"))
+    _, opts = parse(rest, 0, required=("roles",), optional=("run", "harness", "endpoint", "probe"))
     with writer() as conn:
         shown = CORE["bind"](conn, None, agent=agent,
                              roles=opts["roles"], harness=opts.get("harness"),
-                             endpoint=opts.get("endpoint"), probe=opts.get("probe"))
+                             endpoint=opts.get("endpoint"), probe=opts.get("probe"), run=opts.get("run"))
     print(f"participant {shown['participant']} bound to session {shown['session']}")
+    if "profile" in shown:
+        print(f"profile {shown['profile']}")
 
 
 def do_bind_for(rest):
@@ -2619,7 +2691,7 @@ def main(argv: list[str]) -> int:
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(sorted(VERBS)), verb or "no verb",
                    "name one verb; the module doc has the arguments")
-        return VERBS[verb](argv[2:]) or EXIT_DONE
+        return VERBS[verb](profile_named(argv[2:])) or EXIT_DONE
     except Refusal as refusal:
         return emit(refusal)
 

@@ -26,12 +26,16 @@ instrument.py beside itself refuses `tooling` and exits 2.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import json
 import os
 import re
+import secrets
 import shutil
 import sqlite3
+import stat
 import subprocess
 import sys
 from contextlib import closing, contextmanager
@@ -143,7 +147,7 @@ SESSION_UNKNOWN = "unknown"
 def hook_profile():
     """Read a validated launch projection through this installation only."""
     named = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
-    if not named:
+    if not named or TERMINAL_POINTER.search(named):
         return None
     try:
         path = Path(__file__).resolve().parents[3] / "ops/devlane/hooks/profiles.py"
@@ -156,13 +160,200 @@ def hook_profile():
                "regenerate the reviewed profile through its interactive or worker initializer")
 
 
+# An owner-opened terminal's pointer (LD-125, sessions-lever.md "The owner's
+# terminals"): the coordination capability `bind --run R-n` minted, with the
+# run and terminal it was minted for. It is not a hook profile, since no hook
+# is installed for that terminal, so hook_profile() never returns it and only
+# capability_digest() reads it. The verb mints the token and inserts the
+# participant carrying its digest; the file is written last, so a failure
+# between them leaves no pointer and the next read refuses `missing`.
+TERMINAL_SCHEMA = "owner-terminal-profile/1"
+TERMINAL_POINTER = re.compile(r"(?:^|/)runs/(R-[1-9][0-9]*)/terminals/(PT-[1-9][0-9]*)/home/profile\.json\Z")
+TERMINAL_KEYS = frozenset({"schema", "run", "terminal", "coordination_capability"})
+RUN_ID = re.compile(r"R-[1-9][0-9]*")
+TERMINAL_ID = re.compile(r"PT-[1-9][0-9]*")
+CAPABILITY = re.compile(r"[0-9a-f]{64}")
+TERMINAL_EXPECTED = "this owner terminal's minted capability, owner-terminal-profile/1"
+TERMINAL_NEEDED = "bind --run R-n in this terminal again, which mints a new one"
+
+
+def validate_terminal_ids(run: str, terminal: str) -> None:
+    if not (isinstance(run, str) and RUN_ID.fullmatch(run)
+            and isinstance(terminal, str) and TERMINAL_ID.fullmatch(terminal)):
+        refuse("arguments", "a run R-n and a terminal PT-n", f"run {run!r}, terminal {terminal!r}",
+               "name the run and the participant the row was inserted as")
+
+
+def terminal_pointer(run: str, terminal: str) -> Path:
+    validate_terminal_ids(run, terminal)
+    return state_dir() / "runs" / run / "terminals" / terminal / "home" / "profile.json"
+
+
+def terminal_home(run: str, terminal: str, *, create: bool) -> int:
+    """A descriptor on the terminal's home, reached from the lane state directory
+    one component at a time with no link followed, so a linked ancestor never
+    leads outside the state root (A-548 #1). With ``create``, a missing component
+    is made 0700. FileNotFoundError when a component is absent; another OSError
+    when one is a link or not a directory. The caller closes the descriptor."""
+    validate_terminal_ids(run, terminal)
+    root = state_dir()
+    if create:
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in ("runs", run, "terminals", terminal, "home"):
+            if create:
+                with contextlib.suppress(FileExistsError):
+                    os.mkdir(part, 0o700, dir_fd=descriptor)
+            following = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = following
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def open_pointer(home: int) -> int:
+    """The pointer file under ``home``, opened for reading without following a link."""
+    return os.open("profile.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=home)
+
+def mint_token() -> str:
+    """A fresh coordination capability, minted before the participant row."""
+    return secrets.token_hex(32)
+
+
+def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
+    """Write an owner terminal's pointer, 0600 and never replaced, and return its
+    path. Called after the participant row carries the capability's digest."""
+    validate_terminal_ids(run, terminal)
+    if not isinstance(capability, str) or CAPABILITY.fullmatch(capability) is None:
+        refuse("capability", TERMINAL_EXPECTED, "malformed capability",
+               "mint 32 random bytes as hex before inserting the participant")
+    path = terminal_pointer(run, terminal)
+    body = json.dumps({"schema": TERMINAL_SCHEMA, "run": run, "terminal": terminal,
+                       "coordination_capability": capability}, sort_keys=True, separators=(",", ":"))
+    try:
+        home = terminal_home(run, terminal, create=True)
+    except OSError as error:
+        refuse("capability", "a home under the lane state directory with no linked ancestor",
+               f"{path.parent} could not be reached ({error.strerror or error})",
+               "remove the link or file in its place; a pointer is never written through one")
+    try:
+        try:
+            descriptor = os.open("profile.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                 0o600, dir_fd=home)
+        except FileExistsError:
+            refuse("capability", "a new home for this terminal", f"a minted profile already at {path}",
+                   "bind a new terminal; a minted capability is never replaced")
+        try:
+            with os.fdopen(descriptor, "w", encoding="ascii") as out:
+                out.write(body)
+        except BaseException:
+            os.unlink("profile.json", dir_fd=home)
+            raise
+    finally:
+        os.close(home)
+    return path
+
+
+def remove_terminal_profile(run: str, terminal: str, capability: str) -> bool:
+    """Remove the pointer only when it holds ``capability``: the unlink partner for a
+    COMMIT that did not land after the file was written. False when there is none."""
+    try:
+        home = terminal_home(run, terminal, create=False)
+    except OSError:
+        return False
+    try:
+        try:
+            with os.fdopen(open_pointer(home), "r", encoding="ascii") as handle:
+                if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                    return False
+                held = json.loads(handle.read()).get("coordination_capability")
+        except (OSError, ValueError, AttributeError):
+            return False
+        if not isinstance(capability, str) or held != capability:
+            return False
+        os.unlink("profile.json", dir_fd=home)
+    finally:
+        os.close(home)
+    return True
+
+
+def terminal_profile():
+    """The owner terminal's pointer AGENTSCIENT_HOOK_PROFILE names, or None when it
+    names none; `capability` naming `missing` or `malformed <what>` otherwise."""
+    named = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    match = TERMINAL_POINTER.search(named) if named else None
+    if match is None:
+        return None
+    run, terminal = match.groups()
+    path = Path(named).absolute()
+
+    def malformed(what: str) -> NoReturn:
+        refuse("capability", TERMINAL_EXPECTED, f"malformed {what}", TERMINAL_NEEDED)
+
+    expected = terminal_pointer(run, terminal)
+    if path.name != expected.name or os.path.realpath(path.parent) != os.path.realpath(expected.parent):
+        malformed(f"location {named}")
+    # The realpaths above agree when both cross the same linked ancestor, so the
+    # file is read through the home terminal_home reaches with no link followed.
+    try:
+        home = terminal_home(run, terminal, create=False)
+    except FileNotFoundError:
+        refuse("capability", TERMINAL_EXPECTED, "missing", TERMINAL_NEEDED)
+    except OSError:
+        malformed(f"location {named}")
+    try:
+        try:
+            descriptor = open_pointer(home)
+        except FileNotFoundError:
+            refuse("capability", TERMINAL_EXPECTED, "missing", TERMINAL_NEEDED)
+        except OSError:
+            malformed("file type")
+        with os.fdopen(descriptor, "r", encoding="ascii") as handle:
+            status = os.fstat(handle.fileno())
+            if not stat.S_ISREG(status.st_mode):
+                malformed("file type")
+            if status.st_mode & 0o077:
+                malformed("permissions")
+            try:
+                value = json.loads(handle.read())
+            except (OSError, ValueError):
+                malformed("json")
+    finally:
+        os.close(home)
+    if not isinstance(value, dict) or set(value) != TERMINAL_KEYS:
+        malformed("keys")
+    if value["schema"] != TERMINAL_SCHEMA:
+        malformed("schema")
+    if (value["run"], value["terminal"]) != (run, terminal):
+        malformed("run or terminal")
+    capability = value["coordination_capability"]
+    if not isinstance(capability, str) or CAPABILITY.fullmatch(capability) is None:
+        malformed("capability")
+    digest = hashlib.sha256(capability.encode("ascii")).hexdigest()
+    try:
+        with closing(connect_store(state_db())) as conn:
+            enrolled = conn.execute(
+                "SELECT 1 FROM participants WHERE id = ? AND terminal_run = ? "
+                "AND capability_digest = ?",
+                (int(terminal[3:]), int(run[2:]), digest),
+            ).fetchone()
+    except (OSError, sqlite3.Error):
+        malformed("enrollment")
+    if enrolled is None:
+        malformed("enrollment")
+    return value
+
+
 def authority_home() -> Path:
     profile = hook_profile()
     return Path(profile["authority_environment"]["HOME"]) if profile else Path.home()
 
 
-def capability_digest(profile=None) -> str:
-    """Digest the caller's private coordination capability, never a session id.
+def capability_value(profile=None) -> str:
+    """Read the caller's private coordination capability, never a session id.
 
     A declared profile is authoritative and cannot fall back to an ambient
     credential. The core owns enrollment and comparison; native identity
@@ -170,13 +361,20 @@ def capability_digest(profile=None) -> str:
     """
     if profile is None:
         profile = hook_profile()
+    if profile is None:
+        profile = terminal_profile()
     value = (profile.get("coordination_capability") if profile is not None
              else os.environ.get("COORDINATION_CAPABILITY"))
     if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
         refuse("capability", "this participant's private launch capability",
-               "missing or malformed credential",
+               "missing credential" if value is None else "malformed capability",
                "use the admitted native profile or its private CLI credential")
-    return hashlib.sha256(value.encode("ascii")).hexdigest()
+    return value
+
+
+def capability_digest(profile=None) -> str:
+    """Only the digest of the validated capability enters the participant store."""
+    return hashlib.sha256(capability_value(profile).encode("ascii")).hexdigest()
 
 
 def session(default: str = SESSION_UNKNOWN) -> str:

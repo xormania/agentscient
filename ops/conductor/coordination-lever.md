@@ -55,6 +55,19 @@ projects only its own. Profiles, their directory permissions, and the trusted
 operator's filesystem are credential custody: this does not claim isolation
 from arbitrary code running with that same operating-system account.
 
+An owner terminal may use `bind --run R-n` without a capability. The run must
+exist. Bind mints a private token, enrolls its digest and the run in the same
+participant transaction, and writes a 0600 owner-terminal-profile/1 pointer
+at `<state dir>/runs/R-n/terminals/PT-n/home/profile.json`. It prints only
+`profile <path>`. Every verb accepts that path through `--profile PATH` or
+`AGENTSCIENT_HOOK_PROFILE`; conflicting declarations refuse. Reads verify
+the pointer's participant, run and digest against the enrolled row. Invalid
+path components, symlinked ancestors and mismatched enrollment refuse.
+If writing the pointer or committing enrollment fails, neither survives.
+A terminal rebind authenticates its existing pointer and preserves its run
+and digest. A bound participant without a terminal pointer uses `join` to
+associate with a run; rebind does not convert or rekey its credential.
+
 Self-bind requires the new caller's capability; a re-bind proves the existing
 one and never replaces its digest. `bind-for` receives only a capability digest
 for the worker, from an authenticated dispatcher. The launcher creates the
