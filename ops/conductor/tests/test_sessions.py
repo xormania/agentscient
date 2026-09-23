@@ -986,9 +986,10 @@ class TheCleanNeighbours(_Scratch):
 
     def test_attach_execs_tmux_on_the_owned_window(self):
         """origin: 20260922T215604Z-review-codex-f6777b#13
+        origin: 20260922T234512Z-review-codex-5b18d7#3
 
         attach-session uses the run's socket, the run's session name,
-        and the member's window.
+        and the member's window, each as a whole field.
         """
         self.skip_without_tmux()
         with self.subTest(id="attach", origin=origin_finding(13)):
@@ -1010,20 +1011,49 @@ class TheCleanNeighbours(_Scratch):
                     for line in log.read_text(encoding="utf-8").splitlines()
                     if line.strip()
                 ]
-            matched = []
-            for argv in calls:
-                if "attach-session" not in argv and not (argv and argv[0] == "attach"):
-                    continue
-                if str(self.socket) not in argv:
-                    continue
-                if not any(session in part for part in argv):
-                    continue
-                if not any(window in part for part in argv):
-                    continue
-                matched.append(argv)
+            def exact(argv: list) -> bool:
+                """Socket, session and window as whole fields, never substrings.
+
+                agentscient-R-10 does not match agentscient-R-1, and grunt2
+                does not match grunt.
+                """
+                if "attach-session" not in argv and argv[:1] != ["attach"]:
+                    return False
+
+                def flag(name: str):
+                    if name in argv:
+                        index = argv.index(name)
+                        if index + 1 < len(argv):
+                            return argv[index + 1]
+                    prefix = name + "="
+                    for part in argv:
+                        if part.startswith(prefix):
+                            return part[len(prefix):]
+                    return None
+
+                socket = str(self.socket)
+                if flag("-S") != socket and flag("--socket-path") != socket:
+                    return False
+                target = flag("-t") or flag("--target")
+                if not target:
+                    return False
+                if target.startswith("="):
+                    target = target[1:]
+                if ":" not in target:
+                    return False
+                sess, rest = target.split(":", 1)
+                win = rest.split(".", 1)[0]
+                return sess == session and win == window
+
+            decoy = [
+                "-S", str(self.socket), "attach-session", "-t",
+                "agentscient-R-10:grunt2",
+            ]
+            self.assertFalse(exact(decoy), "a substring target must not match")
+            matched = [argv for argv in calls if exact(argv)]
             self.assertTrue(
                 matched,
-                f"attach-session on {self.socket} at {session} window {window}: {calls}",
+                f"attach-session exactly on {self.socket} at {session} window {window}: {calls}",
             )
 
     def owned_pid_and_window(self, member: str, started: str):
