@@ -17,16 +17,21 @@ import contextlib
 import json
 import os
 import signal
+import threading
+import time
 import unittest
+import uuid
 from pathlib import Path
 
 import support
 
-from ops.testkit import RefusalCase, World, run, run_table
+from ops.testkit import DaemonRefused, PlantFailed, RefusalCase, World, run, run_table
 
 CLOSER = "ops.testkit.tests.fixtures.closer"
 TIMEOUT = "2"
 ORIGIN = "PR #274; PR #275: at a93368b5, 1 run in 20 leaked 18 tmux servers with no failure"
+DAEMON = support.FIXTURES / "daemon.py"
+A528 = "record 20260923T030855Z-review-codex-8585d2 (A-528, the audit of #274 at 86ed5089)"
 
 CLEAN = (
     RefusalCase(
@@ -66,6 +71,11 @@ def alive(pid: int, started: str) -> bool:
     return rest[0] not in ("Z", "X") and rest[19] == started
 
 
+def started(pid: int) -> str:
+    raw = Path(f"/proc/{pid}/stat").read_text()
+    return raw[raw.rindex(")") + 2:].split()[19]
+
+
 def kill_survivors(pids: dict) -> list[int]:
     """The recorded pids still running, each killed before it is reported."""
     left = sorted(int(pid) for pid, started in pids.items() if alive(int(pid), started))
@@ -100,6 +110,88 @@ class Daemons(unittest.TestCase):
     def test_a_daemon_its_stop_does_not_end_or_the_kit_never_recorded_is_refused(self):
         with World(host_path=False) as world:
             run_table(self, REFUSED, lambda row: self.close(world, row)[0])
+
+
+@unittest.skipUnless(Path("/proc/self/stat").is_file(), "world.daemon reads /proc; this host has none")
+class Foreign(unittest.TestCase):
+    """A process the world did not start is never the world's to record or
+    to kill, and a stop that blocks does not hold close past its timeout.
+    The foreign daemon runs in a second world, the host, with a token in its
+    socket path that the world under test also names."""
+
+    def setUp(self):
+        host = World(host_path=False)
+        self.addCleanup(host.close)
+        self.token = "a528" + uuid.uuid4().hex[:8]
+        self.foreign_sock = host.home / f"{self.token}.sock"
+        result = run([support.PYTHON, str(DAEMON), "start", str(self.foreign_sock)],
+                     cwd=host.cwd, env=host.env(), timeout=30, expect=0)
+        self.foreign = int(result.stdout.split()[1])
+        self.foreign_started = started(self.foreign)
+        self.addCleanup(kill_survivors, {self.foreign: self.foreign_started})
+        self.addCleanup(run, [support.PYTHON, str(DAEMON), "stop", str(self.foreign_sock)],
+                        cwd=host.cwd, env=host.env(), timeout=30)
+
+    def close(self, world):
+        """Close ``world``; its refusal lines, or () when it closed clean."""
+        try:
+            world.close()
+        except DaemonRefused as refused:
+            return tuple(refused.lines)
+        return ()
+
+    def test_a_process_outside_the_world_sharing_a_match_token_is_neither_recorded_nor_killed(self):
+        # origin: A528 finding 1, world.py:737-761 at 86ed5089: start_daemon unions
+        # the new pids with every host process matching the tokens.
+        world = World(host_path=False)
+        sock = world.home / f"{self.token}.sock"
+        try:
+            daemon = world.daemon("fixture", [support.PYTHON, str(DAEMON), "start", str(sock)],
+                                  [support.PYTHON, str(DAEMON), "stop", str(sock)],
+                                  match=(self.token,), socket=sock, timeout=5)
+            recorded = dict(daemon.pids)
+        finally:
+            lines = self.close(world)
+        self.assertNotIn(self.foreign, recorded, "the world recorded a process it did not start")
+        self.assertEqual(lines, (), "the world's own well-behaved daemon was refused")
+        self.assertTrue(alive(self.foreign, self.foreign_started), "close killed a process outside the world")
+        self.assertEqual(kill_survivors({pid: s for pid, s in recorded.items() if pid != self.foreign}), [])
+
+    def test_adopt_never_takes_a_process_outside_the_world(self):
+        # origin: A528 finding 2, world.py:764-794 at 86ed5089: adopt_daemon takes any
+        # host process whose command line carries the tokens.
+        world = World(host_path=False)
+        adopted = {}
+        try:
+            with contextlib.suppress(PlantFailed):
+                adopted = dict(world.adopt("foreign", None, match=(self.token,), timeout=0.5).pids)
+        finally:
+            self.close(world)
+        self.assertNotIn(self.foreign, adopted, "adopt took a process the world did not start")
+        self.assertTrue(alive(self.foreign, self.foreign_started), "close killed a process outside the world")
+
+    def test_a_stop_that_blocks_does_not_hold_close_past_the_timeout(self):
+        # origin: A528 finding 5, world.py:804-815 at 86ed5089: a callable stop runs
+        # with no bound, so one that blocks holds close for as long as it blocks.
+        world = World(host_path=False)
+        released = threading.Event()
+        self.addCleanup(released.set)
+        sock = world.home / "slow.sock"
+        try:
+            daemon = world.daemon("slow", [support.PYTHON, str(DAEMON), "start", str(sock)],
+                                  lambda: released.wait(20), socket=sock, timeout=0.5)
+            recorded = dict(daemon.pids)
+        except BaseException:
+            self.close(world)
+            raise
+        began = time.monotonic()
+        lines = self.close(world)
+        elapsed = time.monotonic() - began
+        released.set()
+        self.assertLess(elapsed, 10, f"close took {elapsed:.1f}s on a 0.5s timeout; the stop blocks for 20s")
+        self.assertEqual(kill_survivors(recorded), [], "the daemon survived close")
+        self.assertTrue(lines, "a daemon its own stop never brought down was not refused")
+        self.assertIn("slow", lines[0])
 
 
 if __name__ == "__main__":
