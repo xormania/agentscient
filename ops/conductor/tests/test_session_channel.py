@@ -89,8 +89,8 @@ class TheChannelReader(unittest.TestCase):
         peer = os.fdopen(peer_fd, "wb")
         writer = os.fdopen(sink_write, "wb")
         drain = os.fdopen(sink_read, "rb")
-        log = open(self.log_path, "ab")
-        for handle in (reader, writer, drain, log):
+        log = self.enterContext(open(self.log_path, "ab"))
+        for handle in (reader, writer, drain):
             self.addCleanup(handle.close)
         rpc = module.RPC(reader, writer, jsonrpc=True, log=log)
         # The peer's end closes first: the reader thread reads end of input
