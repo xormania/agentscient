@@ -777,6 +777,42 @@ class SharedEnforcement(unittest.TestCase):
                 self.assertEqual(probe.exit, 0, probe.stderr)
                 self.assertEqual(json.loads(probe.stdout)["server"], "coordination")
 
+    def test_a_codex_or_grok_member_home_carries_the_onboard_entry_point(self):
+        # origin: ops/conductor/sessions-lever.md at e0cee144, "Required of the wall":
+        # the onboard wrapper inside a codex or grok member's private home, a planted
+        # row that reads it from the profile home and refuses its absence. The home
+        # build_home makes holds credentials only, so without it a member finds no
+        # onboard skill: grok 1.0.40 loads the checkout's .claude/skills only in a
+        # trusted project, and `grok inspect --json` under a fresh GROK_HOME reads
+        # projectTrusted false and no onboard among its skills (measured 2026-09-23).
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        shared = ".claude/skills/onboard/SKILL.md"
+        self.assertTrue((root / shared).is_file(), shared)
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("onboard-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                if harness == "claude":
+                    # claude reads the checkout's own .claude/skills; its home gets nothing.
+                    self.assertFalse(entry.exists(), entry)
+                    continue
+                self.assertTrue(entry.is_file(), f"{harness}: no onboard entry point at {entry}")
+                self.assertFalse(entry.is_symlink(), f"{harness}: {entry} reaches outside the private home")
+                text = entry.read_text()
+                self.assertTrue(text.startswith("---\nname: onboard\n"), text[:80])
+                self.assertIn(shared, text)
+                self.assertIn("git rev-parse --show-toplevel", text)
+                self.assertIn("expected", text)
+                profiles.validate(profiles.read_binding(binding["binding"]))
+
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib
         root = Path(__file__).resolve().parents[4]
