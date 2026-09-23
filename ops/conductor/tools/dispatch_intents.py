@@ -37,12 +37,22 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import coordination
+    import dispatcher
     import machine
-    from instrument import Refusal, conf, emit, identity, refuse, stamp, state_dir
+    from instrument import (
+        Refusal,
+        conf,
+        emit,
+        identity,
+        refuse,
+        session,
+        stamp,
+        state_dir,
+    )
 except ModuleNotFoundError:
     print(
-        "tooling: expected instrument.py, machine.py and coordination.py beside this tool; "
-        "found absent; needed restore them beside ops/conductor/tools/dispatch_intents.py",
+        "tooling: expected instrument.py, machine.py, coordination.py and dispatcher.py beside "
+        "this tool; found absent; needed restore them beside ops/conductor/tools/dispatch_intents.py",
         file=sys.stderr,
     )
     raise SystemExit(2) from None
@@ -460,9 +470,26 @@ def options(rest, *, required, optional=(), repeated=()) -> dict:
     return found
 
 
-def the_dispatcher(conn):
-    part = coordination.bound_participant(conn)
+def the_dispatcher(conn, part=None):
+    """The caller holds the dispatcher role and the `dispatcher` machine, or
+    refuses: the one check every mutation verb makes, these and
+    dispatch_actions' alike (sessions-lever.md, "the four verbs act only for
+    the participant whose role is dispatcher and who holds the dispatcher
+    machine")."""
+    if part is None:
+        part = coordination.bound_participant(conn)
     coordination.require_role(part, ("dispatcher",))
+    row = conn.execute(
+        "SELECT * FROM subjects WHERE machine = ? ORDER BY id LIMIT 1", (dispatcher.ROLE.name,)
+    ).fetchone()
+    held = ""
+    if row is not None and row["place"] == "named":
+        held = (row["holder_note"] or "").strip()
+    mine = session("").strip()
+    if not held or held != mine:
+        refuse("holder", "the session holding the dispatcher machine",
+               f"held by {held or 'nobody'}; this session {mine or 'unnamed'}",
+               "run dispatcher.py set --why TEXT from this session, then ask again")
     return part
 
 
