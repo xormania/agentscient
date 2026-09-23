@@ -28,8 +28,10 @@ monitor.py's digest does.
 
 Planted faults (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#6):
 dispatch_events_faults.py beside this module, anchored on agentscient-10's
-subject at bfa82f5b. A declared gap until calibrated: every row waits on
-slice 2's `send --key`, so the clean run is red.
+subject at bfa82f5b; its docstring names the calibrate command.
+Calibrated over the whole module at 0ae638fb. Its two faults reach
+completion-informs, early-finish-one-inform, later-launch-repeats-nothing
+and death-finds; a fault for each other row is a declared gap.
 """
 
 from __future__ import annotations
