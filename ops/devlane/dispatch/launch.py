@@ -10,6 +10,7 @@ import faulthandler
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import re
 import shutil
@@ -1799,15 +1800,20 @@ def _requested_timeout():
     """DISPATCH_TIMEOUT from the invoking environment, in seconds, or None
     when it is unset. Read before anything is minted or spawned, so a value
     the launcher cannot use is refused on the wire rather than raised after
-    the harness is running (20260923T000804Z-review-codex-da66dd#1)."""
+    the harness is running (20260923T000804Z-review-codex-da66dd#1). NaN,
+    an infinity, zero and a negative parse as floats and bound nothing; NaN
+    also serialises as a bare token strict JSON rejects (#2)."""
     raw = os.environ.get("DISPATCH_TIMEOUT")
     if raw is None:
         return None
     try:
-        return float(raw)
+        value = float(raw)
     except ValueError:
+        value = None
+    if value is None or not math.isfinite(value) or value <= 0:
         _refuse("timeout", "DISPATCH_TIMEOUT as a positive finite number of seconds",
                 repr(raw), "unset DISPATCH_TIMEOUT or give it a number of seconds")
+    return value
 
 
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
