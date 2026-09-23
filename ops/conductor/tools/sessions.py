@@ -22,6 +22,7 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py input --run R-n --member NAME TEXT
     sessions.py trial objective R-n --deliverable ID --clause FILE:LINE ... --candidate REF
                       --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
+    sessions.py trial record PATH
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -2096,7 +2097,67 @@ def trial_objective(rest):
     return EXIT_DONE
 
 
-TRIAL = {"objective": trial_objective}
+TRIAL_IDS = tuple(f"I-{n:02d}" for n in range(1, 15))
+TRIAL_ROW = re.compile(r"I-\d{2}")
+NOT_MEASURED = re.compile(r"not measured\b\s*(.*)", re.IGNORECASE)
+VERIFIED = re.compile(r"(?<![\w-])verified ([0-9a-f]{40})(?![0-9a-f])")
+LIVE = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
+MOCK = re.compile(r"(?<![\w/.-])mock\s+\S+")
+
+
+def checked_record(path_text: str) -> dict:
+    """The trial record's fourteen rows by id, `id | required result |
+    evidence | reading`, each read or declared `not measured <why>`; the
+    first row that is not refuses `evidence`. Other tables (the AC
+    crosswalk) are not read."""
+    path = Path(path_text)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        refuse("evidence", "a readable trial record", f"{path}: {exc.__class__.__name__}",
+               "pass the record's path, ops/conductor/handoff/<date>-slice4-trial.md")
+    rows: dict = {}
+    for number, line in enumerate(lines, 1):
+        body = line.strip()
+        if not body.startswith("|"):
+            continue
+        body = body[1:-1] if body.endswith("|") else body[1:]
+        cells = [cell.strip() for cell in body.split("|")]
+        if not TRIAL_ROW.fullmatch(cells[0]):
+            continue
+        key = cells[0]
+        if key not in TRIAL_IDS:
+            refuse("evidence", "rows I-01 to I-14", f"{key} at line {number}", "one row per acceptance id")
+        if key in rows:
+            refuse("evidence", f"one {key} row", f"{key} again at line {number}", "keep one row per id")
+        if len(cells) != 4:
+            refuse("evidence", f"{key} as id | required result | evidence | reading",
+                   f"{len(cells)} cells at line {number}", "four cells per row")
+        rows[key] = {"required": cells[1], "evidence": cells[2], "reading": cells[3], "line": number}
+    for key in TRIAL_IDS:
+        if key not in rows:
+            refuse("evidence", "a row for each of I-01 to I-14", f"no {key} row in {path}",
+                   f"add {key} with its reading or not measured <why>")
+        reading = rows[key]["reading"]
+        declared = NOT_MEASURED.match(reading)
+        if not reading or (declared and not declared.group(1).strip()):
+            refuse("evidence", f"{key} with a reading or not measured <why>",
+                   f"{key} reading {reading!r} at line {rows[key]['line']}",
+                   "write the measured line, or not measured and why")
+    return rows
+
+
+def trial_record(rest):
+    """`trial record PATH`: a read; exit 0 on a complete trial record."""
+    if len(rest) != 1:
+        refuse("arguments", "trial record PATH", " ".join(rest) or "no path", usage())
+    rows = checked_record(rest[0])
+    unmeasured = sum(1 for row in rows.values() if NOT_MEASURED.match(row["reading"]))
+    print(f"record {rest[0]} {len(rows)} rows read, {unmeasured} not measured")
+    return EXIT_DONE
+
+
+TRIAL = {"objective": trial_objective, "record": trial_record}
 
 
 def do_trial(rest):
