@@ -45,7 +45,7 @@ def instance(member: dict, binding: dict) -> dict:
     capability as a digest, never the value. The authority environment is
     not read: its HOME and XDG roots are the operator's, the same for every
     member by design (measured 2026-09-23 on eleven interactive bindings
-    under ~/.local/state/agentscient/native-profiles)."""
+    under ~/.local/state/<LANE_NAME>/native-profiles)."""
     paths = {}
     for kind, value in (("profile", member.get("profile")),
                         ("evidence", member.get("evidence")),

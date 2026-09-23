@@ -28,8 +28,8 @@ def _common():
 
 
 common = _common()
+from instrument import lane_name  # noqa: E402 - on the path _common appended
 
-CLIENT = {"name": "agentscient-sessions", "title": "agentscient sessions bridge", "version": "2"}
 # What the bridge answers to each request the app-server may send: every
 # approval declined, every question left unanswered, nothing granted.
 DECLINE = {
@@ -41,7 +41,13 @@ DECLINE = {
     "applyPatchApproval": {"decision": "denied"},
     "execCommandApproval": {"decision": "denied"},
 }
-UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
+
+
+def client() -> dict:
+    """The clientInfo `initialize` names, under the lane conf's LANE_NAME."""
+    lane = lane_name()
+    return {"name": f"{lane}-sessions", "title": f"{lane} sessions bridge", "version": "2"}
 
 
 def thread_of(params) -> str | None:
@@ -74,7 +80,7 @@ class Adapter(common.ProtocolAdapter):
         """`initialize`, `initialized`, `thread/start`; the thread id."""
         method = "initialize"
         try:
-            rpc.request(method, {"clientInfo": CLIENT, "capabilities": {"experimentalApi": True}},
+            rpc.request(method, {"clientInfo": client(), "capabilities": {"experimentalApi": True}},
                         timeout=common.SUBMIT_TIMEOUT)
             rpc.notify("initialized")
             method = "thread/start"
@@ -95,7 +101,7 @@ class Adapter(common.ProtocolAdapter):
         params = {"threadId": self.native, "input": [{"type": "text", "text": text}]}
         if busy:
             params = {"threadId": self.native, "input": [],
-                      "toolOutput": {"name": common.SERVER, "namespace": "agentscient",
+                      "toolOutput": {"name": common.SERVER, "namespace": lane_name(),
                                      "output": text}}
         try:
             result = rpc.request("turn/start", params, timeout=common.SUBMIT_TIMEOUT)

@@ -37,7 +37,7 @@ common = _common()
 # `session/prompt` stays open until the turn ends; a submission reads
 # `written` when no refusal came back within this grace.
 PROMPT_GRACE = 2.0
-UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the sessions bridge"}
 
 
 def tool_name(update: dict) -> str | None:
@@ -88,7 +88,7 @@ class Adapter(common.ProtocolAdapter):
     # The directory the harness was spawned in, kept from `connect`.
     cwd = None
     # The MCP servers `session/new` names, kept from `channel`.
-    servers: list = []
+    servers = ()
 
     def channel(self, member, binding):
         self.servers = acp_servers(binding)
