@@ -10,7 +10,7 @@ the rows named in each note must go red on its mutant:
         --command "python3 -m unittest discover -s ops/conductor/tests -p test_session_adapters_grok.py"
 
 Anchored on the subject at bf924ee7 (#277); the six permission mutants on
-b3's ea986978 (A-527). An anchor that no longer
+b3's ea986978 (A-527); M-foreign-answered on aa's 88abc6ba (A-522 #2). An anchor that no longer
 matches once refuses class anchor; re-measure it against the subject.
 """
 
@@ -108,5 +108,23 @@ MUTANTS = [
         "    raw = call.get",
         "a call that is not grok's own use_tool is allowed (grok-permission-not-use-tool, "
         "grok-permission-other-namespace)",
+    ),
+    Mutant(
+        "M-foreign-answered",
+        SUBJECT,
+        "        if other is not None:\n"
+        "            # A foreign session's frame is refused before anything answers\n"
+        "            # it: its permission request goes out unanswered (A-522 #2).\n"
+        "            return other\n"
+        "        if \"id\" in frame and method is not None:\n"
+        "            return self.answer(rpc, frame, method, params, other)\n",
+        "        if \"id\" in frame and method is not None:\n"
+        "            return self.answer(rpc, frame, method, params, other)\n"
+        "        if other is not None:\n"
+        "            return other\n",
+        "the order before aa's 88abc6ba (37a6a26f): a foreign session's permission "
+        "request is answered before it is refused (grok-permission-foreign-coordination, "
+        "grok-permission-foreign-other-tool; A-522 #2, "
+        "20260923T040605Z-review-codex-6ed2cb)",
     ),
 ]

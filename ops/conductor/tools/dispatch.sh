@@ -305,9 +305,10 @@ argv=("$LAUNCHER_PIN" "$job" --harness "$harness" --model "$model" --ref "$ref")
 [[ -z $unit ]] || argv+=(--unit "$unit")
 [[ -z $stage ]] || argv+=(--stage "$stage")
 [[ -z $assignment ]] || argv+=(--for "$assignment")
-# The intent's join to its job directory (sessions-lever.md, slice 3):
-# passed through unchanged; launch.py writes it into state.json.
-[[ -z $correlation ]] || argv+=(--correlation "$correlation")
+# The intent's join to its job directory (sessions-lever.md, slice 3) is not
+# passed to the launcher: the pinned launch.py admits no --correlation and
+# argparse exits 2 on it (A-524 #1). A detached launch writes it as the
+# launcher log's first line instead, which dispatch_intents.scan reads.
 argv+=(--scope "$scope")
 for input in "${inputs[@]}"; do
     argv+=(--input "$input")
@@ -359,7 +360,8 @@ detach_wait=${DETACH_WAIT:-60}
     rm -f -- "$launch_log"
     refuse "expected DETACH_WAIT as positive whole seconds; found $detach_wait; needed set DETACH_WAIT to a positive integer"
 }
-setsid nohup env WF_AGENT="$agent" "${argv[@]}" >"$launch_log" 2>&1 </dev/null &
+[[ -z $correlation ]] || printf 'correlation: %s\n' "$correlation" >"$launch_log"
+setsid nohup env WF_AGENT="$agent" "${argv[@]}" >>"$launch_log" 2>&1 </dev/null &
 launcher_pid=$!
 record_line=''
 for ((attempt = 0; attempt < detach_wait * 100; attempt++)); do

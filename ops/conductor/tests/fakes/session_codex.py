@@ -205,7 +205,7 @@ def coordination(*argv: str):
     creds = credentials()
     if creds is None:
         return None
-    session, capability = creds
+    _session, capability = creds
     if REPO not in sys.path:
         sys.path.insert(0, REPO)
     from ops.testkit import run
