@@ -180,6 +180,32 @@ class TheLockLever(unittest.TestCase):
         # named is still there afterwards.
         self.assertIn("lane/x", json.loads(self.lock.read_text())["branches"])
 
+    def test_show_unmeasured_runs_no_measure(self):
+        """origin: LD-146
+
+        ``show --unmeasured`` prints every target reading unmeasured and
+        runs no measure; any other option refuses class arguments on the
+        wire; a plain ``show`` still measures."""
+        measure = self.measure_tool("on_kit=16/226\n")
+        name = f"measure-{self._measures}"
+        proc = self.run_lever("add", "lane/x", "--why", "w", "--measure", measure, "--until", "on_kit=226/226")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        with self.subTest(id="deliverable-show-unmeasured", origin="LD-146"):
+            shown = self.run_lever("show", "--unmeasured", identity=False)
+            self.assertEqual(shown.exit, 0, shown.stderr)
+            self.assertIn("target lane/x: until on_kit=226/226; reading unmeasured; unmeasured", shown.stdout)
+            self.assertEqual(self.world.tools.calls(name), [])
+        with self.subTest(id="deliverable-show-bogus-refuses", origin="LD-146"):
+            bogus = self.run_lever("show", "--bogus", identity=False)
+            self.assertEqual(bogus.exit, 2, bogus.stdout)
+            self.assertEqual(bogus.stdout, "")
+            self.assertEqual(len(bogus.stderr.strip().splitlines()), 1, bogus.stderr)
+            self.assertRegex(bogus.stderr.strip(), r"^arguments: expected .+; found .+; needed .+$")
+        with self.subTest(id="deliverable-show-still-measures", origin="LD-146"):
+            shown = self.run_lever("show", identity=False)
+            self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
+            self.assertEqual(len(self.world.tools.calls(name)), 1)
+
     def test_measure_without_until_or_until_without_measure_refuses_arguments(self):
         for extra in (("--measure", "true"), ("--until", "x")):
             with self.subTest(extra=extra):

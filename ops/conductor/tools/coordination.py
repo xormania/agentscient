@@ -54,6 +54,11 @@ there would not run when the MCP projection calls the same function.
     coordination.py coverage [--requirement REF] | brief
     coordination.py entry [--role R]
 
+In an owner's terminal (sessions-lever.md, the owner's terminals) bind
+also takes --run R-n, the run it joins, refused `absent` when it names
+none; and every verb takes --profile PATH, the hook profile read in
+place of AGENTSCIENT_HOOK_PROFILE.
+
 Reads need no identity and no participant and never create the store.
 """
 
@@ -2255,6 +2260,29 @@ def carriable(conn, part) -> dict:
     return {"carry": carry, "ambiguous": ambiguous}
 
 
+def member_kin(conn, pid: int) -> list[int]:
+    """The participants of every generation of the member PT-`pid` is: the
+    same run and member name in sessions.py's `session_member`, in the
+    same store. `pid` alone when no member row names it or the store has
+    no such table. Attempt exclusion and reconciliation key on these, so a
+    replacement generation sees, waits on and settles what its
+    predecessor left unsettled (A-522 #1): a restart neither erases the
+    obligation nor replays its effects."""
+    if not has_table(conn, "session_member"):
+        return [pid]
+    rows = conn.execute(
+        "SELECT DISTINCT k.participant FROM session_member m JOIN session_member k "
+        "ON k.run = m.run AND k.name = m.name "
+        "WHERE m.participant = ? AND k.participant IS NOT NULL ORDER BY k.participant",
+        (pid,)).fetchall()
+    return [row[0] for row in rows] or [pid]
+
+
+def marks(values) -> str:
+    """One `?` per value, for an `IN (...)` whose values stay bound."""
+    return ",".join("?" for _ in values)
+
+
 def attempt_row(conn, aid: int):
     row = None
     if conn is not None and has_table(conn, "delivery_attempts"):
@@ -2270,7 +2298,8 @@ def core_attempt(conn, part, *, message, route, generation) -> dict:
 
     Nothing is resubmitted while an attempt of the message is unsettled, and
     at most ATTEMPTS_OUTSTANDING attempts per participant are unsettled at
-    once. A delivered message may take a later attempt: its outcome settles
+    once, a participant counting with its member's earlier generations
+    (member_kin). A delivered message may take a later attempt: its outcome settles
     that attempt and never records `deliver` again. The courier does not
     select a delivered message; `carriable` is where that holds.
     """
@@ -2293,16 +2322,17 @@ def core_attempt(conn, part, *, message, route, generation) -> dict:
         if current["place"] != "open":
             refuse("place", f"an open message M-{mid}", f"M-{mid} {current['place']}",
                    "a resolved or withdrawn message is not carried")
+        kin = member_kin(conn, part["id"])
         pending = conn.execute(
-            "SELECT * FROM delivery_attempts WHERE message = ? AND participant = ? "
-            "AND outcome IS NULL ORDER BY id", (mid, part["id"])).fetchone()
+            f"SELECT * FROM delivery_attempts WHERE message = ? AND participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL ORDER BY id", (mid, *kin)).fetchone()
         if pending is not None:
             refuse("place", f"no unsettled attempt of M-{mid}",
                    f"AT-{pending['id']} reserved {pending['reserved_at']}, unsettled",
                    "settle it with attempted, or let the next pass reconcile it past the ttl")
         held = conn.execute(
-            "SELECT COUNT(*) FROM delivery_attempts WHERE participant = ? AND outcome IS NULL",
-            (part["id"],)).fetchone()[0]
+            f"SELECT COUNT(*) FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+            "AND outcome IS NULL", kin).fetchone()[0]
         if held >= ATTEMPTS_OUTSTANDING:
             refuse("place", f"fewer than {ATTEMPTS_OUTSTANDING} unsettled attempts for PT-{part['id']}",
                    f"{held} unsettled", "settle or reconcile the outstanding attempts first")
@@ -2340,8 +2370,9 @@ def core_attempted(conn, part, *, attempt, outcome, ref=None, error=None) -> dic
 
     def settle(conn):
         row = attempt_row(conn, aid)
-        if row["participant"] != part["id"]:
-            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}",
+        if row["participant"] not in member_kin(conn, part["id"]):
+            refuse("recipient", f"the courier of PT-{row['participant']} for AT-{aid}, "
+                   "or of a later generation of its member",
                    f"PT-{part['id']}", "the courier that reserved it settles it")
         if row["outcome"] is not None:
             refuse("place", f"an unsettled attempt AT-{aid}", f"settled {row['outcome']}",
@@ -2373,13 +2404,15 @@ def core_attempts(conn, part, *, message=None) -> dict:
 
 
 def stale_attempts(conn, part) -> dict:
-    """This participant's unsettled attempts reserved longer than ATTEMPT_TTL
-    ago: a crash between the submission and its settlement."""
+    """This participant's unsettled attempts, and its member's earlier
+    generations', reserved longer than ATTEMPT_TTL ago: a crash between
+    the submission and its settlement."""
     part = same_session(conn, part)
     if conn is None or not has_table(conn, "delivery_attempts"):
         return {"stale": []}
-    rows = conn.execute("SELECT * FROM delivery_attempts WHERE participant = ? AND outcome IS NULL "
-                        "ORDER BY id", (part["id"],)).fetchall()
+    kin = member_kin(conn, part["id"])
+    rows = conn.execute(f"SELECT * FROM delivery_attempts WHERE participant IN ({marks(kin)}) "  # noqa: S608 - marks() is only placeholders
+                        "AND outcome IS NULL ORDER BY id", kin).fetchall()
     moment = now()
     stale = [row for row in rows
              if (moment - parse_stamp(row["reserved_at"])).total_seconds() > ATTEMPT_TTL]
@@ -2436,10 +2469,48 @@ CORE = {
 
 # -- the CLI projection: parse argv, call the function, print -----------------
 
+def run_named(conn, run: str) -> int:
+    """The sessions lever's run `bind --run` names, or refuse `absent`: a
+    terminal with no managed launch names the run it joins (sessions-lever.md,
+    the owner's terminals). A store no run was started in has none."""
+    named = re.fullmatch(r"R-(\d+)", run)
+    row = None
+    if named:
+        try:
+            row = conn.execute("SELECT id FROM session_run WHERE id = ?", (int(named[1]),)).fetchone()
+        except sqlite3.OperationalError:
+            row = None
+    if row is None:
+        refuse("absent", "a run the sessions lever started, R-n", f"no run {run}",
+               "sessions.py status lists the runs; bind --run names one of them")
+    return row["id"]
+
+
+def profile_named(rest: list[str]) -> list[str]:
+    """Take `--profile PATH` off a verb's arguments and hand it to every read
+    of the hook profile, as AGENTSCIENT_HOOK_PROFILE would; the flag and a
+    different exported profile are two answers, refused `arguments`."""
+    places = [index for index, word in enumerate(rest) if word == "--profile"]
+    if not places:
+        return rest
+    if len(places) > 1 or places[0] + 1 >= len(rest):
+        refuse("arguments", "--profile PATH once", " ".join(rest[places[0]:]) or "--profile",
+               "name the terminal's profile.json once")
+    path = rest[places[0] + 1]
+    exported = os.environ.get("AGENTSCIENT_HOOK_PROFILE", "").strip()
+    if exported and exported != path:
+        refuse("arguments", "one hook profile", f"--profile {path} and AGENTSCIENT_HOOK_PROFILE {exported}",
+               "drop one; the terminal reads a single profile")
+    os.environ["AGENTSCIENT_HOOK_PROFILE"] = path
+    return rest[:places[0]] + rest[places[0] + 2:]
+
+
 def do_bind(rest):
     agent = identity()
-    _, opts = parse(rest, 0, required=("roles",), optional=("harness", "endpoint", "probe"))
+    _, opts = parse(rest, 0, required=("roles",), optional=("run", "harness", "endpoint", "probe"))
     with writer() as conn:
+        if "run" in opts:
+            run_named(conn, opts["run"])
         shown = CORE["bind"](conn, None, agent=agent,
                              roles=opts["roles"], harness=opts.get("harness"),
                              endpoint=opts.get("endpoint"), probe=opts.get("probe"))
@@ -3158,7 +3229,7 @@ def main(argv: list[str]) -> int:
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(sorted(VERBS)), verb or "no verb",
                    "name one verb; the module doc has the arguments")
-        return VERBS[verb](argv[2:]) or EXIT_DONE
+        return VERBS[verb](profile_named(argv[2:])) or EXIT_DONE
     except Refusal as refusal:
         return emit(refusal)
 
