@@ -1406,99 +1406,34 @@ class TheCleanNeighbours(_Scratch):
         text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
         return text.rsplit(")", 1)[1].split()[19]
 
-    def recorded_pid_ticks(self, member: str) -> tuple[int | None, str | None]:
-        pid = None
-        ticks = None
-        for path in (self.state / "sessions").glob(f"*/{member}/launch.json"):
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            if not isinstance(data, dict):
-                continue
-            raw = data.get("pid")
-            if isinstance(raw, int) and raw > 1:
-                pid = raw
-            elif isinstance(raw, str) and raw.isdigit() and int(raw) > 1:
-                pid = int(raw)
-            for key in ("start", "start_ticks", "start-ticks"):
-                value = data.get(key)
-                if value is not None and str(value):
-                    ticks = str(value)
-                    break
-        if pid is None:
-            status = self.sessions("status", identity=None).stdout
-            match = re.search(r"\bpid=(\d+)\b", status)
-            if match and int(match.group(1)) > 1:
-                pid = int(match.group(1))
-            ticks_match = re.search(r"\bstart=(\d+)\b", status)
-            if ticks_match:
-                ticks = ticks_match.group(1)
-        return pid, ticks
-
-    def wait_until_gone(self, pid: int) -> None:
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and Path(f"/proc/{pid}").exists():
-            time.sleep(0.02)
-
-    def reuse_recorded_pid(self, recorded: int, ticks: str) -> int | None:
-        """Spawn through owned_holder until the recorded pid is alive again
-        with different start ticks. Fail closed when that does not happen.
-        """
-        cursor = Path("/proc/sys/kernel/ns_last_pid")
-        for _ in range(8):
-            with contextlib.suppress(OSError):
-                cursor.write_text(str(recorded - 1), encoding="utf-8")
-            child, release = self.owned_holder()
-            if child == recorded:
-                try:
-                    live = self.proc_start_ticks(child)
-                except OSError:
-                    live = ticks
-                if live != ticks:
-                    return child
-            release()
-        return None
-
-    def test_stop_terminate_does_not_signal_a_reused_pid(self):
+    def test_stop_terminate_does_not_signal_a_stale_pid(self):
         """origin: 20260922T215604Z-review-codex-f6777b#17
-        origin: 20260922T234512Z-review-codex-5b18d7#4
+        origin: 20260923T003033Z-review-codex-c99cc9#8
 
-        The recorded pid is reaped and reused with different start ticks.
-        When the world cannot force that reuse, the row skips with the
-        reason and does not fail before stop --terminate. When it can,
-        stop --terminate must not signal the live pid, and must say
-        unresolved stale pid. Spawns go through owned_holder.
+        A reused pid reads as a live pid whose start ticks differ from the
+        record. The row plants that record: the member's pid becomes a live
+        holder the world owns, its start ticks one more than the holder's.
+        stop --terminate must leave the holder alive, say unresolved stale
+        pid, and exit 1.
         """
         self.skip_without_tmux()
         with self.subTest(id="stale-pid-stop", origin=origin_finding(17)):
             started = self.sessions(*self.start_argv())
-            self.assertIn(started.exit, (0, 1), started.stderr)
-            recorded, ticks = self.recorded_pid_ticks("grunt")
-            if recorded is None or not Path(f"/proc/{recorded}").exists():
-                recorded, release_seed = self.owned_holder()
-                ticks = self.proc_start_ticks(recorded)
-                os.kill(recorded, signal.SIGKILL)
-                release_seed()
-                self.wait_until_gone(recorded)
-            else:
-                if not ticks:
-                    ticks = self.proc_start_ticks(recorded)
-                os.kill(recorded, signal.SIGKILL)
-                self.wait_until_gone(recorded)
-            self.assertFalse(Path(f"/proc/{recorded}").exists(), "the recorded pid was not reaped")
-            reused = self.reuse_recorded_pid(recorded, ticks)
-            if reused != recorded:
-                self.skipTest(
-                    "the world cannot force pid reuse; "
-                    "stop --terminate was not invoked"
-                )
-            self.assertNotEqual(self.proc_start_ticks(reused), ticks)
+            self.assertEqual(started.exit, 0, started.stderr)
+            holder, release = self.owned_holder()
+            self.addCleanup(release)
+            stale = str(int(self.proc_start_ticks(holder)) + 1)
+            with sqlite3.connect(self.state / "state.db") as conn:
+                planted = conn.execute(
+                    "UPDATE session_member SET pid = ?, start_ticks = ? WHERE name = ?",
+                    (holder, stale, "grunt"),
+                ).rowcount
+            self.assertEqual(planted, 1, "the stale record was not planted")
             proc = self.sessions("stop", "--terminate")
-            self.assertTrue(self._alive(reused), "the reused pid was signalled")
+            self.assertTrue(self._alive(holder), "the stale pid was signalled")
             combined = proc.stdout + proc.stderr
-            self.assertIn("stale pid", combined)
-            self.assertIn("unresolved", combined)
+            self.assertIn(f"unresolved stale pid {holder}", combined)
+            self.assertEqual(proc.exit, 1, combined)
 
 class TheDoctorDefaultTeam(_Scratch):
     def test_doctor_reports_missing_adapter_for_codex_and_grok(self):
