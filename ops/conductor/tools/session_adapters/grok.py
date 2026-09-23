@@ -37,7 +37,7 @@ common = _common()
 # `session/prompt` stays open until the turn ends; a submission reads
 # `written` when no refusal came back within this grace.
 PROMPT_GRACE = 2.0
-UNKNOWN = {"code": -32601, "message": "not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
 
 
 def tool_name(update: dict) -> str | None:
@@ -50,14 +50,61 @@ def tool_name(update: dict) -> str | None:
     return str(title) if title else None
 
 
+def acp_servers(binding) -> list:
+    """The binding's native MCP servers as ACP `session/new` entries.
+
+    Measured 2026-09-23 on grok 1.0.40 over `agent stdio`: with
+    `mcpServers: []` and no servers in its config, `_x.ai/mcp_initialized`
+    reads mcpToolCount 0; with a stdio entry named `coordination`, grok
+    starts it (initialize, tools/list), reads mcpToolCount 1 and sends
+    `_x.ai/mcp/server_status` {name: coordination, status: ready}. An entry
+    with a `url` is passed as http; one with neither command nor url is
+    left out."""
+    settings = binding.get("native_settings") if isinstance(binding, dict) else None
+    servers = settings.get("mcp_servers") if isinstance(settings, dict) else None
+    entries = []
+    for name, spec in (servers or {}).items() if isinstance(servers, dict) else ():
+        if not isinstance(spec, dict):
+            continue
+        env = spec.get("env") if isinstance(spec.get("env"), dict) else {}
+        if spec.get("command"):
+            entries.append({"name": str(name), "command": str(spec["command"]),
+                            "args": [str(arg) for arg in spec.get("args") or []],
+                            "env": [{"name": str(key), "value": str(value)}
+                                    for key, value in env.items()]})
+        elif spec.get("url"):
+            headers = spec.get("headers") if isinstance(spec.get("headers"), dict) else {}
+            entries.append({"type": "http", "name": str(name), "url": str(spec["url"]),
+                            "headers": [{"name": str(key), "value": str(value)}
+                                        for key, value in headers.items()]})
+    return entries
+
+
 class Adapter(common.ProtocolAdapter):
     """Grok's ACP agent, launched through the profile by the bridge."""
 
     harness = "grok"
     jsonrpc = True
+    # The directory the harness was spawned in, kept from `connect`.
+    cwd = None
+    # The MCP servers `session/new` names, kept from `channel`.
+    servers: list = []
 
     def channel(self, member, binding):
+        self.servers = acp_servers(binding)
         return ["--no-auto-update", "agent", "stdio"]
+
+    def connect(self, argv, *, env=None, cwd=None, stderr=None):
+        """The channel, and the directory it runs in kept for `session/new`."""
+        self.cwd = cwd
+        return super().connect(argv, env=env, cwd=cwd, stderr=stderr)
+
+    def workdir(self, rpc) -> str:
+        """The directory the session works in: the one the harness was
+        spawned in (the channel's, else `connect`'s), and the bridge's own
+        only when neither was given. ACP asks for an absolute path."""
+        named = getattr(rpc, "cwd", None) or self.cwd
+        return str(Path(named).absolute()) if named else os.getcwd()
 
     def handshake(self, rpc):
         """`initialize`, `authenticate` when advertised, `session/new`; the session id."""
@@ -76,7 +123,7 @@ class Adapter(common.ProtocolAdapter):
                 rpc.request(method, {"methodId": chosen, "_meta": {"headless": True}},
                             timeout=common.SUBMIT_TIMEOUT)
             method = "session/new"
-            opened = rpc.request(method, {"cwd": os.getcwd(), "mcpServers": []},
+            opened = rpc.request(method, {"cwd": self.workdir(rpc), "mcpServers": self.servers},
                                  timeout=common.SUBMIT_TIMEOUT)
         except common.channel.ChannelError as error:
             self.refuse_channel(method, error)
@@ -137,20 +184,32 @@ class Adapter(common.ProtocolAdapter):
                 name = tool_name(update)
                 return f"tool {name}" if name else "activity active"
             return "activity active"
+        if method == "_x.ai/mcp/server_status":
+            if params.get("name") == common.SERVER and params.get("status") == "ready":
+                return f"tool {common.SERVER} ready"
+            return f"activity {params.get('name')} {params.get('status')}"
         if method == "_x.ai/session/prompt_complete":
-            return f"done {params.get('promptId') or params.get('stopReason') or 'prompt'}"
+            done = params.get("promptId") or params.get("turn") or params.get("stopReason")
+            return f"done {done or 'prompt'}"
         named = params.get("sessionId")
         return f"native {named}" if named else f"other {method}"
 
     def answer(self, rpc, frame, method, params, other):
+        """Decline what the agent asks: the offered reject option, else
+        cancelled; the prompt is printed to the pane, not kept."""
         if method == "session/request_permission":
             call = params.get("toolCall") if isinstance(params.get("toolCall"), dict) else {}
+            title = call.get("title") or params.get("title") or method
             options = [entry for entry in params.get("options") or [] if isinstance(entry, dict)]
             reject = next((entry.get("optionId") for entry in options
                            if str(entry.get("kind", "")).startswith("reject")), None)
             outcome = ({"outcome": "selected", "optionId": reject} if reject
                        else {"outcome": "cancelled"})
             rpc.answer(frame, result={"outcome": outcome})
-            return other or f"permission {call.get('title') or method}"
+            offered = ", ".join(str(entry.get("optionId")) for entry in options) or "none"
+            print(f"permission asked: {title}; offered {offered}; answered "
+                  f"{reject or 'cancelled'}", flush=True)
+            return other or f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
-        return other or f"permission {method} declined"
+        print(f"permission asked: {method}; answered declined, not handled", flush=True)
+        return other or f"permission {method}"

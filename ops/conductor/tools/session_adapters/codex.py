@@ -41,7 +41,7 @@ DECLINE = {
     "applyPatchApproval": {"decision": "denied"},
     "execCommandApproval": {"decision": "denied"},
 }
-UNKNOWN = {"code": -32601, "message": "not handled by the agentscient sessions bridge"}
+UNKNOWN = {"code": -32601, "message": "declined: not handled by the agentscient sessions bridge"}
 
 
 def thread_of(params) -> str | None:
@@ -51,6 +51,14 @@ def thread_of(params) -> str | None:
     if named is None and isinstance(params.get("thread"), dict):
         named = params["thread"].get("id")
     return named if isinstance(named, str) else None
+
+
+def turn_of(params) -> str | None:
+    """The turn a frame names: `turn.id` in the installed schema (0.155.1),
+    `turnId` where a frame carries the id flat."""
+    turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
+    named = turn.get("id") or params.get("turnId")
+    return named if isinstance(named, str) and named else None
 
 
 class Adapter(common.ProtocolAdapter):
@@ -122,12 +130,10 @@ class Adapter(common.ProtocolAdapter):
         if other is not None:
             return other
         if method == "turn/started":
-            turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
-            self.turn = turn.get("id") or self.turn
+            self.turn = turn_of(params) or self.turn
             return "activity active"
         if method == "turn/completed":
-            turn = params.get("turn") if isinstance(params.get("turn"), dict) else {}
-            done, self.turn = turn.get("id") or self.turn, None
+            done, self.turn = turn_of(params) or self.turn, None
             return f"done {done}"
         if method == "item/agentMessage/delta":
             return f"output {params.get('delta', '')}"
@@ -146,12 +152,21 @@ class Adapter(common.ProtocolAdapter):
     def answer(self, rpc, frame, method, params):
         """Decline what the app-server asks; the prompt is printed, not kept."""
         other = self.other_native(thread_of(params))
+        title = self.title(params, method)
         if method in DECLINE:
             rpc.answer(frame, result=DECLINE[method])
-            title = (params.get("reason") or params.get("command") or params.get("message")
-                     or method)
-            if isinstance(title, list):
-                title = " ".join(str(part) for part in title)
+            print(f"permission asked: {title}; answered {json.dumps(DECLINE[method])}", flush=True)
             return other or f"permission {title}"
         rpc.answer(frame, error=UNKNOWN)
-        return other or f"permission {method} declined"
+        print(f"permission asked: {title}; answered declined, not handled", flush=True)
+        return other or f"permission {title}"
+
+    @staticmethod
+    def title(params, method) -> str:
+        """What the prompt asked, for the pane: its title, reason, command or
+        message, else the method."""
+        title = (params.get("title") or params.get("reason") or params.get("command")
+                 or params.get("message") or method)
+        if isinstance(title, list):
+            title = " ".join(str(part) for part in title)
+        return str(title)
