@@ -105,6 +105,13 @@ row that cannot look refuses: "could not look" is not a pass.
                     security audits made required for draft
                     pr's - and resolution required before they
                     can be made ready for review")
+    live-dispatch   git merge, pull, checkout, reset or rebase   the dispatch store's
+                    in a worktree that a running dispatch's       record.json, state.json,
+                    enforcement/binding.json names as its source  exit and binding.json
+                    (LD-119, LD-142: the move voids the worker's
+                    guard pin); running is onboard.py's reading;
+                    a running dispatch whose source cannot be
+                    read refuses; no grant escape
     finding-disposition                                          gh pr view, the record
                     gh pr ready while a finding of the audit that at the head, the findings
                     holds is not judged in ## Proof: each named   export at the head,
@@ -1264,6 +1271,91 @@ def deliverable(toks, cwd, lane):
     return None
 
 
+# live-dispatch (LD-119, 2026-09-22; its recurrence LD-142, 2026-09-23): a
+# dispatched worker's guard pins the helper from the worktree it was launched
+# from, so moving that worktree while the worker runs voids the pin and the
+# worker's submit is refused after its review is done. The rule relayed by
+# message recurred; this is the mechanism.
+DISPATCH_STORE = "dispatch"
+WORKTREE_MOVES = ("merge", "pull", "checkout", "reset", "rebase")
+
+
+def worktree_top(directory):
+    try:
+        proc = subprocess.run(["git", "-C", directory, "rev-parse", "--show-toplevel"],  # noqa: S603,S607 - fixed argv, a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    top = proc.stdout.strip()
+    return os.path.realpath(top) if proc.returncode == 0 and top else None
+
+
+def dispatch_running(path):
+    """onboard.py's reading: no exit file, record.json status launched, and
+    state.json's pid alive (signal zero observes the pid, not its progress)."""
+    if os.path.exists(os.path.join(path, "exit")):
+        return False
+    try:
+        with open(os.path.join(path, "record.json"), encoding="utf-8") as handle:
+            record = json.load(handle)
+        with open(os.path.join(path, "state.json"), encoding="utf-8") as handle:
+            state = json.load(handle)
+        if not isinstance(record, dict) or record.get("status") != "launched":
+            return False
+        pid = state["pid"]
+        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+            return False
+        os.kill(pid, 0)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    return True
+
+
+def live_dispatch(toks, cwd, lane):
+    """git merge, pull, checkout, reset or rebase in a worktree a running
+    dispatch was launched from refuses, naming the record."""
+    if not toks or base(toks[0]) != "git":
+        return None
+    sub, _, directory = _git_subcommand(toks, cwd)
+    if sub not in WORKTREE_MOVES:
+        return None
+    # `git -C <worktree>` from outside the lane still moves that worktree.
+    lane = lane_conf(repo_root(directory)).get("LANE_NAME") or lane
+    if not lane:
+        return None
+    store = os.path.join(STATE_DIR, lane, DISPATCH_STORE)
+    if not os.path.isdir(store):
+        return None
+    try:
+        names = sorted(os.listdir(store))
+    except OSError as error:
+        return deny("live-dispatch", f"a readable dispatch store at {store}", f"{type(error).__name__}: {error}",
+                    "restore read access to the store; could not look is not a pass")
+    top = None
+    for name in names:
+        path = os.path.join(store, name)
+        if not os.path.isdir(path) or not dispatch_running(path):
+            continue
+        if top is None:
+            top = worktree_top(directory)
+            if top is None:
+                return None
+        try:
+            with open(os.path.join(path, "enforcement", "binding.json"), encoding="utf-8") as handle:
+                source = os.path.realpath(json.load(handle)["source"])
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            return deny("live-dispatch", f"no running dispatch from {top}, or one whose source can be read",
+                        f"running dispatch {name} with no readable enforcement/binding.json source "
+                        f"({type(error).__name__})",
+                        "wait for its close, or read its source by hand before moving this worktree")
+        if source == top:
+            return deny("live-dispatch", f"no running dispatch from this worktree, {top}",
+                        f"running dispatch {name}, launched from it",
+                        f"wait for its close (onboard.py's dispatches line stops naming {name}), "
+                        f"or git {sub} after it; moving the worktree now voids the worker's guard pin (LD-142)")
+    return None
+
+
 PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
 PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
 PROBES_DIR = "ops/conductor/handoff/probes/"
@@ -1952,6 +2044,9 @@ def check_text(text, cwd, depth=0):
         if refusal:
             return refusal
         refusal = deliverable(toks, cwd, lane)
+        if refusal:
+            return refusal
+        refusal = live_dispatch(toks, cwd, lane)
         if refusal:
             return refusal
         refusal = pr_proof(toks, cwd)

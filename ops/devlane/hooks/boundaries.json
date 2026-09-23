@@ -304,6 +304,25 @@
    "engine": false
   },
   {
+   "class": "live-dispatch",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "git merge, pull, checkout, reset or rebase in a worktree a running dispatch was launched from",
+   "evidence": "the dispatch store: record.json status launched, state.json's pid alive, no exit file, and enforcement/binding.json naming the worktree as its source",
+   "gate": "live_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_live_dispatch.py::test_moving_a_worktree_a_running_dispatch_came_from_is_refused_with_its_record",
+    "ops/devlane/hooks/tests/test_live_dispatch.py::test_a_grant_is_no_escape",
+    "ops/devlane/hooks/tests/test_live_dispatch.py::test_clean_neighbours_pass"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
+  },
+  {
    "class": "pr-proof",
    "boundary": "pr",
    "actor": "session",
@@ -326,7 +345,7 @@
    "boundary": "pr",
    "actor": "session",
    "trigger": "gh pr ready",
-   "evidence": "a closed security-audit record at the head, named under `## Proof`, on the codex harness at the model ops/lane.conf names in MODEL_CODEX_SECURITY_AUDIT, whose model.requested and model.ran are both present and agree, whose snapshot.ref_sha and result.head are both present and agree on an audited sha that is a commit id, which carries a result.envelope.findings array, with every commit the branch carries since \u2014 merges judged by their combined diff, what origin/<trunk> already carries excluded \u2014 either inside the records set below, which the gate matches as path prefixes, or a fix commit citing one of its findings at a path that finding's `where` names, the audit's own record under .dev/records/dispatches never exempt, and every finding of its envelope disposed in the findings export at the head",
+   "evidence": "a closed security-audit record at the head, named under `## Proof`, on the codex harness at the model ops/lane.conf names in MODEL_CODEX_SECURITY_AUDIT, whose model.requested and model.ran are both present and agree, whose snapshot.ref_sha and result.head are both present and agree on an audited sha that is a commit id, which carries a result.envelope.findings array, with every commit the branch carries since — merges judged by their combined diff, what origin/<trunk> already carries excluded — either inside the records set below, which the gate matches as path prefixes, or a fix commit citing one of its findings at a path that finding's `where` names, the audit's own record under .dev/records/dispatches never exempt, and every finding of its envelope disposed in the findings export at the head",
    "gate": "audit_at_head",
    "tests": [
     "ops/devlane/hooks/tests/test_pr_audit.py::test_ready_passes_with_a_closed_audit_at_the_head",
@@ -366,7 +385,7 @@
    "boundary": "pr",
    "actor": "session",
    "trigger": "gh pr ready",
-   "evidence": "every finding of the security audit that holds at the head named under `## Proof` by <record>#<n> or the record's suffix #<n>, with a disposition token from findings.py DISPOSITIONS at the head equal to the findings export's and one line of judgement; a finding whose record carries `practical` and is disposed ruled has a judgement beginning \"declined: not practical \u2014 \"",
+   "evidence": "every finding of the security audit that holds at the head named under `## Proof` by <record>#<n> or the record's suffix #<n>, with a disposition token from findings.py DISPOSITIONS at the head equal to the findings export's and one line of judgement; a finding whose record carries `practical` and is disposed ruled has a judgement beginning \"declined: not practical — \"",
    "gate": "finding_dispositions",
    "tests": [
     "ops/devlane/hooks/tests/test_pr_audit.py::test_every_finding_named_with_a_token_and_a_judgement_passes",
