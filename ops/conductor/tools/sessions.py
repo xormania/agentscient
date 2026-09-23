@@ -41,6 +41,7 @@ import subprocess
 import sys
 import time
 import uuid
+from functools import cache
 from pathlib import Path
 
 # The shared instrument module sits beside this file; its directory goes
@@ -249,6 +250,7 @@ def executable_of(member: dict) -> str | None:
     return named or shutil.which(member["harness"])
 
 
+@cache
 def load_adapter(harness: str):
     path = ADAPTERS / f"{harness}.py"
     if not path.is_file():
@@ -478,21 +480,38 @@ def native_refusal(evidence: str) -> str | None:
     return match.group(1) if match else None
 
 
+def process_reading(pid: int | None, ticks: str | None) -> str:
+    """Liveness is the pid and its recorded start ticks, both present and matching."""
+    if pid is None:
+        return "waiting launch"
+    if ticks is None:
+        return f"refused no start ticks recorded for pid={pid}"
+    current = start_ticks(pid)
+    if current is None:
+        return f"refused gone pid={pid} start={ticks}"
+    if current != ticks:
+        return f"refused reused pid={pid} start={current}, recorded {ticks}"
+    return f"ok pid={pid} start={ticks}"
+
+
+def alive(pid: int | None, ticks: str | None) -> bool:
+    return process_reading(pid, ticks).startswith("ok")
+
+
 def readiness(member, *, check_profile: bool = True) -> dict[str, str]:
     """The eight dimensions, read now; slice 2's three are unmeasured."""
     found: dict[str, str] = {}
-    pid, ticks = member["pid"], member["start_ticks"]
-    if pid is None:
-        found["process"] = "waiting launch"
-    elif start_ticks(pid) == ticks:
-        found["process"] = f"ok pid={pid} start={ticks}"
-    else:
-        found["process"] = f"refused gone pid={pid} start={ticks}"
+    found["process"] = process_reading(member["pid"], member["start_ticks"])
     found["profile"] = profile_reading(member["profile"]) if check_profile else (
         f"ok {member['profile']}" if member["profile"] else "waiting profile")
+    adapter = load_adapter(member["harness"])
     conn = coordination_reader()
     try:
-        bound = participant_by(conn, "session_id", member["launch_id"]) if member["launch_id"] else None
+        # The native id is the adapter's to observe; the participant row
+        # is then read under that id.
+        native = (adapter.observe_identity(conn, member["launch_id"])
+                  if adapter is not None and conn is not None and member["launch_id"] else None)
+        bound = participant_by(conn, "session_id", native) if native else None
         digest = profile_digest(member["profile"])
         other = participant_by(conn, "capability_digest", digest) if digest else None
     finally:
@@ -582,12 +601,18 @@ def do_doctor(rest):
             lines.append(f"ok executable {label}: {exe} sha256={digest}")
         else:
             lines.append(f"missing executable {label}: {exe or member['harness'] + ' not on PATH'}")
-        adapter = ADAPTERS / f"{member['harness']}.py"
-        if adapter.is_file():
-            lines.append(f"ok adapter {label}: {adapter.relative_to(REPO)}")
-        else:
+        module = ADAPTERS / f"{member['harness']}.py"
+        if not module.is_file():
             lines.append(f"missing adapter {label}: no session_adapters/{member['harness']}.py; "
                          "slice 2 closes it")
+            continue
+        lines.append(f"ok adapter {label}: {module.relative_to(REPO)}")
+        if exe and os.path.isfile(exe):
+            # The harness is probed by its adapter, never by the supervisor.
+            reading = load_adapter(member["harness"]).probe(exe)
+            version = str(reading.get("version", "unresolved no version read"))
+            state = "refused" if version.startswith("unresolved") else "ok"
+            lines.append(f"{state} probe {label}: {version}; capability {reading.get('capability')}")
     for line in lines:
         print(line)
     return EXIT_DONE if all(line.startswith("ok ") for line in lines) else EXIT_FINDING
@@ -695,6 +720,12 @@ def do_start(rest):
                 refuse("absent", "a run of this store", options["run"], "sessions.py status lists the runs")
             if run["place"] != "open":
                 refuse("place", "an open run", f"R-{run['id']} at {run['place']}", "start a new run")
+            # A run is one started team: its file and that file's sha256.
+            if (run["team_file"], run["team_sha256"]) != (str(path), team_sha):
+                refuse("team", f"the team file R-{run['id']} was started from, "
+                       f"{run['team_file']} sha256 {run['team_sha256']}",
+                       f"{path} sha256 {team_sha}",
+                       f"pass --team {run['team_file']} unchanged, or start a new run without --run")
         else:
             subject = machine.create(conn, RUN, agent, note=f"team {path}")
             socket = options.get("tmux-socket") or os.environ.get("AGENTSCIENT_TMUX_SOCKET") or None
@@ -952,33 +983,45 @@ def do_stop(rest):
     agent = identity()
     drain = seconds(options, "drain", 0)
     terminate = bool(options.get("terminate"))
-    if reader() is None:
+    looked = reader()
+    if looked is None:
         refuse("absent", "a run of this store", options.get("run", "none"), "sessions.py status")
+    try:
+        run = chosen_run(looked, options)
+    finally:
+        looked.close()
+    if run["place"] == "stopped":
+        refuse("place", "an open or stopping run", f"R-{run['id']} at stopped", "nothing to stop")
+    # Ownership is judged before any act: a session of the run's name
+    # that this run does not own refuses before a move, a signal or a line.
+    owner = ownership(run)
+    if owner not in ("owned", "absent"):
+        refuse_unowned(run, owner)
     conn = writer()
     with conn:
-        run = chosen_run(conn, options)
-        if run["place"] == "stopped":
-            refuse("place", "an open or stopping run", f"R-{run['id']} at stopped", "nothing to stop")
+        run = run_row(conn, run["id"])
         if run["place"] == "open":
             machine.move(conn, RUN, run["subject"], "stop", agent,
                          evidence="terminate" if terminate else f"drain {drain}s")
         members = [row for row in member_rows(conn, rid=run["id"]) if row["place"] in LIVE]
     deadline = time.monotonic() + drain
     while not terminate and time.monotonic() < deadline and any(
-            row["pid"] and start_ticks(row["pid"]) == row["start_ticks"] for row in members):
+            alive(row["pid"], row["start_ticks"]) for row in members):
         time.sleep(POLL)
-    owner = ownership(run)
     outcomes = []
     for row in members:
         adapter = load_adapter(row["harness"])
         if row["pid"] is None:
             outcome = "unresolved no pid recorded"
+        elif row["start_ticks"] is None:
+            outcome = f"unresolved no start ticks recorded for pid {row['pid']}, never signalled"
         elif not terminate:
-            outcome = ("stopped exited" if start_ticks(row["pid"]) != row["start_ticks"]
+            outcome = ("stopped exited" if not alive(row["pid"], row["start_ticks"])
                        else f"unresolved running pid {row['pid']}")
         else:
             outcome = adapter.stop({"pid": row["pid"], "start": row["start_ticks"]}, True)
-        if terminate and owner == "owned":
+        # Re-read at the act: the window is killed only while still owned.
+        if terminate and ownership(run) == "owned":
             window = f"={run['tmux_session']}:={row['name']}"
             if tmux(run["tmux_socket"], "has-session", "-t", window).returncode == 0:
                 tmux(run["tmux_socket"], "kill-window", "-t", window)
@@ -990,9 +1033,6 @@ def do_stop(rest):
             conn.execute("UPDATE session_member SET outcome = ? WHERE id = ?", (outcome, row["id"]))
         outcomes.append(outcome)
         print(f"R-{run['id']} {row['name']} SM-{row['id']} {outcome}")
-    if terminate and owner not in ("owned", "absent"):
-        print(f"R-{run['id']} unresolved tmux session {run['tmux_session']} is not owned "
-              f"({OWNER_OPTION} {owner}); nothing in it was touched")
     with conn:
         left = [row for row in member_rows(conn, rid=run["id"]) if row["place"] in LIVE]
         if not left:
