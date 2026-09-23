@@ -6,9 +6,10 @@ each note must go red on its mutant and stay green on the clean subject:
 
     python3 ops/testkit/cases.py calibrate --subject ops/conductor/tools/dispatch_actions.py \\
         --mutants ops/conductor/tests/dispatch_actions_faults.py \\
-        --command "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_actions.py -k role -k holder -k unwritable"
+        --command "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_actions.py"
 
-Anchored on agentscient-10's subject at bfa82f5b. An anchor that no longer
+Anchored on agentscient-10's subject at bfa82f5b; calibrated over the
+whole module at 02436b3c (clean green, every mutant caught). An anchor that no longer
 matches once refuses class anchor; re-measure it against the subject.
 """
 

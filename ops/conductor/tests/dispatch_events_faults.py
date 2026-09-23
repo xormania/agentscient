@@ -8,9 +8,9 @@ the clean subject:
         --mutants ops/conductor/tests/dispatch_events_faults.py \\
         --command "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_events.py"
 
-Not yet calibrated: every row waits on slice 2's `send --key` in
-coordination.py, so the clean run is red and calibrate reports ok false.
-Anchored on agentscient-10's subject at bfa82f5b.
+Anchored on agentscient-10's subject at bfa82f5b; calibrated over the
+whole module at 0ae638fb, with slice 2's `send --key` merged (clean
+green, every mutant caught).
 """
 
 from ops.testkit import Mutant
