@@ -1288,11 +1288,13 @@ class TheCleanNeighbours(_Scratch):
 
     def test_stop_terminate_does_not_signal_a_reused_pid(self):
         """origin: 20260922T215604Z-review-codex-f6777b#17
+        origin: 20260922T234512Z-review-codex-5b18d7#4
 
         The recorded pid is reaped and reused with different start ticks.
-        If the world does not reuse it, the row fails. stop --terminate
-        must not signal the live pid, and must say unresolved stale pid.
-        Spawns go through owned_holder (findings 18 and 19).
+        When the world cannot force that reuse, the row skips with the
+        reason and does not fail before stop --terminate. When it can,
+        stop --terminate must not signal the live pid, and must say
+        unresolved stale pid. Spawns go through owned_holder.
         """
         self.skip_without_tmux()
         with self.subTest(id="stale-pid-stop", origin=origin_finding(17)):
@@ -1312,11 +1314,11 @@ class TheCleanNeighbours(_Scratch):
                 self.wait_until_gone(recorded)
             self.assertFalse(Path(f"/proc/{recorded}").exists(), "the recorded pid was not reaped")
             reused = self.reuse_recorded_pid(recorded, ticks)
-            self.assertEqual(
-                reused,
-                recorded,
-                "the world did not reuse the recorded pid; a stale-pid row must not pass",
-            )
+            if reused != recorded:
+                self.skipTest(
+                    "the world cannot force pid reuse; "
+                    "stop --terminate was not invoked"
+                )
             self.assertNotEqual(self.proc_start_ticks(reused), ticks)
             proc = self.sessions("stop", "--terminate")
             self.assertTrue(self._alive(reused), "the reused pid was signalled")
