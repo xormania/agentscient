@@ -126,7 +126,7 @@ class AFindingWithoutAReproductionSaysSo(_WorldCase):
             findings=[a_finding(reproduce=None), a_finding()], stamp=STAMP)
         self.assertEqual(env["counts"]["opinions"], 1)
 
-    def test_a_finding_keeps_the_contract_key_order(self):
+    def test_a_finding_constructor_keeps_the_contract_key_order(self):
         # Same reason the top-level key set is ordered: two envelopes
         # from two runs are read side by side, and a field that moves
         # costs the reader the diff.
@@ -136,8 +136,9 @@ class AFindingWithoutAReproductionSaysSo(_WorldCase):
         env["findings"][0] = {"claim": f["claim"], "severity": f["severity"],
                               "where": f["where"],
                               "reproduce": f["reproduce"]}
-        with self.assertRaises(envelope.EnvelopeError):
-            envelope.validate(env)
+        built = envelope.build("sweep", status="ok", verdict="changes",
+                               findings=env["findings"], stamp=STAMP)
+        self.assertEqual(tuple(built["findings"][0]), envelope.FINDING_FIELDS)
 
     def test_a_finding_needs_a_severity_a_where_and_a_claim(self):
         for kwargs in ({"severity": "p4"}, {"where": ""}, {"claim": ""}):
@@ -188,6 +189,23 @@ class EverySoTaskReturnsTheSameShape(_WorldCase):
         env["transcript"] = "...the whole conversation..."
         with self.assertRaises(envelope.EnvelopeError):
             envelope.validate(env)
+
+    def test_parsed_json_member_order_and_optional_commit_are_accepted(self):
+        env = envelope.build("verify", status="ok", verdict="changes",
+                             findings=[a_finding("p1")], stamp=STAMP)
+        env["findings"] = [dict(reversed(list(env["findings"][0].items())))]
+        env["commit"] = {"body": "Original change", "subject": "Repair"}
+        env = dict(reversed(list(env.items())))
+        self.assertIs(envelope.validate(env), env)
+
+    def test_count_types_cannot_compare_equal_to_integers(self):
+        for value in (True, 1.0):
+            with self.subTest(value=value):
+                env = envelope.build("verify", status="ok", verdict="changes",
+                                     findings=[a_finding("p1")], stamp=STAMP)
+                env["counts"]["p1"] = value
+                with self.assertRaises(envelope.EnvelopeError):
+                    envelope.validate(env)
 
     def test_spend_is_present_even_when_nothing_was_spent(self):
         env = envelope.build("verify", status="ok", verdict="approve",
