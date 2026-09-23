@@ -679,6 +679,19 @@ cursor is acked (`digest --ack`) only after every send of the batch is
 committed, so a failed send leaves the batch to the next pass. Events
 for a record with no intent are logged and acked, never sent.
 
+**The seed reading** (XO ruling, 2026-09-23, from agentscient-10's
+measurement with the real `monitor.py`): the `changed` condition takes
+a record's first reading as its baseline and emits nothing for it, so a
+job that finishes before the router's first pass, or while the router
+is down, would never inform anyone. On the first pass that sees a
+launched intent, `route` takes a direct `launch.py status` reading of
+it. A terminal reading sends the mapped inform or finding at once with
+key `seed:<record id>:<recipient>`; a `running` reading sends nothing
+and the monitor's later event covers it. Only one of the two ever
+fires, because the monitor emits nothing for the baseline. The rows for
+it come in the test fix pass (agentscient-5c), not in A-510's running
+scope.
+
 ### Refusals
 
 | class | when |
