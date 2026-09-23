@@ -3,8 +3,10 @@ roots, TMPDIR, the working directory, a hermetic environment, planted
 files and tools, owned child processes, and before/after snapshots of
 declared paths. Hermetic by default: nothing from the host reaches a
 subject unless it is named — values in ``ambient``, tools in
-``ambient_tools``. Owned children are reaped at close. A plant proves it
-landed.
+``ambient_tools``. Owned children are reaped at close. Daemons are
+recorded by ``daemon`` and stopped at close, in reverse, and proven gone;
+a process of the world left running at close is refused (§daemons below).
+A plant proves it landed.
 
 PATH is the one exception, and it is dated. ``World(host_path=False)`` is
 the hermetic PATH the contract asks for: the world's own bin and nothing
@@ -26,9 +28,13 @@ import hashlib
 import os
 import re
 import shutil
+import signal
+import socket as socketlib
 import stat
 import subprocess
 import tempfile
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 FIXED_DATE = "2026-01-02T03:04:05Z"
@@ -139,6 +145,7 @@ class World:
         # docstring for the date and the sweep that moves the default.
         self.host_path = a_path_choice(host_path)
         self._children: list[subprocess.Popen] = []
+        self._daemons: list = []
         self._saved_environ: dict[str, str] | None = None
         self._tools = None
         self.closed = False
@@ -250,6 +257,22 @@ class World:
         if child.poll() is None:
             raise PlantFailed(f"INVALID: child {child.pid} was not reaped")
 
+    # -- daemons ---------------------------------------------------------
+
+    def daemon(self, name: str, start, stop=None, *, match=(), socket=None,
+               timeout: float = 10.0):
+        """Start a daemon in this world and record it, as malloc records a
+        block for free. ``start`` is an argv that returns once the daemon
+        runs detached; ``stop`` an argv, a callable or None; ``match`` the
+        tokens of its command line, when its environment does not carry
+        this world's HOME; ``socket`` the path it serves, if any. ``close``
+        stops it: the stop, then SIGTERM, then SIGKILL, each within
+        ``timeout``, and refuses class ``daemon`` when its own stop did not
+        bring it down."""
+        daemon = start_daemon(self, name, start, stop, match=match, socket=socket, timeout=timeout)
+        self._daemons.append(daemon)
+        return daemon
+
     # -- git -------------------------------------------------------------
 
     def git(self, *args: str, cwd=None, check: bool = True, timeout: float = 60):
@@ -288,11 +311,22 @@ class World:
         if self.closed:
             return
         self.closed = True
-        for child in self._children:
-            self.reap(child)
-        self.exit()
-        if not self.keep:
-            shutil.rmtree(self.root, ignore_errors=True)
+        refusals = []
+        try:
+            for child in self._children:
+                self.reap(child)
+        finally:
+            # Reverse order, as a stack of allocations is freed: a daemon
+            # started on another's socket stops before the one it leans on.
+            for daemon in reversed(self._daemons):
+                refusals.append(stop_daemon(self, daemon))
+            refusals.append(sweep_daemons(self))
+            self.exit()
+            if not self.keep:
+                shutil.rmtree(self.root, ignore_errors=True)
+        refusals = [line for line in refusals if line]
+        if refusals:
+            raise DaemonRefused(refusals)
 
 
 # -- the environment and the plants, as functions ---------------------------
@@ -497,3 +531,271 @@ def make_executable(path: Path) -> Path:
     if not os.access(path, os.X_OK):
         raise PlantFailed(f"INVALID: {path} is not executable")
     return path
+
+
+# -- daemons ---------------------------------------------------------------
+# Daemons a world owns, paired the way malloc pairs with free.
+#
+# ``World.daemon(name, start, stop)`` starts a process that outlives the
+# command that started it (a server that forks and detaches) and records
+# it; ``World.close`` stops every recorded daemon in reverse order and
+# proves each one gone. A daemon is identified in the process table, never
+# by the files it leaves: a pid and its start time, so a reused pid is
+# never taken for it, and a daemon's own children are counted as its.
+# Measured on the tmux fixture at a93368b5: 1 run in 20 leaked 18 servers
+# with no failure, because the teardown skipped when the socket file was
+# missing and never read the stop's exit.
+#
+# The stop escalates within the daemon's timeout: the stop argv (or
+# callable), then SIGTERM, then SIGKILL. A daemon its own stop did not
+# bring down is refused even when the signals then ended it, because the
+# next close without signals would leak it. After the recorded daemons, a
+# sweep reads every process still carrying the world's HOME: a daemon
+# started around the kit. It is given a grace, then killed, and refused.
+# ``close`` always finishes its cleanup and raises ``DaemonRefused`` last;
+# each of its lines is a refusal in the wire's shape (docs/wire.md),
+# class ``daemon``.
+
+PROC = Path("/proc")
+POLL = 0.05
+SWEEP_GRACE = 2.0
+
+
+class DaemonRefused(AssertionError):
+    """A world closed with a daemon its stop did not bring down, or one it
+    never recorded. ``lines`` holds one wire line per daemon, class
+    ``daemon``; the message is those lines."""
+
+    def __init__(self, lines):
+        self.lines = tuple(lines)
+        super().__init__("\n".join(self.lines))
+
+
+# -- the process table ------------------------------------------------------
+
+def _stat(pid: int):
+    """(state, parent pid, start time) of ``pid``, or None once it is gone."""
+    try:
+        raw = (PROC / str(pid) / "stat").read_text()
+    except OSError:
+        return None
+    # The command name sits in parentheses and may hold spaces or parentheses
+    # itself: the fields after it start past the last ')'.
+    rest = raw[raw.rindex(")") + 2:].split()
+    return rest[0], int(rest[1]), rest[19]
+
+
+def _live(state: str) -> bool:
+    return state not in ("Z", "X")
+
+
+def processes() -> dict[int, tuple[int, str]]:
+    """Every live pid the kit can see, with its parent and start time."""
+    if not (PROC / "self" / "stat").is_file():
+        raise PlantFailed(
+            f"daemon: expected a process table at {PROC}; found none; "
+            "needed a host whose /proc lists its processes, or no daemon in this world"
+        )
+    table = {}
+    for entry in PROC.iterdir():
+        if entry.name.isdigit():
+            stat = _stat(int(entry.name))
+            if stat is not None and _live(stat[0]):
+                table[int(entry.name)] = (stat[1], stat[2])
+    return table
+
+
+def _read(pid: int, name: str) -> bytes:
+    try:
+        return (PROC / str(pid) / name).read_bytes()
+    except OSError:
+        return b""
+
+
+def command_line(pid: int) -> str:
+    return _read(pid, "cmdline").replace(b"\0", b" ").decode("utf-8", "replace").strip()
+
+
+def carrying(home: Path, pids) -> set[int]:
+    """The pids whose environment names ``home`` as HOME."""
+    marker = b"HOME=" + os.fsencode(str(home))
+    return {pid for pid in pids if marker in _read(pid, "environ").split(b"\0")}
+
+
+def matching(tokens, pids) -> set[int]:
+    """The pids whose command line holds every one of ``tokens``."""
+    tokens = tuple(str(t) for t in tokens)
+    if not tokens:
+        return set()
+    return {pid for pid in pids if all(t in command_line(pid) for t in tokens)}
+
+
+def descendants(roots, table) -> set[int]:
+    """``roots`` and every live process below them."""
+    found, frontier = set(roots), set(roots)
+    while frontier:
+        frontier = {pid for pid, (parent, _) in table.items() if parent in frontier} - found
+        found |= frontier
+    return found
+
+
+def socket_state(path) -> str:
+    if path is None:
+        return "none declared"
+    path = Path(path)
+    if not path.exists():
+        return "absent"
+    probe = socketlib.socket(socketlib.AF_UNIX, socketlib.SOCK_STREAM)
+    probe.settimeout(0.5)
+    try:
+        probe.connect(str(path))
+    except OSError:
+        return "present, refusing connections"
+    finally:
+        probe.close()
+    return "accepting"
+
+
+# -- one daemon -------------------------------------------------------------
+
+@dataclass
+class Daemon:
+    name: str
+    start: tuple
+    stop: object
+    socket: Path | None
+    timeout: float
+    pids: dict  # pid -> start time
+
+    def alive(self) -> list[int]:
+        out = []
+        for pid, started in self.pids.items():
+            stat = _stat(pid)
+            if stat is not None and _live(stat[0]) and stat[2] == started:
+                out.append(pid)
+        return sorted(out)
+
+    def adopt(self) -> None:
+        """Count the children the daemon has started since it was recorded."""
+        table = processes()
+        for pid in descendants(self.alive(), table):
+            self.pids.setdefault(pid, table[pid][1])
+
+    def gone(self, budget: float) -> bool:
+        deadline = time.monotonic() + budget
+        while self.alive():
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(POLL)
+        return True
+
+
+def start_daemon(world, name: str, argv, stop, *, match=(), socket=None, timeout: float = 10.0) -> Daemon:
+    """Run ``argv`` in the world and record the daemon it leaves running."""
+    from .command import run
+    if not name or not isinstance(name, str):
+        raise PlantFailed(f"INVALID: a daemon needs a name, found {name!r}")
+    if not (stop is None or callable(stop) or (isinstance(stop, (list, tuple)) and stop)):
+        raise PlantFailed(f"INVALID: the stop of daemon {name} is an argv, a callable or None, found {stop!r}")
+    before = processes()
+    run(argv, cwd=world.cwd, env=world.env(), timeout=timeout, expect=0)
+    owned = {child.pid for child in world._children}
+    taken = {pid for other in world._daemons for pid in other.pids}
+    deadline = time.monotonic() + timeout
+    while True:
+        table = processes()
+        new = {pid for pid, (_, started) in table.items()
+               if before.get(pid, (None, None))[1] != started}
+        pids = (carrying(world.home, new) | matching(match, table)) - owned - taken - {os.getpid()}
+        if pids or time.monotonic() >= deadline:
+            break
+        time.sleep(POLL)
+    if not pids:
+        raise PlantFailed(
+            f"INVALID: daemon {name} started ({list(map(str, argv))!r} exited 0) but no new "
+            f"process carries HOME={world.home} or the tokens {list(match)!r} within {timeout:g}s"
+        )
+    return Daemon(name, tuple(str(a) for a in argv), stop,
+                  Path(socket) if socket is not None else None, timeout,
+                  {pid: table[pid][1] for pid in pids})
+
+
+def _run_stop(world, daemon: Daemon) -> str:
+    from .command import Timeout, run
+    if daemon.stop is None:
+        return "no stop declared"
+    if callable(daemon.stop):
+        try:
+            daemon.stop()
+        except Exception as exc:  # noqa: BLE001 - the stop's failure is the reading, not a crash of close
+            return f"stop callable raised {type(exc).__name__}: {exc}"
+        return "stop callable returned"
+    try:
+        result = run(daemon.stop, cwd=world.cwd, env=world.env(), timeout=daemon.timeout)
+    except Timeout:
+        return f"stop {list(daemon.stop)!r} outlived {daemon.timeout:g}s"
+    except PlantFailed as exc:
+        return f"stop {list(daemon.stop)!r} did not start: {str(exc).splitlines()[0]}"
+    return f"stop exit {result.exit}, stderr {result.stderr.strip()[:200]!r}"
+
+
+def _signal(pids, signum) -> None:
+    for pid in pids:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.kill(pid, signum)
+
+
+def stop_daemon(world, daemon: Daemon) -> str | None:
+    """Stop one daemon, escalating; the refusal line, or None when its own
+    stop brought it down."""
+    daemon.adopt()
+    said = _run_stop(world, daemon)
+    if daemon.gone(daemon.timeout) and socket_state(daemon.socket) != "accepting":
+        return None
+    left = daemon.alive()
+    sock = socket_state(daemon.socket)
+    ended = None
+    for signum in (signal.SIGTERM, signal.SIGKILL):
+        daemon.adopt()
+        _signal(daemon.alive(), signum)
+        if daemon.gone(daemon.timeout):
+            ended = f"{signal.Signals(signum).name} ended it"
+            break
+    if ended is None:
+        ended = f"pids {daemon.alive()} still alive after SIGKILL"
+    return (
+        f"daemon: expected {daemon.name} down after its stop within {daemon.timeout:g}s, "
+        f"its pids dead and its socket not accepting; "
+        f"found {said}; pids {left} alive after the stop; socket {sock}; {ended}; "
+        f"needed a stop that brings {daemon.name} down on its own"
+    )
+
+
+def sweep_daemons(world) -> str | None:
+    """Every process still carrying the world's HOME, given a grace, then
+    killed: a daemon started around the kit."""
+    if not (PROC / "self" / "stat").is_file():
+        return None
+    mine = {os.getpid()}
+    deadline = time.monotonic() + SWEEP_GRACE
+    while True:
+        table = processes()
+        stray = carrying(world.home, table) - mine
+        if not stray or time.monotonic() >= deadline:
+            break
+        time.sleep(POLL)
+    if not stray:
+        return None
+    seen = {pid: command_line(pid) or "?" for pid in sorted(stray)}
+    started = {pid: table[pid][1] for pid in stray}
+    loose = Daemon("unrecorded", (), None, None, SWEEP_GRACE, started)
+    _signal(loose.alive(), signal.SIGKILL)
+    loose.gone(SWEEP_GRACE)
+    return (
+        f"daemon: expected every process of this world recorded by world.daemon or owned; "
+        f"found {len(seen)} alive {SWEEP_GRACE:g}s after close stopped the recorded ones, "
+        f"started around the kit: "
+        + "; ".join(f"pid {pid} {cmd[:120]!r}" for pid, cmd in seen.items())
+        + f"; pids {loose.alive()} alive after SIGKILL"
+        + "; needed world.daemon(name, start, stop) for it"
+    )

@@ -32,6 +32,24 @@ its sources. Three primitives and one pattern on them:
   that sweep lands, `host_path` defaults to True and the host's PATH
   follows the world's bin; the kit's own rows run strict and pin both
   values. Owned children are reaped at close. A plant proves it landed.
+- **Daemons** (`world.py`, reached as `world.daemon`): a process that
+  outlives the command that started it is started through
+  `world.daemon(name, start, stop, match=, socket=, timeout=)` and
+  recorded, as malloc records a block for free (owner, 2026-09-23,
+  relayed by the Lead: "daemons are managed in the kit - something like a
+  malloc"). A daemon is its pids in the process table, each with its start
+  time, and the children it starts after; never the files it leaves
+  (measured at `a93368b5`: 1 run in 20 leaked 18 tmux servers, because the
+  teardown skipped when the socket file was missing). `close` stops the
+  recorded daemons in reverse order, escalating within each timeout: the
+  stop, then SIGTERM, then SIGKILL. It proves each gone: pids dead, socket
+  not accepting. Then it sweeps for any process still carrying the
+  world's HOME, which is a daemon started around the kit. `close`
+  finishes its cleanup either way and then raises `DaemonRefused`, one
+  line per daemon in the wire's shape, class `daemon`, when a daemon's
+  own stop did not bring it down or a process of the world was left
+  unrecorded. A daemon a case starts around the kit is a finding of the
+  kind rule 5 names.
 - **run** (`command.py`): one call, one result shape (argv, exit, stdout,
   stderr, duration, cwd), one timeout policy: expiry kills and reaps the
   child and raises, naming the argv. A result reads its own refusal line
@@ -87,6 +105,10 @@ The names a tests job's note joins with `reused:`:
 
 - `testkit.world` — hermetic by default, ambient by name, PATH the
   world's own bin under `host_path=False`, children reaped.
+- `testkit.daemon` — every daemon recorded by `world.daemon`, stopped in
+  reverse at close with the stop, SIGTERM and SIGKILL, proven gone by pid
+  and socket; a stop that fails, or a process of the world left
+  unrecorded, refuses class `daemon`.
 - `testkit.run` — one result shape, one timeout policy, the wire parsed.
 - `testkit.fakes` — fakes driven by data, an append-only call log.
 - `testkit.refusal-wire` — exit as declared, stdout empty, one stderr
