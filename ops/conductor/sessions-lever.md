@@ -890,8 +890,13 @@ managed member's pane log and every dispatch record id the run
 launched. "Launched by the run" is read from the store, never from a
 message: the `dispatch_intents` rows (slice 3) whose requester or
 dispatcher is one of the run's participants, reserved at or after the
-run's `started_at`, and whose intent reached a record; the store gains
-no column for it, since a participant is bound to one run. A managed
+run's `started_at`, and whose intent reached a record. The run's
+participants are its members and the participant that started it:
+`session_run` carries `started_participant`, written by `start` from
+the caller's binding (an ALTER adds the column to an older store), and
+export, `decisions` and `observations` count the starter with the
+members. The intents table gains no run column, since a participant is
+bound to one run. A managed
 member with no pane log, or a record id whose record is not under the
 jobs root, refuses `export` (exit 2, stdout empty) before anything is
 written; a log that exists but cannot be read is slice 1's partial
