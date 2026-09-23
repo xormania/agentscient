@@ -623,6 +623,23 @@ def is_ready(found: dict[str, str]) -> bool:
     return head and role and all(found[d].startswith(("ok", "unmeasured")) for d in SLICE2)
 
 
+def enforcement(member, found: dict[str, str]) -> str:
+    """The ninth line status prints (slice 4, the owner's terminals): `ok
+    <profile>` only once the hook profile is observed, never by default.
+
+    Observed means the profile checks ok and the participant was bound
+    under the member's own launch id: only the profile's SessionStart hook
+    binds so (`initialize` compares the launch id), so the bind is the
+    hook's act. A bridge binds under the native id its handshake returned,
+    and a joined member has no profile of ours; both read unmeasured."""
+    if joined(member):
+        return "unmeasured joined, no hook profile of ours"
+    if (found["profile"].startswith("ok") and member["launch_id"]
+            and found["identity"] == f"ok {member['launch_id']}"):
+        return f"ok {member['profile']}"
+    return "unmeasured no bind under the launch id by the profile's hook seen"
+
+
 def readiness_lines(found: dict[str, str]) -> list[str]:
     return [f"  {dimension} {found[dimension]}" for dimension in READINESS]
 
@@ -1037,6 +1054,7 @@ def do_status(rest):
                       f"process {alive}")
                 for line in readiness_lines(found):
                     print(line)
+                print(f"  enforcement {enforcement(member, found)}")
                 print(f"  {route_line(conn, member['participant'])}")
                 print(f"  {attempts_line(conn, member['participant'])}")
                 for line in ambiguous_lines(conn, member["participant"]):
