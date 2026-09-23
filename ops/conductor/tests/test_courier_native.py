@@ -1,10 +1,23 @@
-"""Native courier routes, attempts, the send key, and the additive schema.
+"""Native courier routes, attempts, and the send key.
 
 Contract: ``ops/conductor/sessions-lever.md``, "Slice 2 — persistent
-native conversation". Coordination and the courier run as subprocesses
-through ``ops.testkit.run``. A planted ``submit`` is the registry's
-data-driven fake, so each call is one JSON line. Slice 2's verbs are
-not in the tree; each row fails on the reading it names.
+native conversation". Coordination runs as a subprocess through
+``ops.testkit.run``. The native pass is the bridge's in-process call,
+``carry(module, submit=..., observe=...)``: the planted
+``fakes/courier_carry.py`` is that caller, its callbacks answering from
+the registry spec and logging one JSON line per call. Each row fails on
+the reading it names.
+
+Planted faults: ``courier_native_faults.py`` beside this module, anchored
+on courier.py and coordination.py at bf924ee7, for the crash rows and the
+cap; the clean neighbour of the cap is the four-settled row. Declared
+gap: the send-key, route and outcome rows carry no mutant.
+
+Declared gap, fixture 12 (the additive schema on a populated store): no
+row. A store populated by the schema before slice 2 needs that earlier
+core to populate it; opening the store with the new core first and
+snapshotting after proved nothing (20260923T020912Z-review-codex-9d8b8c
+#8, dropped under docs/tests.md rule 9).
 
 The one command that reads this file is
 ``python3 -m unittest discover -s ops/conductor/tests -p test_courier_native.py``.
@@ -36,6 +49,7 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 HARNESS_SRC = FAKES / "session_harness.py"
 TMUX_SRC = FAKES / "session_tmux.py"
 HOLDER_SRC = FAKES / "session_holder.py"
+CARRY_SRC = FAKES / "courier_carry.py"
 
 AGENT = "Courier Native <noreply@example.test>"
 LANE = "agentscient"
@@ -50,7 +64,6 @@ REF = "turn-9"
 LATER = "later-ref"
 ORIGIN = "sessions-lever.md#slice-2"
 HOST_TMUX = shutil.which("tmux")
-NEW_TABLES = ("delivery_routes", "delivery_attempts", "send_requests")
 
 
 def origin(number: int | None = None) -> str:
@@ -195,25 +208,18 @@ class CoreCase(unittest.TestCase):
                 ).fetchall()
         return found
 
-    def plant_submit(self) -> None:
-        """The native ``submit`` callable, logged by the registry."""
-        self.world.tools.plant("submit", stdout="submitted\n")
+    def plant_carry(self, *, observed: str, submitted: str) -> None:
+        """The bridge's native pass, its callbacks answering as given."""
+        text = _anchored(_fake_text(CARRY_SRC), "@@REPO@@", str(REPO))
+        self.world.tools.plant("carry", script=text)
+        spec_path = self.world.tools.spec_path("carry")
+        spec = {"observed": observed, "submitted": submitted}
+        spec_path.write_text(json.dumps(spec, indent=1) + "\n", encoding="utf-8")
+        if json.loads(spec_path.read_text(encoding="utf-8")) != spec:
+            raise AssertionError("INVALID: carry spec did not land intact")
 
-    def submissions(self) -> list[dict]:
-        return self.world.tools.calls("submit")
-
-    def seed_evidence(self, message: str, body: str) -> None:
-        """One logged call whose argv carries the message body."""
-        seeded = run(
-            [str(self.world.bin / "submit"), message, body],
-            cwd=self.world.cwd,
-            env=self.world.env(),
-            timeout=TIMEOUT,
-        )
-        self.assertEqual(seeded.exit, 0, seeded.stderr)
-        logged = self.submissions()
-        self.assertTrue(logged, "the registry logged no submission")
-        self.assertIn(body, json.dumps(logged[-1]))
+    def callbacks(self, name: str) -> list[dict]:
+        return [call for call in self.world.tools.calls("carry") if call.get("callback") == name]
 
     def reserve(self, message: str) -> str:
         reserved = self.core(
@@ -393,8 +399,13 @@ class TheAttempts(CoreCase):
                 for token in tokens:
                     self.assertIn(token, listing.stdout, listing.stdout)
 
-    def test_a_fifth_reservation_refuses_attempt(self):
-        """At most ``ATTEMPTS_OUTSTANDING`` (4) stay reserved."""
+    def test_a_fifth_reservation_refuses_place(self):
+        """At most ``ATTEMPTS_OUTSTANDING`` (4) stay reserved and unsettled.
+
+        The refusal class is ``place``, slice 1's move from the wrong place;
+        the contract's slice 2 table names no class for the cap
+        (20260923T020912Z-review-codex-9d8b8c #5).
+        """
         self.bind()
         for index in range(4):
             message = self.queued(f"outstanding {index} {BODY}")
@@ -410,7 +421,7 @@ class TheAttempts(CoreCase):
             RefusalCase(
                 id="outstanding-cap",
                 argv=("attempt", fifth),
-                cls="attempt",
+                cls="place",
                 named=("4",),
                 origin=origin(),
             ),
@@ -418,17 +429,34 @@ class TheAttempts(CoreCase):
         )
         self.assertEqual(self.table_rows("delivery_attempts"), before)
 
+    def test_four_settled_attempts_leave_a_fifth_admitted(self):
+        """The clean neighbour of the cap: settled attempts are not
+        outstanding (20260923T020912Z-review-codex-9d8b8c #5)."""
+        self.bind()
+        with self.subTest(id="settled-not-outstanding", origin=origin()):
+            for index in range(4):
+                message = self.queued(f"settled {index} {BODY}")
+                self.settle(self.reserve(message), "--outcome", "written")
+            fifth = self.queued(f"after settled {BODY}")
+            admitted = self.core(
+                "attempt", fifth, "--route", "native", "--generation", "1",
+                session=LEAD,
+            )
+            self.assertEqual(admitted.exit, 0, admitted.stderr)
+            self.assertRegex(admitted.stdout, r"AT-\d+")
+
 
 class TheCrash(CoreCase):
     """origin: sessions-lever.md#slice-2 4
 
     A NULL outcome older than ``ATTEMPT_TTL`` (60 s) is a crash between
-    the two writes. The next pass is ``courier.py watch --route native
-    --once``. Evidence is the planted ``submit`` registry log, one JSON
-    line per call, under ``<world>/fakes/submit.calls.jsonl`` where
-    ``HOME`` is ``<world>/home``. A line whose argv carries the message
-    body reads ``accepted reconciled`` and does not submit again. No
-    such line reads ``uncertain`` and reserves one new attempt.
+    the two writes. The next native pass, ``carry(module, submit=...,
+    observe=...)`` called by the planted bridge pass, asks ``observe`` for
+    the message: found reads ``accepted reconciled`` and nothing is
+    submitted; not found reads ``uncertain`` and one new attempt is
+    reserved (20260923T020912Z-review-codex-9d8b8c #6, #7). The found and
+    not-found readings, ``seen M-n`` and ``unseen M-n: ...``, are
+    courier.py's own at deff35d8; the contract names none.
     """
 
     def queued_request(self) -> str:
@@ -439,38 +467,43 @@ class TheCrash(CoreCase):
         return match.group(1)
 
     def pass_over(self, message: str) -> tuple[str, list[tuple]]:
-        passed = self.courier("watch", "--route", "native", "--once")
+        passed = run(
+            [str(self.world.bin / "carry")],
+            cwd=self.world.cwd,
+            env=self.env(LEAD),
+            timeout=TIMEOUT,
+        )
         self.assertEqual(passed.exit, 0, passed.stderr)
         listing = self.core("attempts", message, session=LEAD)
         self.assertEqual(listing.exit, 0, listing.stderr)
         return listing.stdout, self.attempt_outcomes(message)
 
+    def asked_about(self, message: str) -> list[dict]:
+        return [call for call in self.callbacks("observe") if message in json.dumps(call)]
+
     def test_evidence_reconciles_without_a_second_submission(self):
         self.bind()
-        self.plant_submit()
+        self.plant_carry(observed="seen {message}", submitted=f"accepted turn {REF}")
         message = self.queued_request()
         attempt = self.reserve(message)
         self.age(attempt)
-        self.seed_evidence(message, BODY)
-        before = len(self.submissions())
         text, rows = self.pass_over(message)
+        self.assertEqual(len(self.asked_about(message)), 1, self.callbacks("observe"))
         self.assertIn("accepted reconciled", text)
         self.assertEqual(len(rows), 1, rows)
         self.assertEqual(rows[0][1], "accepted reconciled", rows)
-        self.assertEqual(len(self.submissions()), before)
-        self.assertEqual(
-            [call["argv"] for call in self.submissions()],
-            [[message, BODY]],
-        )
+        self.assertEqual(self.callbacks("submit"), [])
 
     def test_no_evidence_reads_uncertain_and_one_new_attempt(self):
         self.bind()
-        self.plant_submit()
+        self.plant_carry(
+            observed="unseen {message}: not in the evidence", submitted=f"accepted turn {REF}",
+        )
         message = self.queued_request()
         attempt = self.reserve(message)
         self.age(attempt)
-        self.assertEqual(self.submissions(), [])
         text, rows = self.pass_over(message)
+        self.assertEqual(len(self.asked_about(message)), 1, self.callbacks("observe"))
         self.assertIn("uncertain", text)
         self.assertEqual(len(rows), 2, rows)
         self.assertEqual(rows[0][0], int(attempt.split("-", 1)[1]))
@@ -721,31 +754,6 @@ class TheRoutes(unittest.TestCase):
             route, _pid, _ticks, renewed = self.route_row()
             self.assertEqual(route, "native")
             self.assertNotEqual(renewed, since)
-
-
-class TheAdditiveSchema(CoreCase):
-    """origin: sessions-lever.md#slice-2 12
-
-    The three tables are additive. A store the current schema populated
-    opens with every one of those rows still present.
-    """
-
-    def test_opening_keeps_every_row_and_gains_the_tables(self):
-        self.bind()
-        sent = self.send(BODY)
-        self.assertEqual(sent.exit, 0, sent.stderr)
-        before = self.snapshot()
-        self.assertTrue(before.get("participants"))
-        self.assertTrue(before.get("messages"))
-        opened = self.core("who", expect=0)
-        self.assertIn("PT-1", opened.stdout)
-        after = self.snapshot()
-        for table, rows in before.items():
-            self.assertIn(table, after, table)
-            for row in rows:
-                self.assertIn(row, after[table], f"{table} lost a row")
-        for name in NEW_TABLES:
-            self.assertIn(name, after, name)
 
 
 if __name__ == "__main__":

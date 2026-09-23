@@ -2,17 +2,32 @@
 
 Contract: `ops/conductor/sessions-lever.md` "The adapter boundary, extended"
 (`transport`, `channel`, `handshake`, `submit`, `observe`) and the grok
-fake in "Tests". `session_adapters/grok.py` and `channel.py` are withheld.
-A missing adapter fails the row's own reading, not an import.
+fake in "Tests". The planted peer is spoken to by
+`session_adapters/channel.py`'s `Channel`, which spawns it with the
+contracted argv, `--no-auto-update agent stdio`, over its pipes; the
+world owns the process and reaps it at close (origin:
+20260923T020912Z-review-codex-9d8b8c #19). The fake reads its spec from
+`TESTKIT_FAKE_SPEC` and logs every line it receives to the registry's
+call log, and every frame it sends to `grok.emitted.jsonl` beside it. A
+missing adapter or channel fails the row's own reading, not an import.
 
 `session/update` carrying the chunk text reads `output <text>`.
 `_x.ai/session/prompt_complete` carrying the turn reads `done <turn>`.
-A frame naming another sessionId reads `refused native`.
-`session/request_permission` is answered `decline` and reads
-`permission <title>`.
+`session/update` carrying a `tool_call` reads `tool <name>`; the fake
+sends one naming `coordination` after `session/new`.
+A frame naming another sessionId reads `refused native <id>` (the XO's
+ruling of 2026-09-23 on the contract's words).
+`session/new` names the binding's ``native_settings.mcp_servers`` as ACP
+entries; when one is ``coordination`` the fake answers
+`_x.ai/mcp/server_status` ready, as b3 measured grok 1.0.40 do
+(7493b716), and that frame reads `tool coordination ready`.
+`session/request_permission` offers ACP's `allow-once` and `reject-once`
+options; the contract's `decline` is the answer selecting `reject-once`,
+and the frame reads `permission <title>`.
 
-Declared gap: planted faults follow the implementation, which is absent,
-so this module has no mutants file.
+Planted faults: `session_adapters_grok_faults.py` beside this module,
+anchored on the adapter at bf924ee7; the clean neighbours are the
+unmodified subject and the no-server row.
 
 The one command that reads this file is
 `python3 -m unittest discover -s ops/conductor/tests -p test_session_adapters_grok.py`.
@@ -24,16 +39,13 @@ import contextlib
 import importlib.util
 import io
 import json
-import os
-import socket
 import sys
 import tempfile
-import threading
 import time
 import unittest
 from pathlib import Path
 
-from ops.testkit import RefusalCase, Result, World, refusal_wire, run
+from ops.testkit import RefusalCase, Result, World, refusal_wire
 
 REPO = Path(__file__).resolve().parents[3]
 ADAPTERS = REPO / "ops" / "conductor" / "tools" / "session_adapters"
@@ -43,7 +55,6 @@ FAKES = Path(__file__).resolve().parent / "fakes"
 FAKE_SRC = FAKES / "session_grok.py"
 ORIGIN = "sessions-lever.md#slice-2 adapters"
 SHORT_ROOT = "/tmp"
-SOCKET_LIMIT = 108
 SESSION_ID = "sess-grok-506"
 OTHER_SESSION = "sess-other"
 UPDATE_TEXT = "pane-line"
@@ -72,8 +83,32 @@ def load_module(path: Path, name: str):
     return module
 
 
+def channel_module(adapter_module, fallback: Path, name: str):
+    """The channel module the adapter itself catches errors from.
+
+    Each by-path load of `channel.py` is a distinct module, and an adapter
+    catches only its own copy's `ChannelError`; the bridge builds its
+    channel through the adapter for that reason. The Channel is taken from
+    the adapter's shared module when it exposes one, else `channel.py` is
+    loaded by path.
+    """
+    common = getattr(adapter_module, "common", None)
+    module = getattr(common, "channel", None)
+    if module is not None and hasattr(module, "Channel"):
+        return module
+    return load_module(fallback, name)
+
+
+def selected(result) -> str | None:
+    """The optionId an ACP permission answer selected, or None."""
+    outcome = result.get("outcome") if isinstance(result, dict) else None
+    if isinstance(outcome, dict) and outcome.get("outcome") == "selected":
+        return outcome.get("optionId")
+    return None
+
+
 def open_world(prefix: str) -> World:
-    """A world rooted under /tmp so the peer's socket stays under 108 bytes."""
+    """A world rooted under /tmp, as the other slice 2 modules root theirs."""
     saved = tempfile.tempdir
     tempfile.tempdir = SHORT_ROOT
     try:
@@ -91,42 +126,51 @@ class TheGrokAdapter(unittest.TestCase):
     def setUp(self):
         self.world = open_world("session-grok-")
         self.addCleanup(self.world.close)
-        self.requests_path = self.world.root / "fakes" / "grok.requests.jsonl"
-        self.emitted_path = self.world.root / "fakes" / "grok.emitted.jsonl"
-        self.answers_path = self.world.root / "fakes" / "grok.answers.jsonl"
+        self.emitted_path = self.world.tools.log_path("grok").with_name("grok.emitted.jsonl")
         self.planted = self.world.tools.plant("grok", script=fake_text(FAKE_SRC))
+        self._module = None
+        self._adapter = None
         self.binding_path = self.world.plant_text("binding.json", "{}\n", recognisable="{")
 
     def adapter(self):
+        """One adapter per case, from one load of its module, so the
+        channel the case builds is the one that adapter catches from."""
+        if self._module is not None:
+            return self._adapter
         if not GROK.is_file():
             return None
         try:
             module = load_module(GROK, "session_adapters_grok")
         except Exception:
             return None
+        self._module = module
         cls = getattr(module, "Adapter", None)
         if not isinstance(cls, type):
             return None
         try:
-            return cls()
+            self._adapter = cls()
         except Exception:
             return None
+        return self._adapter
 
-    def open_rpc(self, reader, writer):
-        """channel.RPC wraps the pipes this case spawned: reader, then writer."""
+    def open_channel(self, spec_path: Path):
+        """channel.Channel spawning the planted peer with the contracted argv."""
         if not CHANNEL.is_file():
             return None
+        if self._module is None:
+            self.adapter()
         try:
-            module = load_module(CHANNEL, "session_adapters_channel")
+            module = channel_module(self._module, CHANNEL, "session_adapters_channel")
+            channel = module.Channel(
+                [str(self.planted), *CHANNEL_TAIL], jsonrpc=True,
+                env=self.world.env(extra={"TESTKIT_FAKE_SPEC": str(spec_path)}),
+                cwd=str(self.world.cwd),
+            )
         except Exception:
             return None
-        rpc_cls = getattr(module, "RPC", None)
-        if not isinstance(rpc_cls, type):
-            return None
-        try:
-            return rpc_cls(reader, writer)
-        except Exception:
-            return None
+        self.world.own(channel.process)
+        self.addCleanup(channel.close)
+        return channel
 
     def member(self) -> dict:
         return {"name": "gee", "harness": "grok"}
@@ -143,100 +187,66 @@ class TheGrokAdapter(unittest.TestCase):
             return None
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
+    def requests(self) -> list[dict]:
+        return [call for call in self.world.tools.calls("grok") if "method" in call]
+
     def methods(self) -> list[str] | None:
-        rows = self.lines(self.requests_path)
-        if rows is None:
+        rows = self.requests()
+        if not rows:
             return None
         return [row.get("method") for row in rows]
 
     def spawn(self, **overrides):
-        """The planted peer, started through ops.testkit.run with a timeout."""
-        ready = self.world.tmp / "grok.ready"
-        stop = self.world.tmp / "grok.stop"
-        sock = self.world.tmp / "g.sock"
-        for path in (ready, stop):
-            if path.exists():
-                path.unlink()
-        if sock.exists():
-            sock.unlink()
-        if len(os.fsencode(str(sock))) >= SOCKET_LIMIT:
-            raise AssertionError(f"INVALID: agent socket must be under {SOCKET_LIMIT} bytes: {sock}")
+        """The planted peer behind a Channel, or None with no channel."""
+        return self.open_channel(self.write_spec(**overrides))
+
+    def connect_in(self, directory: Path, **overrides):
+        """The planted peer spawned the bridge's way, ``adapter.connect``,
+        in ``directory``: the member's worktree, not this process's cwd."""
+        spec_path = self.write_spec(**overrides)
+        channel = self.adapter().connect(
+            [str(self.planted), *CHANNEL_TAIL],
+            env=self.world.env(extra={"TESTKIT_FAKE_SPEC": str(spec_path)}),
+            cwd=str(directory),
+        )
+        self.world.own(channel.process)
+        self.addCleanup(channel.close)
+        return channel
+
+    def write_spec(self, **overrides) -> Path:
         spec_path = self.world.tools.spec_path("grok")
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
         fields = {
-            "session_id": SESSION_ID,
-            "advertise_authenticate": False,
+            "native_id": SESSION_ID,
+            "advertise_auth": False,
             "reject_method": None,
             "die_after": None,
             "permission_title": None,
-            "update_text": UPDATE_TEXT,
+            "reply": UPDATE_TEXT,
             "turn": TURN,
-            "requests": str(self.requests_path),
-            "emitted": str(self.emitted_path),
-            "answers": str(self.answers_path),
-            "ready": str(ready),
-            "stop": str(stop),
-            "socket": str(sock),
         }
         fields.update(overrides)
         spec.update(fields)
         spec_path.write_text(json.dumps(spec, indent=1) + "\n", encoding="utf-8")
         landed = json.loads(spec_path.read_text(encoding="utf-8"))
-        if landed.get("session_id") != fields["session_id"]:
+        if landed.get("native_id") != fields["native_id"]:
             raise AssertionError("INVALID: grok spec did not land intact")
-        for log in (self.requests_path, self.emitted_path, self.answers_path):
-            if log.exists():
-                log.unlink()
-        box: dict = {}
-
-        def invoke() -> None:
-            try:
-                box["result"] = run(
-                    [str(self.planted)],
-                    cwd=self.world.cwd,
-                    env=self.world.env(extra={"TESTKIT_FAKE_SPEC": str(spec_path)}),
-                    timeout=30,
-                )
-            except BaseException as exc:  # the row asserts the adapter
-                box["error"] = exc
-
-        thread = threading.Thread(target=invoke)
-        thread.start()
-        client_box: dict = {}
-
-        def release() -> None:
-            client = client_box.get("client")
-            if client is not None:
-                with contextlib.suppress(OSError):
-                    client.close()
-            if not stop.exists():
-                stop.write_text("stop\n", encoding="utf-8")
-            thread.join(timeout=15)
-
-        self.addCleanup(release)
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and not ready.is_file():
-            if "error" in box:
-                break
-            time.sleep(0.02)
-        if not ready.is_file():
-            raise AssertionError(f"INVALID: grok fake was not started through ops.testkit.run: {box!r}")
-        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        client_box["client"] = client
-        client.connect(str(sock))
-        reader = client.makefile("r", encoding="utf-8", newline="\n", buffering=1)
-        writer = client.makefile("w", encoding="utf-8", newline="\n", buffering=1)
-        return self.open_rpc(reader, writer)
+        return spec_path
 
     def wait_decline(self) -> bool:
+        """The peer received, as the answer to `perm-1`, the outcome
+        selecting the `reject-once` option: ACP's decline."""
         deadline = time.monotonic() + 2
-        while time.monotonic() < deadline:
-            text = self.answers_path.read_text(encoding="utf-8") if self.answers_path.is_file() else ""
-            if "decline" in text:
+        while True:
+            answers = [
+                call for call in self.world.tools.calls("grok")
+                if call.get("response") and call.get("id") == "perm-1"
+            ]
+            if any(selected(call.get("result")) == "reject-once" for call in answers):
                 return True
+            if time.monotonic() >= deadline:
+                return False
             time.sleep(0.02)
-        text = self.answers_path.read_text(encoding="utf-8") if self.answers_path.is_file() else ""
-        return "decline" in text
 
     def test_transport_reads_protocol(self):
         """origin: sessions-lever.md#slice-2 adapters"""
@@ -280,11 +290,74 @@ class TheGrokAdapter(unittest.TestCase):
                     native = adapter.handshake(rpc)
                 except Exception as exc:
                     error = exc
-                for row in self.lines(self.requests_path) or []:
+                for row in self.requests():
                     if row.get("method") == "initialize":
                         version = (row.get("params") or {}).get("protocolVersion")
             self.assertIsNone(error, error)
             self.assertEqual((native, version), (SESSION_ID, 1))
+
+    def test_session_new_names_the_member_worktree(self):
+        """origin: sessions-lever.md#slice-2 adapters
+
+        The bridge runs in a directory other than the member's worktree;
+        ``session/new`` carries the worktree the harness was spawned in,
+        never the bridge's own cwd (0e's review of b3's grok.py, relayed by
+        the XO 2026-09-23).
+        """
+        with self.subTest(id="grok-session-new-cwd", origin=ORIGIN):
+            worktree = self.world.root / "member-worktree"
+            worktree.mkdir()
+            self.assertNotEqual(Path.cwd().resolve(), worktree.resolve())
+            adapter = self.adapter()
+            self.assertIsNotNone(adapter, "no grok adapter")
+            rpc = self.connect_in(worktree)
+            adapter.handshake(rpc)
+            opened = [row for row in self.requests() if row.get("method") == "session/new"]
+            self.assertEqual(len(opened), 1, self.requests())
+            self.assertEqual((opened[0].get("params") or {}).get("cwd"), str(worktree))
+
+    def opened_with_servers(self, servers: dict):
+        """The binding's servers through ``channel``, then the handshake:
+        the ``mcpServers`` session/new carried and the frames' readings."""
+        adapter = self.adapter()
+        self.assertIsNotNone(adapter, "no grok adapter")
+        adapter.channel(self.member(), {"native_settings": {"mcp_servers": servers}})
+        rpc = self.spawn()
+        adapter.handshake(rpc)
+        opened = [row for row in self.requests() if row.get("method") == "session/new"]
+        self.assertEqual(len(opened), 1, self.requests())
+        sent = (opened[0].get("params") or {}).get("mcpServers")
+        readings = [adapter.observe(rpc, frame) for frame in self.lines(self.emitted_path) or []]
+        return sent, readings
+
+    def test_session_new_names_the_coordination_server(self):
+        """origin: sessions-lever.md#slice-2 adapters
+
+        A binding naming the coordination server sends it in
+        ``session/new``, and grok's ready status reads ``tool coordination
+        ready`` (11's review of fed6a4ce, grok.py:79, relayed by the XO
+        2026-09-23).
+        """
+        with self.subTest(id="grok-session-new-mcp-named", origin=ORIGIN):
+            server = {"command": "python3", "args": ["coordination-mcp.py"], "env": {"LANE": "a"}}
+            sent, readings = self.opened_with_servers({"coordination": server})
+            self.assertEqual(
+                sent,
+                [{"name": "coordination", "command": "python3", "args": ["coordination-mcp.py"],
+                  "env": [{"name": "LANE", "value": "a"}]}],
+            )
+            self.assertIn("tool coordination ready", readings)
+
+    def test_session_new_with_no_server_reads_no_ready_tool(self):
+        """origin: sessions-lever.md#slice-2 adapters
+
+        The clean neighbour: a binding naming no server sends ``[]`` and
+        no frame reads ``tool coordination ready``.
+        """
+        with self.subTest(id="grok-session-new-mcp-none", origin=ORIGIN):
+            sent, readings = self.opened_with_servers({})
+            self.assertEqual(sent, [])
+            self.assertNotIn("tool coordination ready", readings)
 
     def test_handshake_calls_authenticate_only_when_advertised(self):
         """origin: sessions-lever.md#slice-2 adapters"""
@@ -294,7 +367,7 @@ class TheGrokAdapter(unittest.TestCase):
             methods = None
             error = None
             if adapter is not None:
-                rpc = self.spawn(advertise_authenticate=True)
+                rpc = self.spawn(advertise_auth=True)
                 try:
                     native = adapter.handshake(rpc)
                 except Exception as exc:
@@ -311,7 +384,7 @@ class TheGrokAdapter(unittest.TestCase):
             methods = None
             error = None
             if adapter is not None:
-                rpc = self.spawn(advertise_authenticate=False)
+                rpc = self.spawn(advertise_auth=False)
                 try:
                     native = adapter.handshake(rpc)
                 except Exception as exc:
@@ -374,7 +447,7 @@ class TheGrokAdapter(unittest.TestCase):
             reading = adapter.submit(rpc, OPERATOR_TEXT, busy=busy)
         except Exception as exc:
             error = exc
-        rows = self.lines(self.requests_path) or []
+        rows = self.requests()
         methods = [row.get("method") for row in rows]
         sent = method in methods and other not in methods
         carried = any(
@@ -416,7 +489,9 @@ class TheGrokAdapter(unittest.TestCase):
                 except Exception as exc:
                     error = exc
             self.assertIsNone(error, error)
-            self.assertEqual(readings, [f"output {UPDATE_TEXT}", f"done {TURN}"])
+            self.assertEqual(
+                readings, ["tool coordination", f"output {UPDATE_TEXT}", f"done {TURN}"],
+            )
 
     def test_observe_a_frame_naming_another_session_reads_refused_native(self):
         """origin: sessions-lever.md#slice-2 adapters"""
@@ -443,7 +518,7 @@ class TheGrokAdapter(unittest.TestCase):
                 except Exception as exc:
                     error = exc
             self.assertIsNone(error, error)
-            self.assertEqual(reading, "refused native")
+            self.assertEqual(reading, f"refused native {OTHER_SESSION}")
 
     def test_observe_permission_is_declined_and_reads_the_title(self):
         """origin: sessions-lever.md#slice-2 adapters"""

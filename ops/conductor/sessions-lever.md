@@ -354,7 +354,11 @@ pane under the profile's authority environment, in place of the harness
 itself. It spawns the harness with pipes through `profiles.py
 run-interactive --binding B -- <channel argv>`, speaks the protocol
 through `framing.Parser` (a reader thread feeds the parser; one writer
-lock; no SQLite transaction is ever held across a native call), takes
+lock; no SQLite transaction is ever held across a native call; a
+response whose id matches no request this side sent is dropped and
+written to `channel.log` with its id, never fatal, measured on grok
+1.0.40's mid-turn `skills-reload` response at 8191d6a1, while every
+other framing refusal ends the channel), takes
 the native id from the handshake, runs the profile's `guard.sh
 SessionStart` with that id so `initialize` binds the participant under
 the profile's own capability, then loops: lines on its stdin are
@@ -390,7 +394,7 @@ keeps beyond them (codex and grok's `reconcile`, `answer`,
 | `channel(member, binding)` | protocol: the argv after `run-interactive --binding B --`: codex `app-server --listen stdio://`, grok `--no-auto-update agent stdio`; tui: `None` |
 | `handshake(rpc)` | the native id: codex `initialize`, `initialized`, `thread/start` → `thread.id`; grok `initialize` (protocolVersion 1), `authenticate` when advertised, `session/new` → `sessionId`; refuses `channel` naming the method that failed |
 | `submit(rpc, text, *, busy)` | codex `turn/start` with `toolOutput` into the active turn when busy, else a new turn → `accepted turn <id>`; grok `_x.ai/interject` when busy, `session/prompt` when idle → `written`; a -32601 reply → `unsupported <method>` |
-| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed), `done <turn>` |
+| `observe(rpc, frame)` | one received frame classified: `native <id>` (from `threadId` or `sessionId`; a frame naming another id is `refused native <id>`, the foreign id kept so the pane says which conversation was refused), `activity active|idle`, `output <text>`, `tool <name>`, `permission <title>` (answered `decline`, the prompt printed, with one exception: a grok `use_tool` call whose `rawInput.tool_name` is exactly `coordination__<tool>` with an input object is answered `allow-once`, read `permission coordination <tool> allowed`, because the coordination server is the lane's own and a member that can never call `coord_ack` or `coord_send` can never read `ok` on its response dimension; measured live by agentscient-b3 on grok 1.0.40, `session/request_permission` for `coordination__coord_probe` with options always-allow, allow-once, reject-once, the bridge's reject-once reading the call `failed`; everything else, `always-allow` included, stays declined; pre-approving the server in the profile's config is the wall's later shape, not tonight's), `done <turn>` |
 
 `rpc` is `session_adapters/channel.py`: the pipes, the reader thread,
 the parser and the writer lock, adapted from the proof's `RPC`
