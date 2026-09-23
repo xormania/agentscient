@@ -37,6 +37,26 @@ REVIEW = "20260922T215604Z-review-codex-f6777b"
 METHODS = ("argv", "observe_identity", "probe", "stop", "diagnostics")
 LAUNCH_ID = "11111111-1111-4111-8111-111111111111"
 PROBE_TOKEN = "session-slice1-version-9.9.9"
+FAKES = Path(__file__).resolve().parent / "fakes"
+HOLDER_SRC = FAKES / "session_holder.py"
+PROBE_SRC = FAKES / "session_probe.py"
+
+
+def fake_text(path: Path, **values: str) -> str:
+    """A program under fakes/, its shebang this interpreter, each
+    @@NAME@@ replaced by its value; an anchor that is not there once is
+    INVALID. origin: 20260923T003033Z-review-codex-c99cc9#7"""
+    if not path.is_file():
+        raise AssertionError(f"INVALID: planted program missing: {path}")
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("#!"):
+        text = text.split("\n", 1)[1]
+    for name, value in values.items():
+        anchor = f"@@{name}@@"
+        if text.count(anchor) != 1:
+            raise AssertionError(f"INVALID: {path.name} anchor {anchor}")
+        text = text.replace(anchor, value)
+    return f"#!{sys.executable}\n" + text
 
 
 def origin_finding(number: int) -> str:
@@ -200,12 +220,7 @@ class TheClaudeAdapter(unittest.TestCase):
         """origin: 20260922T215604Z-review-codex-f6777b#24"""
         with self.subTest(id="claude-probe-channel", origin=origin_finding(24)):
             marker = self.world.root / "probe-ran"
-            script = (
-                f"#!{sys.executable}\n"
-                "import pathlib, sys\n"
-                f"pathlib.Path({str(marker)!r}).write_text('ran\\n')\n"
-                f"sys.stdout.write({PROBE_TOKEN!r} + '\\n')\n"
-            )
+            script = fake_text(PROBE_SRC, MARKER=str(marker), TOKEN=PROBE_TOKEN)
             exe = self.world.tools.plant("claude-probe", script=script)
             adapter = self.adapter()
             reading: object = {}
@@ -223,21 +238,13 @@ class TheClaudeAdapter(unittest.TestCase):
     def owned_holder(self) -> tuple[int, callable]:
         ready = self.world.root / "holder.ready"
         stop = self.world.root / "holder.stop"
-        script = (
-            f"#!{sys.executable}\n"
-            "import os, time, pathlib\n"
-            f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
-            f"stop = pathlib.Path({str(stop)!r})\n"
-            "while not stop.exists():\n"
-            "    time.sleep(0.05)\n"
-        )
-        self.world.tools.plant("holder", script=script)
+        self.world.tools.plant("holder", script=fake_text(HOLDER_SRC))
         box: dict = {}
 
         def invoke() -> None:
             try:
                 box["result"] = run(
-                    [str(self.world.bin / "holder")],
+                    [str(self.world.bin / "holder"), str(ready), str(stop)],
                     cwd=self.world.cwd,
                     env=self.world.env(),
                     timeout=30,
