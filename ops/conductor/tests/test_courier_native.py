@@ -495,6 +495,7 @@ class TheRoutes(unittest.TestCase):
             self.skipTest("tmux is absent; a member route needs it")
         self.world = open_world("courier-route-")
         self.addCleanup(self.world.close)
+        self.addCleanup(self.stop_server)
         self.conf = self.world.plant_text(
             "lane.conf", f"LANE_NAME='{LANE}'\n"
         )
@@ -530,6 +531,20 @@ class TheRoutes(unittest.TestCase):
         self.member = match.group(1)
         self.participant = int(match.group(2).split("-", 1)[1])
         self.launch_id, self.capability = self._member_identity()
+
+    def stop_server(self) -> None:
+        """Kill this world's tmux server, if a row started one.
+
+        Registered after ``world.close``, so it runs first: the world
+        does not own a tmux server, and one left running outlives it.
+        """
+        if HOST_TMUX and self.socket.exists():
+            run(
+                [HOST_TMUX, "-S", str(self.socket), "kill-server"],
+                cwd=self.world.cwd,
+                env=self.world.env(),
+                timeout=TIMEOUT,
+            )
 
     def _plant_harness(self) -> None:
         text = _anchored(_fake_text(HARNESS_SRC), "@@REPO@@", str(REPO))
