@@ -143,6 +143,43 @@ class MalformedFieldStops(_EnvelopeFixture):
         line = self.assert_envelope_refusal(proc, "findings[0]")
         self.assertIn("extra", line)
 
+    def plant_one(self, row):
+        self.plant_check_tests(
+            verdict="changes",
+            findings=[row],
+            counts=dict(WELL_FORMED_SKEPTIC_COUNTS),
+            artifacts={},
+        )
+        return self.run_ladder()
+
+    def test_a_finding_labelled_practical_advances(self):
+        proc = self.plant_one(_finding(practical="yes", failing="python3 ops/bin/x --y"))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertIn("tests-fix", self.dispatch_names())
+
+    def test_a_finding_labelled_not_practical_advances(self):
+        proc = self.plant_one(_finding(practical="no", failing=None))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertIn("tests-fix", self.dispatch_names())
+
+    def test_practical_without_its_failing_stops_naming_the_finding(self):
+        row = _finding(practical="yes")
+        proc = self.plant_one(row)
+        line = self.assert_envelope_refusal(proc, "findings[0]")
+        self.assertIn("failing", line)
+
+    def test_practical_yes_with_no_failing_invocation_stops_naming_failing(self):
+        proc = self.plant_one(_finding(practical="yes", failing=None))
+        self.assert_envelope_refusal(proc, "findings[0].failing")
+
+    def test_practical_no_with_a_failing_invocation_stops_naming_failing(self):
+        proc = self.plant_one(_finding(practical="no", failing="python3 x"))
+        self.assert_envelope_refusal(proc, "findings[0].failing")
+
+    def test_a_practical_outside_yes_or_no_stops_naming_practical(self):
+        proc = self.plant_one(_finding(practical="maybe", failing="python3 x"))
+        self.assert_envelope_refusal(proc, "findings[0].practical")
+
     def test_bad_severity_stops_naming_severity(self):
         self.plant_check_tests(
             verdict="changes",

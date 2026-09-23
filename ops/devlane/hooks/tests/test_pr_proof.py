@@ -71,6 +71,7 @@ class PrProofTests(unittest.TestCase):
                         "question": "q", "serve": "git log -1",
                         "expect": "x"}) + "\n",
         )
+        self.world.plant_text(self.repo / support.FINDINGS_TOOL, support.findings_vocabulary())
         self.world.git("add", "-A")
         self.world.git("commit", "-q", "-m", "fixture")
         audited = self.world.git("rev-parse", "HEAD").stdout.strip()
@@ -159,7 +160,9 @@ class PrProofTests(unittest.TestCase):
         self.assertEqual(proc.stdout.strip(), "", proc.stdout)
 
     GOOD = ("## What\n\nx\n\n## Proof\n\nRows at the head: P-FIX-1.\n"
-            f"Security audit: {support.AUDIT_RECORD_ID}.\n\n## Why\n\ny\n")
+            f"Security audit: {support.AUDIT_RECORD_ID}.\n"
+            + support.proof_findings(*support.audit_disposed())
+            + "\n## Why\n\ny\n")
 
     def test_ready_and_merge_pass_with_proof_rows_at_a_green_head(self):
         self.plant(body=self.GOOD)

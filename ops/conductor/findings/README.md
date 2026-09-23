@@ -14,6 +14,16 @@ regenerated and never edited by hand. Dispositions: open, fixed,
 addressed, deferred, ruled, fix-round, opinion; the evidence names the
 commit, the record, the ruling or the scope item.
 
+A finding may carry the reviewer's `practical` label, `yes` with the
+`failing` invocation or `no` (ops/devlane/task/CONTRACT.md §The
+practical label). The store holds both columns and the export writes
+them only on a row whose finding carried them, so rows exported before
+the label keep their shape. A labelled finding ruled rather than fixed
+is ruled with evidence beginning `declined: not practical — `; the
+`finding-disposition` row reads that judgement in the PR's `## Proof`
+at `gh pr ready`. A finding without the label is ruled on any ground,
+as the rulings before it were.
+
 The read verb `cited` KEY reports whether that finding is disposed with a
 holding contract citation. The citation grammar lives in `findings.py`; the
 gate and `findings.py` read the same definition.

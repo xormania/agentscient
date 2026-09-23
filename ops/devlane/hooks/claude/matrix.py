@@ -105,6 +105,18 @@ row that cannot look refuses: "could not look" is not a pass.
                     security audits made required for draft
                     pr's - and resolution required before they
                     can be made ready for review")
+    finding-disposition                                          gh pr view, the record
+                    gh pr ready while a finding of the audit that at the head, the findings
+                    holds is not judged in ## Proof: each named   export at the head,
+                    by <record>#<n> or the record's suffix #<n>   findings.py DISPOSITIONS
+                    with a disposition token equal to the        at the head
+                    export's and one line of judgement; a
+                    finding whose record carries `practical`
+                    and is ruled is a decline, its judgement
+                    beginning "declined: not practical — ";
+                    ready only; no grant escape (owner, relayed
+                    2026-09-23 01:24Z: "get moving - and make
+                    sure i NEVER have to say that again")
 
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
@@ -1261,6 +1273,12 @@ AUDIT_MODEL_KEY = "MODEL_CODEX_SECURITY_AUDIT"
 AUDIT_HARNESS = "codex"
 DISPATCH_RECORDS = ".dev/records/dispatches/"
 FINDINGS_EXPORT = "ops/conductor/findings/findings.jsonl"
+# The disposition vocabulary is findings.py's, read at the head: one
+# definition, never a copy here that drifts from the ledger's.
+DISPOSITIONS_SOURCE = "ops/conductor/tools/findings.py"
+DISPOSITIONS_LINE = re.compile(r"^DISPOSITIONS = (\([^)]*\))", re.MULTILINE)
+DECLINE = "declined: not practical — "
+JUDGEMENT_MARKUP = " \t*_`\"'“”:;,.—\u2013-()"
 # A dispatch record id as launch.py mints it, the shape ladder.py pins.
 RECORD_ID = re.compile(r"\d{8}T\d{6}Z-[a-z-]+-[0-9a-f]{6}")
 
@@ -1393,6 +1411,78 @@ def dispositions_at(root, head):
         if isinstance(row, dict) and isinstance(row.get("key"), str):
             out[row["key"]] = row.get("disposition")
     return out
+
+
+def disposition_tokens_at(root, head):
+    """findings.py's DISPOSITIONS at the head, less `open`; None when the
+    file or the tuple cannot be read there."""
+    shown = subprocess.run(["git", "-C", root, "show", f"{head}:{DISPOSITIONS_SOURCE}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    if shown.returncode != 0:
+        return None
+    match = DISPOSITIONS_LINE.search(shown.stdout)
+    if match is None:
+        return None
+    try:
+        value = ast.literal_eval(match.group(1))
+    except (ValueError, SyntaxError):
+        return None
+    if not isinstance(value, tuple) or not all(isinstance(v, str) and v for v in value):
+        return None
+    return tuple(v for v in value if v != "open")
+
+
+def finding_dispositions(root, head, section, rid, findings):
+    """The finding-disposition row. Every finding of the audit that holds is
+    named in `## Proof`, by `<record>#<n>` or the record's suffix `#<n>`,
+    with a disposition token equal to the export's at the head and one
+    line of judgement after it. A finding whose record carries `practical`
+    and is ruled is a decline: its judgement begins DECLINE. A finding
+    without the field, as every record before this row, may be ruled on
+    any ground."""
+    expected = (f"every finding of {rid} named in `## Proof` with the export's "
+                "disposition token and one line of judgement")
+    needed = ("name each finding on its own line in `## Proof`: `<record>#<n> <token>: "
+              "<judgement>`, the token as findings.py disposition set it")
+    tokens = disposition_tokens_at(root, head)
+    if not tokens:
+        return deny("finding-disposition", expected,
+                    f"{DISPOSITIONS_SOURCE} DISPOSITIONS unreadable at {head[:8]}",
+                    "could not look is not a pass; restore the tuple and retry")
+    held = dispositions_at(root, head)
+    token_word = re.compile(r"(?<![\w-])(" + "|".join(
+        re.escape(t) for t in sorted(tokens, key=len, reverse=True)) + r")(?![\w-])")
+    suffix = rid.rsplit("-", 1)[1]
+    lines = section.splitlines()
+    for n, finding in enumerate(findings, 1):
+        key = f"{rid}#{n}"
+        name = re.compile(r"(?<![\w-])(?:" + re.escape(rid) + "|" + re.escape(suffix)
+                          + r")#" + str(n) + r"(?!\d)")
+        named = next(((line, m) for line in lines for m in (name.search(line),) if m), None)
+        if named is None:
+            return deny("finding-disposition", expected, f"{key} not named in `## Proof`", needed)
+        line, m = named
+        rest = line[m.end():]
+        token = token_word.search(rest)
+        if token is None:
+            return deny("finding-disposition", expected,
+                        f"{key} named with no disposition token (one of {', '.join(tokens)})",
+                        needed)
+        if token.group(1) != held.get(key):
+            return deny("finding-disposition", expected,
+                        (f"{key} reads {token.group(1)} in `## Proof` and "
+                         f"{held.get(key)} in the export at {head[:8]}"),
+                        "make the body say what findings.py disposition set, or dispose it again and export")
+        judgement = rest[token.end():].strip(JUDGEMENT_MARKUP)
+        if not re.search(r"\w", judgement):
+            return deny("finding-disposition", expected, f"{key} {token.group(1)} with no judgement", needed)
+        practical = isinstance(finding, dict) and finding.get("practical") in ("yes", "no")
+        if practical and token.group(1) == "ruled" and not judgement.startswith(DECLINE):
+            return deny("finding-disposition", expected,
+                        (f"{key} carries `practical` and is ruled, with a judgement not "
+                         f"beginning \"{DECLINE}\""),
+                        f"begin the judgement \"{DECLINE}\" and say why, or dispose it otherwise")
+    return None
 
 
 def is_a_fix_for(message, rid, findings, paths):
@@ -1645,7 +1735,8 @@ def audit_at_head(root, head, body):
     for rid, record in audits:
         reading = audit_of(root, head, rid, record, lane_conf(root), records_set)
         if reading is None:
-            return None
+            return finding_dispositions(root, head, section, rid,
+                                        field(record, "result.envelope.findings"))
         short.append(reading)
     return deny("audit", expected, short[0][0], short[0][1])
 def pr_proof(toks, cwd):
