@@ -45,7 +45,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import coordination
     import dispatch_intents as intents
-    import dispatcher
     import laneconf
     from instrument import (
         EXIT_ABORT,
@@ -57,7 +56,6 @@ try:
         identity,
         refuse,
         run,
-        session,
     )
 except ModuleNotFoundError:
     print(
@@ -127,23 +125,6 @@ def parse(rest, count, *, required=(), optional=(), repeated=()):
 
 
 # -- who may act ---------------------------------------------------------------
-
-def the_dispatcher(conn, part):
-    """The caller holds the role and the `dispatcher` machine, or refuses."""
-    coordination.require_role(part, ("dispatcher",))
-    row = conn.execute(
-        "SELECT * FROM subjects WHERE machine = ? ORDER BY id LIMIT 1", (dispatcher.ROLE.name,)
-    ).fetchone()
-    held = ""
-    if row is not None and row["place"] == "named":
-        held = (row["holder_note"] or "").strip()
-    mine = session("").strip()
-    if not held or held != mine:
-        refuse("holder", "the session holding the dispatcher machine",
-               f"held by {held or 'nobody'}; this session {mine or 'unnamed'}",
-               "run dispatcher.py set --why TEXT from this session, then ask again")
-    return part
-
 
 # -- the ask's parts -------------------------------------------------------------
 
@@ -261,7 +242,7 @@ def answer(found, **extra) -> dict:
 # -- the verbs, core-shaped -----------------------------------------------------
 
 def act_launch(conn, part, *, agent, assignment, job, harness, branch, scope_ref, inputs, key) -> dict:
-    part = the_dispatcher(conn, part)
+    part = intents.the_dispatcher(conn, part)
     wrapper = intents.program("DISPATCH_WRAPPER", "launcher")
     launcher = intents.program("DISPATCH_LAUNCHER", "launcher")
     intents.program("DISPATCH_MONITOR", "store")
@@ -453,7 +434,7 @@ def collected_reading(record: str) -> str | None:
 
 
 def act_collect(conn, part, *, agent, intent, verify) -> dict:
-    part = the_dispatcher(conn, part)
+    part = intents.the_dispatcher(conn, part)
     found = intents.row(conn, intents.parse_id(intent))
     _launched(found, "collect")
     if found["place"] == "closed":
@@ -505,7 +486,7 @@ def _settle(conn, found, who: str) -> dict:
 
 
 def act_reconcile(conn, part, *, agent, intent) -> dict:
-    part = the_dispatcher(conn, part)
+    part = intents.the_dispatcher(conn, part)
     found = intents.row(conn, intents.parse_id(intent))
     if found["place"] not in ("launching", "uncertain", "launched"):
         refuse("arguments", "an intent at launching or uncertain",
@@ -514,7 +495,7 @@ def act_reconcile(conn, part, *, agent, intent) -> dict:
 
 
 def act_recover(conn, part, *, agent) -> dict:
-    part = the_dispatcher(conn, part)
+    part = intents.the_dispatcher(conn, part)
     who = coordination.actor(part)
     rows = []
     launcher = None
