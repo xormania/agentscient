@@ -1446,6 +1446,11 @@ def core_assignments(conn, part, *, state=None, to=None) -> dict:
     return {"assignments": [assignment_dict(row) for row in shown]}
 
 
+QUEUE_MESSAGE = ("INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
+                 "assignment, decision, reply_to, queued_at) "
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+
 def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision=None,
               reply_to=None, artifact=None, key=None) -> dict:
     """With `key`, idempotent per caller (sessions-lever.md, Slice 2): the
@@ -1473,23 +1478,35 @@ def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision
     if aid is not None:
         assignment_row(conn, aid)
     sid = machine.create(conn, MESSAGE, actor(part))
-    conn.execute(
-        "INSERT INTO messages(id, sender, recipient, purpose, body, artifact, "
-        "assignment, decision, reply_to, queued_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp()),
-    )
-    if key is not None:
-        try:
-            conn.execute("INSERT INTO send_requests(participant, key, digest, message, at) "
-                         "VALUES (?, ?, ?, ?, ?)", (part["id"], key, digest, sid, stamp()))
-        except sqlite3.IntegrityError:
-            # Another send under this key landed between the read and this
-            # insert. The message just queued is withdrawn, never deleted,
-            # and the key's first message stands.
-            machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
-                         evidence=f"idempotency: key {key} already named a message")
-            return keyed_message(conn, part, key, digest)
+    queued = (sid, part["id"], recipient, purpose, body, artifact, aid, did, reply, stamp())
+    if key is None:
+        conn.execute(QUEUE_MESSAGE, queued)
+        return message_dict(message_row(conn, sid))
+
+    def take_key(conn):
+        # The key's row and the message's row land in one transaction under
+        # the write lock. A send that lost the key to a concurrent one never
+        # wrote a message row, so no courier can carry what it queued: the
+        # restart or the race does not replay the effect.
+        if keyed_message(conn, part, key, digest) is not None:
+            return False
+        conn.execute(QUEUE_MESSAGE, queued)
+        conn.execute("INSERT INTO send_requests(participant, key, digest, message, at) "
+                     "VALUES (?, ?, ?, ?, ?)", (part["id"], key, digest, sid, stamp()))
+        return True
+
+    try:
+        took = immediate(conn, take_key)
+    except Refusal:
+        # Another payload took the key after the check above: the subject
+        # this send opened carries no message and is withdrawn, never deleted.
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named another payload")
+        raise
+    if not took:
+        machine.move(conn, MESSAGE, sid, "withdraw", actor(part),
+                     evidence=f"idempotency: key {key} already named a message")
+        return keyed_message(conn, part, key, digest)
     return message_dict(message_row(conn, sid))
 
 
