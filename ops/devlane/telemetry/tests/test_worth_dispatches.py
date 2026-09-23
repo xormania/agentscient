@@ -18,7 +18,6 @@ import test_worth as worth_contract
 
 from ops.testkit import World, run
 
-
 MARKER = "DISPATCH-LEAK-MARKER"
 WINDOW_SINCE = "2026-08-22T09:00:00.000Z"
 WINDOW_UNTIL = "2026-08-22T12:00:00.000Z"

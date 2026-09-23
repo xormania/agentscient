@@ -34,7 +34,15 @@ from pathlib import Path
 
 import support
 
-from ops.testkit import PlantFailed, RefusalCase, Result, World, hermetic_env, refusal_wire, run
+from ops.testkit import (
+    PlantFailed,
+    RefusalCase,
+    Result,
+    World,
+    hermetic_env,
+    refusal_wire,
+    run,
+)
 from ops.testkit import plant_bytes as kit_plant_bytes
 
 APP = support.APP
