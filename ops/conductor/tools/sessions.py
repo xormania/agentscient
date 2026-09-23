@@ -163,7 +163,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS session_run(
     id INTEGER PRIMARY KEY AUTOINCREMENT, subject INTEGER NOT NULL UNIQUE, name TEXT NOT NULL, team_file TEXT NOT NULL,
     team_sha256 TEXT NOT NULL, tmux_socket TEXT, tmux_session TEXT NOT NULL,
-    started_by TEXT NOT NULL, started_at TEXT NOT NULL);
+    started_by TEXT NOT NULL, started_at TEXT NOT NULL, started_participant INTEGER);
 CREATE TABLE IF NOT EXISTS session_member(
     id INTEGER PRIMARY KEY AUTOINCREMENT, subject INTEGER NOT NULL UNIQUE, run INTEGER NOT NULL, name TEXT NOT NULL,
     harness TEXT NOT NULL, roles TEXT NOT NULL, generation INTEGER NOT NULL,
@@ -330,6 +330,9 @@ def writer() -> sqlite3.Connection:
         # participant is written.
         conn = coordination.writer()
         conn.executescript(SCHEMA)
+        held = {row[1] for row in conn.execute("PRAGMA table_info(session_run)")}
+        if "started_participant" not in held:
+            conn.execute("ALTER TABLE session_run ADD COLUMN started_participant INTEGER")
     except sqlite3.DatabaseError as error:
         refuse("store", f"a readable SQLite store at {machine.store_path()}", str(error),
                "restore or move the store aside; the engine never rebuilds one to order")
@@ -833,6 +836,8 @@ def do_start(rest):
         refuse("team", "a member whose harness has an adapter under session_adapters/",
                f"{member['name']} on {member['harness']}", "add the harness's adapter")
     lead = check_authority(member)
+    starter = starter_participant()
+    starter_id = starter["id"] if starter is not None else None
     conn = writer()
     with conn:
         clash = launched_elsewhere(conn, member["name"])
@@ -857,8 +862,8 @@ def do_start(rest):
             socket = options.get("tmux-socket") or os.environ.get("AGENTSCIENT_TMUX_SOCKET") or None
             rid = conn.execute(
                 "INSERT INTO session_run(subject, name, team_file, team_sha256, tmux_socket, tmux_session, "
-                "started_by, started_at) VALUES (?, ?, ?, ?, ?, '', ?, ?)",
-                (subject, team["run"]["name"], str(path), team_sha, socket, agent, stamp()),
+                "started_by, started_at, started_participant) VALUES (?, ?, ?, ?, ?, '', ?, ?, ?)",
+                (subject, team["run"]["name"], str(path), team_sha, socket, agent, stamp(), starter_id),
             ).lastrowid
             conn.execute("UPDATE session_run SET tmux_session = ? WHERE id = ?",
                          (f"{team['run']['tmux']}-R-{rid}", rid))
@@ -1274,31 +1279,58 @@ def scrub(text: str, secrets: list[str]) -> str:
     return text
 
 
-def launched_records(conn, run, participants: set[int]) -> list:
+def run_starter(run) -> int | None:
+    """The participant that started the run; None on a row from a store
+    made before session_run carried it."""
+    return run["started_participant"] if "started_participant" in run.keys() else None  # noqa: SIM118 - sqlite3.Row's `in` tests values
+
+
+def window(conn, run) -> tuple[str, str]:
+    """The run's window (slice 4, the run export): from its started_at to
+    the earliest stamp that exists of its stop request (the move to
+    stopping), the next run its starter started, and now."""
+    ends = [stamp()]
+    stopped = conn.execute(
+        "SELECT MIN(at) AS at FROM marking WHERE machine = ? AND subject = ? AND transition = 'stop'",
+        (RUN.name, run["subject"])).fetchone()
+    if stopped is not None and stopped["at"]:
+        ends.append(stopped["at"])
+    starter = run_starter(run)
+    if starter is not None:
+        later = conn.execute(
+            "SELECT MIN(started_at) AS at FROM session_run WHERE started_participant = ? "
+            "AND started_at > ? AND id != ?", (starter, run["started_at"], run["id"])).fetchone()
+        if later is not None and later["at"]:
+            ends.append(later["at"])
+    return run["started_at"], min(ends)
+
+
+def launched_records(conn, span: tuple[str, str], participants: set[int]) -> list:
     """The dispatch records the run launched: the store's coord_launch rows
     (slice 3's intents) that reached a record, requested or dispatched by
-    one of the run's participants since the run started. A store with no
-    intents table has launched none."""
+    one of the run's participants, reserved inside the run's window. A
+    store with no intents table has launched none."""
     if not participants:
         return []
     marks = ",".join("?" for _ in participants)
     try:
         return conn.execute(
             "SELECT id, record, requester, dispatcher FROM dispatch_intents "  # noqa: S608 - placeholders only
-            f"WHERE record IS NOT NULL AND reserved_at >= ? "
+            f"WHERE record IS NOT NULL AND reserved_at >= ? AND reserved_at < ? "
             f"AND (requester IN ({marks}) OR dispatcher IN ({marks})) ORDER BY id",
-            (run["started_at"], *participants, *participants)).fetchall()
+            (*span, *participants, *participants)).fetchall()
     except sqlite3.OperationalError:
         return []
 
 
-def run_rows(conn, sql: str, participants: set[int]) -> list[dict]:
-    """A coordination table's rows for the run's participants, or none."""
+def run_rows(conn, sql: str, participants: set[int], span: tuple[str, str]) -> list[dict]:
+    """A coordination table's rows for the run's participants inside the
+    run's window, or none; the window's two stamps bind last."""
     if not participants:
         return []
     marks = ",".join("?" for _ in participants)
     try:
-        bound = [*participants] * sql.count("{marks}")
+        bound = [*participants] * sql.count("{marks}") + [*span]
         return [dict(row) for row in conn.execute(sql.format(marks=marks), bound)]
     except sqlite3.OperationalError:
         return []
@@ -1322,11 +1354,15 @@ def do_export(rest):
         run = chosen_run(conn, options, places=("open", "stopping", "stopped"))
         members = member_rows(conn, rid=run["id"])
         participants = {row["participant"] for row in members if row["participant"] is not None}
-        records = launched_records(conn, run, participants)
-        decisions = run_rows(conn, "SELECT * FROM decisions WHERE asked_by IN ({marks}) "
-                             "OR decided_by IN ({marks}) ORDER BY id", participants)
+        if run_starter(run) is not None:
+            participants.add(run_starter(run))
+        span = window(conn, run)
+        records = launched_records(conn, span, participants)
+        decisions = run_rows(conn, "SELECT * FROM decisions WHERE (asked_by IN ({marks}) "
+                             "OR decided_by IN ({marks})) AND asked_at >= ? AND asked_at < ? "
+                             "ORDER BY id", participants, span)
         observations = run_rows(conn, "SELECT * FROM observations WHERE producer IN ({marks}) "
-                                "ORDER BY id", participants)
+                                "AND at >= ? AND at < ? ORDER BY id", participants, span)
     finally:
         if conn is not None:
             conn.close()
@@ -1394,6 +1430,7 @@ def do_export(rest):
         "team_sha256": run["team_sha256"],
         "tmux": {"socket": run["tmux_socket"], "session": run["tmux_session"]},
         "members": described,
+        "window": {"from": span[0], "before": span[1], "participants": sorted(participants)},
         "records": [dict(found) for found in records],
         "decisions": decisions,
         "observations": observations,

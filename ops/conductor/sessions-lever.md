@@ -945,7 +945,7 @@ unmet does not advance; the trial record says which step stopped it.
 
 | step | actor | evidence duty | failure class | gate |
 |---|---|---|---|---|
-| 1 start | owner's terminal | `sessions start` line per member with eight `ok` or declared `unmeasured` (slice 2 readiness), onboard brief exit 0, enforcement observed separately from readiness | `readiness` | I-01, I-02, I-03 |
+| 1 start | owner's terminal | `sessions start` line per member with eight `ok` or declared `unmeasured` (slice 2 readiness), the onboard brief run from the member's own environment with its exit and every absence line it printed (exit 0, or exit 1 on absences the brief declares by name, gh auth in a private home among them; exit 2 or an `UNREACHABLE` line is the step failing, read by the reviewer agentscient-aa against #279 at d5c15d96: the lock line timed out for every member and the operator, filed by aa), enforcement observed separately from readiness | `readiness` | I-01, I-02, I-03 |
 | 2 objective and conflict | CO, then XO | the objective record; one controlled conflict: two claims on one resource, the refusal line, the release, the later progress, all from the store | `conflict` | I-10 first half |
 | 3 cross-harness question | a persistent member | a `send` to another harness's member, its native delivery (slice 2 `delivery_attempts`), the reply in the recipient's existing session, delivery and acknowledgment latency from the store's stamps | `ingress` | I-05, I-04 |
 | 4 dispatch | Dispatcher | `coord_launch` of a catalogue job with full input references and `--for A-n` (slice 3), the execution identity received by requester and XO from the store, not by message | `launch` | I-07 |
