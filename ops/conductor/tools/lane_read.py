@@ -20,7 +20,8 @@ from typing import NoReturn
 # a copy a test staged with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, connect_store, refuse
+    import instrument
+    from instrument import Refusal, refuse
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -518,7 +519,7 @@ def _alerts(config: dict[str, object], after: int, limit: int) -> dict[str, obje
         result.update({"events": [], "more": False, "next_after": after})
         return result
     try:
-        connection = connect_store(database, timeout=0)
+        connection = instrument.connect_store(database, timeout=0)
         try:
             rows = connection.execute(
                 "SELECT id,route,consumer,condition_id,monitor,subject,state,"

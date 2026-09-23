@@ -48,6 +48,7 @@ from pathlib import Path
 # on the path so the import resolves however this file was loaded.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import coordination
     import machine
     from coordination import ROLES
@@ -55,7 +56,6 @@ try:
         EXIT_DONE,
         EXIT_FINDING,
         Refusal,
-        connect_store,
         emit,
         identity,
         refuse,
@@ -285,7 +285,7 @@ def reader() -> sqlite3.Connection | None:
     if not path.is_file():
         return None
     try:
-        conn = connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
         held = {row["name"] for row in
                 conn.execute("SELECT name FROM sqlite_schema WHERE type = 'table'")}
@@ -319,7 +319,7 @@ def coordination_reader() -> sqlite3.Connection | None:
     if not path.is_file():
         return None
     try:
-        conn = connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.DatabaseError:

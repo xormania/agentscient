@@ -33,16 +33,8 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import (
-        Refusal,
-        connect_store,
-        emit,
-        identity,
-        refuse,
-        session,
-        stamp,
-        state_dir,
-    )
+    import instrument
+    from instrument import Refusal, emit, identity, refuse, session, stamp, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -88,7 +80,7 @@ def db_path():
 
 def con_() -> sqlite3.Connection:
     path = db_path()
-    con = connect_store(path, mode="rwc")
+    con = instrument.connect_store(path, mode="rwc")
     con.execute("""CREATE TABLE IF NOT EXISTS skills(
         name TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT,
         description TEXT, status TEXT NOT NULL DEFAULT 'active',

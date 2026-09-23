@@ -70,12 +70,12 @@ from datetime import timedelta
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         EXIT_DONE,
         Refusal,
         capability_digest,
-        connect_store,
         emit,
         identity,
         now,
@@ -84,7 +84,6 @@ try:
         session,
         stamp,
         state_dir,
-        transaction,
     )
 except ModuleNotFoundError:
     print(
@@ -365,7 +364,7 @@ def reader():
     path = machine.store_path()
     if not path.is_file():
         return None
-    conn = connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn = instrument.connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
     # `sqlite_schema` is the name SQLite 3.33 gave the table it has always
@@ -797,7 +796,7 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     # insert two first callers both read zero and both took roles above
     # worker: all three reviewers of round two reproduced two roots in
     # that window against b1d868b0.
-    with transaction(conn):
+    with instrument.transaction(conn):
         row = conn.execute(
             "SELECT * FROM participants WHERE session_id = ?", (key,)
         ).fetchone()
@@ -884,9 +883,9 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
     grant_id = int(grant)
     authority = None
     try:
-        authority = connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
+        authority = instrument.connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
         authority.row_factory = sqlite3.Row
-        with transaction(authority):
+        with instrument.transaction(authority):
             row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
             valid = (row is not None and row["status"] == "open"
                      and row["session"] == session() and row["agent"] == agent
@@ -898,7 +897,7 @@ def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
                 refuse("grant", "this session's open, unexpired, unscoped other grant",
                        f"grant {grant_id} does not satisfy that binding",
                        "use the owner's recorded recovery authorization for this session")
-            with transaction(conn):
+            with instrument.transaction(conn):
                 if deadline <= now():
                     refuse("grant", "authority current at the role-changing transaction",
                            f"grant {grant_id} expired while waiting",
@@ -1570,7 +1569,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
     if not str(generation).isdigit():
         refuse("arguments", "--generation as a whole number", str(generation),
                "the generation printed by show")
-    with transaction(conn):
+    with instrument.transaction(conn):
         row = assignment_row(conn, aid)
         if not row["revision"]:
             refuse("revision", f"a candidate named on A-{aid}", "no revision",

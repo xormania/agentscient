@@ -27,15 +27,8 @@ from pathlib import Path
 # binds a local named now.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import (
-        Refusal,
-        connect_store,
-        identity,
-        lane_name,
-        refuse,
-        state_root,
-        transaction,
-    )
+    import instrument
+    from instrument import Refusal, identity, lane_name, refuse, state_root
     from instrument import now as utc_now
 except ModuleNotFoundError:
     print(
@@ -953,7 +946,7 @@ def _connect(path: Path, *, write: bool) -> sqlite3.Connection | None:
             path.mkdir(parents=True, exist_ok=True)
             if path.is_symlink() or not path.is_dir() or db.is_symlink() or (db.exists() and not db.is_file()):
                 refuse("state", "a real state directory and regular monitor.db", str(db), "remove the unsafe destination")
-            conn = connect_store(db, mode="rwc", timeout=30)
+            conn = instrument.connect_store(db, mode="rwc", timeout=30)
             conn.executescript(SCHEMA)
             return conn
         except (OSError, sqlite3.Error) as exc:
@@ -963,7 +956,7 @@ def _connect(path: Path, *, write: bool) -> sqlite3.Connection | None:
     try:
         if db.is_symlink() or not db.is_file():
             refuse("state", "monitor.db to be a regular file", str(db), "remove the unsafe database destination")
-        return connect_store(db, timeout=30)
+        return instrument.connect_store(db, timeout=30)
     except sqlite3.Error as exc:
         refuse("state", f"a readable SQLite state at {db}", type(exc).__name__, "repair or replace the state database")
 
@@ -973,7 +966,7 @@ def _claim_due(conn: sqlite3.Connection, config: dict[str, object], now_epoch: f
     monitors = config["monitors"]
     schedules = config["schedules"]
     try:
-        with transaction(conn):
+        with instrument.transaction(conn):
             for ident, monitor in monitors.items():
                 schedule = schedules[monitor["schedule"]]
                 fingerprint = _fingerprint({"monitor": monitor, "schedule": schedule})
@@ -1016,7 +1009,7 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
     monitors = config["monitors"]
     routes = config["routes"]
     try:
-        with transaction(conn):
+        with instrument.transaction(conn):
             known_conditions = set(conditions)
             stale = conn.execute("SELECT DISTINCT condition_id FROM condition_state").fetchall()
             for (condition_id,) in stale:
@@ -1155,7 +1148,7 @@ def digest(state: Path, consumer: str, limit: int, max_bytes: int, ack: bool) ->
         return _packed({"events": [], "more": False})
     try:
         try:
-            with transaction(conn) if ack else nullcontext():
+            with instrument.transaction(conn) if ack else nullcontext():
                 cursor_row = conn.execute("SELECT event_id FROM cursors WHERE consumer=?", (consumer,)).fetchone()
                 cursor = cursor_row[0] if cursor_row else 0
                 rows = conn.execute(

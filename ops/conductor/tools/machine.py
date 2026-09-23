@@ -40,11 +40,11 @@ from typing import NamedTuple
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     from instrument import (  # noqa: F401 - re-exported for instruments and tests
         EXIT_DONE,
         EXIT_FINDING,
         Refusal,
-        connect_store,
         emit,
         identity,
         now,
@@ -52,7 +52,6 @@ try:
         refuse,
         stamp,
         state_dir,
-        transaction,
     )
 except ModuleNotFoundError:
     print(
@@ -129,8 +128,8 @@ def store_path():
     return state_dir() / STORE
 
 
-def connect(*, create: bool) -> sqlite3.Connection:
-    """The store, in WAL mode with a busy timeout. A read never creates it."""
+def connect(*, create: bool, write: bool = False) -> sqlite3.Connection:
+    """Read by default; write updates an existing store, create initializes it."""
     path = store_path()
     if not create and not path.is_file():
         refuse(
@@ -139,7 +138,8 @@ def connect(*, create: bool) -> sqlite3.Connection:
             "absent",
             "a writing verb of an instrument creates it; nothing to read",
         )
-    connection = connect_store(path, mode="rwc" if create else "ro",
+    mode = "rwc" if create else "rw" if write else "ro"
+    connection = instrument.connect_store(path, mode=mode,
                                timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None)
     try:
         connection.row_factory = sqlite3.Row
@@ -192,7 +192,7 @@ def _check_declaration(machine: Machine) -> None:
 def declare(conn: sqlite3.Connection, machine: Machine) -> None:
     """Write the machine and its transitions as rows; declaring twice is once."""
     _check_declaration(machine)
-    with transaction(conn):
+    with instrument.transaction(conn):
         conn.execute(
             "INSERT OR REPLACE INTO machines(name, version, initial, places, declared_at) "
             "VALUES (?, ?, ?, ?, ?)",
@@ -209,7 +209,7 @@ def declare(conn: sqlite3.Connection, machine: Machine) -> None:
 def create(conn: sqlite3.Connection, machine: Machine, agent: str, *, note: str | None = None) -> int:
     """A new subject at the initial place; its first marking row is `create`."""
     moment = stamp()
-    with transaction(conn):
+    with instrument.transaction(conn):
         cursor = conn.execute(
             "INSERT INTO subjects(machine, place, created_at, created_by) VALUES (?, ?, ?, ?)",
             (machine.name, machine.initial, moment, agent),
@@ -344,7 +344,7 @@ def move(
     write lock, so two sessions moving one subject serialize and the
     second reads the first's result."""
     t = machine.transition(transition)
-    with transaction(conn):
+    with instrument.transaction(conn):
         marking_id = _move_locked(conn, machine, t, sid, agent, stamp(),
                                   evidence=evidence, note=note, gate=gate, ttl_s=ttl_s)
     return conn.execute("SELECT * FROM marking WHERE id = ?", (marking_id,)).fetchone()
@@ -369,7 +369,7 @@ def move_many(
     the write lock so the choice and the moves see one state. An empty
     choice moves nothing and returns []."""
     t = machine.transition(transition)
-    with transaction(conn):
+    with instrument.transaction(conn):
         chosen = list(sids(conn)) if callable(sids) else list(sids)
         moment = stamp()
         ids = [

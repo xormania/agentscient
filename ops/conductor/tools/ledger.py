@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
+    import instrument
     import machine
     from instrument import (
         Refusal,
@@ -53,7 +54,6 @@ try:
         refuse,
         session,
         stamp,
-        transaction,
     )
 except ModuleNotFoundError:
     print(
@@ -183,7 +183,7 @@ def reservation_agent() -> str:
 def reservation_writer() -> sqlite3.Connection:
     conn = machine.connect(create=True)
     try:
-        with transaction(conn):
+        with instrument.transaction(conn):
             conn.execute(RESERVATIONS_SCHEMA)
             columns = {r["name"] for r in conn.execute("PRAGMA table_info(ledger_reservations)")}
             for name, kind in (("history_floor", "INTEGER NOT NULL DEFAULT 0"), ("history_source", "TEXT"),
@@ -251,7 +251,7 @@ def reserve(
     winner = 0
     for attempt in range(2):
         try:
-            with transaction(conn):
+            with instrument.transaction(conn):
                 number = _reserve_locked(conn, root, spec, owner, agent, observed, history_source)
             return number
         except sqlite3.IntegrityError:
@@ -284,7 +284,7 @@ def own_reservation(
     occupied.update(archived or ())
     observed = max(occupied, default=0)
     try:
-        with transaction(conn):
+        with instrument.transaction(conn):
             row = conn.execute(
                 "SELECT * FROM ledger_reservations "
                 "WHERE ledger = ? AND owner = ? AND filed_at IS NULL "
@@ -580,7 +580,7 @@ def do_check(root: Path, name: str) -> int:
 
 def prepare_intent(conn, root, spec, number, owner, relative, sha256):
     """Commit the intended publication before touching the filesystem."""
-    with transaction(conn):
+    with instrument.transaction(conn):
         row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
                            (reservation_ledger(spec), number, owner)).fetchone()
         if row is None or (row["intent_sha256"] and
@@ -717,7 +717,7 @@ def do_complete(root: Path, name: str, row_id: str, args: list[str]) -> int:
     owner = reservation_owner(root)
     conn = reservation_writer()
     try:
-        with transaction(conn):
+        with instrument.transaction(conn):
             row = conn.execute("SELECT * FROM ledger_reservations WHERE ledger = ? AND number = ? AND owner = ?",
                                (name, number, owner)).fetchone()
             if row is None or (row["intent_sha256"] and

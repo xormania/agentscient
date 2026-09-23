@@ -21,15 +21,8 @@ from typing import Any
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import (
-        Refusal,
-        connect_store,
-        emit,
-        identity,
-        refuse,
-        stamp,
-        state_dir,
-    )
+    import instrument
+    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -75,10 +68,10 @@ def positive(value: str, option: str) -> int:
 def connect(*, write: bool) -> sqlite3.Connection:
     path = store_path()
     if write:
-        connection = connect_store(path, mode="rwc")
+        connection = instrument.connect_store(path, mode="rwc")
         connection.executescript(SCHEMA)
     elif path.is_file():
-        connection = connect_store(path)
+        connection = instrument.connect_store(path)
     else:
         refuse(
             "store",

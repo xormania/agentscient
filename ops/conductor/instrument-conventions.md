@@ -165,7 +165,8 @@ ownership of its caller's work. Domain operations compose under one
 transaction; they do not independently commit steps of an enclosing action.
 
 `machine.connect(create=False)` is a read connection. Writers use
-`create=True`; the existing engine still owns its WAL initialization,
+`write=True` to update an existing store or `create=True` to initialize one;
+the existing engine still owns its WAL initialization,
 schema and busy retry budget. Coordination, handoff, ledger, sessions,
 CI and decision read adapters consume the same read boundary. Existing
 findings, hand and skills entry points that initialize their schema still

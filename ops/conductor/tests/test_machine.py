@@ -431,7 +431,7 @@ class TheSubjects(_Scratch):
         self.conn.close()
 
         def take(agent: str) -> str:
-            conn = self.machine.connect(create=True)
+            conn = self.machine.connect(create=False, write=True)
             try:
                 for _ in range(20):
                     try:

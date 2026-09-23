@@ -16,15 +16,8 @@ import sys
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import (
-        Refusal,
-        connect_store,
-        emit,
-        identity,
-        refuse,
-        stamp,
-        state_dir,
-    )
+    import instrument
+    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -82,10 +75,10 @@ def validate_id(value: str) -> None:
 def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
     db_path = state_dir() / "decisions.db"
     if write:
-        connection = connect_store(db_path, mode="rwc")
+        connection = instrument.connect_store(db_path, mode="rwc")
         connection.executescript(SCHEMA)
     elif db_path.exists():
-        connection = connect_store(db_path)
+        connection = instrument.connect_store(db_path)
     elif absent_ok:
         # show only: an unknown-id refusal is honest with or without a
         # store — no id can be found in a store that is not there.

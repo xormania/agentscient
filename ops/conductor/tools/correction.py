@@ -16,7 +16,8 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, connect_store, emit, refuse, state_dir
+    import instrument
+    from instrument import Refusal, emit, refuse, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -151,7 +152,7 @@ def _answer_row(key, at, root, scope_path, review_ids):
             at,
         )
     try:
-        con = connect_store(store)
+        con = instrument.connect_store(store)
         con.row_factory = sqlite3.Row
         try:
             row = con.execute(

@@ -38,7 +38,8 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, connect_store, emit, identity, refuse, state_dir
+    import instrument
+    from instrument import Refusal, emit, identity, refuse, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -204,7 +205,7 @@ def work_order_scope(inputs, root):
 
 def connect():
     path = database_path()
-    connection = connect_store(path, mode="rwc")
+    connection = instrument.connect_store(path, mode="rwc")
     connection.row_factory = sqlite3.Row
     connection.execute(SCHEMA)
     # A store made before the label has no columns for it; add them.
@@ -427,7 +428,7 @@ def do_cited(argv):
     path = database_path()
     if not path.is_file():
         refuse("key", "a finding key held by the store", key, "run findings.py import first")
-    con = connect_store(path)
+    con = instrument.connect_store(path)
     con.row_factory = sqlite3.Row
     try:
         row = con.execute(
