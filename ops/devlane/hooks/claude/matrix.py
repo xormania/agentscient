@@ -1326,6 +1326,19 @@ def dispatch_store(lane):
     return os.path.join(state, lane, DISPATCH_STORE)
 
 
+def cd_target(toks, directory):
+    """The directory a `cd` statement moves to from ``directory``, or None when
+    the statement is not a cd. engine.py's _statements_with_dirs reads a chain
+    through this, and so does live-dispatch, over the statements commands()
+    parses (20260923T050106Z-review-codex-3e82cf#2)."""
+    if not toks or base(toks[0]) != "cd":
+        return None
+    if toks[1:2] == ["--"]:
+        toks = toks[:1] + toks[2:]
+    target = toks[1] if len(toks) > 1 else os.path.expanduser("~")
+    return os.path.normpath(os.path.join(directory, os.path.expanduser(target)))
+
+
 def live_dispatch(toks, cwd, lane):
     """git merge, pull, checkout, reset or rebase in a worktree a running
     dispatch was launched from refuses, naming the record."""
@@ -2047,10 +2060,12 @@ def check_text(text, cwd, depth=0):
         if is_code(rel) and not grant_covers(grant, rel):
             return deny("hand-write", "code changed through the ladder (freeze)",
                         f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
+    directory = cwd
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
             continue
+        directory = cd_target(toks, directory) or directory
         if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
             graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
         refusal = graft_first(toks, cwd, root, lane)
@@ -2059,7 +2074,7 @@ def check_text(text, cwd, depth=0):
         refusal = deliverable(toks, cwd, lane)
         if refusal:
             return refusal
-        refusal = live_dispatch(toks, cwd, lane)
+        refusal = live_dispatch(toks, directory, lane)
         if refusal:
             return refusal
         refusal = pr_proof(toks, cwd)

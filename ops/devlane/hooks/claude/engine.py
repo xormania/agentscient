@@ -163,11 +163,9 @@ def _statements_with_dirs(ctx):
                 toks = toks[1:]
         if not toks:
             continue
-        if matrix.base(toks[0]) == "cd":
-            if toks[1:2] == ["--"]:
-                toks = toks[:1] + toks[2:]
-            target = toks[1] if len(toks) > 1 else os.path.expanduser("~")
-            directory = os.path.normpath(os.path.join(directory, os.path.expanduser(target)))
+        moved = matrix.cd_target(toks, directory)
+        if moved:
+            directory = moved
             continue
         if matrix.base(toks[0]) != "git":
             continue

@@ -149,6 +149,19 @@ class LiveDispatch(unittest.TestCase):
         self.dispatch(RECORD, source=self.repo)
         self.allowed(self.run_bash("git merge dev"), "a store the launcher does not use")
 
+    def test_a_cd_earlier_in_the_chain_is_the_directory_the_row_reads(self):
+        # origin: 20260923T050106Z-review-codex-3e82cf#2. `cd <wt> && git merge dev`
+        # is the ordinary shape; the row reads the directory the statement runs in.
+        self.dispatch(RECORD, source=self.repo)
+        for command in (f"cd {self.repo} && git merge dev", f"cd {self.repo}/ops && git rebase dev",
+                        f"cd -- {self.repo}; git pull", f"cd {self.elsewhere} && cd {self.repo} && git merge dev"):
+            with self.subTest(command=command):
+                self.assertIn(RECORD, self.refusal(self.run_bash(command, cwd=self.elsewhere), command))
+        # Clean neighbours: a chain that leaves the held worktree before it moves one.
+        for command in (f"cd {self.elsewhere} && git merge dev", f"cd {self.repo} && cd {self.elsewhere} && git merge dev"):
+            with self.subTest(command=command):
+                self.allowed(self.run_bash(command), command)
+
     def test_a_grant_is_no_escape(self):
         self.dispatch(RECORD, source=self.repo)
         self.refusal(self.run_bash("HAND_GRANT=1 git merge dev"), "granted")
