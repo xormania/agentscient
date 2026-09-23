@@ -22,6 +22,8 @@ native home is the private profile `profiles.py prepare-interactive` makes.
     sessions.py input --run R-n --member NAME TEXT
     sessions.py trial objective R-n --deliverable ID --clause FILE:LINE ... --candidate REF
                       --case omitted:FILE:LINE --case changed:REF [--fake NAME ...]
+    sessions.py trial record PATH
+    sessions.py trial accept R-n --candidate SHA --record PATH
 
 Slice 2 (sessions-lever.md, "Slice 2"): a codex or grok member's pane runs
 `bridge`, which spawns the harness through the profile, speaks its
@@ -2080,8 +2082,9 @@ def gathered(rest, *, single=(), repeated=()):
 
 
 def trial_objective(rest):
-    """The objective record (slice 4, the shapes), written once per run by
-    the CO before any assignment; refused `objective` when a part is missing."""
+    """The objective record (slice 4, the shapes), written by the CO before
+    any assignment; a later call rewrites it. Refused `objective` when a part
+    is missing."""
     if not rest or rest[0].startswith("--"):
         refuse("arguments", "the run id first, trial objective R-n", rest[0] if rest else "none", usage())
     rid = run_number(rest[0])
@@ -2100,7 +2103,7 @@ def trial_objective(rest):
     missing += [f"--case {kind}:" for kind in ("omitted", "changed") if kind not in cases]
     if missing:
         refuse("objective", "the deliverable, a clause, the candidate and both controlled cases",
-               "no " + ", no ".join(missing), "pass every part; the objective is written once")
+               "no " + ", no ".join(missing), "pass every part")
     malformed = [clause for clause in options["clause"] if not CLAUSE.fullmatch(clause)]
     if malformed:
         refuse("objective", "each clause as file:line", " ".join(malformed), "name each clause by its line")
@@ -2114,15 +2117,12 @@ def trial_objective(rest):
         if conn is not None:
             conn.close()
     path = objective_path(run["id"])
-    if path.exists():
-        refuse("objective", f"no objective yet for R-{run['id']}", f"one at {path}",
-               "an objective is written once, before any assignment; start a new run for a new one")
     record = {
         "run": f"R-{run['id']}",
         "deliverable": options["deliverable"],
         "clauses": options["clause"],
         "candidate": options["candidate"],
-        "cases": cases,
+        "cases": [f"{kind}:{cases[kind]}" for kind in ("omitted", "changed")],
         "fakes": options["fake"],
         "written_by": agent,
         "written_at": stamp(),
@@ -2134,7 +2134,130 @@ def trial_objective(rest):
     return EXIT_DONE
 
 
-TRIAL = {"objective": trial_objective}
+TRIAL_IDS = tuple(f"I-{n:02d}" for n in range(1, 15))
+TRIAL_ROW = re.compile(r"I-\d{2}")
+NOT_MEASURED = re.compile(r"not measured\b\s*(.*)", re.IGNORECASE)
+VERIFIED = re.compile(r"(?<![\w-])verified ([0-9a-f]{40})(?![0-9a-f])")
+LIVE = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
+MOCK = re.compile(r"(?<![\w/.-])mock\s+\S+")
+
+
+def checked_record(path_text: str) -> dict:
+    """The trial record's fourteen rows by id, `id | required result |
+    evidence | reading`, each read or declared `not measured <why>`; the
+    first row that is not refuses `evidence`. Other tables (the AC
+    crosswalk) are not read."""
+    path = Path(path_text)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        refuse("evidence", "a readable trial record", f"{path}: {exc.__class__.__name__}",
+               "pass the record's path, ops/conductor/handoff/<date>-slice4-trial.md")
+    rows: dict = {}
+    for number, line in enumerate(lines, 1):
+        body = line.strip()
+        if not body.startswith("|"):
+            continue
+        body = body[1:-1] if body.endswith("|") else body[1:]
+        cells = [cell.strip() for cell in body.split("|")]
+        if not TRIAL_ROW.fullmatch(cells[0]):
+            continue
+        key = cells[0]
+        if key not in TRIAL_IDS:
+            refuse("evidence", "rows I-01 to I-14", f"{key} at line {number}", "one row per acceptance id")
+        if key in rows:
+            refuse("evidence", f"one {key} row", f"{key} again at line {number}", "keep one row per id")
+        if len(cells) != 4:
+            refuse("evidence", f"{key} as id | required result | evidence | reading",
+                   f"{len(cells)} cells at line {number}", "four cells per row")
+        rows[key] = {"required": cells[1], "evidence": cells[2], "reading": cells[3], "line": number}
+    for key in TRIAL_IDS:
+        if key not in rows:
+            refuse("evidence", "a row for each of I-01 to I-14", f"no {key} row in {path}",
+                   f"add {key} with its reading or not measured <why>")
+        reading = rows[key]["reading"]
+        declared = NOT_MEASURED.match(reading)
+        if not reading or (declared and not declared.group(1).strip()):
+            refuse("evidence", f"{key} with a reading or not measured <why>",
+                   f"{key} reading {reading!r} at line {rows[key]['line']}",
+                   "write the measured line, or not measured and why")
+    return rows
+
+
+def trial_record(rest):
+    """`trial record PATH`: a read; exit 0 on a complete trial record."""
+    if len(rest) != 1:
+        refuse("arguments", "trial record PATH", " ".join(rest) or "no path", usage())
+    rows = checked_record(rest[0])
+    unmeasured = sum(1 for row in rows.values() if NOT_MEASURED.match(row["reading"]))
+    print(f"record {rest[0]} {len(rows)} rows read, {unmeasured} not measured")
+    return EXIT_DONE
+
+
+def cited(clause: str, rows: dict) -> bool:
+    token = re.compile(r"(?<![\w/.-])" + re.escape(clause) + r"(?!\d)")
+    return any(token.search(row["evidence"]) or token.search(row["reading"]) for row in rows.values())
+
+
+def trial_accept(rest):
+    """`trial accept R-n --candidate SHA --record PATH`: the acceptance
+    claim, checked against the run's objective; a read. Refused
+    `acceptance` on a candidate that is not I-14's verified sha, an
+    objective clause cited by no row, or a mock written as live."""
+    if not rest or rest[0].startswith("--"):
+        refuse("arguments", "the run id first, trial accept R-n", rest[0] if rest else "none", usage())
+    rid = run_number(rest[0])
+    options = gathered(rest[1:], single=("candidate", "record"))
+    missing = [f"--{name}" for name in ("candidate", "record") if not options.get(name)]
+    if missing:
+        refuse("arguments", "trial accept R-n --candidate SHA --record PATH", "no " + ", no ".join(missing),
+               usage())
+    conn = reader()
+    try:
+        run = chosen_run(conn, {"run": f"R-{rid}"}, places=("open", "stopping", "stopped"))
+    finally:
+        if conn is not None:
+            conn.close()
+    objective_file = objective_path(run["id"])
+    try:
+        objective = json.loads(objective_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        refuse("acceptance", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
+               f"sessions.py trial objective R-{run['id']} before any acceptance")
+    rows = checked_record(options["record"])
+    evidence = rows["I-14"]["evidence"]
+    verified = VERIFIED.search(evidence)
+    if verified is None:
+        refuse("acceptance", "I-14's evidence cell as verified <40-hex sha>, the verifier's row",
+               f"I-14 evidence {evidence!r}, no verified sha", "the verifier writes verified <sha> in I-14")
+    candidate = options["candidate"]
+    if candidate.lower() != verified.group(1):
+        refuse("acceptance", f"the candidate to be the verified sha {verified.group(1)}",
+               f"candidate {candidate}", "verify the candidate as it stands, or accept the verified sha")
+    uncited = [clause for clause in objective.get("clauses", []) if not cited(clause, rows)]
+    if uncited:
+        refuse("acceptance", "every objective clause cited by its file:line in a row's evidence or reading",
+               "no row cites " + ", ".join(uncited), "measure the clause and cite it, or the candidate omits it")
+    fakes = objective.get("fakes", [])
+    for key in TRIAL_IDS:
+        row = rows[key]
+        if not LIVE.search(row["evidence"]):
+            continue
+        if MOCK.search(row["evidence"]):
+            refuse("acceptance", f"{key}'s evidence as mock <name> or live, one of them",
+                   f"{key} evidence {row['evidence']!r}", "a mock's pass is written mock <name>, never live")
+        planted = [fake for fake in fakes
+                   if re.search(r"(?<![\w-])" + re.escape(fake) + r"(?![\w-])", row["reading"])]
+        if planted:
+            refuse("acceptance", f"{key}'s live evidence read from no planted program",
+                   f"{key} reading names {', '.join(planted)}, declared planted in the objective's fakes",
+                   f"write {key}'s evidence as mock {planted[0]}, or measure it live")
+    print(f"accepted R-{run['id']} {verified.group(1)} record {options['record']} "
+          f"{len(objective.get('clauses', []))} clauses cited")
+    return EXIT_DONE
+
+
+TRIAL = {"objective": trial_objective, "record": trial_record, "accept": trial_accept}
 
 
 def do_trial(rest):
