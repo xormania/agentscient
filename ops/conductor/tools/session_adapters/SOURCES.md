@@ -37,6 +37,11 @@ is added in the commit that lands the function it names.
 | `framing.py: Parser.feed` | `mhproof/rpc.py:68-92` (`RPC.read`) | the JSON-lines parse and the split of a received line into a request, a notification or a response correlated by id, made synchronous: one line in, one frame out or a `Refused` naming the line |
 | `framing.py: Parser.sent` | `mhproof/rpc.py:37-52` (`RPC.request`, its `pending` book) | a response correlates only with a request this side sent |
 | `framing.py: Refused` | `mhproof/rpc.py:6-9` (`RPCError`) | a typed exception carrying the reading, not the raw packet |
+| `sessions.py: ownership` | `mhproof/sessions.py:38-42` (`Tmux.owned`) | the owner option read with `show-options -qv` on the exact session component, `=name:` |
+| `sessions.py: launch` (the opening tmux call) | `mhproof/sessions.py:44-51` (`Tmux.create`), `:53-64` (`Tmux.launch`) | the owned session or window created detached with `-P -F` printing the pane, the owner option set on creation, `remain-on-exit on` so a dead pane keeps its capture; `launch` refuses a session it does not own |
+| `sessions.py: do_attach` | `mhproof/sessions.py:91-94` (`Tmux.attach`) | attach only to an owned session, `switch-client` inside tmux and `attach-session` outside |
+| `sessions.py: do_export` (`scrub`) | `mhproof/sessions.py:74-82` (`Tmux.finish_peer`) | a terminal capture is redacted of the run's secrets before it is written out |
+| `claude.py: Adapter.diagnostics` | `mhproof/sessions.py:74-82` (`Tmux.finish_peer`) | the terminal capture kept as evidence, named by path |
 
 `Parser.answered`, the duplicate-request refusal and the id type check are
 not in the proof; they come from the contract's framing faults.
