@@ -166,15 +166,53 @@ def ack_probe(profile: Path, bind_id: str) -> None:
         time.sleep(0.2)
 
 
+def pane_chain() -> list[int]:
+    """This process and its ancestors below the tmux server, or this
+    process alone when no tmux server is above it.
+
+    The pid the supervisor records is the pane's own process, profiles.py
+    run-interactive, which runs this harness as a child and outlives it by
+    its custody step. A binder that waited for this process alone could
+    bind while the pane's process still read ok (LD-149).
+    """
+    chain = [os.getpid()]
+    pid = os.getppid()
+    while pid > 1:
+        # stat, never exe: under the harness sandbox an ancestor's exe link
+        # is denied (measured: PermissionError 13), its stat is not.
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        except OSError:
+            break
+        comm, rest = stat.split("(", 1)[1].rsplit(")", 1)
+        if comm.startswith("tmux"):
+            return chain
+        chain.append(pid)
+        pid = int(rest.split()[1])
+    return chain[:1]
+
+
+def running(pid: int) -> bool:
+    """In /proc and not a zombie. A zombie has exited; only its parent's
+    reap is pending, and a tmux server has left a pane's process unreaped
+    for 15 s (LD-150)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return stat.rsplit(")", 1)[1].split()[0] != "Z"
+
+
 def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
     """Fork a binder and return, so the caller exits at once.
 
-    The binder waits until this process has left /proc, runs SessionStart,
-    and writes ``marker`` with the guard's exit. No poll of the supervisor
-    can then find the process ok and the member bound at the same time
-    (origin: 20260922T215604Z-review-codex-f6777b#9).
+    The binder waits until this process and every ancestor up to the
+    pane's own process have exited, runs SessionStart, and writes
+    ``marker`` with the guard's exit. No poll of the supervisor can then
+    find the process ok and the member bound at the same time (origin:
+    20260922T215604Z-review-codex-f6777b#9; LD-149).
     """
-    parent = os.getpid()
+    chain = pane_chain()
     if os.fork() != 0:
         return
     code = 1
@@ -184,9 +222,9 @@ def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
         for fd in (0, 1, 2):
             os.dup2(null, fd)
         deadline = time.monotonic() + GONE_WAIT
-        while Path(f"/proc/{parent}").exists():
+        while any(running(pid) for pid in chain):
             if time.monotonic() >= deadline:
-                note = f"harness pid {parent} still in /proc after {GONE_WAIT}s, never bound\n"
+                note = f"pane pids {chain} still running after {GONE_WAIT}s, never bound\n"
                 break
             time.sleep(0.02)
         else:
