@@ -273,8 +273,17 @@ def codex_config_args(tokens):
     return result
 
 
+# The harnesses a managed session runs as a member (sessions-lever.md, Slice 2).
+MEMBER_HARNESSES = ("claude", "codex", "grok")
+# The sessions bridge's protocol channel per harness (sessions-lever.md, Slice 2,
+# "Required of the wall" (1)): admitted only whole, with nothing before or after it.
+CHANNELS = {"codex": ("app-server", "--listen", "stdio://"), "grok": ("--no-auto-update", "agent", "stdio")}
+
+
 def interactive_args(harness, tokens):
     """Admit session UI arguments, never alternate native authority/configuration."""
+    if tuple(tokens) == CHANNELS.get(harness):
+        return list(tokens)
     groups = {
         "codex": {"value": "--model -m", "flag": "--no-alt-screen --strict-config --help -h --version -V"},
         "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd", "uuid": "--session-id",
@@ -504,6 +513,19 @@ def capture_custody(binding):
     return carry_back
 
 
+def coordination_server(harness, source):
+    """The acting coordination server a member's profile registers (sessions-lever.md,
+    Slice 2, "Required of the wall" (3)), replacing any operator copy of that name. It
+    resolves its caller through AGENTSCIENT_HOOK_PROFILE, which normalized_settings
+    adds. The codex bridge declines every approval its app-server asks, so codex
+    approves this server's tools; the core's role gate still runs inside every verb."""
+    server = {"command": str(Path(sys.executable).resolve()),
+              "args": ["-B", str(Path(source) / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+    if harness == "codex":
+        server["default_tools_approval_mode"] = "approve"
+    return server
+
+
 def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
@@ -530,6 +552,8 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable)
                     servers.update(existing.get("projects", {}).get(str(Path(cwd).resolve()), {}).get("mcpServers", {}))
         if servers:
             settings["mcp_servers"] = servers
+    if harness in MEMBER_HARNESSES:
+        settings["mcp_servers"] = {**settings.get("mcp_servers", {}), "coordination": coordination_server(harness, source)}
     # Use exactly the existing credential leaves and renewal-custody mechanism.
     home = isolation.build_home(harness, dest / "home", env=env)
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
