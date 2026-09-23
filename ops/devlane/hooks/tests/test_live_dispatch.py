@@ -15,8 +15,11 @@ after. No grant escape.
 Running is onboard.py's reading: no exit file, record.json status
 `launched`, state.json's pid alive. The source is the dispatch's
 enforcement/binding.json `source`, the worktree whose helper the worker
-pinned. A running dispatch whose source cannot be read refuses: could not
-look is not a pass.
+pinned. A running dispatch whose source cannot be read refuses, and so
+does one from this worktree whose record.json or state.json cannot be
+read: could not look is not a pass. A directory with no record.json is no
+worker the launcher started, since the launcher writes the record before
+it spawns one.
 
 One producer (Claude Opus 5.5) under wall grant 363 wrote these rows and the
 row; no second producer.
@@ -171,6 +174,66 @@ class LiveDispatch(unittest.TestCase):
         self.dispatch(RECORD, source=self.repo, binding=False)
         reason = self.refusal(self.run_bash("git merge dev"), "no binding")
         self.assertIn(RECORD, reason)
+
+    def test_a_record_or_state_that_cannot_be_read_refuses(self):
+        # origin: 20260923T050106Z-review-codex-3e82cf#3. Unreadable or malformed
+        # evidence of whether the dispatch runs is could not look, never a pass.
+        faults = {
+            "state unreadable": ("state.json", None),
+            "state malformed": ("state.json", "{"),
+            "state not an object": ("state.json", "[1]"),
+            "state pid not a number": ("state.json", '{"pid": "x"}'),
+            "state missing": ("state.json", ""),
+            "record unreadable": ("record.json", None),
+            "record malformed": ("record.json", "{"),
+            "record not an object": ("record.json", '"launched"'),
+        }
+        for name, (leaf, text) in faults.items():
+            for source, held in ((self.repo, True), (self.elsewhere, False)):
+                with self.subTest(fault=name, held=held):
+                    root = self.dispatch(RECORD, source=source)
+                    try:
+                        self.plant_fault(root / leaf, text)
+                        proc = self.run_bash("git merge dev")
+                        if held:
+                            reason = self.refusal(proc, name)
+                            self.assertIn(RECORD, reason.split("; found ", 1)[1])
+                            self.assertIn(leaf, reason.split("; found ", 1)[1])
+                        else:
+                            # Clean neighbour: the binding names another worktree.
+                            self.allowed(proc, name)
+                    finally:
+                        (root / leaf).touch()
+                        (root / leaf).chmod(0o600)
+                        shutil.rmtree(root)
+
+    def test_a_directory_the_launcher_never_recorded_holds_nothing(self):
+        # The live store on 2026-09-23 holds four directories from 09-03 and 09-06
+        # with no record.json, no exit and no binding; they must not hold every
+        # worktree.
+        root = self.store / OTHER
+        self.world.plant_text(root / "state.json", json.dumps({"pid": self.live_pid()}))
+        self.allowed(self.run_bash("git merge dev"), "no record")
+        # Clean neighbour: a record not launched, whose state is malformed.
+        self.dispatch(RECORD, source=self.repo, status="closed")
+        self.plant_fault(self.store / RECORD / "state.json", "{")
+        self.allowed(self.run_bash("git merge dev"), "a closed record with a malformed state")
+
+    def test_a_pid_alive_under_another_user_holds_the_worktree(self):
+        # Signal zero to a pid another user owns raises PermissionError, and the
+        # pid is alive; pid 1 belongs to root. Run as root, the signal succeeds
+        # and the row refuses the same way.
+        self.dispatch(RECORD, source=self.repo, pid=1)
+        self.assertIn(RECORD, self.refusal(self.run_bash("git merge dev"), "pid 1"))
+
+    def plant_fault(self, path, text):
+        """None makes the file unreadable, "" removes it, other text replaces it."""
+        if text is None:
+            path.chmod(0)
+        elif text == "":
+            path.unlink()
+        else:
+            path.write_text(text)
 
     def test_reads_in_that_worktree_are_untouched(self):
         self.dispatch(RECORD, source=self.repo)

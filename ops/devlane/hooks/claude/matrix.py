@@ -1292,22 +1292,42 @@ def worktree_top(directory):
 
 def dispatch_running(path):
     """onboard.py's reading: no exit file, record.json status launched, and
-    state.json's pid alive (signal zero observes the pid, not its progress)."""
+    state.json's pid alive (signal zero observes the pid, not its progress).
+    True or False when the evidence answers, else the reason it could not be
+    read: an unreadable or malformed record.json or state.json, a launched
+    record with no state, a pid that is not one. It was False for all of
+    those, and the move was admitted (20260923T050106Z-review-codex-3e82cf#3).
+    A directory with no record.json is False: the launcher writes the record
+    before it spawns the worker, so no worker it started is behind it."""
     if os.path.exists(os.path.join(path, "exit")):
         return False
     try:
         with open(os.path.join(path, "record.json"), encoding="utf-8") as handle:
             record = json.load(handle)
+    except FileNotFoundError:
+        return False
+    except (OSError, ValueError) as error:
+        return f"record.json could not be read ({type(error).__name__})"
+    if not isinstance(record, dict):
+        return "record.json is not an object"
+    if record.get("status") != "launched":
+        return False
+    try:
         with open(os.path.join(path, "state.json"), encoding="utf-8") as handle:
             state = json.load(handle)
-        if not isinstance(record, dict) or record.get("status") != "launched":
-            return False
-        pid = state["pid"]
-        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
-            return False
+    except (OSError, ValueError) as error:
+        return f"state.json could not be read under a launched record ({type(error).__name__})"
+    pid = state.get("pid") if isinstance(state, dict) else None
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        return "state.json carries no positive integer pid"
+    try:
         os.kill(pid, 0)
-    except (OSError, ValueError, KeyError, TypeError):
+    except ProcessLookupError:
         return False
+    except PermissionError:
+        return True  # the pid is alive under another user
+    except (OSError, OverflowError) as error:
+        return f"state.json's pid could not be signalled ({type(error).__name__})"
     return True
 
 
@@ -1360,7 +1380,8 @@ def live_dispatch(toks, cwd, lane):
     top = None
     for name in names:
         path = os.path.join(store, name)
-        if not os.path.isdir(path) or not dispatch_running(path):
+        running = dispatch_running(path) if os.path.isdir(path) else False
+        if running is False:
             continue
         if top is None:
             top = worktree_top(directory)
@@ -1370,10 +1391,17 @@ def live_dispatch(toks, cwd, lane):
             with open(os.path.join(path, "enforcement", "binding.json"), encoding="utf-8") as handle:
                 source = os.path.realpath(json.load(handle)["source"])
         except (OSError, ValueError, KeyError, TypeError) as error:
+            held = "running dispatch" if running is True else f"dispatch whose {running}, and"
             return deny("live-dispatch", f"no running dispatch from {top}, or one whose source can be read",
-                        f"running dispatch {name} with no readable enforcement/binding.json source "
+                        f"{held} {name} with no readable enforcement/binding.json source "
                         f"({type(error).__name__})",
                         "wait for its close, or read its source by hand before moving this worktree")
+        if source == top and running is not True:
+            return deny("live-dispatch", f"no running dispatch from this worktree, {top}, or one whose record "
+                                         "and state can be read",
+                        f"dispatch {name}, launched from it, whose {running}",
+                        "read its record.json and state.json by hand, and wait for its close if it runs; "
+                        "could not look is not a pass")
         if source == top:
             return deny("live-dispatch", f"no running dispatch from this worktree, {top}",
                         f"running dispatch {name}, launched from it",
