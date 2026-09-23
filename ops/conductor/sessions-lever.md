@@ -895,8 +895,14 @@ participants are its members and the participant that started it:
 `session_run` carries `started_participant`, written by `start` from
 the caller's binding (an ALTER adds the column to an older store), and
 export, `decisions` and `observations` count the starter with the
-members. The intents table gains no run column, since a participant is
-bound to one run. A managed
+members. The window has both ends: a row counts when it was reserved
+at or after the run's `started_at` and before the run's stop stamp
+when the run is stopped, else before the starter's next run's
+`started_at` when the same binding started a later run, else before
+the export's own stamp. A member is bound to one run; the starter is
+not, and without the upper bound an export of R-1 taken after R-2
+started would list R-2's launches as R-1's (the reviewer agentscient-0e
+at cff1115e). The intents table gains no run column. A managed
 member with no pane log, or a record id whose record is not under the
 jobs root, refuses `export` (exit 2, stdout empty) before anything is
 written; a log that exists but cannot be read is slice 1's partial
