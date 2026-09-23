@@ -209,6 +209,16 @@ class PrProofTests(unittest.TestCase):
         reason = self.refusal(self.run_bash("gh pr ready 12"))
         self.assertNotIn("found absent", reason)
 
+    def test_an_id_runs_to_its_last_word_character(self):
+        # origin: A-539 (record 20260923T044640Z-review-codex-5f987b#1): with no right
+        # boundary, "P-FIX-1\u00e9" and "P-FIX-1-" were read as the row P-FIX-1 and the
+        # flip passed. The whole token is the id, so each is named absent.
+        for token in ("P-FIX-1\u00e9", "P-FIX-1-", "P-FIX\u00e9-1"):
+            with self.subTest(token=token):
+                self.plant(body=self.GOOD.replace("P-FIX-1.", token + "."))
+                reason = self.refusal(self.run_bash("gh pr ready 12"))
+                self.assertIn("found absent: " + token, reason)
+
     def test_a_head_not_fetched_here_refuses_with_the_fetch(self):
         self.plant(body=self.GOOD, head="0" * 40)
         reason = self.refusal(self.run_bash("gh pr ready 12"))

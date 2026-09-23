@@ -1267,7 +1267,9 @@ def deliverable(toks, cwd, lane):
 PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
 # A row id is P-<family>-<leaf>. A bare family in prose ("all seven P-278 rows
 # PASS") names no row; read as one, it refused #271, #278 and #274 as absent.
-PROOF_ID = re.compile(r"\bP-[A-Za-z0-9]+(?:-[A-Za-z0-9_]+)+")
+# The id runs to its last word character or hyphen, so "P-FIX-1\u00e9" or "P-FIX-1-"
+# is that token, named absent, never the row P-FIX-1 (A-539 #1).
+PROOF_ID = re.compile(r"\bP-[^\W_]+-[\w-]*")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
 AUDIT_JOB = "security-audit"
