@@ -824,7 +824,7 @@ record, with the reading that decided it. The trial never carries both.
 | the trial deliverable's file (`coordination.py` for LD-123) | the dispatched worker of the trial job, never a management seat | the candidate is produced by the path under test |
 | the independent verifier's record | the verifier session, never the builder or the XO | I-10 and I-14 need a producer who wrote none of the candidate |
 | the thin onboard wrapper inside a codex or grok member's private native home (`profiles.py` `prepare_interactive`, the profile's skills directory) | the wall (a wall session, one PR, a planted row red then green), never S4 | the one connection the 2026-09-19 debrief found missing (`.xor/out/codex/fuckup.md` :82-84, :255-270): the guarded profile carried the hooks and no `onboard`, the operator's home carried `onboard` and no hooks; step 1's "onboard brief exit 0" per member cannot read for a codex or grok member until the wrapper is in the profile home. Measured 2026-09-23 at 1bd5e764: `grep -c onboard` reads 0 in `profiles.py` and `isolation.py` |
-| `ops/conductor/tools/instrument.py` `bind` for an owner-opened terminal (LD-125) | S4, the session that takes the thread the minute slice 3 is green in the integration PR, nobody before then | the owner's own terminals must `join` a run (the 2026-09-19 ask, `.xor/out/codex/fuckup.md` :25); today `bind` refuses class `capability` for a plain terminal (`instrument.py` :175 at 89b11dab: no `coordination_capability` in a profile and no `COORDINATION_CAPABILITY` in the environment reads "missing or malformed credential") |
+| `ops/conductor/tools/instrument.py` `bind` for an owner-opened terminal (LD-125) | the wall for the minting in `instrument.py` (a wall path, `matrix.py` WALL_PATHS :239 at 89b11dab); S4, the session that takes the thread the minute slice 3 is green in the integration PR and nobody before then, for the `join` reading and the planted rows | the owner's own terminals must `join` a run (the 2026-09-19 ask, `.xor/out/codex/fuckup.md` :25); today `bind` refuses class `capability` for a plain terminal (`instrument.py` :175 at 89b11dab: no `coordination_capability` in a profile and no `COORDINATION_CAPABILITY` in the environment reads "missing or malformed credential") |
 
 ### The shapes
 
@@ -907,7 +907,10 @@ what follows is operating evidence, not more rows.
 
 ### Required of the wall
 
-One row, declared: the onboard wrapper inside a codex or grok member's
+Two rows, declared. The `bind` minting for an owner-opened terminal is
+an `instrument.py` change ("The owner's terminals" below), one wall
+session's deliverable, red then green with the two planted rows there.
+The onboard wrapper inside a codex or grok member's
 private home is a `profiles.py` change (the owners table above), so
 slice 4 needs one wall session whose deliverable is that row, red then
 green with a planted row that reads the wrapper from the profile home
@@ -927,9 +930,12 @@ that terminal's own profile home and nowhere shared, and refuses
 `capability` only when it can neither read nor mint one; the refusal
 names which. A bound plain terminal joins with the same eight readiness
 lines as a managed member, `enforcement` reading `unmeasured` until the
-hook profile is observed, never `ok` by default. The fix is non-wall
-(`instrument.py`), taken as slice 4's first item by the session the
-owners table names, with a planted row: a world with no profile and no
+hook profile is observed, never `ok` by default. The minting is a wall change:
+`instrument.py` is on the wall list (`matrix.py` WALL_PATHS :239 at
+89b11dab, read by the builder agentscient-10, who refused to write it
+under a grant of class `other`, the LD-131 shape), so it is one wall
+session's row, and slice 4's first non-wall item is the `join` reading
+and the planted rows, taken by the session the owners table names: a world with no profile and no
 environment capability binds, joins, and reads `unmeasured` on
 enforcement; the same world with a malformed capability refuses
 `capability` naming the malformation.
