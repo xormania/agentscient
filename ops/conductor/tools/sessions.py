@@ -2044,8 +2044,9 @@ def gathered(rest, *, single=(), repeated=()):
 
 
 def trial_objective(rest):
-    """The objective record (slice 4, the shapes), written once per run by
-    the CO before any assignment; refused `objective` when a part is missing."""
+    """The objective record (slice 4, the shapes), written by the CO before
+    any assignment; a later call rewrites it. Refused `objective` when a part
+    is missing."""
     if not rest or rest[0].startswith("--"):
         refuse("arguments", "the run id first, trial objective R-n", rest[0] if rest else "none", usage())
     rid = run_number(rest[0])
@@ -2064,7 +2065,7 @@ def trial_objective(rest):
     missing += [f"--case {kind}:" for kind in ("omitted", "changed") if kind not in cases]
     if missing:
         refuse("objective", "the deliverable, a clause, the candidate and both controlled cases",
-               "no " + ", no ".join(missing), "pass every part; the objective is written once")
+               "no " + ", no ".join(missing), "pass every part")
     malformed = [clause for clause in options["clause"] if not CLAUSE.fullmatch(clause)]
     if malformed:
         refuse("objective", "each clause as file:line", " ".join(malformed), "name each clause by its line")
@@ -2078,15 +2079,12 @@ def trial_objective(rest):
         if conn is not None:
             conn.close()
     path = objective_path(run["id"])
-    if path.exists():
-        refuse("objective", f"no objective yet for R-{run['id']}", f"one at {path}",
-               "an objective is written once, before any assignment; start a new run for a new one")
     record = {
         "run": f"R-{run['id']}",
         "deliverable": options["deliverable"],
         "clauses": options["clause"],
         "candidate": options["candidate"],
-        "cases": cases,
+        "cases": [f"{kind}:{cases[kind]}" for kind in ("omitted", "changed")],
         "fakes": options["fake"],
         "written_by": agent,
         "written_at": stamp(),
