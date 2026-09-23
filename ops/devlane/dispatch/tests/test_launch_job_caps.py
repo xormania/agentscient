@@ -141,6 +141,28 @@ class EnvTimeoutBelowTheJobCapIsAdmitted(ls._TempLaunch):
         self.assertEqual(float(caps["timeout_requested"]), ENV_BELOW)
 
 
+class MalformedEnvTimeoutIsRefusedBeforeLaunch(ls._TempLaunch):
+    """20260923T000804Z-review-codex-da66dd#1 and #2: a DISPATCH_TIMEOUT
+    that is not a positive finite number of seconds is refused, class
+    timeout, before anything is minted or spawned. At 0c001217 a
+    non-number started the harness and then exited 2 with the child alive
+    (#1), and NaN launched and wrote an unquoted NaN into the record (#2).
+    The below-the-cap row above is the clean neighbour."""
+
+    def test_a_value_that_is_not_a_positive_finite_number_is_refused(self):
+        plant_job_timeout(self, "plan", JOB_TIMEOUT)
+        self.addCleanup(os.environ.pop, "DISPATCH_TIMEOUT", None)
+        for raw in ("not-a-number", "NaN", "inf", "-inf", "0", "-5"):
+            with self.subTest(value=raw):
+                os.environ["DISPATCH_TIMEOUT"] = raw
+                code, out, err = self.dispatch(job="plan", harness="grok", stage="plan")
+                text = self.combined(out, err)
+                self.assertEqual(code, ls.REFUSAL_EXIT, f"{raw}: {text!r}")
+                self.assertIn("timeout: expected", text)
+                self.assertEqual(self.record_files(), [], f"{raw}: a record was written")
+                self.assertFalse(self.start_witness.is_file(), f"{raw}: the harness started")
+
+
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
     """Else 900, source default — a catalogue entry declaring no caps, and
     no env. The capless entry is planted (strip_job_caps): every job in the

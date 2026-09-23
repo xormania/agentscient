@@ -1186,7 +1186,10 @@ absence is historical and must not be read as "none answered".
   is admitted and the source is `DISPATCH_TIMEOUT`, so the environment
   can lower a job's cap and never raise it. `caps.timeout_requested`
   records the value `DISPATCH_TIMEOUT` asked for beside the one
-  applied, in seconds, and is `null` when the variable is unset. The job
+  applied, in seconds, and is `null` when the variable is unset. A
+  `DISPATCH_TIMEOUT` that is not a positive finite number of seconds is
+  refused, class `timeout`, before anything is minted or spawned
+  (20260923T000804Z-review-codex-da66dd#1 and #2). The job
   layer exists because runtime is a property of the job, not of the
   session that happens to launch it: author-tests proves every
   assertion red before green, its successful runs measure p50 928s
