@@ -9,19 +9,27 @@ timeout-with-no-bind variant). It runs the profile's guard.sh
 SessionStart and then holds until the supervisor stops it. A
 ``bind_after_exit`` path in the spec makes it exit at once instead and
 leave a binder that runs SessionStart only after this process is gone,
-then writes that path (the exited-pane variant).
+then writes that path (the exited-pane variant). ``ack_probe`` true makes
+it, once bound, read its own inbox as the id it bound, with the
+capability in the profile's binding.json, and ack the readiness probe
+``start`` sends (sessions-lever.md slice 2, 11), as a member's own hooks
+would; it then holds.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
 
 VERSION = "session-harness 0.0.0-fake"
+REPO = "@@REPO@@"
 # How long the binder waits for the harness's pid to leave /proc.
 GONE_WAIT = 20.0
+# How long a bound harness looks for the readiness probe to ack.
+PROBE_WAIT = 30.0
 
 
 def spec_path() -> Path | None:
@@ -94,9 +102,8 @@ def kit_run():
 
     origin: 20260922T215604Z-review-codex-f6777b#20
     """
-    repo = "@@REPO@@"
-    if repo not in sys.path:
-        sys.path.insert(0, repo)
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
     from ops.testkit import run
     return run
 
@@ -130,6 +137,33 @@ def run_session_start(profile: Path, bind_id: str) -> int:
     sys.stdout.write(result.stderr)
     sys.stdout.flush()
     return 0
+
+
+def ack_probe(profile: Path, bind_id: str) -> None:
+    """Ack the readiness probe from this member's inbox, or give up quietly
+    at PROBE_WAIT: the row reads ``waiting ack`` then."""
+    try:
+        binding = json.loads((profile / "binding.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    capability = binding.get("coordination_capability") if isinstance(binding, dict) else None
+    if not isinstance(capability, str) or not capability:
+        return
+    env = os.environ.copy()
+    env["CLAUDE_CODE_SESSION_ID"] = bind_id
+    env["COORDINATION_CAPABILITY"] = capability
+    tool = str(Path(REPO) / "ops" / "conductor" / "tools" / "coordination.py")
+    run = kit_run()
+    deadline = time.monotonic() + PROBE_WAIT
+    while time.monotonic() < deadline:
+        shown = run([sys.executable, tool, "inbox"], cwd=os.getcwd(), env=env, timeout=30)
+        probes = [line for line in shown.stdout.splitlines() if "readiness probe" in line]
+        for line in probes:
+            for token in re.findall(r"\bM-\d+\b", line):
+                run([sys.executable, tool, "ack", token], cwd=os.getcwd(), env=env, timeout=30)
+        if probes:
+            return
+        time.sleep(0.2)
 
 
 def bind_after_exit(profile: Path, bind_id: str, marker: Path) -> None:
@@ -199,6 +233,8 @@ def main() -> int:
         code = run_session_start(profile, bind_id)
         if code:
             return code
+        if spec.get("ack_probe"):
+            ack_probe(profile, bind_id)
     hold()
     return 0
 

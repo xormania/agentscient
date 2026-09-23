@@ -22,10 +22,13 @@ import json
 
 
 class Refused(Exception):
-    """A frame the parser cannot correlate. `reading` names the line."""
+    """A frame the parser cannot correlate. `reading` names the line.
+    `stray` is true only for a response whose id matches no request this
+    side sent: the frame is whole, and the caller may drop it."""
 
-    def __init__(self, reading: str):
+    def __init__(self, reading: str, *, stray: bool = False):
         self.reading = reading
+        self.stray = stray
         super().__init__(reading)
 
 
@@ -73,7 +76,8 @@ class Parser:
             raise Refused(f"a result with no id to correlate it: {line}")
         _check_id(ident, line)
         if ident not in self._sent:
-            raise Refused(f"a response whose id {ident!r} matches no request this side sent: {line}")
+            raise Refused(f"a response whose id {ident!r} matches no request this side sent: {line}",
+                          stray=True)
         self._sent.discard(ident)
         return packet
 
