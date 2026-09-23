@@ -26,7 +26,9 @@ import os
 import re
 import shutil
 import signal
+import sqlite3
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -48,9 +50,17 @@ FINDING = "20260922T215604Z-review-codex-f6777b"
 def origin_finding(number: int) -> str:
     return f"{FINDING}#{number}"
 AGENT = "Sessions Tester <noreply@example.test>"
-LANE = "sessionstest"
+# The profile pins LANE_CONF to the source ops/lane.conf (profiles.py,
+# the authority environment), so the guard binds into that lane's store.
+# The world names the same lane under its own XDG root, or the store
+# splits in two (A-495 item a).
+LANE = "agentscient"
 TIMEOUT = 60.0
 READY = 15
+# The world's root, whatever the ambient temp dir: a unix socket path
+# is at most 107 bytes, and the private tmux socket lives in the world.
+SHORT_ROOT = "/tmp"
+SOCKET_LIMIT = 108
 LEAD_SESSION = "lead-already-bound"
 WORKER_SESSION = "worker-already-bound"
 HOST_TMUX = shutil.which("tmux")
@@ -116,6 +126,33 @@ class ThePresence(unittest.TestCase):
         self.assertFalse(state.exists(), f"status created {state}")
 
 
+class TheSocketPath(unittest.TestCase):
+    """origin: 20260923T003033Z-review-codex-c99cc9#2
+
+    A long ambient temp dir, cached before the world opens, still leaves the
+    world under SHORT_ROOT and its tmux socket under SOCKET_LIMIT bytes.
+    """
+
+    def test_a_long_cached_temp_dir_keeps_the_socket_short(self):
+        holder = World(prefix="sessions-long-")
+        self.addCleanup(holder.close)
+        long_dir = holder.root / ("t" * 120)
+        long_dir.mkdir()
+        saved = tempfile.tempdir
+        tempfile.tempdir = str(long_dir)
+        self.addCleanup(setattr, tempfile, "tempdir", saved)
+        with self.subTest(id="socket-under-long-tmpdir",
+                          origin="20260923T003033Z-review-codex-c99cc9#2"):
+            self.assertEqual(tempfile.gettempdir(), str(long_dir))
+            scratch = _Scratch()
+            world = scratch.open_world("sessions-")
+            self.addCleanup(world.close)
+            socket = world.tmp / "tmux.sock"
+            self.assertEqual(world.root.parent, Path(SHORT_ROOT))
+            self.assertLess(len(os.fsencode(str(socket))), SOCKET_LIMIT, str(socket))
+            self.assertEqual(tempfile.gettempdir(), str(long_dir))
+
+
 class _Scratch(unittest.TestCase):
     """Hermetic world, planted fake harness, private tmux socket."""
 
@@ -123,15 +160,15 @@ class _Scratch(unittest.TestCase):
         """A world rooted under /tmp, so the private tmux socket it owns
         stays under 108 bytes. origin: 20260922T215604Z-review-codex-f6777b#10
         """
-        saved = os.environ.get("TMPDIR")
-        os.environ["TMPDIR"] = "/tmp"
+        # tempfile caches its directory at the first call, so TMPDIR set
+        # here is not read; tempfile.tempdir is what mkdtemp consults.
+        # origin: 20260923T003033Z-review-codex-c99cc9#2
+        saved = tempfile.tempdir
+        tempfile.tempdir = SHORT_ROOT
         try:
             return World(prefix=prefix)
         finally:
-            if saved is None:
-                os.environ.pop("TMPDIR", None)
-            else:
-                os.environ["TMPDIR"] = saved
+            tempfile.tempdir = saved
 
     def setUp(self):
         self.world = self.open_world("sessions-")
@@ -140,6 +177,11 @@ class _Scratch(unittest.TestCase):
         self.xdg = self.world.xdg_state
         self.state = self.xdg / LANE
         self.socket = self.world.tmp / "tmux.sock"
+        if len(os.fsencode(str(self.socket))) >= SOCKET_LIMIT:
+            raise AssertionError(
+                f"INVALID: private tmux socket must be under {SOCKET_LIMIT} bytes: "
+                f"{self.socket}"
+            )
         self.team_path = self.world.plant_text(
             "team.json",
             json.dumps(a_team(claude_member("grunt", ["worker"]))) + "\n",
@@ -330,12 +372,14 @@ class _Scratch(unittest.TestCase):
         case = RefusalCase(id=case_id, argv=proc.argv[2:], cls=klass, origin=ORIGIN)
         return refusal_wire(case, proc).line
 
-    def assert_readiness(self, text: str) -> None:
+    def assert_readiness(self, text: str, *, role_waiting: str | None = None) -> None:
         """origin: 20260922T215604Z-review-codex-f6777b#11
 
         ``ready`` requires process, profile, identity, participant and
         role to read ok, never waiting or refused. Slice 2 reads
-        unmeasured and never ok.
+        unmeasured and never ok. ``role_waiting`` is the one exception the
+        contract allows: a request above worker with no lead's grant reads
+        ``role waiting <role_waiting>`` and the member is still ready.
         """
         found = {dim: [] for dim in READINESS}
         pattern = re.compile(
@@ -347,6 +391,17 @@ class _Scratch(unittest.TestCase):
                 found[match.group(1)].append(match.group(2))
         for dim in ("process", "profile", "identity", "participant", "role"):
             states = found[dim]
+            if dim == "role" and role_waiting is not None:
+                self.assertRegex(
+                    text,
+                    re.compile(
+                        rf"(?:^|\s)role\s*:?\s*waiting\s+{re.escape(role_waiting)}\s*$",
+                        re.MULTILINE,
+                    ),
+                )
+                self.assertNotIn("ok", states, f"role reads ok: {text!r}")
+                self.assertNotIn("refused", states, f"role reads refused: {text!r}")
+                continue
             self.assertIn("ok", states, f"{dim} must read ok, found {states!r} in {text!r}")
             self.assertNotIn("waiting", states, f"{dim} reads waiting: {text!r}")
             self.assertNotIn("refused", states, f"{dim} reads refused: {text!r}")
@@ -364,10 +419,18 @@ class _Scratch(unittest.TestCase):
         self.assertTrue(bindings, f"no binding for {member} under {self.state}")
         binding = json.loads(bindings[0].read_text(encoding="utf-8"))
         cap = binding["coordination_capability"]
+        # `who` reads the participant of the session in the environment, so
+        # it is asked as the member's launch identity (A-495 item d).
+        launch = json.loads(
+            (bindings[0].parent.parent / "launch.json").read_text(encoding="utf-8")
+        )
         result = run(
             [sys.executable, str(COORD), "who"],
             cwd=self.world.cwd,
-            env=self.env(extra={"COORDINATION_CAPABILITY": cap}),
+            env=self.env(
+                session=launch["launch_id"],
+                extra={"COORDINATION_CAPABILITY": cap},
+            ),
             timeout=TIMEOUT,
         )
         self.assertEqual(result.exit, 0, result.stderr)
@@ -892,19 +955,56 @@ class TheTmuxAndLaunchRows(_Scratch):
 class TheCleanNeighbours(_Scratch):
     """Cold start, populated store, second member, attach, stop, export."""
 
-    def test_cold_start_on_an_empty_store_binds_lead(self):
+    def check_cold_start(self, proc) -> None:
+        """What a clean cold start shows: ready with role waiting on a
+        lead's grant, the member a worker, and no lead in the store."""
+        started = re.search(
+            r"started co SM-\d+ as (PT-\d+) in R-\d+ pane %\d+ gen \d+",
+            proc.stdout,
+        )
+        self.assertIsNotNone(started, proc.stdout)
+        participant = started.group(1)
+        self.assert_readiness(
+            proc.stdout, role_waiting=f"grant {participant} --roles lead"
+        )
+        who = re.search(
+            r"participant (PT-\d+) (\S+) session", self.store_who("co")
+        )
+        self.assertIsNotNone(who, "who printed no participant line")
+        self.assertEqual(who.group(1), participant)
+        self.assertEqual(who.group(2).split(","), ["worker"])
+        leads = self.coord("participants", "--role", "lead")
+        self.assertEqual(leads.stdout.strip(), "no participants")
+
+    def test_cold_start_on_an_empty_store_binds_a_worker_and_no_lead(self):
+        """The first native bind in an empty store is a worker; lead comes
+        only from a lead's grant (sessions-lever.md at c1a69a78, A-495 b)."""
         self.skip_without_tmux()
         self.plant_team(a_team(claude_member("co", ["lead"])))
         with self.subTest(id="cold-start", origin=origin_finding(11)):
             proc = self.sessions(*self.start_argv("co"))
             self.assertEqual(proc.exit, 0, proc.stderr)
-            self.assert_readiness(proc.stdout)
-            self.assertRegex(
-                proc.stdout,
-                r"started co SM-\d+ as PT-\d+ in R-\d+ pane %\d+ gen \d+",
-            )
-            who = self.store_who("co")
-            self.assertIn("lead", who)
+            self.check_cold_start(proc)
+
+    def test_cold_start_catches_a_planted_lead_promotion(self):
+        """The fixture row for cold-start (docs/tests.md rule 3): the first
+        bound participant of an empty store is promoted to lead, and the
+        cold-start checks must fail on it. The promotion is planted in the
+        store after start returns, so it reaches who and participants; the
+        readiness line was printed before it and is not what catches it."""
+        self.skip_without_tmux()
+        self.plant_team(a_team(claude_member("co", ["lead"])))
+        with self.subTest(id="cold-start-planted-lead", origin=ORIGIN):
+            proc = self.sessions(*self.start_argv("co"))
+            self.assertEqual(proc.exit, 0, proc.stderr)
+            with sqlite3.connect(self.state / "state.db") as conn:
+                promoted = conn.execute(
+                    "UPDATE participants SET roles = 'lead,worker' "
+                    "WHERE id = (SELECT MIN(id) FROM participants)"
+                ).rowcount
+            self.assertEqual(promoted, 1, "the planted promotion did not land")
+            with self.assertRaises(AssertionError):
+                self.check_cold_start(proc)
 
     def test_start_on_a_populated_store_keeps_the_lead_and_binds_worker(self):
         self.skip_without_tmux()
@@ -1037,8 +1137,7 @@ class TheCleanNeighbours(_Scratch):
                 target = flag("-t") or flag("--target")
                 if not target:
                     return False
-                if target.startswith("="):
-                    target = target[1:]
+                target = target.removeprefix("=")
                 if ":" not in target:
                     return False
                 sess, rest = target.split(":", 1)
@@ -1307,101 +1406,34 @@ class TheCleanNeighbours(_Scratch):
         text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
         return text.rsplit(")", 1)[1].split()[19]
 
-    def recorded_pid_ticks(self, member: str) -> tuple[int | None, str | None]:
-        pid = None
-        ticks = None
-        for path in (self.state / "sessions").glob(f"*/{member}/launch.json"):
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            if not isinstance(data, dict):
-                continue
-            raw = data.get("pid")
-            if isinstance(raw, int) and raw > 1:
-                pid = raw
-            elif isinstance(raw, str) and raw.isdigit() and int(raw) > 1:
-                pid = int(raw)
-            for key in ("start", "start_ticks", "start-ticks"):
-                value = data.get(key)
-                if value is not None and str(value):
-                    ticks = str(value)
-                    break
-        if pid is None:
-            status = self.sessions("status", identity=None).stdout
-            match = re.search(r"\bpid=(\d+)\b", status)
-            if match and int(match.group(1)) > 1:
-                pid = int(match.group(1))
-            ticks_match = re.search(r"\bstart=(\d+)\b", status)
-            if ticks_match:
-                ticks = ticks_match.group(1)
-        return pid, ticks
-
-    def wait_until_gone(self, pid: int) -> None:
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and Path(f"/proc/{pid}").exists():
-            time.sleep(0.02)
-
-    def reuse_recorded_pid(self, recorded: int, ticks: str) -> int | None:
-        """Spawn through owned_holder until the recorded pid is alive again
-        with different start ticks. Fail closed when that does not happen.
-        """
-        cursor = Path("/proc/sys/kernel/ns_last_pid")
-        for _ in range(8):
-            try:
-                cursor.write_text(str(recorded - 1), encoding="utf-8")
-            except OSError:
-                pass
-            child, release = self.owned_holder()
-            if child == recorded:
-                try:
-                    live = self.proc_start_ticks(child)
-                except OSError:
-                    live = ticks
-                if live != ticks:
-                    return child
-            release()
-        return None
-
-    def test_stop_terminate_does_not_signal_a_reused_pid(self):
+    def test_stop_terminate_does_not_signal_a_stale_pid(self):
         """origin: 20260922T215604Z-review-codex-f6777b#17
-        origin: 20260922T234512Z-review-codex-5b18d7#4
+        origin: 20260923T003033Z-review-codex-c99cc9#8
 
-        The recorded pid is reaped and reused with different start ticks.
-        When the world cannot force that reuse, the row skips with the
-        reason and does not fail before stop --terminate. When it can,
-        stop --terminate must not signal the live pid, and must say
-        unresolved stale pid. Spawns go through owned_holder.
+        A reused pid reads as a live pid whose start ticks differ from the
+        record. The row plants that record: the member's pid becomes a live
+        holder the world owns, its start ticks one more than the holder's.
+        stop --terminate must leave the holder alive, say unresolved stale
+        pid, and exit 1.
         """
         self.skip_without_tmux()
         with self.subTest(id="stale-pid-stop", origin=origin_finding(17)):
             started = self.sessions(*self.start_argv())
-            self.assertIn(started.exit, (0, 1), started.stderr)
-            recorded, ticks = self.recorded_pid_ticks("grunt")
-            if recorded is None or not Path(f"/proc/{recorded}").exists():
-                recorded, release_seed = self.owned_holder()
-                ticks = self.proc_start_ticks(recorded)
-                os.kill(recorded, signal.SIGKILL)
-                release_seed()
-                self.wait_until_gone(recorded)
-            else:
-                if not ticks:
-                    ticks = self.proc_start_ticks(recorded)
-                os.kill(recorded, signal.SIGKILL)
-                self.wait_until_gone(recorded)
-            self.assertFalse(Path(f"/proc/{recorded}").exists(), "the recorded pid was not reaped")
-            reused = self.reuse_recorded_pid(recorded, ticks)
-            if reused != recorded:
-                self.skipTest(
-                    "the world cannot force pid reuse; "
-                    "stop --terminate was not invoked"
-                )
-            self.assertNotEqual(self.proc_start_ticks(reused), ticks)
+            self.assertEqual(started.exit, 0, started.stderr)
+            holder, release = self.owned_holder()
+            self.addCleanup(release)
+            stale = str(int(self.proc_start_ticks(holder)) + 1)
+            with sqlite3.connect(self.state / "state.db") as conn:
+                planted = conn.execute(
+                    "UPDATE session_member SET pid = ?, start_ticks = ? WHERE name = ?",
+                    (holder, stale, "grunt"),
+                ).rowcount
+            self.assertEqual(planted, 1, "the stale record was not planted")
             proc = self.sessions("stop", "--terminate")
-            self.assertTrue(self._alive(reused), "the reused pid was signalled")
+            self.assertTrue(self._alive(holder), "the stale pid was signalled")
             combined = proc.stdout + proc.stderr
-            self.assertIn("stale pid", combined)
-            self.assertIn("unresolved", combined)
+            self.assertIn(f"unresolved stale pid {holder}", combined)
+            self.assertEqual(proc.exit, 1, combined)
 
 class TheDoctorDefaultTeam(_Scratch):
     def test_doctor_reports_missing_adapter_for_codex_and_grok(self):

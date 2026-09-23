@@ -116,6 +116,12 @@ def run_session_start(profile: Path, bind_id: str) -> int:
     if result.exit != 0:
         sys.stderr.write(result.stderr or result.stdout)
         return result.exit
+    # The guard reports a native refusal and still exits 0; the pane is the
+    # terminal, so its output is echoed there for pane.log to carry
+    # (A-495 item c).
+    sys.stdout.write(result.stdout)
+    sys.stdout.write(result.stderr)
+    sys.stdout.flush()
     return 0
 
 

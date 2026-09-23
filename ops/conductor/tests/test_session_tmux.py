@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -25,6 +26,7 @@ TMUX_SRC = Path(__file__).resolve().parent / "fakes" / "session_tmux.py"
 ORIGIN = "sessions-lever.md"
 HOST_TMUX = shutil.which("tmux")
 TIMEOUT = 60.0
+SHORT_ROOT = "/tmp"
 
 
 def shim_text(log: Path) -> str:
@@ -50,15 +52,15 @@ class TheTmuxShimForwardsFormat(unittest.TestCase):
         """A world rooted under /tmp, so the private tmux socket it owns
         stays under 108 bytes. origin: 20260922T215604Z-review-codex-f6777b#10
         """
-        saved = os.environ.get("TMPDIR")
-        os.environ["TMPDIR"] = "/tmp"
+        # tempfile caches its directory at the first call, so TMPDIR set
+        # here is not read; tempfile.tempdir is what mkdtemp consults.
+        # origin: 20260923T003033Z-review-codex-c99cc9#2
+        saved = tempfile.tempdir
+        tempfile.tempdir = SHORT_ROOT
         try:
             return World(prefix="session-tmux-")
         finally:
-            if saved is None:
-                os.environ.pop("TMPDIR", None)
-            else:
-                os.environ["TMPDIR"] = saved
+            tempfile.tempdir = saved
 
     def test_the_shim_passes_a_host_tmux_format_value_through(self):
         """origin: sessions-lever.md"""
