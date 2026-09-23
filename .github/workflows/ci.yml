@@ -1,90 +1,106 @@
-# The two gates every PR into dev must pass whole: lane checks the wall,
-# pinned lint contract, suites, and shared configuration; app checks the
-# Symfony project from its manifest through the compiled container. Both
-# run on this repository's own self-hosted runners. The
-# pull_request trigger is limited to PRs into dev: the release PR from
-# dev into master is covered by the push run on dev, which stamps the
-# same commit, and nothing here reads a title or body, so `edited` is
-# not a trigger.
-# The merge_group trigger runs both jobs on the tree the merge queue builds
-# (dev plus the queued PRs), so a queued PR is checked on exactly what would
-# land; without it a queue waits forever for these checks.
-name: ci
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [dev]
-  merge_group:
-    branches: [dev]
-  push:
-    branches: [dev]
-permissions:
-  contents: read
-# A newer commit on the same pull request cancels the run it supersedes;
-# push and merge_group runs are never cancelled, since the push run on dev
-# is the stamp the release PR relies on (owner, 2026-09-12).
-concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-jobs:
-  lane:
-    runs-on: self-hosted
-    # Measured 2026-09-12 over the last fifty runs: mean 122 s, max 138 s.
-    # The timeout contains a hang or a leaked worker, not the normal run.
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          # the probe corpus reads records branches by name; a depth-1
-          # checkout makes every such row UNREACHABLE (2026-09-12)
-          fetch-depth: 0
-      - name: the host's user toolchain on PATH (~/.local/bin)
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: records branches by local name — the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)
-        run: git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f "$b" "origin/$b"; done
-      - name: term wall — tree content and paths
-        env:
-          TERM_WALL: ${{ vars.TERM_WALL }}
-        run: python3 ops/devlane/workflow/checks/term_wall.py --root .
-      - name: ruff — the pinned contract (the host's ruff; ruff.toml refuses a version outside the range)
-        run: |
-          ruff --version
-          ruff check .
-      - name: lane suites
-        run: bash ops/bin/suites.sh
-      - name: test kit ratchet — the census counts never rise
-        run: python3 ops/devlane/workflow/checks/testkit_ratchet.py
-      - name: lane conf closure — every key read is declared
-        run: python3 ops/conductor/tools/laneconf.py closure
-      - name: lane conf literals — no lane literal is outside the conf
-        run: python3 ops/conductor/tools/laneconf.py literals
-      - name: probes — every corpus row serves; a claim without a passing row is red
-        run: python3 ops/conductor/tools/probes.py run
-  app:
-    runs-on: self-hosted
-    # Measured 2026-09-12 over the last fifty runs: mean 6 s, max 8 s.
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: the host's user toolchain on PATH (~/.local/bin)
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: the host toolchain the self-hosted runner relies on
-        run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
-      - name: composer validate — the manifest and the lock agree
-        run: composer validate --strict
-      - name: composer install — from the lock, nothing resolved on the runner
-        run: composer install --prefer-dist --no-progress --no-interaction
-      - name: php lint
-        run: find src packages -name '*.php' -print0 | xargs -0 -r -n50 php -l
-      - name: the kernel boots
-        run: php bin/console about
-      - name: phpunit — the project and every package
-        run: vendor/bin/phpunit
-      - name: mate serves measured truth — the compiled container answers
-        run: |
-          vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \
-            | jq -e '.untrusted_data.services["router.default"]'
-          vendor/bin/mate tools:list
+{
+  "name": "ci",
+  "on": {
+    "pull_request": {
+      "types": [
+        "opened",
+        "synchronize",
+        "reopened"
+      ],
+      "branches": [
+        "dev"
+      ]
+    },
+    "merge_group": {
+      "branches": [
+        "dev"
+      ]
+    },
+    "push": {
+      "branches": [
+        "dev"
+      ]
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
+    "cancel-in-progress": "${{ github.event_name == 'pull_request' }}"
+  },
+  "jobs": {
+    "lane": {
+      "runs-on": "self-hosted",
+      "timeout-minutes": 15,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "the host's user toolchain on PATH (~/.local/bin)",
+          "run": "echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\""
+        },
+        {
+          "name": "records branches by local name — the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
+        },
+        {
+          "name": "the complete dev-lane gate",
+          "env": {
+            "TERM_WALL": "${{ vars.TERM_WALL }}"
+          },
+          "run": "bash ops/bin/suites.sh"
+        }
+      ]
+    },
+    "app": {
+      "runs-on": "self-hosted",
+      "timeout-minutes": 5,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "the host's user toolchain on PATH (~/.local/bin)",
+          "run": "echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\""
+        },
+        {
+          "name": "the host toolchain the self-hosted runner relies on",
+          "run": "php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version"
+        },
+        {
+          "name": "composer validate — the manifest and the lock agree",
+          "run": "composer validate --strict"
+        },
+        {
+          "name": "composer install — from the lock, nothing resolved on the runner",
+          "run": "composer install --prefer-dist --no-progress --no-interaction"
+        },
+        {
+          "name": "php lint",
+          "run": "find src packages -name '*.php' -print0 | xargs -0 -r -n50 php -l"
+        },
+        {
+          "name": "the kernel boots",
+          "run": "php bin/console about"
+        },
+        {
+          "name": "phpunit — the project and every package",
+          "run": "vendor/bin/phpunit"
+        },
+        {
+          "name": "mate serves measured truth — the compiled container answers",
+          "run": "vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \\\n  | jq -e '.untrusted_data.services[\"router.default\"]'\nvendor/bin/mate tools:list\n"
+        }
+      ]
+    }
+  }
+}

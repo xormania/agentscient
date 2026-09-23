@@ -1010,6 +1010,12 @@ else.
 
 ### The owner's terminals
 
+Current implementation: #284 supplies atomic bind-time enrollment, the private
+pointer and run/participant/digest validation. The owning coordination contract
+documents rollback and authenticated rebind. The LD-125 trial cases below now
+run as ordinary regressions. Earlier ownership and absence notes below retain
+their original planning context.
+
 A terminal the owner opened by hand joins a run as a member without a
 managed launch (plan §1, the first ask of 2026-09-19). `join` needs a
 bound participant, and `bind` today refuses class `capability` for a
@@ -1038,6 +1044,11 @@ and the planted rows, taken by the session the owners table names: a world with 
 environment capability binds, joins, and reads `unmeasured` on
 enforcement; the same world with a malformed capability refuses
 `capability` naming the malformation.
+
+Process identity uses coordination's shared start-tick reader for sessions,
+dispatch intents and courier routes. A zombie or malformed /proc record is gone,
+even while its PID remains visible (LD-150). The shared instrument transaction
+owns commit/rollback, and the dispatch MCP adapter uses the shared transport.
 
 ### Tests
 

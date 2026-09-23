@@ -11,9 +11,8 @@ The section names this module as slice 4's one suite. Its rows: the four
 refusals (`objective`, `acceptance`, `evidence`, `export`) on the verbs the
 section names, the trial record's shape, step 8's accounting, the ninth
 `enforcement` line, and the owner's-terminal clause. The owner's-terminal
-rows that need the `bind` minting stay red until the wall session lands
-it in instrument.py (a wall path, LD-125): they are marked expected
-failures and turn red-for-real the commit the minting lands. The rows over the
+rows exercise the `bind` minting carried from #284 (LD-125); they are
+ordinary required regressions, including the malformed-credential refusal. The rows over the
 repository's trial record skip, naming the reason, while no record
 exists. The controlled cases' readings are the verifier's; these rows
 carry their fixture shape.
@@ -473,7 +472,6 @@ class TheOwnersTerminal(_Trial):
     37775c0e.
     """
 
-    @unittest.expectedFailure  # LD-125: the bind minting is the wall's, not yet landed
     def test_a_plain_terminal_binds_joins_and_reads_unmeasured(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals
 
@@ -526,7 +524,6 @@ class TheOwnersTerminal(_Trial):
                 result,
             )
 
-    @unittest.expectedFailure  # LD-125: the refusal naming which is the wall's, not yet landed
     def test_a_malformed_capability_refuses_capability_naming_it(self):
         """origin: sessions-lever.md#slice-4 the owner's terminals
 

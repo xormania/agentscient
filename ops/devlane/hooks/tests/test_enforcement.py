@@ -116,6 +116,24 @@ class SharedEnforcement(unittest.TestCase):
         payload = self.canonical("write_stdin", session_id=1, chars="")
         self.assertEqual(enforcement.evaluate(native.normalize("codex", payload)[0])["outcome"], "allow")
 
+    def test_claude_structured_output_is_its_result_and_no_other_name_is(self):
+        # LD-136: a claude review returns its envelope by calling StructuredOutput;
+        # the guard refused it as an unknown tool, so A-527's record read invalid.
+        payload = self.canonical("StructuredOutput", verdict="clean", findings=[])
+        items = native.normalize("claude", payload, event="PreToolUse")
+        self.assertEqual([x["tool_name"] for x in items], ["Result"])
+        self.assertEqual(enforcement.evaluate(items[0])["outcome"], "allow")
+        after = {**payload, "hook_event_name": "PostToolUse", "tool_response": {"ok": True}}
+        self.assertEqual(enforcement.evaluate(native.normalize("claude", after, event="PostToolUse")[0])["outcome"], "allow")
+        for harness, tool in [("codex", "StructuredOutput"), ("grok", "StructuredOutput"), ("claude", "MysteryOutput")]:
+            with self.subTest(harness=harness, tool=tool):
+                out = enforcement.evaluate(native.normalize(harness, self.canonical(tool, x=1), event="PreToolUse")[0])
+                self.assertEqual(out["outcome"], "deny")
+                self.assertIn("found unknown native tool", out["reason"])
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness), self.assertRaisesRegex(ValueError, "reserved canonical tool"):
+                native.normalize(harness, self.canonical("Result", verdict="clean"), event="PreToolUse")
+
     def test_duplicate_native_fields_are_not_last_key_wins(self):
         with self.assertRaises(ValueError):
             native.loads('{"tool_name":"Read","tool_name":"Write"}')
@@ -145,14 +163,14 @@ class SharedEnforcement(unittest.TestCase):
                 cwd.mkdir()
                 kwargs = {"source": root, "cwd": cwd, "home": home, "session": "issued-" + harness,
                           "agent": "Fixture <f@invalid>", "executable": "/usr/bin/true"}
-                _, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
+                worker_profile, binding = isolation.install_enforcement(harness, old / "enforcement", **kwargs)
                 capability = binding.get("coordination_capability")
                 self.assertIsInstance(capability, str)
                 self.assertRegex(capability, r"^[0-9a-f]{64}$")
                 self.assertNotIn(capability, seen)
                 seen.add(capability)
                 self.assertEqual(Path(binding["binding"]).stat().st_mode & 0o777, 0o600)
-                command, env = profiles.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
+                command, env = worker_profile.native_launch(binding, ["/usr/bin/true"], {**self.env, "COORDINATION_CAPABILITY": inherited})
                 self.assertEqual(env["COORDINATION_CAPABILITY"], capability)
                 self.assertNotIn(capability, str(command))
                 for path in (binding["helper"], *binding["config_pins"]):
@@ -162,9 +180,9 @@ class SharedEnforcement(unittest.TestCase):
                 new = old.with_name(old.name + "-moved")
                 shutil.move(old, new)
                 kwargs.update(home=new / "home", cwd=new / "snapshot", relocated_from=old)
-                _, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
+                moved_profile, moved = isolation.install_enforcement(harness, new / "enforcement", **kwargs)
                 self.assertEqual(moved["coordination_capability"], capability)
-                profiles.validate(moved)
+                moved_profile.validate(moved)
 
     def test_coordination_capability_missing_or_malformed_refuses_profile(self):
         root = Path(__file__).resolve().parents[4]
@@ -776,6 +794,75 @@ class SharedEnforcement(unittest.TestCase):
                             cwd=self.repo, env=self.env, timeout=60)
                 self.assertEqual(probe.exit, 0, probe.stderr)
                 self.assertEqual(json.loads(probe.stdout)["server"], "coordination")
+
+    def test_a_codex_or_grok_member_home_carries_the_onboard_entry_point(self):
+        # origin: ops/conductor/sessions-lever.md at e0cee144, "Required of the wall":
+        # the onboard wrapper inside a codex or grok member's private home, a planted
+        # row that reads it from the profile home and refuses its absence. The home
+        # build_home makes holds credentials only, so without it a member finds no
+        # onboard skill: grok 1.0.40 loads the checkout's .claude/skills only in a
+        # trusted project, and `grok inspect --json` under a fresh GROK_HOME reads
+        # projectTrusted false and no onboard among its skills (measured 2026-09-23).
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        shared = ".claude/skills/onboard/SKILL.md"
+        self.assertTrue((root / shared).is_file(), shared)
+        for harness in ("claude", "codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("onboard-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                if harness == "claude":
+                    # claude reads the checkout's own .claude/skills; its home gets nothing.
+                    self.assertFalse(entry.exists(), entry)
+                    continue
+                self.assertTrue(entry.is_file(), f"{harness}: no onboard entry point at {entry}")
+                self.assertFalse(entry.is_symlink(), f"{harness}: {entry} reaches outside the private home")
+                text = entry.read_text()
+                self.assertTrue(text.startswith("---\nname: onboard\n"), text[:80])
+                self.assertIn(shared, text)
+                self.assertIn("git rev-parse --show-toplevel", text)
+                self.assertIn("expected", text)
+                profiles.validate(profiles.read_binding(binding["binding"]))
+
+    def test_a_member_skill_replaced_after_preparation_fails_the_check(self):
+        # origin: A-538 (record 20260923T044553Z-review-codex-00cb7a#2): validate() never
+        # hashed the copied skill, so <home>/skills/onboard/SKILL.md replaced after
+        # preparation passed `profiles.py check` and reached the member.
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        from datetime import datetime, timezone
+        root = Path(__file__).resolve().parents[4]
+        home = self.world.home
+        (home / ".codex").mkdir()
+        (home / ".codex/auth.json").write_text('{"synthetic":true}')
+        (home / ".grok").mkdir()
+        (home / ".grok/auth.json").write_text(json.dumps({"create_time": datetime.now(timezone.utc).isoformat()}))
+        for harness in ("codex", "grok"):
+            with self.subTest(harness=harness):
+                binding = profiles.prepare_interactive(harness, self.world.root / ("tamper-" + harness), source=root,
+                                                       cwd=self.repo, agent="Fixture <f@invalid>",
+                                                       executable="/usr/bin/true")
+                check = ["check", "--binding", binding["binding"]]
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(profiles.main(check), 0)
+                entry = Path(binding["home"]) / "skills/onboard/SKILL.md"
+                entry.write_text("tampered")
+                with self.assertRaisesRegex(ValueError, "native hook configuration changed"):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
+                err = io.StringIO()
+                with redirect_stdout(io.StringIO()), redirect_stderr(err):
+                    self.assertEqual(profiles.main(check), 2)
+                self.assertIn("native hook configuration changed", err.getvalue())
+                entry.unlink()
+                with self.assertRaises(OSError):
+                    profiles.validate(profiles.read_binding(binding["binding"]))
 
     def test_interactive_preparation_preserves_auth_and_registered_mcp(self):
         import tomllib

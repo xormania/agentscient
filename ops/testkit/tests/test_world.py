@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -213,17 +212,12 @@ class Watching(unittest.TestCase):
 
 class Reaching(unittest.TestCase):
     def test_import_from_another_cwd_fails_naming_ops_testkit(self):
-        elsewhere = tempfile.mkdtemp(prefix="elsewhere-")
-        proc = subprocess.run(
-            [sys.executable, "-c", "import ops.testkit"], cwd=elsewhere,
-            capture_output=True, text=True, check=False, timeout=60,
-            env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": elsewhere},
-        )
+        world = World(prefix="elsewhere-")
+        self.addCleanup(world.close)
+        proc = run([sys.executable, "-c", "import ops.testkit"],
+                   cwd=world.cwd, env=world.env(), timeout=60)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("ops", proc.stderr)
-        here = subprocess.run(
-            [sys.executable, "-c", "import ops.testkit"], cwd=str(support.REPO),
-            capture_output=True, text=True, check=False, timeout=60,
-            env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": elsewhere},
-        )
+        here = run([sys.executable, "-c", "import ops.testkit"],
+                   cwd=support.REPO, env=world.env(), timeout=60)
         self.assertEqual(here.returncode, 0, here.stderr)

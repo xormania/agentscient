@@ -154,6 +154,7 @@ def watch(args: argparse.Namespace) -> int:
     )
     scale = _tick_scale()
     started = time.monotonic()
+    sleep_adjustment = 0.0
     # Registration is not atomic: a settled-looking table is a candidate,
     # settled only when the next poll reports the identical table.
     candidate = None
@@ -169,11 +170,11 @@ def watch(args: argparse.Namespace) -> int:
         table = tuple(sorted(checks))
         confirmed = settled_shape and candidate == table
         candidate = table if settled_shape else None
-        elapsed = int((time.monotonic() - started) / scale)
+        elapsed = time.monotonic() - started + sleep_adjustment
         line = (
             f"poll rows={observed['rows']} pass={observed['pass']} "
             f"fail={observed['fail']} pending={observed['pending']} "
-            f"skip={observed['skip']} elapsed={elapsed}s"
+            f"skip={observed['skip']} elapsed={int(elapsed)}s"
         )
         if missing:
             line += f" missing={len(missing)}"
@@ -188,7 +189,7 @@ def watch(args: argparse.Namespace) -> int:
                 f"fail={observed['fail']} skip={observed['skip']}"
             )
             return 1 if observed["fail"] else 0
-        if (time.monotonic() - started) / scale >= args.timeout:
+        if elapsed >= args.timeout:
             print(
                 f"abort rows={observed['rows']} pass={observed['pass']} "
                 f"fail={observed['fail']} pending={observed['pending']} "
@@ -197,13 +198,15 @@ def watch(args: argparse.Namespace) -> int:
             )
             return 3
         time.sleep(args.interval * scale)
+        sleep_adjustment += args.interval * (1 - scale)
 
 
 def _tick_scale() -> float:
-    """Test apparatus. WATCH_TICK_SCALE scales the poll sleep and the
-    elapsed reading together, so the 5-second floor stays on the wire
-    while a suite does not wait through real polls. Unset means real
-    time; a value that is not a positive number is refused."""
+    """Test apparatus: scale requested sleeps, retaining their logical interval.
+
+    Subprocess startup and other work consume real elapsed time once, never
+    multiplied by the test scale. Unset means real time throughout.
+    """
     raw = os.environ.get("WATCH_TICK_SCALE")
     if raw is None:
         return 1.0

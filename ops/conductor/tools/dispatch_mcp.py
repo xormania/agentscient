@@ -29,6 +29,7 @@ try:
     import coordination_mcp as base
     import dispatch_actions
     import dispatch_intents as intents
+    import mcp_transport as transport
     from instrument import Refusal, refuse, session
 except ModuleNotFoundError:
     print(
@@ -79,14 +80,18 @@ def call(name, arguments) -> dict:
     verb = dispatch_actions.VERBS[tool.verb]
     if "input" in checked:
         checked["inputs"] = [checked.pop("input")]
-    if not tool.mutates:
-        return verb(intents.reader(), None, **checked)
-    if not session(""):
+    if tool.mutates and not session(""):
         refuse("session", "a session id in this server's environment", "unset",
                "run under a harness that sets CLAUDE_CODE_SESSION_ID")
-    conn = intents.writer()
-    participant = coordination.bound_participant(conn)
-    return verb(conn, participant, agent=participant["agent"], **checked)
+    conn = intents.writer() if tool.mutates else intents.reader()
+    try:
+        if not tool.mutates:
+            return verb(conn, None, **checked)
+        participant = coordination.bound_participant(conn)
+        return verb(conn, participant, agent=participant["agent"], **checked)
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def _schemas() -> list:
@@ -101,30 +106,14 @@ def _schemas() -> list:
 
 
 def _dispatch(request) -> dict | None:
-    if not isinstance(request, dict) or request.get("jsonrpc") != "2.0":
-        return base._error(None, -32600, "Invalid Request")
-    identifier = request.get("id")
-    notification = "id" not in request
-    method = request.get("method")
-    if not isinstance(method, str):
-        return base._error(identifier, -32600, "Invalid Request")
-    try:
-        params = base._params(request)
-    except TypeError:
-        return None if notification else base._error(identifier, -32602, "Invalid params")
-    if notification:
-        return None
-    if method == "initialize":
-        requested = params.get("protocolVersion")
-        selected = requested if requested in base.PROTOCOLS else base.LATEST_PROTOCOL
-        return base._result(identifier, {
-            "protocolVersion": selected,
-            "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": SERVER_NAME, "version": "1"},
-            "instructions": INSTRUCTIONS,
-        })
-    if method == "ping":
-        return base._result(identifier, {})
+    return transport.dispatch(request, _route, server={
+        "serverInfo": {"name": SERVER_NAME, "version": "1"},
+        "instructions": INSTRUCTIONS,
+        "capabilities": {"tools": {"listChanged": False}},
+    })
+
+
+def _route(identifier, method, params):
     if method == "tools/list":
         if params:
             return base._error(identifier, -32602, "Invalid params")
@@ -149,24 +138,7 @@ def _dispatch(request) -> dict | None:
 
 
 def serve() -> int:
-    source = sys.stdin.buffer
-    while True:
-        line = source.readline(base.MAX_LINE + 1)
-        if not line:
-            return 0
-        if len(line) > base.MAX_LINE:
-            while line and not line.endswith(b"\n"):
-                line = source.readline(base.MAX_LINE + 1)
-            base._send(base._error(None, -32700, "Parse error"))
-            continue
-        try:
-            request = json.loads(line, parse_constant=base._reject_constant)
-        except (json.JSONDecodeError, UnicodeError, RecursionError, ValueError):
-            base._send(base._error(None, -32700, "Parse error"))
-            continue
-        response = _dispatch(request)
-        if response is not None:
-            base._send(response)
+    return transport.serve(sys.stdin.buffer, _dispatch, base._send)
 
 
 def main() -> int:
@@ -186,7 +158,7 @@ def main() -> int:
             arguments = {}
             if len(rest) == 3:
                 try:
-                    arguments = json.loads(rest[2], parse_constant=base._reject_constant)
+                    arguments = json.loads(rest[2], parse_constant=transport._reject_constant)
                 except (ValueError, UnicodeError, RecursionError):
                     refuse("arguments", "a JSON object of arguments", "unparseable",
                            "pass the declared arguments as JSON")

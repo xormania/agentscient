@@ -13,11 +13,8 @@ on courier.py and coordination.py at bf924ee7, for the crash rows and the
 cap; the clean neighbour of the cap is the four-settled row. Declared
 gap: the send-key, route and outcome rows carry no mutant.
 
-Declared gap, fixture 12 (the additive schema on a populated store): no
-row. A store populated by the schema before slice 2 needs that earlier
-core to populate it; opening the store with the new core first and
-snapshotting after proved nothing (20260923T020912Z-review-codex-9d8b8c
-#8, dropped under docs/tests.md rule 9).
+Fixture 12 seeds a legacy participant store before the first new writer opens,
+then verifies the retained row and a working delivery reservation.
 
 The one command that reads this file is
 ``python3 -m unittest discover -s ops/conductor/tests -p test_courier_native.py``.
@@ -248,6 +245,29 @@ class CoreCase(unittest.TestCase):
                 "WHERE message = ? ORDER BY id",
                 (number,),
             ).fetchall()
+
+
+class TheLegacyStore(CoreCase):
+    def test_first_writer_preserves_legacy_participants_and_enables_delivery(self):
+        """A-513 #8: capture legacy rows before the first new writer opens."""
+        self.db.parent.mkdir(parents=True)
+        with sqlite3.connect(self.db) as conn:
+            conn.execute("CREATE TABLE participants(id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                         "session_id TEXT NOT NULL UNIQUE, agent TEXT NOT NULL, harness TEXT, "
+                         "roles TEXT NOT NULL, endpoint TEXT, probe TEXT, bound_at TEXT NOT NULL)")
+            conn.execute("INSERT INTO participants VALUES (7,'retained-session','Retained <a@b.test>',"
+                         "'codex','worker','retained-endpoint','retained-probe','2026-01-01T00:00:00Z')")
+            before = conn.execute("SELECT * FROM participants").fetchall()
+        bound = self.core("bind", "--roles", "worker", expect=0)
+        self.assertIn("PT-8", bound.stdout)
+        sent = self.core("send", "--to", "PT-8", "--purpose", "request", "--body", BODY, expect=0)
+        message = re.search(r"message (M-[0-9]+)", sent.stdout).group(1)
+        attempt = self.core("attempt", message, "--route", "native", "--generation", "1", expect=0)
+        self.assertRegex(attempt.stdout, r"AT-[0-9]+")
+        with sqlite3.connect(self.db) as conn:
+            after = conn.execute("SELECT id,session_id,agent,harness,roles,endpoint,probe,bound_at "
+                                 "FROM participants WHERE id=7").fetchall()
+            self.assertEqual(after, before)
 
 
 class TheSendKey(CoreCase):

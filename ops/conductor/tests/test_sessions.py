@@ -27,6 +27,7 @@ import re
 import shutil
 import signal
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import threading
@@ -106,6 +107,29 @@ def claude_member(name: str, roles: list[str]) -> dict:
 
 
 class ThePresence(unittest.TestCase):
+    def test_zombie_process_is_gone_for_sessions_dispatch_and_routes(self):
+        """LD-150: an unreaped process must not hold readiness or route authority."""
+        from ops.conductor.tools import coordination, dispatch_intents, sessions
+
+        world = World(prefix="sessions-zombie-")
+        self.addCleanup(world.close)
+        executable = world.tools.plant("exit-now", exit=0)
+        child = world.own(subprocess.Popen([str(executable)], env=world.env(), cwd=world.cwd))
+        deadline = time.monotonic() + 5
+        while os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG) is None:
+            self.assertLess(time.monotonic(), deadline, "fixture child did not exit")
+            time.sleep(0.01)
+        fields = Path(f"/proc/{child.pid}/stat").read_text().rsplit(")", 1)[1].split()
+        self.assertEqual(fields[0], "Z", "fixture must remain unreaped")
+        ticks = fields[19]
+        self.assertTrue(sessions.process_reading(child.pid, ticks).startswith("refused gone"))
+        self.assertTrue(dispatch_intents.process_reading(child.pid, ticks).startswith("gone"))
+        self.assertFalse(coordination.holder_alive({"pid": child.pid, "start_ticks": ticks}))
+        own_ticks = coordination.process_ticks(os.getpid())
+        self.assertIsNotNone(own_ticks)
+        self.assertTrue(sessions.alive(os.getpid(), own_ticks))
+        self.assertTrue(dispatch_intents.alive(os.getpid(), own_ticks))
+
     def test_the_tool_executes_status_on_an_absent_store(self):
         """origin: 20260922T215604Z-review-codex-f6777b#2
 

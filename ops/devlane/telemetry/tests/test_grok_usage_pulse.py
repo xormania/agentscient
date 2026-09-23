@@ -112,7 +112,7 @@ def write_jsonl(path, entries):
     )
 
 
-class GrokUsagePulse(unittest.TestCase):
+class _GrokPulseFixture(unittest.TestCase):
     def setUp(self):
         self.world = World()
         self.addCleanup(self.world.close)
@@ -232,6 +232,8 @@ class GrokUsagePulse(unittest.TestCase):
         self.assertEqual(set(document), {"sessions"})
         return document["sessions"]
 
+
+class GrokUsagePulse(_GrokPulseFixture):
     def test_live_usage_uses_per_run_maxima_and_legacy_tokens_stay_none(self):
         self.write_session(
             "usage-reset",
@@ -347,7 +349,7 @@ class GrokUsagePulse(unittest.TestCase):
         self.assertEqual(set(row), ROW_KEYS)
 
 
-class SkepticMirrorAccounting(GrokUsagePulse):
+class SkepticMirrorAccounting(_GrokPulseFixture):
     def test_pulse_mirror_pins_last_report_and_equal_totals(self):
         self.write_session("mirror", [
             {"inputTokens": 40, "outputTokens": 10, "totalTokens": 50,
@@ -367,7 +369,7 @@ class SkepticMirrorAccounting(GrokUsagePulse):
         )
 
 
-class SkepticCancelledTurns(GrokUsagePulse):
+class SkepticCancelledTurns(_GrokPulseFixture):
     def test_a_cancelled_turn_without_usage_stays_out_of_recent(self):
         session = self.write_session(
             "cancelled", [], tools=("search_code",))

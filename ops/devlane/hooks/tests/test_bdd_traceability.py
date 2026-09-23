@@ -2,7 +2,7 @@
 
 import json
 import unittest
-from types import MethodType, SimpleNamespace
+from types import MethodType
 
 import test_hooks as hook_contract
 
@@ -35,12 +35,7 @@ def run_cmd(fixture, argv, cwd, env=None, expect=0):
             f"(wanted {expect})\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}",
         )
-    return SimpleNamespace(
-        args=list(result.argv),
-        returncode=result.exit,
-        stdout=result.stdout,
-        stderr=result.stderr,
-    )
+    return result
 
 
 class MultiWorktreeScenarios(unittest.TestCase):

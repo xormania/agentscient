@@ -35,14 +35,14 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 import launch_support as ls
 
-from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+from ops.testkit import World, run  # noqa: F401 - _TempLaunch owns the world
 
 SERVER = "coordination"
 LANE_KEY = "agentscient_lane"
@@ -112,9 +112,9 @@ class _Acting(ls.CoordinationCore, ls._TempLaunch):
         would start it, minus the serve loop."""
         env = dict(os.environ)
         env["WF_AGENT"] = ls.FIXTURE_DISPATCHER
-        return subprocess.run(
+        return run(
             [sys.executable, str(ACTING), "--config", str(config), "check"],
-            capture_output=True, text=True, timeout=60,
+            timeout=60,
             cwd=str(ls.REPO), env=env)
 
     def acting(self, rec):
@@ -131,7 +131,8 @@ class TheActingServerIsSourcedFromThePinnedTreeNotTheSnapshot(_Acting):
     the server started would have the acting server, and everything it
     does with the dispatcher's own authority, run its own code instead.
     The Lead's ruling: the server runs from a path the worker cannot
-    write, the launcher's pinned tree rather than the snapshot.
+    write, a frozen copy of the launcher's pinned tree rather than the
+    candidate snapshot or the still-changing installation.
     """
 
     def test_a_worker_owned_tree_on_the_snapshot_is_not_the_source(self):
@@ -152,10 +153,11 @@ class TheActingServerIsSourcedFromThePinnedTreeNotTheSnapshot(_Acting):
         self.assertNotIn(
             "POISON-1", script.read_text(encoding="utf-8"),
             f"the acting server ran the worker's own planted tree: {script}")
-        self.assertEqual(
-            script.resolve(), ACTING.resolve(),
-            f"the acting server did not source from the launcher's own "
-            f"pinned tree: {server!r}")
+        binding_path = Path(rec["snapshot"]["root"]).parent / "enforcement/binding.json"
+        binding = json.loads(binding_path.read_text())
+        self.assertEqual(script.resolve(), Path(binding["source"]) / "ops/conductor/tools/coordination_mcp.py")
+        self.assertEqual(script.read_bytes(), ACTING.read_bytes())
+        self.assertNotEqual(script.resolve(), ACTING.resolve())
 
 
 class TheEdgeToTheActingServerIsDeclaredAndChecked(_Acting):
@@ -311,10 +313,10 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
         binding = json.loads((Path(config_path).parent / "enforcement/binding.json").read_text())
         env.pop("AGENTSCIENT_HOOK_PROFILE", None)
         env["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
-        return subprocess.run(
+        return run(
             [sys.executable, str(ACTING), "--config", str(config_path),
              "call", tool, json.dumps(arguments or {})],
-            capture_output=True, text=True, timeout=60,
+            timeout=60,
             cwd=str(ls.REPO), env=env)
 
     def test_the_worker_its_own_config_names_can_call_through_it(self):
@@ -351,6 +353,42 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
             f"a config bound to one session answered under another: "
             f"stdout={done.stdout!r} stderr={done.stderr!r}")
         self.assertEqual(done.stderr.split(":", 1)[0], "state")
+
+    def test_the_issued_worker_can_claim_before_start_and_submit_through_its_mcp(self):
+        lock = run([sys.executable, str(ACTING.with_name("deliverable.py")),
+                    "add", "work", "--why", "dispatch handoff regression"],
+                   cwd=self.repo, env={**self.env, "WF_AGENT": ls.FIXTURE_DISPATCHER})
+        self.assertEqual(lock.exit, 0, lock.stderr)
+        launch = self.load_launch()
+        attempt = launch._run_attempt
+        claims = []
+
+        def before_start(rec, job_dir, **kwargs):
+            config = self.written(rec)
+            session = rec["session"]["binding_id"]
+            path = self.acting(rec)["config"]
+            shown = self.call(path, session, "coord_show", {"assignment": config["assignment"]})
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            offered = json.loads(shown.stdout)
+            self.assertEqual((offered["place"], offered["recipient"]),
+                             ("offered", config["participant"]))
+            claimed = self.call(path, session, "coord_claim", {
+                "assignment": config["assignment"], "branch": config["branch"],
+                "generation": offered["generation"]})
+            self.assertEqual(claimed.returncode, 0, claimed.stderr)
+            claims.append(json.loads(claimed.stdout))
+            return attempt(rec, job_dir, **kwargs)
+
+        with patch.object(launch, "_run_attempt", side_effect=before_start):
+            rec, witness, aid = self.dispatched()
+        self.assertEqual(len(claims), 1)
+        self.assertTrue(witness.get("argv"), "the worker did not run")
+        submitted = self.call(self.acting(rec)["config"], rec["session"]["binding_id"],
+                              "coord_submit", {"assignment": aid, "evidence": self.ref,
+                                               "revision": self.ref,
+                                               "generation": claims[0]["generation"]})
+        self.assertEqual(submitted.returncode, 0, submitted.stderr)
+        self.assertEqual(json.loads(submitted.stdout)["place"], "submitted")
 
 
 class ARelocatedCoordinationConfigIsRewiredOnResume(_Acting):

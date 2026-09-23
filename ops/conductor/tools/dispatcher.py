@@ -220,7 +220,7 @@ def _set(rest) -> int:
 def _clear(rest) -> int:
     _positionals, options = parse(rest, 0, required=("why",))
     agent = identity()
-    conn = machine.connect(create=False)
+    conn = machine.connect(create=False, write=True)
     sid = _subject(conn, create=False)
     if sid is None:
         refuse("place", "a Dispatcher named", "none",

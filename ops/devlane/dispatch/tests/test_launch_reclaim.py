@@ -28,7 +28,6 @@ from __future__ import annotations
 import contextlib
 import json
 import os
-import subprocess
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -66,12 +65,8 @@ class StoreSweep(unittest.TestCase):
     def _repo(self):
         repo = self.root / "repo"
         repo.mkdir(parents=True, exist_ok=True)
-        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x",
-               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@x"}
-
         def run(*a):
-            return subprocess.run(["git", "-C", str(repo), *a], env=env,
-                                  capture_output=True, text=True, timeout=30)
+            return self.world.git(*a, cwd=repo, timeout=30)
 
         run("init", "-q", "-b", "main")
         (repo / "f").write_text("x")

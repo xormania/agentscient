@@ -42,6 +42,7 @@ try:
     from instrument import (
         Refusal,
         conf,
+        connect_store,
         emit,
         identity,
         refuse,
@@ -143,8 +144,7 @@ def reader() -> sqlite3.Connection | None:
     if not path.is_file():
         return None
     try:
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
-                               timeout=machine.BUSY_TIMEOUT_MS / 1000)
+        conn = connect_store(path, timeout=machine.BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
         held = {row["name"] for row in
                 conn.execute("SELECT name FROM sqlite_schema WHERE type = 'table'")}
@@ -362,14 +362,7 @@ def intent_dir(di: int) -> Path:
     return state_dir() / "dispatch-intents" / f"DI-{di}"
 
 
-def start_ticks(pid: int | None) -> str | None:
-    if not pid:
-        return None
-    try:
-        text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
-    except OSError:
-        return None
-    return text.rsplit(")", 1)[1].split()[19]
+start_ticks = coordination.process_ticks
 
 
 def process_reading(pid: int | None, ticks: str | None) -> str:

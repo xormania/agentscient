@@ -5,7 +5,6 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import json  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 # The refusal wire comes from the shared module beside this file and
@@ -36,10 +35,19 @@ from lane_read import (  # noqa: E402
 from lane_read import (  # noqa: E402
     query as read_query,
 )
+from mcp_transport import (  # noqa: E402
+    dispatch as dispatch_request,
+)
+from mcp_transport import (  # noqa: E402
+    error as _error,
+)
+from mcp_transport import (  # noqa: E402
+    result as _result,
+)
+from mcp_transport import (  # noqa: E402
+    serve as serve_stdio,
+)
 
-PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
-LATEST_PROTOCOL = PROTOCOLS[-1]
-MAX_LINE = 65_536
 INSTRUCTIONS = (
     "Read-only; evidence is not authority. Use brief before detail. "
     "No live readiness."
@@ -236,56 +244,17 @@ def _resource_query(config: dict[str, object], uri: object) -> dict[str, object]
     refuse("arguments", "a listed lane resource URI", repr(uri), "select a listed resource")
 
 
-def _error(identifier: object, code: int, message: str) -> dict[str, object]:
-    return {"jsonrpc": "2.0", "id": identifier, "error": {"code": code, "message": message}}
+def _dispatch(config, request):
+    return dispatch_request(
+        request, lambda identifier, method, params: _route(config, identifier, method, params),
+        server={
+            "serverInfo": {"name": "agentscient-lane", "version": "1"},
+            "instructions": INSTRUCTIONS,
+        }, strict_initialize=False,
+    )
 
 
-def _result(identifier: object, result: object) -> dict[str, object]:
-    return {"jsonrpc": "2.0", "id": identifier, "result": result}
-
-
-def _params(request: dict[str, object]) -> dict[str, object]:
-    params = request.get("params", {})
-    if not isinstance(params, dict):
-        raise TypeError
-    if "_meta" in params and not isinstance(params["_meta"], dict):
-        raise TypeError
-    result = dict(params)
-    result.pop("_meta", None)
-    return result
-
-
-def _dispatch(config: dict[str, object], request: object) -> dict[str, object] | None:
-    if not isinstance(request, dict) or request.get("jsonrpc") != "2.0":
-        return _error(None, -32600, "Invalid Request")
-    identifier = request.get("id")
-    notification = "id" not in request
-    method = request.get("method")
-    if not isinstance(method, str):
-        return _error(identifier, -32600, "Invalid Request")
-    try:
-        params = _params(request)
-    except TypeError:
-        return None if notification else _error(identifier, -32602, "Invalid params")
-    if notification:
-        return None
-    if method == "initialize":
-        requested = params.get("protocolVersion")
-        selected = requested if requested in PROTOCOLS else LATEST_PROTOCOL
-        return _result(
-            identifier,
-            {
-                "protocolVersion": selected,
-                "capabilities": {
-                    "tools": {"listChanged": False},
-                    "resources": {"subscribe": False, "listChanged": False},
-                },
-                "serverInfo": {"name": "agentscient-lane", "version": "1"},
-                "instructions": INSTRUCTIONS,
-            },
-        )
-    if method == "ping":
-        return _result(identifier, {})
+def _route(config, identifier, method, params):
     if method == "tools/list":
         return _result(identifier, {"tools": _schemas(config)})
     if method == "resources/list":
@@ -354,29 +323,8 @@ def _send(message: dict[str, object]) -> None:
     sys.stdout.flush()
 
 
-def _reject_constant(value: str) -> None:
-    raise ValueError(value)
-
-
-def serve(config: dict[str, object]) -> int:
-    source = sys.stdin.buffer
-    while True:
-        line = source.readline(MAX_LINE + 1)
-        if not line:
-            return 0
-        if len(line) > MAX_LINE:
-            while line and not line.endswith(b"\n"):
-                line = source.readline(MAX_LINE + 1)
-            _send(_error(None, -32700, "Parse error"))
-            continue
-        try:
-            request = json.loads(line, parse_constant=_reject_constant)
-        except (json.JSONDecodeError, UnicodeError, RecursionError, ValueError):
-            _send(_error(None, -32700, "Parse error"))
-            continue
-        response = _dispatch(config, request)
-        if response is not None:
-            _send(response)
+def serve(config):
+    return serve_stdio(sys.stdin.buffer, lambda request: _dispatch(config, request), _send)
 
 
 def _cli(argv: list[str]) -> tuple[Path, str, list[str]]:

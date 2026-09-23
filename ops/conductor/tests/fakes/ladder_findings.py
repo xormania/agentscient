@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # testkit: exempt fixture program planted by the consuming World
 from __future__ import annotations
 import json

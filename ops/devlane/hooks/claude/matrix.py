@@ -241,6 +241,7 @@ WALL_PATHS = ("ops/devlane/hooks/", "ops/devlane/harness/isolation.py",
               "ops/conductor/permission-surface.md", "ops/conductor/harness-capabilities.md",
               "ops/conductor/conductor-start-plan.md", "ops/conductor/lane-policy.md",
               ".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+              "ops/devlane/workflow/checks/",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
               "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
               "ops/testkit/", "ops/devlane/task/jobs.json",
@@ -1265,7 +1266,16 @@ def deliverable(toks, cwd, lane):
 
 
 PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
-PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
+# A row id is P-<family>-<leaf>. A bare family in prose ("all seven P-278 rows
+# PASS") names no row; read as one, it refused #271, #278 and #274 as absent.
+# The id runs to its last word character or hyphen, so "P-FIX-1\u00e9" or "P-FIX-1-"
+# is that token, named absent, never the row P-FIX-1 (A-539 #1).
+PROOF_ID = re.compile(r"\bP-[^\W_]+-[\w-]*")
+# A token read by PROOF_ID is a row only when its leaf ends in a word
+# character. The corpus readers take any string id, so a row named "P-FIX-1-"
+# made that token present (A-544 #2); such a token is named absent whatever
+# the corpus carries.
+PROOF_ROW = re.compile(r"P-[^\W_]+(?:-\w+)+")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
 AUDIT_JOB = "security-audit"
@@ -1783,7 +1793,7 @@ def pr_proof(toks, cwd):
     if corpus is None:
         return deny("pr-proof", f"the probes corpus readable at {head[:8]}", "git could not read it",
                     "could not look is not a pass; check the head")
-    missing = [i for i in ids if i not in corpus]
+    missing = [i for i in ids if i not in corpus or not PROOF_ROW.fullmatch(i)]
     if missing:
         return deny("pr-proof", f"every Proof row present in {PROBES_DIR} at {head[:8]}",
                     f"absent: {', '.join(missing)}", needed_proof)

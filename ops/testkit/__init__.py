@@ -7,6 +7,7 @@ other way in.
 """
 
 from .cases import Mutant, RefusalCase, calibrate, refusal_wire, run_table, sidebyside
+from .checks import Check, execute_checks, suite_checks
 from .command import NotOnTheWire, Refusal, Result, Timeout, parse_wire, run
 from .fakes import Tools
 from .world import (
@@ -24,6 +25,7 @@ from .world import (
 )
 
 __all__ = [
+    "Check",
     "Daemon",
     "DaemonRefused",
     "Mutant",
@@ -38,6 +40,7 @@ __all__ = [
     "World",
     "calibrate",
     "compare",
+    "execute_checks",
     "hermetic_env",
     "make_executable",
     "parse_wire",
@@ -48,4 +51,5 @@ __all__ = [
     "run",
     "run_table",
     "sidebyside",
+    "suite_checks",
 ]

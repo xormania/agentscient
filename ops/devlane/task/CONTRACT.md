@@ -123,16 +123,15 @@ not embedded reports. Workers leave the declared zero spend placeholder;
 the launcher resolves measured spend, declaring unavailable evidence
 instead of treating that placeholder as a measurement.
 
-**Current acceptance defect (C1 baseline):** `run.py` calls
-`envelope.validate`, while launch uses `_schema_valid`, adding only an
-invalid-plus-approve check to the schema. Shared JSON shape therefore does
-not establish shared counts/status/handle acceptance. The optional write
-job `commit` transport also needs later reconciliation with the validator's
-fixed fields. C1 changes neither validator, schema nor transport; later
-acceptance work must preserve harness response extraction and provenance.
-Reproduce with `sed -n '240,310p' ops/devlane/task/envelope.py`,
-`sed -n '297,335p' ops/devlane/task/run.py` and
-`sed -n '708,745p' ops/devlane/dispatch/launch.py` at the dispatch baseline.
+`envelope.validate` applies both the JSON schema and the semantic rules.
+Dispatch applies it after extracting the selected response for every harness,
+including legacy raw results. Schema matching alone may identify a response;
+it cannot accept one. A selected response that fails semantic validation is
+invalid with a null verdict and a diagnostic. Its findings and asserted counts
+remain available for inspection; an earlier clean response cannot replace it.
+`run.py` uses the same validator for bare and wrapped results, including the
+optional `commit` object. JSON member order is immaterial at these boundaries;
+constructors continue to emit the declared key order.
 
 **Named temporary exception — inline planning reassignment.** The owner
 brief authorized the immediate read-only architecture review to return
