@@ -52,6 +52,40 @@ STATUSES = ("ok", "invalid", "tripped")
 VERDICTS = ("approve", "changes")
 SEVERITIES = ("p1", "p2", "p3")
 
+_FINDING_PROPERTIES = {
+    "severity": {"type": "string", "enum": list(SEVERITIES)},
+    "where": {"type": "string"},
+    "claim": {"type": "string"},
+    "reproduce": {"type": ["string", "null"]},
+}
+
+
+def _finding_shape(**label):
+    return {"type": "object",
+            "properties": {**_FINDING_PROPERTIES, **label},
+            "required": [*FINDING_FIELDS, *label],
+            "additionalProperties": False}
+
+
+#: The pair rule as the schema states it: no label, `yes` with the failing
+#: invocation, or `no` with none. Half a label matches no shape, so the
+#: claude path, which checks its object against this schema alone, refuses
+#: what `finding` refuses. A blank `failing` is `finding`'s alone. The
+#: field types stand beside the shapes, so a checker that reads no `anyOf`
+#: still refuses a finding of the wrong type or with a key missing.
+FINDING_SCHEMA = {
+    **_finding_shape(practical={"type": "string", "enum": list(PRACTICAL)},
+                     failing={"type": ["string", "null"]}),
+    "required": list(FINDING_FIELDS),
+    "anyOf": [
+        _finding_shape(),
+        _finding_shape(practical={"type": "string", "enum": ["yes"]},
+                       failing={"type": "string"}),
+        _finding_shape(practical={"type": "string", "enum": ["no"]},
+                       failing={"type": "null"}),
+    ],
+}
+
 #: Longer than any path this lane produces, far shorter than a review.
 HANDLE_MAX = 512
 
@@ -78,19 +112,7 @@ ENVELOPE_SCHEMA = {
         },
         "findings": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "severity": {"type": "string", "enum": list(SEVERITIES)},
-                    "where": {"type": "string"},
-                    "claim": {"type": "string"},
-                    "reproduce": {"type": ["string", "null"]},
-                    "practical": {"type": "string", "enum": list(PRACTICAL)},
-                    "failing": {"type": ["string", "null"]},
-                },
-                "required": list(FINDING_FIELDS),
-                "additionalProperties": False,
-            },
+            "items": FINDING_SCHEMA,
         },
         "artifacts": {
             "type": "object",
