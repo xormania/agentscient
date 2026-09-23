@@ -890,8 +890,19 @@ managed member's pane log and every dispatch record id the run
 launched. "Launched by the run" is read from the store, never from a
 message: the `dispatch_intents` rows (slice 3) whose requester or
 dispatcher is one of the run's participants, reserved at or after the
-run's `started_at`, and whose intent reached a record; the store gains
-no column for it, since a participant is bound to one run. A managed
+run's `started_at`, and whose intent reached a record. The run's
+participants are its members and the participant that started it:
+`session_run` carries `started_participant`, written by `start` from
+the caller's binding (an ALTER adds the column to an older store), and
+export, `decisions` and `observations` count the starter with the
+members. The window has both ends: a row counts when it was reserved
+at or after the run's `started_at` and before the run's stop stamp
+when the run is stopped, else before the starter's next run's
+`started_at` when the same binding started a later run, else before
+the export's own stamp. A member is bound to one run; the starter is
+not, and without the upper bound an export of R-1 taken after R-2
+started would list R-2's launches as R-1's (the reviewer agentscient-0e
+at cff1115e). The intents table gains no run column. A managed
 member with no pane log, or a record id whose record is not under the
 jobs root, refuses `export` (exit 2, stdout empty) before anything is
 written; a log that exists but cannot be read is slice 1's partial
@@ -982,7 +993,10 @@ that terminal's own profile home, `<state dir>/runs/R-n/terminals/PT-n/home`,
 and nowhere shared, and refuses `capability` only when it can neither
 read nor mint one; the refusal names which, `missing` or `malformed
 <what>`. The terminal names its run: `bind --run R-n` in a terminal
-with no managed launch, refused `missing` when `R-n` names no run;
+with no managed launch, refused class `absent` when `R-n` names no run
+(the class an unknown run takes everywhere in this lever; `missing` and
+`malformed <what>` are the found of a `capability` refusal, never a
+class);
 the mint writes `<home>/profile.json` carrying the coordination
 capability and prints `profile <path>`, and every later verb in that
 terminal reads it through `AGENTSCIENT_HOOK_PROFILE`, exported by the
