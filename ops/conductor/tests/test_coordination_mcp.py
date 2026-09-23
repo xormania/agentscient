@@ -1256,7 +1256,7 @@ class CoordinationMcpRealCore(unittest.TestCase):
             "reply_to": "M-1", "artifact": FIXTURE_REVISION, "message": "M-1",
             "observation": "a reading", "execution": "20260916T010203Z-job-x",
             "environment": "the world", "state": "held", "cursor": "1",
-            "stale": False, "unresolved": True,
+            "stale": False, "unresolved": True, "key": "k-1",
         }
         schemas = self.schemas()
         self.assertTrue(schemas, "the server advertises no tools")
