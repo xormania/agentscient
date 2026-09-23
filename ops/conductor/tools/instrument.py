@@ -26,6 +26,7 @@ instrument.py beside itself refuses `tooling` and exits 2.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -179,6 +180,34 @@ def terminal_pointer(run: str, terminal: str) -> Path:
     return state_dir() / "runs" / run / "terminals" / terminal / "home" / "profile.json"
 
 
+def terminal_home(run: str, terminal: str, *, create: bool) -> int:
+    """A descriptor on the terminal's home, reached from the lane state directory
+    one component at a time with no link followed, so a linked ancestor never
+    leads outside the state root (A-548 #1). With ``create``, a missing component
+    is made 0700. FileNotFoundError when a component is absent; another OSError
+    when one is a link or not a directory. The caller closes the descriptor."""
+    root = state_dir()
+    if create:
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in ("runs", run, "terminals", terminal, "home"):
+            if create:
+                with contextlib.suppress(FileExistsError):
+                    os.mkdir(part, 0o700, dir_fd=descriptor)
+            following = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = following
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def open_pointer(home: int) -> int:
+    """The pointer file under ``home``, opened for reading without following a link."""
+    return os.open("profile.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=home)
+
 def mint_token() -> str:
     """A fresh coordination capability, minted before the participant row."""
     return secrets.token_hex(32)
@@ -195,14 +224,22 @@ def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
         refuse("capability", TERMINAL_EXPECTED, "malformed capability",
                "mint 32 random bytes as hex before inserting the participant")
     path = terminal_pointer(run, terminal)
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     body = json.dumps({"schema": TERMINAL_SCHEMA, "run": run, "terminal": terminal,
                        "coordination_capability": capability}, sort_keys=True, separators=(",", ":"))
     try:
-        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        home = terminal_home(run, terminal, create=True)
+    except OSError as error:
+        refuse("capability", "a home under the lane state directory with no linked ancestor",
+               f"{path.parent} could not be reached ({error.strerror or error})",
+               "remove the link or file in its place; a pointer is never written through one")
+    try:
+        descriptor = os.open("profile.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                             0o600, dir_fd=home)
     except FileExistsError:
         refuse("capability", "a new home for this terminal", f"a minted profile already at {path}",
                "bind a new terminal; a minted capability is never replaced")
+    finally:
+        os.close(home)
     with os.fdopen(descriptor, "w", encoding="ascii") as out:
         out.write(body)
     return path
@@ -211,14 +248,23 @@ def mint_terminal_profile(run: str, terminal: str, capability: str) -> Path:
 def remove_terminal_profile(run: str, terminal: str, capability: str) -> bool:
     """Remove the pointer only when it holds ``capability``: the unlink partner for a
     COMMIT that did not land after the file was written. False when there is none."""
-    path = terminal_pointer(run, terminal)
     try:
-        held = json.loads(path.read_text(encoding="ascii")).get("coordination_capability")
-    except (OSError, ValueError, AttributeError):
+        home = terminal_home(run, terminal, create=False)
+    except OSError:
         return False
-    if not isinstance(capability, str) or held != capability:
-        return False
-    path.unlink()
+    try:
+        try:
+            with os.fdopen(open_pointer(home), "r", encoding="ascii") as handle:
+                if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                    return False
+                held = json.loads(handle.read()).get("coordination_capability")
+        except (OSError, ValueError, AttributeError):
+            return False
+        if not isinstance(capability, str) or held != capability:
+            return False
+        os.unlink("profile.json", dir_fd=home)
+    finally:
+        os.close(home)
     return True
 
 
@@ -238,18 +284,33 @@ def terminal_profile():
     expected = terminal_pointer(run, terminal)
     if path.name != expected.name or os.path.realpath(path.parent) != os.path.realpath(expected.parent):
         malformed(f"location {named}")
+    # The realpaths above agree when both cross the same linked ancestor, so the
+    # file is read through the home terminal_home reaches with no link followed.
     try:
-        status = os.lstat(path)
+        home = terminal_home(run, terminal, create=False)
     except FileNotFoundError:
         refuse("capability", TERMINAL_EXPECTED, "missing", TERMINAL_NEEDED)
-    if not stat.S_ISREG(status.st_mode):
-        malformed("file type")
-    if status.st_mode & 0o077:
-        malformed("permissions")
+    except OSError:
+        malformed(f"location {named}")
     try:
-        value = json.loads(path.read_text(encoding="ascii"))
-    except (OSError, ValueError):
-        malformed("json")
+        try:
+            descriptor = open_pointer(home)
+        except FileNotFoundError:
+            refuse("capability", TERMINAL_EXPECTED, "missing", TERMINAL_NEEDED)
+        except OSError:
+            malformed("file type")
+        with os.fdopen(descriptor, "r", encoding="ascii") as handle:
+            status = os.fstat(handle.fileno())
+            if not stat.S_ISREG(status.st_mode):
+                malformed("file type")
+            if status.st_mode & 0o077:
+                malformed("permissions")
+            try:
+                value = json.loads(handle.read())
+            except (OSError, ValueError):
+                malformed("json")
+    finally:
+        os.close(home)
     if not isinstance(value, dict) or set(value) != TERMINAL_KEYS:
         malformed("keys")
     if value["schema"] != TERMINAL_SCHEMA:

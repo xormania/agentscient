@@ -650,6 +650,42 @@ class TheOwnerTerminal(unittest.TestCase):
         with self.named(elsewhere):
             self.assertIn("; found malformed location", self.refused(self.m.capability_digest))
 
+    def test_a_symlinked_ancestor_never_leads_outside_the_state_dir(self):
+        # origin: A-548 (record 20260923T060230Z-review-codex-bd7988#1): mkdir followed
+        # an ancestor symlink, O_NOFOLLOW guarded only profile.json, and the reader's
+        # two realpaths crossed the same link, so mint wrote outside the state root,
+        # the digest read that file and remove unlinked it.
+        state = self.world.xdg_state / "testlane"
+        parts = ("runs", "R-3", "terminals", "PT-7", "home")
+        body = json.dumps({"schema": "owner-terminal-profile/1", "run": "R-3", "terminal": "PT-7",
+                           "coordination_capability": self.CAP}, sort_keys=True)
+        for depth in range(1, len(parts) + 1):
+            linked = state.joinpath(*parts[:depth])
+            outside = self.world.root / f"outside-{depth}"
+            with self.subTest(ancestor="/".join(parts[:depth])):
+                linked.parent.mkdir(parents=True, exist_ok=True)
+                outside.mkdir()
+                linked.symlink_to(outside, target_is_directory=True)
+                try:
+                    landed = outside.joinpath(*parts[depth:], "profile.json")
+                    self.refused(lambda: self.m.mint_terminal_profile("R-3", "PT-7", self.CAP))
+                    self.assertFalse(landed.exists(), "mint wrote through the link")
+                    landed.parent.mkdir(parents=True, exist_ok=True)
+                    landed.write_text(body)
+                    landed.chmod(0o600)
+                    with self.named(self.home / "profile.json"):
+                        self.assertIn("; found malformed location", self.refused(self.m.capability_digest))
+                    self.assertFalse(self.m.remove_terminal_profile("R-3", "PT-7", self.CAP))
+                    self.assertTrue(landed.is_file(), "remove unlinked through the link")
+                finally:
+                    linked.unlink()
+        # Clean neighbour: the same tree with no link mints, reads and removes.
+        path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
+        self.assertEqual(Path(path), self.home / "profile.json")
+        with self.named(path):
+            self.assertEqual(self.m.terminal_profile()["coordination_capability"], self.CAP)
+        self.assertTrue(self.m.remove_terminal_profile("R-3", "PT-7", self.CAP))
+
     def test_a_minted_home_is_never_replaced(self):
         path = self.m.mint_terminal_profile("R-3", "PT-7", self.CAP)
         before = Path(path).read_text()
