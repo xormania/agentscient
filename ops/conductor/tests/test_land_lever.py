@@ -22,14 +22,13 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 from live_store_guard import IGNORE, TOLERATE_NEW
 
-from ops.testkit import Result, Timeout, World, run
+from ops.testkit import Timeout, World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "land.py"
@@ -100,13 +99,6 @@ def _git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
     if result.exit != 0:
         raise AssertionError(f"{args} in {cwd}: {result.stderr}")
     return result.stdout
-
-
-def _completed(result) -> subprocess.CompletedProcess:
-    """The kit's Result in the shape the family's assertions read."""
-    return subprocess.CompletedProcess(
-        list(result.argv), result.exit, result.stdout, result.stderr
-    )
 
 
 class _LandFixture(unittest.TestCase):
@@ -255,8 +247,7 @@ class _LandFixture(unittest.TestCase):
         )
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = _completed(
-            run(
+        proc = run(
                 [
                     "git",
                     "-c",
@@ -271,7 +262,6 @@ class _LandFixture(unittest.TestCase):
                 env=self.git_env(),
                 timeout=RUN_CAP,
             )
-        )
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -302,15 +292,13 @@ class _LandFixture(unittest.TestCase):
 
     def parsed_trailers(self, rev: str) -> str:
         msg = self.message(rev)
-        proc = _completed(
-            run(
+        proc = run(
                 ["git", "interpret-trailers", "--parse"],
                 cwd=self.repo,
                 env=self.git_env(),
                 stdin=msg,
                 timeout=RUN_CAP,
             )
-        )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         return proc.stdout
 
@@ -353,14 +341,12 @@ class _LandFixture(unittest.TestCase):
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
         try:
-            return _completed(
-                run(
+            return run(
                     [sys.executable, str(self.staged), *argv],
                     cwd=self.repo,
                     env=env,
                     timeout=RUN_CAP,
                 )
-            )
         except Timeout as exc:
             self.fail(f"land exceeded {RUN_CAP}s: {exc}")
 
@@ -398,15 +384,7 @@ class _LandFixture(unittest.TestCase):
         return None
 
     def assert_refusal(self, proc, class_name: str) -> None:
-        result = Result(
-            tuple(proc.args),
-            proc.returncode,
-            proc.stdout or "",
-            proc.stderr or "",
-            0.0,
-            str(self.repo),
-        )
-        refusal = result.refusal()
+        refusal = proc.refusal()
         token = class_name.lower().replace("_", "-")
         compact = refusal.line.lower().replace("_", "-")
         spaced = token.replace("-", " ")
@@ -474,8 +452,7 @@ class _LandFixture(unittest.TestCase):
             self._plant_bytes(path, content.encode("utf-8"))
             self.git("add", relpath)
             body = f"{subject}\n\n{TRAILER}\n" if with_trailer else f"{subject}\n"
-            proc = _completed(
-                run(
+            proc = run(
                     [
                         "git",
                         "-c",
@@ -491,7 +468,6 @@ class _LandFixture(unittest.TestCase):
                     ),
                     timeout=RUN_CAP,
                 )
-            )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             sha = self.sha("HEAD")
             self.assertEqual(
@@ -1407,5 +1383,4 @@ class Reauthor(_LandFixture):
 
 if __name__ == "__main__":
     unittest.main()
-
 

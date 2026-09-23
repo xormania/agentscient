@@ -1,3 +1,4 @@
+# testkit: exempt inherits World and run from test_findings._FindingsFixture
 """The findings store carries a reviewer's practical label.
 
 A finding may carry `practical` (yes|no) and `failing` beside its four

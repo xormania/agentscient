@@ -35,7 +35,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -113,9 +112,9 @@ class _Acting(ls.CoordinationCore, ls._TempLaunch):
         would start it, minus the serve loop."""
         env = dict(os.environ)
         env["WF_AGENT"] = ls.FIXTURE_DISPATCHER
-        return subprocess.run(
+        return run(
             [sys.executable, str(ACTING), "--config", str(config), "check"],
-            capture_output=True, text=True, timeout=60,
+            timeout=60,
             cwd=str(ls.REPO), env=env)
 
     def acting(self, rec):
@@ -314,10 +313,10 @@ class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
         binding = json.loads((Path(config_path).parent / "enforcement/binding.json").read_text())
         env.pop("AGENTSCIENT_HOOK_PROFILE", None)
         env["COORDINATION_CAPABILITY"] = binding["coordination_capability"]
-        return subprocess.run(
+        return run(
             [sys.executable, str(ACTING), "--config", str(config_path),
              "call", tool, json.dumps(arguments or {})],
-            capture_output=True, text=True, timeout=60,
+            timeout=60,
             cwd=str(ls.REPO), env=env)
 
     def test_the_worker_its_own_config_names_can_call_through_it(self):

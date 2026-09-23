@@ -65,10 +65,18 @@ its sources. Three primitives and one pattern on them:
   stderr, duration, cwd), one timeout policy: expiry kills and reaps the
   child and raises, naming the argv. A result reads its own refusal line
   into class, expected, found and needed.
+  Family helpers return this same `Result`, preserving its timing and
+  working directory. The read-only `returncode` spelling aliases `exit`
+  for existing assertions; helpers do not copy it into CompletedProcess
+  objects or family-specific result classes. Refusal helpers delegate to
+  `Result.refusal` or `refusal_wire` before checking domain-specific details.
 - **Tools** (`fakes.py`, `fake_program.py`): one fake registry driven by
   data. A planted tool answers by argv from its spec, injects failure by
   data, and appends one JSON line per call to an append-only log. A
   wrapped real tool is logged the same way.
+  A custom executable that needs more than a response table lives in the
+  family's fixture directory and is planted through that registry. Its
+  program bytes are not embedded in a support module.
 - **cases** (`cases.py`): a case table addresses rows by id, never by
   count. `refusal_wire` asserts the wire on one row; `calibrate` runs a
   table against its planted faults and reports caught and quiet per

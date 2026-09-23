@@ -15,7 +15,6 @@ import re
 import shutil
 import sqlite3
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -216,15 +215,14 @@ class MatrixHookTests(unittest.TestCase):
         fails the fixture loudly rather than leaving a world that quietly
         refuses every dispatch below.
         """
-        tmp = Path(tempfile.mkdtemp(prefix="matrix-dispatcher-"))
-        conf = tmp / "lane.conf"
-        conf.write_text(f"LANE_NAME='{LANE_NAME}'\n", encoding="utf-8")
+        world = World(prefix="matrix-dispatcher-")
+        cls.addClassCleanup(world.close)
+        conf = world.plant_text("lane.conf", f"LANE_NAME='{LANE_NAME}'\n")
         result = run(
             [sys.executable, str(support.DISPATCHER_LEVER), "set", FIXTURE_SESSION,
              "--why", "the fixture's Dispatcher"],
-            cwd=str(tmp), timeout=support.RUN_CAP,
-            env=support.isolated_env(tmp, extra={
-                "XDG_STATE_HOME": str(tmp),
+            cwd=world.cwd, timeout=support.RUN_CAP,
+            env=world.env(extra={
                 "LANE_CONF": str(conf),
                 "WF_AGENT": "Fixture <fixture@example.invalid>",
                 "CLAUDE_CODE_SESSION_ID": FIXTURE_SESSION,
@@ -235,7 +233,7 @@ class MatrixHookTests(unittest.TestCase):
                 f"INVALID: dispatcher.py set exit {result.exit}: "
                 f"{result.stderr or result.stdout}"
             )
-        store = tmp / LANE_NAME / "state.db"
+        store = world.xdg_state / LANE_NAME / "state.db"
         if not store.is_file():
             raise support.PlantFailed(f"INVALID: the lever wrote no store at {store}")
         cls.dispatcher_store = store

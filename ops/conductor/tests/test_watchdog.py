@@ -155,25 +155,6 @@ MINUTES_OVERRUN = 120
 OMIT = object()
 
 
-class _Result(Result):
-    """Result compatibility for fixture subclasses outside this touch scope."""
-
-    @property
-    def returncode(self) -> int:
-        return self.exit
-
-
-def _result(result: Result) -> _Result:
-    return _Result(
-        result.argv,
-        result.exit,
-        result.stdout,
-        result.stderr,
-        result.duration,
-        result.cwd,
-    )
-
-
 # PIN_ARMED: first stdout line is always
 # `watchdog armed: store <path>, <n> records ignored as backlog, tick
 # <s>s`, where n counts the startup set in every family, not the closed
@@ -669,14 +650,12 @@ class _WatchdogFixture(unittest.TestCase):
         env = self.env(xdg=xdg, extra=extra_env, home=home)
         if extra_env is None or "WF_AGENT" not in extra_env:
             self.assertNotIn("WF_AGENT", env)
-        return _result(
-            run(
+        return run(
                 [sys.executable, "-u", str(self.staged), *argv],
                 cwd=REPO,
                 env=env,
                 timeout=timeout,
             )
-        )
 
     def once(
         self,
@@ -723,8 +702,7 @@ class _WatchdogFixture(unittest.TestCase):
             mutator = threading.Thread(target=_run_mutate)
             mutator.start()
         try:
-            return _result(
-                run(
+            return run(
                     [
                         timeout_tool,
                         "--signal=TERM",
@@ -739,7 +717,6 @@ class _WatchdogFixture(unittest.TestCase):
                     env=env,
                     timeout=seconds + 3,
                 )
-            )
         finally:
             if mutator is not None:
                 mutator.join(timeout=2)

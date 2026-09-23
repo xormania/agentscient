@@ -22,7 +22,6 @@ import contextlib
 import json
 import os
 import signal
-import subprocess
 import sys
 import time
 import unittest
@@ -74,13 +73,6 @@ CONF_ENV = "LANE_CONF"
 # invoking WF_AGENT when it matches Name <address>, else
 # WF_AGENT_DEFAULT. A well-formed invoking WF_AGENT does not require
 # WF_AGENT_DEFAULT to be present in conf or local conf.
-
-
-def _completed(result: Result) -> subprocess.CompletedProcess:
-    """The kit result in the inherited fixture's established shape."""
-    return subprocess.CompletedProcess(
-        list(result.argv), result.exit, result.stdout, result.stderr,
-    )
 
 
 def _porcelain(cwd: Path, world: World) -> str:
@@ -306,7 +298,7 @@ class _WrapperFixture(unittest.TestCase):
         # The executable is still owned and planted by the fake registry.
         self._world.tools.plant(path.name, script=f"#!{sys.executable}\n{script}")
 
-    def _reap_reported_pid(self, proc: subprocess.CompletedProcess) -> None:
+    def _reap_reported_pid(self, proc: Result) -> None:
         for line in (proc.stdout or "").splitlines():
             if not line.startswith("launcher-pid:"):
                 continue
@@ -378,8 +370,8 @@ class _WrapperFixture(unittest.TestCase):
         # payload so the contracted assertion (exact argv, named refusal
         # text, exit 3) is what goes red.
         if not WRAPPER.is_file():
-            return subprocess.CompletedProcess(
-                args=argv, returncode=0, stdout="", stderr="",
+            return Result(
+                argv=tuple(argv), exit=0, stdout="", stderr="", duration=0.0, cwd=str(REPO),
             )
         try:
             result = run(
@@ -390,13 +382,13 @@ class _WrapperFixture(unittest.TestCase):
             )
             if self._world.tools.calls(self.pin.name) and not self.marker.exists():
                 self._world.plant_text(self.marker, "launched")
-            return _completed(result)
+            return result
         except AssertionError as exc:
             self.fail(
                 f"wrapper exceeded {timeout}s: {exc}"
             )
 
-    def combined(self, proc: subprocess.CompletedProcess) -> str:
+    def combined(self, proc: Result) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
 
     def full_flags(self, *extra: str, dry_run: bool = True, **kw) -> list[str]:
@@ -454,7 +446,7 @@ class _WrapperFixture(unittest.TestCase):
         )
 
     def parse_dry_run_object(
-        self, proc: subprocess.CompletedProcess
+        self, proc: Result
     ) -> dict:
         if not WRAPPER.is_file():
             return {}
@@ -479,7 +471,7 @@ class _WrapperFixture(unittest.TestCase):
         return payload
 
     def parse_dry_run(
-        self, proc: subprocess.CompletedProcess
+        self, proc: Result
     ) -> tuple[list[str], dict[str, str]]:
         if not WRAPPER.is_file():
             return [], {}
@@ -509,7 +501,7 @@ class _WrapperFixture(unittest.TestCase):
 
     def assert_wire_abort(
         self,
-        proc: subprocess.CompletedProcess,
+        proc: Result,
         class_name: str,
         *,
         named: tuple[str, ...] = (),
@@ -554,7 +546,7 @@ class _WrapperFixture(unittest.TestCase):
             "sys.stdout.flush()\n",
         )
 
-    def _printed_record_id(self, proc: subprocess.CompletedProcess) -> str:
+    def _printed_record_id(self, proc: Result) -> str:
         for line in (proc.stdout or "").splitlines():
             if line.startswith("record: "):
                 return line.split(" ", 1)[1].strip()
@@ -2417,7 +2409,7 @@ class MergeForwardBeforeLaunch(unittest.TestCase):
             )
             if expect is not None:
                 self.assertEqual(proc.exit, expect, proc.stdout + proc.stderr)
-            return _completed(proc)
+            return proc
         self.git = git
         git("-c", "init.defaultBranch=dev", "init", "-q")
         git("config", "user.email", "fixture@example.invalid")

@@ -23,7 +23,6 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 
 import support
 
@@ -42,11 +41,6 @@ def row(klass, event="PreToolUse", when=None, tools=("Bash",), escape="none", **
             "refuse": {"expected": f"not {klass}", "needed": f"avoid {klass}"}}
     base.update(extra)
     return base
-
-
-def _completed(result):
-    """The kit's Result in the shape the assertions below read."""
-    return SimpleNamespace(returncode=result.exit, stdout=result.stdout, stderr=result.stderr)
 
 
 class _Engine(unittest.TestCase):
@@ -78,8 +72,8 @@ class _Engine(unittest.TestCase):
         if tool_response is not None:
             payload["tool_response"] = tool_response
         payload.update(extra or {})
-        return _completed(run([sys.executable, str(ENGINE)], cwd=self.repo, env=env or self.env,
-                              stdin=json.dumps(payload), timeout=60))
+        return run([sys.executable, str(ENGINE)], cwd=self.repo, env=env or self.env,
+                              stdin=json.dumps(payload), timeout=60)
 
     def bash(self, command, event="PreToolUse", **kw):
         return self.run_event(event, "Bash", {"command": command}, **kw)
@@ -539,7 +533,7 @@ class TheLiveRegistryIsEvaluable(unittest.TestCase):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
         self.assertEqual(data["schema"], "agentscient.boundaries/2")
         with World(prefix="engine-lint-") as world:
-            proc = _completed(run([sys.executable, str(ENGINE), "lint"], cwd=HOOKS, env=world.env(), timeout=60))
+            proc = run([sys.executable, str(ENGINE), "lint"], cwd=HOOKS, env=world.env(), timeout=60)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         report = json.loads(proc.stdout)
         self.assertEqual(report["unknown_predicates"], [])

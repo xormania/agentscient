@@ -1,15 +1,12 @@
 {
- "by": "Claude Fable 5.1 <noreply@anthropic.com>",
+ "by": "Codex <noreply@openai.com>",
  "counts": {
-  "embedded_programs": 4,
-  "home_by_hand": 8,
+  "embedded_programs": 1,
+  "home_by_hand": 7,
   "run_without_timeout": 0
  },
  "files": {
   "embedded_programs": {
-   "ops/conductor/tests/test_ladder_lever.py": 1,
-   "ops/devlane/dispatch/tests/agy_dispatch_support.py": 1,
-   "ops/devlane/dispatch/tests/launch_support.py": 1,
    "ops/devlane/workflow/tests/test_testkit_ratchet.py": 1
   },
   "home_by_hand": {
@@ -19,8 +16,7 @@
    "ops/devlane/harness/tests/test_agy_isolation.py": 1,
    "ops/devlane/harness/tests/test_credential_age_second_producer.py": 1,
    "ops/devlane/harness/tests/test_isolation.py": 1,
-   "ops/devlane/harness/tests/test_isolation_contract.py": 1,
-   "ops/testkit/tests/test_world.py": 1
+   "ops/devlane/harness/tests/test_isolation_contract.py": 1
   },
   "run_without_timeout": {}
  },
