@@ -251,6 +251,8 @@ def configuration() -> dict[str, str]:
 
 SEVERITIES = ("p1", "p2", "p3")
 FINDING_FIELDS = ("severity", "where", "claim", "reproduce")
+# The optional label (ops/devlane/task/envelope.py PRACTICAL_FIELDS): both or neither.
+PRACTICAL_FIELDS = ("practical", "failing")
 
 
 class EnvelopeRefused(Refused):
@@ -289,12 +291,15 @@ def validate_check_tests(envelope: object) -> None:
         if not isinstance(finding, dict):
             raise EnvelopeRefused(name, f"{name} as an object with the fields " + ", ".join(FINDING_FIELDS),
                                   f"{name} {_short(finding)}", "a quotation pair")
-        extra = sorted(set(finding) - set(FINDING_FIELDS))
-        missing = [field for field in FINDING_FIELDS if field not in finding]
+        labelled = any(field in finding for field in PRACTICAL_FIELDS)
+        fields = FINDING_FIELDS + PRACTICAL_FIELDS if labelled else FINDING_FIELDS
+        extra = sorted(set(finding) - set(fields))
+        missing = [field for field in fields if field not in finding]
         if extra or missing:
-            raise EnvelopeRefused(name, f"{name} with exactly the fields " + ", ".join(FINDING_FIELDS),
+            raise EnvelopeRefused(name, f"{name} with exactly the fields " + ", ".join(FINDING_FIELDS)
+                                  + ", and practical with failing or neither",
                                   f"{name} with extra {extra} and missing {missing}",
-                                  "the four fields and no other")
+                                  "the four fields, with practical and failing both or neither, and no other")
         if finding["severity"] not in SEVERITIES:
             raise EnvelopeRefused(f"{name}.severity", f"{name}.severity one of " + ", ".join(SEVERITIES),
                                   f"{name}.severity {_short(finding['severity'])}", "p1, p2 or p3")
@@ -314,6 +319,8 @@ def validate_check_tests(envelope: object) -> None:
             raise EnvelopeRefused(f"{name}.reproduce", f"{name}.reproduce as a command",
                                   f"{name}.reproduce {_short(reproduce)}",
                                   "a reproduce command (a finding without one is an opinion)")
+        if labelled:
+            _check_practical(name, finding["practical"], finding["failing"])
     tally = {key: sum(1 for finding in findings if finding["severity"] == key) for key in SEVERITIES}
     tally["opinions"] = 0
     if envelope.get("counts") != tally:
@@ -324,6 +331,23 @@ def validate_check_tests(envelope: object) -> None:
     if verdict != wanted:
         raise EnvelopeRefused("verdict", f"verdict {wanted} with {len(findings)} finding(s)",
                               f"verdict {_short(verdict)}", "verdict changes exactly when findings is non-empty")
+
+
+def _check_practical(name: str, practical: object, failing: object) -> None:
+    """The label: yes names the failing invocation, no names none."""
+    if practical not in ("yes", "no"):
+        raise EnvelopeRefused(f"{name}.practical", f"{name}.practical yes or no",
+                              f"{name}.practical {_short(practical)}",
+                              "yes with the failing invocation, or no")
+    given = isinstance(failing, str) and bool(failing.strip())
+    if practical == "yes" and not given:
+        raise EnvelopeRefused(f"{name}.failing", f"{name}.failing as the invocation that fails, on practical yes",
+                              f"{name}.failing {_short(failing)}",
+                              "the command someone will actually run, showing the failure")
+    if practical == "no" and failing is not None:
+        raise EnvelopeRefused(f"{name}.failing", f"{name}.failing null on practical no",
+                              f"{name}.failing {_short(failing)}",
+                              "null, or practical yes")
 
 
 def _quotation_pair(claim: str) -> bool:
