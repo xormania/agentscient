@@ -40,7 +40,7 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "watchdog.py"
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
-SIBLINGS = ("instrument.py", "laneconf.py")
+SIBLINGS = ("instrument.py", "laneconf.py", "dispatch_observation.py")
 CATALOGUE = REPO / "ops" / "devlane" / "task" / "jobs.json"
 
 HARNESS = "watchdog-harness-aa31"

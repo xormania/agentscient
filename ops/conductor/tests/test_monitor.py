@@ -43,7 +43,7 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "monitor.py"
 EXAMPLE = REPO / "ops" / "conductor" / "monitor.example.json"
 LANECONF = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 INSTRUMENT = REPO / "ops" / "conductor" / "tools" / "instrument.py"
-SIBLINGS = ("laneconf.py", "instrument.py")
+SIBLINGS = ("laneconf.py", "instrument.py", "dispatch_observation.py")
 
 AGENT = "Monitor Tester <monitor-tester@example.invalid>"
 BAD_AGENT = "JustAName"
