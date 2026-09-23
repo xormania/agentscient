@@ -227,10 +227,12 @@ class Adapter(common.ProtocolAdapter):
         method = frame.get("method")
         params = frame.get("params") if isinstance(frame.get("params"), dict) else {}
         other = self.other_native(params.get("sessionId"))
+        if other is not None:
+            # A foreign session's frame is refused before anything answers
+            # it: its permission request goes out unanswered (A-522 #2).
+            return other
         if "id" in frame and method is not None:
             return self.answer(rpc, frame, method, params, other)
-        if other is not None:
-            return other
         if method == "session/update":
             update = params.get("update") if isinstance(params.get("update"), dict) else {}
             kind = update.get("sessionUpdate")
