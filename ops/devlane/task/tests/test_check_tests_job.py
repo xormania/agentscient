@@ -40,7 +40,7 @@ OTHER_JOBS = (
 # 3600 (dispatch CONTRACT.md, owner 2026-09-22). LD-31 stays open: this
 # digest moves with any entry, a representation pin the contract does not own.
 OTHERS_SHA256 = (
-    "1a6e9f320232be67713206f9dbf466584ff1e6063a0a4a0c06d87a5050b5e6a2"  # previous: d9c37a95 re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
+    "7c436d7a0a4c25eed0310d86cec674a74e278badd286068b4871e5d016d1cc05"  # previous: 1a6e9f32 re-pinned 2026-09-23 (grant 332): adversarial-review and security-audit ask for the practical label; before that, previous: d9c37a95 re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
 )
 
 D1_PROMPT = (
