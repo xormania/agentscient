@@ -12,12 +12,12 @@ No row checks that the file is present: a presence check asserts
 nothing the subject does (docs/tests.md rule 9,
 20260923T020916Z-review-codex-5a41cd#4), and every row below runs the staged subject.
 
-Calibration gap (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
-the refusal table in test_the_cli_refuses_role_and_holder_on_the_wire has
-no planted faults. ops/testkit/cases.py calibrate anchors each mutant on
-the subject's text, and dispatch_mcp.py and dispatch_actions.py are
-absent, so this module has no mutants file; the faults follow the
-implementation.
+Planted faults (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
+dispatch_mcp_faults.py beside this module, anchored on agentscient-10's
+subjects at bfa82f5b; its docstring names the calibrate command.
+Calibrated over mcp-tools-list, mcp-role, mcp-holder, cli-role and
+cli-holder; the rest is a declared gap until its rows are green on the
+subject.
 
     python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_mcp.py
 """
@@ -192,9 +192,10 @@ class DispatchMcp(unittest.TestCase):
         )
 
     def launch_fields(self, key: str) -> dict[str, str]:
-        """The CLI flags as the tool's argument names."""
+        """The CLI flags as the tool's argument names; `--for A-n` is
+        `assignment` (the XO's ruling, 2026-09-23)."""
         return {
-            "for": self.assignment,
+            "assignment": self.assignment,
             "job": "verify",
             "harness": "grok",
             "branch": BRANCH,

@@ -9,10 +9,12 @@ red on its own assertion rather than on a missing-file exit.
 The one command that reads this file is
 ``python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_actions.py``.
 
-Calibration gap: planted faults follow the implementation.
-``ops/testkit/cases.py`` calibrate anchors each mutant on the subject's
-text, and ``dispatch_actions.py`` is absent, so this module has no mutants
-file. Fakes live in ``fakes/`` and are planted through the registry.
+Planted faults: ``dispatch_actions_faults.py`` beside this module, anchored
+on agentscient-10's subject at bfa82f5b; its docstring names the calibrate
+command. Calibrated over the rows green at that commit (worker-role,
+not-holder, store-unwritable); the rest of the table is a declared gap
+until its rows are green on the subject. Fakes live in ``fakes/`` and are
+planted through the registry.
 """
 
 from __future__ import annotations
