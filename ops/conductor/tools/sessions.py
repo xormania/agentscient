@@ -48,8 +48,8 @@ from pathlib import Path
 # on the path so the import resolves however this file was loaded.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    import instrument
     import coordination
+    import instrument
     import machine
     from coordination import ROLES
     from instrument import (
