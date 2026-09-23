@@ -116,6 +116,9 @@ class IssuedRuntime(ls.CoordinationCore, unittest.TestCase):
         self.assertNotIn("deny", json.dumps(self.guard(binding, "git status --porcelain")))
         self.assertIn("deny", json.dumps(self.guard(binding, "git push --force origin work")))
         profile.validate(binding)
+        own = self.core("who", session=binding["session"], profile=binding["binding"])
+        self.assertEqual(own.returncode, 0, own.stderr)
+        self.assertIn(binding["session"], own.stdout)
         result = self.call(binding, server, "coord_submit", {
             "assignment": assignment, "evidence": self.revision,
             "revision": self.revision, "generation": claimed["generation"]})

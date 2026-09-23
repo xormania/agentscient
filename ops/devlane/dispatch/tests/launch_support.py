@@ -1429,6 +1429,7 @@ class CoordinationCore:
 
     def core(self, *args, session=None, agent=FIXTURE_DISPATCHER, profile=None):
         env = dict(os.environ)
+        lever = CORE_LEVER
         env["WF_AGENT"] = agent
         if session:
             env[SESSION_KEY] = session
@@ -1438,8 +1439,12 @@ class CoordinationCore:
             env.pop("COORDINATION_CAPABILITY", None)
         if profile:
             env["AGENTSCIENT_HOOK_PROFILE"] = str(profile)
+            # A dispatched worker uses the core from its issued runtime,
+            # just like its guard and acting MCP server. The installation's
+            # core deliberately refuses a different source's profile.
+            lever = Path(profile).parent.parent / "runtime/ops/conductor/tools/coordination.py"
         return subprocess.run(
-            [sys.executable, str(CORE_LEVER), *args],
+            [sys.executable, str(lever), *args],
             capture_output=True, text=True, timeout=60,
             cwd=str(REPO), env=env)
 
