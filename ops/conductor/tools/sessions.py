@@ -1407,7 +1407,7 @@ def do_export(rest):
     if failures:
         print(f"partial {dest} ({len(members)} members, {files} files); first failure: {failures[0]}")
         return EXIT_FINDING
-    print(f"exported {dest} ({len(members)} members, {len(records)} records, {files} files)")
+    print(f"exported {dest} ({len(members)} members, {files} files) {len(records)} records")
     return EXIT_DONE
 
 
@@ -2138,7 +2138,7 @@ TRIAL_IDS = tuple(f"I-{n:02d}" for n in range(1, 15))
 TRIAL_ROW = re.compile(r"I-\d{2}")
 NOT_MEASURED = re.compile(r"not measured\b\s*(.*)", re.IGNORECASE)
 VERIFIED = re.compile(r"(?<![\w-])verified ([0-9a-f]{40})(?![0-9a-f])")
-LIVE = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
+LIVE_CELL = re.compile(r"(?<![\w/.-])live(?![\w/.-])")
 MOCK = re.compile(r"(?<![\w/.-])mock\s+\S+")
 
 
@@ -2222,7 +2222,7 @@ def trial_accept(rest):
     try:
         objective = json.loads(objective_file.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        refuse("acceptance", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
+        refuse("objective", f"R-{run['id']}'s objective record", f"{objective_file}: {exc.__class__.__name__}",
                f"sessions.py trial objective R-{run['id']} before any acceptance")
     rows = checked_record(options["record"])
     evidence = rows["I-14"]["evidence"]
@@ -2241,7 +2241,7 @@ def trial_accept(rest):
     fakes = objective.get("fakes", [])
     for key in TRIAL_IDS:
         row = rows[key]
-        if not LIVE.search(row["evidence"]):
+        if not LIVE_CELL.search(row["evidence"]):
             continue
         if MOCK.search(row["evidence"]):
             refuse("acceptance", f"{key}'s evidence as mock <name> or live, one of them",
