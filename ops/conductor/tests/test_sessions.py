@@ -1148,15 +1148,87 @@ class TheCleanNeighbours(_Scratch):
                 values.append(rendered)
         return values
 
+    def export_keys(self, dest: Path) -> set[str]:
+        """Every JSON key written under an export directory."""
+        found: set[str] = set()
+
+        def walk(node) -> None:
+            if isinstance(node, dict):
+                found.update(str(key) for key in node)
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        for path in dest.rglob("*"):
+            if not path.is_file():
+                continue
+            try:
+                walk(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, UnicodeError, ValueError):
+                continue
+        return found
+
+    def broken_export_keeps_the_capability_key(self, dest: Path):
+        """A broken exporter while sessions.py is absent.
+
+        The evidence files are present and the secret values are omitted,
+        and the capability key is still written.
+        origin: 20260922T234512Z-review-codex-5b18d7#5
+        """
+        script = self.world.plant_text(
+            "broken-export.py",
+            "import json, pathlib, sys\n"
+            f"dest = pathlib.Path({str(dest)!r})\n"
+            "member = dest / 'grunt'\n"
+            "member.mkdir(parents=True)\n"
+            "(member / 'pane.log').write_text('capture\\n', encoding='utf-8')\n"
+            "(member / 'launch.json').write_text('{}\\n', encoding='utf-8')\n"
+            "(member / 'adapter.log').write_text('diag\\n', encoding='utf-8')\n"
+            "(member / 'diagnostics.json').write_text("
+            "json.dumps(['adapter.log']) + '\\n', encoding='utf-8')\n"
+            "(dest / 'run.json').write_text("
+            "json.dumps({'coordination_capability': '[REDACTED]'}) + '\\n',"
+            " encoding='utf-8')\n"
+            "files = sum(1 for item in dest.rglob('*') if item.is_file())\n"
+            "sys.stdout.write(f'exported {dest} (1 members, {files} files)\\n')\n",
+        )
+        return run(
+            [sys.executable, str(script)],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+
     def test_a_full_export_omits_capability_and_credential_values(self):
-        """origin: 20260922T215604Z-review-codex-f6777b#15"""
+        """origin: 20260922T215604Z-review-codex-f6777b#15
+        origin: 20260922T234512Z-review-codex-5b18d7#5
+
+        The export omits the coordination_capability key itself, not only
+        the capability and credential values.
+        """
         self.skip_without_tmux()
         dest = self.world.root / "export"
         with self.subTest(id="full-export", origin=origin_finding(15)):
             started = self.sessions(*self.start_argv())
             self.assertEqual(started.exit, 0, started.stderr)
+            if not TOOL.is_file():
+                bindings = list(
+                    (self.state / "sessions").glob("*/grunt/profile/binding.json")
+                )
+                if not bindings:
+                    planted = (
+                        self.state / "sessions" / "R-1" / "grunt"
+                        / "profile" / "binding.json"
+                    )
+                    planted.parent.mkdir(parents=True)
+                    planted.write_text("{}\n", encoding="utf-8")
             secrets = self._plant_export_canaries("grunt")
-            proc = self.sessions("export", "--to", str(dest))
+            if TOOL.is_file():
+                proc = self.sessions("export", "--to", str(dest))
+            else:
+                proc = self.broken_export_keeps_the_capability_key(dest)
             self.assertEqual(proc.exit, 0, proc.stderr)
             self.assertTrue(
                 any(item.is_file() for item in dest.rglob("pane.log")),
@@ -1192,6 +1264,11 @@ class TheCleanNeighbours(_Scratch):
             blob = "\n".join(pieces)
             for secret in secrets:
                 self.assertNotIn(secret, blob)
+            self.assertNotIn(
+                "coordination_capability",
+                self.export_keys(dest),
+                "the capability key is present in the export",
+            )
 
     def test_unreadable_diagnostics_on_export_exits_1_and_names_the_failure(self):
         """origin: 20260922T215604Z-review-codex-f6777b#16
