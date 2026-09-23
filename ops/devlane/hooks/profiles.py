@@ -273,8 +273,15 @@ def codex_config_args(tokens):
     return result
 
 
+# The sessions bridge's protocol channel per harness (sessions-lever.md, Slice 2,
+# "Required of the wall" (1)): admitted only whole, with nothing before or after it.
+CHANNELS = {"codex": ("app-server", "--listen", "stdio://"), "grok": ("--no-auto-update", "agent", "stdio")}
+
+
 def interactive_args(harness, tokens):
     """Admit session UI arguments, never alternate native authority/configuration."""
+    if tuple(tokens) == CHANNELS.get(harness):
+        return list(tokens)
     groups = {
         "codex": {"value": "--model -m", "flag": "--no-alt-screen --strict-config --help -h --version -V"},
         "claude": {"value": "--model --effort --output-format --input-format --max-budget-usd", "uuid": "--session-id",
