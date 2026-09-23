@@ -219,6 +219,28 @@ class PrProofTests(unittest.TestCase):
                 reason = self.refusal(self.run_bash("gh pr ready 12"))
                 self.assertIn("found absent: " + token, reason)
 
+    def test_an_id_whose_leaf_ends_in_a_hyphen_is_absent_even_as_a_corpus_row(self):
+        # origin: A-544 (record 20260923T054308Z-review-codex-ec5e36#2): the corpus
+        # readers take any string id, so a row named "P-FIX-1-" made that token
+        # present and the flip passed. A leaf ends in a word character; a token
+        # that does not is never a row, whatever the corpus carries.
+        corpus = self.repo / CORPUS
+        for token in ("P-FIX-1-", "P-FIX-1--"):
+            with self.subTest(token=token):
+                self.world.plant_text(corpus, corpus.read_text(encoding="utf-8") + json.dumps(
+                    {"id": token, "kind": "serve", "lane": "git", "question": "q",
+                     "serve": "git log -1", "expect": "x"}) + "\n")
+                self.world.git("add", "-A")
+                self.world.git("commit", "-q", "-m", "fixture: a row id ending in a hyphen")
+                self.head = self.world.git("rev-parse", "HEAD").stdout.strip()
+                self.plant(body=self.GOOD.replace("P-FIX-1.", token + "."))
+                for command in ("gh pr ready 12", "gh pr merge 12 --merge"):
+                    reason = self.refusal(self.run_bash(command))
+                    self.assertIn("found absent: " + token, reason)
+        # Clean neighbour: the full id beside it still passes.
+        self.plant(body=self.GOOD)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
     def test_a_head_not_fetched_here_refuses_with_the_fetch(self):
         self.plant(body=self.GOOD, head="0" * 40)
         reason = self.refusal(self.run_bash("gh pr ready 12"))
