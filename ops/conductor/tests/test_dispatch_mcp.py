@@ -15,9 +15,9 @@ nothing the subject does (docs/tests.md rule 9,
 Planted faults (docs/tests.md rule 3, 20260923T020916Z-review-codex-5a41cd#5):
 dispatch_mcp_faults.py beside this module, anchored on agentscient-10's
 subjects at bfa82f5b; its docstring names the calibrate command.
-Calibrated over mcp-tools-list, mcp-role, mcp-holder, cli-role and
-cli-holder; the rest is a declared gap until its rows are green on the
-subject.
+Calibrated over the whole module at 02436b3c. Its three faults reach
+mcp-tools-list, mcp-role and cli-role; a fault for each other row is a
+declared gap.
 
     python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_mcp.py
 """
