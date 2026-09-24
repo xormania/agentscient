@@ -1,7 +1,9 @@
 # PR-01: observation and explicit measurement
 
-Owner-authorized dev-lane hand work, one producer (GPT-6 Astra Pro);
-independent second producer absent. Baseline: `50e675a5304689dc314b8d707d0c9a306c1255b5`.
+Original implementation came from the preceding chat. This follow-up reviews
+and finishes PR #296 directly in chat at xor's request, 2026-09-24. The broken
+dev-lane dispatcher is not a prerequisite for this repair. Independent second
+reviewer absent. Baseline: `50e675a5304689dc314b8d707d0c9a306c1255b5`.
 Delivery destination: `dev`, through a reviewed draft PR and passing CI.
 
 ## Contract
@@ -30,12 +32,42 @@ Delivery destination: `dev`, through a reviewed draft PR and passing CI.
 
 ## Validation record
 
-Implementation behavior was measured in a clean Linux sandbox against the
-source at `840a974a` (the code/test commit); this report and its custody probe
-are additive documentation. Native CI and the required security audit are
-separate readiness requirements, recorded on the PR when actually completed.
-No independent audit, full native CI pass or operator-host rehearsal is claimed
-by the local results below.
+The follow-up started from GitHub head
+`cf85d31fd45a9a0d85ccf7adacdd44583aba1132`. An authenticated source bundle
+provided the baseline; applying the PR patch reproduced all 2,465 source blobs
+from that head, verified against the GitHub tree. The only follow-up code/test
+change explicitly initializes the skills fixture before asserting an unknown
+row. Production implementation files remain unchanged.
+
+The original full CI run [35945700010](https://github.com/uscient/agentscient/actions/runs/35945700010)
+finished all 19 lane checks with one failing test:
+`test_skills.Refusals.test_an_unknown_skill_refuses_skill`. It expected a
+`skill` refusal from an absent store, which correctly returned a `store`
+refusal under PR-01. The same failure reproduced in this chat. The fixture
+now creates a known row through `add` before looking up `nosuch`; missing
+stores continue to refuse without initialization in the storage fault cases.
+The app job passed in that original run.
+
+Direct validation below ran in this chat's Linux sandbox. The local
+verification snapshot is `d1a6808d`; it contains the original implementation
+and the four-line fixture correction. The follow-up report changes no runtime
+or test inputs. Required final CI results are linked on PR #296, after the
+follow-up commit is published; these focused checks do not replace that gate.
+
+### Previous dispatcher audit: invalid, excluded
+
+Workflow [35945681015](https://github.com/uscient/agentscient/actions/runs/35945681015)
+was green and its shell exit file said zero, but artifact
+`pr01-native-security-audit`, record `20260924T020432Z-review-codex-d5243a`,
+contains `status: invalid`, `verdict: null`, and no findings. Its hooks blocked
+`lane_brief`, repository reads and even its suggested diagnostic. No source
+review occurred. This is a failed review attempt, not a clean audit.
+
+Xor's current direction is to finish this repair here because the dev-lane
+machinery is broken. This follow-up therefore reviews the changed source and
+runs its deterministic checks directly. It does not rerun the dispatcher or
+represent the invalid result as security evidence. No independent native
+security-audit pass is claimed.
 
 ### Read-call map
 
@@ -60,40 +92,45 @@ coordination authority and PR acceptance remain their existing owners (PR-07).
 
 ### Focused behavior and faults
 
-Commands below use the existing testkit, real tools, bounded subprocesses,
-fixture stores, and existing test families. No new test framework was added.
-The conductor tests run as `python3 -m unittest discover -s ops/conductor/tests
--p <pattern>`; hook tests use `-s ops/devlane/hooks/tests`.
+The existing testkit, fixture stores and test families were used directly.
+Commands are `python3 -m unittest discover -s ops/conductor/tests -p PATTERN`,
+except the hook tests, which use `-s ops/devlane/hooks/tests`.
 
-| Pattern / command | Executed result |
+| Pattern / command | Executed result in this follow-up |
 |---|---|
-| `test_deliverable.py` before implementation | 17 tests, eight failures: the new observation/measurement behavior was red. |
-| `test_storage.py` before implementation | 10 tests; 13 failed subcases and 26 errors, including the absent writer-mode API. |
-| `test_deliverable.py` after implementation | 18 tests passed; same discover command as red. |
-| `test_storage.py` after implementation | 11 tests passed; same discover command as red. |
-| `test_hand.py` | 31 tests passed. |
-| `test_skills.py` | 23 tests passed. |
-| `test_findings*.py` initial run | 61 tests, two export-fixture failures caused by their old automatic-initialization assumption; the other 59 passed. |
-| `test_findings_export_write.py` after explicit fixture initialization | Three tests passed; no claim of a second complete 61-test local run. |
-| `test_instrument*.py` | 87 tests passed. |
-| `test_engine.py` (hooks) | 33 tests passed, including a real marker-producing target never measured by Stop. |
-| `test_onboard_lever.py -k TheLockLine` | Seven tests passed in the isolated rerun. An earlier concurrent run timed out in unrelated one-second fake register/ledger calls; no production timeout was widened. |
+| `test_skills.py`, original PR head | 12 tests; one failure, matching CI. |
+| `test_skills.py`, after fixture correction | 12 passed with the same command. |
+| `test_skills_registry.py` | 23 passed. |
+| `test_deliverable.py` | 18 passed. |
+| `test_storage.py` | 11 passed. |
+| `test_handwork_ledger.py` | 31 passed. |
+| `test_findings*.py` | All 61 passed. |
+| `test_instrument*.py` | 87 passed. |
+| `test_engine.py` (hooks) | 33 passed. |
+| `test_onboard_lever.py -k TheLockLine` | Seven passed. |
+
+Total: 283 passing focused tests, no skips. The earlier report mislabeled the
+23-test skills-registry run as `test_skills.py` and the handwork run as
+`test_hand.py`. Discovery with `test_hand.py` collected zero tests and was not
+counted as a pass; the correct command and its actual result are above.
 
 The storage family exercises 54 read/fault combinations: missing, corrupt,
-locked, incompatible, unreadable and populated stores across the hand,
-findings and skills read APIs. Before/after snapshots compare domain file
-bytes, modification times and directory entries. Identity acquisition during
-reads is a planted failure. A live WAL fixture checks that committed recent
-rows remain readable; no immutable-database workaround hides them. A legacy
-findings store is rejected unchanged on read, then explicitly migrated while
-preserving dispositions. CLI missing-store refusals are also exercised.
+locked, incompatible, unreadable and populated stores across hand, findings
+and skills. Snapshots compare domain bytes, modification times and directory
+entries; read-time identity acquisition is a planted failure. A real WAL
+fixture checks committed rows remain visible. Legacy findings reads refuse
+without migration; explicit writers preserve existing dispositions while
+migrating. CLI missing-store refusals and read-only write rejection also pass.
 
-Deliverable fixtures cover successful and failed explicit measurements, absent
-and invalid lock data, retargeting, stale metadata, marker nonexecution through
-show/onboard/Stop, and a target changed during measurement without overwriting
-the concurrent update.
+Deliverable fixtures cover failed and successful explicit measurements,
+absent and invalid locks, marker nonexecution through show/onboard/Stop,
+historical metadata, retargeting and concurrent target replacement. Review
+of the source confirmed that read adapters use the shared read-only opener;
+measurement retains bounded argv execution; publication rechecks the held
+target; explicit file exports require identity. Recorded results do not
+become a current applicability decision.
 
-Executed mutation calibration at `840a974a`:
+Mutation calibration on the local verification snapshot:
 
 ```sh
 python3 ops/testkit/cases.py calibrate \
@@ -104,27 +141,25 @@ python3 ops/testkit/cases.py calibrate \
 
 Clean: green. All three planted faults caught; zero quiet faults:
 `M-unmeasured-measures`, `M-any-option-admitted`, and
-`M-done-does-not-measure`. The full deliverable family above covers the other
-behaviors; this narrow calibration does not replace it.
+`M-done-does-not-measure`. This calibration supplements the full deliverable
+family rather than replacing it.
 
-### Same-host latency
+### Same-host latency, repeated in this follow-up
 
-Sequential matched-fixture runs used Python 3.13.5 on Linux 6.18.44 in this
-sandbox, not xor's workstation. Each fixture had three targets, each with a
-fake measurement that sleeps 50 ms. Each sample starts a new CLI process.
-"First" is process-cold, not a cold disk/cache claim; OS caches were not dropped.
-"Repeated" is the median of the next two invocations. Startup overhead on this
-sandbox dominates the post-change result. These are observations, not an SLA.
+Python 3.12.14 on Linux x86_64, in the same chat sandbox for baseline and
+candidate. Existing `World`, fake tools and `run` supplied three targets,
+each with a measurement that sleeps 50 ms. Each sample starts a new CLI
+process. First means process-cold, not a cold filesystem cache; repeated is
+the median of the next two reads. These observations do not predict the
+operator host's latency.
 
-| Operation | Baseline first / repeated | Candidate first / repeated | Measurement invocations across three reads, before / after |
+| Operation | Baseline first / repeated | Candidate first / repeated | Measurement starts across three reads, before / after |
 |---|---|---|---|
-| `show` | 2.908 s / 2.975 s | 0.711 s / 0.710 s | 9 / 0 |
-| `show --unmeasured` | 0.672 s / 0.684 s | 0.719 s / 0.722 s | 0 / 0 |
+| `show` | 0.267 s / 0.264 s | 0.046 s / 0.050 s | 9 / 0 |
+| `show --unmeasured` | 0.048 s / 0.047 s | 0.045 s / 0.047 s | 0 / 0 |
 
-The compatibility alias was already non-measuring. The meaningful change is
-that ordinary display now has that property too. No arbitrary latency gate
-was introduced; operator-host latency and native long-lived sessions remain
-unmeasured here.
+The compatibility alias already avoided measurement. Ordinary display now
+shares that property. No arbitrary response-time gate was added.
 
 ### Migration, rollback and remaining boundaries
 
@@ -150,4 +185,5 @@ transport is removed from the final tree before readiness.
 
 The actual user's worktrees, runtime databases and active sessions were not
 accessible from this sandbox. None were cleaned, pruned, replaced or claimed.
-The scoped hand declarations and fixtures used separate sandbox state.
+Follow-up fixtures used separate sandbox state; no live dispatch, grant or
+operator-state workflow was used to perform this repair.

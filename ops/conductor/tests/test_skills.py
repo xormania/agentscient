@@ -97,6 +97,10 @@ class Refusals(_Fixture):
                 self.assert_refusal(self.run_tool(*argv), "arguments")
 
     def test_an_unknown_skill_refuses_skill(self):
+        # An unknown row is observable only after an explicit writer creates
+        # the store. Missing-store reads have their own storage fault cases.
+        created = self.run_tool("add", "known", "existing fixture skill")
+        self.assertEqual(created.exit, 0, created.stdout + created.stderr)
         for argv in (("show", "nosuch"), ("note", "nosuch", "t"),
                      ("retire", "nosuch", "r"), ("log-use", "nosuch", "d"),
                      ("log-miss", "nosuch", "d")):
