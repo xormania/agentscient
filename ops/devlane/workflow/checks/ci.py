@@ -20,7 +20,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from ops.devlane.workflow.checks import ci_runners, lane
+from ops.devlane.workflow.checks import ci_parallel, ci_runners, lane
 from ops.testkit import Check, World, execute_checks, run
 
 ROOT = lane.ROOT
@@ -65,7 +65,7 @@ def canonical_commit(root, env, source):
 
 def toolchain(root, env, kind):
     names = {k: TOOLS[k] for k in (("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux", "bwrap")
-                                  if kind == "lane" else ("git", "python3", "bash", "php", "composer", "jq"))}
+                                  if kind != "app" else ("git", "python3", "bash", "php", "composer", "jq"))}
     found = {}
     for name, args in names.items():
         path = shutil.which(name, path=env["PATH"])
@@ -73,7 +73,7 @@ def toolchain(root, env, kind):
             raise ValueError(f"ci: expected declared tool {name}; found absent; needed install it on the runner")
         version = checked((path, *args), root, env).splitlines()[:2]
         found[name] = {"version": version, "binary": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
-    if kind == "lane":
+    if kind != "app":
         # Exercise the capability the existing profile tests require before
         # spending minutes launching fixtures which would all refuse it.
         checked(("bwrap", "--unshare-user", "--ro-bind", "/", "/", "--proc", "/proc",
@@ -227,7 +227,7 @@ def reusable(api, *, key, checks, kind, repository, current_run, current_attempt
                     continue
             elif revision != source["head_sha"]:
                 continue
-            if kind == "lane":
+            if kind != "app":
                 if (receipt["inputs"].get("tree") != receipt["tree"]
                         or receipt.get("tested_revision") != receipt["inputs"].get("git", {}).get("canonical")):
                     continue
@@ -271,9 +271,10 @@ def write_output(path, **values):
 def run_ci(kind, *, root=ROOT, ambient=None, api=None):
     ambient = dict(os.environ) if ambient is None else ambient
     runner = ci_runners.runner_info(ambient)
-    # These suites spend substantial time waiting on owned processes. A CPU
-    # count cap serialized the same plan on standard two-CPU hosted runners.
-    workers = 8 if kind == "lane" else 1
+    if kind not in ("lane", "app", *ci_parallel.JOBS):
+        raise ValueError("ci: unknown check partition")
+    # Interpreter-heavy CLI suites contend badly beyond available CPUs.
+    workers = min(8, os.cpu_count() or 1) if kind != "app" else 1
     started = time.monotonic()
     repository = ambient.get("GITHUB_REPOSITORY", "")
     run_id, attempt = int(ambient.get("GITHUB_RUN_ID", "0")), int(ambient.get("GITHUB_RUN_ATTEMPT", "1"))
@@ -296,17 +297,19 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         canonical, tree, parents = canonical_commit(root, env, source)
         refs = git(root, env, "for-each-ref", "--format=%(refname) %(objectname)",
                    "refs/heads/records/", "refs/remotes/origin/records/")
-        checks = lane.plan(root) if kind == "lane" else app_plan(root)
-        if kind == "lane" and any(c.name == "probes" for c in checks):
+        checks = lane.plan(root) if kind != "app" else app_plan(root)
+        if kind in ci_parallel.JOBS:
+            checks = ci_parallel.partition(checks, root=root)[kind]
+        if kind != "app" and any(c.name == "probes" for c in checks):
             seed_probe_store(root, env)
         # Probes can read mutable forge state and publication metadata. Always
         # execute this cheap live observation on the actual event checkout.
         reusable_checks = [c for c in checks if c.name != "probes"]
-        inputs = {"schema": SCHEMA, "tree": tree if kind == "lane" else application_tree(root, env),
-                  "git": {"canonical": canonical, "records": refs} if kind == "lane" else None,
+        inputs = {"schema": SCHEMA, "tree": tree if kind != "app" else application_tree(root, env),
+                  "git": {"canonical": canonical, "records": refs} if kind != "app" else None,
                   "toolchain": tools, "runner_environment": runner,
                   "workers": workers,
-                  "term_wall": digest(env["TERM_WALL"]) if kind == "lane" else None,
+                  "term_wall": digest(env["TERM_WALL"]) if kind != "app" else None,
                   "checks": [(c.name, c.argv, c.timeout) for c in checks]}
         key = digest(inputs)
         source_sha = ambient.get("GITHUB_SHA", source)
@@ -348,7 +351,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
 
         # Live guards see the original checkout. Deterministic suites get the
         # exact same canonical object before and after publication by merge.
-        guard_names = {c.name for c in lane.GUARDS} if kind == "lane" else set()
+        guard_names = {c.name for c in lane.GUARDS} if kind != "app" else set()
         guards = [c for c in checks if c.name in guard_names]
         tests = [c for c in checks if c.name not in guard_names]
         execute_checks(checks, cwd=root, env=env)  # complete preflight, no starts
@@ -356,7 +359,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         if status == 0:
             git(root, env, "checkout", "--detach", canonical)
             try:
-                status = lane.run_plan(tests, root=root, env=env, scope="SUITES" if kind == "lane" else "APP",
+                status = lane.run_plan(tests, root=root, env=env, scope="SUITES" if kind != "app" else "APP",
                                        cached=cached, record=record, workers=workers)
             finally:
                 git(root, env, "checkout", "--detach", source)
@@ -381,7 +384,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("kind", choices=("lane", "app"))
+    parser.add_argument("kind", choices=("lane", "app", *ci_parallel.JOBS))
     args = parser.parse_args(argv)
     try:
         return run_ci(args.kind)

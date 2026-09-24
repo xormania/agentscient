@@ -2,8 +2,8 @@
 
 Owner direction, 2026-09-23: consolidate CI into shared check definitions,
 bounded execution and a verdict that cannot pass missing work. This replaces
-the old workflow step-order and absent-suite behavior. It does not change the
-application job or the release evidence attached to a push on dev.
+the old workflow step-order and absent-suite behavior. Owner correction on 2026-09-24 separates automatic dev verification from
+application CI, whose production design is still undecided.
 
 `bash ops/bin/suites.sh` is the full local lane gate. Its adapter,
 `lane.py`, declares the required checks and suite families once. The generic
@@ -34,8 +34,9 @@ timeouts and result data remain owned by `ops.testkit.run`.
 
 The GitHub workflow prepares checkout and record refs, supplies TERM_WALL,
 and invokes the CI adapter described below with the same lane plan.
-Its lane and app jobs, triggers,
-concurrency, timeouts and pinned checkout remain. The workflow uses JSON
+Four parallel jobs execute the complete dev plan. The required `lane` job
+validates all four receipts and refuses any missing or failed result.
+The old app configuration is retained in `ci-app-manual.yml`, dispatch-only. The workflow uses JSON
 syntax within its .yml file, a YAML subset read by the standard JSON parser;
 the former test-only handwritten YAML parser is retired. The configuration
 closure and PR-readiness readers consume that same format. PR readiness also
@@ -67,18 +68,28 @@ repeating successful verification. Use GitHub-hosted runners until the included
 eight-minute hosted burns was not a request to abandon this plan. PR297's
 self-hosted optimization was the first part of PR02, not its completion.
 
+Owner correction, 2026-09-24: four minutes is the maximum for a successful CI
+run. Each dev partition has a four-minute hard timeout, including setup. The
+aggregate also rejects a complete run over 240 seconds, measured from the
+first native job start through aggregation, including setup and gaps.
+Its own one-minute timeout bounds evidence collection. Timeout or
+incomplete coverage is a failure; the cap alone is not performance acceptance.
+Record the complete native run's duration before claiming this target is met.
+
 - Run inexpensive guards before suites. A failed guard ends the gate red
   without launching expensive work. Preflight still validates the whole plan.
 - Discover conductor modules independently, including newly added modules,
   and schedule with a bounded worker pool. Keep all existing cases and their
   failure semantics. Record module durations; target the previous roughly
   three-minute native gate, and report actual timing before claiming success.
-  The measured long dispatch and sessions-trial groups each use four disjoint
-  partitions of sorted, actually discovered test cases. New cases join the
-  partition automatically; import errors and empty partitions remain red.
-  CI explicitly uses eight workers for these process-heavy suites, including
-  on standard two-CPU hosted machines; the direct local gate retains its
-  CPU-aware default. Receipts record the actual CPU count and worker limit.
+  Every family discovers modules independently. Coordination and sessions-trial
+  each use four disjoint partitions of sorted real cases. Native durations from
+  run 35958340145 guide balanced scheduling; unknown modules use source size.
+  Cost hints never decide coverage. Newly discovered cases and modules join
+  automatically; import errors and empty partitions remain red.
+  CI bounds workers by the available CPU count, at most eight. Oversubscribing
+  interpreter-heavy CLI suites on two-CPU hosted runners caused contention
+  and timing failures. Receipts record the actual CPU count and worker limit.
 - CI uses private HOME, XDG and temporary roots through the existing testkit.
   Resolve declared tools before isolation, require them explicitly, and keep
   runner/API credentials out of child test environments. Preserve world
@@ -95,12 +106,14 @@ self-hosted optimization was the first part of PR02, not its completion.
   the same tree/parents therefore test the same Git object. Bind consumed
   record refs, tool identities, check definitions and relevant configuration.
   History-sensitive live probes run against the actual event checkout.
-- App inputs include the application tree plus CI definitions; independent
-  dev-lane source edits do not invalidate an otherwise identical app pass.
+- Automatic verification contains no application job and installs no PHP.
+  The Symfony fixture runtime case is explicitly excluded by its exact ID and
+  retained in the manual application workflow. Its dev-tooling structural and
+  fault-classification tests still run. Product CI design is deferred.
   Lane inputs conservatively include the full tracked tree. Unknown inputs
   or unavailable prior evidence cause real verification, never a cached green.
 - Each result says executed or reused and links its original run/job.
-  A reused marker is not an original execution. Preserve both required job
+  A reused marker is not an original execution. Preserve required job
   names and candidate associations across PR, push and retry events.
 - The workflow publishes bounded JSON evidence and readable job summaries.
   No extra database, dispatcher, model call or operator-session prerequisite
@@ -112,12 +125,12 @@ self-hosted optimization was the first part of PR02, not its completion.
 `hosted` selects standard `ubuntu-24.04`; `local` selects the existing
 GitHub-registered `self-hosted` runners. Any other value fails workflow
 expression evaluation with `INVALID_CI_RUNNER_MODE_expected_hosted_or_local`,
-before a job starts. Both required jobs use the same selector directly;
+before a job starts. Every dev job uses the same selector directly;
 there is no hosted helper job that could block local recovery at quota.
 A Gitea act_runner registration alone does not accept GitHub jobs.
 
 Hosted preparation uses commit-pinned setup actions: Python 3.12, CUE 0.17.1,
-Ruff 0.16.8, PHP 8.4 without coverage instrumentation, and Composer 2.
+and Ruff 0.16.8. PHP/Composer setup belongs only to the manual app workflow.
 The Ubuntu image supplies Git and Bash; missing jq, ripgrep, tmux and
 Bubblewrap are installed explicitly. Preflight proves Bubblewrap can create
 the namespace and bind mounts required by the existing isolation tests before
@@ -128,7 +141,7 @@ that binary `userns` permission, following the
 The system restriction and existing distro/vendor profiles remain intact.
 The copy is tested before it joins PATH. Local mode does not install tools or
 alter operator configuration. The CI adapter requires the actual declared
-tools; the same lint, configuration, suite and app checks enforce compatibility.
+tools; the same dev lint, configuration and suite checks enforce compatibility.
 Every receipt binds resolved tool versions/binary hashes and the actual runner
 environment. Hosted image identity is also an input. Switching environment or
 changing an image/tool forces fresh checks; changing only a runner name does
@@ -158,7 +171,7 @@ python3 -m ops.devlane.workflow.checks.ci_runners inspect --repo OWNER/REPO --mo
 `recover` validates the workflow, repository, trusted head repository and
 candidate, writes and reads back the variable, then requests a rerun of the
 original run. Its `requested` result is not a pass. `inspect` checks the
-original candidate SHA, latest attempt, both required completed successful jobs
+original candidate SHA, latest attempt, all five required successful dev jobs
 and their actual runner labels/names. Missing, duplicate, failed, cancelled,
 queued/offline or wrong-environment jobs remain `not-verified` (exit 1).
 Read/mutation errors refuse (exit 2); there is no automatic retry loop.

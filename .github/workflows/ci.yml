@@ -31,9 +31,9 @@
     "cancel-in-progress": "${{ github.event_name == 'pull_request' }}"
   },
   "jobs": {
-    "lane": {
+    "lane-0": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 15,
+      "timeout-minutes": 4,
       "steps": [
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -76,7 +76,7 @@
             "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
             "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
           },
-          "run": "python3 -m ops.devlane.workflow.checks.ci lane"
+          "run": "python3 -m ops.devlane.workflow.checks.ci lane-0"
         },
         {
           "name": "Preserve executed verification evidence",
@@ -91,9 +91,9 @@
         }
       ]
     },
-    "app": {
+    "lane-1": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 5,
+      "timeout-minutes": 4,
       "steps": [
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -111,15 +111,21 @@
           }
         },
         {
-          "name": "Prepare hosted PHP and Composer",
+          "name": "Prepare hosted CUE",
           "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240",
+          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
           "with": {
-            "php-version": "8.4",
-            "extensions": "ctype, dom, iconv, mbstring, xml, xmlwriter, sqlite3, pdo_sqlite",
-            "tools": "composer:v2",
-            "coverage": "none"
+            "version": "v0.17.1"
           }
+        },
+        {
+          "name": "Prepare hosted lane tools",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\nfor tool in rg tmux jq bwrap; do\n  package=\"$tool\"\n  [[ \"$tool\" != rg ]] || package=ripgrep\n  [[ \"$tool\" != bwrap ]] || package=bubblewrap\n  command -v \"$tool\" >/dev/null || missing+=(\"$package\")\ndone\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi\n# Ubuntu's documented per-program userns profile keeps the system policy on.\n# Use a CI-owned binary path; do not replace any distro/vendor profile.\nif ! bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true; then\n  sudo install -D -m 0755 /usr/bin/bwrap /opt/ci-tools/bwrap\n  sudo tee /etc/apparmor.d/ci-bwrap >/dev/null <<'APPARMOR'\nabi <abi/4.0>,\ninclude <tunables/global>\n/opt/ci-tools/bwrap flags=(unconfined) {\n  userns,\n}\nAPPARMOR\n  sudo apparmor_parser -r /etc/apparmor.d/ci-bwrap\n  /opt/ci-tools/bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true\n  echo /opt/ci-tools >> \"$GITHUB_PATH\"\nfi"
+        },
+        {
+          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
         },
         {
           "name": "Verify inputs, reuse proven checks, execute the remainder",
@@ -130,7 +136,7 @@
             "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
             "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
           },
-          "run": "python3 -m ops.devlane.workflow.checks.ci app"
+          "run": "python3 -m ops.devlane.workflow.checks.ci lane-1"
         },
         {
           "name": "Preserve executed verification evidence",
@@ -142,6 +148,163 @@
             "if-no-files-found": "error",
             "retention-days": 30
           }
+        }
+      ]
+    },
+    "lane-2": {
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 4,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Prepare hosted Python",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Prepare hosted CUE",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
+          "with": {
+            "version": "v0.17.1"
+          }
+        },
+        {
+          "name": "Prepare hosted lane tools",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\nfor tool in rg tmux jq bwrap; do\n  package=\"$tool\"\n  [[ \"$tool\" != rg ]] || package=ripgrep\n  [[ \"$tool\" != bwrap ]] || package=bubblewrap\n  command -v \"$tool\" >/dev/null || missing+=(\"$package\")\ndone\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi\n# Ubuntu's documented per-program userns profile keeps the system policy on.\n# Use a CI-owned binary path; do not replace any distro/vendor profile.\nif ! bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true; then\n  sudo install -D -m 0755 /usr/bin/bwrap /opt/ci-tools/bwrap\n  sudo tee /etc/apparmor.d/ci-bwrap >/dev/null <<'APPARMOR'\nabi <abi/4.0>,\ninclude <tunables/global>\n/opt/ci-tools/bwrap flags=(unconfined) {\n  userns,\n}\nAPPARMOR\n  sudo apparmor_parser -r /etc/apparmor.d/ci-bwrap\n  /opt/ci-tools/bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true\n  echo /opt/ci-tools >> \"$GITHUB_PATH\"\nfi"
+        },
+        {
+          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
+        },
+        {
+          "name": "Verify inputs, reuse proven checks, execute the remainder",
+          "id": "verify",
+          "env": {
+            "TERM_WALL": "${{ vars.TERM_WALL }}",
+            "GITHUB_TOKEN": "${{ github.token }}",
+            "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
+            "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
+          },
+          "run": "python3 -m ops.devlane.workflow.checks.ci lane-2"
+        },
+        {
+          "name": "Preserve executed verification evidence",
+          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "${{ steps.verify.outputs.artifact }}",
+            "path": "${{ steps.verify.outputs.receipt }}",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "lane-3": {
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 4,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Prepare hosted Python",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Prepare hosted CUE",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
+          "with": {
+            "version": "v0.17.1"
+          }
+        },
+        {
+          "name": "Prepare hosted lane tools",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\nfor tool in rg tmux jq bwrap; do\n  package=\"$tool\"\n  [[ \"$tool\" != rg ]] || package=ripgrep\n  [[ \"$tool\" != bwrap ]] || package=bubblewrap\n  command -v \"$tool\" >/dev/null || missing+=(\"$package\")\ndone\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi\n# Ubuntu's documented per-program userns profile keeps the system policy on.\n# Use a CI-owned binary path; do not replace any distro/vendor profile.\nif ! bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true; then\n  sudo install -D -m 0755 /usr/bin/bwrap /opt/ci-tools/bwrap\n  sudo tee /etc/apparmor.d/ci-bwrap >/dev/null <<'APPARMOR'\nabi <abi/4.0>,\ninclude <tunables/global>\n/opt/ci-tools/bwrap flags=(unconfined) {\n  userns,\n}\nAPPARMOR\n  sudo apparmor_parser -r /etc/apparmor.d/ci-bwrap\n  /opt/ci-tools/bwrap --unshare-user --ro-bind / / --proc /proc --dev /dev -- /bin/true\n  echo /opt/ci-tools >> \"$GITHUB_PATH\"\nfi"
+        },
+        {
+          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
+        },
+        {
+          "name": "Verify inputs, reuse proven checks, execute the remainder",
+          "id": "verify",
+          "env": {
+            "TERM_WALL": "${{ vars.TERM_WALL }}",
+            "GITHUB_TOKEN": "${{ github.token }}",
+            "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
+            "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
+          },
+          "run": "python3 -m ops.devlane.workflow.checks.ci lane-3"
+        },
+        {
+          "name": "Preserve executed verification evidence",
+          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "${{ steps.verify.outputs.artifact }}",
+            "path": "${{ steps.verify.outputs.receipt }}",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "lane": {
+      "needs": [
+        "lane-0",
+        "lane-1",
+        "lane-2",
+        "lane-3"
+      ],
+      "if": "${{ always() }}",
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 1,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "uses": "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "with": {
+            "pattern": "ci-proof-lane-*",
+            "path": "${{ runner.temp }}/lane-evidence"
+          }
+        },
+        {
+          "name": "Verify complete dev-lane evidence",
+          "env": {
+            "CI_JOB_RESULTS": "${{ toJSON(needs) }}",
+            "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
+            "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}",
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 -m ops.devlane.workflow.checks.ci_parallel \"${{ runner.temp }}/lane-evidence\""
         }
       ]
     }

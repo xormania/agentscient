@@ -15,6 +15,7 @@ from ops.devlane.workflow.checks.ci_contexts import (
     DerivationError,
     workflow_job_names,
 )
+from ops.devlane.workflow.checks.ci_parallel import JOBS
 from ops.devlane.workflow.checks.ci_runners import HOSTED, RUNS_ON
 from ops.testkit import World
 
@@ -44,7 +45,10 @@ class CiTwoJobs(unittest.TestCase):
 
     def assert_contract(self, doc):
         inspected = copy.deepcopy(doc)
-        for job in inspected["jobs"].values():
+        for name, job in inspected["jobs"].items():
+            if name == "lane":
+                self.assertEqual(job.pop("if"), "${{ always() }}")
+                continue
             for step in job["steps"]:
                 if step.get("if") == HOSTED:
                     self.assertNotIn("id", step)
@@ -62,15 +66,25 @@ class CiTwoJobs(unittest.TestCase):
             "group": "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
             "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
         })
-        self.assertEqual(set(doc["jobs"]), {"lane", "app"})
-        for name, job in doc["jobs"].items():
+        self.assertEqual(set(doc["jobs"]), {"lane", *JOBS})
+        aggregate = doc["jobs"]["lane"]
+        self.assertEqual(aggregate["needs"], list(JOBS))
+        self.assertEqual(aggregate["runs-on"], RUNS_ON)
+        self.assertEqual(aggregate["timeout-minutes"], 1)
+        self.assertEqual(aggregate["steps"][-1]["run"], 'python3 -m ops.devlane.workflow.checks.ci_parallel "${{ runner.temp }}/lane-evidence"')
+        self.assertEqual(aggregate["steps"][-1]["env"]["CI_JOB_RESULTS"], "${{ toJSON(needs) }}")
+        self.assertEqual(len(aggregate["steps"]), 3)
+        for name in JOBS:
+            job = doc["jobs"][name]
             self.assertEqual(job["runs-on"], RUNS_ON)
-            self.assertEqual(job["timeout-minutes"], 15 if name == "lane" else 5)
+            self.assertEqual(job["timeout-minutes"], 4)
             steps = job["steps"]
             actions = [step["uses"] for step in steps if "uses" in step]
-            expected_setup = ["actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
-                              "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1" if name == "lane"
-                              else "shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240"]
+            expected_setup = ["actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"]
+            if name in JOBS:
+                expected_setup.append("cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1")
+            else:
+                expected_setup.append("shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240")
             self.assertEqual(actions, [CHECKOUT, *expected_setup, UPLOAD])
             for step in steps:
                 if step.get("uses") in expected_setup:
@@ -82,7 +96,7 @@ class CiTwoJobs(unittest.TestCase):
             for step in steps:
                 self.assertNotIn("working-directory", step)
             commands = [step["run"] for step in steps if "run" in step and step.get("if") != HOSTED]
-            expected = ([RECORD_REFS] if name == "lane" else []) + [f"python3 -m ops.devlane.workflow.checks.ci {name}"]
+            expected = ([RECORD_REFS] if name in JOBS else []) + [f"python3 -m ops.devlane.workflow.checks.ci {name}"]
             self.assertEqual(commands, expected)
             self.assertEqual(steps[0]["with"]["fetch-depth"], 0)
             gate = next(step for step in steps if step.get("id") == "verify")
@@ -95,8 +109,12 @@ class CiTwoJobs(unittest.TestCase):
         self.assertNotIn("defaults", doc)
         self.assertNotIn("env", doc)
 
-    def test_the_workflow_executes_the_full_gate_and_application_checks(self):
+    def test_the_workflow_executes_the_complete_dev_gate(self):
         self.assert_contract(self.doc)
+        manual = json.loads((ROOT / ".github/workflows/ci-app-manual.yml").read_text())
+        self.assertEqual(manual["on"], {"workflow_dispatch": {}})
+        self.assertEqual(set(manual["jobs"]), {"app"})
+        self.assertNotIn("setup-php", json.dumps(self.doc))
 
     def test_step_names_have_no_effect_on_the_contract(self):
         for job in self.doc["jobs"].values():
@@ -105,7 +123,7 @@ class CiTwoJobs(unittest.TestCase):
         self.assert_contract(self.doc)
 
     def test_pr_readiness_derives_current_jobs_and_refuses_broken_json(self):
-        self.assertEqual(workflow_job_names(ROOT), ["app", "lane"])
+        self.assertEqual(workflow_job_names(ROOT), sorted(("lane", *JOBS)))
         for payload in ('{"jobs": {}}', '{"jobs": []}', '{"jobs": {"app": null}}', '{broken'):
             with self.subTest(payload=payload):
                 self.world.plant_text("cwd/.github/workflows/ci.yml", payload)
@@ -114,21 +132,21 @@ class CiTwoJobs(unittest.TestCase):
 
     def test_disabled_partial_hidden_and_duplicated_execution_is_detected(self):
         mutations = {
-            "disabled": lambda d: d["jobs"]["lane"]["steps"][-2].update(run="echo skipped"),
-            "masked-failure": lambda d: d["jobs"]["lane"]["steps"][-2].update(run=FULL_GATE + " || true"),
-            "partial": lambda d: d["jobs"]["lane"]["steps"][-2].update(run=FULL_GATE + " --suite ops/testkit/tests"),
-            "conditional": lambda d: d["jobs"]["lane"]["steps"][-2].update({"if": "false"}),
-            "ignored-failure": lambda d: d["jobs"]["lane"]["steps"][-2].update({"continue-on-error": True}),
-            "omitted": lambda d: d["jobs"]["lane"]["steps"].pop(),
-            "duplicated": lambda d: d["jobs"]["lane"]["steps"].insert(-1, d["jobs"]["lane"]["steps"][-2]),
-            "app-disabled": lambda d: d["jobs"]["app"]["steps"][-2].update(run="true"),
+            "disabled": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update(run="echo skipped"),
+            "masked-failure": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update(run=FULL_GATE + " || true"),
+            "partial": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update(run=FULL_GATE + " --suite ops/testkit/tests"),
+            "conditional": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update({"if": "false"}),
+            "ignored-failure": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update({"continue-on-error": True}),
+            "omitted": lambda d: d["jobs"][JOBS[0]]["steps"].pop(),
+            "duplicated": lambda d: d["jobs"][JOBS[0]]["steps"].insert(-1, d["jobs"][JOBS[0]]["steps"][-2]),
+            "partition-disabled": lambda d: d["jobs"][JOBS[1]]["steps"][-2].update(run="true"),
             "path-filter": lambda d: d["on"]["pull_request"].update(paths=["ops/**"]),
             "ignored-path": lambda d: d["on"]["push"].update({"paths-ignore": ["docs/**"]}),
-            "job-skip": lambda d: d["jobs"]["app"].update({"if": "false"}),
+            "job-skip": lambda d: d["jobs"][JOBS[1]].update({"if": "false"}),
             "wrong-branch": lambda d: d["on"]["push"].update(branches=["master"]),
             "cancel-push": lambda d: d["concurrency"].update({"cancel-in-progress": True}),
-            "wrong-runner": lambda d: d["jobs"]["lane"].update({"runs-on": "not-self-hosted"}),
-            "wrong-directory": lambda d: d["jobs"]["lane"]["steps"][-2].update({"working-directory": "elsewhere"}),
+            "wrong-runner": lambda d: d["jobs"][JOBS[0]].update({"runs-on": "not-self-hosted"}),
+            "wrong-directory": lambda d: d["jobs"][JOBS[0]]["steps"][-2].update({"working-directory": "elsewhere"}),
         }
         for origin, mutate in mutations.items():
             doc = copy.deepcopy(self.doc)

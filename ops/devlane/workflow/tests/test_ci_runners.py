@@ -7,6 +7,7 @@ import json
 import unittest
 
 from ops.devlane.workflow.checks import ci_runners
+from ops.devlane.workflow.checks.ci_parallel import JOBS
 from ops.testkit import World
 
 REPO = "example/project"
@@ -79,12 +80,12 @@ class Recovery(unittest.TestCase):
     def test_queued_offline_failed_missing_or_wrong_runner_is_not_completed_verification(self):
         job = {"name": "lane", "status": "completed", "conclusion": "success", "runner_name": "private-runner",
                "labels": ["self-hosted"]}
-        app = dict(job, name="app")
+        parts = [dict(job, name=name) for name in JOBS]
         complete = dict(self.run, conclusion="success")
-        self.assertEqual(ci_runners.verdict(complete, [job, app], "local", SHA)["state"], "passed")
-        for jobs in ([], [job], [job, job], [dict(job, status="queued", runner_name=""), app],
-                     [dict(job, conclusion="failure"), app], [dict(job, labels=["ubuntu-24.04"]), app]):
+        self.assertEqual(ci_runners.verdict(complete, [job, *parts], "local", SHA)["state"], "passed")
+        for jobs in ([], [job], [job, job], [dict(job, status="queued", runner_name=""), *parts],
+                     [dict(job, conclusion="failure"), *parts], [dict(job, labels=["ubuntu-24.04"]), *parts]):
             with self.subTest(jobs=jobs):
                 self.assertNotEqual(ci_runners.verdict(complete, jobs, "local", SHA)["state"], "passed")
         with self.assertRaisesRegex(ValueError, "candidate"):
-            ci_runners.verdict(dict(complete, head_sha="b" * 40), [job, app], "local", SHA)
+            ci_runners.verdict(dict(complete, head_sha="b" * 40), [job, *parts], "local", SHA)

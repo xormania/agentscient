@@ -115,6 +115,16 @@ class ReuseEvidence(unittest.TestCase):
         self.api.proof["results"].pop()
         self.assertEqual(set(self.read()), {"one"})
 
+    def test_partition_reuse_keeps_the_dev_source_and_history_validation(self):
+        self.api.artifact["name"] = f"ci-proof-lane-0-{self.api.key}-11-1"
+        self.api.proof["kind"] = self.api.job["name"] = "lane-0"
+        def read():
+            return ci.reusable(self.api, key=self.api.key, checks=self.checks, kind="lane-0",
+                               repository=REPO, current_run=12)
+        self.assertEqual(set(read()), {"one", "two"})
+        self.api.proof["tested_revision"] = "f" * 40
+        self.assertEqual(read(), {})
+
     def test_application_inputs_keep_ci_changes_and_ignore_independent_lane_code(self):
         common = [f"100644 blob {TREE}\tsrc/Kernel.php", f"100644 blob {BASE}\tops/devlane/workflow/checks/ci.py"]
         before = ci.application_digest(common + [f"100644 blob {BASE}\tops/conductor/tools/sessions.py"])
@@ -233,13 +243,13 @@ class IsolatedExecution(unittest.TestCase):
         self.assertEqual(len(self.world.tools.calls("install")), 1)
         self.assertEqual(len(self.world.tools.calls("probe")), 1)
 
-    def test_ci_retains_eight_bounded_workers_on_a_two_cpu_runner(self):
+    def test_ci_bounds_workers_to_available_cpus(self):
         tool = self.world.tools.plant("subject")
         checks = [Check("fixture", (str(tool),), 10)]
         ambient = self.world.env({"RUNNER_TEMP": str(self.world.tmp)})
         with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=2), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient), 0)
-        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {8})
+        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {2})
 
     def test_decision_probes_read_the_tracked_export_in_a_private_store(self):
         ci.seed_probe_store(ci.ROOT, self.env)

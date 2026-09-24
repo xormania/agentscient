@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from dataclasses import replace
+from functools import lru_cache
 from pathlib import Path
 
 from ops.testkit import Check, execute_checks, suite_checks
@@ -20,12 +22,36 @@ FAMILIES = (
 )
 # Independent modules prevent a growing alphabetical remainder from becoming
 # one eight-minute process. The shared kit proves complete, disjoint discovery.
-SHARDS = {"ops/conductor/tests": None}
+SHARDS = {directory: None for directory in FAMILIES}
 # Native run 35952536576 measured these at 196s and 251s respectively.
 PARTITIONS = {
-    "ops/devlane/dispatch/tests": {"test_*.py": 4},
-    "ops/conductor/tests": {"test_sessions_trial.py": 4},
+    "ops/conductor/tests": {"test_sessions_trial.py": 4, "test_coordination.py": 4},
 }
+APPLICATION_CASE = "test_symfony_app_app.SymfonyAppMakeProve.test_full_proof_after_composer_install"
+
+
+@lru_cache(maxsize=16)
+def measured_costs(root):
+    path = root / "ops/devlane/workflow/checks/ci-costs.json"
+    return json.loads(path.read_text())["seconds"] if path.exists() else {}
+
+
+def check_cost(check, root):
+    """Measured scheduling hints, with source-size estimates for new modules."""
+    if not check.required or not (root / check.required[0]).is_dir():
+        return 1
+    folder = root / check.required[0]
+    size = sum(path.stat().st_size for path in folder.glob(check.argv[-1]))
+    costs = measured_costs(root)
+    module = check.name.rsplit(":", 1)[0] if "--partition" in check.argv else check.name
+    cost = costs.get(module)
+    if cost is None:
+        family = costs.get(check.required[0] + ":test_*.py")
+        total = sum(path.stat().st_size for path in folder.glob("test_*.py"))
+        cost = family * size / max(1, total) if family is not None else size / 1000
+    if "--partition" in check.argv:
+        cost /= int(check.argv[check.argv.index("--partition") + 1].split("/")[1])
+    return max(0.01, cost)
 
 
 def python_check(name, path, *args, timeout=60, required=()):
@@ -53,8 +79,12 @@ def plan(root, selected=()):
     checks = [replace(LINT, required=())] if selected else list(GUARDS)
     for directory in selected or FAMILIES:
         patterns = ("test_*.py",) if selected else SHARDS.get(directory, ("test_*.py",))
-        checks.extend(suite_checks(root, directory, patterns,
-                                   partitions=None if selected else PARTITIONS.get(directory)))
+        discovered = suite_checks(root, directory, patterns,
+                                  partitions=None if selected else PARTITIONS.get(directory))
+        for check in discovered:
+            if not selected and check.name == "ops/devlane/fixtures/tests:test_symfony_app_app.py":
+                check = replace(check, argv=(*check.argv[:-2], "--exclude-case", APPLICATION_CASE, *check.argv[-2:]))
+            checks.append(check)
     return checks
 
 
@@ -85,9 +115,7 @@ def run_plan(checks, *, root, env, scope="FULL", cached=None, record=None, worke
             continue
         # Large modules start first. Durations in CI evidence expose any
         # remaining imbalance without making coverage depend on a timing file.
-        pending.sort(key=lambda c: sum(p.stat().st_size for p in
-                     (root / c.required[0]).glob(c.argv[-1])) if c.required
-                     and (root / c.required[0]).is_dir() else 0, reverse=True)
+        pending.sort(key=lambda c: check_cost(c, root), reverse=True)
         for name, result in execute_checks(pending, cwd=root, env=env, workers=workers):
             print(f"== {name}", flush=True)
             print(result.stdout, end="", flush=True)

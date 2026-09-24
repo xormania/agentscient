@@ -17,6 +17,10 @@ def cases(tests):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     index, count = 0, 1
+    excluded = []
+    while len(argv) >= 2 and argv[0] == "--exclude-case":
+        excluded.append(argv[1])
+        argv = argv[2:]
     if len(argv) == 4 and argv[0] == "--partition":
         try:
             index, count = map(int, argv[1].split("/"))
@@ -32,6 +36,15 @@ def main(argv=None):
         return 2
     loader = unittest.TestLoader()
     tests = loader.discover(argv[0], pattern=argv[1])
+    if excluded and not loader.errors:
+        discovered = list(cases(tests))
+        absent = set(excluded) - {test.id() for test in discovered}
+        if absent:
+            print(f"suite: excluded cases absent: {sorted(absent)}", file=sys.stderr)
+            return 2
+        for name in sorted(excluded):
+            print(f"EXCLUDED {name}: outside this verification scope", flush=True)
+        tests = unittest.TestSuite(test for test in discovered if test.id() not in excluded)
     # An import error is never filtered out by a partition. Each child reads
     # the whole discovery result, then executes its disjoint set of real cases.
     if count > 1 and not loader.errors:

@@ -537,7 +537,7 @@ class TrackedConfRequiredKeys(_LaneconfFixture):
         self.assertNotIn("DEFAULT_TIMEOUT", keys)
         self.assertIn("CHECK_NAMES", keys)
         self.assertNotIn("CHECK_NAME", keys)
-        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "lane-0", "lane-1", "lane-2", "lane-3"])
         for line in text.splitlines():
             if DECL_RE.match(line):
                 self.assertFalse(

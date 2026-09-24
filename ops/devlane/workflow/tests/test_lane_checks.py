@@ -11,7 +11,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from ops.devlane.workflow.checks import lane
+from ops.devlane.workflow.checks import ci_parallel, lane
 from ops.testkit import World, run
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -51,8 +51,12 @@ class LaneGate(unittest.TestCase):
 
     def test_local_and_workflow_commands_run_the_same_complete_plan(self):
         workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
-        command = next(s["run"] for s in workflow["jobs"]["lane"]["steps"] if s.get("id") == "verify")
-        self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci lane")
+        for name in ci_parallel.JOBS:
+            command = next(s["run"] for s in workflow["jobs"][name]["steps"] if s.get("id") == "verify")
+            self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci " + name)
+        parts = ci_parallel.partition(lane.plan(self.root), root=self.root)
+        self.assertEqual(sorted(c.name for checks in parts.values() for c in checks),
+                         sorted(c.name for c in lane.plan(self.root)))
         self.assertEqual({check.name for check in lane.GUARDS}, GUARD_NAMES)
         expected = {check.name for check in lane.plan(self.root)}
         for serial, argv in ((True, None), (False, None)):
