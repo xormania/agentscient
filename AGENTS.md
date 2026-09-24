@@ -214,7 +214,9 @@ pipeline law; `ops/bin/` the levers; `CONTRIB.md` the naming and the
 templates.
 Delegation runs through `ops/bin/dispatch.sh` (or `go.sh`) and nothing
 else — in-session sub-agents are refused by hook. `ops/bin/suites.sh`
-is the one answer to "is it green?", here and in CI. Read
+uses the shared test plans: local integration by default, `--profile ci`
+for fast hosted checks, and `--profile rehearsal` for explicit full dev
+rehearsals. A pass names its coverage; see the CI contract. Read
 `ops/README.md` before dispatching or touching the lane.
 
 ## Coordination

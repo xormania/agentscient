@@ -132,6 +132,7 @@ EXTERNAL_ENV_KEYS = {
     "GITHUB_OUTPUT", "GITHUB_REPOSITORY", "GITHUB_RUN_ATTEMPT", "GITHUB_RUN_ID",
     "GITHUB_SHA", "GITHUB_STEP_SUMMARY", "GITHUB_TOKEN",
     "RUNNER_NAME", "RUNNER_TEMP", "RUNNER_TOOL_CACHE",
+    "CI_RUNNER_MODE", "CI_RUNNER_ENVIRONMENT", "ImageOS", "ImageVersion",
     "GROK_HOME",
     "GROK_SESSION_ID",
     "HARNESS",
@@ -527,7 +528,10 @@ def literals() -> int:
     configured = parse_file(path)
     root = _repo_root(path)
     tokens = {'"dev"', "origin/dev", "'agentscient'", "uscient/agentscient", "/home/work/"}
-    for key in NAME_KEYS:
+    # Job names are schema identifiers, not project/branch literals. In
+    # particular a sole check named "lane" must not ban that ordinary word.
+    # closure() separately checks CHECK_NAMES against the workflow's jobs.
+    for key in NAME_KEYS - {"CHECK_NAMES"}:
         value = configured.get(key, "")
         if len(value) >= 4:
             tokens.add(value)

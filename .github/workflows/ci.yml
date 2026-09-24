@@ -32,8 +32,8 @@
   },
   "jobs": {
     "lane": {
-      "runs-on": "self-hosted",
-      "timeout-minutes": 15,
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 4,
       "steps": [
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -41,52 +41,42 @@
             "persist-credentials": false,
             "fetch-depth": 0
           }
+        },
+        {
+          "name": "Prepare hosted Python",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Prepare hosted CUE",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
+          "with": {
+            "version": "v0.17.1"
+          }
+        },
+        {
+          "name": "Prepare hosted lane tools",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\ncommand -v rg >/dev/null || missing+=(ripgrep)\ncommand -v jq >/dev/null || missing+=(jq)\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi"
         },
         {
           "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
           "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
         },
         {
-          "name": "Verify inputs, reuse proven checks, execute the remainder",
+          "name": "Run fast checks; add integration checks on local runners",
           "id": "verify",
           "env": {
             "TERM_WALL": "${{ vars.TERM_WALL }}",
-            "GITHUB_TOKEN": "${{ github.token }}"
+            "GITHUB_TOKEN": "${{ github.token }}",
+            "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
+            "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
           },
           "run": "python3 -m ops.devlane.workflow.checks.ci lane"
-        },
-        {
-          "name": "Preserve executed verification evidence",
-          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
-          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-          "with": {
-            "name": "${{ steps.verify.outputs.artifact }}",
-            "path": "${{ steps.verify.outputs.receipt }}",
-            "if-no-files-found": "error",
-            "retention-days": 30
-          }
-        }
-      ]
-    },
-    "app": {
-      "runs-on": "self-hosted",
-      "timeout-minutes": 5,
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "persist-credentials": false,
-            "fetch-depth": 0
-          }
-        },
-        {
-          "name": "Verify inputs, reuse proven checks, execute the remainder",
-          "id": "verify",
-          "env": {
-            "TERM_WALL": "${{ vars.TERM_WALL }}",
-            "GITHUB_TOKEN": "${{ github.token }}"
-          },
-          "run": "python3 -m ops.devlane.workflow.checks.ci app"
         },
         {
           "name": "Preserve executed verification evidence",

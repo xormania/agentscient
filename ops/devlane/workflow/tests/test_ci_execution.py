@@ -54,6 +54,19 @@ class EvidenceApi:
         return self.proof
 
 
+class ToolPreparation(unittest.TestCase):
+    def test_missing_or_nonfunctional_bubblewrap_refuses_before_suites(self):
+        with World(host_path=False) as world:
+            for name in ("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux"):
+                world.tools.plant(name, stdout="fixture version\n")
+            with self.assertRaisesRegex(ValueError, "bwrap"):
+                ci.toolchain(world.cwd, world.env(), "local")
+            world.tools.plant("bwrap", responses=[{"match": ["--version"], "stdout": "fixture version\n"},
+                                                  {"exit": 1}])
+            with self.assertRaisesRegex(ValueError, "bwrap"):
+                ci.toolchain(world.cwd, world.env(), "local")
+
+
 class ReuseEvidence(unittest.TestCase):
     def setUp(self):
         self.checks = [Check("one", ("one",), 10), Check("two", ("two",), 10)]
@@ -179,15 +192,17 @@ class IsolatedExecution(unittest.TestCase):
                                              "seconds": receipt["results"][0]["seconds"]}])
         self.assertNotIn("must-not-reach-child", json.dumps(receipt))
 
-    def test_valid_pass_is_not_executed_again_and_changed_tree_runs_it(self):
+    def test_valid_pass_reuses_but_changed_environment_or_tree_runs_it(self):
         tool = self.world.tools.plant("subject", stdout="actual execution\n")
         checks = [Check("fixture", (str(tool),), 10)]
         ambient = self.world.env({"GITHUB_REPOSITORY": REPO, "RUNNER_TEMP": str(self.world.tmp),
-                                  "GITHUB_RUN_ID": "11", "GITHUB_SHA": self.head})
+                                  "GITHUB_RUN_ID": "11", "GITHUB_SHA": self.head,
+                                  "CI_RUNNER_MODE": "local", "CI_RUNNER_ENVIRONMENT": "self-hosted"})
         api = EvidenceApi(checks)
         with patch.object(ci, "toolchain", return_value={"fixture": "tools"}), patch.object(ci.lane, "plan", return_value=checks):
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
             receipt = json.loads(next(self.world.tmp.glob("ci-proof-lane-11-1-*/receipt.json")).read_text())
+            self.assertEqual(receipt["profile"], "local")
             api.proof = receipt
             api.artifact["name"] = f"ci-proof-lane-{receipt['key']}-11-1"
             api.source.update(event="push", head_sha=self.head)
@@ -197,13 +212,19 @@ class IsolatedExecution(unittest.TestCase):
             self.assertEqual(len(self.world.tools.calls("subject")), 1)
             reused = json.loads(next(self.world.tmp.glob("ci-proof-lane-12-1-*/receipt.json")).read_text())
             self.assertEqual(reused["results"][0]["mode"], "reused")
+            ambient.update(CI_RUNNER_MODE="hosted", CI_RUNNER_ENVIRONMENT="github-hosted",
+                           ImageOS="ubuntu24", ImageVersion="fixture-image", GITHUB_RUN_ID="14")
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
+            self.assertEqual(len(self.world.tools.calls("subject")), 2)
+            hosted = json.loads(next(self.world.tmp.glob("ci-proof-lane-14-1-*/receipt.json")).read_text())
+            self.assertEqual(hosted["profile"], "ci")
             self.world.plant_text("cwd/input.txt", "changed tree\n")
             self.git("add", ".")
             self.git("commit", "-m", "changed source")
             ambient["GITHUB_RUN_ID"] = "13"
             ambient["GITHUB_SHA"] = self.git("rev-parse", "HEAD")
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
-            self.assertEqual(len(self.world.tools.calls("subject")), 2)
+            self.assertEqual(len(self.world.tools.calls("subject")), 3)
 
     def test_partial_app_reuse_still_materializes_dependencies_for_fresh_checks(self):
         install = self.world.tools.plant("install")
@@ -214,6 +235,21 @@ class IsolatedExecution(unittest.TestCase):
             self.assertEqual(ci.run_ci("app", root=self.root, ambient=ambient, api=object()), 0)
         self.assertEqual(len(self.world.tools.calls("install")), 1)
         self.assertEqual(len(self.world.tools.calls("probe")), 1)
+
+    def test_ci_bounds_workers_to_available_cpus(self):
+        tool = self.world.tools.plant("subject")
+        checks = [Check("fixture", (str(tool),), 10)]
+        ambient = self.world.env({"RUNNER_TEMP": str(self.world.tmp)})
+        with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=2), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient), 0)
+        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {2})
+
+    def test_local_runner_bounds_workers_on_a_large_host(self):
+        tool = self.world.tools.plant("subject")
+        checks = [Check("fixture", (str(tool),), 10)]
+        with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=32), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=self.world.env({"RUNNER_TEMP": str(self.world.tmp)})), 0)
+        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {8})
 
     def test_decision_probes_read_the_tracked_export_in_a_private_store(self):
         ci.seed_probe_store(ci.ROOT, self.env)

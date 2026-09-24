@@ -129,6 +129,19 @@ class SuiteDiscovery(unittest.TestCase):
         results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env()))
         self.assertTrue(any(r.exit != 0 and "zero" in r.stderr for r in results.values()))
 
+    def test_explicit_exclusion_is_reported_and_unknown_cases_refuse(self):
+        self.plant("test_scope.py", (KIT / "tests/fixtures/multiple_cases.py").read_bytes())
+        check = suite_checks(self.world.cwd, "tests")[0]
+        for excluded, status in (("test_scope.First.test_a", 0), ("test_scope.First.absent", 2)):
+            scoped = dataclasses.replace(check, argv=(*check.argv[:-2], "--exclude-case", excluded, *check.argv[-2:]))
+            result = dict(execute_checks([scoped], cwd=self.world.cwd, env=self.world.env()))[check.name]
+            self.assertEqual(result.exit, status, result.stderr)
+            if status == 0:
+                self.assertIn("EXCLUDED test_scope.First.test_a", result.stdout)
+                self.assertIn("Ran 3 tests", result.stderr)
+            else:
+                self.assertIn("absent", result.stderr)
+
     def test_missing_empty_gapped_and_overlapping_families_refuse(self):
         with self.assertRaisesRegex(ValueError, "ABSENT"):
             suite_checks(self.world.cwd, "tests")

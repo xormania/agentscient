@@ -16,6 +16,16 @@ from ops.testkit import PlantFailed, World, compare, run
 
 
 class Environment(unittest.TestCase):
+    def test_git_fixture_objects_stay_stationary_while_copied(self):
+        with World() as world:
+            world.git("init", "-q")
+            # A repository setting cannot start background packing while a
+            # calibration copies its fixture. Command-scoped defaults win.
+            world.git("config", "gc.auto", "1")
+            world.git("config", "maintenance.auto", "true")
+            self.assertEqual(world.git("config", "--get", "gc.auto").stdout.strip(), "0")
+            self.assertEqual(world.git("config", "--get", "maintenance.auto").stdout.strip(), "false")
+
     def test_env_carries_no_operator_home(self):
         # Poison ambient constants explicitly: equal fixed defaults in nested
         # CI worlds are not evidence that operator values were inherited.

@@ -537,7 +537,7 @@ class TrackedConfRequiredKeys(_LaneconfFixture):
         self.assertNotIn("DEFAULT_TIMEOUT", keys)
         self.assertIn("CHECK_NAMES", keys)
         self.assertNotIn("CHECK_NAME", keys)
-        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane"])
         for line in text.splitlines():
             if DECL_RE.match(line):
                 self.assertFalse(
@@ -812,6 +812,17 @@ class LiteralsVerb(_LaneconfFixture):
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
         self.assertEqual(proc.exit, 0, self.combined(proc))
 
+    def test_check_names_are_not_project_identity_literals(self):
+        for name in ("lane", "checkx"):
+            with self.subTest(name=name):
+                repo = self.plant_scratch_repo(
+                    {"ops/conductor/tools/reads.py": reader_source(),
+                     "ops/bin/clean.sh": f"echo {name}\n"},
+                    conf_overrides={"CHECK_NAMES": name},
+                )
+                proc = self.invoke(["literals"], lane_conf=repo / "ops/lane.conf", cwd=repo)
+                self.assertEqual(proc.exit, 0, self.combined(proc))
+
     def test_a_scratch_lane_file_carrying_a_forbidden_token_exits_1(self):
         configured = {
             "LANE_NAME": "lanex",
@@ -839,10 +850,8 @@ class LiteralsVerb(_LaneconfFixture):
             ("ops/conductor/tools/cfg_rel.py", configured["RELEASE_BRANCH"]),
             ("ops/bin/cfg-slug.sh", configured["REPO_SLUG"]),
             ("ops/conductor/tools/cfg_slug.py", configured["REPO_SLUG"]),
-            ("ops/bin/cfg-check.sh", configured["CHECK_NAMES"]),
-            ("ops/conductor/tools/cfg_check.py", configured["CHECK_NAMES"]),
         )
-        self.assertEqual(len(plants), 20, plants)
+        self.assertEqual(len(plants), 18, plants)
         for rel, token in plants:
             with self.subTest(rel=rel, token=token):
                 if rel.endswith(".py"):
