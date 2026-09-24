@@ -121,7 +121,12 @@ Ruff 0.16.8, PHP 8.4 without coverage instrumentation, and Composer 2.
 The Ubuntu image supplies Git and Bash; missing jq, ripgrep, tmux and
 Bubblewrap are installed explicitly. Preflight proves Bubblewrap can create
 the namespace and bind mounts required by the existing isolation tests before
-any suite starts. Local mode does not install tools or
+any suite starts. If the Ubuntu image restricts its user namespace, hosted
+setup installs a CI-owned copy at `/opt/ci-tools/bwrap` and a profile granting
+that binary `userns` permission, following the
+[Ubuntu release-note procedure](https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions).
+The system restriction and existing distro/vendor profiles remain intact.
+The copy is tested before it joins PATH. Local mode does not install tools or
 alter operator configuration. The CI adapter requires the actual declared
 tools; the same lint, configuration, suite and app checks enforce compatibility.
 Every receipt binds resolved tool versions/binary hashes and the actual runner
