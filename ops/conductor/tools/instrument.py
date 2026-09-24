@@ -38,6 +38,7 @@ import sqlite3
 import stat
 import subprocess
 import sys
+from collections.abc import Mapping
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -499,14 +500,16 @@ def state_db() -> Path:
 def connect_store(
     path: Path, *, mode: str = "ro", timeout: float = 5,
     isolation_level: str | None = "",
+    required: Mapping[str, tuple[str, ...]] | None = None,
 ) -> sqlite3.Connection:
     """Open a store with explicit authority: read, update, or create.
 
     Only rwc creates directories or a database. URI escaping keeps path
     punctuation from becoming connection options. Readers open the named
     file read-only; query-only mode also rejects DML and DDL, including
-    temporary tables. The caller owns schema,
-    row shape, absence/error policy and closing the returned connection.
+    temporary tables. Optional required table/column projections are checked
+    without migration. The caller owns schema, row shape, absence/error policy
+    and closing the returned connection.
     """
     if mode not in {"ro", "rw", "rwc"}:
         raise ValueError(f"unknown store mode: {mode}")
@@ -518,10 +521,43 @@ def connect_store(
     try:
         if mode == "ro":
             conn.execute("PRAGMA query_only=ON")
+        for table, columns in (required or {}).items():
+            quoted = table.replace('"', '""')
+            have = {row[1] for row in conn.execute(f'PRAGMA table_info("{quoted}")')}
+            missing = set(columns) - have
+            if not have or missing:
+                raise sqlite3.OperationalError(
+                    f"incompatible schema: {table} missing {', '.join(sorted(missing)) or 'table'}")
         return conn
     except BaseException:
         conn.close()
         raise
+
+
+def store_failure(path: Path, error: OSError | sqlite3.Error, needed: str) -> Refusal:
+    """Classify a failed store observation without creating or repairing it.
+
+    Domain adapters supply the remedy. Low-level connect_store keeps its
+    native exceptions for callers that own a different absence policy.
+    """
+    code = getattr(error, "sqlite_errorcode", 0) & 0xff
+    if code in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+        state = "locked"
+    elif code in (sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB):
+        state = "corrupt"
+    elif "incompatible schema:" in str(error):
+        state = "incompatible"
+    else:
+        try:
+            Path(path).stat()
+        except FileNotFoundError:
+            state = "missing"
+        except OSError:
+            state = "unreadable"
+        else:
+            state = "unreadable"
+    return Refusal("store", f"a readable compatible store at {path}",
+                   f"{state}: {error}", needed)
 
 
 @contextmanager

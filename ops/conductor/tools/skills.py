@@ -29,6 +29,7 @@ import os
 import re
 import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -78,18 +79,33 @@ def db_path():
     return state_dir() / "skills.db"
 
 
-def con_() -> sqlite3.Connection:
+def con_(*, write=False) -> sqlite3.Connection:
     path = db_path()
-    con = instrument.connect_store(path, mode="rwc")
-    con.execute("""CREATE TABLE IF NOT EXISTS skills(
-        name TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT,
-        description TEXT, status TEXT NOT NULL DEFAULT 'active',
-        created_ts TEXT NOT NULL, updated_ts TEXT NOT NULL,
-        retire_reason TEXT, notes TEXT)""")
-    con.execute("""CREATE TABLE IF NOT EXISTS skill_events(
-        id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
-        agent TEXT NOT NULL, skill TEXT NOT NULL, event TEXT NOT NULL,
-        detail TEXT)""")
+    required = {
+        "skills": ("name", "kind", "path", "description", "status", "created_ts", "updated_ts", "retire_reason", "notes"),
+        "skill_events": ("id", "ts", "session", "agent", "skill", "event", "detail"),
+    }
+    try:
+        con = instrument.connect_store(path, mode="rwc" if write else "ro",
+                                       required=None if write else required)
+    except (OSError, sqlite3.Error) as error:
+        raise instrument.store_failure(path, error,
+              "restore a compatible skills store; sync or add explicitly initializes an absent store") from error
+    if not write:
+        return con
+    try:
+        con.execute("""CREATE TABLE IF NOT EXISTS skills(
+            name TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT,
+            description TEXT, status TEXT NOT NULL DEFAULT 'active',
+            created_ts TEXT NOT NULL, updated_ts TEXT NOT NULL,
+            retire_reason TEXT, notes TEXT)""")
+        con.execute("""CREATE TABLE IF NOT EXISTS skill_events(
+            id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
+            agent TEXT NOT NULL, skill TEXT NOT NULL, event TEXT NOT NULL,
+            detail TEXT)""")
+    except BaseException:
+        con.close()
+        raise
     return con
 
 def frontmatter(path):
@@ -117,7 +133,7 @@ def sync(_):
     if not SKILLS_DIR.is_dir():
         refuse("scan", f"a skills directory at {SKILLS_DIR}", "not a directory",
                "restore .claude/skills/; an unperformed scan is not an empty result")
-    con = con_()
+    con = con_(write=True)
     seen = set()
     for d in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir()):
         meta = frontmatter(d / "SKILL.md")
@@ -163,7 +179,7 @@ def add(argv):
                    if a.startswith("--status=")), "draft")
     if kind not in KINDS:
         refuse("kind", f"a kind in {KINDS}", repr(kind), "name one of them with --kind=")
-    con = con_()
+    con = con_(write=True)
     if con.execute("SELECT 1 FROM skills WHERE name=?", (name,)).fetchone():
         refuse("exists", "a name with no row", f"{name!r} already has one",
                "`note` or `sync` updates it")
@@ -176,45 +192,45 @@ def add(argv):
 def list_(argv):
     status = next((a.split("=", 1)[1] for a in argv
                    if a.startswith("--status=")), None)
-    con = con_()
-    q = ("SELECT name, kind, status, COALESCE(description,'(no description)')"
-         " FROM skills")
-    rows = con.execute(q + (" WHERE status=?" if status else "")
-                       + " ORDER BY kind, name",
-                       (status,) if status else ()).fetchall()
-    if not rows:
-        print("no rows" + (f" with status={status}" if status else "")
-              + " — run `sync` first if the table should not be empty")
-        return
-    for name, kind, st, desc in rows:
-        print(f"{name:<18} {kind:<10} {st:<8} {desc[:70]}")
+    with closing(con_()) as con:
+        q = ("SELECT name, kind, status, COALESCE(description,'(no description)')"
+             " FROM skills")
+        rows = con.execute(q + (" WHERE status=?" if status else "")
+                           + " ORDER BY kind, name",
+                           (status,) if status else ()).fetchall()
+        if not rows:
+            print("no rows" + (f" with status={status}" if status else "")
+                  + " — run `sync` first if the table should not be empty")
+            return
+        for name, kind, st, desc in rows:
+            print(f"{name:<18} {kind:<10} {st:<8} {desc[:70]}")
 
 def show(argv):
     if not argv:
         refuse("arguments", "show NAME", "no name", "name the skill")
-    con = con_()
-    row = con.execute("SELECT name, kind, path, description, status,"
-                      " created_ts, updated_ts, retire_reason, notes"
-                      " FROM skills WHERE name=?", (argv[0],)).fetchone()
-    if row is None:
-        refuse("skill", "a registered skill", f"no row for {argv[0]!r}",
-               "`list` shows rows; `add` or `wish` create them")
-    for k, v in zip(("name", "kind", "path", "description", "status",
-                     "created", "updated", "retire_reason", "notes"), row,
-                    strict=True):
-        if v is not None:
-            print(f"{k}: {v}")
-    ev = con.execute("SELECT ts, event, COALESCE(detail,'') FROM skill_events"
-                     " WHERE skill=? ORDER BY ts", (argv[0],)).fetchall()
-    print(f"events: {len(ev)}")
-    for ts, event, detail in ev[-10:]:
-        print(f"  {ts} {event:<8} {detail[:60]}")
+    with closing(con_()) as con:
+        row = con.execute("SELECT name, kind, path, description, status,"
+                          " created_ts, updated_ts, retire_reason, notes"
+                          " FROM skills WHERE name=?", (argv[0],)).fetchone()
+        if row is None:
+            refuse("skill", "a registered skill", f"no row for {argv[0]!r}",
+                   "`list` shows rows; `add` or `wish` create them")
+        ev = con.execute("SELECT ts, event, COALESCE(detail,'') FROM skill_events"
+                         " WHERE skill=? ORDER BY ts", (argv[0],)).fetchall()
+        for k, v in zip(("name", "kind", "path", "description", "status",
+                         "created", "updated", "retire_reason", "notes"), row,
+                        strict=True):
+            if v is not None:
+                print(f"{k}: {v}")
+        print(f"events: {len(ev)}")
+        for ts, event, detail in ev[-10:]:
+            print(f"  {ts} {event:<8} {detail[:60]}")
 
 def note(argv):
     if len(argv) < 2:
         refuse("arguments", "note NAME TEXT", " ".join(argv) or "nothing",
                "name the skill and the note")
-    con = con_()
+    con = con_(write=True)
     if con.execute("UPDATE skills SET notes=?, updated_ts=? WHERE name=?",
                    (argv[1], stamp(), argv[0])).rowcount == 0:
         refuse("skill", "a registered skill", f"no row for {argv[0]!r}", "`list` shows rows")
@@ -225,7 +241,7 @@ def retire(argv):
     if len(argv) < 2:
         refuse("arguments", "retire NAME REASON", " ".join(argv) or "nothing",
                "give the reason; nothing leaves without one")
-    con = con_()
+    con = con_(write=True)
     if con.execute("UPDATE skills SET status='retired', retire_reason=?,"
                    " updated_ts=? WHERE name=?",
                    (argv[1], stamp(), argv[0])).rowcount == 0:
@@ -242,7 +258,7 @@ def _event(kind):
         agent = identity()
         name = argv[0]
         detail = redact(argv[1]) if len(argv) > 1 else None
-        con = con_()
+        con = con_(write=True)
         known = con.execute("SELECT status FROM skills WHERE name=?",
                             (name,)).fetchone()
         if not known and kind != "wish":
@@ -266,29 +282,30 @@ def _event(kind):
     return go
 
 def report(_):
-    con = con_()
+    with closing(con_()) as con:
+        rows = con.execute("""
+            SELECT s.name, s.status,
+              SUM(CASE WHEN e.event='invoked' THEN 1 ELSE 0 END),
+              SUM(CASE WHEN e.event='failed' THEN 1 ELSE 0 END),
+              SUM(CASE WHEN e.event='miss' THEN 1 ELSE 0 END)
+            FROM skills s LEFT JOIN skill_events e ON e.skill=s.name
+            WHERE s.status != 'wished' GROUP BY s.name ORDER BY s.name""").fetchall()
+        wishes = con.execute("""SELECT s.name, COUNT(e.id),
+              COALESCE(MAX(e.detail),'') FROM skills s
+            LEFT JOIN skill_events e ON e.skill=s.name AND e.event='wish'
+            WHERE s.status='wished' GROUP BY s.name ORDER BY 2 DESC""").fetchall()
+        misses = con.execute("SELECT COUNT(*) FROM skill_events WHERE event='miss'").fetchone()[0]
     print(f"{'skill':<18} {'status':<8} {'uses':>4} {'fails':>5} {'misses':>6}")
-    for name, st, u, f, m in con.execute("""
-        SELECT s.name, s.status,
-          SUM(CASE WHEN e.event='invoked' THEN 1 ELSE 0 END),
-          SUM(CASE WHEN e.event='failed' THEN 1 ELSE 0 END),
-          SUM(CASE WHEN e.event='miss' THEN 1 ELSE 0 END)
-        FROM skills s LEFT JOIN skill_events e ON e.skill=s.name
-        WHERE s.status != 'wished' GROUP BY s.name ORDER BY s.name"""):
+    for name, st, u, f, m in rows:
         print(f"{name:<18} {st:<8} {u or 0:>4} {f or 0:>5} {m or 0:>6}")
-    wishes = con.execute("""SELECT s.name, COUNT(e.id),
-          COALESCE(MAX(e.detail),'') FROM skills s
-        LEFT JOIN skill_events e ON e.skill=s.name AND e.event='wish'
-        WHERE s.status='wished' GROUP BY s.name ORDER BY 2 DESC""").fetchall()
     if wishes:
         print("wished (demand, ranked):")
         for name, n, detail in wishes:
             print(f"  {n:>3}x {name:<18} {detail[:55]}")
-    misses = con.execute("SELECT COUNT(*) FROM skill_events"
-                         " WHERE event='miss'").fetchone()[0]
     if misses == 0:
         print("misses: 0 logged — a declared zero says looked-and-found-none"
               " only while sessions actually declare them")
+
 
 def main():
     cmds = {"sync": sync, "add": add, "list": list_, "show": show,
@@ -307,3 +324,5 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Refusal as refusal:
         raise SystemExit(emit(refusal)) from None
+    except (OSError, sqlite3.Error) as error:
+        raise SystemExit(emit(instrument.store_failure(db_path(), error, "restore or retry the skills store"))) from None

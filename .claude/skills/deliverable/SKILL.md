@@ -73,19 +73,23 @@ is what a session does so the refusal never fires.
        --measure '<command that prints the reading>' --until '<the text the reading must carry>'
    ```
 
-   `show` runs the measure and prints `met` or `short` beside the
-   target every time the lock is read; a measure that cannot run reads
-   `unreachable`, never met. A plan's slices are how the target is
+   `show` reads recorded state without running the measure; `--unmeasured`
+   remains compatible. It reports measurement presence, source, candidate
+   reference, time and applicability. Legacy commands do not bind all inputs,
+   so a recorded success remains historical and the view stays unmeasured.
+   `done <branch>` explicitly measures once and records its outcome; a command
+   that cannot run reads `unreachable`, never met. A plan's slices are how the target is
    reached, never the target: a plan that names a later item still
    leaves the target short.
 
    **Shown before the first command** (owner, 2026-09-15: the target is
    only as good as the measure the session writes from the words; row
    P-DONEGATE-20260915-shown-line): before any work, the session says
-   one line to the owner, with the until text and the live reading from
-   `show` in it, in this shape:
+   one line to the owner with the until text and the observed state. Use
+   `unmeasured` when no explicit measurement ran; use `done <branch>` when a
+   fresh measurement is requested, never treat opening `show` as verification:
 
-       I will count this done when <until>; it reads <reading> now.
+       I will count this done when <until>; its recorded status is <state>.
 
    A target the owner has not seen is the session's paraphrase.
 
@@ -99,8 +103,11 @@ is what a session does so the refusal never fires.
        /goal deliverable.py done <branch> prints done; paste the reading every turn
 
    The judge reads the conversation and runs nothing, so the session
-   runs `deliverable.py done <branch>` and pastes its line every turn;
-   while short, the refusal line with the reading is the status. The
+   runs `deliverable.py done <branch>` and pastes its line when that explicit
+   per-turn verification goal is in use. This is deliberate repeated
+   verification, not the default status read. Ordinary progress and the
+   routine Stop lookup use `show` without running measurements; while short,
+   report the failed measurement as short, not completion. The
    standing form of the same check is the prompt-based Stop hook in
    `.claude/settings.json` (grant 237, row P-DONEGATE-20260915-stop-prompt):
    a reply that reports the deliverable done without that line pasted is

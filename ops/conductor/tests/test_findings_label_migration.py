@@ -71,6 +71,12 @@ class APreLabelStoreWithDispositions(_FindingsFixture):
         return {row["n"]: row for row in map(json.loads, out.read_text(encoding="utf-8").splitlines())}
 
     def test_the_first_import_keeps_a_disposed_row_and_its_shape(self):
+        store = self.world.xdg_state / "agentscient" / "findings.db"
+        before = store.read_bytes()
+        refused = self.invoke(["export"])
+        self.assertEqual(refused.refusal().cls, "store")
+        self.assertIn("incompatible", refused.stderr)
+        self.assertEqual(store.read_bytes(), before, "a legacy read migrated the store")
         rows = self.exported()
         with self.subTest(id="disposition-survives-migration", origin=ORIGIN):
             old = rows[1]
