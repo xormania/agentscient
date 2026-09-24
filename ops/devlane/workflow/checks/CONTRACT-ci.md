@@ -1,166 +1,95 @@
-# One dev-lane verification gate
+# Dev verification profiles
 
-Owner direction, 2026-09-23: consolidate CI into shared check definitions,
-bounded execution and a verdict that cannot pass missing work. This replaces
-the old workflow step-order and absent-suite behavior. Owner correction on 2026-09-24 separates automatic dev verification from
-application CI, whose production design is still undecided.
+Owner correction, 2026-09-24: keep dispatch and conductor in the code while
+reconsidering their value. Routine hosted CI should be practical. Use local
+machines or registered local runners for the broader integration tests;
+full workflow and tmux rehearsals do not belong in every routine gate.
+This replaces the earlier requirement to run every dev test on every push.
+Application CI remains separate and undecided.
 
-`bash ops/bin/suites.sh` is the full local lane gate. Its adapter,
-`lane.py`, declares the required checks and suite families once. The generic
-check and discovery primitives live in `ops/testkit`; subprocess ownership,
-timeouts and result data remain owned by `ops.testkit.run`.
+The required GitHub job is `lane`. `CI_RUNNER_MODE` selects both capacity and
+an explicit test profile. An empty variable means `hosted`.
 
-- A check has a unique name, an argv, required paths and a finite positive
-  timeout. Empty plans, duplicate names and missing inputs refuse before any
-  check starts: exit 2, one expected/found/needed line on stderr, empty stdout.
-- Every required suite directory must contain matching test files. Shard
-  patterns must cover each discovered file exactly once. Each child discovers
-  and runs real unittest cases; zero collected cases is a rejection, on every
-  supported Python version. Import errors, failures and errors remain red.
-- Each check executes once in the requested plan. The existing command runner
-  supplies the same cwd, explicit environment, timeout cleanup and Result.
-  Spawn failures and timeouts are unsuccessful results. A run is green only
-  when all required results exist and exit zero. Completed checks print their
-  names, output and durations immediately; parallel execution remains the
-  default and `SUITES_SERIAL=1` uses the same plan serially.
-- The full plan includes lint, the term wall, the test-kit ratchet, both
-  configuration guards, every suite and the probe corpus. The real corpus runs
-  once as a named check; the probe runner retains its synthetic behavioral
-  tests. Missing TERM_WALL configuration remains a refusal by its owner.
-- `--suite DIR` is an explicit partial check for portability fixtures and
-  focused local work. It runs lint plus the named suite(s), rejects absent or
-  empty selections and labels its output PARTIAL. It is never the CI command
-  or evidence that the full lane is green.
+| Mode / command | Required coverage | Execution |
+|---|---|---|
+| `CI_RUNNER_MODE=hosted` | `ci`: lint, boundaries, configuration, probe corpus, domain and contract tests | Standard `ubuntu-24.04` |
+| `CI_RUNNER_MODE=local` | `local`: every `ci` check plus integration tests | Existing GitHub `self-hosted` registration |
+| `bash ops/bin/suites.sh --profile ci` | Same fast plan | Developer machine |
+| `bash ops/bin/suites.sh` | Same local integration plan | Developer machine |
+| `bash ops/bin/suites.sh --profile rehearsal` | All dev suites, including real sessions, tmux, coordination and full workflow rehearsals | Explicit developer run |
+| Manual `ci-app-manual.yml` | Preserved application checks, including the Symfony runtime fixture | Explicit workflow dispatch |
 
-The GitHub workflow prepares checkout and record refs, supplies TERM_WALL,
-and invokes the CI adapter described below with the same lane plan.
-Four parallel jobs execute the complete dev plan. The required `lane` job
-validates all four receipts and refuses any missing or failed result.
-The old app configuration is retained in `ci-app-manual.yml`, dispatch-only. The workflow uses JSON
-syntax within its .yml file, a YAML subset read by the standard JSON parser;
-the former test-only handwritten YAML parser is retired. The configuration
-closure and PR-readiness readers consume that same format. PR readiness also
-retains YAML reads for older refs. Contract tests inspect executable argv and
-conditions, not step names, and prove that disabling the gate is detected.
+`test-profiles.json` classifies every discovered test module exactly once.
+CI refuses new unclassified modules, deleted entries and duplicates. Profile
+membership is an explicit scope decision, never a timing heuristic or a
+failure-driven skip. All profiles share `lane.py` and `ops/testkit` discovery,
+subprocess ownership, timeouts and result handling. `--suite DIR` remains an
+explicit PARTIAL invocation for focused checks and portability fixtures.
+It cannot claim a profile passed. The single Symfony runtime case excluded
+from dev rehearsals remains in the manual application workflow.
 
-The CI checks and kit are wall machinery and join the existing wall path
-classification. This is an isolated wall change under the owner's instruction
-to make this PR. One producer implements and verifies it; an independent
-producer is absent, as permitted for owner-directed dev-lane work.
+A profile passes only when every required check has a successful result.
+Missing files, empty discovery, import failures, spawn failures and timeouts
+remain failures. Inexpensive guards run before suites. There is one bounded
+worker pool, at most eight workers and no more than available CPUs. The job
+has a four-minute limit including setup and artifact upload; a timeout is a
+failure, not performance acceptance. Native job duration must substantiate
+any performance claim. There are no parallel CI partitions or aggregation job.
 
-## Retired coverage and its replacement
+Fast checks require Git, Python, Bash, Ruff, ripgrep, CUE and jq. Hosted setup
+pins Python 3.12, CUE 0.17.1 and Ruff 0.16.8. It installs no tmux, Bubblewrap or
+PHP and makes no AppArmor changes. The local integration profile additionally
+requires functioning Bubblewrap for isolation behavior. Real tmux/session
+rehearsals remain explicitly invoked. Local runners receive no tool installs
+or changes to operator configuration.
 
-| Previous owner | Retained invariant |
-|---|---|
-| `test_suites_ruff.py` | Shared execution failure/spawn cases and the adapter's lint-failure row |
-| `test_suites_shards.py` | Generic discovery table: exact partition, gap, overlap, missing family and new matching file |
-| YAML parser cases in `test_ci_two_jobs.py` | Standard JSON parsing; workflow contract and planted execution/filter faults |
-| `TheTrackedCorpusRunsGreen` in `test_probes.py` | One mandatory full-plan corpus check, with a failing-corpus adapter case |
-| Implicit omissions in portability fixtures | Explicit partial invocation, using the same runner and discovery primitive |
+## Evidence and trust
 
-Reuse: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire.
+Every CI receipt and summary names its profile and complete required plan.
+A `ci` pass means the fast plan passed; it does not claim integration or
+rehearsal coverage. Switching the runner mode changes the profile and
+invalidates reuse. An earlier successful fast run cannot satisfy the local
+integration gate. The local runner executes that larger plan and publishes
+its own original execution evidence.
 
-## PR02: bounded work, isolated state, and reusable execution evidence
+Reuse remains restricted to original successful checks in GitHub artifacts
+from this repository's designated CI workflow and completed job attempt.
+Validate artifact integrity, workflow and repository identity, candidate
+revision, tree, ordered parents, tool identities, runner environment, worker
+count, TERM_WALL, record refs and check definitions. Reuse-only markers,
+malformed data, missing checks, cancelled jobs and mismatched inputs cannot
+mint a pass. Canonical commits retain tree and parents while normalizing
+publication metadata, allowing equivalent PR and merge snapshots to reuse
+proof. Live probes always execute against the actual event checkout.
+Unavailable evidence causes the required profile to execute again.
 
-Owner direction, 2026-09-24: repair the eight-minute CI regression and avoid
-repeating successful verification. Use GitHub-hosted runners until the included
-3,000 minutes are exhausted, then switch to local capacity. The concern about
-eight-minute hosted burns was not a request to abandon this plan. PR297's
-self-hosted optimization was the first part of PR02, not its completion.
+Tests use private HOME/XDG/tmp through the existing testkit. Runner/API
+credentials are absent from child test environments. Tracked probe fixtures
+are seeded only in the private world. No dispatcher, conductor session,
+model call or additional database is a gate prerequisite.
 
-Owner correction, 2026-09-24: four minutes is the maximum for a successful CI
-run. Each dev partition has a four-minute hard timeout, including setup. The
-aggregate also rejects a complete run over 240 seconds, measured from the
-first native job start through aggregation, including setup and gaps.
-Its own one-minute timeout bounds evidence collection. Timeout or
-incomplete coverage is a failure; the cap alone is not performance acceptance.
-Record the complete native run's duration before claiming this target is met.
+This trial does not accept agent-authored JSON as authenticated local proof,
+and does not yet make hosted CI a verifier of standalone workstation runs.
+The trusted broader execution path is the existing registered local runner.
+No new attestation service or signing-key setup is introduced.
 
-- Run inexpensive guards before suites. A failed guard ends the gate red
-  without launching expensive work. Preflight still validates the whole plan.
-- Discover conductor modules independently, including newly added modules,
-  and schedule with a bounded worker pool. Keep all existing cases and their
-  failure semantics. Record module durations; target the previous roughly
-  three-minute native gate, and report actual timing before claiming success.
-  Every family discovers modules independently. Coordination and sessions-trial
-  each use four disjoint partitions of sorted real cases. Native durations from
-  run 35958340145 guide balanced scheduling; unknown modules use source size.
-  Cost hints never decide coverage. Newly discovered cases and modules join
-  automatically; import errors and empty partitions remain red.
-  CI bounds workers by the available CPU count, at most eight. Oversubscribing
-  interpreter-heavy CLI suites on two-CPU hosted runners caused contention
-  and timing failures. Receipts record the actual CPU count and worker limit.
-- CI uses private HOME, XDG and temporary roots through the existing testkit.
-  Resolve declared tools before isolation, require them explicitly, and keep
-  runner/API credentials out of child test environments. Preserve world
-  watches and owned-process cleanup. A shared Composer cache contains only
-  dependency downloads; operator configuration and stores are not imported.
-- A reusable result must come from an executed check in an artifact belonging
-  to this repository's designated CI workflow and completed job attempt.
-  Validate source revision, workflow identity, input digest and check plan.
-  Only successful individual executions qualify. Missing, failed, cancelled,
-  partial, malformed, wrong-context and reuse-only records cannot mint a pass.
-- Record source and tested revisions separately. For deterministic suites,
-  canonicalize only the checkout commit's publication metadata: retain its
-  exact tree and ordered parents. A PR test merge and the eventual merge with
-  the same tree/parents therefore test the same Git object. Bind consumed
-  record refs, tool identities, check definitions and relevant configuration.
-  History-sensitive live probes run against the actual event checkout.
-- Automatic verification contains no application job and installs no PHP.
-  The Symfony fixture runtime case is explicitly excluded by its exact ID and
-  retained in the manual application workflow. Its dev-tooling structural and
-  fault-classification tests still run. Product CI design is deferred.
-  Lane inputs conservatively include the full tracked tree. Unknown inputs
-  or unavailable prior evidence cause real verification, never a cached green.
-- Each result says executed or reused and links its original run/job.
-  A reused marker is not an original execution. Preserve required job
-  names and candidate associations across PR, push and retry events.
-- The workflow publishes bounded JSON evidence and readable job summaries.
-  No extra database, dispatcher, model call or operator-session prerequisite
-  participates in the CI gate.
+## Runner selection and recovery
 
-## Runner selection and same-candidate recovery
+`hosted` or an empty variable selects `ubuntu-24.04`; `local` selects
+`self-hosted`. Any other value fails workflow expression evaluation. The
+adapter checks actual runner identity against the requested mode; hosted
+receipts also bind the image identity. The existing hosted-spending stop is
+unchanged. Local mode consumes no hosted allowance. A Gitea-only runner
+registration does not accept GitHub jobs.
 
-`CI_RUNNER_MODE` is one repository Actions configuration variable. Empty or
-`hosted` selects standard `ubuntu-24.04`; `local` selects the existing
-GitHub-registered `self-hosted` runners. Any other value fails workflow
-expression evaluation with `INVALID_CI_RUNNER_MODE_expected_hosted_or_local`,
-before a job starts. Every dev job uses the same selector directly;
-there is no hosted helper job that could block local recovery at quota.
-A Gitea act_runner registration alone does not accept GitHub jobs.
-
-Hosted preparation uses commit-pinned setup actions: Python 3.12, CUE 0.17.1,
-and Ruff 0.16.8. PHP/Composer setup belongs only to the manual app workflow.
-The Ubuntu image supplies Git and Bash; missing jq, ripgrep, tmux and
-Bubblewrap are installed explicitly. Preflight proves Bubblewrap can create
-the namespace and bind mounts required by the existing isolation tests before
-any suite starts. If the Ubuntu image restricts its user namespace, hosted
-setup installs a CI-owned copy at `/opt/ci-tools/bwrap` and a profile granting
-that binary `userns` permission, following the
-[Ubuntu release-note procedure](https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions).
-The system restriction and existing distro/vendor profiles remain intact.
-The copy is tested before it joins PATH. Local mode does not install tools or
-alter operator configuration. The CI adapter requires the actual declared
-tools; the same dev lint, configuration and suite checks enforce compatibility.
-Every receipt binds resolved tool versions/binary hashes and the actual runner
-environment. Hosted image identity is also an input. Switching environment or
-changing an image/tool forces fresh checks; changing only a runner name does
-not. Unknown hosted image identity refuses rather than reusing old proof.
-Private test worlds disable automatic Git packing/maintenance so object files
-cannot disappear while calibration copies a fixture. Operator Git configuration
-is unchanged; the setting belongs to the world's command environment.
-
-The existing stop on hosted usage remains. This initial switch is manual;
-there is no billing API prerequisite, paid-overage change or quota polling.
-From an authenticated checkout with `gh` repository-variable permission:
+From an authenticated checkout with repository-variable permission:
 
 ```sh
 python3 -m ops.devlane.workflow.checks.ci_runners set-mode --repo OWNER/REPO --mode local
 ```
 
-This changes routing for new jobs, not already queued work. For an exhausted
-or otherwise blocked hosted run, cancel it if still active and wait until
-GitHub marks it completed. Recover that original run without a source edit:
+Routing applies to new jobs. To recover a completed blocked run without a
+source edit, including quota exhaustion:
 
 ```sh
 python3 -m ops.devlane.workflow.checks.ci_runners recover --repo OWNER/REPO --mode local --run RUN_ID
@@ -168,32 +97,31 @@ gh run watch RUN_ID --repo OWNER/REPO --exit-status
 python3 -m ops.devlane.workflow.checks.ci_runners inspect --repo OWNER/REPO --mode local --run RUN_ID --expect-sha ORIGINAL_HEAD_SHA
 ```
 
-`recover` validates the workflow, repository, trusted head repository and
-candidate, writes and reads back the variable, then requests a rerun of the
-original run. Its `requested` result is not a pass. `inspect` checks the
-original candidate SHA, latest attempt, all five required successful dev jobs
-and their actual runner labels/names. Missing, duplicate, failed, cancelled,
-queued/offline or wrong-environment jobs remain `not-verified` (exit 1).
-Read/mutation errors refuse (exit 2); there is no automatic retry loop.
-The native rerun must demonstrate that routing was re-evaluated; queued jobs
-are never claimed to have moved merely because the variable changed.
+`recover` validates the source workflow/repository/candidate, sets and reads
+back the variable, and requests a rerun. Requested or queued is not verified.
+`inspect` requires exactly one successful `lane` job on the requested runner
+and the original candidate SHA. Missing, duplicate, failed, cancelled,
+offline and wrong-environment jobs refuse. There is no automatic retry loop.
+Rerunning a historical workflow retains that revision's test plan; to use
+these profiles, run a revision containing this change.
 
-To return to the included hosted allowance after reset:
+To return after the included allowance resets:
 
 ```sh
 python3 -m ops.devlane.workflow.checks.ci_runners set-mode --repo OWNER/REPO --mode hosted
 ```
 
-The same operations are available in repository Settings → Secrets and
-variables → Actions → Variables, followed by Actions → original run → Re-run
-all jobs. Check the resulting runner identities and candidate before merging.
-No dummy commit, dispatcher, grant command, model call or new token belongs
-in the recovery path. The operator's existing GitHub authentication belongs
-only to the control command, never to child verification checks.
+The same controls are available through repository Actions variables and
+Re-run all jobs. No dummy commit or dispatch command is required.
 
-Quota exhaustion is represented by a never-started fixture in tests; native
-mode switching and candidate/status preservation must be measured separately.
-Report actual job durations and runner identities. Hosted minute estimates
-round each executed Ubuntu job up separately, including short reused jobs;
-local elapsed minutes do not consume the hosted allowance. Use the existing
-`ci_minutes.py` report for repository estimates; it is not organization billing.
+## Dispatch and conductor retirement remains undecided
+
+No runtime system is removed by this change. Current code still connects
+`ops/bin/dispatch.sh` to the conductor wrapper, `ops/bin/ladder.sh` to the
+ladder, hook-matrix dispatch rules to those entry points, and `lane_read.py`
+to the conductor's operations. Sessions/courier consume coordination state.
+These references show dependencies, not evidence that the whole system is
+still worth keeping. A retirement decision should identify the user workflows
+still needed and their replacements before cutting those entry points,
+hook rules, state readers and associated tests together. Shared primitives
+such as storage, schemas and configuration can remain useful independently.

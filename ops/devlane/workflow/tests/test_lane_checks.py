@@ -11,7 +11,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from ops.devlane.workflow.checks import ci_parallel, lane
+from ops.devlane.workflow.checks import lane
 from ops.testkit import World, run
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -46,17 +46,13 @@ class LaneGate(unittest.TestCase):
                 self.world.plant_bytes("cwd/" + check.argv[1], subject.read_bytes())
 
     def invoke(self, *args, serial=False, command=None):
-        argv = command or ["bash", "ops/bin/suites.sh", *args]
+        argv = command or ["bash", "ops/bin/suites.sh", "--profile", "rehearsal", *args]
         return run(argv, cwd=self.root, env=self.world.env({"SUITES_SERIAL": "1" if serial else "0"}), timeout=30)
 
     def test_local_and_workflow_commands_run_the_same_complete_plan(self):
         workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
-        for name in ci_parallel.JOBS:
-            command = next(s["run"] for s in workflow["jobs"][name]["steps"] if s.get("id") == "verify")
-            self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci " + name)
-        parts = ci_parallel.partition(lane.plan(self.root), root=self.root)
-        self.assertEqual(sorted(c.name for checks in parts.values() for c in checks),
-                         sorted(c.name for c in lane.plan(self.root)))
+        command = next(s["run"] for s in workflow["jobs"]["lane"]["steps"] if s.get("id") == "verify")
+        self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci lane")
         self.assertEqual({check.name for check in lane.GUARDS}, GUARD_NAMES)
         expected = {check.name for check in lane.plan(self.root)}
         for serial, argv in ((True, None), (False, None)):
@@ -66,7 +62,7 @@ class LaneGate(unittest.TestCase):
                 names = [line[3:] for line in proc.stdout.splitlines() if line.startswith("== ")]
                 self.assertEqual(set(names), expected)
                 self.assertEqual(len(names), len(expected))
-                self.assertIn("FULL: PASS", proc.stdout)
+                self.assertIn("REHEARSAL: PASS", proc.stdout)
         # Both modes executed the linter once; neither the workflow nor a
         # second discovery path invoked it again.
         self.assertEqual(len(self.world.tools.calls("ruff")), 2)
@@ -81,7 +77,7 @@ class LaneGate(unittest.TestCase):
                 proc = self.invoke()
                 self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
                 self.assertIn("FAIL " + check.name + " (", proc.stdout)
-                self.assertIn("FULL: FAIL", proc.stdout)
+                self.assertIn("REHEARSAL: FAIL", proc.stdout)
                 self.world.tools.plant(name)
 
     def test_missing_one_or_all_families_refuses_before_lint_or_tests(self):
@@ -104,7 +100,7 @@ class LaneGate(unittest.TestCase):
         self.assertIn("FAIL ruff", proc.stdout)
         self.assertNotIn("expensive suite started", proc.stdout + proc.stderr)
         self.assertNotIn("== ops/devlane/dispatch/tests", proc.stdout)
-        self.assertIn("FULL: FAIL", proc.stdout)
+        self.assertIn("REHEARSAL: FAIL", proc.stdout)
 
     def test_partial_selection_is_explicit_and_cannot_claim_full_success(self):
         selected = "ops/devlane/task/tests"

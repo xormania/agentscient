@@ -20,7 +20,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from ops.devlane.workflow.checks import ci_parallel, ci_runners, lane
+from ops.devlane.workflow.checks import ci_runners, lane
 from ops.testkit import Check, World, execute_checks, run
 
 ROOT = lane.ROOT
@@ -64,8 +64,12 @@ def canonical_commit(root, env, source):
 
 
 def toolchain(root, env, kind):
-    names = {k: TOOLS[k] for k in (("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux", "bwrap")
-                                  if kind != "app" else ("git", "python3", "bash", "php", "composer", "jq"))}
+    declared = ("git", "python3", "bash", "ruff", "rg", "cue", "jq")
+    if kind == "local":
+        declared += ("bwrap",)
+    elif kind == "app":
+        declared = ("git", "python3", "bash", "php", "composer", "jq")
+    names = {k: TOOLS[k] for k in declared}
     found = {}
     for name, args in names.items():
         path = shutil.which(name, path=env["PATH"])
@@ -73,7 +77,7 @@ def toolchain(root, env, kind):
             raise ValueError(f"ci: expected declared tool {name}; found absent; needed install it on the runner")
         version = checked((path, *args), root, env).splitlines()[:2]
         found[name] = {"version": version, "binary": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
-    if kind != "app":
+    if kind == "local":
         # Exercise the capability the existing profile tests require before
         # spending minutes launching fixtures which would all refuse it.
         checked(("bwrap", "--unshare-user", "--ro-bind", "/", "/", "--proc", "/proc",
@@ -271,8 +275,9 @@ def write_output(path, **values):
 def run_ci(kind, *, root=ROOT, ambient=None, api=None):
     ambient = dict(os.environ) if ambient is None else ambient
     runner = ci_runners.runner_info(ambient)
-    if kind not in ("lane", "app", *ci_parallel.JOBS):
-        raise ValueError("ci: unknown check partition")
+    if kind not in ("lane", "app"):
+        raise ValueError("ci: unknown check kind")
+    profile = ("local" if runner["environment"] in ("direct", "self-hosted") else "ci") if kind == "lane" else "app"
     # Interpreter-heavy CLI suites contend badly beyond available CPUs.
     workers = min(8, os.cpu_count() or 1) if kind != "app" else 1
     started = time.monotonic()
@@ -290,16 +295,14 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             downloads = Path(ambient.get("RUNNER_TOOL_CACHE", env["XDG_CACHE_HOME"])) / "ci-composer-downloads"
             downloads.mkdir(parents=True, exist_ok=True)
             env["COMPOSER_CACHE_DIR"] = str(downloads)
-        tools = toolchain(root, env, kind)
+        tools = toolchain(root, env, profile)
         if git(root, env, "status", "--porcelain", "--untracked-files=all"):
             raise ValueError("ci: expected a clean checked-out source tree; found local changes; needed a clean CI checkout")
         source = git(root, env, "rev-parse", "HEAD")
         canonical, tree, parents = canonical_commit(root, env, source)
         refs = git(root, env, "for-each-ref", "--format=%(refname) %(objectname)",
                    "refs/heads/records/", "refs/remotes/origin/records/")
-        checks = lane.plan(root) if kind != "app" else app_plan(root)
-        if kind in ci_parallel.JOBS:
-            checks = ci_parallel.partition(checks, root=root)[kind]
+        checks = lane.plan(root, profile=profile) if kind != "app" else app_plan(root)
         if kind != "app" and any(c.name == "probes" for c in checks):
             seed_probe_store(root, env)
         # Probes can read mutable forge state and publication metadata. Always
@@ -308,7 +311,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         inputs = {"schema": SCHEMA, "tree": tree if kind != "app" else application_tree(root, env),
                   "git": {"canonical": canonical, "records": refs} if kind != "app" else None,
                   "toolchain": tools, "runner_environment": runner,
-                  "workers": workers,
+                  "workers": workers, "profile": profile,
                   "term_wall": digest(env["TERM_WALL"]) if kind != "app" else None,
                   "checks": [(c.name, c.argv, c.timeout) for c in checks]}
         key = digest(inputs)
@@ -316,7 +319,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         if ambient.get("GITHUB_EVENT_PATH"):
             event = json.loads(Path(ambient["GITHUB_EVENT_PATH"]).read_text())
             source_sha = event.get("pull_request", {}).get("head", {}).get("sha", source_sha)
-        receipt = {"schema": SCHEMA, "key": key, "repository": repository, "kind": kind,
+        receipt = {"schema": SCHEMA, "key": key, "repository": repository, "kind": kind, "profile": profile,
                    "run_id": run_id, "attempt": attempt, "source_sha": source_sha,
                    "event_revision": source, "tested_revision": canonical, "tree": tree,
                    "parents": parents, "inputs": inputs, "plan": sorted(c.name for c in checks),
@@ -337,7 +340,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             # Installing dependencies produces local files. A previous install
             # cannot supply vendor/ to a fresh job that must execute a check.
             cached.pop("composer-install", None)
-        print(f"CI {kind}: source={source} tested={canonical} inputs={key} runner={receipt['runner']} environment={json.dumps(runner, sort_keys=True)}", flush=True)
+        print(f"CI {kind} profile={profile}: source={source} tested={canonical} inputs={key} runner={receipt['runner']} environment={json.dumps(runner, sort_keys=True)}", flush=True)
         print(f"CI capacity: {json.dumps(receipt['capacity'], sort_keys=True)}", flush=True)
 
         def record(name, result, origin):
@@ -371,20 +374,20 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         summary = ambient.get("GITHUB_STEP_SUMMARY")
         if summary:
             with open(summary, "a", encoding="utf-8") as out:
-                out.write(f"### {kind}: {'PASS' if status == 0 else 'FAIL'} ({receipt['seconds']}s)\n\n")
+                out.write(f"### {kind} / {profile}: {'PASS' if status == 0 else 'FAIL'} ({receipt['seconds']}s)\n\n")
                 out.write(f"Runner: `{receipt['runner']}`. Source: `{source}`. Tested: `{canonical}`.\n\n")
                 out.write(f"Environment: `{json.dumps(runner, sort_keys=True)}`.\n\n")
                 out.write("| Check | Result | Execution | Seconds / original proof |\n|---|---|---|---|\n")
                 for row in receipt["results"]:
                     proof = row.get("origin", {}).get("url", str(row["seconds"]))
                     out.write(f"| {row['name']} | {'PASS' if row['exit'] == 0 else 'FAIL'} | {row['mode']} | {proof} |\n")
-        print(f"FULL {kind}: {'PASS' if status == 0 else 'FAIL'} ({len(receipt['results'])}/{len(checks)} accounted)", flush=True)
+        print(f"{profile.upper()} {kind}: {'PASS' if status == 0 else 'FAIL'} ({len(receipt['results'])}/{len(checks)} accounted)", flush=True)
         return status
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("kind", choices=("lane", "app", *ci_parallel.JOBS))
+    parser.add_argument("kind", choices=("lane", "app"))
     args = parser.parse_args(argv)
     try:
         return run_ci(args.kind)

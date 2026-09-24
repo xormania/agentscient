@@ -1,4 +1,4 @@
-"""The full local/CI check plan; CONTRACT-ci.md owns its guarantees."""
+"""Shared fast, local integration and explicit rehearsal check plans."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import json
 import os
 import sys
 from dataclasses import replace
-from functools import lru_cache
 from pathlib import Path
 
 from ops.testkit import Check, execute_checks, suite_checks
@@ -30,25 +29,30 @@ PARTITIONS = {
 APPLICATION_CASE = "test_symfony_app_app.SymfonyAppMakeProve.test_full_proof_after_composer_install"
 
 
-@lru_cache(maxsize=16)
-def measured_costs(root):
-    path = root / "ops/devlane/workflow/checks/ci-costs.json"
-    return json.loads(path.read_text())["seconds"] if path.exists() else {}
+PROFILES = ("ci", "local", "rehearsal")
+INVENTORY = "ops/devlane/workflow/checks/test-profiles.json"
+
+
+def inventory(root):
+    """Every module is explicitly classified; additions cannot silently vanish."""
+    data = json.loads((root / INVENTORY).read_text())
+    if set(data) != set(PROFILES):
+        raise ValueError("checks: expected ci/local/rehearsal inventory; found invalid profiles; needed classify every test")
+    listed = [path for paths in data.values() for path in paths]
+    discovered = {str(path.relative_to(root)) for directory in FAMILIES
+                  for path in (root / directory).glob("test_*.py")}
+    if len(listed) != len(set(listed)) or set(listed) != discovered:
+        raise ValueError(f"checks: expected every test classified once; found unclassified={sorted(discovered - set(listed))}, absent={sorted(set(listed) - discovered)} or duplicates; needed update {INVENTORY}")
+    return data
 
 
 def check_cost(check, root):
-    """Measured scheduling hints, with source-size estimates for new modules."""
+    """Large modules start first; scheduling never determines coverage."""
     if not check.required or not (root / check.required[0]).is_dir():
         return 1
     folder = root / check.required[0]
     size = sum(path.stat().st_size for path in folder.glob(check.argv[-1]))
-    costs = measured_costs(root)
-    module = check.name.rsplit(":", 1)[0] if "--partition" in check.argv else check.name
-    cost = costs.get(module)
-    if cost is None:
-        family = costs.get(check.required[0] + ":test_*.py")
-        total = sum(path.stat().st_size for path in folder.glob("test_*.py"))
-        cost = family * size / max(1, total) if family is not None else size / 1000
+    cost = size / 1000
     if "--partition" in check.argv:
         cost /= int(check.argv[check.argv.index("--partition") + 1].split("/")[1])
     return max(0.01, cost)
@@ -73,7 +77,7 @@ GUARDS = (
 )
 
 
-def plan(root, selected=()):
+def plan(root, selected=(), *, profile="rehearsal"):
     # Portable subjects carry their own lint contract. They explicitly select
     # their copied suites, and never claim the full repository was checked.
     checks = [replace(LINT, required=())] if selected else list(GUARDS)
@@ -85,7 +89,14 @@ def plan(root, selected=()):
             if not selected and check.name == "ops/devlane/fixtures/tests:test_symfony_app_app.py":
                 check = replace(check, argv=(*check.argv[:-2], "--exclude-case", APPLICATION_CASE, *check.argv[-2:]))
             checks.append(check)
-    return checks
+    if profile not in PROFILES:
+        raise ValueError("checks: expected a declared test profile")
+    if selected or profile == "rehearsal":
+        return checks
+    data = inventory(root)
+    accepted = set(data["ci"] + (data["local"] if profile == "local" else []))
+    return [check for check in checks if check in GUARDS or
+            check.required[0] + "/" + check.argv[-1] in accepted]
 
 
 def run_plan(checks, *, root, env, scope="FULL", cached=None, record=None, workers=None):
@@ -138,11 +149,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", action="append", default=[], metavar="DIR",
                         help="lint plus explicitly selected suites; PARTIAL, never full CI")
+    parser.add_argument("--profile", choices=PROFILES, default="local",
+                        help="ci: fast checks; local: fast plus integration; rehearsal: all dev tests")
     args = parser.parse_args(argv)
     env = dict(os.environ)
     try:
-        return run_plan(plan(ROOT, args.suite), root=ROOT, env=env,
-                        scope="PARTIAL" if args.suite else "FULL",
+        return run_plan(plan(ROOT, args.suite, profile=args.profile), root=ROOT, env=env,
+                        scope="PARTIAL" if args.suite else args.profile.upper(),
                         workers=1 if env.get("SUITES_SERIAL") == "1" else None)
     except ValueError as exc:
         print(exc, file=sys.stderr)

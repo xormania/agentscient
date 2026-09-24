@@ -60,11 +60,11 @@ class ToolPreparation(unittest.TestCase):
             for name in ("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux"):
                 world.tools.plant(name, stdout="fixture version\n")
             with self.assertRaisesRegex(ValueError, "bwrap"):
-                ci.toolchain(world.cwd, world.env(), "lane")
+                ci.toolchain(world.cwd, world.env(), "local")
             world.tools.plant("bwrap", responses=[{"match": ["--version"], "stdout": "fixture version\n"},
                                                   {"exit": 1}])
             with self.assertRaisesRegex(ValueError, "bwrap"):
-                ci.toolchain(world.cwd, world.env(), "lane")
+                ci.toolchain(world.cwd, world.env(), "local")
 
 
 class ReuseEvidence(unittest.TestCase):
@@ -114,16 +114,6 @@ class ReuseEvidence(unittest.TestCase):
     def test_missing_results_are_not_invented(self):
         self.api.proof["results"].pop()
         self.assertEqual(set(self.read()), {"one"})
-
-    def test_partition_reuse_keeps_the_dev_source_and_history_validation(self):
-        self.api.artifact["name"] = f"ci-proof-lane-0-{self.api.key}-11-1"
-        self.api.proof["kind"] = self.api.job["name"] = "lane-0"
-        def read():
-            return ci.reusable(self.api, key=self.api.key, checks=self.checks, kind="lane-0",
-                               repository=REPO, current_run=12)
-        self.assertEqual(set(read()), {"one", "two"})
-        self.api.proof["tested_revision"] = "f" * 40
-        self.assertEqual(read(), {})
 
     def test_application_inputs_keep_ci_changes_and_ignore_independent_lane_code(self):
         common = [f"100644 blob {TREE}\tsrc/Kernel.php", f"100644 blob {BASE}\tops/devlane/workflow/checks/ci.py"]
@@ -212,6 +202,7 @@ class IsolatedExecution(unittest.TestCase):
         with patch.object(ci, "toolchain", return_value={"fixture": "tools"}), patch.object(ci.lane, "plan", return_value=checks):
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
             receipt = json.loads(next(self.world.tmp.glob("ci-proof-lane-11-1-*/receipt.json")).read_text())
+            self.assertEqual(receipt["profile"], "local")
             api.proof = receipt
             api.artifact["name"] = f"ci-proof-lane-{receipt['key']}-11-1"
             api.source.update(event="push", head_sha=self.head)
@@ -225,6 +216,8 @@ class IsolatedExecution(unittest.TestCase):
                            ImageOS="ubuntu24", ImageVersion="fixture-image", GITHUB_RUN_ID="14")
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
             self.assertEqual(len(self.world.tools.calls("subject")), 2)
+            hosted = json.loads(next(self.world.tmp.glob("ci-proof-lane-14-1-*/receipt.json")).read_text())
+            self.assertEqual(hosted["profile"], "ci")
             self.world.plant_text("cwd/input.txt", "changed tree\n")
             self.git("add", ".")
             self.git("commit", "-m", "changed source")
@@ -250,6 +243,13 @@ class IsolatedExecution(unittest.TestCase):
         with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=2), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient), 0)
         self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {2})
+
+    def test_local_runner_bounds_workers_on_a_large_host(self):
+        tool = self.world.tools.plant("subject")
+        checks = [Check("fixture", (str(tool),), 10)]
+        with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=32), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=self.world.env({"RUNNER_TEMP": str(self.world.tmp)})), 0)
+        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {8})
 
     def test_decision_probes_read_the_tracked_export_in_a_private_store(self):
         ci.seed_probe_store(ci.ROOT, self.env)

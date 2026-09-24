@@ -13,7 +13,6 @@ import re
 import sys
 from pathlib import Path
 
-from ops.devlane.workflow.checks.ci_parallel import JOBS
 from ops.testkit import PlantFailed, Timeout, run
 
 WORKFLOW = ".github/workflows/ci.yml"
@@ -95,7 +94,7 @@ def verdict(body, jobs, requested, expected_sha):
     requested = mode(requested)
     if not re.fullmatch(r"[0-9a-f]{40}", expected_sha) or body.get("head_sha") != expected_sha:
         raise ValueError("ci-runner: expected the original candidate SHA; found a different or missing candidate; needed inspect the original run")
-    expected = sorted((*JOBS, "lane"))
+    expected = ["lane"]
     required = [job for job in jobs if job.get("name") in expected]
     passed = (body.get("status") == "completed" and body.get("conclusion") == "success"
               and sorted(job["name"] for job in required) == expected)

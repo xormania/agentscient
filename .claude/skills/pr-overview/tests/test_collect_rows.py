@@ -422,24 +422,25 @@ class CollectRows(unittest.TestCase):
             self.assertNotEqual(names, frozenset({"lane", "app"}))
             self.assertEqual(len(names), 2)
 
-    def test_ready_sentence_counts_both_lane_and_app(self):
+    def test_ready_sentence_counts_all_current_dev_jobs(self):
         files = snapshot_live_derivation()
-        files[".github/workflows/ci.yml"] = TWO_JOB_WORKFLOW
-        self.assertEqual(files[".github/workflows/ci.yml"], TWO_JOB_WORKFLOW)
+        expected = sorted(json.loads(files[".github/workflows/ci.yml"])["jobs"])
+        self.assertIn("lane", expected)
+        self.assertNotIn("app", expected)
         trees = {HEAD_SHA: files}
         self.assertIn(".github/workflows/ci.yml", trees[HEAD_SHA])
         prs = [
             ready_pr(
                 12,
-                "two always-on jobs",
-                "lane/ci-two-jobs",
+                "complete dev verification",
+                "lane/ci-complete",
                 HEAD_SHA,
-                ["lane", "app"],
+                expected,
             ),
         ]
         self.assertEqual(
             [c["name"] for c in prs[0]["checks"]],
-            ["lane", "app"],
+            expected,
         )
         code, stdout, stderr, _world = self.run_board(
             prs, check_errors=None, derive=True, trees=trees,
@@ -449,7 +450,7 @@ class CollectRows(unittest.TestCase):
         self.assertIn("ready to merge", blocking, stdout)
         self.assertRegex(
             blocking,
-            r"all 2 expected check",
+            rf"all {len(expected)} expected check",
             blocking,
         )
 
