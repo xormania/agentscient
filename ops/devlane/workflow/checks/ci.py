@@ -265,6 +265,9 @@ def write_output(path, **values):
 def run_ci(kind, *, root=ROOT, ambient=None, api=None):
     ambient = dict(os.environ) if ambient is None else ambient
     runner = ci_runners.runner_info(ambient)
+    # These suites spend substantial time waiting on owned processes. A CPU
+    # count cap serialized the same plan on standard two-CPU hosted runners.
+    workers = 8 if kind == "lane" else 1
     started = time.monotonic()
     repository = ambient.get("GITHUB_REPOSITORY", "")
     run_id, attempt = int(ambient.get("GITHUB_RUN_ID", "0")), int(ambient.get("GITHUB_RUN_ATTEMPT", "1"))
@@ -296,6 +299,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         inputs = {"schema": SCHEMA, "tree": tree if kind == "lane" else application_tree(root, env),
                   "git": {"canonical": canonical, "records": refs} if kind == "lane" else None,
                   "toolchain": tools, "runner_environment": runner,
+                  "workers": workers,
                   "term_wall": digest(env["TERM_WALL"]) if kind == "lane" else None,
                   "checks": [(c.name, c.argv, c.timeout) for c in checks]}
         key = digest(inputs)
@@ -308,6 +312,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
                    "event_revision": source, "tested_revision": canonical, "tree": tree,
                    "parents": parents, "inputs": inputs, "plan": sorted(c.name for c in checks),
                    "runner": ambient.get("RUNNER_NAME", "local"), "results": []}
+        receipt["capacity"] = {"cpus": os.cpu_count(), "workers": workers}
         cached = {}
         if api is None and ambient.get("GITHUB_TOKEN") and repository:
             api = GitHub(repository, ambient["GITHUB_TOKEN"])
@@ -324,6 +329,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             # cannot supply vendor/ to a fresh job that must execute a check.
             cached.pop("composer-install", None)
         print(f"CI {kind}: source={source} tested={canonical} inputs={key} runner={receipt['runner']} environment={json.dumps(runner, sort_keys=True)}", flush=True)
+        print(f"CI capacity: {json.dumps(receipt['capacity'], sort_keys=True)}", flush=True)
 
         def record(name, result, origin):
             row = {"name": name, "mode": "reused" if origin else "executed",
@@ -345,7 +351,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             git(root, env, "checkout", "--detach", canonical)
             try:
                 status = lane.run_plan(tests, root=root, env=env, scope="SUITES" if kind == "lane" else "APP",
-                                       cached=cached, record=record, workers=1 if kind == "app" else None)
+                                       cached=cached, record=record, workers=workers)
             finally:
                 git(root, env, "checkout", "--detach", source)
         receipt["exit"] = status

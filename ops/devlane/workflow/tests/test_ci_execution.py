@@ -220,6 +220,14 @@ class IsolatedExecution(unittest.TestCase):
         self.assertEqual(len(self.world.tools.calls("install")), 1)
         self.assertEqual(len(self.world.tools.calls("probe")), 1)
 
+    def test_ci_retains_eight_bounded_workers_on_a_two_cpu_runner(self):
+        tool = self.world.tools.plant("subject")
+        checks = [Check("fixture", (str(tool),), 10)]
+        ambient = self.world.env({"RUNNER_TEMP": str(self.world.tmp)})
+        with patch.object(ci, "toolchain", return_value={}), patch.object(ci.lane, "plan", return_value=checks), patch.object(ci.os, "cpu_count", return_value=2), patch.object(ci.lane, "execute_checks", wraps=ci.lane.execute_checks) as execute:
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient), 0)
+        self.assertEqual({call.kwargs.get("workers") for call in execute.call_args_list}, {8})
+
     def test_decision_probes_read_the_tracked_export_in_a_private_store(self):
         ci.seed_probe_store(ci.ROOT, self.env)
         tool = ci.ROOT / "ops/conductor/tools/decisions.py"

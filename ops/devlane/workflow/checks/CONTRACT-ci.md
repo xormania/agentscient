@@ -76,6 +76,9 @@ self-hosted optimization was the first part of PR02, not its completion.
   The measured long dispatch and sessions-trial groups each use four disjoint
   partitions of sorted, actually discovered test cases. New cases join the
   partition automatically; import errors and empty partitions remain red.
+  CI explicitly uses eight workers for these process-heavy suites, including
+  on standard two-CPU hosted machines; the direct local gate retains its
+  CPU-aware default. Receipts record the actual CPU count and worker limit.
 - CI uses private HOME, XDG and temporary roots through the existing testkit.
   Resolve declared tools before isolation, require them explicitly, and keep
   runner/API credentials out of child test environments. Preserve world
