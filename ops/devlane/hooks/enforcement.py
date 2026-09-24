@@ -1,4 +1,4 @@
-"""Compose existing policy owners; harness adapters contain no predicates."""
+"""Compose repository diagnostics; harness adapters contain no predicates."""
 from __future__ import annotations
 
 import argparse
@@ -32,7 +32,6 @@ matrix = load("shared_hook_matrix", HERE / "claude/matrix.py")
 engine = load("shared_hook_engine", HERE / "claude/engine.py")
 engine.matrix = matrix
 unsafe = load("shared_hook_unsafe", HERE / "claude/unsafe-command.py")
-no_subagents = load("shared_hook_delegation", HERE / "claude/no-subagents.py")
 context = load("shared_hook_context", HERE / "claude/context-precheck.py")
 
 
@@ -154,7 +153,7 @@ def inspect(payload, *, servers=()):
                 if checked["outcome"] != "allow":
                     return checked
             return out
-    except Exception as exc:  # noqa: BLE001 - unavailable guard input is a blocking result
+    except Exception as exc:  # noqa: BLE001 - unavailable input becomes an advisory finding
         return refuse(type(exc).__name__ + ": " + str(exc)[:240])
     finally:
         if token is not None:
@@ -187,12 +186,13 @@ def main(argv=None):
         if args.harness == "codex" and args.event == "PreToolUse" and len(items) == 1 and items[0].get("tool_name") == "Bash":
             rewritten = native.bind_command(items[0]["tool_input"]["command"], binding["cwd"])
             items[0]["cwd"] = binding["cwd"]
-        result = decision()
+        findings = []
         for payload in items:
-            result = evaluate(payload, servers=binding.get("servers", ()))
-            if result["outcome"] != "allow":
-                break
-        if rewritten and result["outcome"] == "allow":
+            finding = evaluate(payload, servers=binding.get("servers", ()))
+            if finding.get("context"):
+                findings.append(finding["context"])
+        result = decision(context="\n".join(dict.fromkeys(findings)))
+        if rewritten:
             result["updated_input"] = {"command": rewritten}
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])

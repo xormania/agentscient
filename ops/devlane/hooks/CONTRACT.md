@@ -31,7 +31,7 @@ patch forms refuse. Direct and multi-file edit tools normalize paths and content
 without dropping any target. Agy supplies toolCall.name/args, conversationId,
 workspacePaths and stepIdx; hook-process cwd is not workspace authority.
 
-Native delegation routes normalize to the existing no-subagents predicate.
+Native delegation routes remain available and need no repository permission.
 Known MCP operations use the existing server operation declarations; domain
 mutation authority remains enforced inside those operations. Unknown MCP mutation
 shapes are unresolved, never assumed reads. Continuation input is not a fresh

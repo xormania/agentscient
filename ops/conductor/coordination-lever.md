@@ -212,31 +212,15 @@ Lead session on 2026-09-16:
   `dispatcher` mints `worker`; anything above it is a grant, so the
   issuer must also hold `lead`.
 
-### Owner-authorized recovery when the prior lead is unavailable
+### Retired hand-grant recovery
 
-The owner's recovery authorization is represented by an existing hand
-grant, not by assuming a former session's identity. `recover-roles --grant
-ID --roles R[,R] --why TEXT` restores roles to the calling participant
-only. It requires an open, unexpired, unscoped `other` grant belonging to
-the same session and attribution. The grant is read from `hand.py`'s
-store; a missing, unreadable, settled, expired or differently bound grant
-refuses before roles change. The reason must name the recovery need.
-The hand-store lock prevents settlement during recovery. After acquiring
-the coordination write lock, recovery checks expiry again before writing;
-waiting for another writer does not extend the grant's lifetime. Invalid
-numeric IDs and dates or durations outside the supported range refuse on
-the same wire.
+Hand grants no longer authorize role changes. The grant-based `recover-roles`
+operation is removed; historical recovery receipts remain readable. Existing
+coordination roles still govern mutations inside this optional tool. They are
+not prerequisites for ordinary edits, branch work, or collaboration.
 
-The grant may authorize one such role recovery. A transaction records
-the grant's exact reading, prior roles, requested roles, participant and
-time beside the participant change. An identical retry returns the same
-receipt; a different request using that grant refuses. Existing roles and
-assignments are preserved; normal grant, revoke and generation-checked
-reassignment operations perform any subsequent handover. This implements
-the owner's existing hand-grant authority; it does not infer authorization
-from a dead process or a lapsed lease. A worker without that recorded
-authorization still cannot grant itself roles. CLI and callers of the
-shared core use the same operation; dispatched MCP does not advertise it.
+The owner's recovery path for repository acceptance is GitHub administration,
+outside agent-callable repository operations; see `AGENTS.md`.
 
 ### A participant for a dispatched session
 
@@ -486,7 +470,6 @@ reconciliation the caller still owes.
 | `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n`; in an owner's terminal `--run R-n` names the run an owner's terminal joins and refuses `absent` when it names no run (sessions-lever.md, the owner's terminals). Every verb takes `--profile PATH`, read as `AGENTSCIENT_HOOK_PROFILE` is, and refuses `arguments` when both name different profiles |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
-| `recover-roles --grant ID --roles R[,R] --why TEXT` | the owner's current hand grant restores this session's roles, with a receipt |
 | `revoke PT-n --roles R[,R]` | a lead takes them back; never the store's last lead |
 | `who` | this session's participant and roles; `no store` and exit 0 when there is none |
 | `participants [--role R]` | one line per participant |

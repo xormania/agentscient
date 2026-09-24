@@ -226,7 +226,7 @@ def bind_command(command, cwd):
 
 
 def respond(harness, decision, event):
-    """A shared ask always remains blocked until a real owner action is available."""
+    """Render advisory hook output, retaining the legacy wire for internal callers."""
     if decision.get("advisory"):
         try:
             from .guidance import respond as advice

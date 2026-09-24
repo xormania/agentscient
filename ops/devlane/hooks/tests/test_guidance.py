@@ -1,8 +1,11 @@
 """Exercise installed hook entry points: warnings help, but cannot stop work."""
+import io
 import json
 import sys
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from ops.devlane.hooks import enforcement, native
@@ -75,6 +78,36 @@ class Guidance(unittest.TestCase):
                      cwd=self.repo, env=self.world.env(), stdin='{}', timeout=20)
         self.assertEqual(result.exit, 0, result.stderr)
         self.assertIn('hook-input', self.check_wire(result.stdout))
+
+    def test_batch_keeps_findings_from_an_earlier_edit(self):
+        payload = {'tool_name': 'MultiEdit', 'cwd': str(self.repo),
+                   'tool_input': {'file_path': 'example.py', 'edits': [
+                       {'old_string': 'before', 'new_string': 'first'},
+                       {'old_string': 'first', 'new_string': 'second'}]}}
+        binding = {'harness': 'claude', 'cwd': str(self.repo), 'home': str(self.world.home)}
+        profile = SimpleNamespace(read_binding=lambda _: binding, validate=lambda _: None,
+                                  initialize=lambda *args, **kwargs: None)
+        stream = SimpleNamespace(buffer=io.BytesIO(json.dumps(payload).encode()))
+        output = io.StringIO()
+        with patch.object(enforcement, 'load', return_value=profile), \
+             patch.object(enforcement, 'evaluate', side_effect=[
+                 enforcement.decision(context='first edit needs attention'), enforcement.decision()]), \
+             patch.object(sys, 'stdin', stream), redirect_stdout(output):
+            self.assertEqual(enforcement.main(['--harness', 'claude', '--event', 'PreToolUse',
+                                              '--binding', 'fixture.json']), 0)
+        self.assertIn('first edit needs attention', self.check_wire(output.getvalue()))
+
+    def test_repeated_stop_warnings_do_not_record_a_missed_skill(self):
+        marker = self.repo / 'skill-miss-recorded'
+        self.world.plant_text('ops/conductor/tools/skills.py',
+                              f'from pathlib import Path\nPath({str(marker)!r}).touch()\n')
+        for index in range(4):
+            warning = self.invoke('claude/engine.py', {'hook_event_name': 'Stop', 'cwd': str(self.repo),
+                                                      'session_id': 'repeated',
+                                                      'last_assistant_message': 'The work is done.'})
+            if index < 3:
+                self.assertIn('done-gate', warning)
+        self.assertFalse(marker.exists())
 
     def test_delegation_is_available_and_warnings_are_not_skill_misses(self):
         self.invoke('claude/no-subagents.py', {'tool_name': 'Agent', 'tool_input': {'prompt': 'task'}})

@@ -1,31 +1,12 @@
 #!/usr/bin/env python3
-"""engine.py -- the boundary engine: one hook, every lifecycle event, rows as data.
+"""Evaluate lifecycle diagnostic rows and emit advisory context.
 
-Owner, 2026-09-12: "build the engine - just make it a specific registry
-of intentional conditions that can be added to any hook in the session
-lifecycle"; "its about a registry that dictates the matrix of conditions
-used in pre-tool - post-tool - whatever tool state". Law: docs/workflow.md,
-a transition declares its actor class, its evidence duty, its failure
-class and its gate.
+The registry binds predicates to events and tools. Callable detectors retain
+structured findings for readers and tests; the hook entry point renders advice,
+including when it cannot evaluate a diagnostic. Findings never grant permission,
+block a tool or Stop event, or automatically record a missed skill.
 
-The registry (ops/devlane/hooks/boundaries.json, or BOUNDARIES_PATH) is
-the source. A row with ``engine: true`` is evaluated here: it binds to an
-event (PreToolUse, PostToolUse, SessionStart, Stop) and optionally to
-tools, and carries a ``when`` tree over the predicate vocabulary below
-(``all`` / ``any`` / ``not`` / ``pred``). A refusing row emits the wire
-line ``[engine:<class>] <class>: expected ...; found ...; needed ...``
-through the event's channel: a deny on PreToolUse, a block on PostToolUse
-and Stop. A row with ``context`` instead of ``refuse`` emits additional
-context. The first refusing row wins; an event with no rows passes.
-
-A predicate the engine does not know, a registry it cannot read, or an
-exception in a predicate is could-not-look and refuses ``hook-error``: a
-condition nobody can evaluate is never a pass. A row's ``escape``
-``grant`` is lifted by an open hand grant leading the command; ``none``
-is lifted by nothing.
-
-``engine.py lint`` reports the registry: engine rows, the vocabulary,
-unknown predicates, unknown events. Adding a condition is adding a row.
+``engine.py lint`` reports registry rows, predicates and events. CI owns acceptance.
 """
 
 import ast
@@ -50,7 +31,6 @@ def _load(name, filename):
 
 
 matrix = _load("matrix", "matrix.py")
-miss = _load("miss", "miss.py")
 
 
 class CouldNotLook(Exception):
@@ -504,7 +484,6 @@ def done_claim(message):
                     return sentence[:160] if len(sentence) <= 160 else (
                         "..." + sentence[max(0, found.start() - 60):found.end() + 60] + "...")
     return None
-NO_LOCK_LINE = re.compile(r"^no lock\s*$", re.MULTILINE)
 DONE_GATE_CAP = 3
 DONE_GATE_COUNTER = "done-gate.json"
 
@@ -514,7 +493,7 @@ def _done_gate_counter(ctx):
 
 
 def _done_gate_count(ctx, session, value=None):
-    """The session's consecutive blocks; sets it when ``value`` is given."""
+    """The session's consecutive warnings; sets it when ``value`` is given."""
     path = _done_gate_counter(ctx)
     try:
         with open(path, encoding="utf-8") as fh:
@@ -554,13 +533,11 @@ def _lock_reading(ctx):
 
 
 def p_reply_claims_done(ctx):
-    """Owner, 2026-09-15 ("I need confidence that my orders are being
-    carried out"): at Stop, a reply that says done, complete, finished,
-    landed, merged or solved carries a deliverable.py line, or it is sent
-    back with the lock's target lines. A quoted span or a line opening
-    with > is not the writer's claim. stop_hook_active passes; after
-    DONE_GATE_CAP consecutive blocks for one session_id the stop passes
-    and the reading is logged, never a session bricked."""
+    """Offer a deliverable reading beside a completion claim.
+
+    Quoted claims are ignored. Repeated advice is capped per session; a warning
+    does not block completion or imply that the agent missed a skill.
+    """
     if ctx.event != "Stop" or ctx.payload.get("stop_hook_active"):
         return None
     session = str(ctx.payload.get("session_id") or "unknown")
@@ -574,19 +551,16 @@ def p_reply_claims_done(ctx):
         return None
     blocks = _done_gate_count(ctx, session)
     reading = _lock_reading(ctx)
-    if reading == "the lock reads: no lock" and NO_LOCK_LINE.search(message):
-        # No entry, no target, no deliverable.py line to paste: show's own
-        # `no lock` line, pasted, is the reading (2026-09-15: the row blocked
-        # a truthful close after every entry was lifted).
+    if reading == "the lock reads: no lock":
+        # A deliverable record is optional; its absence needs no ceremony.
         _done_gate_count(ctx, session, 0)
         return None
     if blocks >= DONE_GATE_CAP:
         _done_gate_count(ctx, session, 0)
-        miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
         return None
     _done_gate_count(ctx, session, blocks + 1)
-    return (f'the reply says "{claim}" with no deliverable.py line (run python3 ops/conductor/tools/deliverable.py '
-            f'done <branch> and paste its line, or its target refusal); {reading}')
+    return (f'the reply says "{claim}"; an optional deliverable reading may help: '
+            f'python3 ops/conductor/tools/deliverable.py done <branch>; {reading}')
 
 
 PREDICATES = {

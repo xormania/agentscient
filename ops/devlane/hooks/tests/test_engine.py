@@ -400,17 +400,10 @@ class TheDoneGate(_Engine):
         tools.mkdir(parents=True, exist_ok=True)
         (tools / "deliverable.py").write_text(f"import sys\nsys.stdout.write({stdout!r})\n", encoding="utf-8")
 
-    def test_with_no_lock_at_all_the_pasted_no_lock_line_passes_and_with_a_lock_it_does_not(self):
-        """2026-09-15: the row blocked a session's truthful close after every
-        entry was lifted: with no lock there is no deliverable.py line to
-        paste, and the refused page's remedy (paste show's output) was one
-        the row did not honour. show's `no lock` line passes only while
-        the lock really reads no lock."""
+    def test_without_a_lock_completion_needs_no_record_or_special_phrase(self):
         self.gate()
         self.lever("no lock\n")
-        reason = self.refusal(self.stop("Every deliverable is landed and lifted."), "done-gate", event="Stop")
-        self.assertIn("the lock reads: no lock", reason)
-        self.assertIn("no lock", reason)
+        self.allowed(self.stop("Every deliverable is landed and lifted."))
         self.allowed(self.stop("Every deliverable is landed and lifted.\nno lock\nNothing is held."))
         self.lever("{\"branches\": [\"lane/x\"]}\ntarget lane/x: until off_kit=0; reading off_kit=5; short\n")
         self.refusal(self.stop("Every deliverable is landed and lifted.\nno lock\n"), "done-gate", event="Stop")
