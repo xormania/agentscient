@@ -1,5 +1,11 @@
 # ops/conductor — the conductor lane
 
+Current operation (owner direction, 2026-09-24): `AGENTS.md` describes the working
+guidance. Hooks warn and guide; CI owns acceptance. Hand grants are retired,
+and the pipeline, dispatcher and deliverable records are optional capabilities.
+Historical procedure below does not impose prerequisites on ordinary work.
+
+
 The conductor's own apparatus, carried over whole from the House lane at
 the owner's word (copy first, 2026-09-03) with a clean slate: its own
 state directory, its own records, its own register. Nothing here shares

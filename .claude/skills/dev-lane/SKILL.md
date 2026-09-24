@@ -1,46 +1,16 @@
 ---
 name: dev-lane
-description: The dev-lane pipeline — plan (Fable), tests (Grok), check the tests (Codex), code (Opus), review the code (Grok AND Codex, both). NO PRODUCER OWNS TWO CONSECUTIVE ARTIFACTS: whoever writes an implementation does not write or approve its tests. Scope is settled in session with the owner, then handed off. Load before starting any change under ops/, and before dispatching any harness.
+description: Develop dev-lane tooling using current owner intent and existing capabilities. Use for work under ops/ or when choosing a collaboration or batch approach.
 ---
 
-Read and follow `ops/process/pipeline.md` — the canonical sequence.
-`ops/process/cross-review.md` covers review only; reading it alone gives
-three roles where there are six.
+Read `AGENTS.md` for current intent and `ops/README.md` for available tools.
 
-Three rules that must survive any summary:
+Work directly, collaborate with live sessions, or use batch dispatch when useful.
+Choose the approach and review effort for the task. Keep dev tooling independent
+of the Symfony application; reuse existing components before adding machinery.
 
-- **No producer owns two consecutive artifacts.** The specific models
-  matter less than that constraint. Measured twice on this repo: nine
-  defects past a green suite whose tests and code shared an author, and
-  eleven of fourteen review findings against two checkers being missing
-  test cases rather than coding errors.
-
-- **The firewall is proved, not intended.** Withholding is invisible — a
-  snapshot that leaked the wrong file looks exactly like one that did
-  not. Prove both directions before dispatching: nothing matching a
-  withheld pattern present, *and* something matching every given pattern
-  present. An empty snapshot satisfies the first perfectly.
-
-- **Contracts are extracted from an app's contract document, never from a
-  plan.** That is what keeps a plan disposable; the plan this rule was learned
-  from could not be retired because over a thousand contract citations
-  pointed at it.
-
-**Dev-lane changes go by hand under a grant at the owner's word**
-(owner, 2026-09-12: "the hand grant is something that I think works for
-dev-lane changes"): declare the grant, do the change with one producer,
-prove red then green with the same command, say in the commit that the
-second producer is absent, open the draft PR, merge on green checks on
-the head. The ladder below is for prod-lane work and for a dev-lane
-change the owner sends to it.
-
-Scope is settled in session with the owner; the plan is not. State
-*what* and the boundaries, and leave *how* to the planner. Review goes
-to two harnesses, not one, so the rule holds whoever is driving — and a
-CHANGES verdict is ruled on by a harness that produced neither the
-artifact nor the finding, never by the producer, before any of it is
-worked.
-
-Reach: Claude loads this natively and Grok through claude-compat. **Codex
-does not see repo skills** — its copy of these rules is `AGENTS.md`, which
-every harness reads.
+Use diagnostics to inform decisions. Explain assumptions and consequential
+findings, verify changed behavior, and report the revision and coverage tested.
+CI is the acceptance gate. No hand grant, dispatcher identity, deliverable lock,
+or mandatory producer sequence is required. Historical pipeline documents can
+supply ideas, but do not prescribe the current work arrangement.

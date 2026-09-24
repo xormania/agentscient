@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""Declare and settle temporary permission for work done by hand."""
+"""Read historical handwork records. Hand grants are retired."""
 
 import argparse
 import os
-import re
 import sqlite3
-import subprocess
 import sys
 from contextlib import closing
-from datetime import timedelta
-from pathlib import Path
 
 # The shared instrument module sits beside this file; its directory goes
 # on the path so the import resolves however this file was loaded: as
@@ -22,13 +18,9 @@ try:
         Refusal,
         authority_home,
         emit,
-        identity,
         lane_name,
         now,
         parse_stamp,
-        refuse,
-        session,
-        stamp,
     )
 except ModuleNotFoundError:
     print(
@@ -45,24 +37,6 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS handwork(
     ttl_s INTEGER, status TEXT DEFAULT 'settled', settled_ts TEXT,
     verified INTEGER, late INTEGER DEFAULT 0, settle_note TEXT)"""
 
-LEVERS = {
-    "dispatch": "ops/devlane/dispatch/launch.py",
-    "collect": "ops/devlane/dispatch/launch.py",
-    "gate-run": "ops/conductor/tools/gate.sh",
-    "land": "ops/conductor/tools/land.py",
-    "verify-record": None,
-    "pr-open": None,
-    "bulk-push": None,
-    "amend": None,
-    "worktree": None,
-    "log-tooling": None,
-    "wall": None,  # CI and test machinery work, in its own session (owner, 2026-09-12)
-    "other": None,
-}
-HEX_OBJECT = re.compile(r"[0-9a-fA-F]{7,40}")
-REMINDER = "declare-before-do is the temporary permission; settle it with evidence"
-RECURRENCE = "a recurring absence is a lever demanding to be built."
-
 
 def database_path():
     return (
@@ -73,151 +47,16 @@ def database_path():
     )
 
 
-def connect(*, write=False):
+def connect():
     path = database_path()
     required = {"handwork": ("id", "ts", "action", "status", "ttl_s", "lever_class",
                              "missing_lever", "verified", "late")}
     try:
-        connection = instrument.connect_store(path, mode="rwc" if write else "ro",
-                                              required=None if write else required)
+        connection = instrument.connect_store(path, mode="ro", required=required)
     except (OSError, sqlite3.Error) as error:
-        raise instrument.store_failure(path, error,
-              "restore a compatible handwork store; declare explicitly to initialize an absent store") from error
+        raise instrument.store_failure(path, error, "historical handwork records unavailable") from error
     connection.row_factory = sqlite3.Row
-    if write:
-        try:
-            connection.execute(SCHEMA)
-            connection.commit()
-        except BaseException:
-            connection.close()
-            raise
     return connection
-
-
-def validate_class(lever_class):
-    if lever_class not in LEVERS:
-        refuse(
-            "class",
-            "a known lever class",
-            lever_class,
-            "choose one of " + ", ".join(LEVERS),
-        )
-
-
-def declare(args):
-    agent = identity()
-    words = args.why.split()
-    if len(words) < 4:
-        refuse(
-            "why-short",
-            "WHY of at least four words",
-            f"{len(words)} words",
-            "state why this work cannot wait for a lever",
-        )
-    validate_class(args.lever_class)
-    probe = LEVERS[args.lever_class]
-    if probe is not None and Path(probe).exists():
-        refuse(
-            "lever-exists",
-            "a missing lever",
-            f"built probe {probe}",
-            f"use the {args.lever_class} lever",
-        )
-
-    with closing(connect(write=True)) as connection, connection:
-        cursor = connection.execute(
-            """INSERT INTO handwork
-               (ts, session, agent, action, why_by_hand, missing_lever,
-                lever_class, scope, ttl_s, status, late)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', 0)""",
-            (
-                stamp(now()),
-                session(),
-                agent,
-                args.action,
-                args.why,
-                args.lever_class,
-                args.lever_class,
-                args.scope,
-                args.ttl * 60,
-            ),
-        )
-        grant_id = cursor.lastrowid
-        count = connection.execute(
-            """SELECT count(*) FROM handwork
-               WHERE lever_class = ? AND status IN ('open', 'settled')""",
-            (args.lever_class,),
-        ).fetchone()[0]
-    print(f"grant {grant_id}: {REMINDER}")
-    if probe is None and count >= 3:
-        print(RECURRENCE)
-
-
-def verify_evidence(evidence):
-    if HEX_OBJECT.fullmatch(evidence):
-        result = subprocess.run(  # noqa: S603
-            ["git", "cat-file", "-e", evidence],  # noqa: S607
-            cwd=Path.cwd(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        )
-        return result.returncode == 0, "git object"
-
-    path = Path(evidence).expanduser()
-    dispatch = Path.home() / ".local/state/agentscient/dispatch"
-    if path.is_dir():
-        try:
-            path.resolve().relative_to(dispatch.resolve())
-        except ValueError:
-            pass
-        else:
-            return True, "dispatch record"
-    if path.is_file():
-        return True, "file"
-    return False, "claimed evidence"
-
-
-def settle(args):
-    identity()
-    with closing(connect(write=True)) as connection, connection:
-        row = connection.execute(
-            "SELECT * FROM handwork WHERE id = ?", (args.id,)
-        ).fetchone()
-        if row is None:
-            refuse(
-                "unknown",
-                "an id in the store",
-                str(args.id),
-                "choose an id shown by open",
-            )
-        if row["status"] != "open":
-            refuse(
-                "resettle",
-                "an open grant",
-                f"status {row['status']}",
-                "settle each grant only once",
-            )
-        verified, shape = verify_evidence(args.evidence)
-        settled = now()
-        deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"])
-        late = settled > deadline
-        connection.execute(
-            """UPDATE handwork SET evidence = ?, status = 'settled',
-               settled_ts = ?, verified = ?, late = ?, settle_note = ?
-               WHERE id = ?""",
-            (
-                args.evidence,
-                stamp(settled),
-                int(verified),
-                int(late),
-                args.note,
-                args.id,
-            ),
-        )
-    state = "verified" if verified else "claimed; unverified"
-    timing = "; late" if late else ""
-    print(f"settled {args.id}: {state} ({shape}){timing}")
 
 
 def open_grants(_args):
@@ -281,20 +120,6 @@ def report(_args):
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="verb", required=True)
-
-    declare_parser = commands.add_parser("declare")
-    declare_parser.add_argument("action")
-    declare_parser.add_argument("why")
-    declare_parser.add_argument("lever_class")
-    declare_parser.add_argument("--scope")
-    declare_parser.add_argument("--ttl", type=int, default=30, metavar="MIN")
-    declare_parser.set_defaults(run=declare)
-
-    settle_parser = commands.add_parser("settle")
-    settle_parser.add_argument("id", type=int)
-    settle_parser.add_argument("--evidence", required=True)
-    settle_parser.add_argument("--note")
-    settle_parser.set_defaults(run=settle)
 
     open_parser = commands.add_parser("open")
     open_parser.set_defaults(run=open_grants)

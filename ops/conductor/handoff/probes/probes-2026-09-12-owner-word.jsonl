@@ -1,1 +1,0 @@
-{"id": "P-WORD-20260912-owner", "kind": "nearmiss", "lane": "register", "question": "The owner has to run the grant lever before a hand change, right?", "premise_flaw": "the owner never runs the lever; the owner's word is the grant and the session declares it that moment, unscoped", "serve": "git show HEAD:AGENTS.md", "expect": "The owner never runs the grant lever"}

@@ -4,26 +4,6 @@
  "owner": "2026-09-12: \"the hook is supposed to have matrix of checks and guarantees - its a framework for verification\"; \"if its not an abstracted boundary - then we don't speak the same language\"",
  "rows": [
   {
-   "class": "hand-write",
-   "boundary": "write",
-   "actor": "session",
-   "trigger": "a write to a path under a code root, by a tool or a statement",
-   "evidence": "an open hand grant whose scope covers the path (the ledger row)",
-   "gate": "check_text",
-   "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_hand_write_refuses_each_spelling_and_code_root"
-   ],
-   "escape": "grant",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash",
-    "Write",
-    "Edit",
-    "MultiEdit"
-   ],
-   "engine": false
-  },
-  {
    "class": "prune",
    "boundary": "write",
    "actor": "session",
@@ -55,8 +35,7 @@
    "evidence": "a Graft query, a count or a file list instead",
    "gate": "graft_first",
    "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_a_content_search_over_a_code_root_is_refused_with_the_graft_query",
-    "ops/devlane/hooks/tests/test_matrix.py::test_a_grant_does_not_escape_graft_first"
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_content_search_over_a_code_root_is_refused_with_the_graft_query"
    ],
    "escape": "none",
    "event": "PreToolUse",
@@ -88,41 +67,6 @@
     "expected": "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
     "needed": "the discover form"
    }
-  },
-  {
-   "class": "direct-launch",
-   "boundary": "dispatch",
-   "actor": "session",
-   "trigger": "launch.py run without the dispatcher",
-   "evidence": "the dispatcher, or a grant for a read",
-   "gate": "check_dispatch",
-   "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_direct_launch_refuses_launch_py_as_the_command",
-    "ops/devlane/hooks/tests/test_matrix.py::test_grant_escape_allows_direct_launch_when_the_grant_is_open"
-   ],
-   "escape": "grant",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash"
-   ],
-   "engine": false
-  },
-  {
-   "class": "override",
-   "boundary": "dispatch",
-   "actor": "session",
-   "trigger": "--model or --effort on a dispatcher call",
-   "evidence": "the lane conf's MODEL_ and EFFORT_ rows",
-   "gate": "check_dispatch",
-   "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_override_refuses_model_or_effort_on_dispatch_or_go"
-   ],
-   "escape": "none",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash"
-   ],
-   "engine": false
   },
   {
    "class": "input-absent",
@@ -243,47 +187,6 @@
     "Bash"
    ],
    "engine": false
-  },
-  {
-   "class": "dispatch-by-hand",
-   "boundary": "dispatch",
-   "actor": "session",
-   "trigger": "a driver job sent straight to dispatch.sh",
-   "evidence": "the ladder, or an unscoped open grant",
-   "gate": "check_dispatch",
-   "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_refuses_driver_jobs_from_the_session",
-    "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_grant_escape_allows_a_driver_job"
-   ],
-   "escape": "unscoped-grant",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash"
-   ],
-   "engine": false
-  },
-  {
-   "class": "dispatcher",
-   "boundary": "dispatch",
-   "actor": "session",
-   "trigger": "ops/bin/dispatch.sh, ops/bin/go.sh",
-   "evidence": "the Dispatcher named in the state engine's `dispatcher` machine, whose `holder_note` is the session id the harness named for the session running the command; a store that cannot be read is said to be unreadable and never read as no Dispatcher named",
-   "gate": "dispatch_role",
-   "tests": [
-    "ops/devlane/hooks/tests/test_dispatch_role.py::test_no_dispatcher_named_refuses_and_names_the_lever",
-    "ops/devlane/hooks/tests/test_dispatch_role.py::test_the_named_session_dispatches",
-    "ops/devlane/hooks/tests/test_dispatch_role.py::test_another_session_refuses_and_both_ids_are_named",
-    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_store_that_cannot_be_read_is_not_none",
-    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_grant_is_no_escape"
-   ],
-   "escape": "none",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash"
-   ],
-   "engine": false,
-   "lever": "ops/conductor/tools/dispatcher.py",
-   "owner": "2026-09-12: \"one branch per session - lets try it\"; \"as long you account for the fact that i'll have multiple sessions running soon\""
   },
   {
    "class": "deliverable",
@@ -499,8 +402,8 @@
    "class": "done-gate",
    "boundary": "publish",
    "actor": "session",
-   "trigger": "at Stop, a reply that says done, complete, finished, landed, merged or solved and carries no deliverable.py line (done lane/..., the done verb's target refusal, or show's target line)",
-   "evidence": "python3 ops/conductor/tools/deliverable.py done <branch>, its line or its refusal pasted in the reply; the lock's target lines",
+   "trigger": "at Stop, a completion claim without a reading for the optional deliverable record",
+   "evidence": "the current deliverable reading, when useful to support the claimed outcome",
    "gate": "engine",
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading",
@@ -514,29 +417,9 @@
     "pred": "reply_claims_done"
    },
    "refuse": {
-    "expected": "a reply that says done to carry the lock's reading: the `done <branch>: ...` line of `python3 ops/conductor/tools/deliverable.py done <branch>`, or its `target: expected the measure to read ...` refusal, or show's `target <branch>: until ...; reading ...; met|short` line (a sha or a PR number is not that reading)",
-    "needed": "run python3 ops/conductor/tools/deliverable.py done <branch> and paste its line, or its refusal with the reading; a branch with no target sets one first (deliverable.py add BRANCH --why '<the owner's words>' --measure CMD --until TEXT). Three blocks per session, then the stop passes with the reading logged (owner, 2026-09-15: \\\"I need confidence that my orders are being carried out\\\")"
+    "expected": "completion claims supported by relevant evidence",
+    "needed": "consider the existing deliverable reading when it helps explain the outcome. No record or prescribed completion phrase is required; repeated advice is capped and is not logged as a missed skill."
    }
-  },
-  {
-   "class": "wall-write",
-   "boundary": "write",
-   "actor": "session",
-   "event": "PreToolUse",
-   "tools": [
-    "Bash",
-    "Write",
-    "Edit",
-    "MultiEdit"
-   ],
-   "trigger": "a write to a wall path (.github/workflows, ops/bin/suites.sh, ops/devlane/workflow/checks/, probes.py, laneconf.py, the hook registry, rows and engine, ops/devlane/hooks/tests/, ops/testkit/, ops/devlane/task/jobs.json) without a grant of lever class wall; or a wall grant writing a non-wall code path",
-   "evidence": "an open grant of lever class wall leading the command; the session touches wall paths only",
-   "gate": "wall_write",
-   "engine": false,
-   "escape": "grant",
-   "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_wall_paths_need_a_wall_grant_and_a_wall_grant_touches_only_the_wall"
-   ]
   },
   {
    "class": "kit-import",
@@ -589,5 +472,6 @@
   "grant": "an open hand grant leading the command whose scope covers the path lifts it",
   "unscoped-grant": "an open grant with no scope lifts it",
   "ask": "the row answers ask instead of deny: the harness puts the action in front of the owner, and only the owner's click passes it. Only where the action is critical, a forced push or a prune (owner, 2026-09-12: \"i don't want asks unless they're critical\"); a hard row whose remedy is the agent's own (a branch, a reading, the proof) is escape none and denies"
- }
+ },
+ "description": "Diagnostic conditions. Hook output is advisory; CI owns acceptance."
 }

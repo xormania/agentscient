@@ -1,5 +1,11 @@
 # Instrument conventions — the lane's base contract
 
+Current operation (owner direction, 2026-09-24): `AGENTS.md` describes the working
+guidance. Hooks warn and guide; CI owns acceptance. Hand grants are retired,
+and the pipeline, dispatcher and deliverable records are optional capabilities.
+Historical procedure below does not impose prerequisites on ordinary work.
+
+
 Scope: dev tooling, governed by
 [AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence).
 These instruments operate independently of the Symfony application and

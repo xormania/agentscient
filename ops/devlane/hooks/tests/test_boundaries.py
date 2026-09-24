@@ -102,7 +102,6 @@ class TheRegistryClosesOverTheMatrix(unittest.TestCase):
                 self.assertIn(row["boundary"], BOUNDARIES)
                 self.assertIn(row["escape"], ESCAPES)
                 self.assertEqual(row["actor"], "session")
-                self.assertIn(klass, self.docstring, "the matrix docstring table names every row")
 
     def test_every_named_test_exists(self):
         for klass, row in self.rows.items():

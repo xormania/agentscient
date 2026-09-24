@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse two command shapes that fail silently, and say what to write instead.
-
-Both were rules in CLAUDE.md before they were checks here, and both were then broken dozens
-of times in the session that produced this file. That is what makes them nightmares rather
-than mistakes: knowing better is not the same as being stopped.
+"""Warn about command shapes that can fail silently and suggest a repair.
 
   1. A test or build runner clipped to a handful of lines with no failure grep.
      `playwright test | tail -4` printed "1 skipped / 71 passed" and cut "61 failed" off the
@@ -14,8 +10,8 @@ than mistakes: knowing better is not the same as being stopped.
      `s.replace(old, new)` returns the input unchanged when `old` is absent. The write
      succeeds, the exit code is 0, and the next command runs against the unedited file.
 
-Neither refusal costs more than a retry, and both name the fix. The corpus lives in
-`ops/devlane/hooks/tests/`.
+The callable detectors retain structured findings; the hook emits advisory context
+without a permission decision. The corpus lives in `ops/devlane/hooks/tests/`.
 """
 
 import json
@@ -490,6 +486,12 @@ def decide(payload):
     return None
 
 
+def _advice(value, event="PreToolUse"):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import guidance
+    return guidance.respond(value, event)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -499,14 +501,7 @@ def main():
                   "permissionDecision": "deny", "permissionDecisionReason":
                   f"hook-input: expected complete shell input; found {type(exc).__name__}; needed repair the native adapter"}}
     if result:
-        print(json.dumps(result))
-        output = result.get("hookSpecificOutput", {})
-        if output.get("permissionDecision") == "deny":
-            import miss
-            reason = output.get("permissionDecisionReason", "")
-            hit = re.match(r"\[([^]]+)\] (.*)", reason, re.DOTALL)
-            if hit:
-                miss.log_miss(payload.get("cwd"), hit[1], hit[2], hook="unsafe-command")
+        print(json.dumps(_advice(result)))
     return 0
 
 

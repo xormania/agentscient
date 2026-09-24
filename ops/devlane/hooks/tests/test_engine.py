@@ -81,14 +81,8 @@ class _Engine(unittest.TestCase):
     def refusal(self, proc, klass, event="PreToolUse"):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertTrue(proc.stdout.strip(), "engine let it through")
-        out = json.loads(proc.stdout)
-        if event == "PreToolUse":
-            spec = out["hookSpecificOutput"]
-            self.assertEqual(spec["permissionDecision"], "deny")
-            reason = spec["permissionDecisionReason"]
-        else:
-            self.assertEqual(out["decision"], "block")
-            reason = out["reason"]
+        decision, reason = support.diagnostic(proc.stdout)
+        self.assertEqual(decision, "warn")
         self.assertTrue(reason.startswith(f"[engine:{klass}] {klass}: expected "), reason)
         self.assertIn("; found ", reason)
         self.assertIn("; needed ", reason)
@@ -145,8 +139,8 @@ class RowsAreDataOverPredicates(_Engine):
         self.plant(row("bogus", when={"pred": "no_such_predicate"}))
         proc = self.bash("ls")
         out = json.loads(proc.stdout)
-        reason = out["hookSpecificOutput"]["permissionDecisionReason"]
-        self.assertTrue(reason.startswith("[engine:hook-error]"), reason)
+        reason = out["hookSpecificOutput"]["additionalContext"]
+        self.assertTrue(reason.startswith("Diagnostic (advisory): [engine:hook-error]"), reason)
         self.assertIn("no_such_predicate", reason)
 
     def test_a_missing_or_malformed_registry_is_could_not_look(self):
@@ -155,20 +149,6 @@ class RowsAreDataOverPredicates(_Engine):
         self.registry.write_text("{not json")
         self.assertIn("[engine:hook-error]", self.bash("ls").stdout)
 
-    def test_a_grant_escape_lifts_only_rows_that_declare_it(self):
-        self.plant(row("lifted", escape="grant", when={"pred": "command_matches", "args": {"pattern": "^touch"}}),
-                   row("held", escape="none", when={"pred": "command_matches", "args": {"pattern": "^touch held"}}))
-        store = self.home / ".local" / "state" / "agentscient" / "handwork.db"
-        store.parent.mkdir(parents=True, exist_ok=True)
-        import sqlite3
-        with sqlite3.connect(store) as conn:
-            conn.execute("CREATE TABLE handwork (id INTEGER PRIMARY KEY, ts TEXT, session TEXT, agent TEXT, action TEXT, "
-                         "why_by_hand TEXT, missing_lever TEXT, evidence TEXT, lever_class TEXT, scope TEXT, ttl_s INTEGER, "
-                         "status TEXT, settled_ts TEXT, verified INTEGER, late INTEGER, settle_note TEXT)")
-            conn.execute("INSERT INTO handwork VALUES (7, '2099-01-01T00:00:00Z', 's', 'a', 'x', 'y', 'other', NULL, 'other', NULL, 1800, 'open', NULL, 0, 0, NULL)")
-        self.refusal(self.bash("touch a"), "lifted")
-        self.allowed(self.bash("HAND_GRANT=7 touch a"))
-        self.refusal(self.bash("HAND_GRANT=7 touch held"), "held")
 
 
 class AHardRowAnswersAsk(_Engine):
@@ -183,8 +163,8 @@ class AHardRowAnswersAsk(_Engine):
                    row("plain", escape="none", when={"pred": "command_matches", "args": {"pattern": "^rm -rf"}}))
         proc = self.bash("git push --force origin x")
         out = json.loads(proc.stdout)["hookSpecificOutput"]
-        self.assertEqual(out["permissionDecision"], "ask")
-        self.assertTrue(out["permissionDecisionReason"].startswith("[engine:hard] hard: expected "))
+        self.assertNotIn("permissionDecision", out)
+        self.assertTrue(out["additionalContext"].startswith("Diagnostic (advisory): [engine:hard] hard: expected "))
         self.refusal(self.bash("rm -rf build"), "plain")
 
     def test_only_the_history_destroying_rows_ask(self):
@@ -420,17 +400,10 @@ class TheDoneGate(_Engine):
         tools.mkdir(parents=True, exist_ok=True)
         (tools / "deliverable.py").write_text(f"import sys\nsys.stdout.write({stdout!r})\n", encoding="utf-8")
 
-    def test_with_no_lock_at_all_the_pasted_no_lock_line_passes_and_with_a_lock_it_does_not(self):
-        """2026-09-15: the row blocked a session's truthful close after every
-        entry was lifted: with no lock there is no deliverable.py line to
-        paste, and the refused page's remedy (paste show's output) was one
-        the row did not honour. show's `no lock` line passes only while
-        the lock really reads no lock."""
+    def test_without_a_lock_completion_needs_no_record_or_special_phrase(self):
         self.gate()
         self.lever("no lock\n")
-        reason = self.refusal(self.stop("Every deliverable is landed and lifted."), "done-gate", event="Stop")
-        self.assertIn("the lock reads: no lock", reason)
-        self.assertIn("no lock", reason)
+        self.allowed(self.stop("Every deliverable is landed and lifted."))
         self.allowed(self.stop("Every deliverable is landed and lifted.\nno lock\nNothing is held."))
         self.lever("{\"branches\": [\"lane/x\"]}\ntarget lane/x: until off_kit=0; reading off_kit=5; short\n")
         self.refusal(self.stop("Every deliverable is landed and lifted.\nno lock\n"), "done-gate", event="Stop")

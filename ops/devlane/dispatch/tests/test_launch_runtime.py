@@ -112,7 +112,9 @@ class IssuedRuntime(ls.CoordinationCore, unittest.TestCase):
         answer = self.guard(binding)
         self.assertNotIn("deny", json.dumps(answer), answer)
         self.assertNotIn("deny", json.dumps(self.guard(binding, "git status --porcelain")))
-        self.assertIn("deny", json.dumps(self.guard(binding, "git push --force origin work")))
+        warning = self.guard(binding, "git push --force origin work")["hookSpecificOutput"]
+        self.assertNotIn("permissionDecision", warning)
+        self.assertIn("force-push", warning["additionalContext"])
         profile.validate(binding)
         own = self.core("who", session=binding["session"], profile=binding["binding"])
         self.assertEqual(own.returncode, 0, own.stderr)
@@ -183,7 +185,7 @@ class IssuedRuntime(ls.CoordinationCore, unittest.TestCase):
         self.assertFalse(Path(binding["source"]).is_relative_to(self.repo))
         profile.validate(binding)
 
-    def test_changed_runtime_refuses_before_loading_its_python(self):
+    def test_changed_runtime_warns_without_loading_its_python(self):
         _, binding = self.install()
         marker = self.world.root / "tampered-executed"
         policy = Path(binding["source"]) / "ops/devlane/hooks/profiles.py"
@@ -191,7 +193,10 @@ class IssuedRuntime(ls.CoordinationCore, unittest.TestCase):
         with self.assertRaises(isolation.NotIsolated):
             self.install()
         self.assertFalse(marker.exists())
-        self.assertIn("deny", json.dumps(self.guard(binding)))
+        warning = self.guard(binding)["hookSpecificOutput"]
+        self.assertNotIn("permissionDecision", warning)
+        self.assertIn("hook-unavailable", warning["additionalContext"])
+        self.assertFalse(marker.exists())
 
     def test_runtime_symlink_substitution_refuses(self):
         _, binding = self.install()

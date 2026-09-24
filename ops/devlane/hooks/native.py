@@ -226,7 +226,18 @@ def bind_command(command, cwd):
 
 
 def respond(harness, decision, event):
-    """A shared ask always remains blocked until a real owner action is available."""
+    """Render advisory hook output, retaining the legacy wire for internal callers."""
+    if decision.get("advisory"):
+        try:
+            from .guidance import respond as advice
+        except ImportError:
+            from guidance import respond as advice
+        output = advice({"context": decision.get("context", "")}, event)
+        if harness == "agy":
+            return {"decision": "allow", "reason": decision.get("context", "")}
+        if event == "PreToolUse" and "updated_input" in decision:
+            output.setdefault("hookSpecificOutput", {"hookEventName": event})["updatedInput"] = decision["updated_input"]
+        return output
     if harness not in HARNESSES or decision.get("outcome") not in {"allow", "deny", "ask"}:
         raise ValueError("invalid policy decision")
     allowed = decision["outcome"] == "allow"

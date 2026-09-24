@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Print the repository law, live state, and the handoff board."""
+"""Print working guidance, live state, and the handoff board."""
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -16,7 +15,7 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, authority_home, emit, lane_name, refuse, state_root
+    from instrument import Refusal, emit, lane_name, refuse, state_root
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -150,32 +149,6 @@ def register_line(root: Path) -> tuple[str, bool]:
     return f"register: {count_text}; blocked={blocked_text}", True
 
 
-def ledger_line(root: Path) -> tuple[str, bool]:
-    tool = root / "ops/conductor/tools/hand.py"
-    # The precheck mirrors the sibling's own store path: hand.py opens
-    # authority_home()/.local/state/<lane>/handwork.db, never an XDG path
-    # (it predates the conventions' XDG rule — the gap is registered).
-    # Checking an XDG path the sibling never reads would report false
-    # absence, or worse, pass while the sibling creates an empty HOME
-    # store on read (Codex review of PR #106). authority_home() is the
-    # launch binding's HOME in a member whose own HOME is private: read
-    # through Path.home() there, the store the guard reads was ABSENT
-    # (LD-146).
-    store = authority_home() / ".local/state" / lane_name() / "handwork.db"
-    if not store.is_file():
-        return f"ledger: store: expected the handwork store at {store}; found ABSENT", False
-    output, reason = run([sys.executable, str(tool), "report"], root)
-    if output is None:
-        return f"ledger: {reason}", False
-    lines = output.splitlines()
-    status = next((line for line in lines if line.startswith("status:")), None)
-    debt = next((line for line in lines if line.startswith("debt:")), None)
-    if status is None or debt is None:
-        return "ledger: invalid report: status or debt line absent", False
-    match = re.search(r"\bopen=(\d+)\b", debt)
-    if match is None:
-        return "ledger: invalid report: open-grant count absent", False
-    return f"ledger: {status}; open-grants={match.group(1)}", True
 
 
 def prs_line(root: Path) -> tuple[str, bool]:
@@ -351,7 +324,7 @@ def brief() -> int:
     root = repository_root()
     absences = 0
 
-    print("== law")
+    print("== guidance")
     for name, description in LAW:
         present = (root / name).is_file() and (root / name).stat().st_size > 0
         state = "OK" if present else "ABSENT"
@@ -361,7 +334,6 @@ def brief() -> int:
     print("== state")
     state_lines = (
         register_line(root),
-        ledger_line(root),
         prs_line(root),
         dispatches_line(),
         branch_line(root),

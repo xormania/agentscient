@@ -7,111 +7,47 @@ founding contracts under `docs/`, and the lane under `ops/`. A package
 graduates to its own repository with a Flex recipe when its boundary
 is proven; until then it lives here, package-shaped.
 
-Read `docs/` before working: the wire, the workflow genus, probes,
-concerns, and verified couplings are the law every change is built
-against. The founding rule: contracts first — no code lands whose
-boundary is not a declared, verifiable coupling.
+## Working guidance
 
-## Ground rules
+The owner supplies the objective and has final authority over this project's
+working arrangements. Current owner direction takes precedence over older
+instructions, plans, skills, historical records, and implementation assumptions.
+Explain material assumptions and concrete consequences. Use judgment and initiative
+within the objective; surface changes to the objective before implementing them.
 
-- **dev is the trunk; master is the release.** Branch from `dev`,
-  open PRs into `dev`, draft-first: a PR opens as a draft and is
-  marked ready only when its lineage is stationary and its checks are
-  green. `master` is the default and release branch: a release is a
-  draft PR from `dev` into `master`, opened by a session for a group
-  of landed work and merged by the owner alone. No squash merges,
-  never an unarchived deletion (owner, 2026-09-18: "fix AGENTS.md"):
-  a branch is retired only after its tip is inside a
-  verified bundle whose index is committed and pushed, and the index
-  names the sha that restores it. This replaces "never a deleted
-  branch", which the retirement of 2026-09-18 stopped matching when 266
-  branches went from the remote against the bundle
-  `agentscient-refs-20260918T015216Z.bundle` and the index
-  `ops/conductor/handoff/branch-archive-20260918T015216Z.tsv`.
-  Deleting is the owner's hand, never an agent's; the matching hook row is
-  wall work and not yet built, so this line is law, not a live guard.
-  **One branch per session** (owner, 2026-09-12:
-  "one branch per session - lets try it"; "as long you account for the
-  fact that i'll have multiple sessions running soon"): a session cuts
-  `lane/session-<date>-<id>` from `dev` at its start, names it in the
-  deliverable lock (`deliverable.py add`, beside any other session's),
-  and every change and every record of the session, ideas, hand-offs,
-  AARs, probes, the defect ledger and the findings export under
-  `ops/conductor/`, commits to that branch with its trailers. One draft
-  PR from the branch into `dev` at the session's close, through the
-  proof gate. The dispatcher merges `dev` forward into the branch before
-  every launch and refuses only a conflict, so a trunk that moved is not
-  a defect. This supersedes the same day's "choice #2" of records
-  straight to `dev`, which moved the trunk under every open branch.
-- **Every commit carries its trailers**: `Source:` (original, a
-  `repo@sha` pointer for adapted content, or `owner <date>`), and
-  `Co-Authored-By:` naming the specific model — the credited agent,
-  vendor noreply address. Work you did not do gets no trailer with
-  your name.
-- **Every factual claim is produced by a command at the moment of
-  writing**, stamped with what it was measured against. Absence is
-  declared, never inferred from silence: distinguish "looked and
-  found nothing" from "could not look."
-- **No producer owns two consecutive artifacts.** Whoever writes an
-  implementation neither writes nor approves its tests. This binds
-  every producer, the founder included. **Dev-lane changes go by hand
-  under a grant at the owner's word** (owner, 2026-09-12: "the hand
-  grant is something that I think works for dev-lane changes"): one
-  producer, red then green measured with the same command, the second
-  producer's absence said in the commit and the record. The ladder and
-  its second producer are for prod-lane work.
-  **The owner never runs the grant lever** (owner, 2026-09-12: "all these
-  systems are for you - not me - they can't get in MY way"; owner,
-  2026-09-23: "this grant situation is getting cumbersome - which defeats
-  the purpose. I hand grant was originally a way for a single session to
-  just do the work and by-pass the system" and "i just want to give you
-  the power to declare hand grants as needed for dev-lane work"): the
-  owner's word at a session's start, or the Lead's word on the owner's
-  delegation, is the grant. The session declares it once, unscoped, for
-  its whole life, and leads its writes with the id. A later write needs
-  no fresh word, and the grant settles when the session closes, not
-  before. A relayed word is a grant for the lane's rows; it never answers
-  a harness permission prompt. The owner types nothing.
-  **The owner is the authority; the hooks are for agents** (owner,
-  2026-09-12: "i am the authoritative figure - my words and by extension,
-  the system, only exists to support me and my decisions. And it can't get
-  in the way in-session"; then, asked four questions: the hard rows stay
-  refused for an agent even under "get it done": a commit or push to dev
-  or master, a published claim with no reading, a PR ready or merged
-  without proof, a forced push or a prune; a grant covers every write
-  outside them; the wall is CI, the tests and the PR gate). **An ask only
-  where it is critical** (owner, 2026-09-12: "i don't want asks unless
-  they're critical"): a forced push or a prune answers `ask`, because only
-  the owner decides to destroy history and no agent can forge that click;
-  a commit to the trunk, a claim without a reading and a ready or merge
-  without proof answer `deny`, because the remedy is the agent's own, a
-  branch, a reading, the proof. Nothing else waits on the owner's hand.
-  **The wall is changed only in isolation** (owner, 2026-09-12: "i have
-  the right to issue a hand grant to change CI and tests - but i'm willing
-  to make that something that can only be done in isolation"): the CI
-  workflow, the suite lever, the corpus runner, the closure levers, the
-  hook registry and engine are written only under a grant of lever class
-  `wall`, in a session whose deliverable is the wall and which writes
-  nothing else; test files stay with the code they test. The grant of a
-  wall session is the same word under the same terms: one declaration at
-  the start, covering both classes, settled at close (owner 2026-09-23,
-  the Lead's ruling on the owner's delegation). hand.py at 2df477aa takes
-  one class per declaration; until it takes both, a wall session declares
-  one grant of each class at its start, under the same word, and settles
-  both at close.
-- **Refusals are the interface.** Components refuse rather than
-  guess, on the wire, with expected–found–needed stated.
-- **No vendor becomes load-bearing.** Every external capability is
-  consumed through a contract, a probe, and a verified mock, and is
-  removable for the cost of a configuration line.
-- **A failure pattern with a fix does not recur** (owner, 2026-09-16:
-  "just make sure we fix these stupid issues - i can't tolerate the same
-  mistakes too many times (not after we have a fix on a failure pattern)";
-  D-PATTERN-1): the fix is a mechanism, a refusal, a test with a planted
-  fault, or a record the next session reads, never a rule relayed by
-  message; a recurrence after the fix is a defect filed against the fix,
-  not against the session that hit it; the measure is the miss log and
-  the defect ledger by class after the fix's date.
+Owner direction, 2026-09-24: freedom to work, diagnostics to warn and guide,
+and one obvious acceptance gate in CI. Hand grants are retired. Ordinary edits,
+investigation, testing, delegation, and branch work need no grant record, command
+prefix, dispatcher identity, deliverable lock, or prescribed pipeline. Repository
+hooks supply advice and context, including when a diagnostic cannot run. A finding
+is information for a decision, not a new permission requirement.
+
+- Work on branches from `dev` and propose changes into `dev`. `master` is the
+  release branch; releases remain the owner's decision.
+- CI's `lane` check is the acceptance gate. Its report names the tested revision
+  and profile. Hosted mode runs the fast profile; local mode adds integration.
+  Full rehearsals remain an explicit choice. Do not describe a partial run as
+  full coverage or manufacture a successful check.
+- The owner controls recovery through GitHub's own administration/bypass access,
+  outside repository scripts and agent credentials. No repository hook, ledger,
+  grant, or CI job authorizes that recovery. Agents do not configure or invoke
+  the owner's bypass. Its GitHub settings must be verified separately; this
+  document does not establish that they are configured.
+- The Lead is the working session with the owner. Direct work, live collaboration,
+  batch dispatch, and saved pipelines are available approaches. Choose according
+  to the task; the arrangement, model choices, and reasoning levels can evolve.
+- Use existing components and useful tests. Seek independent review where it
+  improves confidence. A mandatory producer sequence is not a prerequisite.
+- Preserve unrelated work and inspect diffs. Report evidence and uncertainty
+  accurately. Use `Source:` and `Co-Authored-By:` trailers to retain provenance.
+- Keep telemetry, skill-use records, and feedback useful for learning. A warning
+  is not automatically an agent failure or a missed skill. Evaluate whether the
+  procedure itself needs changing.
+
+Read the relevant contracts under `docs/` and component documentation for the
+behavior being changed. Historical mandatory-workflow language in those sources
+is superseded by the working guidance above; it cannot reinstate retired grants
+or turn an optional tool into a prerequisite.
 
 ## Lane boundary and precedence
 
@@ -132,7 +68,7 @@ model and conductor/worker role. Using dev tooling to work on the prod
 application does not make the tooling part of that application. Both
 lanes may read shared contracts and describe or inspect the application;
 that permission does not authorize a runtime dependency on it. Shared
-wire, provenance, custody and independent-producer obligations still hold.
+wire, provenance and custody expectations still hold.
 
 This owner correction governs wherever older repository language would
 force Symfony into dev tooling or make the application its replacement.
@@ -142,8 +78,7 @@ handoffs and captured plans retain provenance, but conflicting passages
 have no current operational authority. A stale brief or resumed job does
 not restore that authority. The withdrawn shared-Symfony recommendation
 for lane MCP and launcher work cannot support acceptance of those designs.
-Unknown or conflicting scope must refuse with expected–found–needed,
-not silently reclassify the work or seek approval for a forbidden action.
+Explain a consequential scope conflict and resolve it against the current objective.
 
 This is the owning instruction boundary. `ops/README.md` carries its
 operating references; `docs/verified-couplings.md` carries its dependency
@@ -209,11 +144,10 @@ from the House lane and maintained independently under the lane boundary
 above. Its contracts and conformance obligations hold as it evolves.
 `ops/conductor/` is the conductor lane — the instruments, their
 contracts, the ideas and hand-off records, the register — with its own
-state under `~/.local/state/agentscient/`. `ops/process/` holds the
-pipeline law; `ops/bin/` the levers; `CONTRIB.md` the naming and the
+state under `~/.local/state/agentscient/`. `ops/process/` holds
+optional pipeline guidance; `ops/bin/` the levers; `CONTRIB.md` the naming and the
 templates.
-Delegation runs through `ops/bin/dispatch.sh` (or `go.sh`) and nothing
-else — in-session sub-agents are refused by hook. `ops/bin/suites.sh`
+Batch dispatch is available through `ops/bin/dispatch.sh` (or `go.sh`). `ops/bin/suites.sh`
 uses the shared test plans: local integration by default, `--profile ci`
 for fast hosted checks, and `--profile rehearsal` for explicit full dev
 rehearsals. A pass names its coverage; see the CI contract. Read
@@ -223,7 +157,7 @@ rehearsals. A pass names its coverage; see the CI contract. Read
 
 The conductor lane lives under `ops/conductor/` in this repository;
 sessions coordinate by message and by record, never by memory, and
-the record outranks recall.
+records inform decisions; current owner direction takes precedence.
 
 The following diagnostic instructions apply to prod application work.
 Mate is not a prerequisite for operating or developing the dev lane.

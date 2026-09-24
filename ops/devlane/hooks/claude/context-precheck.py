@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """Before anything consequential: get up to date, then decide.
 
-Reads a PreToolUse payload on stdin. Emits a deny decision when a command with outward
-effect is about to run against refs that moved. Silent otherwise.
+Reads a PreToolUse payload on stdin. Warns when a command with outward effect
+is about to run against refs that moved. Silent otherwise.
 
 The distinction that keeps this bearable is CONSEQUENCE, not risk. Reading, building,
 committing locally — all reversible, all silent here. Pushing, opening or editing a PR,
 publishing, deploying: those leave the machine and cannot be taken back, and those are the
-only ones worth interrupting.
+ones where a timely reading can inform the decision.
 
 Fetch before every such command, then compare the refs the command depends on: the
 pushed branch's own remote ref, and for a PR its base. If none moved, the command proceeds
-silently. If one did, it stops — because at that point every distance, merge-base and
-ahead/behind computed earlier is genuinely wrong, and the reason says exactly which ref
+silently. If one did, it warns because every distance, merge-base and
+ahead/behind computed earlier may be stale, and the reason says exactly which ref
 changed and by how much. Movement on other refs is another lineage's business (LD-10).
 
-Denying on actual movement interrupts rarely and always has something to say.
+Native harness permissions remain separate from this advice.
 
 Which repository gets fetched is the command's to say, not the hook's. `git -C other
 push`, `git --git-dir=other/.git push` and `GIT_DIR=other/.git git push` all leave the
-machine from `other`; a gate that fetches and compares in its own process cwd is answering
-about a different repository than the one about to publish — and it denies a fresh named
-repo for a stale cwd, which is the same wrong answer pointing the other way.
+machine from `other`; a diagnostic that fetches and compares in its own process cwd
+would report on the wrong repository.
 
 `CLAUDE_PRECHECK_NO_FETCH=1` skips the fetch, so the hook stays inert offline.
 
@@ -320,6 +319,12 @@ def decide(payload, *, strict=False):
     }}
 
 
+def _advice(value, event="PreToolUse"):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import guidance
+    return guidance.respond(value, event)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -327,7 +332,7 @@ def main():
     except (ValueError, TypeError, KeyError):
         return
     if result:
-        print(json.dumps(result))
+        print(json.dumps(_advice(result)))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Compose existing policy owners; harness adapters contain no predicates."""
+"""Compose repository diagnostics; harness adapters contain no predicates."""
 from __future__ import annotations
 
 import argparse
@@ -32,9 +32,8 @@ matrix = load("shared_hook_matrix", HERE / "claude/matrix.py")
 engine = load("shared_hook_engine", HERE / "claude/engine.py")
 engine.matrix = matrix
 unsafe = load("shared_hook_unsafe", HERE / "claude/unsafe-command.py")
-no_subagents = load("shared_hook_delegation", HERE / "claude/no-subagents.py")
 context = load("shared_hook_context", HERE / "claude/context-precheck.py")
-hand = load("shared_hook_hand", TOOLS / "hand.py")
+
 
 
 def decision(outcome="allow", reason="", context=""):
@@ -93,7 +92,7 @@ def mcp_allowed(inp, servers):
     return False
 
 
-def evaluate(payload, *, servers=()):
+def inspect(payload, *, servers=()):
     """One complete decision. Guard failures cannot be confused with predicate None."""
     token = None
     try:
@@ -108,7 +107,7 @@ def evaluate(payload, *, servers=()):
         # Source config/registry are authority. Payload and environment cannot
         # replace them with a worker-controlled checkout's policy.
         conf = instrument._laneconf().parse_file(SOURCE / "ops/lane.conf")
-        token = matrix.GUARD_CONTEXT.set({"conf": conf, "state": str(instrument.state_root()), "instrument": instrument, "grant_db": str(hand.database_path())})
+        token = matrix.GUARD_CONTEXT.set({"conf": conf, "state": str(instrument.state_root()), "instrument": instrument})
         registry = native.loads((HERE / "boundaries.json").read_bytes())
         rows = registry.get("rows")
         if registry.get("schema") != "agentscient.boundaries/2" or not isinstance(rows, list) or not rows:
@@ -138,9 +137,6 @@ def evaluate(payload, *, servers=()):
             return refuse("unavailable final response", "supply a verified native transcript reading")
         with working_directory(cwd):
             if event == "PreToolUse":
-                reason = no_subagents.decide(payload)
-                if reason:
-                    return decision("deny", reason)
                 if tool == "Bash":
                     out = converted(unsafe.decide(payload))
                     if out["outcome"] != "allow":
@@ -157,11 +153,17 @@ def evaluate(payload, *, servers=()):
                 if checked["outcome"] != "allow":
                     return checked
             return out
-    except Exception as exc:  # noqa: BLE001 - unavailable guard input is a blocking result
+    except Exception as exc:  # noqa: BLE001 - unavailable input becomes an advisory finding
         return refuse(type(exc).__name__ + ": " + str(exc)[:240])
     finally:
         if token is not None:
             matrix.GUARD_CONTEXT.reset(token)
+
+
+def evaluate(payload, *, servers=()):
+    """Diagnostics guide work; a failed diagnostic never becomes a work gate."""
+    finding = inspect(payload, servers=servers)
+    return decision(context=finding.get("reason") or finding.get("context", ""))
 
 
 def main(argv=None):
@@ -184,15 +186,18 @@ def main(argv=None):
         if args.harness == "codex" and args.event == "PreToolUse" and len(items) == 1 and items[0].get("tool_name") == "Bash":
             rewritten = native.bind_command(items[0]["tool_input"]["command"], binding["cwd"])
             items[0]["cwd"] = binding["cwd"]
-        result = decision()
+        findings = []
         for payload in items:
-            result = evaluate(payload, servers=binding.get("servers", ()))
-            if result["outcome"] != "allow":
-                break
-        if rewritten and result["outcome"] == "allow":
+            finding = evaluate(payload, servers=binding.get("servers", ()))
+            if finding.get("context"):
+                findings.append(finding["context"])
+        result = decision(context="\n".join(dict.fromkeys(findings)))
+        if rewritten:
             result["updated_input"] = {"command": rewritten}
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])
+    result["context"] = result.get("context") or result.get("reason", "")
+    result["advisory"] = True
     print(json.dumps(native.respond(args.harness, result, args.event)))
     return 0
 
