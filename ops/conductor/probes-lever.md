@@ -132,14 +132,13 @@ the evidence. The corpus is apparatus — withheld from every arm B
 snapshot by construction, which is what the 2026-09-01 leak lacked
 procedurally.
 
-## Session close writes rows
+## Maintaining useful probes
 
-A closing session converts its holdings into corpus rows — a probes
-file named in its calibration clause. A holding with neither a row
-nor an explicit left-behind declaration is the AAR's standing
-question ("what did onboarding fail to carry?") answered against the
-session that held it. This clause is I-008 made literal: session-end
-is computable when `run` exits 0 over the manifest the session wrote.
+Add probes when they preserve useful knowledge or catch a concrete regression.
+They are not a prerequisite for closing a session. Remove or update operational
+probes when the owner retires the behavior they describe; Git retains their
+history. Historical evidence may stay in the corpus when its question clearly
+asks about that past event. Current working guidance lives in `AGENTS.md`.
 
 ## Refusals
 
