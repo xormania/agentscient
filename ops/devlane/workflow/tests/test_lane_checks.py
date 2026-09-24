@@ -7,7 +7,6 @@ testkit.run, testkit.fakes and testkit.refusal-wire.
 from __future__ import annotations
 
 import json
-import shlex
 import shutil
 import unittest
 from pathlib import Path
@@ -32,7 +31,9 @@ class LaneGate(unittest.TestCase):
         for directory in lane.FAMILIES:
             names = ("test_c.py", "test_l.py", "test_o.py", "test_z.py") if directory in lane.SHARDS else ("test_example.py",)
             for name in names:
-                self.world.plant_bytes(f"cwd/{directory}/{name}", example)
+                content = ((ROOT / "ops/testkit/tests/fixtures/multiple_cases.py").read_bytes()
+                           if directory in lane.PARTITIONS else example)
+                self.world.plant_bytes(f"cwd/{directory}/{name}", content)
         self.world.tools.plant("ruff")
         for check in lane.GUARDS:
             for path in check.required:
@@ -50,10 +51,11 @@ class LaneGate(unittest.TestCase):
 
     def test_local_and_workflow_commands_run_the_same_complete_plan(self):
         workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
-        command = shlex.split(workflow["jobs"]["lane"]["steps"][-1]["run"])
+        command = next(s["run"] for s in workflow["jobs"]["lane"]["steps"] if s.get("id") == "verify")
+        self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci lane")
         self.assertEqual({check.name for check in lane.GUARDS}, GUARD_NAMES)
         expected = {check.name for check in lane.plan(self.root)}
-        for serial, argv in ((True, None), (False, command)):
+        for serial, argv in ((True, None), (False, None)):
             with self.subTest(serial=serial):
                 proc = self.invoke(serial=serial, command=argv)
                 self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
@@ -88,6 +90,17 @@ class LaneGate(unittest.TestCase):
         proc = self.invoke()
         self.assertEqual(proc.refusal().cls, "checks")
         self.assertEqual(self.world.tools.calls("ruff"), [])
+
+    def test_a_failed_cheap_guard_prevents_expensive_suites_from_starting(self):
+        self.world.tools.plant("ruff", exit=1, stderr="planted lint failure\n")
+        self.world.plant_text("cwd/ops/devlane/dispatch/tests/test_example.py",
+                              "raise AssertionError('expensive suite started')\n")
+        proc = self.invoke()
+        self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
+        self.assertIn("FAIL ruff", proc.stdout)
+        self.assertNotIn("expensive suite started", proc.stdout + proc.stderr)
+        self.assertNotIn("== ops/devlane/dispatch/tests", proc.stdout)
+        self.assertIn("FULL: FAIL", proc.stdout)
 
     def test_partial_selection_is_explicit_and_cannot_claim_full_success(self):
         selected = "ops/devlane/task/tests"

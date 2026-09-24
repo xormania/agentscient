@@ -20,19 +20,9 @@ from ops.testkit import World
 ROOT = Path(__file__).resolve().parents[4]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
-PATH_SETUP = 'echo "$HOME/.local/bin" >> "$GITHUB_PATH"'
+UPLOAD = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
 RECORD_REFS = "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
-FULL_GATE = "bash ops/bin/suites.sh"
-APP_COMMANDS = (
-    PATH_SETUP,
-    "php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version",
-    "composer validate --strict",
-    "composer install --prefer-dist --no-progress --no-interaction",
-    "find src packages -name '*.php' -print0 | xargs -0 -r -n50 php -l",
-    "php bin/console about",
-    "vendor/bin/phpunit",
-    "vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \\\n  | jq -e '.untrusted_data.services[\"router.default\"]'\nvendor/bin/mate tools:list\n",
-)
+FULL_GATE = "python3 -m ops.devlane.workflow.checks.ci lane"
 
 
 def conditional_keys(value):
@@ -52,12 +42,16 @@ class CiTwoJobs(unittest.TestCase):
         self.doc = json.loads(self.workflow.read_text())
 
     def assert_contract(self, doc):
-        self.assertEqual(conditional_keys(doc), set())
+        inspected = copy.deepcopy(doc)
+        for job in inspected["jobs"].values():
+            artifact = job["steps"][-1]
+            self.assertEqual(artifact.pop("if"), "${{ always() && steps.verify.outputs.receipt != '' }}")
+        self.assertEqual(conditional_keys(inspected), set())
         self.assertEqual(doc["on"], {
             "pull_request": {"types": ["opened", "synchronize", "reopened"], "branches": ["dev"]},
             "merge_group": {"branches": ["dev"]}, "push": {"branches": ["dev"]},
         })
-        self.assertEqual(doc["permissions"], {"contents": "read"})
+        self.assertEqual(doc["permissions"], {"contents": "read", "actions": "read"})
         self.assertEqual(doc["concurrency"], {
             "group": "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
             "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
@@ -67,7 +61,7 @@ class CiTwoJobs(unittest.TestCase):
             self.assertEqual(job["runs-on"], "self-hosted")
             self.assertEqual(job["timeout-minutes"], 15 if name == "lane" else 5)
             steps = job["steps"]
-            self.assertEqual([step["uses"] for step in steps if "uses" in step], [CHECKOUT])
+            self.assertEqual([step["uses"] for step in steps if "uses" in step], [CHECKOUT, UPLOAD])
             self.assertEqual(steps[0]["uses"], CHECKOUT)
             self.assertIs(steps[0]["with"]["persist-credentials"], False)
             self.assertNotIn("defaults", job)
@@ -75,13 +69,14 @@ class CiTwoJobs(unittest.TestCase):
             for step in steps:
                 self.assertNotIn("working-directory", step)
             commands = [step["run"] for step in steps if "run" in step]
-            if name == "lane":
-                self.assertEqual(commands, [PATH_SETUP, RECORD_REFS, FULL_GATE])
-                self.assertEqual(steps[0]["with"]["fetch-depth"], 0)
-                gate = next(step for step in steps if step.get("run") == FULL_GATE)
-                self.assertEqual(gate["env"], {"TERM_WALL": "${{ vars.TERM_WALL }}"})
-            else:
-                self.assertEqual(commands, list(APP_COMMANDS))
+            expected = ([RECORD_REFS] if name == "lane" else []) + [f"python3 -m ops.devlane.workflow.checks.ci {name}"]
+            self.assertEqual(commands, expected)
+            self.assertEqual(steps[0]["with"]["fetch-depth"], 0)
+            gate = next(step for step in steps if step.get("id") == "verify")
+            self.assertEqual(gate["env"], {"TERM_WALL": "${{ vars.TERM_WALL }}", "GITHUB_TOKEN": "${{ github.token }}"})
+            self.assertEqual(steps[-1]["with"], {"name": "${{ steps.verify.outputs.artifact }}",
+                                              "path": "${{ steps.verify.outputs.receipt }}",
+                                              "if-no-files-found": "error", "retention-days": 30})
         self.assertNotIn("defaults", doc)
         self.assertNotIn("env", doc)
 
@@ -104,21 +99,21 @@ class CiTwoJobs(unittest.TestCase):
 
     def test_disabled_partial_hidden_and_duplicated_execution_is_detected(self):
         mutations = {
-            "disabled": lambda d: d["jobs"]["lane"]["steps"][-1].update(run="echo skipped"),
-            "masked-failure": lambda d: d["jobs"]["lane"]["steps"][-1].update(run=FULL_GATE + " || true"),
-            "partial": lambda d: d["jobs"]["lane"]["steps"][-1].update(run=FULL_GATE + " --suite ops/testkit/tests"),
-            "conditional": lambda d: d["jobs"]["lane"]["steps"][-1].update({"if": "false"}),
-            "ignored-failure": lambda d: d["jobs"]["lane"]["steps"][-1].update({"continue-on-error": True}),
+            "disabled": lambda d: d["jobs"]["lane"]["steps"][-2].update(run="echo skipped"),
+            "masked-failure": lambda d: d["jobs"]["lane"]["steps"][-2].update(run=FULL_GATE + " || true"),
+            "partial": lambda d: d["jobs"]["lane"]["steps"][-2].update(run=FULL_GATE + " --suite ops/testkit/tests"),
+            "conditional": lambda d: d["jobs"]["lane"]["steps"][-2].update({"if": "false"}),
+            "ignored-failure": lambda d: d["jobs"]["lane"]["steps"][-2].update({"continue-on-error": True}),
             "omitted": lambda d: d["jobs"]["lane"]["steps"].pop(),
-            "duplicated": lambda d: d["jobs"]["lane"]["steps"].append(d["jobs"]["lane"]["steps"][-1]),
-            "app-disabled": lambda d: d["jobs"]["app"]["steps"][-1].update(run="true"),
+            "duplicated": lambda d: d["jobs"]["lane"]["steps"].insert(-1, d["jobs"]["lane"]["steps"][-2]),
+            "app-disabled": lambda d: d["jobs"]["app"]["steps"][-2].update(run="true"),
             "path-filter": lambda d: d["on"]["pull_request"].update(paths=["ops/**"]),
             "ignored-path": lambda d: d["on"]["push"].update({"paths-ignore": ["docs/**"]}),
             "job-skip": lambda d: d["jobs"]["app"].update({"if": "false"}),
             "wrong-branch": lambda d: d["on"]["push"].update(branches=["master"]),
             "cancel-push": lambda d: d["concurrency"].update({"cancel-in-progress": True}),
             "wrong-runner": lambda d: d["jobs"]["lane"].update({"runs-on": "not-self-hosted"}),
-            "wrong-directory": lambda d: d["jobs"]["lane"]["steps"][-1].update({"working-directory": "elsewhere"}),
+            "wrong-directory": lambda d: d["jobs"]["lane"]["steps"][-2].update({"working-directory": "elsewhere"}),
         }
         for origin, mutate in mutations.items():
             doc = copy.deepcopy(self.doc)

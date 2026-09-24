@@ -8,6 +8,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import support
 
@@ -16,7 +17,11 @@ from ops.testkit import PlantFailed, World, compare, run
 
 class Environment(unittest.TestCase):
     def test_env_carries_no_operator_home(self):
-        with World() as world:
+        # Poison ambient constants explicitly: equal fixed defaults in nested
+        # CI worlds are not evidence that operator values were inherited.
+        with patch.dict(os.environ, {"LANG": "host-lang", "LC_ALL": "host-locale",
+                                     "PYTHONDONTWRITEBYTECODE": "host-bytecode",
+                                     "OPERATOR_CONFIG": "must-not-be-inherited"}), World() as world:
             env = world.env()
             self.assertEqual(env["HOME"], str(world.home))
             self.assertNotEqual(env["HOME"], os.environ.get("HOME"))

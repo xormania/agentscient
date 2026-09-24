@@ -93,6 +93,42 @@ class SuiteDiscovery(unittest.TestCase):
         self.assertEqual(sum("Ran 2 tests" in r.stderr for r in results.values()), 1)
         self.assertEqual(sum("Ran 1 test" in r.stderr for r in results.values()), 1)
 
+    def test_automatic_partition_runs_each_module_and_keeps_new_files(self):
+        for name in ("test_first.py", "test_second.py", "test_new.py"):
+            self.plant(name)
+        plan = suite_checks(self.world.cwd, "tests", patterns=None)
+        self.assertEqual({check.argv[-1] for check in plan},
+                         {"test_first.py", "test_second.py", "test_new.py"})
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env(), workers=2))
+        self.assertEqual(len(results), 3)
+        self.assertTrue(all(r.exit == 0 and "Ran 1 test" in r.stderr for r in results.values()))
+
+    def test_case_partitions_execute_every_actual_case_once_and_keep_failures(self):
+        content = (KIT / "tests/fixtures/multiple_cases.py").read_bytes()
+        self.plant("test_large.py", content)
+        plan = suite_checks(self.world.cwd, "tests", patterns=None, partitions={"test_large.py": 4})
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env()))
+        self.assertEqual(len(results), 4)
+        self.assertTrue(all(r.exit == 0 for r in results.values()), results)
+        cases = [line for result in results.values() for line in result.stdout.splitlines()]
+        self.assertEqual(sorted(cases), ["test_large.First.test_a", "test_large.First.test_b",
+                                         "test_large.Second.test_c", "test_large.Second.test_d"])
+        self.plant("test_large.py", content.replace(b"2 + 2, 4", b"2 + 2, 5"))
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env()))
+        self.assertEqual(sum(r.exit != 0 for r in results.values()), 1)
+        self.plant("test_large.py", b"import nonexistent_test_dependency\n")
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env()))
+        self.assertTrue(all(r.exit != 0 for r in results.values()))
+
+    def test_empty_or_invalid_case_partitions_cannot_pass(self):
+        self.plant("test_small.py")
+        for count in (0, -1, True):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                suite_checks(self.world.cwd, "tests", patterns=None, partitions={"test_small.py": count})
+        plan = suite_checks(self.world.cwd, "tests", patterns=None, partitions={"test_small.py": 2})
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env()))
+        self.assertTrue(any(r.exit != 0 and "zero" in r.stderr for r in results.values()))
+
     def test_missing_empty_gapped_and_overlapping_families_refuse(self):
         with self.assertRaisesRegex(ValueError, "ABSENT"):
             suite_checks(self.world.cwd, "tests")

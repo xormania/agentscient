@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 import math
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -26,7 +27,7 @@ def reject(expected, found, needed):
     raise ValueError(f"checks: expected {expected}; found {found}; needed {needed}")
 
 
-def suite_checks(root, directory, patterns=("test_*.py",), *, timeout=600):
+def suite_checks(root, directory, patterns=("test_*.py",), *, timeout=600, partitions=None):
     """Prove a discovery partition, then declare one bounded child per slice."""
     root = Path(root).resolve()
     folder = (root / directory).resolve()
@@ -37,15 +38,26 @@ def suite_checks(root, directory, patterns=("test_*.py",), *, timeout=600):
     if not files:
         reject("test files in every required suite", f"{directory}: no test files",
                "restore the suite's test files")
+    if patterns is None:
+        patterns = tuple(files)
     wrong = {name: sum(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
              for name in files}
     wrong = {name: count for name, count in wrong.items() if count != 1}
     if wrong:
         reject("every test file covered exactly once", f"{directory}: {wrong}",
                "disjoint patterns whose union covers the family")
-    return tuple(Check(f"{directory}:{pattern}",
-                       (sys.executable, "-m", "ops.testkit.suite", directory, pattern),
-                       timeout, (directory,)) for pattern in patterns)
+    checks = []
+    for pattern in patterns:
+        count = (partitions or {}).get(pattern, 1)
+        if type(count) is not int or count < 1:
+            reject("a positive case partition count", repr(count), "declare at least one partition")
+        for index in range(count):
+            selection = ("--partition", f"{index}/{count}") if count > 1 else ()
+            suffix = f":{index}/{count}" if count > 1 else ""
+            checks.append(Check(f"{directory}:{pattern}{suffix}",
+                                (sys.executable, "-m", "ops.testkit.suite", *selection, directory, pattern),
+                                timeout, (directory,)))
+    return tuple(checks)
 
 
 def _execute(check, cwd, env):
@@ -78,7 +90,7 @@ def execute_checks(checks, *, cwd, env, workers=None):
             reject("every required input present", f"{check.name}: {missing} ABSENT",
                    "restore the required inputs")
     if workers is None:
-        workers = len(checks)
+        workers = min(8, os.cpu_count() or 1)
     if workers < 1:
         reject("at least one worker", workers, "use a positive worker count")
 
