@@ -1,0 +1,82 @@
+name: temporary PR-01 native audit
+on:
+  push:
+    branches: [lane/session-20260924-pr01-cheap-reads]
+    paths: [.github/workflows/pr01-workspace.yml]
+permissions:
+  contents: read
+jobs:
+  security:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          path: pr01-audit-retry
+      - name: Audit the helper-free candidate through the existing launcher
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WF_AGENT: GPT-6 Astra Pro <noreply@openai.com>
+        run: |
+          cd pr01-audit-retry
+          python3 - <<'PY'
+          import base64, os, shutil, subprocess, time
+          from pathlib import Path
+          os.umask(0o077)
+          branch = 'lane/session-20260924-pr01-cheap-reads'
+          temp = Path(os.environ['RUNNER_TEMP'])
+          results = temp / 'pr01-native-audit'
+          results.mkdir(exist_ok=True)
+          auth = dict(os.environ)
+          auth['GIT_CONFIG_COUNT'] = '1'
+          auth['GIT_CONFIG_KEY_0'] = 'http.https://github.com/.extraheader'
+          auth['GIT_CONFIG_VALUE_0'] = 'AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + os.environ['GH_TOKEN']).encode()).decode()
+          target = None
+          for attempt in range(60):
+              subprocess.run(['git', 'fetch', '--quiet', 'origin', 'refs/heads/' + branch], env=auth, check=True)
+              ref = subprocess.check_output(['git', 'rev-parse', 'FETCH_HEAD'], text=True).strip()
+              if subprocess.run(['git', 'cat-file', '-e', ref + ':.github/workflows/pr01-workspace.yml'], capture_output=True).returncode != 0:
+                  target = ref
+                  break
+              time.sleep(3)
+          if target is None:
+              raise SystemExit('Helper-free candidate not published; no audit launched.')
+          subprocess.run(['git', 'merge', '--ff-only', target], check=True)
+          assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == target
+          subprocess.run(['git', 'config', '--local', 'user.name', 'GPT-6 Astra Pro'], check=True)
+          subprocess.run(['git', 'config', '--local', 'user.email', 'noreply@openai.com'], check=True)
+          (results / 'audited-head.txt').write_text(target + '\n')
+          env = dict(os.environ)
+          real_home = env['HOME']
+          env['PATH'] = real_home + '/.local/bin:' + env['PATH']
+          env['CODEX_HOME'] = env.get('CODEX_HOME') or real_home + '/.codex'
+          env['HOME'] = str(temp / 'pr01-native-home')
+          for key, name in [('XDG_STATE_HOME', 'state'), ('XDG_CACHE_HOME', 'cache'), ('XDG_CONFIG_HOME', 'config'), ('XDG_DATA_HOME', 'data')]:
+              env[key] = str(temp / ('pr01-native-' + name))
+          Path(env['HOME']).mkdir(exist_ok=True)
+          env['DISPATCH_JOBS'] = str(temp / 'pr01-native-jobs')
+          env['DISPATCH_RECLAIM'] = 'off'
+          env.pop('GH_TOKEN', None)
+          env.pop('GITHUB_TOKEN', None)
+          scope = temp / 'pr01-native-scope.txt'
+          scope.write_text('PR-01 cheap observation against dev: shared SQLite reader modes and refusals; hand/findings/skills read-write boundaries; deliverable show versus explicit done and concurrent target updates; Stop read caller. Read ops/conductor/reports/pr01-cheap-reads.md. Audit only, no edits. Review source, tests and changed current instructions. Recorded measurements deliberately remain unmeasured in status until verification inputs are bound by PR-06; do not manufacture an attestation or expand completion policy. Reproduce practical findings. Use the required lane MCP read interface at least once, as the launcher requires. Return the declared security-audit envelope.')
+          with (results / 'audit.log').open('w') as log:
+              proc = subprocess.run(['bash', 'ops/conductor/tools/dispatch.sh', '--worktree', str(Path.cwd()), '--job', 'security-audit', '--harness', 'codex', '--stage', 'review', '--scope-file', str(scope), '--timeout', '900'], env=env, stdout=log, stderr=subprocess.STDOUT)
+          (results / 'exit.txt').write_text(str(proc.returncode) + '\n')
+          for path in Path(env['DISPATCH_JOBS']).glob('*/record.json'):
+              dest = results / path.parent.name
+              dest.mkdir(exist_ok=True)
+              shutil.copyfile(path, dest / 'record.json')
+              for result in (path.parent / 'out').glob('*.json'):
+                  shutil.copyfile(result, dest / result.name)
+          raise SystemExit(proc.returncode)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pr01-native-security-audit
+          path: ${{ runner.temp }}/pr01-native-audit/
+          retention-days: 1
+          if-no-files-found: warn
