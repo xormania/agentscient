@@ -24,7 +24,9 @@ made documentation/fixture failures expensive and post-merge work redundant.
 - Keep `lane` and `app` on `self-hosted`; preserve PR/push/merge-group coverage.
 - Use the existing testkit's strict discovery and execution primitives. Run
   conductor modules independently in a bounded pool, with larger modules
-  queued first. Every newly discovered module remains required.
+  queued first. Every newly discovered module remains required. Native run
+  35952536576 measured dispatch at 195.805s and sessions-trial at 250.592s;
+  those groups now partition their actual discovered cases four ways.
 - Preflight the entire plan, then run cheap guards before expensive suites.
   A guard failure leaves the full result red and prevents expensive starts.
 - Use a private World home, XDG roots and temporary directory. Declare and
@@ -69,6 +71,11 @@ the tested object while changed parents invalidate it. A real child captures
 its private HOME/XDG/temp values and proves that GITHUB_TOKEN and WF_AGENT are
 absent; its private home is removed on completion. An app case proves that a
 fresh dependent check still causes dependency installation after partial reuse.
+Case partition fixtures execute each real case exactly once across children,
+retain a planted assertion failure, and reject import errors and empty slices.
+The first native run exposed a test that mistook equal fixed locale/bytecode
+defaults for ambient leakage. It now poisons those ambient values explicitly
+and still rejects inherited operator configuration.
 
 Repository-wide Ruff and the testkit ratchet pass in this chat. Final commands,
 counts and native run links are maintained in the PR body after the candidate

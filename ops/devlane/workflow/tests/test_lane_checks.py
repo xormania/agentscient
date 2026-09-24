@@ -31,7 +31,9 @@ class LaneGate(unittest.TestCase):
         for directory in lane.FAMILIES:
             names = ("test_c.py", "test_l.py", "test_o.py", "test_z.py") if directory in lane.SHARDS else ("test_example.py",)
             for name in names:
-                self.world.plant_bytes(f"cwd/{directory}/{name}", example)
+                content = ((ROOT / "ops/testkit/tests/fixtures/multiple_cases.py").read_bytes()
+                           if directory in lane.PARTITIONS else example)
+                self.world.plant_bytes(f"cwd/{directory}/{name}", content)
         self.world.tools.plant("ruff")
         for check in lane.GUARDS:
             for path in check.required:

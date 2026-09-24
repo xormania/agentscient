@@ -21,6 +21,11 @@ FAMILIES = (
 # Independent modules prevent a growing alphabetical remainder from becoming
 # one eight-minute process. The shared kit proves complete, disjoint discovery.
 SHARDS = {"ops/conductor/tests": None}
+# Native run 35952536576 measured these at 196s and 251s respectively.
+PARTITIONS = {
+    "ops/devlane/dispatch/tests": {"test_*.py": 4},
+    "ops/conductor/tests": {"test_sessions_trial.py": 4},
+}
 
 
 def python_check(name, path, *args, timeout=60, required=()):
@@ -48,7 +53,8 @@ def plan(root, selected=()):
     checks = [replace(LINT, required=())] if selected else list(GUARDS)
     for directory in selected or FAMILIES:
         patterns = ("test_*.py",) if selected else SHARDS.get(directory, ("test_*.py",))
-        checks.extend(suite_checks(root, directory, patterns))
+        checks.extend(suite_checks(root, directory, patterns,
+                                   partitions=None if selected else PARTITIONS.get(directory)))
     return checks
 
 

@@ -71,6 +71,9 @@ This supersedes the earlier proposal to default to hosted execution.
   and schedule with a bounded worker pool. Keep all existing cases and their
   failure semantics. Record module durations; target the previous roughly
   three-minute native gate, and report actual timing before claiming success.
+  The measured long dispatch and sessions-trial groups each use four disjoint
+  partitions of sorted, actually discovered test cases. New cases join the
+  partition automatically; import errors and empty partitions remain red.
 - CI uses private HOME, XDG and temporary roots through the existing testkit.
   Resolve declared tools before isolation, require them explicitly, and keep
   runner/API credentials out of child test environments. Preserve world
