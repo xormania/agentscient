@@ -20,12 +20,12 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from ops.devlane.workflow.checks import lane
+from ops.devlane.workflow.checks import ci_runners, lane
 from ops.testkit import Check, World, execute_checks, run
 
 ROOT = lane.ROOT
 SCHEMA = "ci-proof/2"
-WORKFLOW = ".github/workflows/ci.yml"
+WORKFLOW = ci_runners.WORKFLOW
 TOOLS = {
     "git": ("--version",), "python3": ("--version",), "bash": ("--version",),
     "ruff": ("--version",), "rg": ("--version",), "cue": ("version",),
@@ -264,6 +264,7 @@ def write_output(path, **values):
 
 def run_ci(kind, *, root=ROOT, ambient=None, api=None):
     ambient = dict(os.environ) if ambient is None else ambient
+    runner = ci_runners.runner_info(ambient)
     started = time.monotonic()
     repository = ambient.get("GITHUB_REPOSITORY", "")
     run_id, attempt = int(ambient.get("GITHUB_RUN_ID", "0")), int(ambient.get("GITHUB_RUN_ATTEMPT", "1"))
@@ -294,7 +295,8 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
         reusable_checks = [c for c in checks if c.name != "probes"]
         inputs = {"schema": SCHEMA, "tree": tree if kind == "lane" else application_tree(root, env),
                   "git": {"canonical": canonical, "records": refs} if kind == "lane" else None,
-                  "toolchain": tools, "term_wall": digest(env["TERM_WALL"]) if kind == "lane" else None,
+                  "toolchain": tools, "runner_environment": runner,
+                  "term_wall": digest(env["TERM_WALL"]) if kind == "lane" else None,
                   "checks": [(c.name, c.argv, c.timeout) for c in checks]}
         key = digest(inputs)
         source_sha = ambient.get("GITHUB_SHA", source)
@@ -321,7 +323,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             # Installing dependencies produces local files. A previous install
             # cannot supply vendor/ to a fresh job that must execute a check.
             cached.pop("composer-install", None)
-        print(f"CI {kind}: source={source} tested={canonical} inputs={key} runner={receipt['runner']}", flush=True)
+        print(f"CI {kind}: source={source} tested={canonical} inputs={key} runner={receipt['runner']} environment={json.dumps(runner, sort_keys=True)}", flush=True)
 
         def record(name, result, origin):
             row = {"name": name, "mode": "reused" if origin else "executed",
@@ -356,6 +358,7 @@ def run_ci(kind, *, root=ROOT, ambient=None, api=None):
             with open(summary, "a", encoding="utf-8") as out:
                 out.write(f"### {kind}: {'PASS' if status == 0 else 'FAIL'} ({receipt['seconds']}s)\n\n")
                 out.write(f"Runner: `{receipt['runner']}`. Source: `{source}`. Tested: `{canonical}`.\n\n")
+                out.write(f"Environment: `{json.dumps(runner, sort_keys=True)}`.\n\n")
                 out.write("| Check | Result | Execution | Seconds / original proof |\n|---|---|---|---|\n")
                 for row in receipt["results"]:
                     proof = row.get("origin", {}).get("url", str(row["seconds"]))

@@ -62,8 +62,10 @@ Reuse: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire.
 ## PR02: bounded work, isolated state, and reusable execution evidence
 
 Owner direction, 2026-09-24: repair the eight-minute CI regression and avoid
-repeating successful verification. Keep the current self-hosted runners.
-This supersedes the earlier proposal to default to hosted execution.
+repeating successful verification. Use GitHub-hosted runners until the included
+3,000 minutes are exhausted, then switch to local capacity. The concern about
+eight-minute hosted burns was not a request to abandon this plan. PR297's
+self-hosted optimization was the first part of PR02, not its completion.
 
 - Run inexpensive guards before suites. A failed guard ends the gate red
   without launching expensive work. Preflight still validates the whole plan.
@@ -99,5 +101,73 @@ This supersedes the earlier proposal to default to hosted execution.
   names and candidate associations across PR, push and retry events.
 - The workflow publishes bounded JSON evidence and readable job summaries.
   No extra database, dispatcher, model call or operator-session prerequisite
-  participates in the CI gate. Runner selection stays self-hosted until the
-  owner explicitly requests a later hosted rollout.
+  participates in the CI gate.
+
+## Runner selection and same-candidate recovery
+
+`CI_RUNNER_MODE` is one repository Actions configuration variable. Empty or
+`hosted` selects standard `ubuntu-24.04`; `local` selects the existing
+GitHub-registered `self-hosted` runners. Any other value fails workflow
+expression evaluation with `INVALID_CI_RUNNER_MODE_expected_hosted_or_local`,
+before a job starts. Both required jobs use the same selector directly;
+there is no hosted helper job that could block local recovery at quota.
+A Gitea act_runner registration alone does not accept GitHub jobs.
+
+Hosted preparation uses commit-pinned setup actions: Python 3.12, CUE 0.17.1,
+Ruff 0.16.8, PHP 8.4 without coverage instrumentation, and Composer 2.
+The Ubuntu image supplies Git, Bash, jq, ripgrep and tmux; missing lane
+utilities are installed explicitly. Local mode does not install tools or
+alter operator configuration. The CI adapter requires the actual declared
+tools; the same lint, configuration, suite and app checks enforce compatibility.
+Every receipt binds resolved tool versions/binary hashes and the actual runner
+environment. Hosted image identity is also an input. Switching environment or
+changing an image/tool forces fresh checks; changing only a runner name does
+not. Unknown hosted image identity refuses rather than reusing old proof.
+
+The existing stop on hosted usage remains. This initial switch is manual;
+there is no billing API prerequisite, paid-overage change or quota polling.
+From an authenticated checkout with `gh` repository-variable permission:
+
+```sh
+python3 -m ops.devlane.workflow.checks.ci_runners set-mode --repo OWNER/REPO --mode local
+```
+
+This changes routing for new jobs, not already queued work. For an exhausted
+or otherwise blocked hosted run, cancel it if still active and wait until
+GitHub marks it completed. Recover that original run without a source edit:
+
+```sh
+python3 -m ops.devlane.workflow.checks.ci_runners recover --repo OWNER/REPO --mode local --run RUN_ID
+gh run watch RUN_ID --repo OWNER/REPO --exit-status
+python3 -m ops.devlane.workflow.checks.ci_runners inspect --repo OWNER/REPO --mode local --run RUN_ID --expect-sha ORIGINAL_HEAD_SHA
+```
+
+`recover` validates the workflow, repository, trusted head repository and
+candidate, writes and reads back the variable, then requests a rerun of the
+original run. Its `requested` result is not a pass. `inspect` checks the
+original candidate SHA, latest attempt, both required completed successful jobs
+and their actual runner labels/names. Missing, duplicate, failed, cancelled,
+queued/offline or wrong-environment jobs remain `not-verified` (exit 1).
+Read/mutation errors refuse (exit 2); there is no automatic retry loop.
+The native rerun must demonstrate that routing was re-evaluated; queued jobs
+are never claimed to have moved merely because the variable changed.
+
+To return to the included hosted allowance after reset:
+
+```sh
+python3 -m ops.devlane.workflow.checks.ci_runners set-mode --repo OWNER/REPO --mode hosted
+```
+
+The same operations are available in repository Settings → Secrets and
+variables → Actions → Variables, followed by Actions → original run → Re-run
+all jobs. Check the resulting runner identities and candidate before merging.
+No dummy commit, dispatcher, grant command, model call or new token belongs
+in the recovery path. The operator's existing GitHub authentication belongs
+only to the control command, never to child verification checks.
+
+Quota exhaustion is represented by a never-started fixture in tests; native
+mode switching and candidate/status preservation must be measured separately.
+Report actual job durations and runner identities. Hosted minute estimates
+round each executed Ubuntu job up separately, including short reused jobs;
+local elapsed minutes do not consume the hosted allowance. Use the existing
+`ci_minutes.py` report for repository estimates; it is not organization billing.

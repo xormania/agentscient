@@ -179,11 +179,12 @@ class IsolatedExecution(unittest.TestCase):
                                              "seconds": receipt["results"][0]["seconds"]}])
         self.assertNotIn("must-not-reach-child", json.dumps(receipt))
 
-    def test_valid_pass_is_not_executed_again_and_changed_tree_runs_it(self):
+    def test_valid_pass_reuses_but_changed_environment_or_tree_runs_it(self):
         tool = self.world.tools.plant("subject", stdout="actual execution\n")
         checks = [Check("fixture", (str(tool),), 10)]
         ambient = self.world.env({"GITHUB_REPOSITORY": REPO, "RUNNER_TEMP": str(self.world.tmp),
-                                  "GITHUB_RUN_ID": "11", "GITHUB_SHA": self.head})
+                                  "GITHUB_RUN_ID": "11", "GITHUB_SHA": self.head,
+                                  "CI_RUNNER_MODE": "local", "CI_RUNNER_ENVIRONMENT": "self-hosted"})
         api = EvidenceApi(checks)
         with patch.object(ci, "toolchain", return_value={"fixture": "tools"}), patch.object(ci.lane, "plan", return_value=checks):
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
@@ -197,13 +198,17 @@ class IsolatedExecution(unittest.TestCase):
             self.assertEqual(len(self.world.tools.calls("subject")), 1)
             reused = json.loads(next(self.world.tmp.glob("ci-proof-lane-12-1-*/receipt.json")).read_text())
             self.assertEqual(reused["results"][0]["mode"], "reused")
+            ambient.update(CI_RUNNER_MODE="hosted", CI_RUNNER_ENVIRONMENT="github-hosted",
+                           ImageOS="ubuntu24", ImageVersion="fixture-image", GITHUB_RUN_ID="14")
+            self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
+            self.assertEqual(len(self.world.tools.calls("subject")), 2)
             self.world.plant_text("cwd/input.txt", "changed tree\n")
             self.git("add", ".")
             self.git("commit", "-m", "changed source")
             ambient["GITHUB_RUN_ID"] = "13"
             ambient["GITHUB_SHA"] = self.git("rev-parse", "HEAD")
             self.assertEqual(ci.run_ci("lane", root=self.root, ambient=ambient, api=api), 0)
-            self.assertEqual(len(self.world.tools.calls("subject")), 2)
+            self.assertEqual(len(self.world.tools.calls("subject")), 3)
 
     def test_partial_app_reuse_still_materializes_dependencies_for_fresh_checks(self):
         install = self.world.tools.plant("install")

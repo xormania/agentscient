@@ -15,6 +15,7 @@ from ops.devlane.workflow.checks.ci_contexts import (
     DerivationError,
     workflow_job_names,
 )
+from ops.devlane.workflow.checks.ci_runners import HOSTED, RUNS_ON
 from ops.testkit import World
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -44,6 +45,11 @@ class CiTwoJobs(unittest.TestCase):
     def assert_contract(self, doc):
         inspected = copy.deepcopy(doc)
         for job in inspected["jobs"].values():
+            for step in job["steps"]:
+                if step.get("if") == HOSTED:
+                    self.assertNotIn("id", step)
+                    self.assertTrue("uses" in step or "pip --isolated install" in step.get("run", ""))
+                    step.pop("if")
             artifact = job["steps"][-1]
             self.assertEqual(artifact.pop("if"), "${{ always() && steps.verify.outputs.receipt != '' }}")
         self.assertEqual(conditional_keys(inspected), set())
@@ -58,22 +64,31 @@ class CiTwoJobs(unittest.TestCase):
         })
         self.assertEqual(set(doc["jobs"]), {"lane", "app"})
         for name, job in doc["jobs"].items():
-            self.assertEqual(job["runs-on"], "self-hosted")
+            self.assertEqual(job["runs-on"], RUNS_ON)
             self.assertEqual(job["timeout-minutes"], 15 if name == "lane" else 5)
             steps = job["steps"]
-            self.assertEqual([step["uses"] for step in steps if "uses" in step], [CHECKOUT, UPLOAD])
+            actions = [step["uses"] for step in steps if "uses" in step]
+            expected_setup = ["actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+                              "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1" if name == "lane"
+                              else "shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240"]
+            self.assertEqual(actions, [CHECKOUT, *expected_setup, UPLOAD])
+            for step in steps:
+                if step.get("uses") in expected_setup:
+                    self.assertEqual(step.get("if"), HOSTED)
             self.assertEqual(steps[0]["uses"], CHECKOUT)
             self.assertIs(steps[0]["with"]["persist-credentials"], False)
             self.assertNotIn("defaults", job)
             self.assertNotIn("env", job)
             for step in steps:
                 self.assertNotIn("working-directory", step)
-            commands = [step["run"] for step in steps if "run" in step]
+            commands = [step["run"] for step in steps if "run" in step and step.get("if") != HOSTED]
             expected = ([RECORD_REFS] if name == "lane" else []) + [f"python3 -m ops.devlane.workflow.checks.ci {name}"]
             self.assertEqual(commands, expected)
             self.assertEqual(steps[0]["with"]["fetch-depth"], 0)
             gate = next(step for step in steps if step.get("id") == "verify")
-            self.assertEqual(gate["env"], {"TERM_WALL": "${{ vars.TERM_WALL }}", "GITHUB_TOKEN": "${{ github.token }}"})
+            self.assertEqual(gate["env"], {"TERM_WALL": "${{ vars.TERM_WALL }}", "GITHUB_TOKEN": "${{ github.token }}",
+                                           "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
+                                           "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"})
             self.assertEqual(steps[-1]["with"], {"name": "${{ steps.verify.outputs.artifact }}",
                                               "path": "${{ steps.verify.outputs.receipt }}",
                                               "if-no-files-found": "error", "retention-days": 30})
