@@ -1,0 +1,25 @@
+name: temporary PR-01 source snapshot
+on:
+  push:
+    branches: [lane/session-20260924-pr01-cheap-reads]
+    paths: [.github/workflows/pr01-workspace.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 50e675a5304689dc314b8d707d0c9a306c1255b5
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export only the requested baseline and its ancestry, never runtime state
+        run: git bundle create "$RUNNER_TEMP/pr01-source.bundle" HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr01-source-50e675a
+          path: ${{ runner.temp }}/pr01-source.bundle
+          retention-days: 1
+          if-no-files-found: error
