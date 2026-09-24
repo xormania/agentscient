@@ -376,6 +376,23 @@ class TheDoneGate(_Engine):
         self.assertIn("the plan is done", reason)
         self.assertIn("lock", reason)
 
+    def test_routine_stop_lookup_never_executes_the_real_target_measure(self):
+        self.gate()
+        source = HOOKS.parents[2] / "ops/conductor/tools"
+        tools = self.repo / "ops/conductor/tools"
+        tools.mkdir(parents=True)
+        for name in ("deliverable.py", "instrument.py", "laneconf.py"):
+            (tools / name).write_bytes((source / name).read_bytes())
+        measure = self.world.tools.plant("target-measure", stdout="ok\n")
+        env = {**self.env, "WF_AGENT": "Fixture <fixture@example.test>"}
+        seeded = run([sys.executable, str(tools / "deliverable.py"), "add", "lane/target",
+                      "--why", "test cheap Stop lookup", "--measure", f"{sys.executable} {measure}",
+                      "--until", "ok"], cwd=self.repo, env=env, timeout=30)
+        self.assertEqual(seeded.exit, 0, seeded.stderr)
+        reason = self.refusal(self.stop("The work is done."), "done-gate", event="Stop")
+        self.assertIn("unmeasured", reason)
+        self.assertEqual(self.world.tools.calls("target-measure"), [])
+
     def test_a_sha_or_pr_number_is_not_the_lock_reading(self):
         """The reply that started this carried "#216 at aba8600a" and no
         lock line; the claim law's readings do not satisfy this row."""

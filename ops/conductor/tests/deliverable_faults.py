@@ -7,9 +7,9 @@ named in each note must go red on its mutant:
 
     python3 ops/testkit/cases.py calibrate --subject ops/conductor/tools/deliverable.py \\
         --mutants ops/conductor/tests/deliverable_faults.py \\
-        --command "python3 -m unittest discover -s ops/conductor/tests -p test_deliverable.py"
+        --command "python3 -m unittest discover -s ops/conductor/tests -p test_deliverable.py -k show_unmeasured"
 
-Anchored on the subject at 243a17d8 (LD-146). An anchor that no longer
+Updated for PR-01: ordinary show is also observation; done measures explicitly. An anchor that no longer
 matches once refuses class anchor; re-measure it against the subject.
 """
 
@@ -21,8 +21,8 @@ MUTANTS = [
     Mutant(
         "M-unmeasured-measures",
         SUBJECT,
-        "    measured = not args\n",
-        "    measured = True\n",
+        "        print(target_line(branch, target))\n",
+        "        reading(target)\n        print(target_line(branch, target))\n",
         "show --unmeasured runs every measure (deliverable-show-unmeasured)",
     ),
     Mutant(
@@ -34,10 +34,10 @@ MUTANTS = [
         "(deliverable-show-bogus-refuses)",
     ),
     Mutant(
-        "M-show-never-measures",
+        "M-done-does-not-measure",
         SUBJECT,
-        "    measured = not args\n",
-        "    measured = False\n",
-        "a plain show stops measuring (deliverable-show-still-measures)",
+        "    met, line = reading(target)\n",
+        '    met, line = True, "fabricated reading"\n',
+        "explicit done invents a pass without running its command (PR-01)",
     ),
 ]

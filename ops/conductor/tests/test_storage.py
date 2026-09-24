@@ -7,10 +7,12 @@ dev-lane consolidation; independent test producer absent.
 from __future__ import annotations
 
 import ast
+import io
 import sqlite3
 import sys
 import unittest
-from contextlib import closing
+from contextlib import closing, redirect_stdout
+from unittest import mock
 
 from test_instrument import TOOLS, load
 
@@ -32,7 +34,7 @@ class Storage(unittest.TestCase):
         return conn
 
     def test_access_modes_and_escaped_paths(self):
-        self.seed()
+        writer = self.seed()
         self.assertTrue(self.path.is_file(), "SQLite must open the literal path, including URI punctuation")
         for mode in ("ro", "rw", "rwc"):
             with self.subTest(mode=mode), closing(self.m.connect_store(self.path, mode=mode)) as conn:
@@ -44,6 +46,13 @@ class Storage(unittest.TestCase):
                 else:
                     conn.execute("UPDATE value SET n=1")
                     conn.rollback()
+
+        # A read-only connection must see uncheckpointed committed WAL rows;
+        # suppressing SQLite's read infrastructure with immutable=1 is not safe.
+        writer.execute("PRAGMA journal_mode=WAL")
+        writer.execute("UPDATE value SET n=2")
+        with closing(self.m.connect_store(self.path)) as reader:
+            self.assertEqual(reader.execute("SELECT n FROM value").fetchone()[0], 2)
 
     def test_only_create_mode_creates_directories_or_store(self):
         path = self.world.root / "absent" / "state.db"
@@ -106,7 +115,8 @@ class Storage(unittest.TestCase):
         # of this integration reading; every adapter uses the kit's state root.
         code = """
 import sys
-from contextlib import closing
+from contextlib import closing, redirect_stdout
+from unittest import mock
 import sqlite3
 sys.path.insert(0, sys.argv[1])
 import ci, coordination, decisions, handoff, ledger, machine, sessions
@@ -150,3 +160,101 @@ for reader in readers:
                         and str(node.args[0].value).upper().startswith("BEGIN")):
                     copies.append(f"{path.name}:{node.lineno}: private transaction")
         self.assertEqual(copies, [], "use the shared storage primitives")
+
+
+class ObservationStores(unittest.TestCase):
+    """PR-01 fault rows share the real domain readers and storage primitive."""
+
+    def test_domain_views_never_initialize_migrate_or_change_stores(self):
+        for name in ("hand", "findings", "skills"):
+            for state in ("missing", "corrupt", "incompatible", "locked", "unreadable", "populated"):
+                with self.subTest(domain=name, state=state), World(prefix="cheap-read-") as world:
+                    module = load(TOOLS / f"{name}.py")
+                    path = world.root / "domain" / "store.db"
+                    path_name = "db_path" if name == "skills" else "database_path"
+                    opener = module.con_ if name == "skills" else module.connect
+                    with mock.patch.object(module, path_name, return_value=path):
+                        if state != "missing":
+                            path.parent.mkdir()
+                        if state == "corrupt":
+                            path.write_bytes(b"not a SQLite database")
+                        elif state == "incompatible":
+                            with closing(sqlite3.connect(path)) as con:
+                                con.execute("CREATE TABLE old_data(value TEXT)")
+                                con.execute("INSERT INTO old_data VALUES ('preserve me')")
+                                con.commit()
+                        elif state == "unreadable":
+                            path.mkdir()
+                        elif state in ("populated", "locked"):
+                            with closing(opener(write=True)) as con:
+                                if name == "hand":
+                                    con.execute("INSERT INTO handwork(ts,session,agent,action,why_by_hand,"
+                                                "status,ttl_s) VALUES ('2026-01-01T00:00:00Z','s','a','a',"
+                                                "'fixture','open',60)")
+                                elif name == "findings":
+                                    con.execute("INSERT INTO findings(key,record,n) VALUES ('case#1','case',1)")
+                                else:
+                                    con.execute("INSERT INTO skills(name,kind,status,created_ts,updated_ts) "
+                                                "VALUES ('example','project','active','now','now')")
+                                con.commit()
+                        locker = None
+                        if state == "locked":
+                            locker = sqlite3.connect(path)
+                            locker.execute("BEGIN EXCLUSIVE")
+                        views = {
+                            "hand": [(module.open_grants, None), (module.report, None)],
+                        } if name == "hand" else {
+                            "findings": [(module.do_summary, []), (module.do_export, []),
+                                         (module.do_export, ["--calibration"]), (module.do_cited, ["case#1"])],
+                        } if name == "findings" else {
+                            "skills": [(module.list_, []), (module.show, ["example"]), (module.report, [])],
+                        }
+                        def snapshot(world=world):
+                            return {str(p.relative_to(world.root)): (p.read_bytes(), p.stat().st_mtime_ns)
+                                    if p.is_file() else None for p in world.root.rglob("*")}
+                        before = snapshot()
+                        primitive = module.instrument.connect_store
+                        def immediate(*args, primitive=primitive, **kwargs):
+                            return primitive(*args, **{**kwargs, "timeout": 0})
+                        try:
+                            with mock.patch.object(module.instrument, "connect_store", side_effect=immediate), \
+                                    mock.patch.object(module, "identity", side_effect=AssertionError("read acquired identity")):
+                                for view, args in views[name]:
+                                    with self.subTest(view=view.__name__), redirect_stdout(io.StringIO()) as output:
+                                        if state == "populated":
+                                            view(args)
+                                        else:
+                                            with self.assertRaises(module.Refusal) as raised:
+                                                view(args)
+                                            self.assertEqual(raised.exception.kind, "store")
+                                            self.assertIn(state, raised.exception.found)
+                                            self.assertEqual(output.getvalue(), "")
+                                    self.assertEqual(before, snapshot(), "observation changed domain files or schema")
+                        finally:
+                            if locker is not None:
+                                locker.rollback()
+                                locker.close()
+
+    def test_cli_missing_store_is_on_the_wire_without_initialization(self):
+        for name, verb in (("hand", "open"), ("findings", "summary"), ("skills", "list")):
+            with self.subTest(domain=name), World(prefix="missing-cli-") as world:
+                conf = world.plant_text("lane.conf", "LANE_NAME='missing-cli'\n")
+                result = run([sys.executable, str(TOOLS / f"{name}.py"), verb], cwd=world.cwd,
+                             env=world.env({"LANE_CONF": str(conf)}), timeout=10)
+                self.assertEqual(result.refusal().cls, "store")
+                self.assertIn("missing", result.stderr)
+                self.assertFalse((world.xdg_state / "missing-cli").exists())
+                self.assertFalse((world.home / ".local/state/missing-cli").exists())
+
+    def test_reader_connections_cannot_write_even_after_writer_initialization(self):
+        for name in ("hand", "findings", "skills"):
+            with self.subTest(domain=name), World(prefix="cheap-permission-") as world:
+                module = load(TOOLS / f"{name}.py")
+                opener = module.con_ if name == "skills" else module.connect
+                path_name = "db_path" if name == "skills" else "database_path"
+                with mock.patch.object(module, path_name, return_value=world.root / "store.db"):
+                    with closing(opener(write=True)):
+                        pass
+                    with closing(opener()) as con:
+                        with self.assertRaises(sqlite3.OperationalError):
+                            con.execute("CREATE TABLE forbidden(value)")

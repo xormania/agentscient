@@ -5,11 +5,9 @@
                                                  name the branches work may aim at, and the target
     deliverable.py add BRANCH... --why TEXT [--measure CMD --until TEXT]
                                                  name more beside the ones named (a second session)
-    deliverable.py show [--unmeasured]           print the lock, or "no lock"; each target with its
-                                                 live reading and met or short; --unmeasured runs
-                                                 no measure and reads each target unmeasured
-    deliverable.py done BRANCH                   run the target's measure: print the reading when it
-                                                 carries the --until text, else refuse `target`
+    deliverable.py show [--unmeasured]           read recorded targets, never run measurements
+    deliverable.py done BRANCH                   explicitly measure once and record the result;
+                                                 refuse `target` when short or unreachable
     deliverable.py remove BRANCH... [--unmet TEXT]
                                                  lift this session's branches; a short target refuses
                                                  without the reason; the last one lifts the lock
@@ -28,16 +26,16 @@ slices all done with 210 of 226 test modules still off the kit:
 "whatever it says - is the problem we to solve - right fucking now"):
 "done" was measured against the named work, never against the owner's
 target, and no gate had a floor. A target is a measure command and the
-text its output must carry; show prints the reading beside the target
-every time the lock is read, done is the reading and nothing else, and a
-branch is not lifted while its target is short unless the reason is
-said. A measure that cannot run reads unreachable, never met.
+text its output must carry. `done` measures explicitly and records the
+latest observation in the existing target. `remove` retains its deliberate
+verification before lifting a target. Ordinary show, including the compatible
+--unmeasured option, never executes commands or acquires writer identity.
 
-show --unmeasured (LD-146) prints the lock and every target without
-running a measure, each reading `unmeasured` where met or short would
-stand. The onboard brief reads the lock this way: show ran 44 measures one
-after another in 1m54.208s on 2026-09-23, and the brief's reads are bound
-at 5 s and 20 s. An unmeasured line is never a reading; done is.
+PR-01: legacy commands do not declare every input they read. Their recorded
+outcome is history, not proof of current applicability. Show reports source,
+candidate reference and time when recorded, but keeps the target unmeasured
+and applicability unknown until structured evidence supplies that binding.
+A recorded success never becomes a fresh pass just because the view opened.
 """
 
 from __future__ import annotations
@@ -127,13 +125,57 @@ def reading(target):
     return False, (lines[0] if lines else "no output")
 
 
-def target_line(branch, target, measured=True):
+def target_line(branch, target):
+    """A recorded observation, never a current proof decision."""
     owner = f" (by {target['by']})" if target.get("by") else ""
-    if not measured:
-        return f"target {branch}: until {target['until']}; reading unmeasured; unmeasured{owner}"
-    met, line = reading(target)
-    return (f"target {branch}: until {target['until']}; reading {line}; "
-            f"{'met' if met else 'short'}{owner}")
+    record = target.get("measurement")
+    applicability = "unknown (verification inputs not bound)"
+    if record is None:
+        history = "measurement absent; source unknown; candidate unknown; at unknown"
+    elif not isinstance(record, dict) or record.get("schema") != 1:
+        history = "measurement unavailable; source unknown; candidate unknown; at unknown"
+    else:
+        if record.get("measure") != target["measure"] or record.get("until") != target["until"]:
+            applicability = "stale (target definition changed)"
+        history = (f"measurement recorded; recorded-outcome={record.get('outcome', 'unknown')}; "
+                   f"source {record.get('source') or 'unknown'}; "
+                   f"candidate {record.get('candidate') or 'unknown'}; at {record.get('at') or 'unknown'}")
+    return " ".join((f"target {branch}: until {target['until']}; reading unmeasured; unmeasured; "
+                     f"{history}; applicability {applicability}{owner}").split())
+
+
+def load_lock():
+    """Absence is the only empty result; malformed/unreadable stores refuse."""
+    path = lock_path()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    except (OSError, UnicodeError) as error:
+        refuse("store", f"a readable lock at {path}", f"unreadable: {error}", "restore the lock; show never repairs it")
+    try:
+        data = json.loads(text)
+    except ValueError as error:
+        refuse("store", f"a JSON lock at {path}", f"corrupt: {error}", "restore the recorded lock")
+    if (not isinstance(data, dict) or not isinstance(data.get("branches"), list)
+            or not all(isinstance(b, str) for b in data["branches"])
+            or not isinstance(data.get("targets", {}), dict)):
+        refuse("store", "a lock with branches and optional targets", "incompatible shape", "restore a compatible lock")
+    for branch, target in data.get("targets", {}).items():
+        if (branch not in data["branches"] or not isinstance(target, dict)
+                or not all(isinstance(target.get(k), str) and target[k].strip() for k in ("measure", "until"))):
+            refuse("store", "named targets with measure and until", f"incompatible target {branch}", "restore the target")
+    return data
+
+
+def candidate_ref():
+    """A checkout HEAD reference, not a claim that all command inputs are pinned."""
+    try:
+        proc = run(["git", "rev-parse", "--verify", "HEAD"], cwd=REPO_ROOT, timeout=5)
+    except Refusal:
+        return None
+    value = proc.stdout.strip()
+    return value if proc.returncode == 0 and len(value) in (40, 64) and all(c in "0123456789abcdef" for c in value) else None
 
 
 def lock_path():
@@ -306,24 +348,33 @@ def do_remove(args):
 
 
 def do_done(args):
-    """The reading, or the refusal: done is never the named slices."""
-    branches = [a for a in args if not a.startswith("--")]
-    if len(branches) != 1:
+    """Measure once, then record only if the measured target is still held."""
+    if len(args) != 1 or args[0].startswith("--"):
         refuse("arguments", "done BRANCH", " ".join(args) or "no branch", "name one branch")
-    branch = branches[0]
-    try:
-        data = json.loads(lock_path().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {}
-    named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
+    branch = args[0]
+    by = identity()
+    data = load_lock() or {}
+    named = data.get("branches", [])
     if branch not in named:
         refuse("absent", f"a branch the lock names ({', '.join(named) or 'none'})", branch,
                "deliverable.py show; done is asked of a named branch")
-    target = (data.get("targets") or {}).get(branch)
+    target = data.get("targets", {}).get(branch)
     if not target:
         refuse("target", f"a measured target on {branch} (--measure CMD --until TEXT on set or add)",
                "none: the lock names the branch and no reading", "set the target, then ask again; done is a reading")
+    candidate = candidate_ref()
     met, line = reading(target)
+    record = {"schema": 1, "source": REPO_ROOT, "candidate": candidate,
+              "at": now().strftime("%Y-%m-%dT%H:%M:%SZ"), "by": by,
+              "measure": target["measure"], "until": target["until"],
+              "outcome": "met" if met else "short", "reading": line}
+    with held() as path:
+        latest = load_lock() or {}
+        if latest.get("targets", {}).get(branch) != target:
+            refuse("target-changed", "the target measured still held unchanged", branch,
+                   "read the current target and explicitly measure it; the old result was not recorded")
+        latest["targets"][branch]["measurement"] = record
+        write(path, latest)
     if not met:
         refuse("target", f"the measure to read {target['until']}", line,
                "keep going; done is the reading, never the named slices")
@@ -335,20 +386,13 @@ def do_show(args):
     if args not in ([], ["--unmeasured"]):
         refuse("arguments", "show, or show --unmeasured", " ".join(args),
                "name no option, or --unmeasured alone")
-    measured = not args
-    path = lock_path()
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError:
+    data = load_lock()
+    if data is None:
         print("no lock")
         return 0
-    print(text.rstrip())
-    try:
-        data = json.loads(text)
-    except ValueError:
-        return 0
-    for branch, target in (data.get("targets") or {}).items():
-        print(target_line(branch, target, measured))
+    print(json.dumps(data, indent=2))
+    for branch, target in data.get("targets", {}).items():
+        print(target_line(branch, target))
     return 0
 
 
@@ -375,6 +419,8 @@ def main(argv):
         return VERBS[argv[1]](argv[2:])
     except Refusal as error:
         return emit(error)
+    except OSError as error:
+        return emit(Refusal("store", "a writable lock for explicit mutation", str(error), "restore or retry the lock"))
 
 
 if __name__ == "__main__":

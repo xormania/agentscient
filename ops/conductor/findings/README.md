@@ -32,3 +32,19 @@ The series this makes readable is the audit ladder's marginal detection
 series (`docs/workflow.md`): findings per reviewer per batch, and what
 each later stage still found. That is the number the planning process
 is judged by (scope-lane-fixes.md item 25).
+
+
+## Observation and explicit exports
+
+`summary`, `cited KEY`, `export` and `export --calibration` are read-only.
+They neither initialize an absent database nor migrate a legacy schema.
+`import`, `disposition` and `calibrate` retain explicit writer initialization;
+`import` adds the label columns while retaining old dispositions and row shape.
+Missing, corrupt, locked, unreadable or incompatible stores refuse visibly.
+
+Plain exports only print JSONL. Use `export --write [PATH]` or
+`export --calibration --write [PATH]` to write a file deliberately, with an
+identity. The default destinations remain `findings.jsonl` and
+`calibration.jsonl` in this directory. File export does not initialize or
+migrate its source store. Ordinary calibration reads no longer rewrite the
+tracked export; scripts that relied on that side effect must add `--write`.

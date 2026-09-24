@@ -168,10 +168,22 @@ transaction; they do not independently commit steps of an enclosing action.
 `write=True` to update an existing store or `create=True` to initialize one;
 the existing engine still owns its WAL initialization,
 schema and busy retry budget. Coordination, handoff, ledger, sessions,
-CI and decision read adapters consume the same read boundary. Existing
-findings, hand and skills entry points that initialize their schema still
-declare create access; separating those legacy reads from initialization
-is remaining work, not a property established by this migration.
+CI and decision read adapters consume the same read boundary.
+Findings, hand and skills readers use read-only access, with their required
+projection columns checked by `connect_store(..., required={table: columns})`.
+Only their explicit writers request creation and run domain schema changes.
+`instrument.store_failure` maps failed reads to the common wire with distinct
+missing, unreadable, corrupt, locked and incompatible states. An absent store
+is not an empty initialized one. The connection primitive retains native
+exceptions for other callers with their own established absence policies.
+
+`deliverable show` reads the existing target file and never measures. Its
+compatibility option `--unmeasured` remains a read. `done BRANCH` explicitly
+measures and records the outcome, source, candidate reference, time and actor
+in that file. Legacy commands do not declare all verification inputs, so their
+recorded results are historical and applicability remains unknown; an ordinary
+status must not authorize work from them. See
+[PR-01 contract and evidence](reports/pr01-cheap-reads.md).
 
 The shared invariants and representative adapters are exercised through
 `ops/testkit` in `tests/test_storage.py`. The same suite rejects private

@@ -539,8 +539,8 @@ def _lock_reading(ctx):
     if not os.path.isfile(lever):
         return "the lock is unavailable: no deliverable.py in this checkout"
     try:
-        proc = subprocess.run([sys.executable, lever, "show"],  # noqa: S603 - fixed argv, a read
-                              cwd=ctx.root, capture_output=True, text=True, timeout=120, check=False)
+        proc = subprocess.run([sys.executable, lever, "show", "--unmeasured"],  # noqa: S603 - fixed argv, a read
+                              cwd=ctx.root, capture_output=True, text=True, timeout=5, check=False)
     except (OSError, subprocess.TimeoutExpired) as error:
         return f"the lock is unavailable: {type(error).__name__}"
     if proc.returncode != 0:

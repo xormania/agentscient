@@ -1016,8 +1016,10 @@ class TheLockLine(_OnboardFixture):
             proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "3",
                                           "ONBOARD_RETRY_TIMEOUT": "6"})
             stdout = proc.stdout or ""
-            self.assertEqual(self.labelled_line(stdout, "target lane/planted"),
-                             "target lane/planted: until never; reading unmeasured; unmeasured")
+            target = self.labelled_line(stdout, "target lane/planted")
+            self.assertTrue(target.startswith("target lane/planted: until never; reading unmeasured; unmeasured"))
+            self.assertIn("measurement absent", target)
+            self.assertIn("applicability unknown", target)
             self.assertIn("lane/planted", self.labelled_line(stdout, "lock"))
             self.assertEqual(self.world.tools.calls("slow-measure"), [])
             self.assertEqual(self.last_line(stdout), "brief complete")

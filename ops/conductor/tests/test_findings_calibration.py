@@ -10,7 +10,7 @@ HOME) must stay untouched — asserted in tearDown.
 record, app, fault id and finding key, is idempotent, refuses
 `identity` and `calibration` before acting, leaves `export`
 byte-identical to today's empty findings export, writes
-`ops/conductor/findings/calibration.jsonl` via `export --calibration`,
+`ops/conductor/findings/calibration.jsonl` via explicit `export --calibration --write`,
 and makes that export deterministic across insertion order. Today the
 verb is unknown (class `arguments`); the exit-0 assertion is the
 intended red.
@@ -330,6 +330,10 @@ class CalibrateRefuses(_CalibrateFixture):
 
 class ExportStaysPut(_CalibrateFixture):
     def test_findings_export_is_byte_identical_to_today_after_calibrate(self):
+        absent = self.export_findings()
+        self.assert_refusal(absent, "store")
+        self.assertFalse(self.store.exists())
+        self.assertEqual(self.invoke(["import"]).exit, 0)
         before = self.export_findings()
         self.assertEqual(before.exit, 0, before.stderr)
         self.assertEqual(
@@ -355,16 +359,24 @@ class ExportStaysPut(_CalibrateFixture):
         first = self.export_calibration()
         self.assertEqual(first.exit, 0, first.stderr)
         self.assertTrue(first.stdout.strip(), "calibration export is empty")
+        self.assertFalse(self.calibration_jsonl.exists(), "observation must not export to a file")
+        denied = self.invoke(["export", "--calibration", "--write"], agent=None)
+        self.assert_refusal(denied, "identity")
+        self.assertFalse(self.calibration_jsonl.exists())
+        written = self.invoke(["export", "--calibration", "--write"])
+        self.assertEqual(written.exit, 0, written.stderr)
         self.assertTrue(
             self.calibration_jsonl.is_file(),
-            "export --calibration writes ops/conductor/findings/calibration.jsonl",
+            "only explicit --write creates ops/conductor/findings/calibration.jsonl",
         )
         self.assertEqual(
             self.calibration_jsonl.read_text(encoding="utf-8"),
             first.stdout,
         )
+        stamp = self.calibration_jsonl.stat().st_mtime_ns
         second = self.export_calibration()
         self.assertEqual(second.stdout, first.stdout)
+        self.assertEqual(self.calibration_jsonl.stat().st_mtime_ns, stamp)
         if self.store.is_file():
             self.store.unlink()
         self.calibration_jsonl.unlink()
@@ -373,6 +385,8 @@ class ExportStaysPut(_CalibrateFixture):
         third = self.export_calibration()
         self.assertEqual(third.exit, 0, third.stderr)
         self.assertEqual(third.stdout, first.stdout)
+        self.assertFalse(self.calibration_jsonl.exists())
+        self.assertEqual(self.invoke(["export", "--calibration", "--write"]).exit, 0)
         self.assertEqual(
             self.calibration_jsonl.read_text(encoding="utf-8"),
             first.stdout,

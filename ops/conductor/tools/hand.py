@@ -7,6 +7,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from datetime import timedelta
 from pathlib import Path
 
@@ -72,12 +73,24 @@ def database_path():
     )
 
 
-def connect():
+def connect(*, write=False):
     path = database_path()
-    connection = instrument.connect_store(path, mode="rwc")
+    required = {"handwork": ("id", "ts", "action", "status", "ttl_s", "lever_class",
+                             "missing_lever", "verified", "late")}
+    try:
+        connection = instrument.connect_store(path, mode="rwc" if write else "ro",
+                                              required=None if write else required)
+    except (OSError, sqlite3.Error) as error:
+        raise instrument.store_failure(path, error,
+              "restore a compatible handwork store; declare explicitly to initialize an absent store") from error
     connection.row_factory = sqlite3.Row
-    connection.execute(SCHEMA)
-    connection.commit()
+    if write:
+        try:
+            connection.execute(SCHEMA)
+            connection.commit()
+        except BaseException:
+            connection.close()
+            raise
     return connection
 
 
@@ -111,7 +124,7 @@ def declare(args):
             f"use the {args.lever_class} lever",
         )
 
-    with connect() as connection:
+    with closing(connect(write=True)) as connection, connection:
         cursor = connection.execute(
             """INSERT INTO handwork
                (ts, session, agent, action, why_by_hand, missing_lever,
@@ -167,7 +180,7 @@ def verify_evidence(evidence):
 
 def settle(args):
     identity()
-    with connect() as connection:
+    with closing(connect(write=True)) as connection, connection:
         row = connection.execute(
             "SELECT * FROM handwork WHERE id = ?", (args.id,)
         ).fetchone()
@@ -209,7 +222,7 @@ def settle(args):
 
 def open_grants(_args):
     current = now()
-    with connect() as connection:
+    with closing(connect()) as connection:
         rows = connection.execute(
             "SELECT * FROM handwork WHERE status = 'open' ORDER BY ts, id"
         ).fetchall()
@@ -226,7 +239,7 @@ def open_grants(_args):
 
 
 def report(_args):
-    with connect() as connection:
+    with closing(connect()) as connection:
         statuses = connection.execute(
             "SELECT status, count(*) AS n FROM handwork GROUP BY status ORDER BY status"
         ).fetchall()
@@ -296,6 +309,8 @@ def main():
         args.run(args)
     except Refusal as error:
         return emit(error)
+    except (OSError, sqlite3.Error) as error:
+        return emit(instrument.store_failure(database_path(), error, "restore or retry the handwork store"))
     return 0
 
 

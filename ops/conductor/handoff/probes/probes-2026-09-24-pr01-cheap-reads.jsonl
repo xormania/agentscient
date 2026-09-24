@@ -1,0 +1,1 @@
+{"id": "P-PR01-observation", "kind": "serve", "lane": "record", "question": "Where is the PR-01 observation contract and its explicit applicability limitation?", "serve": "git grep -n -F 'applicability is unknown and status remains unmeasured' -- ops/conductor/reports/pr01-cheap-reads.md", "expect": "applicability is unknown and status remains unmeasured"}

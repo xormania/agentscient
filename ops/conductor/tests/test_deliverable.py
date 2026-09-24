@@ -9,6 +9,9 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from test_instrument import load
 
 from ops.testkit import World, run
 
@@ -148,44 +151,97 @@ class TheLockLever(unittest.TestCase):
         path = self.world.tools.plant(f"measure-{self._measures}", stdout=text, exit=0)
         return f"{sys.executable} {path}"
 
-    def test_a_target_is_stored_and_show_prints_the_live_reading_beside_it(self):
-        """Owner, 2026-09-15, on a session that reported a plan's slices all
-        done with 210 of 226 test modules still off the kit: "whatever it
-        says - is the problem we to solve - right fucking now". The
-        session named "done" was measured against the named work, never
-        against the owner's target. A target on the lock is a measure
-        command and the reading it must contain; show runs it and prints
-        met or short beside the target, so the number sits next to the
-        word every time the lock is read."""
-        measure = self.measure_tool("on_kit=16/226\n")
-        proc = self.run_lever("add", "lane/x", "--why", "every family onto the kit",
-                              "--measure", measure, "--until", "on_kit=226/226")
-        self.assertEqual(proc.exit, 0, proc.stderr)
-        data = json.loads(self.lock.read_text())
-        stored = data["targets"]["lane/x"]
-        self.assertEqual(stored["measure"], measure)
-        self.assertEqual(stored["until"], "on_kit=226/226")
+    def test_recorded_measurement_has_provenance_but_unknown_inputs_never_authorize(self):
+        """PR-01: observations display history, not a fresh acceptance decision."""
+        measure = self.measure_tool("on_kit=226/226\n")
+        self.assertEqual(self.run_lever("add", "lane/x", "--why", "the target",
+                         "--measure", measure, "--until", "on_kit=226/226").exit, 0)
+        before = self.lock.read_bytes()
         shown = self.run_lever("show", identity=False)
         self.assertEqual(shown.exit, 0, shown.stderr)
-        self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
-        met = self.measure_tool("on_kit=226/226 at abc1234\n")
-        proc = self.run_lever("set", "lane/x", "--why", "every family onto the kit",
-                              "--measure", met, "--until", "on_kit=226/226")
-        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertIn("measurement absent", shown.stdout)
+        self.assertEqual(before, self.lock.read_bytes())
+        self.assertEqual(self.run_lever("done", "lane/x").exit, 0)
+        data = json.loads(self.lock.read_text())
+        recorded = data["targets"]["lane/x"]["measurement"]
+        self.assertEqual(recorded["outcome"], "met")
+        self.assertEqual(recorded["source"], str(ROOT))
+        self.assertIn("candidate", recorded)
+        self.assertRegex(recorded["at"], r"^\d{4}-\d{2}-\d{2}T")
+        self.assertEqual(recorded["measure"], measure)
+        self.assertEqual(recorded["by"], OWNER)
+        before = (self.lock.read_bytes(), self.lock.stat().st_mtime_ns)
+        for args in ((), ("--unmeasured",)):
+            with self.subTest(args=args):
+                shown = self.run_lever("show", *args, identity=False)
+                self.assertEqual(shown.exit, 0, shown.stderr)
+                self.assertIn("reading unmeasured; unmeasured", shown.stdout)
+                self.assertIn("applicability unknown", shown.stdout)
+                self.assertIn(recorded["at"], shown.stdout)
+                self.assertNotRegex(shown.stdout, r"(?m)^target .*; met\b")
+                self.assertEqual(before, (self.lock.read_bytes(), self.lock.stat().st_mtime_ns))
+        self.assertEqual(len(self.world.tools.calls(f"measure-{self._measures}")), 1)
+        # A moved candidate and even a hand-written pass remain non-authoritative.
+        data["targets"]["lane/x"]["measurement"]["candidate"] = "0" * 40
+        self.lock.write_text(json.dumps(data))
         shown = self.run_lever("show", identity=False)
-        self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=226/226 at abc1234; met", shown.stdout)
-        # This line once read `assertNotIn("lane/x", ...), "set replaces"`.
-        # T-71 retired that pin: set re-targets a branch the lock already
-        # names and leaves the rest of the lock alone, so the branch it
-        # named is still there afterwards.
-        self.assertIn("lane/x", json.loads(self.lock.read_text())["branches"])
+        self.assertIn("applicability unknown", shown.stdout)
+        self.assertNotRegex(shown.stdout, r"(?m)^target .*; met\b")
+        data["targets"]["lane/x"]["measurement"]["until"] = "other objective"
+        self.lock.write_text(json.dumps(data))
+        stale = self.run_lever("show", identity=False)
+        self.assertIn("applicability stale", stale.stdout)
+        self.assertNotRegex(stale.stdout, r"(?m)^target .*; met\b")
+        self.run_lever("set", "lane/x", "--why", "revised target",
+                       "--measure", measure, "--until", "different")
+        self.assertNotIn("measurement", json.loads(self.lock.read_text())["targets"]["lane/x"])
+
+    def test_absent_and_invalid_locks_are_distinct_and_observation_never_repairs(self):
+        self.assertEqual(self.run_lever("show", identity=False).stdout.strip(), "no lock")
+        self.assertFalse(self.lock.parent.exists())
+        self.lock.parent.mkdir(parents=True)
+        for text in ("broken json", "[]", '{"branches": "lane/x"}',
+                     '{"branches": ["lane/x"], "targets": {"lane/x": {}}}'):
+            with self.subTest(text=text):
+                self.lock.write_text(text)
+                result = self.run_lever("show", identity=False)
+                self.assertEqual(result.refusal().cls, "store")
+                self.assertEqual(self.lock.read_text(), text)
+        self.lock.unlink()
+        self.lock.mkdir()
+        result = self.run_lever("show", identity=False)
+        self.assertEqual(result.refusal().cls, "store")
+        self.assertIn("unreadable", result.stderr)
+
+    def test_a_target_changed_during_measurement_is_not_overwritten(self):
+        measure = self.measure_tool("ok\n")
+        self.run_lever("add", "lane/x", "--why", "race fixture", "--measure", measure, "--until", "ok")
+        module = load(LEVER)
+
+        def concurrent_retarget(_target):
+            data = json.loads(self.lock.read_text())
+            data["targets"]["lane/x"]["until"] = "new objective"
+            self.lock.write_text(json.dumps(data))
+            return True, "ok"
+
+        with mock.patch.object(module, "lock_path", return_value=self.lock), \
+                mock.patch.object(module, "identity", return_value=OWNER), \
+                mock.patch.object(module, "candidate_ref", return_value="a" * 40, create=True), \
+                mock.patch.object(module, "reading", side_effect=concurrent_retarget) as reading:
+            with self.assertRaises(module.Refusal) as raised:
+                module.do_done(["lane/x"])
+            self.assertEqual(raised.exception.kind, "target-changed")
+            self.assertEqual(reading.call_count, 1)
+        target = json.loads(self.lock.read_text())["targets"]["lane/x"]
+        self.assertEqual(target["until"], "new objective")
+        self.assertNotIn("measurement", target)
 
     def test_show_unmeasured_runs_no_measure(self):
         """origin: LD-146
 
         ``show --unmeasured`` prints every target reading unmeasured and
-        runs no measure; any other option refuses class arguments on the
-        wire; a plain ``show`` still measures."""
+        runs no measure; a plain ``show`` does the same. Only ``done``
+        explicitly measures; unknown display options refuse on the wire."""
         measure = self.measure_tool("on_kit=16/226\n")
         name = f"measure-{self._measures}"
         proc = self.run_lever("add", "lane/x", "--why", "w", "--measure", measure, "--until", "on_kit=226/226")
@@ -201,10 +257,16 @@ class TheLockLever(unittest.TestCase):
             self.assertEqual(bogus.stdout, "")
             self.assertEqual(len(bogus.stderr.strip().splitlines()), 1, bogus.stderr)
             self.assertRegex(bogus.stderr.strip(), r"^arguments: expected .+; found .+; needed .+$")
-        with self.subTest(id="deliverable-show-still-measures", origin="LD-146"):
+        with self.subTest(id="deliverable-show-cheap", origin="PR-01"):
             shown = self.run_lever("show", identity=False)
-            self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
+            self.assertIn("target lane/x: until on_kit=226/226; reading unmeasured; unmeasured", shown.stdout)
+            self.assertEqual(self.world.tools.calls(name), [])
+            measured = self.run_lever("done", "lane/x")
+            self.assertEqual(measured.refusal().cls, "target")
+            self.assertIn("on_kit=16/226", measured.stderr)
             self.assertEqual(len(self.world.tools.calls(name)), 1)
+            recorded = json.loads(self.lock.read_text())["targets"]["lane/x"]["measurement"]
+            self.assertEqual(recorded["outcome"], "short")
 
     def test_measure_without_until_or_until_without_measure_refuses_arguments(self):
         for extra in (("--measure", "true"), ("--until", "x")):
@@ -247,7 +309,7 @@ class TheLockLever(unittest.TestCase):
                        "--until", "on_kit=226/226")
         shown = self.run_lever("show", identity=False)
         self.assertEqual(shown.exit, 0, shown.stderr)
-        self.assertIn("target lane/x: until on_kit=226/226; reading unreachable", shown.stdout)
+        self.assertIn("target lane/x: until on_kit=226/226; reading unmeasured", shown.stdout)
         proc = self.run_lever("done", "lane/x")
         self.assertEqual(proc.exit, 2, proc.stdout)
         self.assertIn("unreachable", proc.stderr)
