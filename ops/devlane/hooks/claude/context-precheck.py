@@ -320,6 +320,12 @@ def decide(payload, *, strict=False):
     }}
 
 
+def _advice(value, event="PreToolUse"):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import guidance
+    return guidance.respond(value, event)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -327,7 +333,7 @@ def main():
     except (ValueError, TypeError, KeyError):
         return
     if result:
-        print(json.dumps(result))
+        print(json.dumps(_advice(result)))
 
 
 if __name__ == "__main__":

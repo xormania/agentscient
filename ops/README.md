@@ -46,7 +46,7 @@ row is already consolidated.
 | Responsibility | Existing owner to reuse | Remaining consolidation |
 |---|---|---|
 | Identity, refusal, clock and configuration | `conductor/tools/instrument.py`, `laneconf.py` | Move remaining private readers and clocks behind these contracts where their semantics agree. |
-| Storage and atomic transactions | `instrument.connect_store`, `instrument.transaction`; schema and transitions in `machine.py` | Conductor SQLite opening and explicit transactions now share these primitives. Hook-matrix readers need a separate wall-only migration. Findings/hand/skills readers now separate observation from explicit writer initialization. Deliverable display is observation-only; move remaining mutable control/deliverable/ladder state only with explicit migration. |
+| Storage and atomic transactions | `instrument.connect_store`, `instrument.transaction`; schema and transitions in `machine.py` | Conductor SQLite opening and explicit transactions now share these primitives. Hook-matrix readers need a separate wall-only migration. Findings/skills readers now separate observation from explicit writer initialization. Deliverable display is observation-only; move remaining mutable optional workflow state only with explicit migration. |
 | Workflow | `machine.py` declarations and transitions | Represent shared lifecycle behavior as transitions and policy data instead of new lifecycle engines. |
 | Work, authority, messages and evidence association | `coordination.py` domain operations | Keep one authority owner. Dispatch, session lifecycle and communication consume it while retaining their separate responsibilities. |
 | Execution and capability isolation | `devlane/dispatch/launch.py`, `devlane/task/run.py`, `devlane/harness/isolation.py`, issued hook profiles | Consolidate process ownership, bounds and cleanup across their callers; retain harness differences at adapters. |
@@ -67,7 +67,7 @@ state engines are retained; this is not a replacement controller.
 | `ops/devlane/harness/` | the firewall: manifest-staged snapshots proved in both directions, isolation law, probes |
 | `ops/devlane/task/` | the job registry (`jobs.json`), envelopes, filesets, the parity runner |
 | `ops/devlane/telemetry/` | usage readers, the breaker, pulse, worth |
-| `ops/devlane/hooks/` | git hooks (crossing recorder, trailer gate) and the Claude hooks wired by `.claude/settings.json` |
+| `ops/devlane/hooks/` | git hooks (crossing recorder, trailer diagnostic) and the Claude hooks wired by `.claude/settings.json` |
 | `ops/devlane/workflow/checks/` | deterministic guards: trailers, secrets, CI shape, the vocabulary wall, the term wall |
 | `ops/devlane/fixtures/` | synthetic harness envelopes and store builders — never raw captures |
 | `ops/devlane/fixtures/apps/` | whole-project calibration fixtures with planted faults — apparatus, never product code |
@@ -92,16 +92,13 @@ state engines are retained; this is not a replacement controller.
 | `ops/bin/board.sh` | what is open, measured now: PRs and worktrees per repository |
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
 
-Delegation runs through `dispatch.sh` (or `go.sh`) and nothing else.
-Dev-lane changes go by hand under a grant at the owner's word (owner,
-2026-09-12): `hand.py declare`, one producer, red then green with the
-same command, the second producer's absence said in the commit; a bug
-met on the way is fixed in the moment and recorded in the defect
-ledger. The ladder runs prod-lane work.
-In-session sub-agents are refused by hook
-(`ops/devlane/hooks/claude/no-subagents.py`): they burn context and
-leave no record; a dispatched job leaves a snapshot, a run record, and
-a commit.
+Direct work and live collaboration are normal paths. Batch dispatch and the
+saved pipeline are optional tools. No hand grant, named dispatcher or deliverable
+lock is required to work. Use their records when useful for coordination.
+
+The working guidance in `AGENTS.md` supersedes historical permission and pipeline
+rules in this tree. Hooks provide diagnostics; CI's `lane` check owns acceptance.
+Owner recovery is outside this machinery, through the owner's GitHub access.
 
 ## The wall, here
 
@@ -162,16 +159,12 @@ every documentation/configuration file. Deep enrichment, cherry-pick automation
 and Graft usage analytics are separate follow-up work; token-saving estimates
 are not measured session spend.
 
-Wired by `.claude/settings.json`: `context-precheck.sh` (fetch before
-anything outward; refuse when refs moved), `context-boundary.sh`
-(record and warn when the ground moves), `test-guard-hook.sh`
-(advisory: a planted fault without its proof), `ruff-after-edit.sh`
-(advisory lint at the edit), `no-subagents.py` (refuse in-session
-delegation), `trunk-forward.py` (fast-forward the main checkout's
-trunk at every session start when it is clean, on the trunk and behind
-its remote, one line with the old and new sha, LD-38). Present, not armed: `conductor-enforce.py` (a stricter
-posture that forbids hand investigation entirely) and `pr-feedback.sh`.
-Arming either is a reviewable change to `.claude/settings.json`.
+The hooks wired by `.claude/settings.json` report context changes, suspicious
+command shapes, lint/test observations and skill use. Workflow diagnostics are
+advisory, including at Stop. The former sub-agent refusal is retired. Legacy
+conductor control tools are optional, never prerequisites for an interactive
+session. Existing issued worker snapshots retain their installation until they
+are replaced; use a new session/job to load changed hook code.
 
 ## Declared absences
 

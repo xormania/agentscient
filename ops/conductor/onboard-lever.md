@@ -1,5 +1,11 @@
 # The onboard lever — contract
 
+Current operation (owner direction, 2026-09-24): `AGENTS.md` describes the working
+guidance. Hooks warn and guide; CI owns acceptance. Hand grants are retired,
+and the pipeline, dispatcher and deliverable records are optional capabilities.
+Historical procedure below does not impose prerequisites on ordinary work.
+
+
 Standing: ratified mandate, D-OPS-4 ("session onboarding becomes an
 instrument"; owner: "ratify D-OPS-4 - build onboard.py", 2026-09-01).
 Source of demand: onboarding is hand-written handoff prose that rots
@@ -36,7 +42,7 @@ owner's 2026-09-05 separation. AARs, handoffs and register observations also
 retain their provenance without reviving superseded policy. The reading list includes the accepted discovery contract and startup sequence;
 its presence checks do not enforce work scope.
 
-**`== law`** — the reading list, data in the tool, amended by commit
+**`== guidance`** — the reading list, data in the tool, amended by commit
 (the lever-registry pattern):
 
 | path | one-liner |

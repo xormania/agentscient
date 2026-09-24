@@ -351,7 +351,7 @@ def ledgers(report):
         report.invalid_probe("P-DB-1", "a validated authority state root", str(error),
                              "repair the native profile before reading authority ledgers")
         return
-    for path in (state / "agentscient" / "handwork.db", state / "agentscient" / "skills.db"):
+    for path in (state / "agentscient" / "skills.db",):
         if not path.exists():
             report.add("Finding", "P-DB-1", f"read-only ledger at {path}", "ABSENT",
                        f"initialize {path} with its owning tool before relying on the ledger")

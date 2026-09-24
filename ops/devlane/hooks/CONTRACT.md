@@ -1,59 +1,25 @@
-# Shared harness enforcement
+# Repository diagnostics
 
-Owner-authorized A-218, 2026-09-18. This wall composes the existing
-`boundaries.json`, `claude/matrix.py`, `claude/engine.py`, unsafe-command,
-no-subagents and context-precheck checks. It does not activate lane-policy.json,
-conductor-enforce.py or the frozen-action control plan. Native adapters translate
-wire shapes and decisions only. Contracts: docs/wire.md, docs/verified-couplings.md,
-ops/conductor/permission-surface.md and the existing harness isolation contract.
+Owner direction, 2026-09-24: freedom to work; diagnostics warn and guide.
+CI's `lane` result is the routine acceptance gate. Hooks do not deny tool calls,
+block session completion, require grants, or automatically classify findings
+as skill misses. A diagnostic failure produces a warning and work continues.
+Native harness permissions and worker isolation remain owned by their runtimes.
+A hook diagnostic cannot supply owner approval or override a harness permission.
 
-## Common decision
+The shared entry and the standalone Claude entries emit additional context
+(or a Stop system message). They preserve useful condition detection without
+issuing permission decisions. Grant checks, mandatory dispatcher identity, and
+mandatory pipeline routing have been removed. The historical hand ledger is
+read-only and is neither an onboarding prerequisite nor recovery authority.
 
-### Issued worker runtime (LD-119, LD-142)
+The owner's recovery path is GitHub administration/bypass access, outside this
+repository machinery. There is no agent-callable bypass flag or grant service.
+Its availability and account separation need verification in GitHub settings.
 
-`isolation.install_enforcement` copies the launcher's trusted policy closure
-into the new job's `runtime/`, independently of the candidate snapshot. It
-verifies the bytes before publication and refuses a source change during the
-copy. The closure includes the hooks, conductor Python helpers (including
-nested modules), lane configuration and optional local overrides, and the
-credential custody owner. Worker-native startup mounts the complete runtime
-read-only alongside the existing protected profile and configuration.
-
-The guard and acting coordination MCP server use this same issued runtime.
-Editing or merging the launcher checkout affects subsequent jobs; an active
-job retains its bytes, identity and capability through submission, credential
-carry-back and resume. The trusted installer checks retained pins before
-loading runtime Python. Relocation rebases paths only after checking those
-same bytes. A missing, changed or symlink-substituted runtime refuses; resume
-never regenerates policy or credentials to make a mismatch pass.
-
-Legacy jobs retain their original installation pins and refusal behavior;
-this change does not silently migrate already-issued profiles. Interactive
-profile preparation is unchanged. Regression cases are in
-`dispatch/tests/test_launch_runtime.py`; native write-protection needs a host
-where bubblewrap user namespaces work, separately from the offline guard and
-coordination tests.
-
-### Lifecycle evaluation
-
-`enforcement.evaluate(payload)` consumes a validated canonical lifecycle payload
-and returns an explicit decision: allow, deny or ask, a reason and additional
-context. Pre-tool order is no-subagents, unsafe-command (including amend), matrix,
-engine, context-precheck. First refusal wins. Every item of an edit batch/patch
-is checked before any effect. Other lifecycle events use the existing engine.
-None from a successfully completed predicate means no finding; failed imports,
-exceptions, malformed payloads, truncated/duplicate JSON or unavailable required
-readings never become that result. All evaluators use the stable installed source,
-not a snapshot's BOUNDARIES_PATH or executable selected by tool input.
-
-The shared instrument owns identity and session selection. Native terminal
-session IDs and dispatch-assignment bindings are distinct. Grant/role checks
-remain in their existing owners; no adapter implements a second authority.
-Known reads remain available without a grant. A recognized hand write reaches
-the existing matrix and its SQLite grant; unknown tools/effects refuse with an
-expected–found–needed remedy. A grant never lifts hard rows. A native adapter
-with no verified owner-approval channel converts ask to deny and preserves its
-owner-action reason; it never guesses approval or retries with weaker settings.
+Existing issued workers keep their pinned runtime. Newly prepared sessions/jobs
+load these diagnostics. Runtime pin checks and credential custody still validate
+the artifacts they load; they do not prescribe an interactive work sequence.
 
 ## Native translation
 
@@ -87,7 +53,7 @@ coverage and policy conformance are separate measurements.
 Generated configuration and digest bindings are replaceable projections, never
 another role/grant/state store. The source closure, registry, profile and helper
 are pinned. A missing or changed binding refuses before launching; an unavailable
-hook emits a native blocking decision. The guarded-launch route protects its
+hook emits a diagnostic without importing the changed helper. The guarded-launch route protects its
 policy/profile files from the child; permissions/sandbox/agent/config overrides
 cannot silently remove hooks. Diagnostics inspect bindings without launching.
 
@@ -159,7 +125,7 @@ the original and substituted artifacts intact and makes no host credential write
 
 The existing hooks, harness, dispatch and conductor conformance families own
 planted-fault/clean-neighbor cases, including a malformed/missing guard, hard-row
-denial with a grant, every patch target, delegation, MCP, continuation and profile
+grant-free writes, every patch target, delegation, MCP, continuation and profile
 tampering. Fixtures use ops.testkit and synthetic stores only. Native local
 protocol fixtures must observe both tool results and filesystem effects: harness
 exit 0 is not evidence that a tool ran or that a denied call was suppressed.
@@ -168,7 +134,7 @@ alone is not interception proof. Terminal and worker startup/resume need distinc
 witnesses. Unmeasured paths stay unadmitted. Root independently verifies the
 concrete candidate before any owner settings or terminals are activated.
 
-This dev-lane hand implementation has one producer under WALL grant 310;
+Historical implementation provenance: the original change used WALL grant 310;
 a separate test producer is absent by the owner's explicit instruction.
 
 ## Current measured transport and limits
@@ -214,7 +180,7 @@ unchanged policy closure; it preserves authority stores and issued identity.
 The Codex adapter fixes shell command origin to the verified profile cwd with
 native updatedInput, grouping the original command after a successful quoted
 cd. It evaluates the original command at that verified cwd before emitting the
-transport prefix, preserving leading grant declarations and explicit directory
+transport prefix, preserving environment assignments and explicit directory
 changes for the existing checks. Native hidden workdir cannot select another checkout.
 
 Interactive hook registration associates the native session with its derived
@@ -244,7 +210,7 @@ Claude account/project MCP definitions, and AGY's installed documented global
 `.gemini/config/mcp_config.json`. Their server definitions remain intact, with
 explicit shared-profile environment propagation and stale session aliases removed.
 Codex model/provider preferences are retained; old hooks/features are not copied.
-The original settings are read only. Unknown MCP operations still refuse at the
+The original settings are read only. Unknown MCP operations still produce diagnostics at the
 shared entry; projection alone does not prove native tool interception.
 
 Example (from the reviewed stable installation, after root permits activation):

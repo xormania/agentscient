@@ -20,14 +20,6 @@ XDG_OR_HOME = 'Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state
 
 MUTANTS = [
     Mutant(
-        "M-ledger-under-home",
-        SUBJECT,
-        '    store = authority_home() / ".local/state" / lane_name() / "handwork.db"\n',
-        '    store = Path.home() / ".local/state/agentscient/handwork.db"\n',
-        "the ledger precheck reads the member's private HOME "
-        "(onboard-ledger-authority-home)",
-    ),
-    Mutant(
         "M-lock-root-from-env",
         SUBJECT,
         "    state_home = state_root()\n    lock = state_home",

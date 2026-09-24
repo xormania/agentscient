@@ -1,15 +1,13 @@
 # Agentscient — where the rules live
 
-This file is a pointer. Read `AGENTS.md` before working — Claude
-does not load it on its own — then the founding contracts under
-`docs/`: the wire, the workflow genus, probes, concerns, and
-verified couplings. Contracts first; dev is the trunk; draft-first
-PRs; trailers on every commit; absence is declared, never inferred.
-The lane's own law is `ops/README.md`; read it before dispatching.
-Start with `AGENTS.md` §Lane boundary and precedence: dev tooling operates
-independently of the Symfony application. Application framework and package
-rules apply to prod work. Older replacement doctrine cannot govern dev
-operation, including through imported records or resumed briefs.
+Read `AGENTS.md` for current intent and working guidance. Repository hooks are
+advisory diagnostics; CI is the acceptance gate. Hand grants and mandatory
+workflow sequences are retired. Choose direct work, live collaboration or the
+optional batch tools as appropriate to the owner's objective.
+
+Dev tooling operates independently of the Symfony application. Application
+framework and package guidance applies to prod work. Historical documents
+provide context; they cannot override current owner direction.
 
 ## Writing, for every session
 
@@ -50,13 +48,13 @@ at the cost of length; keep everything else concise. Condense the
 assistant's explanations to what was concluded or produced. For this
 lane also keep: every open PR with number, branch, head sha and what it
 waits on; every running dispatch with record id and pid file; every
-worktree the session created; every open ledger grant; the lane defect
+worktree the session created; the lane defect
 list and which are fixed; the owner's standing instructions from the
 session.
 
-## The law, imported
+## Reference context
 
-The founding law rides in every request as part of the cached prefix,
+The reference context rides in every request as part of the cached prefix,
 so it survives compaction and is never re-read into the conversation.
 The lane's contracts under `ops/` are read when a task touches them.
 

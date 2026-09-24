@@ -186,8 +186,10 @@ class ObservationStores(unittest.TestCase):
                         elif state == "unreadable":
                             path.mkdir()
                         elif state in ("populated", "locked"):
-                            with closing(opener(write=True)) as con:
+                            create = sqlite3.connect(path) if name == "hand" else opener(write=True)
+                            with closing(create) as con:
                                 if name == "hand":
+                                    con.execute(module.SCHEMA)
                                     con.execute("INSERT INTO handwork(ts,session,agent,action,why_by_hand,"
                                                 "status,ttl_s) VALUES ('2026-01-01T00:00:00Z','s','a','a',"
                                                 "'fixture','open',60)")
@@ -218,7 +220,7 @@ class ObservationStores(unittest.TestCase):
                             return primitive(*args, **{**kwargs, "timeout": 0})
                         try:
                             with mock.patch.object(module.instrument, "connect_store", side_effect=immediate), \
-                                    mock.patch.object(module, "identity", side_effect=AssertionError("read acquired identity")):
+                                    mock.patch.object(module, "identity", side_effect=AssertionError("read acquired identity"), create=True):
                                 for view, args in views[name]:
                                     with self.subTest(view=view.__name__), redirect_stdout(io.StringIO()) as output:
                                         if state == "populated":
@@ -253,8 +255,13 @@ class ObservationStores(unittest.TestCase):
                 opener = module.con_ if name == "skills" else module.connect
                 path_name = "db_path" if name == "skills" else "database_path"
                 with mock.patch.object(module, path_name, return_value=world.root / "store.db"):
-                    with closing(opener(write=True)):
-                        pass
+                    if name == "hand":
+                        with closing(sqlite3.connect(world.root / "store.db")) as seed:
+                            seed.execute(module.SCHEMA)
+                            seed.commit()
+                    else:
+                        with closing(opener(write=True)):
+                            pass
                     with closing(opener()) as con:
                         with self.assertRaises(sqlite3.OperationalError):
                             con.execute("CREATE TABLE forbidden(value)")

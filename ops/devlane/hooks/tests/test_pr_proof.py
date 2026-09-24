@@ -96,6 +96,7 @@ class PrProofTests(unittest.TestCase):
         # data file matrix.py loads as ../boundaries.json.
         src = HOOK.parent.parent / "boundaries.json"
         self.world.plant_bytes(staged.parent.parent / "boundaries.json", src.read_bytes())
+        self.world.plant_bytes(staged.parent.parent / "guidance.py", (HOOK.parent.parent / "guidance.py").read_bytes())
         return staged
 
     def _plant_gh(self, *, fail, pr=None, runs=None):
@@ -148,8 +149,8 @@ class PrProofTests(unittest.TestCase):
         out = json.loads(proc.stdout)["hookSpecificOutput"]
         # pr-proof is a hard row with no grant escape; it denies, because
         # the proof is the agent's to add (owner, 2026-09-12)
-        self.assertEqual(out["permissionDecision"], "deny")
-        reason = out["permissionDecisionReason"]
+        self.assertNotIn("permissionDecision", out)
+        reason = out["additionalContext"].removeprefix("Diagnostic (advisory): ")
         self.assertTrue(reason.startswith("[matrix:pr-proof] pr-proof: expected "), reason)
         self.assertIn("; found ", reason)
         self.assertIn("; needed ", reason)
@@ -314,9 +315,6 @@ class PrProofTests(unittest.TestCase):
         self.allowed(self.run_bash("gh pr ready 12"))
         self.assertNotIn("-R", self._call_text())
 
-    def test_the_docstring_table_names_the_row(self):
-        text = self.hook.read_text(encoding="utf-8")
-        self.assertIn("pr-proof", text.split('"""', 2)[1])
 
 
 if __name__ == "__main__":

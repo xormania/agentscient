@@ -45,7 +45,9 @@ class SelectedRepoFreshness(unittest.TestCase):
             SCRIPT.is_file(),
             f"INVALID: context-precheck.py missing: {SCRIPT}",
         )
-        return self.world.stage(SCRIPT, siblings=("command_shape.py",))
+        staged = self.world.stage(SCRIPT, siblings=("command_shape.py",))
+        self.world.plant_bytes(staged.parent.parent / "guidance.py", (SCRIPT.parent.parent / "guidance.py").read_bytes())
+        return staged
 
     def _origin(self, fix: support.StaleClone) -> str:
         return self.world.git(
@@ -98,9 +100,9 @@ class SelectedRepoFreshness(unittest.TestCase):
             "INVALID: other FETCH_HEAD present before the hook",
         )
         proc = self._fire(command, cwd=cwd)
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"wanted deny for {command!r} in cwd {cwd}, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -134,9 +136,9 @@ class SelectedRepoFreshness(unittest.TestCase):
         cwd_sha = self._origin(self.cwd_fix)
         command = f"git -C {self.other_fix.clone} push origin topic"
         proc = self._fire(command, cwd=self.cwd_fix.clone)
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertNotEqual(
-            decision, "deny",
+            decision, "warn",
             f"-C other (fresh) denied using cwd (stale): {decision!r} "
             f"{reason!r}\nstdout: {proc.stdout}",
         )
@@ -236,9 +238,9 @@ class SelectedRepoFreshness(unittest.TestCase):
         )
         command = f"git -C {wt} push origin topic"
         proc = self._fire(command, cwd=self.cwd_fix.clone)
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertNotEqual(
-            decision, "deny",
+            decision, "warn",
             f"wt-topic pushing topic denied for other's origin/main: "
             f"{decision!r} {reason!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",

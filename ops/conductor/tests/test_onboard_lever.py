@@ -118,7 +118,7 @@ SIBLING_REFUSAL = (
     "id-shape: expected D-WO-N; found bad-id; needed a well-formed id"
 )
 
-# PIN_SECTION_HEADERS: the contract writes `== law`, `== state`,
+# PIN_SECTION_HEADERS: the contract writes `== guidance`, `== state`,
 # `== handoffs` and prints them in that order on stdout.
 # PIN_OK_ABSENT: `OK <path> — <one-liner>` / `ABSENT <path> — <one-liner>`.
 # PIN_FINAL: last non-empty stdout line is `brief complete` or
@@ -705,7 +705,7 @@ class _OnboardFixture(unittest.TestCase):
 
     def law_body_lines(self, stdout: str) -> list[str]:
         lines = stdout.splitlines()
-        start = self.heading_index(stdout, "== law")
+        start = self.heading_index(stdout, "== guidance")
         end = self.heading_index(stdout, "== state")
         self.assertLess(start, end, stdout)
         return [ln for ln in lines[start + 1 : end] if ln.strip()]
@@ -850,7 +850,7 @@ class HappyPath(_OnboardFixture):
         self.ready()
         proc = self.invoke()
         stdout = proc.stdout or ""
-        law_i = self.heading_index(stdout, "== law")
+        law_i = self.heading_index(stdout, "== guidance")
         state_i = self.heading_index(stdout, "== state")
         handoffs_i = self.heading_index(stdout, "== handoffs")
         self.assertLess(law_i, state_i, stdout)
@@ -864,9 +864,6 @@ class HappyPath(_OnboardFixture):
         self.assertIn("proposed=3", register)
         self.assertIn("ratified=8", register)
         self.assertIn("D-OPS-9", register)
-        ledger = self.labelled_line(stdout, "ledger")
-        self.assertIn("status: open=2, settled=4", ledger)
-        self.assertIn("open-grants=2", ledger)
         prs = self.labelled_line(stdout, "prs")
         self.assertIn(PR_NUMBER, prs)
         self.assertIn(PR_TITLE, prs)
@@ -1264,7 +1261,7 @@ class ReadOnly(_OnboardFixture):
         before_home = _tree_files(self.home)
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.heading_index(stdout, "== law")
+        self.heading_index(stdout, "== guidance")
         self.heading_index(stdout, "== state")
         self.heading_index(stdout, "== handoffs")
         self.assertNotIn("== thread", stdout)
@@ -1315,19 +1312,6 @@ class NoCalibrationFence(_OnboardFixture):
 class ReviewPins(_OnboardFixture):
     """Codex review of PR #106, second round: four findings pinned."""
 
-    def test_ledger_precheck_reads_the_path_the_sibling_opens(self):
-        # handwork under an XDG path hand.py never reads is NOT a ledger.
-        self.ready()
-        home_store = self.home / ".local" / "state" / "agentscient" / "handwork.db"
-        home_store.unlink()
-        xdg_store = self.xdg / "agentscient" / "handwork.db"
-        xdg_store.parent.mkdir(parents=True, exist_ok=True)
-        self._plant_bytes(xdg_store, b"")
-        proc = self.invoke()
-        out = proc.stdout or ""
-        ledger = self.labelled_line(out, "ledger")
-        self.assertIn("ABSENT", ledger)
-        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_a_full_pr_page_reports_truncation_and_counts_unmeasured(self):
         self.ready()
@@ -1662,7 +1646,7 @@ class TheMemberBrief(_OnboardFixture):
     def plant_closure(self) -> None:
         hooks = Path("ops") / "devlane" / "hooks"
         names = [hooks / "claude" / p.name for p in (REPO / hooks / "claude").glob("*.py")]
-        names += [hooks / n for n in ("enforcement.py", "native.py", "profiles.py", "boundaries.json")]
+        names += [hooks / n for n in ("enforcement.py", "native.py", "profiles.py", "guidance.py", "boundaries.json")]
         names += [Path("ops/conductor/tools") / n for n in ("onboard.py", *SIBLINGS, *HANDOFF_SIBLINGS)]
         names += [Path("ops/devlane/harness/isolation.py")]
         for name in names:
@@ -1709,22 +1693,6 @@ class TheMemberBrief(_OnboardFixture):
         return run([sys.executable, str(self.repo / "ops" / "conductor" / "tools" / "onboard.py")],
                    cwd=self.repo, env=env, timeout=RUN_CAP)
 
-    def test_the_ledger_reads_the_authority_homes_store(self):
-        """origin: LD-146
-
-        The handwork store under the binding's authority HOME is the one
-        read; the member's own HOME holds none."""
-        self.ready()
-        self.plant_closure()
-        private, binding = self.bind_member()
-        with self.subTest(id="onboard-ledger-authority-home", origin=ORIGIN_146):
-            proc = self.invoke_member(private, binding)
-            stdout = proc.stdout or ""
-            ledger = self.labelled_line(stdout, "ledger")
-            self.assertNotIn("ABSENT", ledger)
-            self.assertIn("status: open=2, settled=4", ledger)
-            self.assertEqual(self.last_line(stdout), "brief complete")
-            self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_the_state_roots_follow_the_binding(self):
         """origin: LD-146

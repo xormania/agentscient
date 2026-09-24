@@ -18,7 +18,6 @@ there would not run when the MCP projection calls the same function.
     coordination.py bind --roles R[,R] [--run R-n] [--harness H] [--endpoint E] [--probe TEXT]
     coordination.py bind-for --session ID --roles R[,R] --for A-n --capability-digest SHA256 [--harness H]
     coordination.py grant PT-n --roles R[,R]
-    coordination.py recover-roles --grant ID --roles R[,R] --why TEXT
     coordination.py revoke PT-n --roles R[,R]
     coordination.py who | participants [--role R]
     coordination.py draft TITLE --outcome TEXT [--requirement REF] [--revision SHA]
@@ -71,7 +70,6 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import timedelta
 
 # The shared instrument module sits beside this file; its directory goes
 # on the path so the import resolves however this file was loaded: as
@@ -924,80 +922,6 @@ def core_grant(conn, part, *, agent, participant, roles) -> dict:
     return participant_dict(participant_row(conn, pid))
 
 
-def core_recover_roles(conn, part, *, agent, grant, roles, why) -> dict:
-    """Recover only this participant under the owner's existing hand grant.
-
-    Hold the hand store's writer lock until the coordination transaction
-    finishes, so settlement cannot race the authorization reading. The
-    source grant is retained; the append-only receipt records its reading.
-    """
-    from hand import database_path
-
-    part = same_session(conn, part)
-    if part is None:
-        refuse("participant", "this session's bound participant", "absent",
-               "bind this session as a worker before recovering its roles")
-    if agent != identity():
-        refuse("identity", "the calling session's attribution", "a different agent argument",
-               "use the identity of the session invoking recovery")
-    named = roles_of(roles)
-    if (not re.fullmatch(r"[1-9][0-9]{0,18}", str(grant))
-            or int(grant) > 9223372036854775807 or len(why.split()) < 4):
-        refuse("grant", "a positive grant id and a reason of at least four words",
-               "invalid recovery arguments", "name the owner's declared recovery grant")
-    grant_id = int(grant)
-    authority = None
-    try:
-        authority = instrument.connect_store(database_path(), mode="rw", isolation_level=None, timeout=10)
-        authority.row_factory = sqlite3.Row
-        with instrument.transaction(authority):
-            row = authority.execute("SELECT * FROM handwork WHERE id=?", (grant_id,)).fetchone()
-            valid = (row is not None and row["status"] == "open"
-                     and row["session"] == session() and row["agent"] == agent
-                     and row["lever_class"] == "other" and not (row["scope"] or "").strip()
-                     and type(row["ttl_s"]) is int and row["ttl_s"] > 0)
-            deadline = parse_stamp(row["ts"]) + timedelta(seconds=row["ttl_s"]) if valid else None
-            valid = valid and deadline > now()
-            if not valid:
-                refuse("grant", "this session's open, unexpired, unscoped other grant",
-                       f"grant {grant_id} does not satisfy that binding",
-                       "use the owner's recorded recovery authorization for this session")
-            with instrument.transaction(conn):
-                if deadline <= now():
-                    refuse("grant", "authority current at the role-changing transaction",
-                           f"grant {grant_id} expired while waiting",
-                           "use a current owner-authorized recovery grant")
-                conn.execute("""CREATE TABLE IF NOT EXISTS owner_role_grants(
-                    grant_id INTEGER PRIMARY KEY, participant INTEGER NOT NULL,
-                    roles TEXT NOT NULL, previous_roles TEXT NOT NULL,
-                    grant_reading TEXT NOT NULL, why TEXT NOT NULL, at TEXT NOT NULL)""")
-                for operation in ("UPDATE", "DELETE"):
-                    conn.execute(f"""CREATE TRIGGER IF NOT EXISTS owner_grants_no_{operation}
-                        BEFORE {operation} ON owner_role_grants BEGIN
-                        SELECT RAISE(ABORT, 'owner role grants are append-only'); END""")
-                prior = conn.execute("SELECT * FROM owner_role_grants WHERE grant_id=?",
-                                     (grant_id,)).fetchone()
-                if prior is not None:
-                    if prior["participant"] != part["id"] or prior["roles"] != named:
-                        refuse("grant", "the same participant and roles for a recovered grant",
-                               f"grant {grant_id} already used", "declare a new owner-authorized grant")
-                else:
-                    current = participant_row(conn, part["id"])
-                    held = list(dict.fromkeys(current["roles"].split(",") + named.split(",")))
-                    conn.execute("INSERT INTO owner_role_grants VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                 (grant_id, part["id"], named, current["roles"],
-                                  json.dumps(dict(row), sort_keys=True), why, stamp()))
-                    conn.execute("UPDATE participants SET roles=?, owner_grant=? WHERE id=?",
-                                 (",".join(held), grant_id, part["id"]))
-    except (sqlite3.Error, OSError, ValueError, TypeError, OverflowError) as error:
-        refuse("grant", "a readable current hand grant and writable coordination store",
-               type(error).__name__, "restore the stores before recovering roles")
-    finally:
-        if authority is not None:
-            authority.close()
-    result = participant_dict(participant_row(conn, part["id"]))
-    result["owner_grant"] = grant_id
-    return result
 
 
 def core_revoke(conn, part, *, agent, participant, roles) -> dict:
@@ -2478,7 +2402,7 @@ CORE = {
     "observations": core_observations, "ask": core_ask, "answer": core_answer,
     "decide": core_decide, "decision": core_decision, "decisions": core_decisions,
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
-    "recover-roles": core_recover_roles,
+
     "coverage": core_coverage, "brief": core_brief, "entry": core_entry,
     "route": core_route, "routes": core_routes, "attempt": core_attempt,
     "attempted": core_attempted, "attempts": core_attempts,
@@ -2571,16 +2495,6 @@ def do_revoke(rest):
           f"{shown['roles']} left")
 
 
-def do_recover_roles(rest):
-    agent = identity()
-    _, opts = parse(rest, 0, required=("grant", "roles", "why"))
-    with writer() as conn:
-        shown = CORE["recover-roles"](
-            conn, bound_participant(conn), agent=agent,
-            grant=opts["grant"], roles=opts["roles"], why=opts["why"],
-        )
-    print(f"recovered {shown['roles']} for {shown['participant']} "
-          f"under owner grant {shown['owner_grant']}")
 
 
 def do_who(rest):
@@ -3234,7 +3148,7 @@ VERBS = {
     "observations": do_observations, "ask": do_ask, "answer": do_answer,
     "decide": do_decide, "decision": do_decision, "decisions": do_decisions,
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
-    "recover-roles": do_recover_roles,
+
     "coverage": do_coverage, "brief": do_brief, "entry": do_entry,
     "route": do_route, "routes": do_routes, "attempt": do_attempt,
     "attempted": do_attempted, "attempts": do_attempts,

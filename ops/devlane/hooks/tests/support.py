@@ -396,3 +396,14 @@ def proof_findings(*rows):
     """The `## Proof` lines the finding-disposition row reads: each finding
     named, its disposition token, and one line of judgement."""
     return "".join(f"- {key} {how}: the judgement on {key}.\n" for key, how in rows)
+
+
+def diagnostic(stdout):
+    if not stdout.strip():
+        return None, ""
+    out = json.loads(stdout)
+    spec = out.get("hookSpecificOutput", {})
+    assert "permissionDecision" not in spec, out
+    assert "decision" not in out and out.get("continue") is not False, out
+    text = spec.get("additionalContext") or out.get("systemMessage", "")
+    return ("warn", text.removeprefix("Diagnostic (advisory): ")) if text else (None, "")

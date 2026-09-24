@@ -85,12 +85,13 @@ class TheCommitMsgGate(test_hooks._HookFixture):
         )
         return int(out.stdout.strip() or 0)
 
-    def test_a_split_block_is_refused(self):
+    def test_a_split_block_warns_but_commits(self):
         repo = self.prepared(with_checker=True)
         before = self.count(repo)
         proc = self.attempt(repo, SPLIT, "one\n")
-        self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertEqual(self.count(repo), before, "the commit landed anyway")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.count(repo), before + 1)
+        self.assertIn("Diagnostic:", proc.stderr)
 
     def test_a_joined_block_commits(self):
         repo = self.prepared(with_checker=True)
@@ -111,7 +112,7 @@ class TheCommitMsgGate(test_hooks._HookFixture):
         proc = self.attempt(repo, SPLIT, "three\n")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertEqual(self.count(repo), before + 1)
-        self.assertIn("cannot check trailers", proc.stderr)
+        self.assertIn("trailer checker unavailable", proc.stderr)
 
 
 if __name__ == "__main__":

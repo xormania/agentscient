@@ -34,7 +34,7 @@ engine.matrix = matrix
 unsafe = load("shared_hook_unsafe", HERE / "claude/unsafe-command.py")
 no_subagents = load("shared_hook_delegation", HERE / "claude/no-subagents.py")
 context = load("shared_hook_context", HERE / "claude/context-precheck.py")
-hand = load("shared_hook_hand", TOOLS / "hand.py")
+
 
 
 def decision(outcome="allow", reason="", context=""):
@@ -93,7 +93,7 @@ def mcp_allowed(inp, servers):
     return False
 
 
-def evaluate(payload, *, servers=()):
+def inspect(payload, *, servers=()):
     """One complete decision. Guard failures cannot be confused with predicate None."""
     token = None
     try:
@@ -108,7 +108,7 @@ def evaluate(payload, *, servers=()):
         # Source config/registry are authority. Payload and environment cannot
         # replace them with a worker-controlled checkout's policy.
         conf = instrument._laneconf().parse_file(SOURCE / "ops/lane.conf")
-        token = matrix.GUARD_CONTEXT.set({"conf": conf, "state": str(instrument.state_root()), "instrument": instrument, "grant_db": str(hand.database_path())})
+        token = matrix.GUARD_CONTEXT.set({"conf": conf, "state": str(instrument.state_root()), "instrument": instrument})
         registry = native.loads((HERE / "boundaries.json").read_bytes())
         rows = registry.get("rows")
         if registry.get("schema") != "agentscient.boundaries/2" or not isinstance(rows, list) or not rows:
@@ -138,9 +138,6 @@ def evaluate(payload, *, servers=()):
             return refuse("unavailable final response", "supply a verified native transcript reading")
         with working_directory(cwd):
             if event == "PreToolUse":
-                reason = no_subagents.decide(payload)
-                if reason:
-                    return decision("deny", reason)
                 if tool == "Bash":
                     out = converted(unsafe.decide(payload))
                     if out["outcome"] != "allow":
@@ -162,6 +159,12 @@ def evaluate(payload, *, servers=()):
     finally:
         if token is not None:
             matrix.GUARD_CONTEXT.reset(token)
+
+
+def evaluate(payload, *, servers=()):
+    """Diagnostics guide work; a failed diagnostic never becomes a work gate."""
+    finding = inspect(payload, servers=servers)
+    return decision(context=finding.get("reason") or finding.get("context", ""))
 
 
 def main(argv=None):
@@ -193,6 +196,8 @@ def main(argv=None):
             result["updated_input"] = {"command": rewritten}
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])
+    result["context"] = result.get("context") or result.get("reason", "")
+    result["advisory"] = True
     print(json.dumps(native.respond(args.harness, result, args.event)))
     return 0
 

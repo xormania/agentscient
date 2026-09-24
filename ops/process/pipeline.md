@@ -1,5 +1,11 @@
 # The pipeline: who does what, and what they may not see
 
+Current operation (owner direction, 2026-09-24): `AGENTS.md` describes the working
+guidance. Hooks warn and guide; CI owns acceptance. Hand grants are retired,
+and the pipeline, dispatcher and deliverable records are optional capabilities.
+Historical procedure below does not impose prerequisites on ordinary work.
+
+
 `cross-review.md` says who *reviews*. This says who *produces*, in what
 order, and what each producer is denied. It exists because the sequence
 was run successfully on 2026-08-23, was written down nowhere a later

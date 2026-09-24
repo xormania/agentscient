@@ -707,11 +707,8 @@ def decide(payload, *, rows=None):
     rows = load_registry() if rows is None else rows
     bound = [r for r in rows if r.get("engine") and r.get("event") == ctx.event
              and (not r.get("tools") or ctx.tool in r.get("tools"))]
-    grant = matrix.open_grant(ctx.text, ctx.lane) if ctx.text else None
     contexts = []
     for row in bound:
-        if row.get("escape") == "grant" and grant is not None:
-            continue
         try:
             found = evaluate(row.get("when"), ctx)
         except CouldNotLook:
@@ -733,6 +730,12 @@ def decide(payload, *, rows=None):
     return None, None
 
 
+def _advice(value, event="PreToolUse"):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import guidance
+    return guidance.respond(value, event)
+
+
 def main(argv):
     if argv[1:] == ["lint"]:
         try:
@@ -748,21 +751,19 @@ def main(argv):
         return 0
     event = payload.get("hook_event_name") or ("PostToolUse" if "tool_response" in payload else "PreToolUse")
     try:
-        output, klass = decide(payload)
+        output, _klass = decide(payload)
     except CouldNotLook as error:
         line = wire_line("hook-error", "a registry the engine can evaluate", str(error),
                          "fix the registry row; could not look is not a pass")
-        print(json.dumps(emit_refusal(event, line)))
+        print(json.dumps(_advice(emit_refusal(event, line), event)))
         return 0
     except Exception as error:  # noqa: BLE001 - a hook that dies takes the session with it
         line = wire_line("hook-error", "a decision", f"{type(error).__name__}: {error}", "the engine fixed through the lane")
-        print(json.dumps(emit_refusal(event, line)))
+        print(json.dumps(_advice(emit_refusal(event, line), event)))
         return 0
     if output:
-        print(json.dumps(output))
-        if klass:
-            reason = json.dumps(output)
-            miss.log_miss(payload.get("cwd"), klass, reason, hook="engine")
+        print(json.dumps(_advice(output, event)))
+
     return 0
 
 

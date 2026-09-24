@@ -106,6 +106,7 @@ class AuditAtTheHead(unittest.TestCase):
         staged = self.world.stage(HOOK, siblings=("miss.py", "command_shape.py"))
         src = HOOK.parent.parent / "boundaries.json"
         self.world.plant_bytes(staged.parent.parent / "boundaries.json", src.read_bytes())
+        self.world.plant_bytes(staged.parent.parent / "guidance.py", (HOOK.parent.parent / "guidance.py").read_bytes())
         return staged
 
     def _plant_gh(self, *, pr, runs):
@@ -168,8 +169,8 @@ class AuditAtTheHead(unittest.TestCase):
         self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(proc.stdout.strip(), "hook let the call through")
         out = json.loads(proc.stdout)["hookSpecificOutput"]
-        self.assertEqual(out["permissionDecision"], "deny")
-        reason = out["permissionDecisionReason"]
+        self.assertNotIn("permissionDecision", out)
+        reason = out["additionalContext"].removeprefix("Diagnostic (advisory): ")
         self.assertTrue(reason.startswith("[matrix:audit] audit: expected "), reason)
         self.assertIn("; found ", reason)
         self.assertIn("; needed ", reason)
@@ -615,12 +616,6 @@ class AuditAtTheHead(unittest.TestCase):
             proc = self.run_bash(command)
             self.assertNotIn("audit", proc.stdout, command)
 
-    def test_the_docstring_table_names_the_row(self):
-        """docs/tests.md rule 9: the assertion must be able to fail, so it
-        pins the table entry and not the word `audit` that `security-audit`
-        already carries into the table above it."""
-        table = self.hook.read_text(encoding="utf-8").split('"""', 2)[1]
-        self.assertIn("\n    audit ", table)
 
 
 class FindingDispositionsInProof(AuditAtTheHead):
@@ -648,8 +643,8 @@ class FindingDispositionsInProof(AuditAtTheHead):
         self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(proc.stdout.strip(), "hook let the call through")
         out = json.loads(proc.stdout)["hookSpecificOutput"]
-        self.assertEqual(out["permissionDecision"], "deny")
-        reason = out["permissionDecisionReason"]
+        self.assertNotIn("permissionDecision", out)
+        reason = out["additionalContext"].removeprefix("Diagnostic (advisory): ")
         self.assertTrue(reason.startswith(
             "[matrix:finding-disposition] finding-disposition: expected "), reason)
         self.assertIn("; found ", reason)
@@ -740,9 +735,6 @@ class FindingDispositionsInProof(AuditAtTheHead):
         reason = self.disposition_refusal(self.run_bash("gh pr ready 12"))
         self.assertIn("could not look", reason)
 
-    def test_the_docstring_table_names_the_disposition_row(self):
-        table = self.hook.read_text(encoding="utf-8").split('"""', 2)[1]
-        self.assertIn("\n    finding-disposition ", table)
 
 
 

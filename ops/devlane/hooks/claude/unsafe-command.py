@@ -490,6 +490,12 @@ def decide(payload):
     return None
 
 
+def _advice(value, event="PreToolUse"):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import guidance
+    return guidance.respond(value, event)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -499,14 +505,7 @@ def main():
                   "permissionDecision": "deny", "permissionDecisionReason":
                   f"hook-input: expected complete shell input; found {type(exc).__name__}; needed repair the native adapter"}}
     if result:
-        print(json.dumps(result))
-        output = result.get("hookSpecificOutput", {})
-        if output.get("permissionDecision") == "deny":
-            import miss
-            reason = output.get("permissionDecisionReason", "")
-            hit = re.match(r"\[([^]]+)\] (.*)", reason, re.DOTALL)
-            if hit:
-                miss.log_miss(payload.get("cwd"), hit[1], hit[2], hook="unsafe-command")
+        print(json.dumps(_advice(result)))
     return 0
 
 

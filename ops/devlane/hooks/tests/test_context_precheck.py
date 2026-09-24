@@ -129,9 +129,9 @@ class PrecheckGitState(unittest.TestCase):
         self.assertNotEqual(self.fixture.old_sha, self.fixture.new_sha)
 
         proc = self._run("git push origin topic")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"D2 wanted deny, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -167,9 +167,9 @@ class PrecheckGitState(unittest.TestCase):
                 self.assertEqual(self._origin_main(), self.fixture.old_sha)
 
                 proc = self._run(cmd)
-                decision, reason = support.permission_decision(proc.stdout)
+                decision, reason = support.diagnostic(proc.stdout)
                 self.assertEqual(
-                    decision, "deny",
+                    decision, "warn",
                     f"D3 spelling {cmd!r} wanted deny, got {decision!r}\n"
                     f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
                 )

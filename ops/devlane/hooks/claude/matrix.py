@@ -1,137 +1,8 @@
 #!/usr/bin/env python3
-"""matrix.py -- the check matrix: a PreToolUse hook on Bash and the write tools.
+"""Repository diagnostics. CI owns acceptance; ordinary writes need no grant.
 
-Owner, 2026-09-04: "you need to force yourself - fuck promises - it has to
-PAINFUL for you to fuck up" and "i need matrix of checks in a pre-tool call
-or something - you have to be forced".
-
-Every row is a killer from the day's ranking made mechanical.  A row is
-computed from the command text, the files it names and the tree, never
-from what the session believes.  A refusal is the wire, one line,
-``class: expected ...; found ...; needed ...``, sent through the deny
-channel the pre-check next door uses.  A hook that cannot read its payload
-lets the call through (a hook that fails takes the session with it).  A
-row that cannot look refuses: "could not look" is not a pass.
-
-    class           trigger                                       computed from
-    hand-write      a write to a path under a code root           statement, repo root
-    direct-launch   launch.py run without the dispatcher          command word
-    override        --model or --effort on a dispatcher call      tokens
-    input-absent    a --scope-file or --input missing or empty    the files
-    scope-cap       --scope-file over SCOPE_CAP                   size, lane conf
-    bucket-command  an implement scope naming the whole suite     scope text
-    walkthrough     a write job whose inputs carry no walkthrough input text
-    stale-base      --worktree whose merge-forward from the       git merge-tree
-                    trunk would conflict (behind alone is merged
-                    by the dispatcher before the launch)
-    contract-vet    harness contracts do not vet as a package     cue vet
-    dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
-                    worktree, DISPATCH_TIMEOUT and WF_AGENT       text
-    dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
-    dispatcher      dispatch.sh or go.sh from a session that is   the dispatcher machine
-                    not the Dispatcher the state engine names,    in state.db, the
-                    or while no Dispatcher is named; no grant     harness's session id
-                    escape (owner, 2026-09-12: "as long you
-                    account for the fact that i'll have multiple
-                    sessions running soon")
-    test-form       unittest given a path instead of discovery    tokens
-    prune           rm -r of records, state, worktrees, .git      statement
-    graft-first     a grep/rg/git grep search over a code root    statement, targets
-                    (counts, file lists, pipes and records paths
-                    are not searches); no grant escape; every
-                    refusal and every Graft query is logged
-    deliverable     while the lane's deliverable lock names       lock file, statement
-                    branches, a new worktree or branch, a
-                    dispatch, a ladder start or a PR creation
-                    aimed at any other branch; no grant escape
-    claim-unmeasured a commit message, PR body or comment, or a   the text, paragraph by
-                    record or law page written by heredoc, with  paragraph
-                    a paragraph that claims (enforced, done,
-                    landed, merged, green, impossible, verified,
-                    fixed) and carries no reading (sha, record
-                    id, P- row, #PR, run id, "Ran N tests") nor
-                    the words not measured; quoted words are not
-                    the writer's claim; no grant escape (owner,
-                    2026-09-12: "stops you from lie-ing")
-    force-push      git push --force, --force-with-lease or -f    the registry only: no
-                    (engine row, no code)                         code names this class
-    trunk-commit    git commit, merge, cherry-pick, rebase,       git symbolic-ref of the
-                    revert or am while the directory is on the   directory; push refspecs
-                    trunk or the release branch, or a push whose
-                    refspec targets them; no grant escape (owner,
-                    2026-09-12: "one branch per session")
-    file-state      a JSON or text store written under the lane's the path, the state
-                    state directory, or a placement file          directory, the body
-                    declaring state.engine file (engine row);
-                    no grant escape (owner, 2026-09-13: "i need
-                    to prevent future default to files")
-    kit-import      a write creating a module under a tests/       the path, the text's
-                    directory that neither imports ops.testkit    imports and its first
-                    nor declares `# testkit: exempt <reason>`     ten lines
-                    (engine row; docs/tests.md rule 1); no grant
-                    escape (D-TESTKIT-1, 2026-09-14)
-    done-gate       at Stop, a reply that says done, complete,    last_assistant_message,
-                    finished, landed, merged or solved with no    the lock's target lines
-                    deliverable.py line (engine row; three        (deliverable.py show)
-                    blocks per session, then the stop passes;
-                    owner, 2026-09-15: "I need confidence that
-                    my orders are being carried out")
-    wall-write      a write to the CI and test machinery          the path, the grant's
-                    (.github/workflows, suites.sh, probes.py,     lever class
-                    laneconf.py, the hook registry, rows, engine
-                    and the hooks tests)
-                    without a grant of lever class wall; or a
-                    wall grant writing anything else (isolation)
-    pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
-                    system verifies: a ## Proof section naming   at the head, gh run list
-                    corpus rows that exist at the PR head, the
-                    head fetched here, a completed green ci run
-                    on that head; no grant escape (owner,
-                    2026-09-12: "proof needs to be part of the
-                    system - it has to generated and verified
-                    at boundaries")
-    audit           gh pr ready while the head carries no closed  gh pr view, the record
-                    security audit: the ## Proof section names a  at the head, ops/lane.conf,
-                    security-audit record which, read at the      the findings export at
-                    head, is closed, ran on codex at the model    the head, git diff
-                    ops/lane.conf names in
-                    MODEL_CODEX_SECURITY_AUDIT, has its two head
-                    fields agreeing on a sha whose commits since
-                    all lie inside the row's records set, and
-                    has every finding of its envelope disposed
-                    in the findings export at the head; ready
-                    only, gh pr merge does not carry it; no
-                    grant escape (owner, 2026-09-16: "daybreak
-                    security audits made required for draft
-                    pr's - and resolution required before they
-                    can be made ready for review")
-    finding-disposition                                          gh pr view, the record
-                    gh pr ready while a finding of the audit that at the head, the findings
-                    holds is not judged in ## Proof: each named   export at the head,
-                    by <record>#<n> or the record's suffix #<n>   findings.py DISPOSITIONS
-                    with a disposition token equal to the        at the head
-                    export's and one line of judgement; a
-                    finding whose record carries `practical`
-                    and is ruled is a decline, its judgement
-                    beginning "declined: not practical — ";
-                    ready only; no grant escape (owner, relayed
-                    2026-09-23 01:24Z: "get moving - and make
-                    sure i NEVER have to say that again")
-
-Every refusal is also logged as a miss against the skill it names
-(``miss.py``: the deliverable row names ``deliverable``, every other row
-``refused``), best effort, after the refusal is printed.
-
-Rows marked ``engine: true`` in ``ops/devlane/hooks/boundaries.json`` are
-not carried by this file at all: ``engine.py`` evaluates them from the
-registry at the event they bind to (trunk-commit, claim-unmeasured, prune,
-test-form, force-push). This file carries the rest until they migrate.
-
-The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
-command, the id an open row of the hand ledger whose scope covers the
-path -- and only for hand-write and direct-launch.  An unscoped open grant
-also permits dispatch-by-hand.  The other rows have no escape: a launch that
-would refuse at mint refuses here, before the mint.
+The callable detectors retain their structured findings for tests and readers.
+The hook entry point emits advice only. Dispatch and pipelines are optional.
 """
 
 import ast
@@ -139,7 +10,6 @@ import json
 import os
 import re
 import shlex
-import sqlite3
 import string
 import subprocess
 import sys
@@ -149,8 +19,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # instrument identity; legacy standalone probes retain their fixture context.
 from contextvars import ContextVar
 
-import miss
 from command_shape import commands
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import guidance
 
 GUARD_CONTEXT = ContextVar("matrix_guard_context", default=None)
 
@@ -195,12 +67,6 @@ DRIVER = "ladder.sh"
 LAUNCHER_READ_VERBS = ("status", "wait", "brief", "help")
 SCOPE_CAP_DEFAULT = 1024
 COPY_WORDS = ("cp", "mv", "install", "rsync", "ln")
-# Triage 2026-09-11: the grant may follow other leading assignments
-# (`export WF_AGENT='Name <a@b>' HAND_GRANT=12 && ...`); quoted values may
-# carry spaces.
-GRANT = re.compile(
-    r"^\s*(?:export\s+)?(?:\w+=(?:'[^']*'|\"[^\"]*\"|\S*)\s+)*HAND_GRANT=(\d+)\b"
-)
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
@@ -221,33 +87,6 @@ PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
 STATE_STORE = "state.db"
 ROLE_MACHINE = "dispatcher"
-# Owner, 2026-09-12: "i have the right to issue a hand grant to change CI and
-# tests - but i'm willing to make that something that can only be done in
-# isolation". The wall is the machinery that contains everyone's mistakes;
-# it is written only under a grant of lever class `wall`, and a session
-# holding one writes nothing else.
-# Owner, 2026-09-13 ("Add matrix.py and the hooks test directory to the
-# wall paths"): the rows guard the file that defines them. Until then two
-# commits (cc04f7d9, 2c983635) changed the rows under an ordinary grant and
-# said so; the wall list is extended from the enforcing checkout, so the
-# extension itself went the same way (LD-34).
-# D-TESTKIT-1 (owner, 2026-09-14): the test kit is test machinery and the
-# job catalogue carries the tests job's prompt; both are wall (docs/tests.md
-# rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
-WALL_PATHS = ("ops/devlane/hooks/", "ops/devlane/harness/isolation.py",
-              "ops/devlane/dispatch/launch.py", "ops/conductor/tools/co_doc.py",
-              "ops/conductor/tools/instrument.py", "ops/conductor/tools/hand.py",
-              "ops/conductor/instrument-conventions.md",
-              "ops/conductor/permission-surface.md", "ops/conductor/harness-capabilities.md",
-              "ops/conductor/conductor-start-plan.md", "ops/conductor/lane-policy.md",
-              ".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
-              "ops/devlane/workflow/checks/",
-              "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
-              "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
-              "ops/testkit/", "ops/devlane/task/jobs.json",
-              "ops/devlane/hooks/claude/engine.py")
-
-
 BOUNDARIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "boundaries.json")
 
 
@@ -306,30 +145,6 @@ def relative(path, cwd):
     return root, os.path.relpath(absolute, root)
 
 
-def is_wall(rel):
-    if rel is None or rel.startswith(".."):
-        return False
-    return any(rel == w or rel.startswith(w) for w in WALL_PATHS)
-
-
-def wall_write(what, path, rel, grant):
-    """The wall-write row: a wall path needs a wall-class grant; a wall
-    grant touches only wall paths. None when neither applies."""
-    wall_grant = grant is not None and len(grant) > 2 and grant[2] == "wall"
-    if is_wall(rel) and not wall_grant:
-        holder = "no grant" if grant is None else f"grant {grant[0]} of class {grant[2] if len(grant) > 2 else 'other'}"
-        return deny("wall-write", "a grant of lever class wall leading the command (CI and test machinery "
-                                  "is changed only in a session whose deliverable is the wall)",
-                    f"{what} writing {path} under {holder}",
-                    "python3 ops/conductor/tools/hand.py declare '<what>' '<why>' wall; lead the command with "
-                    "HAND_GRANT=<id>; touch only wall paths in that session (owner, 2026-09-12)")
-    if wall_grant and is_code(rel) and not is_wall(rel):
-        return deny("wall-write", "a wall session touching only wall paths (isolation)",
-                    f"{what} writing {path} under wall grant {grant[0]}",
-                    "land the wall work first; other work goes in its own session under its own grant")
-    return None
-
-
 def is_code(rel):
     if rel is None or rel.startswith(".."):
         return False
@@ -356,53 +171,6 @@ def lane_conf(root):
     except OSError:
         pass
     return conf
-
-
-# --- the grant --------------------------------------------------------------
-
-def open_grant(text, lane):
-    """(id, scope) of the open grant the command leads with, else None."""
-    match = GRANT.match(text)
-    if not match:
-        return None
-    grant_id = int(match.group(1))
-    guard = GUARD_CONTEXT.get()
-    db = guard["grant_db"] if guard else os.path.join(STATE_DIR, lane, "handwork.db")
-    try:
-        connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-        row = connection.execute(
-            "SELECT status, scope, lever_class, ts, ttl_s, session, agent FROM handwork WHERE id = ?", (grant_id,)
-        ).fetchone()
-        connection.close()
-    except sqlite3.Error:
-        return None
-    if row is None or row[0] != "open":
-        return None
-    if guard is not None:
-        authority = guard["instrument"]
-        try:
-            from datetime import timedelta
-            issued = authority.parse_stamp(row[3])
-            ttl = row[4]
-            if type(ttl) is not int or ttl <= 0:
-                return None
-            if not (issued <= authority.now() < issued + timedelta(seconds=ttl)):
-                return None
-            if row[5] != authority.session("") or row[6] != authority.identity():
-                return None
-        except (ValueError, TypeError, OverflowError, authority.Refusal):
-            return None
-    return grant_id, (row[1] or ""), (row[2] or "other")
-
-
-def grant_covers(grant, rel):
-    """A grant with a scope covers only the paths its scope names."""
-    if grant is None:
-        return False
-    scope = [token for token in grant[1].split() if "/" in token or "." in token]
-    if not scope:
-        return True
-    return any(rel == token or rel.startswith(token.rstrip("/") + "/") for token in scope)
 
 
 # --- statements -------------------------------------------------------------
@@ -893,80 +661,13 @@ def harness_session():
     return module.session("")
 
 
-def dispatcher_named(lane):
-    """(session, "") for the Dispatcher the state engine names, ("", "") when
-    none is named, or ("", what was found) when the store could not be read.
-
-    Absence is declared, never inferred (docs/wire.md): a store that is
-    absent is an answer — nobody has named a Dispatcher on this host — and
-    a store that is there but unreadable is not, so the two are returned
-    apart and the refusal says which one it met.
-    """
-    if not lane:
-        return "", ""
-    path = os.path.join(STATE_DIR, lane, STATE_STORE)
-    if not os.path.isfile(path):
-        return "", ""
-    try:
-        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-        row = connection.execute(
-            "SELECT place, holder_note FROM subjects WHERE machine = ? ORDER BY id LIMIT 1",
-            (ROLE_MACHINE,),
-        ).fetchone()
-        connection.close()
-    except sqlite3.Error as error:
-        return "", f"the state store at {path} could not be read ({type(error).__name__})"
-    if row is None or row[0] != "named" or not (row[1] or "").strip():
-        return "", ""
-    return row[1].strip(), ""
 
 
-def dispatch_role(cwd):
-    """The only emitter of class `dispatcher`: ops/bin/dispatch.sh and
-    ops/bin/go.sh answer to the session the state engine names and to no
-    other. The session is judged, never the working directory: two sessions
-    in one worktree are still two sessions."""
-    lane = lane_conf(repo_root(cwd)).get("LANE_NAME")
-    named, unreadable = dispatcher_named(lane)
-    if unreadable:
-        return deny("dispatcher", "a Dispatcher named in the state engine", unreadable,
-                    "a readable state store, then dispatcher.py set")
-    if not named:
-        return deny("dispatcher", "a Dispatcher named in the state engine", "none",
-                    "dispatcher.py set in the session that will dispatch")
-    mine = harness_session()
-    if not mine:
-        return deny("dispatcher", f"the Dispatcher session {named}",
-                    "the harness named no session for this one",
-                    "send the request to the Dispatcher")
-    if mine != named:
-        return deny("dispatcher", f"the Dispatcher session {named}", mine,
-                    "send the request to the Dispatcher")
-    return None
 
 
-def check_dispatch(kind, flags, cwd, text, grant):
-    if kind == "dispatcher":
-        # Asked first, and no grant lifts it: the remedy is not a write this
-        # session may be trusted with, it is another session sending the
-        # request. A grant that opened this row would make the role advice.
-        refused = dispatch_role(cwd)
-        if refused is not None:
-            return refused
-    if kind == "launcher":
-        if flags.get("verb") in LAUNCHER_READ_VERBS:
-            return None
-        if grant is None:
-            return deny("direct-launch",
-                        "every stage launched through ops/bin/dispatch.sh so the lane conf applies",
-                        "launch.py run directly",
-                        "dispatch.sh --job ... (or HAND_GRANT=<open id> for a lever hole, declared first)")
+def check_dispatch(kind, flags, cwd, text):
+    if kind in {"launcher", "driver"}:
         return None
-    if kind == "driver":
-        return None
-    if "model" in flags or "effort" in flags:
-        return deny("override", "the conf's model and effort", "--model/--effort on the dispatcher call",
-                    "drop them; ops/lane.conf decides")
     worktree = flags.get("worktree", "")
     root = os.path.normpath(os.path.join(cwd, worktree)) if worktree else repo_root(cwd)
     conf = lane_conf(root)
@@ -1047,7 +748,7 @@ def check_dispatch(kind, flags, cwd, text, grant):
             if vet.returncode != 0:
                 first = (vet.stderr.strip().splitlines() or ["no output"])[0]
                 return deny("contract-vet", "ops/devlane/harness to vet clean as a package", first,
-                            "fix the contract through the ladder before any dispatch")
+                            "inspect the contract errors")
         pin = re.search(r"LAUNCHER_PIN=(\S+)", text)
         if not pin or not pin.group(1).strip("'\"").startswith(root):
             return deny("dispatch-env", f"LAUNCHER_PIN={root}/ops/devlane/dispatch/launch.py (the branch's own launcher)",
@@ -1055,10 +756,6 @@ def check_dispatch(kind, flags, cwd, text, grant):
         for name in ("DISPATCH_TIMEOUT", "WF_AGENT"):
             if f"{name}=" not in text:
                 return deny("dispatch-env", f"{name} set for the launch", f"no {name}", "export it in the run script")
-    if job and job not in ALLOWED_BY_HAND and not (grant is not None and not grant[1]):
-        command = flags["command"]
-        return deny("dispatch-by-hand", f"the ladder driver to run {job} (ops/bin/ladder.sh)",
-                    f"{command} --job {job} from the session", "start or resume a ladder for the lane")
     return None
 
 
@@ -1933,25 +1630,6 @@ def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
     lane = conf.get("LANE_NAME")
-    grant = open_grant(text, lane)
-    for path in python_written_paths(text):
-        if path != UNRESOLVED_WRITE:
-            _, rel = relative(path, cwd)
-            refusal = wall_write("a script", path, rel, grant)
-            if refusal:
-                return refusal
-        if path == UNRESOLVED_WRITE:
-            if grant is None:
-                return deny("hand-write", "a write target the row can resolve (a literal path, Path('...'), "
-                                          "a name bound to one, or a / join of those)",
-                            "a python write whose target the hook cannot resolve",
-                            "spell the path so the row can read it, or HAND_GRANT=<open id> declared first "
-                            "(LD-26: could not look is not a pass)")
-            continue
-        _, rel = relative(path, cwd)
-        if is_code(rel) and not grant_covers(grant, rel):
-            return deny("hand-write", "code changed through the ladder (freeze)",
-                        f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
@@ -1967,32 +1645,14 @@ def check_text(text, cwd, depth=0):
         refusal = pr_proof(toks, cwd)
         if refusal:
             return refusal
-        for target in redirect_targets(toks) + written_paths(toks):
-            if target == ".":
-                if grant is None:
-                    return deny("hand-write", "code changed through the ladder (freeze)",
-                                f"{base(toks[0])} applying a patch by hand in {root or cwd}",
-                                "the landing lever (land.py), or HAND_GRANT=<open id> declared first")
-                continue
-            _, rel = relative(target, cwd)
-            refusal = wall_write(base(toks[0]), target, rel, grant)
-            if refusal:
-                return refusal
-            if is_code(rel) and not grant_covers(grant, rel):
-                return deny("hand-write", "code changed through the ladder (freeze)", f"{base(toks[0])} writing {target}",
-                            "the ladder, or HAND_GRANT=<open id> whose scope names the path (grants are for landing and merge resolution)")
         kind, flags = dispatch_args(toks)
         if kind:
-            refusal = check_dispatch(kind, flags, cwd, text, grant)
+            refusal = check_dispatch(kind, flags, cwd, text)
             if refusal:
                 return refusal
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
-                # Triage 2026-09-11: the outer command's grant covers the
-                # body it runs; without this a granted `bash -c` was refused.
                 body = toks[2]
-                if grant is not None:
-                    body = f"HAND_GRANT={grant[0]} {body}"
                 refusal = check_text(body, cwd, depth + 1)
                 if refusal:
                     return refusal
@@ -2017,15 +1677,6 @@ def decide(payload):
     if tool == "Bash":
         command = tool_input.get("command", "")
         return check_text(command, cwd) if command else None
-    path = tool_input.get("file_path") or tool_input.get("relative_path") or ""
-    if path:
-        _, rel = relative(path, cwd)
-        refusal = wall_write(tool, path, rel, None)
-        if refusal:
-            return refusal
-        if is_code(rel):
-            return deny("hand-write", "code changed through the ladder (freeze)", f"{tool} on {path}",
-                        "the ladder; a granted hand change goes through Bash with HAND_GRANT=<open id> leading the command")
     return None
 
 
@@ -2037,20 +1688,13 @@ def main():
     try:
         refusal = decide(payload)
     except Exception as error:  # noqa: BLE001 - a hook that dies takes the session with it
-        print(json.dumps({"hookSpecificOutput": {
+        print(json.dumps(guidance.respond({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
-            "permissionDecisionReason": f"[matrix:hook-error] hook-error: expected a decision; found {type(error).__name__}: {error}; needed the hook fixed through the ladder",
-        }}))
+            "permissionDecisionReason": f"[matrix:hook-error] hook-error: expected a decision; found {type(error).__name__}: {error}; needed inspect the diagnostic failure",
+        }})))
         return 0
     if refusal:
-        print(json.dumps(refusal))
-        # Owner, 2026-09-11: every refusal logs a miss against the skill it
-        # names, so the skills report measures the pages instead of
-        # believing them. Best effort, after the refusal is on stdout.
-        reason = refusal.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-        klass = reason.split("]", 1)[0].split(":", 1)[-1] if reason.startswith("[matrix:") else ""
-        miss.log_miss((payload.get("cwd") if isinstance(payload, dict) else None),
-                      klass, reason, hook="matrix")
+        print(json.dumps(guidance.respond(refusal)))
     return 0
 
 

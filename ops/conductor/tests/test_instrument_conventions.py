@@ -81,9 +81,9 @@ SEED_ROWS = (
     ("findings.py", ("calibrate",), "calibration", True),
     (
         "hand.py",
-        ("declare", "some act", "a reason of at least four words", "nonsense"),
-        "class",
-        True,
+        ("report",),
+        "store",
+        False,
     ),
     ("land.py", ("NOSUCH-RECORD",), "record", True),
     ("laneconf.py", ("get", "NO_SUCH_KEY"), "key", False),
@@ -221,7 +221,7 @@ class TheRefusalWireIsUniform(unittest.TestCase):
         self.assertGreaterEqual(len(names), 10)
         self.assertEqual([n for n in names if n in SEED_FILES], list(SEED_FILES))
 
-    def test_seed_is_the_original_eleven_rows(self):
+    def test_registered_wire_examples_remain_covered(self):
         rows, failures = read_registry(REGISTRY_DIR)
         self.assertEqual(failures, [], f"malformed registry files: {failures}")
         pins = [row_pin(row) for row in rows]

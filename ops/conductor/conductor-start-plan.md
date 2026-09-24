@@ -1,5 +1,11 @@
 # Conductor start sequence
 
+Current operation (owner direction, 2026-09-24): `AGENTS.md` describes the working
+guidance. Hooks warn and guide; CI owns acceptance. Hand grants are retired,
+and the pipeline, dispatcher and deliverable records are optional capabilities.
+Historical procedure below does not impose prerequisites on ordinary work.
+
+
 ## Enforcement authority correction — A-218, owner 2026-09-18
 
 The existing [hooks matrix contract](../devlane/hooks/CONTRACT.md) owns current

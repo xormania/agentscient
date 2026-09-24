@@ -55,7 +55,9 @@ class PrecheckScope(unittest.TestCase):
             SCRIPT.is_file(),
             f"INVALID: context-precheck.py missing: {SCRIPT}",
         )
-        return self.world.stage(SCRIPT, siblings=("command_shape.py",))
+        staged = self.world.stage(SCRIPT, siblings=("command_shape.py",))
+        self.world.plant_bytes(staged.parent.parent / "guidance.py", (SCRIPT.parent.parent / "guidance.py").read_bytes())
+        return staged
 
     def _rev(self, name: str) -> str:
         return self.world.git(
@@ -175,9 +177,9 @@ class PrecheckScope(unittest.TestCase):
         """git push origin records: origin/main moved is another lineage."""
         self._prove_only_origin_main_moved()
         proc = self._run("git push origin records")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertNotEqual(
-            decision, "deny",
+            decision, "warn",
             f"push of records denied for movement on origin/main: "
             f"{decision!r} {reason!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
@@ -195,9 +197,9 @@ class PrecheckScope(unittest.TestCase):
         """
         self._plant_moved_origin_records()
         proc = self._run("git push origin records")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"wanted deny for moved origin/records, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -222,9 +224,9 @@ class PrecheckScope(unittest.TestCase):
         """gh pr create --base main depends on origin/main."""
         self._prove_only_origin_main_moved()
         proc = self._run("gh pr create --base main --fill")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"PR against main wanted deny, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -249,9 +251,9 @@ class PrecheckScope(unittest.TestCase):
             "INVALID: origin/HEAD is not the stale default",
         )
         proc = self._run("gh pr create --fill")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"PR with no base wanted deny, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -278,9 +280,9 @@ class PrecheckScope(unittest.TestCase):
             f"INVALID: HEAD is {abbrev!r}, not detached",
         )
         proc = self._run("git push origin records")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertEqual(
-            decision, "deny",
+            decision, "warn",
             f"detached HEAD wanted old breadth deny, got {decision!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
         )
@@ -305,9 +307,9 @@ class PrecheckScope(unittest.TestCase):
             f"INVALID: clone is on {branch!r}, not records",
         )
         proc = self._run("git push origin HEAD:refs/heads/records")
-        decision, reason = support.permission_decision(proc.stdout)
+        decision, reason = support.diagnostic(proc.stdout)
         self.assertNotEqual(
-            decision, "deny",
+            decision, "warn",
             f"HEAD:refs/heads/records denied for origin/main: "
             f"{decision!r} {reason!r}\n"
             f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
