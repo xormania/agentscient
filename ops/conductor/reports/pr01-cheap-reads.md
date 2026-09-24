@@ -35,24 +35,44 @@ Delivery destination: `dev`, through a reviewed draft PR and passing CI.
 The follow-up started from GitHub head
 `cf85d31fd45a9a0d85ccf7adacdd44583aba1132`. An authenticated source bundle
 provided the baseline; applying the PR patch reproduced all 2,465 source blobs
-from that head, verified against the GitHub tree. The only follow-up code/test
-change explicitly initializes the skills fixture before asserting an unknown
-row. Production implementation files remain unchanged.
+from that head, verified against the GitHub tree. Follow-up changes explicitly
+initialize the skills fixture before asserting an unknown row and update six
+existing corpus expectations to the PR-01 observation contract. Production
+implementation files remain unchanged.
 
 The original full CI run [35945700010](https://github.com/uscient/agentscient/actions/runs/35945700010)
-finished all 19 lane checks with one failing test:
+finished all 19 lane checks with six failing/unreachable corpus rows and one
+failing test:
 `test_skills.Refusals.test_an_unknown_skill_refuses_skill`. It expected a
 `skill` refusal from an absent store, which correctly returned a `store`
 refusal under PR-01. The same failure reproduced in this chat. The fixture
 now creates a known row through `add` before looking up `nosuch`; missing
 stores continue to refuse without initialization in the storage fault cases.
-The app job passed in that original run.
+The app job passed in that original run. The first follow-up missed the six
+corpus failures when isolating the fixture failure; they were already present
+in the original run, not introduced by the follow-up report.
+
+Follow-up run [35947283283](https://github.com/uscient/agentscient/actions/runs/35947283283)
+at `7b553789dbd6b95633ded9e67f8b9e0e13e6de3e` passed every test family and
+the app job, but correctly remained red on those six corpus rows. They still
+expected the previous status/measurement wording in the changed deliverable
+and refusal pages. The six failures reproduced directly with the existing
+probe runner. Their questions and IDs remain; the expectations now distinguish
+recorded status, explicit measurement, an absent lock and a removed branch.
+The `/goal` near-miss still checks that the judge runs nothing.
+
+After correction, all 14 rows across the three affected existing corpus files
+and the new PR-01 corpus file passed through `probes.load_corpus`, `run_row`
+and `report`: zero failures, zero unreachable. These are retrieval checks;
+the behavior evidence remains the test families below. No corpus row or
+required check was removed or skipped.
 
 Direct validation below ran in this chat's Linux sandbox. The local
 verification snapshot is `d1a6808d`; it contains the original implementation
-and the four-line fixture correction. The follow-up report changes no runtime
-or test inputs. Required final CI results are linked on PR #296, after the
-follow-up commit is published; these focused checks do not replace that gate.
+and the four-line fixture correction. Corpus checks above ran against the
+working tree with the subsequent expectation corrections. Required final CI
+results are linked on PR #296 after the follow-up commit is published; these
+focused checks do not replace that gate.
 
 ### Previous dispatcher audit: invalid, excluded
 
