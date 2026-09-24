@@ -54,6 +54,7 @@ its own original execution evidence.
 
 Reuse remains restricted to original successful checks in GitHub artifacts
 from this repository's designated CI workflow and completed job attempt.
+A reused marker is not an original execution.
 Validate artifact integrity, workflow and repository identity, candidate
 revision, tree, ordered parents, tool identities, runner environment, worker
 count, TERM_WALL, record refs and check definitions. Reuse-only markers,
