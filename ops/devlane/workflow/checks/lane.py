@@ -18,9 +18,9 @@ FAMILIES = (
     "ops/devlane/workflow/tests", "ops/testkit/tests",
     "ops/conductor/tests", ".claude/skills/pr-overview/tests",
 )
-SHARDS = {"ops/conductor/tests": (
-    "test_[c]*.py", "test_[l]*.py", "test_[ow]*.py", "test_[!clow]*.py",
-)}
+# Independent modules prevent a growing alphabetical remainder from becoming
+# one eight-minute process. The shared kit proves complete, disjoint discovery.
+SHARDS = {"ops/conductor/tests": None}
 
 
 def python_check(name, path, *args, timeout=60, required=()):
@@ -52,6 +52,54 @@ def plan(root, selected=()):
     return checks
 
 
+def run_plan(checks, *, root, env, scope="FULL", cached=None, record=None, workers=None):
+    # Validate every required input before starting even the cheap phase.
+    execute_checks(checks, cwd=root, env=env, workers=workers)
+    cached = cached or {}
+    print(f"{scope}: {len(checks)} required checks", flush=True)
+    completed = set()
+    failed = []
+    guard_names = {check.name for check in GUARDS}
+    phases = ([check for check in checks if check.name in guard_names],
+              [check for check in checks if check.name not in guard_names])
+    for phase in phases:
+        if not phase:
+            continue
+        pending = []
+        for check in phase:
+            if check.name in cached:
+                origin = cached[check.name]
+                print(f"REUSED {check.name} from {origin['url']}", flush=True)
+                completed.add(check.name)
+                if record:
+                    record(check.name, None, origin)
+            else:
+                pending.append(check)
+        if not pending:
+            continue
+        # Large modules start first. Durations in CI evidence expose any
+        # remaining imbalance without making coverage depend on a timing file.
+        pending.sort(key=lambda c: sum(p.stat().st_size for p in
+                     (root / c.required[0]).glob(c.argv[-1])) if c.required
+                     and (root / c.required[0]).is_dir() else 0, reverse=True)
+        for name, result in execute_checks(pending, cwd=root, env=env, workers=workers):
+            print(f"== {name}", flush=True)
+            print(result.stdout, end="", flush=True)
+            print(result.stderr, end="", flush=True)
+            print(f"{'PASS' if result.exit == 0 else 'FAIL'} {name} ({result.duration:.3f}s)", flush=True)
+            completed.add(name)
+            if result.exit != 0:
+                failed.append(name)
+            if record:
+                record(name, result, None)
+        if failed:
+            break
+    missing = {check.name for check in checks} - completed
+    good = not failed and not missing
+    print(f"{scope}: {'PASS' if good else 'FAIL'} ({len(completed)}/{len(checks)} completed)", flush=True)
+    return 0 if good else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", action="append", default=[], metavar="DIR",
@@ -59,28 +107,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     env = dict(os.environ)
     try:
-        checks = plan(ROOT, args.suite)
-        results = execute_checks(checks, cwd=ROOT, env=env,
-                                 workers=1 if env.get("SUITES_SERIAL") == "1" else None)
+        return run_plan(plan(ROOT, args.suite), root=ROOT, env=env,
+                        scope="PARTIAL" if args.suite else "FULL",
+                        workers=1 if env.get("SUITES_SERIAL") == "1" else None)
     except ValueError as exc:
         print(exc, file=sys.stderr)
         return 2
-    scope = "PARTIAL" if args.suite else "FULL"
-    print(f"{scope}: {len(checks)} required checks", flush=True)
-    completed = set()
-    failed = []
-    for name, result in results:
-        print(f"== {name}", flush=True)
-        print(result.stdout, end="", flush=True)
-        print(result.stderr, end="", flush=True)
-        print(f"{'PASS' if result.exit == 0 else 'FAIL'} {name} ({result.duration:.3f}s)", flush=True)
-        completed.add(name)
-        if result.exit != 0:
-            failed.append(name)
-    missing = {check.name for check in checks} - completed
-    good = not failed and not missing
-    print(f"{scope}: {'PASS' if good else 'FAIL'} ({len(completed)}/{len(checks)} completed)", flush=True)
-    return 0 if good else 1
 
 
 if __name__ == "__main__":

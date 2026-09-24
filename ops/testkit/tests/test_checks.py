@@ -93,6 +93,16 @@ class SuiteDiscovery(unittest.TestCase):
         self.assertEqual(sum("Ran 2 tests" in r.stderr for r in results.values()), 1)
         self.assertEqual(sum("Ran 1 test" in r.stderr for r in results.values()), 1)
 
+    def test_automatic_partition_runs_each_module_and_keeps_new_files(self):
+        for name in ("test_first.py", "test_second.py", "test_new.py"):
+            self.plant(name)
+        plan = suite_checks(self.world.cwd, "tests", patterns=None)
+        self.assertEqual({check.argv[-1] for check in plan},
+                         {"test_first.py", "test_second.py", "test_new.py"})
+        results = dict(execute_checks(plan, cwd=self.world.cwd, env=self.world.env(), workers=2))
+        self.assertEqual(len(results), 3)
+        self.assertTrue(all(r.exit == 0 and "Ran 1 test" in r.stderr for r in results.values()))
+
     def test_missing_empty_gapped_and_overlapping_families_refuse(self):
         with self.assertRaisesRegex(ValueError, "ABSENT"):
             suite_checks(self.world.cwd, "tests")

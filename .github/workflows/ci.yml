@@ -23,7 +23,8 @@
     }
   },
   "permissions": {
-    "contents": "read"
+    "contents": "read",
+    "actions": "read"
   },
   "concurrency": {
     "group": "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
@@ -42,19 +43,28 @@
           }
         },
         {
-          "name": "the host's user toolchain on PATH (~/.local/bin)",
-          "run": "echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\""
-        },
-        {
-          "name": "records branches by local name — the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
           "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
         },
         {
-          "name": "the complete dev-lane gate",
+          "name": "Verify inputs, reuse proven checks, execute the remainder",
+          "id": "verify",
           "env": {
-            "TERM_WALL": "${{ vars.TERM_WALL }}"
+            "TERM_WALL": "${{ vars.TERM_WALL }}",
+            "GITHUB_TOKEN": "${{ github.token }}"
           },
-          "run": "bash ops/bin/suites.sh"
+          "run": "python3 -m ops.devlane.workflow.checks.ci lane"
+        },
+        {
+          "name": "Preserve executed verification evidence",
+          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "${{ steps.verify.outputs.artifact }}",
+            "path": "${{ steps.verify.outputs.receipt }}",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
         }
       ]
     },
@@ -65,40 +75,29 @@
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
           "with": {
-            "persist-credentials": false
+            "persist-credentials": false,
+            "fetch-depth": 0
           }
         },
         {
-          "name": "the host's user toolchain on PATH (~/.local/bin)",
-          "run": "echo \"$HOME/.local/bin\" >> \"$GITHUB_PATH\""
+          "name": "Verify inputs, reuse proven checks, execute the remainder",
+          "id": "verify",
+          "env": {
+            "TERM_WALL": "${{ vars.TERM_WALL }}",
+            "GITHUB_TOKEN": "${{ github.token }}"
+          },
+          "run": "python3 -m ops.devlane.workflow.checks.ci app"
         },
         {
-          "name": "the host toolchain the self-hosted runner relies on",
-          "run": "php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version"
-        },
-        {
-          "name": "composer validate — the manifest and the lock agree",
-          "run": "composer validate --strict"
-        },
-        {
-          "name": "composer install — from the lock, nothing resolved on the runner",
-          "run": "composer install --prefer-dist --no-progress --no-interaction"
-        },
-        {
-          "name": "php lint",
-          "run": "find src packages -name '*.php' -print0 | xargs -0 -r -n50 php -l"
-        },
-        {
-          "name": "the kernel boots",
-          "run": "php bin/console about"
-        },
-        {
-          "name": "phpunit — the project and every package",
-          "run": "vendor/bin/phpunit"
-        },
-        {
-          "name": "mate serves measured truth — the compiled container answers",
-          "run": "vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \\\n  | jq -e '.untrusted_data.services[\"router.default\"]'\nvendor/bin/mate tools:list\n"
+          "name": "Preserve executed verification evidence",
+          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "${{ steps.verify.outputs.artifact }}",
+            "path": "${{ steps.verify.outputs.receipt }}",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
         }
       ]
     }

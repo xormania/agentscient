@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 import math
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -37,6 +38,8 @@ def suite_checks(root, directory, patterns=("test_*.py",), *, timeout=600):
     if not files:
         reject("test files in every required suite", f"{directory}: no test files",
                "restore the suite's test files")
+    if patterns is None:
+        patterns = tuple(files)
     wrong = {name: sum(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
              for name in files}
     wrong = {name: count for name, count in wrong.items() if count != 1}
@@ -78,7 +81,7 @@ def execute_checks(checks, *, cwd, env, workers=None):
             reject("every required input present", f"{check.name}: {missing} ABSENT",
                    "restore the required inputs")
     if workers is None:
-        workers = len(checks)
+        workers = min(8, os.cpu_count() or 1)
     if workers < 1:
         reject("at least one worker", workers, "use a positive worker count")
 

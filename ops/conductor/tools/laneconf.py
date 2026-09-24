@@ -128,6 +128,10 @@ EXTERNAL_ENV_KEYS = {
     "GATE_LOG_DIR",
     "GATE_TAIL",
     "GITHUB_EVENT_PATH",
+    # GitHub supplies these only to the CI adapter; none reach test children.
+    "GITHUB_OUTPUT", "GITHUB_REPOSITORY", "GITHUB_RUN_ATTEMPT", "GITHUB_RUN_ID",
+    "GITHUB_SHA", "GITHUB_STEP_SUMMARY", "GITHUB_TOKEN",
+    "RUNNER_NAME", "RUNNER_TEMP", "RUNNER_TOOL_CACHE",
     "GROK_HOME",
     "GROK_SESSION_ID",
     "HARNESS",
