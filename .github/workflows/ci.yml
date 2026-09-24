@@ -61,7 +61,7 @@
         {
           "name": "Prepare hosted lane tools",
           "if": "${{ runner.environment == 'github-hosted' }}",
-          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\nfor tool in rg tmux jq; do\n  command -v \"$tool\" >/dev/null || missing+=(\"${tool/rg/ripgrep}\")\ndone\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi"
+          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\nfor tool in rg tmux jq bwrap; do\n  package=\"$tool\"\n  [[ \"$tool\" != rg ]] || package=ripgrep\n  [[ \"$tool\" != bwrap ]] || package=bubblewrap\n  command -v \"$tool\" >/dev/null || missing+=(\"$package\")\ndone\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi"
         },
         {
           "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",

@@ -54,6 +54,19 @@ class EvidenceApi:
         return self.proof
 
 
+class ToolPreparation(unittest.TestCase):
+    def test_missing_or_nonfunctional_bubblewrap_refuses_before_suites(self):
+        with World(host_path=False) as world:
+            for name in ("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux"):
+                world.tools.plant(name, stdout="fixture version\n")
+            with self.assertRaisesRegex(ValueError, "bwrap"):
+                ci.toolchain(world.cwd, world.env(), "lane")
+            world.tools.plant("bwrap", responses=[{"match": ["--version"], "stdout": "fixture version\n"},
+                                                  {"exit": 1}])
+            with self.assertRaisesRegex(ValueError, "bwrap"):
+                ci.toolchain(world.cwd, world.env(), "lane")
+
+
 class ReuseEvidence(unittest.TestCase):
     def setUp(self):
         self.checks = [Check("one", ("one",), 10), Check("two", ("two",), 10)]

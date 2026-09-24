@@ -118,14 +118,19 @@ A Gitea act_runner registration alone does not accept GitHub jobs.
 
 Hosted preparation uses commit-pinned setup actions: Python 3.12, CUE 0.17.1,
 Ruff 0.16.8, PHP 8.4 without coverage instrumentation, and Composer 2.
-The Ubuntu image supplies Git, Bash, jq, ripgrep and tmux; missing lane
-utilities are installed explicitly. Local mode does not install tools or
+The Ubuntu image supplies Git and Bash; missing jq, ripgrep, tmux and
+Bubblewrap are installed explicitly. Preflight proves Bubblewrap can create
+the namespace and bind mounts required by the existing isolation tests before
+any suite starts. Local mode does not install tools or
 alter operator configuration. The CI adapter requires the actual declared
 tools; the same lint, configuration, suite and app checks enforce compatibility.
 Every receipt binds resolved tool versions/binary hashes and the actual runner
 environment. Hosted image identity is also an input. Switching environment or
 changing an image/tool forces fresh checks; changing only a runner name does
 not. Unknown hosted image identity refuses rather than reusing old proof.
+Private test worlds disable automatic Git packing/maintenance so object files
+cannot disappear while calibration copies a fixture. Operator Git configuration
+is unchanged; the setting belongs to the world's command environment.
 
 The existing stop on hosted usage remains. This initial switch is manual;
 there is no billing API prerequisite, paid-overage change or quota polling.

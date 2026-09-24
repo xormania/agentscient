@@ -378,6 +378,13 @@ def hermetic_env(home, *, xdg_state=None, xdg_config=None, xdg_cache=None, tmp=N
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_CONFIG_SYSTEM": os.devnull,
         "GIT_CONFIG_NOSYSTEM": "1",
+        # Calibration copies Git fixtures. Detached automatic packing can
+        # remove loose objects midway through a copy on newer Git versions.
+        "GIT_CONFIG_COUNT": "2",
+        "GIT_CONFIG_KEY_0": "gc.auto",
+        "GIT_CONFIG_VALUE_0": "0",
+        "GIT_CONFIG_KEY_1": "maintenance.auto",
+        "GIT_CONFIG_VALUE_1": "false",
         "GIT_TERMINAL_PROMPT": "0",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_AUTHOR_NAME": USER,

@@ -30,6 +30,7 @@ TOOLS = {
     "git": ("--version",), "python3": ("--version",), "bash": ("--version",),
     "ruff": ("--version",), "rg": ("--version",), "cue": ("version",),
     "jq": ("--version",), "tmux": ("-V",),
+    "bwrap": ("--version",),
     "php": ("--version",), "composer": ("--version",),
 }
 LIMIT = 2 * 1024 * 1024
@@ -63,7 +64,7 @@ def canonical_commit(root, env, source):
 
 
 def toolchain(root, env, kind):
-    names = {k: TOOLS[k] for k in (("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux")
+    names = {k: TOOLS[k] for k in (("git", "python3", "bash", "ruff", "rg", "cue", "jq", "tmux", "bwrap")
                                   if kind == "lane" else ("git", "python3", "bash", "php", "composer", "jq"))}
     found = {}
     for name, args in names.items():
@@ -72,6 +73,11 @@ def toolchain(root, env, kind):
             raise ValueError(f"ci: expected declared tool {name}; found absent; needed install it on the runner")
         version = checked((path, *args), root, env).splitlines()[:2]
         found[name] = {"version": version, "binary": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+    if kind == "lane":
+        # Exercise the capability the existing profile tests require before
+        # spending minutes launching fixtures which would all refuse it.
+        checked(("bwrap", "--unshare-user", "--ro-bind", "/", "/", "--proc", "/proc",
+                 "--dev", "/dev", "--", "/bin/true"), root, env)
     return {"tools": found, "system": platform.system(), "machine": platform.machine(),
             "libc": platform.libc_ver()}
 
