@@ -51,7 +51,7 @@ class LaneGate(unittest.TestCase):
 
     def test_local_and_workflow_commands_run_the_same_complete_plan(self):
         workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
-        command = next(s["run"] for s in workflow["jobs"]["lane"]["steps"] if s.get("id") == "verify")
+        command = next(s["run"] for s in workflow["jobs"]["dev-lane"]["steps"] if s.get("id") == "verify")
         self.assertEqual(command, "python3 -m ops.devlane.workflow.checks.ci lane")
         self.assertEqual({check.name for check in lane.GUARDS}, GUARD_NAMES)
         expected = {check.name for check in lane.plan(self.root)}

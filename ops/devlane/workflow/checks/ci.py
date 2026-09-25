@@ -244,7 +244,11 @@ def reusable(api, *, key, checks, kind, repository, current_run, current_attempt
                 if application_digest(entries) != receipt["inputs"].get("tree"):
                     continue
             jobs = api.get(f"/actions/runs/{source_run}/attempts/{attempt}/jobs?per_page=100").get("jobs", [])
-            jobs = [job for job in jobs if job.get("name") == kind and job.get("status") == "completed"
+            # New runs separate execution from the final `lane` status. Keep
+            # reading historical receipts, but never attribute one to the gate.
+            execution_job = "dev-lane" if kind == "lane" and any(
+                job.get("name") == "dev-lane" for job in jobs) else kind
+            jobs = [job for job in jobs if job.get("name") == execution_job and job.get("status") == "completed"
                     and job.get("conclusion") in ("success", "failure")]
             if len(jobs) != 1:
                 continue

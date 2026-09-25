@@ -31,7 +31,40 @@
     "cancel-in-progress": "${{ github.event_name == 'pull_request' }}"
   },
   "jobs": {
-    "lane": {
+    "scope": {
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 2,
+      "outputs": {
+        "dev": "${{ steps.scope.outputs.dev }}",
+        "prod": "${{ steps.scope.outputs.prod }}",
+        "revision": "${{ steps.scope.outputs.revision }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Prepare hosted Python",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Select lanes from changed files",
+          "id": "scope",
+          "run": "python3 .github/ci_scope.py"
+        }
+      ]
+    },
+    "dev-lane": {
+      "needs": "scope",
+      "if": "${{ needs.scope.outputs.dev == 'true' }}",
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
       "timeout-minutes": 4,
       "steps": [
@@ -64,7 +97,7 @@
           "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\ncommand -v rg >/dev/null || missing+=(ripgrep)\ncommand -v jq >/dev/null || missing+=(jq)\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi"
         },
         {
-          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
+          "name": "records branches by local name — the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
           "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
         },
         {
@@ -88,6 +121,36 @@
             "if-no-files-found": "error",
             "retention-days": 30
           }
+        }
+      ]
+    },
+    "prod-lane": {
+      "needs": "scope",
+      "if": "${{ needs.scope.outputs.prod == 'true' }}",
+      "uses": "./.github/workflows/ci-prod-lane.yml"
+    },
+    "lane": {
+      "needs": [
+        "scope",
+        "dev-lane",
+        "prod-lane"
+      ],
+      "if": "${{ always() }}",
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 1,
+      "steps": [
+        {
+          "name": "Require successful results for the selected lanes",
+          "shell": "bash",
+          "env": {
+            "REVISION": "${{ needs.scope.outputs.revision }}",
+            "SCOPE_RESULT": "${{ needs.scope.result }}",
+            "DEV_SELECTED": "${{ needs.scope.outputs.dev }}",
+            "PROD_SELECTED": "${{ needs.scope.outputs.prod }}",
+            "DEV_RESULT": "${{ needs.dev-lane.result }}",
+            "PROD_RESULT": "${{ needs.prod-lane.result }}"
+          },
+          "run": "printf '%s\\n' \"Tested revision: $REVISION\" \"Scope: $SCOPE_RESULT\" \"Dev-lane selected=$DEV_SELECTED result=$DEV_RESULT\" \"Prod-lane selected=$PROD_SELECTED result=$PROD_RESULT\" | tee -a \"$GITHUB_STEP_SUMMARY\"\n[[ \"$SCOPE_RESULT\" == success ]]\n[[ \"$DEV_SELECTED:$DEV_RESULT\" == true:success || \"$DEV_SELECTED:$DEV_RESULT\" == false:skipped ]]\n[[ \"$PROD_SELECTED:$PROD_RESULT\" == true:success || \"$PROD_SELECTED:$PROD_RESULT\" == false:skipped ]]"
         }
       ]
     }

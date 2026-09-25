@@ -149,7 +149,7 @@ def job_ids(text, filename="workflow"):
 
 
 def workflow_job_names(root=None):
-    """Read the JSON workflow, retaining YAML reads for historical PR refs."""
+    """Read acceptance contexts, retaining old workflow reads for historical PRs."""
     root = Path(root) if root is not None else ROOT
     text = read_workflow(root, CI)
     if text.lstrip().startswith("{"):
@@ -164,6 +164,10 @@ def workflow_job_names(root=None):
         ):
             raise DerivationError(CI, "-", "a mapping of job ids to jobs", repr(jobs))
         names = list(jobs)
+        if jobs.get("lane", {}).get("needs"):
+            # Conditional jobs and reusable workflow names are not independent
+            # acceptance contexts. The final gate requires the selected results.
+            names = ["lane"]
     else:
         names = job_ids(text, CI)
     if not names:
