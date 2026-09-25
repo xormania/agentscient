@@ -274,12 +274,11 @@ def ci_contexts():
 
 @functools.cache
 def expected_checks(root=ROOT):
-    """Every check-run name CI produces on a pull request, as a frozenset.
+    """CI acceptance check names for a pull request, as a frozenset.
 
-    The trusted local ci_contexts.py derives every job id from the head's
-    always-on workflow. The workflow is unfiltered by policy, so every name
-    here reports on every pull request, and a missing one is a check that has
-    not reported -- never one that was not due.
+    The trusted local ci_contexts.py reads the head's always-on workflow.
+    The final acceptance job covers its conditional dependencies; those jobs
+    can be intentionally skipped. Every returned context must still report.
 
     ci_contexts.py refuses a shape it cannot read or an empty jobs mapping.
     That refusal reaches the reader as `cannot tell`, never shortened into a
