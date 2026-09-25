@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess  # noqa: S404 -- read-only Git commands for CI routing.
+import subprocess
 from pathlib import Path
 
 DEV_DIRS = ("ops/", ".dev/", ".claude/", ".agents/", ".serena/")
@@ -69,8 +69,7 @@ def main():
     print(json.dumps({"revision": revision, "base": base,
                       "changed_files": paths, **selected}, indent=2))
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
-        for lane, enabled in selected.items():
-            output.write(f"{lane}={str(enabled).lower()}\n")
+        output.writelines(f"{lane}={str(enabled).lower()}\n" for lane, enabled in selected.items())
         output.write(f"revision={revision}\n")
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
         summary.write(f"Tested revision: `{revision}`\n\nComparison base: `{base}`\n\n")

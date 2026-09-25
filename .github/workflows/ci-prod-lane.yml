@@ -34,6 +34,10 @@
           }
         },
         {
+          "name": "Prepare temporary Composer when absent",
+          "run": "if command -v composer >/dev/null; then exit 0; fi\nci_tools=$(mktemp -d \"$RUNNER_TEMP/prod-composer.XXXXXX\")\ncurl --fail --silent --show-error https://getcomposer.org/installer -o \"$ci_tools/installer.php\"\nexpected=$(curl --fail --silent --show-error https://composer.github.io/installer.sig)\nactual=$(php -r 'echo hash_file(\"sha384\", $argv[1]);' \"$ci_tools/installer.php\")\n[[ \"$expected\" == \"$actual\" ]]\nphp \"$ci_tools/installer.php\" --2 --quiet --install-dir=\"$ci_tools\" --filename=composer\nprintf '%s\\n' \"$ci_tools\" >> \"$GITHUB_PATH\""
+        },
+        {
           "name": "Record revision and tool versions",
           "run": "mkdir -p var/ci\ngit rev-parse HEAD | tee var/ci/revision.txt\nprintf 'Tested revision: `%s`\\n' \"$(cat var/ci/revision.txt)\" >> \"$GITHUB_STEP_SUMMARY\"\nphp --version\ncomposer --version"
         },
