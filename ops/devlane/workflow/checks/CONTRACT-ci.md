@@ -5,10 +5,12 @@ reconsidering their value. Routine hosted CI should be practical. Use local
 machines or registered local runners for the broader integration tests;
 full workflow and tmux rehearsals do not belong in every routine gate.
 This replaces the earlier requirement to run every dev test on every push.
-Application CI remains separate and undecided.
+Prod-lane now has an independent Symfony workflow; see [.github/README.md](../../../../.github/README.md).
 
-The required GitHub job is `lane`. `CI_RUNNER_MODE` selects both capacity and
-an explicit test profile. An empty variable means `hosted`.
+The required GitHub job is `lane`. Changed files select the `dev-lane` and/or
+`prod-lane` jobs; `lane` requires successful results for the selected work.
+For dev-lane, `CI_RUNNER_MODE` selects both capacity and an explicit test profile.
+An empty variable means `hosted`.
 
 | Mode / command | Required coverage | Execution |
 |---|---|---|
@@ -17,7 +19,6 @@ an explicit test profile. An empty variable means `hosted`.
 | `bash ops/bin/suites.sh --profile ci` | Same fast plan | Developer machine |
 | `bash ops/bin/suites.sh` | Same local integration plan | Developer machine |
 | `bash ops/bin/suites.sh --profile rehearsal` | All dev suites, including real sessions, tmux, coordination and full workflow rehearsals | Explicit developer run |
-| Manual `ci-app-manual.yml` | Preserved application checks, including the Symfony runtime fixture | Explicit workflow dispatch |
 
 `test-profiles.json` classifies every discovered test module exactly once.
 CI refuses new unclassified modules, deleted entries and duplicates. Profile
@@ -25,8 +26,10 @@ membership is an explicit scope decision, never a timing heuristic or a
 failure-driven skip. All profiles share `lane.py` and `ops/testkit` discovery,
 subprocess ownership, timeouts and result handling. `--suite DIR` remains an
 explicit PARTIAL invocation for focused checks and portability fixtures.
-It cannot claim a profile passed. The single Symfony runtime case excluded
-from dev rehearsals remains in the manual application workflow.
+It cannot claim a profile passed. The single Symfony runtime fixture case remains
+an optional dev-tooling check, invoked explicitly with an installed application:
+`PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest test_symfony_app_app.SymfonyAppMakeProve.test_full_proof_after_composer_install`.
+It is not part of prod-lane CI.
 
 A profile passes only when every required check has a successful result.
 Missing files, empty discovery, import failures, spawn failures and timeouts
@@ -34,7 +37,8 @@ remain failures. Inexpensive guards run before suites. There is one bounded
 worker pool, at most eight workers and no more than available CPUs. The job
 has a four-minute limit including setup and artifact upload; a timeout is a
 failure, not performance acceptance. Native job duration must substantiate
-any performance claim. There are no parallel CI partitions or aggregation job.
+any performance claim. Dev-lane retains one execution job; the final `lane` job
+collects the selected dev/prod results without rerunning their checks.
 
 Fast checks require Git, Python, Bash, Ruff, ripgrep, CUE and jq. Hosted setup
 pins Python 3.12, CUE 0.17.1 and Ruff 0.16.8. It installs no tmux, Bubblewrap or

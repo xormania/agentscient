@@ -683,6 +683,23 @@ class ClosureVerb(_LaneconfFixture):
         self.assertEqual(proc.exit, 1, text)
         self.assertIn("extra", text)
 
+    def test_final_gate_covers_conditional_jobs_but_not_unrelated_jobs(self):
+        jobs = {"scope": {}, "dev-lane": {}, "prod-lane": {},
+                "lane": {"needs": ["scope", "dev-lane", "prod-lane"]}}
+        repo = self.plant_scratch_repo(
+            {"ops/conductor/tools/reads.py": reader_source(),
+             ".github/workflows/ci.yml": json.dumps({"jobs": jobs})},
+            conf_overrides={"CHECK_NAMES": "lane"},
+        )
+        conf = repo / "ops/lane.conf"
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        jobs["uncovered"] = {}
+        (repo / ".github/workflows/ci.yml").write_text(json.dumps({"jobs": jobs}))
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+        self.assertIn("uncovered", self.combined(proc))
+
     def test_a_planted_extra_check_name_exits_1_naming_the_name(self):
         extra = "ghost-job"
         self.assertNotEqual(extra, "lane")

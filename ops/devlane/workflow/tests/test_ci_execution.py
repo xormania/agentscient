@@ -37,6 +37,7 @@ class EvidenceApi:
         self.commit = {"tree": {"sha": TREE}, "parents": [{"sha": BASE}, {"sha": HEAD}]}
         self.job = {"name": "lane", "status": "completed", "conclusion": "failure",
                     "html_url": "https://github.com/example/project/actions/runs/11/job/22"}
+        self.jobs = [self.job]
         self.calls = []
 
     def get(self, path):
@@ -44,7 +45,7 @@ class EvidenceApi:
         if path.startswith("/actions/artifacts?"):
             return {"artifacts": [self.artifact]}
         if path.endswith("/jobs?per_page=100"):
-            return {"jobs": [self.job]}
+            return {"jobs": self.jobs}
         if path.startswith("/git/commits/"):
             return self.commit
         return self.source
@@ -114,6 +115,13 @@ class ReuseEvidence(unittest.TestCase):
     def test_missing_results_are_not_invented(self):
         self.api.proof["results"].pop()
         self.assertEqual(set(self.read()), {"one"})
+
+    def test_split_workflow_receipts_belong_to_dev_execution_not_the_final_gate(self):
+        self.api.job["name"] = "dev-lane"
+        self.api.jobs.append({"name": "lane", "status": "completed", "conclusion": "success"})
+        self.assertEqual(set(self.read()), {"one", "two"})
+        self.api.job["conclusion"] = "skipped"
+        self.assertEqual(self.read(), {})
 
     def test_application_inputs_keep_ci_changes_and_ignore_independent_lane_code(self):
         common = [f"100644 blob {TREE}\tsrc/Kernel.php", f"100644 blob {BASE}\tops/devlane/workflow/checks/ci.py"]
