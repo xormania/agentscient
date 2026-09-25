@@ -26,3 +26,5 @@ so an empty PHPUnit run is not evidence of application behavior coverage.
 Dev-lane keeps its existing test profiles and execution receipts. Both workflows
 respect `CI_RUNNER_MODE`: `local` uses the registered self-hosted runner; `hosted`
 or an empty value uses Ubuntu. Runner choice does not change prod-lane coverage.
+If Composer is absent, prod-lane verifies the official installer checksum and
+downloads Composer into the job's temporary directory.

@@ -411,7 +411,12 @@ def _workflow_jobs(text: str) -> set[str]:
     if not isinstance(jobs, dict) or not jobs:
         raise ConfigError("workflow", "a nonempty workflow jobs mapping", repr(jobs),
                           "declare the required jobs")
-    return set(jobs)
+    # The final acceptance job covers its selected dependencies. Requiring
+    # every conditional job would make an intentionally skipped lane block work.
+    covered = jobs.get("lane", {}).get("needs", [])
+    if isinstance(covered, str):
+        covered = [covered]
+    return set(jobs).difference(covered)
 
 
 def closure() -> int:

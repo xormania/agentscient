@@ -164,10 +164,12 @@ def workflow_job_names(root=None):
         ):
             raise DerivationError(CI, "-", "a mapping of job ids to jobs", repr(jobs))
         names = list(jobs)
-        if jobs.get("lane", {}).get("needs"):
+        covered = jobs.get("lane", {}).get("needs", [])
+        if covered:
             # Conditional jobs and reusable workflow names are not independent
             # acceptance contexts. The final gate requires the selected results.
-            names = ["lane"]
+            covered = [covered] if isinstance(covered, str) else covered
+            names = [name for name in names if name not in covered]
     else:
         names = job_ids(text, CI)
     if not names:
