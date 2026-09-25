@@ -18,7 +18,8 @@ review, and handoff.
   tooling according to the task.
 - Hooks and diagnostics provide guidance. CI is the acceptance gate;
   findings inform decisions rather than automatically becoming requirements.
-  Owner recovery remains under the owner's control.
+  Owner recovery remains under the owner's control; agents do not configure
+  or invoke that access.
 - Preserve unrelated work. Inspect changes before submitting them and report
   evidence, limitations, and remaining uncertainty accurately.
 
@@ -87,8 +88,9 @@ their owning files rather than duplicating them in these entry documents.
 - Open a draft PR with the purpose, behavior changed, and validation evidence.
   Release decisions for `master` remain with the owner.
 - Reuse useful tests and run checks appropriate to the changed behavior.
-  Distinguish partial verification, unavailable checks, and successful
-  results. Consult the executable CI configuration for current coverage.
+  Name the checked revision and distinguish partial verification,
+  unavailable checks, and successful results. Consult the executable CI
+  configuration for current coverage.
 - Retain provenance with `Source:` and `Co-Authored-By:` commit trailers.
   Use [CONTRIB.md](CONTRIB.md) for applicable conventions and templates under
   the working guidance above.
