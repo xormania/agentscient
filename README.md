@@ -4,9 +4,10 @@ Agentscient is a Symfony application. Its foundation includes the Symfony MCP
 Bundle, Maker Bundle, and Symfony AI Mate. Runtime versions and dependencies are
 defined in `composer.json` and `composer.lock`.
 
-The development support in [`devtools/`](devtools/README.md) contains only an MCP
-server, local telemetry, and live communication between persistent native
-harnesses. It runs independently of PHP and the application.
+The development support in [`devtools/`](devtools/README.md) provides MCP tools for
+live harness communication, telemetry, work orders with child jobs, and artifacts.
+Its services handle persistence and managed storage behind those tools. It runs
+independently of PHP and the application.
 
 ## Symfony application
 
@@ -24,8 +25,8 @@ Application code belongs in `src/`, with configuration in `config/` and tests in
 ## Live development support
 
 See [`devtools/README.md`](devtools/README.md) for setup, MCP configuration,
-session management, messages, and telemetry. The MCP surface has no shell or
-project editing/execution capabilities.
+session management, work tracking, artifact storage, messages, and telemetry.
+The MCP surface has no shell or project editing/execution capabilities.
 
 The previous development system was removed. Its full pre-removal snapshot is
 preserved on [`shit`](https://github.com/uscient/agentscient/tree/shit) at
