@@ -425,7 +425,7 @@ class CollectRows(unittest.TestCase):
     def test_ready_sentence_counts_acceptance_contexts_not_conditional_jobs(self):
         files = snapshot_live_derivation()
         jobs = json.loads(files[".github/workflows/ci.yml"])["jobs"]
-        self.assertEqual(set(jobs["lane"]["needs"]), {"scope", "dev-lane", "prod-lane"})
+        self.assertEqual(set(jobs["lane"]["needs"]), set(jobs) - {"lane"})
         expected = ["lane"]
         trees = {HEAD_SHA: files}
         self.assertIn(".github/workflows/ci.yml", trees[HEAD_SHA])
