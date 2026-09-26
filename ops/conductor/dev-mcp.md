@@ -47,14 +47,78 @@ before invocation. Oversized message responses preserve the committed message
 identifier so callers can retry with the same key or inspect its durable record.
 Oversized request IDs refuse before a write. Resources cannot invoke mutations.
 
+## Select an MCP-only persistent profile
+
+The operator can start each participating member with the existing supervisor:
+
+```sh
+python3 -B ops/conductor/tools/sessions.py start --member NAME --mcp-only
+```
+
+Use the normal `--team`, `--run` and `--worktree` options as needed. Select
+`--mcp-only` for every participating member and again when starting a replacement
+generation. Existing profiles are not silently converted. Inspect, attach,
+recover and stop remain the existing session operations; recover observes
+processes and pending messages rather than starting a new conversation.
+
+For a standalone persistent terminal, `profiles.py prepare-interactive` accepts
+the same `--mcp-only` option. Launch or resume through its `run-interactive`
+operation and retained binding. `check` validates the requested projection; it
+does not certify what an installed native harness actually intercepted.
+
+The private profile registers only this entry, under the existing `coordination`
+server name, preserving courier and adapter recognition. It drops inherited MCP
+servers and skips the legacy CLI onboarding skill. Model/provider choices and
+credential custody retain their existing owners. Global configuration is not
+edited. Protocol messages describe how to acknowledge and reply through
+`capability_describe` and `capability_invoke` in the same native session.
+
+| Harness | Requested restriction |
+| --- | --- |
+| Claude Code | `--tools ""` removes built-in tools; strict private MCP configuration selects this entry |
+| Codex | Shell, unified exec, freeform patch, JS REPL and code-mode feature settings are disabled; CLI overrides retain those settings and the selected entry across project config layers; the profile hook rejects direct reads/edits and other native project tools |
+| Grok | ACP receives the selected MCP server; the profile hook admits discovery and `use_tool` calls to this entry, and rejects other project tools |
+
+The selected profile's PreToolUse boundary admits the three published entry
+tools and harmless conversation controls. Unknown tools, other servers and
+malformed broker envelopes fail closed. Changed or unavailable pinned helper
+inputs also deny pre-tool use. This restriction applies only to the selected
+MCP-only profile; ordinary repository diagnostics remain advisory. The MCP
+services still validate their capability arguments and caller authority.
+
+Native feature settings alone are not a complete tool restriction: in
+particular, Codex can advertise a patch handler independently of the freeform
+feature flag. Its native pre-tool hook must intercept that call. No claim of
+filesystem or REPL sandboxing follows from these settings. Dispatch workers
+are not enabled by this option and remain outside the default workflow.
+
+Implementation references checked 2026-09-26: [Claude CLI tool selection](https://code.claude.com/docs/en/cli-reference),
+[Codex configuration](https://developers.openai.com/codex/config-reference),
+[Codex tool hooks](https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/registry.rs),
+and [Grok source](https://github.com/xai-org/grok-build). Installed versions still
+require the canaries below; an accepted configuration is not live evidence.
+
 ## Validation and remaining work
 
 `test_dev_mcp.py` drives real stdio against the existing coordination store in
 isolated test worlds, including peer exchange, binding denial, retry identity,
 dispatch exclusion, pagination and response bounds. It belongs to the CI profile.
 
-This adapter does not restrict native harness tools or prove live delivery.
-Profile wiring, Serena v2 REPL, project actions, Mate, custom Makers and the
-three-harness local acceptance remain stages of
+`test_mcp_only.py` exercises actual helper processes, denied native calls,
+permitted entry calls against the coordination store, invalid configuration,
+and preserved advisory behavior outside this profile. Adapter tests exercise
+the existing persistent protocol transports. These are not native-binary tests.
+
+Stage 2 remains open until installed Codex, Claude Code and Grok each demonstrate
+a permitted workflow call, failed shell/direct-write canaries, live peer
+exchange during unfinished work, and reconnect/recovery with retained identity.
+Record versions, requested versus observed settings, acknowledgment and
+resolution separately. Claude's existing adapter currently reports a TUI and
+channel capability probe; the profile does not add a live ingress channel or
+claim that its busy delivery works. Do not enable native shell as a fallback
+for a missing capability.
+
+Serena v2 REPL, project actions, Mate, custom Makers and the complete local
+acceptance remain stages of
 [the readiness handoff](../../docs/dev-lane-mcp-readiness.md). The legacy
 coordination and evidence server entry points remain compatible.
