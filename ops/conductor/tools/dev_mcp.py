@@ -26,8 +26,9 @@ INSTRUCTIONS = (
     "available separately only when the user explicitly requests it. Caller "
     "identity comes from the trusted session, never tool arguments."
 )
-_TEXT = {"type": "string"}
-_OFFSET = {"type": "integer", "minimum": 0}
+SERVER_NAME = "dev-lane"
+_TEXT = {"type": "string", "maxLength": 160}
+_OFFSET = {"type": "integer", "minimum": 0, "maximum": 1_000_000}
 LIVE_TOOLS = (
     coordination.Tool("coord_participants", "participants", False,
                       {"filter_role": _TEXT, "offset": _OFFSET}, (),
@@ -197,12 +198,12 @@ class Entry:
 
     def dispatch(self, request):
         return mcp_transport.dispatch(request, self.route, strict_initialize=True, server={
-            "serverInfo": {"name": "agentscient-dev", "version": "1"},
+            "serverInfo": {"name": SERVER_NAME, "version": "1"},
             "capabilities": {"tools": {"listChanged": False}}, "instructions": INSTRUCTIONS,
         })
 
     def check(self):
-        return {"server": "agentscient-dev", "tools": [row["name"] for row in TOOLS],
+        return {"server": SERVER_NAME, "tools": [row["name"] for row in TOOLS],
                 "tools_list_bytes": len(coordination.canonical({"tools": TOOLS}).encode("utf-8")),
                 "capabilities": len(self.catalogue), "response_bound": coordination.RESPONSE_BYTES,
                 "communication": "live", "dispatch": "separate; explicit user request only",

@@ -64,7 +64,7 @@ class LiveEntry(unittest.TestCase):
         initialized, listed = self.wire(
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
             {"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
-        self.assertEqual(initialized["result"]["serverInfo"]["name"], "agentscient-dev")
+        self.assertEqual(initialized["result"]["serverInfo"]["name"], "dev-lane")
         self.assertEqual(len(listed["result"]["tools"]), 3)
         self.assertLess(len(json.dumps(listed).encode()), 2000)
         search = self.payload(request("capability_search", {"query": "send"}))

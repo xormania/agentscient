@@ -3,7 +3,7 @@
 `tools/dev_mcp.py` projects existing coordination and evidence services through
 three MCP tools: `capability_search`, `capability_describe`, and
 `capability_invoke`. It owns no domain state and needs no Symfony kernel or
-application dependencies. The initial tools/list payload is 1,104 UTF-8 bytes
+application dependencies. The initial tools/list payload is 1,154 UTF-8 bytes
 with compact JSON; the transport bounds whole responses at 16,384 bytes.
 
 Live communication between persistent harnesses is the default. The standalone
