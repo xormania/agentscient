@@ -524,6 +524,13 @@ def _literal_exempt(rel: str, line: str, needle: str) -> bool:
         }
     if rel == "ops/devlane/dispatch/launch.py" and needle == '"dev"':
         return '"WF_LANE": "dev"' in line or '"lane": "dev"' in line
+    # Symfony's standard APP_ENV names are framework identifiers, not
+    # branch or lane configuration. Keep this exception at their owner.
+    if rel == "ops/conductor/tools/project_providers/symfony.py" and needle == '"dev"':
+        return stripped in {
+            'self.env = config.get("environment", "dev")',
+            'if self.env not in {"dev", "test"}:',
+        }
     return False
 
 
@@ -585,3 +592,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

@@ -11,7 +11,7 @@ native home is the private profile `profiles.py prepare-interactive` makes.
 
     sessions.py doctor [--team FILE]
     sessions.py start --member NAME [--team FILE] [--run R-n] [--worktree PATH] [--mcp-only] [--serena-python FILE]
-                      [--ready-timeout SEC] [--tmux-socket NAME]
+                      [--project-config FILE] [--ready-timeout SEC] [--tmux-socket NAME]
     sessions.py status [--run R-n] [--member NAME]
     sessions.py attach --member NAME [--run R-n]
     sessions.py stop [--run R-n] [--terminate] [--drain SEC]
@@ -819,10 +819,13 @@ def last_line(done: subprocess.CompletedProcess) -> str:
 
 def do_start(rest):
     options = parse(rest, required=("member",),
-                    optional=("team", "run", "worktree", "ready-timeout", "tmux-socket", "serena-python"), flags=("mcp-only",))
+                    optional=("team", "run", "worktree", "ready-timeout", "tmux-socket", "serena-python", "project-config"), flags=("mcp-only",))
     if options.get("serena-python") and not options.get("mcp-only"):
         refuse("arguments", "--mcp-only with --serena-python", "unselected private MCP profile",
                "select --mcp-only for prod-lane code work")
+    if options.get("project-config") and not options.get("mcp-only"):
+        refuse("arguments", "--mcp-only with --project-config", "unselected project integration",
+               "select --mcp-only for named project operations")
     check_socket(options.get("tmux-socket") or os.environ.get("AGENTSCIENT_TMUX_SOCKET"))
     agent = identity()
     path = team_path(options)
@@ -889,10 +892,10 @@ def do_start(rest):
                  agent, stamp()),
             ).lastrowid
     return launch(conn, agent, team, member, run, sid, generation, worktree, adapter, lead, timeout,
-                  mcp_only=options.get("mcp-only", False), serena_python=options.get("serena-python"))
+                  mcp_only=options.get("mcp-only", False), serena_python=options.get("serena-python"), project_config=options.get("project-config"))
 
 
-def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, lead, timeout, *, mcp_only=False, serena_python=None):
+def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, lead, timeout, *, mcp_only=False, serena_python=None, project_config=None):
     directory = member_dir(run["id"], member["name"], generation)
     if directory.exists() and any(directory.iterdir()):
         directory.rename(directory.with_name(f"{directory.name}.attempt-{time.time_ns()}"))
@@ -905,7 +908,8 @@ def launch(conn, agent, team, member, run, sid, generation, worktree, adapter, l
     prepared = step([sys.executable, str(PROFILES), "prepare-interactive", "--harness", member["harness"],
                      "--destination", str(directory), "--cwd", str(worktree),
                      "--executable", executable, "--agent", agent, *(["--mcp-only"] if mcp_only else []),
-                     *(["--serena-python", serena_python] if serena_python else [])], stderr_log)
+                     *(["--serena-python", serena_python] if serena_python else []),
+                     *(["--project-config", project_config] if project_config else [])], stderr_log)
     if prepared.returncode != 0:
         refuse("profile", "profiles.py prepare-interactive to prepare the private profile",
                last_line(prepared),"fix what the profile refusal names, then start again")

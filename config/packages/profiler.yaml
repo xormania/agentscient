@@ -1,0 +1,7 @@
+when@dev:
+    framework:
+        profiler: { enabled: true, collect: false }
+
+when@test:
+    framework:
+        profiler: { enabled: true, collect: false }

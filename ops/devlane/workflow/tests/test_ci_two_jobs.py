@@ -30,12 +30,12 @@ class WorkflowGate(unittest.TestCase):
             self.assertNotIn("paths", self.doc["on"][event])
             self.assertNotIn("paths-ignore", self.doc["on"][event])
         self.assertEqual(jobs["scope"]["steps"][-1]["run"], "python3 .github/ci_scope.py")
-        for key, output in (("dev-lane", "dev"), ("prod-lane", "prod")):
+        for key, output in (("dev-lane", "dev"), ("prod-lane", "prod"), ("symfony-integration", "symfony")):
             self.assertEqual(jobs[key]["needs"], "scope")
             self.assertEqual(jobs[key]["if"], "${{ needs.scope.outputs." + output + " == 'true' }}")
-        self.assertEqual(set(jobs["lane"]["needs"]), {"scope", "dev-lane", "prod-lane"})
+        self.assertEqual(set(jobs["lane"]["needs"]), {"scope", "dev-lane", "prod-lane", "symfony-integration"})
         self.assertEqual(jobs["lane"]["if"], "${{ always() }}")
-        for key in ("scope", "dev-lane", "lane"):
+        for key in ("scope", "dev-lane", "symfony-integration", "lane"):
             self.assertEqual(jobs[key]["runs-on"], RUNS_ON)
             self.assertNotIn("continue-on-error", jobs[key])
             for step in jobs[key]["steps"]:
@@ -45,6 +45,10 @@ class WorkflowGate(unittest.TestCase):
         self.assertEqual(set(prod["on"]), {"workflow_call", "workflow_dispatch"})
         self.assertNotIn("ops.", json.dumps(prod))
         self.assertNotIn("ops/", json.dumps(prod))
+        integration = jobs["symfony-integration"]
+        self.assertIn("ops/devlane/providers/symfony_smoke.py", json.dumps(integration))
+        for job in (prod["jobs"]["php"], integration):
+            self.assertTrue(any(s.get("uses") == "./.github/actions/php-runtime" for s in job["steps"]))
         commands = "\n".join(step.get("run", "") for step in prod["jobs"]["php"]["steps"])
         for command in ("composer validate --strict", "composer install",
                         "php bin/console lint:container", "vendor/bin/phpunit"):
@@ -53,11 +57,12 @@ class WorkflowGate(unittest.TestCase):
     def test_gate_executes_and_rejects_failed_cancelled_or_missing_selected_jobs(self):
         step = self.doc["jobs"]["lane"]["steps"][0]
         with World(host_path=False, ambient_tools=("bash", "tee")) as world:
-            def invoke(dev, prod, dev_result, prod_result, scope="success"):
+            def invoke(dev, prod, dev_result, prod_result, scope="success", symfony="false", symfony_result="skipped"):
                 env = world.env({
                     "REVISION": "a" * 40, "SCOPE_RESULT": scope,
                     "DEV_SELECTED": dev, "PROD_SELECTED": prod,
                     "DEV_RESULT": dev_result, "PROD_RESULT": prod_result,
+                    "SYMFONY_SELECTED": symfony, "SYMFONY_RESULT": symfony_result,
                     "GITHUB_STEP_SUMMARY": str(world.cwd / "summary"),
                 })
                 return run(("bash", "-e", "-o", "pipefail", "-c", step["run"]),
@@ -71,10 +76,13 @@ class WorkflowGate(unittest.TestCase):
             for result in ("failure", "cancelled", "skipped", ""):
                 self.assertNotEqual(invoke("true", "false", result, "skipped"), 0)
                 self.assertNotEqual(invoke("false", "true", "skipped", result), 0)
+                self.assertNotEqual(invoke("true", "false", "success", "skipped", symfony="true", symfony_result=result), 0)
             for result in ("failure", "cancelled", "skipped", ""):
                 self.assertNotEqual(invoke("false", "false", "skipped", "skipped", result), 0)
             self.assertNotEqual(invoke("", "", "skipped", "skipped"), 0)
             self.assertNotEqual(invoke("false", "false", "failure", "skipped"), 0)
+            self.assertEqual(invoke("true", "false", "success", "skipped", symfony="true", symfony_result="success"), 0)
+            self.assertNotEqual(invoke("false", "false", "skipped", "skipped", symfony_result="failure"), 0)
 
 
 class ScopeSelection(unittest.TestCase):
@@ -93,7 +101,13 @@ class ScopeSelection(unittest.TestCase):
         ]
         for paths, dev, prod in cases:
             with self.subTest(paths=paths):
-                self.assertEqual(SCOPE.select(paths), {"dev": dev, "prod": prod})
+                self.assertEqual(SCOPE.select(paths), {"dev": dev, "prod": prod, "symfony": prod})
+
+        for path in ("ops/conductor/tools/project_work.py",
+                     "ops/conductor/tools/project_providers/symfony.py",
+                     "ops/devlane/providers/symfony_smoke.py"):
+            with self.subTest(integration=path):
+                self.assertEqual(SCOPE.select([path]), {"dev": True, "prod": False, "symfony": True})
 
     def test_real_event_diffs_include_deletions_and_both_sides_of_renames(self):
         with World(host_path=False, ambient_tools=("git", "python3")) as world:

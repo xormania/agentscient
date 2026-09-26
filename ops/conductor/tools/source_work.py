@@ -16,6 +16,7 @@ import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 
+import coordination_mcp as coordination
 import instrument
 from instrument import refuse
 
@@ -32,6 +33,43 @@ CREATE TABLE IF NOT EXISTS source_checks(
     generation INTEGER NOT NULL, passed INTEGER NOT NULL, evidence TEXT NOT NULL,
     PRIMARY KEY(workspace, name));
 """
+
+
+def bind(config, name, workspace=None, owner=None):
+    """One participant/worktree binding for editors and project operations."""
+    tool = coordination.Tool(name, "", False, {}, (), "")
+    coordination.check_capability(config, tool)
+    conn, participant = coordination.resolve_binding(config, tool)
+    try:
+        profile = instrument.hook_profile()
+        root = Path(profile["cwd"]) if profile else Path(workspace or Path.cwd())
+        root = root.resolve(strict=True)
+        if workspace and Path(workspace).resolve() != root:
+            refuse("workspace", "the profile's assigned worktree", str(workspace),
+                   "use the launcher's worktree binding")
+        if config and config.get("worktree") and Path(config["worktree"]).resolve() != root:
+            refuse("workspace", "the coordination binding's worktree", str(root), "repair the launch binding")
+        assignment = config.get("assignment") if config else None
+        selected = (str(root), participant["id"], participant["session_id"], assignment)
+        if owner is not None and owner != selected:
+            refuse("binding", "the original participant and worktree", "binding changed",
+                   "start a separate MCP session for the new context")
+        return selected
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def read_check(root, name):
+    """Read an existing backend receipt without creating a store."""
+    conn = connect()
+    if conn is None:
+        return None
+    try:
+        row = conn.execute("SELECT * FROM source_checks WHERE workspace=? AND name=?", (str(root), name)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def git(root, *args):

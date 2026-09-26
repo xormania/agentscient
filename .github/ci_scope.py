@@ -17,13 +17,22 @@ PROD_FILES = {
     "composer.json", "composer.lock", "symfony.lock", "phpunit.xml",
     "phpunit.dist.xml", ".phpactor.json", ".github/workflows/ci-prod-lane.yml",
 }
+SYMFONY_INTEGRATION_FILES = {
+    "ops/conductor/tools/dev_mcp.py", "ops/conductor/tools/project_work.py",
+    "ops/conductor/tools/source_work.py", "ops/conductor/tools/code_work.py",
+}
+SYMFONY_INTEGRATION_DIRS = (
+    "ops/conductor/tools/project_providers/", "ops/devlane/providers/",
+)
 
 
 def select(paths):
-    dev = prod = False
+    dev = prod = symfony = False
     for path in paths:
         if path.endswith(".md"):
             continue
+        if path in SYMFONY_INTEGRATION_FILES or path.startswith(SYMFONY_INTEGRATION_DIRS):
+            symfony = True
         if path.startswith(DEV_DIRS) or path in DEV_FILES:
             dev = True
         elif (path.startswith(PROD_DIRS) or path in PROD_FILES
@@ -32,7 +41,9 @@ def select(paths):
         else:
             # Shared CI/configuration and unclassified files need both lanes.
             dev = prod = True
-    return {"dev": dev, "prod": prod}
+    # Cross-lane checks belong to their own job; pure dev-lane changes do
+    # not require the application's PHP runtime or Composer dependencies.
+    return {"dev": dev, "prod": prod, "symfony": symfony or prod}
 
 
 def git(*args):
@@ -74,7 +85,8 @@ def main():
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
         summary.write(f"Tested revision: `{revision}`\n\nComparison base: `{base}`\n\n")
         summary.write(f"Changed files: {len(paths)}. Dev-lane: {selected['dev']}. "
-                      f"Prod-lane: {selected['prod']}.\n")
+                      f"Prod-lane: {selected['prod']}. "
+                      f"Symfony integration: {selected['symfony']}.\n")
 
 
 if __name__ == "__main__":

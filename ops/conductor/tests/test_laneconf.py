@@ -927,6 +927,31 @@ class LiteralsVerb(_LaneconfFixture):
         self.assertEqual(proc.exit, 1, text)
         self.assertIn(rel, text)
 
+    def test_symfony_environment_names_do_not_exempt_branch_literals(self):
+        rel = "ops/conductor/tools/project_providers/symfony.py"
+        environments = (
+            'self.env = config.get("environment", "dev")\n'
+            'if self.env not in {"dev", "test"}:\n'
+        )
+        repo = self.plant_scratch_repo({rel: environments})
+        conf = repo / "ops/lane.conf"
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+        # A branch in the provider, another statement on the allowed line,
+        # and the same text in a different owner must still be findings.
+        for path, content in (
+            (rel, environments + 'branch = "dev"\n'),
+            (rel, environments.splitlines()[0] + '; branch = "dev"\n'),
+            ("ops/conductor/tools/unrelated.py", environments),
+        ):
+            with self.subTest(path=path, content=content):
+                self._plant_bytes(repo / rel, environments.encode())
+                self._plant_bytes(repo / path, content.encode())
+                proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+                self.assertEqual(proc.exit, 1, self.combined(proc))
+                self.assertIn(path, self.combined(proc))
+
     def test_infra_is_skipped_and_the_skip_is_printed(self):
         rel = "ops/devlane/infra/gitea/bootstrap.sh"
         repo = self.plant_scratch_repo(

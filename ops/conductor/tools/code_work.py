@@ -4,7 +4,6 @@ import hashlib
 import os
 from pathlib import Path
 
-import coordination_mcp as coordination
 import instrument
 import source_work
 from code_providers.serena import PIN, POLICY, Provider, bounded
@@ -41,34 +40,15 @@ class CodeWork:
         return None
 
     def bind(self, config, name):
-        tool = coordination.Tool(name, "", False, {}, (), "")
-        coordination.check_capability(config, tool)
-        conn, participant = coordination.resolve_binding(config, tool)
-        try:
-            profile = instrument.hook_profile()
-            root = Path(profile["cwd"]) if profile else self.workspace or Path.cwd()
-            root = root.resolve(strict=True)
-            if self.workspace and self.workspace != root:
-                refuse("workspace", "the profile's assigned worktree", str(self.workspace),
-                       "use the launcher's worktree binding")
-            if config and config.get("worktree") and Path(config["worktree"]).resolve() != root:
-                refuse("workspace", "the coordination binding's worktree", str(root), "repair the launch binding")
-            assignment = config.get("assignment") if config else None
-            owner = (str(root), participant["id"], participant["session_id"], assignment)
-            if self.owner is not None and self.owner != owner:
-                refuse("binding", "this provider's original participant and worktree", "binding changed",
-                       "start a separate MCP session for the new context")
-            self.owner, self.workspace = owner, root
-            if self.provider is None and not self.unavailable():
-                key = hashlib.sha256(repr(owner).encode()).hexdigest()
-                runtime = instrument.state_dir() / "providers" / "serena" / key
-                if runtime.resolve().is_relative_to(root):
-                    refuse("provider", "provider state outside the prod-lane worktree", str(runtime),
-                           "configure the lane's state directory outside the worktree")
-                self.provider = Provider(self.python, root, runtime)
-        finally:
-            if conn is not None:
-                conn.close()
+        self.owner = source_work.bind(config, name, self.workspace, self.owner)
+        self.workspace = Path(self.owner[0])
+        if self.provider is None and not self.unavailable():
+            key = hashlib.sha256(repr(self.owner).encode()).hexdigest()
+            runtime = instrument.state_dir() / "providers" / "serena" / key
+            if runtime.resolve().is_relative_to(self.workspace):
+                refuse("provider", "provider state outside the prod-lane worktree", str(runtime),
+                       "configure the lane's state directory outside the worktree")
+            self.provider = Provider(self.python, self.workspace, runtime)
 
     def status(self):
         result = source_work.status(self.workspace)

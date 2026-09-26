@@ -28,19 +28,8 @@
           }
         },
         {
-          "name": "Prepare hosted PHP and Composer",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240",
-          "with": {
-            "php-version": "8.4",
-            "extensions": "ctype, dom, iconv, mbstring, xml, xmlwriter, sqlite3, pdo_sqlite",
-            "tools": "composer:v2",
-            "coverage": "none"
-          }
-        },
-        {
-          "name": "Prepare temporary Composer when absent",
-          "run": "if command -v composer >/dev/null; then exit 0; fi\nci_tools=$(mktemp -d \"$RUNNER_TEMP/prod-composer.XXXXXX\")\ncurl --fail --silent --show-error https://getcomposer.org/installer -o \"$ci_tools/installer.php\"\nexpected=$(curl --fail --silent --show-error https://composer.github.io/installer.sig)\nactual=$(php -r 'echo hash_file(\"sha384\", $argv[1]);' \"$ci_tools/installer.php\")\n[[ \"$expected\" == \"$actual\" ]]\nphp \"$ci_tools/installer.php\" --2 --quiet --install-dir=\"$ci_tools\" --filename=composer\nprintf '%s\\n' \"$ci_tools\" >> \"$GITHUB_PATH\""
+          "name": "Prepare PHP and Composer",
+          "uses": "./.github/actions/php-runtime"
         },
         {
           "name": "Record revision and tool versions",
@@ -57,6 +46,10 @@
         {
           "name": "Lint application PHP",
           "run": "find src config packages tests public bin mate -type f -name '*.php' -print0 | xargs -0 -r -n 1 php -l\nphp -l bin/console"
+        },
+        {
+          "name": "Record dependency baseline and available updates",
+          "run": "composer show --locked --format=json > var/ci/dependencies.json\ncomposer outdated --direct --format=json > var/ci/available-updates.json"
         },
         {
           "name": "Check Symfony configuration and container",

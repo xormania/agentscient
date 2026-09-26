@@ -1,10 +1,11 @@
-# Private Serena provider for prod-lane development
+# Providers for prod-lane development
 
 The dev-lane MCP owns workflow, live communication, identity and source receipts.
 Serena v2 beta supplies discovery and edits of the Symfony **prod-lane**. This
 provider is not intended for developing `ops/` or `.dev/`. Mate, Makers, checks,
 dependencies and Git belong to their named project operations, not Python cells.
-Those operations remain readiness stages 4–6; this provider does not implement them.
+The optional Symfony integration below supplies Mate and checks. Dependency and
+Git operations remain incomplete in readiness stage 4.
 
 ## Install and select
 
@@ -74,7 +75,7 @@ without holding the coordination database during the cell.
 
 Fingerprints include HEAD, tracked files, nonignored untracked files, deletions,
 modes and symlink targets; ignored runtime data is excluded. Historical CI records
-stay historical. The receipt API does not yet wire stage 4 project checks.
+stay historical. Named Symfony checks now use the same source receipts.
 
 At this beta pin, Python exceptions can be ordinary MCP text. The adapter
 recognizes their location format and records partial edits. Failed transport
@@ -117,5 +118,114 @@ test was performed.
 
 Stage 3 still requires these operations from an installed native participant.
 The complete workflow also needs native restrictions/live communication acceptance,
-project actions, Mate, Makers and a useful prod-lane task. See the
+remaining project actions and a useful prod-lane task. See the
 [readiness stages](../../../docs/dev-lane-mcp-readiness.md).
+
+## Symfony and Mate
+
+Install the reviewed Composer lock with PHP 8.5.11 or later on the selected 8.5
+runtime. Symfony FrameworkBundle is locked at 8.1.7, and Mate and its Symfony
+extension at 0.14.0. MCP Bundle 0.14.0 supplies native MCP
+attribute discovery. MakerBundle 1.68.0 is available in dev/test only. Stopwatch
+supports the selectively enabled framework profiler; no profiler UI is installed.
+
+Select the runtime in an operator-owned file outside the worktree:
+
+```json
+{"version": 1, "provider": "symfony", "php": "/absolute/php", "environment": "dev"}
+```
+
+Pass that file when starting a participant:
+
+```sh
+python3 -B ops/conductor/tools/sessions.py start --member NAME --mcp-only \
+  --serena-python /absolute/serena-v2/bin/python \
+  --project-config /absolute/project-runtime.json
+```
+
+The profile copies and pins this configuration. Only `dev` and `test` are
+supported. There is still one MCP entry with three startup tools (1,154 compact
+JSON bytes). Discover capabilities on demand:
+
+| Capability | Existing mechanism |
+| --- | --- |
+| `project_context` | Actual PHP/Composer versions, Mate's project instruction aggregator and version-selected references |
+| `mate_skills`, `mate_skill` | Mate's existing skill discovery and enabled source/override, loaded on demand with provenance |
+| `project_status` | Shared worktree identity, source receipts and prerequisite checks |
+| `mate_tools`, `mate_describe` | Mate's tool catalogue and parameter schemas |
+| `mate_environment` | Mate `server-info` |
+| `mate_services`, `mate_service` | Mate's compiled-container inspection |
+| `mate_profiles`, `mate_profile`, `mate_resource` | Mate's captured-request tools and resources |
+| `project_output` | Bounded pages of the last four large results in this entry session |
+| `project_refresh` | Symfony `cache:clear` for the selected environment |
+| `project_check` | Symfony `lint:container` and a nonempty PHPUnit suite |
+
+Refresh and checks require the current `expected_source_fingerprint` from
+`project_status` or `code_status`. They invalidate earlier checks before running;
+successful checks record the actual source and runtime inputs. Partial failures
+retain source accounting. Commands are fixed by the provider, bounded by time and
+output size, and receive no workflow/publication credentials from the parent
+environment. They execute trusted project code with the host user's permissions;
+they are not a sandbox. There is no model-provided command or arbitrary argv.
+
+Mate inspection does not boot the application to manufacture missing evidence.
+Missing vendor, container or profiler data is reported while coordination remains
+available. `project_refresh` explicitly boots the kernel and writes its cache.
+Kernel compilation can regenerate Symfony's tracked `config/reference.php`; such
+source changes are reported and invalidate prior checks. Inspect the new source
+fingerprint and refresh again. Container observations report `unavailable`,
+`unverified`, `stale` or `current`;
+inspect that field before relying on a service result. A refresh receipt covers
+source, dependency installation, environment inputs, PHP and compiled artifacts.
+Captured profiles remain historical and are not claimed to describe current
+source. Enable profiling for the scenario being exercised. Mate's redaction and
+untrusted-data annotations are retained. Mate 0.14 service detail includes actual
+constructor arguments and service references as well as tags and definition flags.
+
+MCP initialization and `code_status` direct agents to `project_context` before
+product edits. That response separates installed features from observed wiring.
+`mate_skill` reads the enabled package source or the selected project override,
+not a possibly stale generated harness copy. It reports both provenance and the
+generated copy's status. Skill bodies retain upstream examples; in an MCP-only
+session use the corresponding named operations. Fresh entries reconstruct this
+information from the selected worktree and dependencies rather than a private
+knowledge store. Context remains guidance; design review and native task rehearsal
+must establish whether an agent uses it effectively.
+
+For product MCP capabilities, use `#[McpTool]` directly on a suitable service
+method. Existing `autowire: true` injects dependencies and `autoconfigure: true`
+registers the MCP attribute. The bundle owns schemas and invocation. Serena edits
+these services. A wrapper is justified only by a concrete interface difference.
+There is no custom Maker or generation capability in this change: native features
+cover the selected case. Add one only for a demonstrated recurring structure that
+existing Makers do not cover. This follows the application's PHP/Symfony guidance
+in [AGENTS.md](../../../AGENTS.md#application-guidance).
+
+Run the real integration smoke after installing the lock:
+
+```sh
+python3 -B ops/devlane/providers/symfony_smoke.py --php /absolute/php
+```
+
+It uses a disposable project and the actual Mate/MCP packages. On 2026-09-26 it
+passed with PHP 8.5.11: context and installed-skill delivery over MCP, discovery,
+constructor-wiring inspection, stale configuration and refresh,
+an attributed service with an autowired dependency invoked by the MCP SDK, an
+actual HTTP request/profile, redaction, and a planted behavior failure. The same
+service handles both MCP and HTTP. No wrapper or generated service configuration
+is needed. A separate Symfony integration CI job runs this smoke when application
+or integration-provider sources change. Product CI remains independent of `ops/`;
+ordinary dev-lane-only changes do not require PHP or vendor. Python fixtures cover missing PHP or
+vendor, bindings, partial writes, bounded output and process cleanup. These checks
+do not claim installed native-harness or complete local workflow acceptance.
+
+The prod CI selects the latest PHP 8.5 patch on hosted runners. Self-hosted
+Linux/X64 jobs use a checksum-pinned PHP 8.5.11 binary in their temporary
+directory, leaving the host's global PHP unchanged. Both enforce Composer platform
+requirements. Its artifact records the locked baseline and available direct
+dependency updates. The current-version check on 2026-09-26 used
+[PHP releases](https://www.php.net/releases/) and
+[Symfony releases](https://symfony.com/releases); Composer reported no newer direct
+dependencies after this update. The existing Composer Dependabot job remains
+paused pending its empty path-repository issue; this change does not claim an
+automated future upgrade process.
