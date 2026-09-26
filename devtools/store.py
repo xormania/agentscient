@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 1:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 2:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -104,7 +104,21 @@ class Store:
                     db.execute(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER REFERENCES {target}(id)")
             for table in ("events", "messages"):
                 db.execute(f"CREATE INDEX IF NOT EXISTS {table}_work ON {table}(work_order,job,id)")
-            db.execute("PRAGMA user_version=1")
+            db.execute("""CREATE TABLE IF NOT EXISTS artifact_sources (
+                artifact INTEGER NOT NULL REFERENCES artifacts(id), provider TEXT NOT NULL,
+                reference TEXT NOT NULL, metadata TEXT NOT NULL,
+                PRIMARY KEY(artifact,provider,reference))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS github_watches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
+                work_order INTEGER REFERENCES work_orders(id), job INTEGER REFERENCES jobs(id),
+                repository TEXT NOT NULL, pr INTEGER, run INTEGER, revision TEXT NOT NULL,
+                expires REAL NOT NULL, next_poll REAL NOT NULL, state TEXT NOT NULL DEFAULT 'active',
+                signature TEXT NOT NULL DEFAULT '', poll_pid INTEGER, updated TEXT NOT NULL)""")
+            db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS github_watch_identity "
+                "ON github_watches(member,repository,coalesce(pr,0),coalesce(run,0),revision)"
+            )
+            db.execute("PRAGMA user_version=2")
 
     @contextmanager
     def connect(self):

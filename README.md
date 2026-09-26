@@ -5,7 +5,8 @@ Bundle, Maker Bundle, and Symfony AI Mate. Runtime versions and dependencies are
 defined in `composer.json` and `composer.lock`.
 
 The development support in [`devtools/`](devtools/README.md) provides MCP tools for
-live harness communication, telemetry, work orders with child jobs, and artifacts.
+live harness communication, telemetry, work orders with child jobs, artifacts,
+and task-facing GitHub PR/CI operations.
 Its services handle persistence and managed storage behind those tools. It runs
 independently of PHP and the application.
 
@@ -25,7 +26,8 @@ Application code belongs in `src/`, with configuration in `config/` and tests in
 ## Live development support
 
 See [`devtools/README.md`](devtools/README.md) for setup, MCP configuration,
-session management, work tracking, artifact storage, messages, and telemetry.
+session management, work tracking, GitHub PR/CI work, artifact storage, messages,
+and telemetry.
 The MCP surface has no shell or project editing/execution capabilities.
 
 The previous development system was removed. Its full pre-removal snapshot is
