@@ -1,7 +1,0 @@
-WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir "/tmp" (codex_home: AbsolutePathBuf("/tmp/ag-manual-repair-20260910/native-release-codex/state/codex-home"))
-Reading additional input from stdin...
-2026-09-10T05:48:09.896819Z ERROR codex_core::tools::router: error=Command blocked by PreToolUse hook: tool: expected safe read or exact declared control action; found undeclared tool action; needed use the owner control plan or inspect permission doctor. Command: *** Begin Patch
-*** Add File: EDIT_SENTINEL
-+probe
-*** End Patch
-2026-09-10T05:48:14.862143Z ERROR codex_core::tools::router: error=Command blocked by PreToolUse hook: tool: expected safe read or exact declared control action; found noncanonical action command; needed use the owner control plan or inspect permission doctor. Command: python3 -c "from pathlib import Path; Path('RAW_SENTINEL').write_text('probe')"

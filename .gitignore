@@ -1,9 +1,7 @@
 __pycache__/
 *.py[cod]
-# Machine-local permissions and overrides; the tracked settings.json is the contract.
+.ruff_cache/
 .claude/settings.local.json
-
-###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -11,19 +9,5 @@ __pycache__/
 /public/bundles/
 /var/
 /vendor/
-###< symfony/framework-bundle ###
-
-###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/
-###< phpunit/phpunit ###
-# Session scratch documents the owner reads across sessions; never tree content.
-.dev/tmp/
-# Owner-to-session document exchange; never tree content.
-.xor/
-# Serena: per-checkout home, cache, local overlay, memories, and its generated ignore file.
-.serena/home/
-.serena/cache/
-.serena/project.local.yml
-.serena/memories/
-.serena/.gitignore

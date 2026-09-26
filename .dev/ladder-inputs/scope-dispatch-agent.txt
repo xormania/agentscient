@@ -1,1 +1,0 @@
-dispatch.sh stamps WF_AGENT_DEFAULT even when WF_AGENT is exported. Identity is --agent if passed, else WF_AGENT if set in Name <address> form, else WF_AGENT_DEFAULT. Frozen: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py

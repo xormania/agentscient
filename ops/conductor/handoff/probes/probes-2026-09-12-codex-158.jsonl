@@ -1,2 +1,0 @@
-{"id": "P-C158-20260912-gh-repo", "kind": "serve", "lane": "git", "question": "When gh pr ready or merge selects another repository with -R/--repo, where does the pr-proof row read the proof?", "serve": "rg -c 'def gh_repo' ops/devlane/hooks/claude/matrix.py", "expect": "1"}
-{"id": "P-C158-20260912-relocate-mcp", "kind": "serve", "lane": "git", "question": "When a retained job is moved to another dispatch store and resumed, is its lane MCP config rewritten?", "serve": "rg -c 'def _relocate_mcp' ops/devlane/dispatch/launch.py", "expect": "1"}

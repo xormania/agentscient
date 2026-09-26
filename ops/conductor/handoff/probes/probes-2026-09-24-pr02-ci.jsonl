@@ -1,1 +1,0 @@
-{"id":"P-PR02-execution","kind":"serve","lane":"record","question":"What prevents CI from treating a cache marker as an original passing execution?","serve":"rg -F 'A reused marker is not an original execution.' ops/devlane/workflow/checks/CONTRACT-ci.md","expect":"A reused marker is not an original execution."}

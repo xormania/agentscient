@@ -1,67 +1,10 @@
-# Dependabot, scoped to what is useful here (owner, 2026-09-13: "hand grant
-# ok'd for changes to dependabot - is it possible to make future dependabot
-# PRs target dev? If they're useful?").
-#
-# Two facts from the options reference, measured 2026-09-13:
-# - target-branch governs VERSION updates only: "Options defined for this
-#   package-ecosystem no longer apply to security updates because security
-#   updates always use the default branch for the repository." So version
-#   updates open on dev, the trunk; a security update for a real dependency
-#   still opens on master and is answered by a session's fix on dev, then
-#   the release. Close the master PR once the fix lands.
-# - ignore applies to security updates too ("All dependencies defined in
-#   lock files with vulnerable dependencies are updated by security updates"
-#   is the default that ignore filters). The fixture apps under
-#   ops/devlane/fixtures/apps/ are apparatus with planted faults, never
-#   installed (CI has no pip step); their exact pins are asserted by the
-#   fixtures suite, so every dependency there is ignored for both kinds and
-#   no target-branch is set on those entries, or the ignore would stop
-#   applying to security updates.
 version: 2
 updates:
-  # The prod application's Composer manifest is paused (owner, 2026-09-13:
-  # "Pause Dependabot's composer job"). composer.json declares the path
-  # repository packages/*, which matches no package yet (packages/ holds
-  # only its README), so every update job failed resolving it: run
-  # 34783265531, "The `url` supplied for the path (packages/*) repository
-  # does not exist". Restore the entry (composer, directory "/",
-  # target-branch dev, weekly, limit 5, prefix deps) in the change that
-  # adds the first package under packages/.
-
-  # The CI workflow's actions are digest-pinned; the checkout pin targets
-  # Node 20 and the runner forces Node 24 (CI review, 2026-09-11). A bump
-  # here is a wall change and lands only through a wall grant in isolation.
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    target-branch: "dev"
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
     schedule:
-      interval: "weekly"
+      interval: weekly
     open-pull-requests-limit: 2
     commit-message:
-      prefix: "ci"
-
-  # Calibration fixtures: apparatus, never product code, never installed.
-  # Ignored for version and security updates alike; no target-branch here.
-  - package-ecosystem: "pip"
-    directory: "/ops/devlane/fixtures/apps/python-service"
-    schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
-    ignore:
-      - dependency-name: "*"
-
-  - package-ecosystem: "cargo"
-    directory: "/ops/devlane/fixtures/apps/rust-crate"
-    schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
-    ignore:
-      - dependency-name: "*"
-
-  - package-ecosystem: "composer"
-    directory: "/ops/devlane/fixtures/apps/symfony-app"
-    schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
-    ignore:
-      - dependency-name: "*"
+      prefix: ci

@@ -1,9 +1,0 @@
-# Task-output test correction ruling
-
-At e1745500cecc74b0eb6d9d5c4e548905b8964e5c, independent Claude Opus 5 review 20260906T104550Z-review-claude-e5e863 reproduced 94 new tests (86 assertion failures, zero errors) and all 213 existing task tests passing. The conductor accepts its one P2 and three P3 findings for correction before freezing these tests. The original CHANGES report remains preserved in the canonical record and PR75.
-
-The independent test author verifies each finding before applying it. Fix the duplicate-member discrimination gap with a distinct task-owned text seam, envelope.load_outputs(text, reserved=...), which strictly decodes JSON before passing native values to validate_outputs. Add a valid JSON-array acceptance counterpart and malformed/duplicate/null refusal counterparts; a blanket string refusal must fail the positive arm. Parsed-data validate_outputs stays a native-data validator. This records the concrete proposed public seam for independent implementation, consistent with the accepted task contract's strict duplicate-member requirement.
-
-Also remove the silent historical-validator fallback for calls that exercise outputs/inline keywords; require the declared seam so those tests cannot pass incidentally. Permit additional default transport reservations while requiring COMMIT_MSG and last-message.json and excluding admitted scratch tmp. Make the renamed-job rendering case actually vary job identity through outputs_from_job, preserving its equality obligation. Preserve detection power and all existing tests. Only tests/helpers/fixtures may change; the future implementation belongs to a separate worker.
-
-Return a red proof with assertion counts distinguished from errors, a verified faulty-counterparty demonstration for duplicate-key discrimination, and fresh frozen hashes. Credit the specific finder and test fixer honestly. A fresh independent recheck is required before test acceptance.

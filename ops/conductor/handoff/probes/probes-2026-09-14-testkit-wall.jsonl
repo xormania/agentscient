@@ -1,1 +1,0 @@
-{"id": "P-TESTKIT-20260914-suite", "kind": "serve", "lane": "record", "question": "Does the suite lever run the test kit's own suite?", "serve": "rg -F '\"ops/testkit/tests\"' ops/devlane/workflow/checks/lane.py", "expect": "\"ops/testkit/tests\""}
