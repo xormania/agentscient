@@ -213,7 +213,9 @@ constructor-wiring inspection, stale configuration and refresh,
 an attributed service with an autowired dependency invoked by the MCP SDK, an
 actual HTTP request/profile, redaction, and a planted behavior failure. The same
 service handles both MCP and HTTP. No wrapper or generated service configuration
-is needed. CI runs this smoke. Python fixtures additionally cover missing PHP or
+is needed. A separate Symfony integration CI job runs this smoke when application
+or integration-provider sources change. Product CI remains independent of `ops/`;
+ordinary dev-lane-only changes do not require PHP or vendor. Python fixtures cover missing PHP or
 vendor, bindings, partial writes, bounded output and process cleanup. These checks
 do not claim installed native-harness or complete local workflow acceptance.
 

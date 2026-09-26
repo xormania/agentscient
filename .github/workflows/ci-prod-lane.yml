@@ -28,25 +28,8 @@
           }
         },
         {
-          "name": "Prepare hosted PHP and Composer",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240",
-          "env": { "update": "true" },
-          "with": {
-            "php-version": "8.5",
-            "extensions": "ctype, dom, iconv, mbstring, xml, xmlwriter, sqlite3, pdo_sqlite",
-            "tools": "composer:v2",
-            "coverage": "none"
-          }
-        },
-        {
-          "name": "Prepare temporary PHP 8.5 for the self-hosted job",
-          "if": "${{ runner.environment == 'self-hosted' }}",
-          "run": "[[ \"$RUNNER_OS/$RUNNER_ARCH\" == Linux/X64 ]] || { echo 'The pinned PHP runtime requires Linux/X64'; exit 1; }\nci_php=$(mktemp -d \"$RUNNER_TEMP/prod-php.XXXXXX\")\ncurl --fail --silent --show-error --location https://dl.static-php.dev/v3/php-bin/common/php-8.5.11-cli-linux-x86_64.tar.gz -o \"$ci_php/php.tar.gz\"\nprintf '%s  %s\\n' bc03d6be4eafa2f77e3fadd3875de6f021dd6369684ee0a10c7d2fbcaead76ed \"$ci_php/php.tar.gz\" | sha256sum --check --status\ntar --no-same-owner -xzf \"$ci_php/php.tar.gz\" -C \"$ci_php\" php\n\"$ci_php/php\" --version\nprintf '%s\\n' \"$ci_php\" >> \"$GITHUB_PATH\""
-        },
-        {
-          "name": "Prepare temporary Composer when absent",
-          "run": "if command -v composer >/dev/null; then exit 0; fi\nci_tools=$(mktemp -d \"$RUNNER_TEMP/prod-composer.XXXXXX\")\ncurl --fail --silent --show-error https://getcomposer.org/installer -o \"$ci_tools/installer.php\"\nexpected=$(curl --fail --silent --show-error https://composer.github.io/installer.sig)\nactual=$(php -r 'echo hash_file(\"sha384\", $argv[1]);' \"$ci_tools/installer.php\")\n[[ \"$expected\" == \"$actual\" ]]\nphp \"$ci_tools/installer.php\" --2 --quiet --install-dir=\"$ci_tools\" --filename=composer\nprintf '%s\\n' \"$ci_tools\" >> \"$GITHUB_PATH\""
+          "name": "Prepare PHP and Composer",
+          "uses": "./.github/actions/php-runtime"
         },
         {
           "name": "Record revision and tool versions",
@@ -75,10 +58,6 @@
         {
           "name": "Run PHPUnit",
           "run": "vendor/bin/phpunit --log-junit var/ci/phpunit.xml"
-        },
-        {
-          "name": "Verify Mate and native MCP attributes through the dev-lane MCP",
-          "run": "python3 ops/devlane/providers/symfony_smoke.py --php \"$(command -v php)\""
         },
         {
           "name": "Upload revision and PHPUnit results",
