@@ -112,6 +112,12 @@ The stages describe outcomes, not mandatory PR counts or separate management pro
 
 **Outcome:** Codex, Claude Code, and Grok participate through the selected profile and retain live communication.
 
+**Implementation status:** `sessions.py start --mcp-only` selects the restricted
+private profile and the progressive entry. See [profile behavior and local
+acceptance gaps](../ops/conductor/dev-mcp.md#select-an-mcp-only-persistent-profile).
+Helper/process and adapter tests do not complete this stage: installed native
+canaries and the three-harness live exchange below are still required.
+
 **Requirements**
 
 - Reuse sessions, courier, and existing native adapters; retain each participant's native session across messages. Live peer communication is the main mechanism, without dispatching a job to obtain a response.
@@ -281,4 +287,3 @@ Repository facts above were inspected on 2026-09-25. These links are implementat
 - [Symfony MCP Bundle](https://symfony.com/doc/current/ai/bundles/mcp-bundle.html)
 
 Use documentation matching the selected dependency versions. A live documentation page or old generated instruction file is not evidence that a capability is installed and working in this checkout.
-

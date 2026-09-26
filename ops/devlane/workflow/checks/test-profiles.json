@@ -47,6 +47,7 @@
     "ops/devlane/hooks/tests/test_context_precheck_selected_repo.py",
     "ops/devlane/hooks/tests/test_context_stream.py",
     "ops/devlane/hooks/tests/test_guidance.py",
+    "ops/devlane/hooks/tests/test_mcp_only.py",
     "ops/devlane/hooks/tests/test_unsafe_command.py",
     "ops/devlane/task/tests/test_author_tests_job.py",
     "ops/devlane/task/tests/test_check_tests_contract_row.py",

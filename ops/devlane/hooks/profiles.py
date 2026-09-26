@@ -85,7 +85,10 @@ def verify_runtime(binding, source, *, previous=None):
         raise ValueError("issued worker runtime changed")
 
 
-def fallback(harness, event):
+def fallback(harness, event, *, mcp_only=False):
+    if mcp_only and event == "PreToolUse":
+        return {"hookSpecificOutput": {"hookEventName": event, "permissionDecision": "deny",
+                "permissionDecisionReason": "MCP-only profile unavailable; refresh the private profile before using tools."}}
     reason = "Diagnostic (advisory): hook-unavailable; the helper or its inputs changed. Refresh diagnostics when useful."
     if harness == "agy":
         return {"decision": "allow", "reason": reason}
@@ -98,8 +101,8 @@ def helper_text(binding):
     """Reuse control.py's pinned-helper/fallback mechanism, not its action policy."""
     lines = ["#!/bin/sh", "set -u", 'event=${1:-PreToolUse}', 'case "$event" in']
     for event in EVENTS:
-        lines.append(f"{event}) diagnostic={shlex.quote(canonical(fallback(binding['harness'], event)))} ;;")
-    lines += [f"*) diagnostic={shlex.quote(canonical(fallback(binding['harness'], 'PreToolUse')))} ;;", "esac",
+        lines.append(f"{event}) diagnostic={shlex.quote(canonical(fallback(binding['harness'], event, mcp_only=binding.get('mcp_only', False))))} ;;")
+    lines += [f"*) diagnostic={shlex.quote(canonical(fallback(binding['harness'], 'PreToolUse', mcp_only=binding.get('mcp_only', False))))} ;;", "esac",
               'warn() { printf "%s\\n" "$diagnostic"; exit 0; }']
     for path, expected in sorted({**binding["pins"], **binding["config_pins"]}.items()):
         lines.append(f'[ "$(/usr/bin/sha256sum {shlex.quote(path)} 2>/dev/null)" = {shlex.quote(expected + "  " + path)} ] || warn')
@@ -109,6 +112,8 @@ def helper_text(binding):
         lines.append("export " + key + "=" + shlex.quote(value))
     command = [binding["python"], "-I", "-B", str(Path(binding["source"]) / "ops/devlane/hooks/enforcement.py"),
                "--harness", binding["harness"], "--binding", binding["binding"]]
+    if binding.get("mcp_only"):
+        command.append("--mcp-only")
     lines += ['result=$(' + shlex.join(command) + ' --event "$event") || warn',
               '[ -n "$result" ] || warn', 'printf "%s\\n" "$result"', ""]
     return "\n".join(lines)
@@ -136,7 +141,7 @@ def normalized_settings(settings, helper):
     return settings
 
 
-def configuration(harness, native_home, helper, cwd, settings=None):
+def configuration(harness, native_home, helper, cwd, settings=None, *, mcp_only=False):
     configs = {}
     settings = normalized_settings(settings, helper)
     servers = settings.get("mcp_servers", {})
@@ -162,8 +167,9 @@ def configuration(harness, native_home, helper, cwd, settings=None):
     elif harness == "codex":
         configs[native_home / "hooks.json"] = canonical({"hooks": event_groups})
         prefix = "".join(json.dumps(key) + " = " + toml_value(value) + "\n" for key, value in sorted(settings.items()))
-        configs[native_home / "config.toml"] = (prefix + '[features]\nhooks = true\nunified_exec_tty = false\nshell_snapshot = false\nplugins = false\napps = false\nmulti_agent = false\n'
-             '\n[projects.' + json.dumps(str(cwd)) + ']\ntrust_level = "trusted"\n')
+        restrictions = ('shell_tool = false\nunified_exec = false\napply_patch_freeform = false\njs_repl = false\ncode_mode = false\n' if mcp_only else '')
+        configs[native_home / "config.toml"] = (prefix + '[features]\nhooks = true\nunified_exec_tty = false\nshell_snapshot = false\nplugins = false\napps = false\nmulti_agent = false\n' + restrictions
+             + '\n[projects.' + json.dumps(str(cwd)) + ']\ntrust_level = "trusted"\n')
     else:
         configs[native_home / "hooks/agentscient.json"] = canonical({"hooks": event_groups})
         if servers:
@@ -173,19 +179,25 @@ def configuration(harness, native_home, helper, cwd, settings=None):
 
 def generate(harness, destination, *, source, cwd, mode, home=None, session=None,
              agent=None, servers=(), executable=None, native_settings=None, credential_environment=None,
-             member_skills=False):
+             member_skills=False, mcp_only=False):
     if harness not in HARNESSES or mode not in {"interactive", "worker"}:
         raise ValueError("unknown harness or startup mode")
     if mode == "worker" and not session:
         raise ValueError("worker profile requires its issued assignment session")
+    if mcp_only and (harness not in MEMBER_HARNESSES or mode != "interactive"):
+        raise ValueError("MCP-only profiles currently require a persistent member harness")
     source, cwd, dest = Path(source).resolve(strict=True), Path(cwd).resolve(strict=True), Path(destination).absolute()
     if dest.exists() and (not dest.is_dir() or any(dest.iterdir())):
         raise ValueError("profile destination must be new or empty")
     dest.mkdir(parents=True, exist_ok=True, mode=0o700)
     native_home = Path(home).resolve(strict=True) if home else dest
     helper = dest / "guard.sh"
+    if mcp_only:
+        native_settings = {**(native_settings or {}), "mcp_servers": {
+            "coordination": coordination_server(harness, source, mcp_only=True)}}
+        servers = ("coordination",)
     native_settings = normalized_settings(native_settings, helper)
-    configs = configuration(harness, native_home, helper, cwd, native_settings)
+    configs = configuration(harness, native_home, helper, cwd, native_settings, mcp_only=mcp_only)
     for path, content in configs.items():
         if path.exists() or path.is_symlink():
             raise ValueError(f"refusing to replace existing native configuration: {path}")
@@ -205,7 +217,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "python": str(Path(sys.executable).resolve()), "session": session,
                "coordination_capability": secrets.token_hex(32),
                "servers": list(servers), "authority_environment": authority,
-               "native_settings": native_settings,
+               "native_settings": native_settings, "mcp_only": bool(mcp_only),
                "credential_environment": credential_environment or {},
                "pins": source_pins(source), "config_pins": config_pins, "member_skills": member_skills,
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
@@ -231,6 +243,13 @@ def validate(binding):
         raise ValueError("unknown profile projection")
     if binding.get("mode") not in {"worker", "interactive"} or (binding["mode"] == "worker" and not binding.get("session")):
         raise ValueError("invalid startup identity mode")
+    if binding.get("mcp_only"):
+        if binding["harness"] not in MEMBER_HARNESSES or binding["mode"] != "interactive":
+            raise ValueError("MCP-only profile requires a persistent member harness")
+        expected_servers = normalized_settings({"mcp_servers": {
+            "coordination": coordination_server(binding["harness"], binding["source"], mcp_only=True)}}, Path(binding["helper"]))["mcp_servers"]
+        if binding["servers"] != ["coordination"] or binding["native_settings"].get("mcp_servers") != expected_servers:
+            raise ValueError("MCP-only profile requires the private development entry")
     capability = binding.get("coordination_capability")
     if not isinstance(capability, str) or not re.fullmatch(r"[0-9a-f]{64}", capability):
         raise ValueError("missing or malformed coordination capability")
@@ -241,7 +260,7 @@ def validate(binding):
     registry = json.loads((Path(binding["source"]) / "ops/devlane/hooks/boundaries.json").read_text())
     if binding["harness"] == "agy" and any(row.get("engine") and row.get("event") in {"PostToolUse", "SessionStart"} for row in registry["rows"]):
         raise ValueError("agy lacks a verified immediate post-tool/start decision channel for these required rows")
-    expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"))
+    expected_configs = configuration(binding["harness"], Path(binding["home"]), Path(binding["helper"]), Path(binding["cwd"]), binding.get("native_settings"), mcp_only=binding.get("mcp_only", False))
     expected_pins = {str(path): hashlib.sha256(content.encode()).hexdigest() for path, content in expected_configs.items()}
     if binding.get("member_skills"):
         expected_pins.update(member_skill_pins(binding["home"], binding["source"]))
@@ -432,6 +451,8 @@ def native_launch(binding, argv, env):
     for key in ("CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE", "BOUNDARIES_PATH", "PYTHONPATH", "PYTHONSTARTUP"):
         out.pop(key, None)
     if harness == "claude":
+        if binding.get("mcp_only"):
+            tokens = ["--tools", "", *tokens]
         tokens = ["--setting-sources", "", "--settings", str(Path(binding["helper"]).parent / "settings.json"), *tokens]
         if binding.get("native_settings", {}).get("mcp_servers"):
             if "--mcp-config" in tokens:
@@ -569,14 +590,15 @@ def capture_custody(binding):
     return carry_back
 
 
-def coordination_server(harness, source):
+def coordination_server(harness, source, *, mcp_only=False):
     """The acting coordination server a member's profile registers (sessions-lever.md,
     Slice 2, "Required of the wall" (3)), replacing any operator copy of that name. It
     resolves its caller through AGENTSCIENT_HOOK_PROFILE, which normalized_settings
     adds. The codex bridge declines every approval its app-server asks, so codex
     approves this server's tools; the core's role gate still runs inside every verb."""
+    entry = "dev_mcp.py" if mcp_only else "coordination_mcp.py"
     server = {"command": str(Path(sys.executable).resolve()),
-              "args": ["-B", str(Path(source) / "ops/conductor/tools/coordination_mcp.py"), "serve"]}
+              "args": ["-B", str(Path(source) / "ops/conductor/tools" / entry), "serve"]}
     if harness == "codex":
         server["default_tools_approval_mode"] = "approve"
     return server
@@ -607,7 +629,7 @@ def install_member_skills(harness, home, source):
             copy.write(skill.read_text())
 
 
-def prepare_interactive(harness, destination, *, source, cwd, agent, executable):
+def prepare_interactive(harness, destination, *, source, cwd, agent, executable, mcp_only=False):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
     dest = Path(destination).absolute()
@@ -637,11 +659,12 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable)
         settings["mcp_servers"] = {**settings.get("mcp_servers", {}), "coordination": coordination_server(harness, source)}
     # Use exactly the existing credential leaves and renewal-custody mechanism.
     home = isolation.build_home(harness, dest / "home", env=env)
-    install_member_skills(harness, home, source)
+    if not mcp_only:
+        install_member_skills(harness, home, source)
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
                     agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
                     credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env},
-                    member_skills=True)
+                    member_skills=not mcp_only, mcp_only=mcp_only)
 
 
 def main(argv=None):
@@ -653,6 +676,7 @@ def main(argv=None):
     parser.add_argument("--cwd")
     parser.add_argument("--executable")
     parser.add_argument("--agent")
+    parser.add_argument("--mcp-only", action="store_true")
     tokens = list(sys.argv[1:] if argv is None else argv)
     split = tokens.index("--") if "--" in tokens else len(tokens)
     native_args = tokens[split + 1:]
@@ -675,7 +699,7 @@ def main(argv=None):
             if not all((args.harness, args.destination, args.cwd, args.executable, args.agent)):
                 raise ValueError("interactive preparation requires harness, destination, cwd, executable and agent")
             binding = prepare_interactive(args.harness, args.destination, source=Path(__file__).resolve().parents[3],
-                                          cwd=args.cwd, agent=args.agent, executable=args.executable)
+                                          cwd=args.cwd, agent=args.agent, executable=args.executable, mcp_only=args.mcp_only)
             print(binding["binding"])
     except Exception as exc:  # noqa: BLE001 - refusal must not import an unvalidated custody owner
         print(f"hook-profile: expected a complete pinned native projection; found {exc}; needed inspect co_doc.py and regenerate the reviewed profile", file=sys.stderr)

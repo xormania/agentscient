@@ -166,20 +166,61 @@ def evaluate(payload, *, servers=()):
     return decision(context=finding.get("reason") or finding.get("context", ""))
 
 
+def mcp_only_decision(harness, payload):
+    """Selected profile's tool boundary, separate from advisory repo diagnostics.
+
+    Inspect the original call before normalizing shell/patch payloads. Grok's
+    discovery wrapper is read-only; its execution wrapper must name this entry.
+    All unknown native project tools stay closed, including future additions.
+    """
+    import dev_mcp
+
+    tool = native.alias(payload, "tool_name", "toolName")
+    arguments = native.alias(payload, "tool_input", "toolInput", {})
+    if not isinstance(tool, str) or not isinstance(arguments, dict):
+        raise ValueError("MCP-only profile requires a named tool with object arguments")
+    controls = {"claude": {"EndConversation", "StructuredOutput"},
+                "codex": {"update_plan", "request_user_input"}, "grok": {"search_tool"}}
+    if tool in controls.get(harness, ()):
+        return decision()
+    if harness == "grok" and tool == "use_tool":
+        if set(arguments) != {"tool_name", "tool_input"}:
+            raise ValueError("MCP-only use_tool requires one target and its arguments")
+        tool, arguments = arguments["tool_name"], arguments["tool_input"]
+    prefixes = ["mcp__coordination__"]
+    if harness == "grok":
+        prefixes.append("coordination__")
+    for spec in dev_mcp.TOOLS:
+        if tool in [prefix + spec["name"] for prefix in prefixes]:
+            dev_mcp.arguments_for(spec, arguments)
+            return decision()
+    return decision("deny", "MCP-only profile: use the development entry's capability_search, "
+                    "capability_describe and capability_invoke for project operations.")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harness", choices=native.HARNESSES, required=True)
     parser.add_argument("--event", required=True)
     parser.add_argument("--binding", required=True)
+    parser.add_argument("--mcp-only", action="store_true")
     args = parser.parse_args(argv)
     result = refuse("unavailable guard")
     try:
         profiles = load("shared_hook_profiles", HERE / "profiles.py")
         binding = profiles.read_binding(args.binding)
         profiles.validate(binding)
+        if args.mcp_only != binding.get("mcp_only", False):
+            raise ValueError("MCP-only selection differs from its pinned helper")
         if binding["harness"] != args.harness:
             raise ValueError("harness binding mismatch")
         raw = native.loads(sys.stdin.buffer.read(native.MAX_BYTES + 1))
+        if args.mcp_only and args.event == "PreToolUse":
+            result = mcp_only_decision(args.harness, raw)
+            if result["outcome"] == "allow":
+                profiles.initialize(binding, raw, instrument=instrument)
+            print(json.dumps(native.respond(args.harness, result, args.event)))
+            return 0
         profiles.initialize(binding, raw, instrument=instrument)
         items = native.normalize(args.harness, raw, event=args.event, cwd=binding["cwd"], home=binding["home"])
         rewritten = None
@@ -197,7 +238,7 @@ def main(argv=None):
     except Exception as exc:  # noqa: BLE001 - native hooks must answer even on a broken binding
         result = refuse(type(exc).__name__ + ": " + str(exc)[:240])
     result["context"] = result.get("context") or result.get("reason", "")
-    result["advisory"] = True
+    result["advisory"] = not (args.mcp_only and args.event == "PreToolUse")
     print(json.dumps(native.respond(args.harness, result, args.event)))
     return 0
 

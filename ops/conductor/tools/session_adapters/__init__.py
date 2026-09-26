@@ -54,9 +54,14 @@ def marker(message: str) -> str:
     return f"[coordination {message}]"
 
 
-def envelope(row: dict) -> str:
+def envelope(row: dict, *, mcp_only=False) -> str:
     """One queued message as the text a native session receives."""
     message = row.get("message")
+    if mcp_only:
+        return (f"{marker(message)} {row.get('purpose')} from {row.get('sender')}: {row.get('body')}\n"
+                f"Use capability_describe for coord_ack and coord_send, then capability_invoke. "
+                f"Acknowledge message {message}; answer a request with coord_send's reply_to={message}. "
+                "Keep this native session; live replies do not require dispatch.")
     return (f"{marker(message)} {row.get('purpose')} from {row.get('sender')}: {row.get('body')}\n"
             f"Acknowledge it with coord_ack {message}; answer a request with coord_send "
             f"--reply-to {message}.")
