@@ -8,7 +8,8 @@ import time
 from pathlib import Path
 
 SENSITIVE = re.compile(
-    r"api.?key|authorization|password|credential|private.?key|access.?token|refresh.?token|^tokens?$", re.I
+    r"api.?key|authorization|password|credential|private.?key|access.?token|refresh.?token|(^|_)token($|_)|^tokens?$",
+    re.I,
 )
 
 

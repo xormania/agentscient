@@ -73,6 +73,8 @@ def prepare(directory, member, harness):
     private = directory / "profiles" / member
     private.mkdir(parents=True, exist_ok=True, mode=0o700)
     env = os.environ.copy()
+    # Grok gets a private HOME below; the server still uses the operator's GitHub OAuth session.
+    env.setdefault("GH_CONFIG_DIR", str(Path(env.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "gh"))
     for key in (
         "PYTHONPATH",
         "PYTHONSTARTUP",

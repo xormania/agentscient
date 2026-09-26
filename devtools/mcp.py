@@ -86,8 +86,17 @@ def serve(directory, member, channel=False):
         except Exception as error:
             write({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
 
+    def watches():
+        initialized.wait()
+        while not stopped.wait(1):
+            try:
+                api.github.tick()
+            except Exception as error:
+                api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
+
     if channel:
         threading.Thread(target=channels, daemon=True).start()
+    threading.Thread(target=watches, daemon=True).start()
     with ThreadPoolExecutor(max_workers=4) as pool:
         try:
             while line := sys.stdin.buffer.readline(MAX_FRAME + 1):

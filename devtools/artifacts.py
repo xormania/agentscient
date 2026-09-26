@@ -5,13 +5,14 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+import json
 import mimetypes
 import os
 import stat
 import tempfile
 from pathlib import Path
 
-from .store import UNSET, stamp
+from .store import UNSET, canonical, stamp
 from .work import Work, artifact_record
 
 
@@ -67,11 +68,19 @@ class Artifacts:
             stream = io.BytesIO(content.encode("utf8"))
         else:
             raise ValueError("Use utf8 or base64 for inline content.")
+        return self.ingest(name, stream, media_type, work_order=work_order, job=job, source_file=source is not None)
+
+    def ingest(
+        self, name, stream, media_type, *, work_order=UNSET, job=UNSET, source_file=False, provenance=None, maximum=None
+    ):
+        """Service-only stream ingestion; MCP callers cannot supply paths outside their workspace."""
         temporary = None
         try:
+            with self.store.connect() as db:
+                work_order, job = self.store.current_work(db, self.member, work_order, job)
             self.root.mkdir(mode=0o700, exist_ok=True)
             self._path("artifacts/check")
-            before = os.fstat(stream.fileno()) if source is not None else None
+            before = os.fstat(stream.fileno()) if source_file else None
             with tempfile.NamedTemporaryFile(dir=self.root, prefix=".save-", delete=False) as target:
                 temporary = Path(target.name)
                 digest, size = hashlib.sha256(), 0
@@ -79,6 +88,8 @@ class Artifacts:
                     target.write(block)
                     digest.update(block)
                     size += len(block)
+                    if maximum is not None and size > maximum:
+                        raise ValueError("Artifact exceeds the configured byte limit.")
                 target.flush()
                 os.fsync(target.fileno())
             if before is not None:
@@ -122,6 +133,11 @@ class Artifacts:
                     )
                 if work_order is not None:
                     Work(self.store, self.member).attach(db, work_order, job, "artifact", str(ident))
+                if provenance:
+                    db.execute(
+                        "INSERT OR IGNORE INTO artifact_sources(artifact,provider,reference,metadata) VALUES (?,?,?,?)",
+                        (ident, provenance["provider"], provenance["reference"], canonical(provenance)),
+                    )
                 return {
                     "artifact": artifact_record(db, ident),
                     "work_order": work_order,
@@ -152,6 +168,12 @@ class Artifacts:
         with self.store.connect() as db:
             result = {"artifact": artifact_record(db, artifact)}
             row = db.execute("SELECT * FROM artifacts WHERE id=?", (artifact,)).fetchone()
+            result["sources"] = [
+                json.loads(r[0])
+                for r in db.execute(
+                    "SELECT metadata FROM artifact_sources WHERE artifact=? ORDER BY provider,reference", (artifact,)
+                )
+            ]
             result["work"] = [
                 dict(r)
                 for r in db.execute(
