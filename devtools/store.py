@@ -241,7 +241,7 @@ class Store:
                 else:
                     raise ValueError("This member already has a running session.")
             db.execute(
-                "UPDATE members SET generation=?,pid=?,state='starting',desired='running',updated=? WHERE name=?",
+                "UPDATE members SET generation=?,native_id=NULL,pid=?,state='starting',desired='running',updated=? WHERE name=?",
                 (generation, pid, stamp(), name),
             )
             # A crashed transport may have delivered before recording success. Preserve uncertainty.

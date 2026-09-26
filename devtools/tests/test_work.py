@@ -93,6 +93,11 @@ class WorkTests(unittest.TestCase):
         usage = alpha.invoke("telemetry_usage", job=job)["events"][0]
         self.assertEqual(order, usage["work_order"])
         self.assertEqual("fixture-conversation", usage["data"]["native_id"])
+        generation = self.store.begin_session("alpha", os.getpid())
+        starting = alpha.invoke("telemetry_events", job=job, kind="session_starting")["events"][0]
+        self.assertEqual(generation, starting["data"]["generation"])
+        self.assertNotIn("native_id", starting["data"])
+        self.assertIsNone(self.store.member("alpha")["native_id"])
         alpha.close()
         restarted = self.client()
         recovered = restarted.invoke("job_get")
