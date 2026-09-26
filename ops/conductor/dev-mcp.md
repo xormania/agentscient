@@ -28,6 +28,12 @@ not replace the session's private capability. `--evidence-config FILE` accepts
 the existing lane_mcp configuration; without it, evidence capabilities describe
 their missing configuration and messaging stays usable. Options precede the verb.
 
+`--serena-python FILE` selects the isolated Serena v2 REPL provider for Symfony
+prod-lane discovery and edits. `--workspace PATH` can bind a standalone entry;
+issued profiles use their trusted worktree and reject a conflicting override.
+Discover `code_status`, `code_repl` and `code_restart` through the same three tools.
+See [provider installation, receipts and PHP evidence](../devlane/providers/README.md).
+
 Search returns at most ten capability cards, with `next_offset` for further
 pages. Describe returns one complete input schema. Call that schema through
 `capability_invoke` with `capability` and `arguments`; returning a schema as data
@@ -54,6 +60,9 @@ The operator can start each participating member with the existing supervisor:
 ```sh
 python3 -B ops/conductor/tools/sessions.py start --member NAME --mcp-only
 ```
+
+Add `--serena-python /absolute/serena-v2/bin/python` to enable private prod-lane
+code work. This option requires `--mcp-only` and adds no agent-facing server.
 
 Use the normal `--team`, `--run` and `--worktree` options as needed. Select
 `--mcp-only` for every participating member and again when starting a replacement
@@ -118,7 +127,8 @@ channel capability probe; the profile does not add a live ingress channel or
 claim that its busy delivery works. Do not enable native shell as a fallback
 for a missing capability.
 
-Serena v2 REPL, project actions, Mate, custom Makers and the complete local
-acceptance remain stages of
+The private Serena v2 REPL route has passed its real PHP fixture check; native
+participant acceptance is still open. Project actions, Mate, custom Makers and
+the complete local acceptance remain stages of
 [the readiness handoff](../../docs/dev-lane-mcp-readiness.md). The legacy
 coordination and evidence server entry points remain compatible.

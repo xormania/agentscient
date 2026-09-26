@@ -3,6 +3,7 @@
     ".claude/skills/pr-overview/tests/test_collect_rows.py",
     "ops/conductor/tests/test_board_contract.py",
     "ops/conductor/tests/test_ci_store.py",
+    "ops/conductor/tests/test_code_work.py",
     "ops/conductor/tests/test_dev_mcp.py",
     "ops/conductor/tests/test_findings.py",
     "ops/conductor/tests/test_findings_calibration.py",
