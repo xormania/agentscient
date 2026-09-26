@@ -91,6 +91,7 @@ class CodeWork(unittest.TestCase):
             self.assertIn("'disableStatsbeat': True", telemetry["text"])
             self.assertEqual(self.cell("os.environ['SERENA_USAGE_REPORTING']")["text"], "false")
         self.assertFalse((self.root / ".serena").exists())
+        self.assertEqual(self.entry.code.provider.runtime.stat().st_mode & 0o777, 0o700)
         self.assertEqual(self.invoke("code_status")["scope"], "prod-lane")
 
     def test_edit_then_textual_error_is_recorded_and_invalidates_checks(self):

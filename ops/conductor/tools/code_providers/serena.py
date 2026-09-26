@@ -78,6 +78,8 @@ class Provider:
         # Package transport settings are allowed; harness identities, publication
         # credentials, SSH agents and lane/store environment are not inherited.
         env = {key: os.environ[key] for key in ENVIRONMENT if key in os.environ}
+        # The log is beside the private home; protect their common directory too.
+        self.runtime.mkdir(parents=True, exist_ok=True, mode=0o700)
         home = self.runtime / "home"
         project_data = self.runtime / "project"
         for directory in (home, project_data):
