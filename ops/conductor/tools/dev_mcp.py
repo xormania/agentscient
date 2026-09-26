@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Small MCP entry for live development; existing services own all state.
 
-    dev_mcp.py [--binding FILE] [--evidence-config FILE] check | serve
+    dev_mcp.py [--binding FILE] [--evidence-config FILE] [--serena-python FILE] [--workspace PATH] check | serve
 
 Only search, describe and invoke are exposed initially. Dispatch remains a
 separate, explicitly requested adapter; this entry never launches workers.
@@ -11,6 +11,7 @@ import re
 import sys
 from pathlib import Path
 
+import code_work
 import coordination_mcp as coordination
 import mcp_transport
 from instrument import Refusal, refuse
@@ -97,12 +98,15 @@ def arguments_for(tool, arguments):
 
 
 class Entry:
-    def __init__(self, binding=None, evidence=None):
+    def __init__(self, binding=None, evidence=None, *, serena_python=None, workspace=None):
         self.binding = binding
         self.evidence = evidence
+        self.code = code_work.CodeWork(serena_python, workspace)
         self.catalogue = {row["name"]: row for row in coordination._schemas()}
         for tool in LIVE_TOOLS:
             self.catalogue[tool.name] = schema(tool.name, tool.summary, tool.properties, tool.required)
+        for name, (description, properties, required) in code_work.CAPABILITIES.items():
+            self.catalogue[name] = schema(name, description, properties, required, mutates=name != "code_status")
         # The optional evidence adapter can be absent without blocking messages.
         import lane_mcp
         self.catalogue.update({row["name"]: row for row in lane_mcp._schemas(
@@ -116,7 +120,9 @@ class Entry:
         reason = None
         if name.startswith("lane_") and self.evidence is None:
             reason = "No evidence configuration; start with --evidence-config FILE."
-        if name in COORD_NAMES and self.binding is not None and name not in self.binding["capabilities"]:
+        if name in code_work.CAPABILITIES and name != "code_status":
+            reason = self.code.unavailable()
+        if name in COORD_NAMES | set(code_work.CAPABILITIES) and self.binding is not None and name not in self.binding["capabilities"]:
             reason = "This launch binding does not permit the capability."
         return {"name": name, "description": row["description"],
                 "mutates": not row["annotations"]["readOnlyHint"],
@@ -137,6 +143,9 @@ class Entry:
         card = self.card(name)
         if not card["available"]:
             refuse("capability", "an available capability", name, card["reason"])
+        if name in code_work.CAPABILITIES:
+            checked = arguments_for(self.catalogue[name], arguments)
+            return self.code.call(self.binding, name, checked)
         if name in coordination.BY_NAME:
             return coordination.call(self.binding, name, dict(arguments))
         if name in LIVE_BY_NAME:
@@ -193,13 +202,18 @@ class Entry:
             return mcp_transport.error(identifier, -32603, f"Internal error: {type(exc).__name__}")
         message = coordination._call_result(identifier, payload)
         if coordination.over_bound(message):
-            message = coordination._call_result(identifier, coordination.unavailable(payload))
+            reading = coordination.unavailable(payload)
+            for key in ("source_event", "source_fingerprint", "provider_epoch", "cell_outcome", "verification_invalidated"):
+                if key in payload:
+                    reading[key] = payload[key]
+            message = coordination._call_result(identifier, reading)
         return message
 
     def dispatch(self, request):
         return mcp_transport.dispatch(request, self.route, strict_initialize=True, server={
             "serverInfo": {"name": SERVER_NAME, "version": "1"},
-            "capabilities": {"tools": {"listChanged": False}}, "instructions": INSTRUCTIONS,
+            "capabilities": {"tools": {"listChanged": False}},
+            "instructions": INSTRUCTIONS + (" " + code_work.INSTRUCTIONS if self.code.python else ""),
         })
 
     def check(self):
@@ -209,6 +223,7 @@ class Entry:
                 "communication": "live", "dispatch": "separate; explicit user request only",
                 "binding": "config" if self.binding is not None else "session",
                 "evidence": "configured" if self.evidence is not None else "unavailable",
+                "serena": self.code.unavailable() or "configured; validate with a real prod-lane code call",
                 "native_harness_restrictions": "not established by this adapter"}
 
 
@@ -217,24 +232,27 @@ def main():
         args = sys.argv[1:]
         options = {}
         while args and args[0].startswith("--"):
-            if len(args) < 2 or args[0] not in ("--binding", "--evidence-config") or args[0] in options:
-                refuse("arguments", "[--binding FILE] [--evidence-config FILE] check | serve",
+            if len(args) < 2 or args[0] not in ("--binding", "--evidence-config", "--serena-python", "--workspace") or args[0] in options:
+                refuse("arguments", "[--binding FILE] [--evidence-config FILE] [--serena-python FILE] [--workspace PATH] check | serve",
                        coordination.clip(args), "use each declared option once")
             options[args[0]] = Path(args[1])
             args = args[2:]
         if args not in (["check"], ["serve"]):
             refuse("arguments", "check or serve", coordination.clip(args), "select a declared verb")
-        binding = (coordination.load_config(options["--binding"], catalogue=COORD_NAMES)
+        binding = (coordination.load_config(options["--binding"], catalogue=COORD_NAMES | set(code_work.CAPABILITIES))
                    if "--binding" in options else None)
         evidence = None
         if "--evidence-config" in options:
             import lane_mcp
             evidence = lane_mcp.load_config(options["--evidence-config"])
-        entry = Entry(binding, evidence)
+        entry = Entry(binding, evidence, serena_python=options.get("--serena-python"), workspace=options.get("--workspace"))
         if args == ["check"]:
             print(coordination.canonical(entry.check()))
             return 0
-        return mcp_transport.serve(sys.stdin.buffer, entry.dispatch, coordination._send)
+        try:
+            return mcp_transport.serve(sys.stdin.buffer, entry.dispatch, coordination._send)
+        finally:
+            entry.code.close()
     except Refusal as exc:
         print(exc.line(), file=sys.stderr)
         return 2

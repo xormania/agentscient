@@ -24,12 +24,31 @@ class McpOnlyProfiles(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
-    def profile(self, harness, *, mcp_only=True):
+    def profile(self, harness, *, mcp_only=True, serena_python=None):
         return profiles.generate(harness, self.world.root / (harness + str(mcp_only)),
                                  source=ROOT, cwd=self.world.cwd, mode="interactive",
                                  executable=sys.executable, agent="Codex <test@example.test>",
                                  native_settings={"model": "operator-choice", "mcp_servers": {
-                                     "unrelated": {"command": "/usr/bin/false"}}}, mcp_only=mcp_only)
+                                     "unrelated": {"command": "/usr/bin/false"}}}, mcp_only=mcp_only,
+                                 serena_python=serena_python)
+
+    def test_private_serena_selection_keeps_venv_path_and_one_mcp_entry(self):
+        python = self.world.root / "provider/bin/python"
+        python.parent.mkdir(parents=True)
+        python.symlink_to(sys.executable)
+        for harness in profiles.MEMBER_HARNESSES:
+            with self.subTest(harness=harness):
+                binding = self.profile(harness, serena_python=python)
+                profiles.validate(binding)
+                self.assertEqual(binding["serena_python"], str(python))
+                servers = binding["native_settings"]["mcp_servers"]
+                self.assertEqual(set(servers), {"coordination"})
+                args = servers["coordination"]["args"]
+                self.assertEqual(args[args.index("--serena-python") + 1], str(python))
+                if harness == "codex":
+                    self.assertEqual(servers["coordination"]["tool_timeout_sec"], 240)
+        with self.assertRaises(ValueError):
+            self.profile("claude", mcp_only=False, serena_python=python)
 
     def hook(self, binding, tool, arguments=None, *, event="PreToolUse"):
         payload = {"session_id": "native-" + binding["harness"], "cwd": str(self.world.cwd),

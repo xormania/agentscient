@@ -2,13 +2,13 @@
 
 Date: 2026-09-25  
 Owner: xor  
-Status: Implementation handoff; stage requirements and acceptance criteria, not a detailed implementation plan. The first implementation slice adds the progressive MCP entry; native harness restrictions and stages 2–7 still require implementation and acceptance.
+Status: Implementation handoff; stage requirements and acceptance criteria, not a detailed implementation plan. Progressive discovery, MCP-only profile selection and the private Serena v2 PHP provider are implemented. Native participant acceptance and stages 4–7 remain open.
 
 ## Objective and overall done
 
 Make the existing dev-lane usable locally to develop the Agentscient Symfony application through MCP, with persistent Codex, Claude Code, and Grok sessions communicating live.
 
-The dev-lane manages assignments, live peer communication, project execution, source state, and results. Persistent harnesses communicate directly while work is in progress. Dispatch remains available only when the owner explicitly requests it; agents must not choose it as the default workflow or a fallback. Serena v2 beta with REPL enabled provides code discovery and editing. Symfony AI Mate provides Symfony inspection. Custom Makers generate selected repeatable structures. Named project actions provide the remaining capabilities needed to finish the work.
+The dev-lane manages assignments, live peer communication, project execution, source state, and results. Persistent harnesses communicate directly while work is in progress. Dispatch remains available only when the owner explicitly requests it; agents must not choose it as the default workflow or a fallback. Serena v2 beta with REPL enabled provides discovery and editing of the Symfony prod-lane, not development of the dev-lane tools. Symfony AI Mate provides Symfony inspection. Custom Makers generate selected repeatable structures. Named project actions provide the remaining capabilities needed to finish the work.
 
 **Done means a useful prod-lane change has been developed, communicated about, checked, and handed off through this arrangement on the actual local harnesses.** Starting servers, passing mocks, exchanging a greeting, or generating an empty scaffold is insufficient.
 
@@ -141,6 +141,14 @@ canaries and the three-harness live exchange below are still required.
 ## Stage 3 — Serena v2 beta REPL for PHP code work
 
 **Outcome:** Agents understand and modify the Symfony source through Serena while the dev-lane retains the work record.
+
+**Implementation status (2026-09-26):** The private provider is selectable with
+`--mcp-only --serena-python FILE`. The real dev-lane → Serena MCP PHP fixture
+passed discovery, references, edits, persistent variables, partial-error source
+accounting and restart with an unchanged assignment. Provider tests cover
+isolation, stale bindings/source, lost state and response bounds. This does not
+complete the native-participant acceptance below. See the
+[provider runbook and evidence](../ops/devlane/providers/README.md).
 
 **Requirements**
 

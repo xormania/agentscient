@@ -182,13 +182,16 @@ def configuration(harness, native_home, helper, cwd, settings=None, *, mcp_only=
 
 def generate(harness, destination, *, source, cwd, mode, home=None, session=None,
              agent=None, servers=(), executable=None, native_settings=None, credential_environment=None,
-             member_skills=False, mcp_only=False):
+             member_skills=False, mcp_only=False, serena_python=None):
     if harness not in HARNESSES or mode not in {"interactive", "worker"}:
         raise ValueError("unknown harness or startup mode")
     if mode == "worker" and not session:
         raise ValueError("worker profile requires its issued assignment session")
     if mcp_only and (harness not in MEMBER_HARNESSES or mode != "interactive"):
         raise ValueError("MCP-only profiles currently require a persistent member harness")
+    if serena_python and not mcp_only:
+        raise ValueError("the private Serena provider requires --mcp-only")
+    serena_python = os.path.abspath(serena_python) if serena_python else None
     source, cwd, dest = Path(source).resolve(strict=True), Path(cwd).resolve(strict=True), Path(destination).absolute()
     if dest.exists() and (not dest.is_dir() or any(dest.iterdir())):
         raise ValueError("profile destination must be new or empty")
@@ -197,7 +200,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
     helper = dest / "guard.sh"
     if mcp_only:
         native_settings = {**(native_settings or {}), "mcp_servers": {
-            "coordination": coordination_server(harness, source, mcp_only=True)}}
+            "coordination": coordination_server(harness, source, mcp_only=True, serena_python=serena_python)}}
         servers = ("coordination",)
     native_settings = normalized_settings(native_settings, helper)
     configs = configuration(harness, native_home, helper, cwd, native_settings, mcp_only=mcp_only)
@@ -220,7 +223,7 @@ def generate(harness, destination, *, source, cwd, mode, home=None, session=None
                "python": str(Path(sys.executable).resolve()), "session": session,
                "coordination_capability": secrets.token_hex(32),
                "servers": list(servers), "authority_environment": authority,
-               "native_settings": native_settings, "mcp_only": bool(mcp_only),
+               "native_settings": native_settings, "mcp_only": bool(mcp_only), "serena_python": serena_python,
                "credential_environment": credential_environment or {},
                "pins": source_pins(source), "config_pins": config_pins, "member_skills": member_skills,
                "executable": str(Path(executable).resolve(strict=True)) if executable else None,
@@ -250,7 +253,8 @@ def validate(binding):
         if binding["harness"] not in MEMBER_HARNESSES or binding["mode"] != "interactive":
             raise ValueError("MCP-only profile requires a persistent member harness")
         expected_servers = normalized_settings({"mcp_servers": {
-            "coordination": coordination_server(binding["harness"], binding["source"], mcp_only=True)}}, Path(binding["helper"]))["mcp_servers"]
+            "coordination": coordination_server(binding["harness"], binding["source"], mcp_only=True,
+                                                serena_python=binding.get("serena_python"))}}, Path(binding["helper"]))["mcp_servers"]
         if binding["servers"] != ["coordination"] or binding["native_settings"].get("mcp_servers") != expected_servers:
             raise ValueError("MCP-only profile requires the private development entry")
     capability = binding.get("coordination_capability")
@@ -599,7 +603,7 @@ def capture_custody(binding):
     return carry_back
 
 
-def coordination_server(harness, source, *, mcp_only=False):
+def coordination_server(harness, source, *, mcp_only=False, serena_python=None):
     """The acting coordination server a member's profile registers (sessions-lever.md,
     Slice 2, "Required of the wall" (3)), replacing any operator copy of that name. It
     resolves its caller through AGENTSCIENT_HOOK_PROFILE, which normalized_settings
@@ -607,9 +611,12 @@ def coordination_server(harness, source, *, mcp_only=False):
     approves this server's tools; the core's role gate still runs inside every verb."""
     entry = "dev_mcp.py" if mcp_only else "coordination_mcp.py"
     server = {"command": str(Path(sys.executable).resolve()),
-              "args": ["-B", str(Path(source) / "ops/conductor/tools" / entry), "serve"]}
+              "args": ["-B", str(Path(source) / "ops/conductor/tools" / entry),
+                       *(["--serena-python", str(serena_python)] if mcp_only and serena_python else []), "serve"]}
     if harness == "codex":
         server["default_tools_approval_mode"] = "approve"
+        if serena_python:
+            server["tool_timeout_sec"] = 240
     return server
 
 
@@ -638,7 +645,7 @@ def install_member_skills(harness, home, source):
             copy.write(skill.read_text())
 
 
-def prepare_interactive(harness, destination, *, source, cwd, agent, executable, mcp_only=False):
+def prepare_interactive(harness, destination, *, source, cwd, agent, executable, mcp_only=False, serena_python=None):
     """Reuse credential custody and project existing registered MCP definitions."""
     isolation = isolation_owner()
     dest = Path(destination).absolute()
@@ -673,7 +680,7 @@ def prepare_interactive(harness, destination, *, source, cwd, agent, executable,
     return generate(harness, dest / "profile", source=source, cwd=cwd, mode="interactive", home=home,
                     agent=agent, executable=executable, servers=tuple(settings.get("mcp_servers", {})), native_settings=settings,
                     credential_environment={key: env[key] for key in ("HOME", "CODEX_HOME", "GROK_HOME") if key in env},
-                    member_skills=not mcp_only, mcp_only=mcp_only)
+                    member_skills=not mcp_only, mcp_only=mcp_only, serena_python=serena_python)
 
 
 def main(argv=None):
@@ -686,6 +693,7 @@ def main(argv=None):
     parser.add_argument("--executable")
     parser.add_argument("--agent")
     parser.add_argument("--mcp-only", action="store_true")
+    parser.add_argument("--serena-python")
     tokens = list(sys.argv[1:] if argv is None else argv)
     split = tokens.index("--") if "--" in tokens else len(tokens)
     native_args = tokens[split + 1:]
@@ -708,7 +716,8 @@ def main(argv=None):
             if not all((args.harness, args.destination, args.cwd, args.executable, args.agent)):
                 raise ValueError("interactive preparation requires harness, destination, cwd, executable and agent")
             binding = prepare_interactive(args.harness, args.destination, source=Path(__file__).resolve().parents[3],
-                                          cwd=args.cwd, agent=args.agent, executable=args.executable, mcp_only=args.mcp_only)
+                                          cwd=args.cwd, agent=args.agent, executable=args.executable,
+                                          mcp_only=args.mcp_only, serena_python=args.serena_python)
             print(binding["binding"])
     except Exception as exc:  # noqa: BLE001 - refusal must not import an unvalidated custody owner
         print(f"hook-profile: expected a complete pinned native projection; found {exc}; needed inspect co_doc.py and regenerate the reviewed profile", file=sys.stderr)
