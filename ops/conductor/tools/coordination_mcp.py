@@ -320,7 +320,7 @@ def paged(name: str, payload, cursor):
 
 # -- the config binding ----------------------------------------------------
 
-def load_config(path: Path) -> dict:
+def load_config(path: Path, *, catalogue=None) -> dict:
     """The acting config, validated against its own exact key set.
 
     Its own file and its own version: the read server's config is not
@@ -364,7 +364,7 @@ def load_config(path: Path) -> dict:
             or any(not isinstance(item, str) for item in capabilities)):
         refuse("config", "capabilities as a list of tool names",
                repr(capabilities), "write the tool names this binding may call")
-    stranger = sorted(set(capabilities) - set(BY_NAME))
+    stranger = sorted(set(capabilities) - set(BY_NAME if catalogue is None else catalogue))
     if stranger:
         refuse("config", "capabilities drawn from this server's catalogue",
                f"{stranger}", "remove the names this server does not carry")
