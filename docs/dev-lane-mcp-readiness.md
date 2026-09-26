@@ -1,6 +1,6 @@
 # Agentscient dev-lane: MCP readiness stages
 
-Date: 2026-09-25  
+Date: 2026-09-26  
 Owner: xor  
 Status: Implementation handoff; stage requirements and acceptance criteria, not a detailed implementation plan. Progressive discovery, MCP-only profile selection and the private Serena v2 PHP provider are implemented. Native participant acceptance and stages 4–7 remain open.
 
@@ -13,6 +13,12 @@ The dev-lane manages assignments, live peer communication, project execution, so
 **Done means a useful prod-lane change has been developed, communicated about, checked, and handed off through this arrangement on the actual local harnesses.** Starting servers, passing mocks, exchanging a greeting, or generating an empty scaffold is insufficient.
 
 This handoff does not ask for another general dev-lane redesign. Models implementing a stage choose its internal design and reuse existing components. xor's later direction can change the stages or their boundaries.
+
+**Setup scope (owner, 2026-09-26):** Prepare the prod-lane foundation and configure
+the dev-lane so local agents can implement the product correctly. Completing the
+product is outside this setup task. The bounded live acceptance task demonstrates
+that the tools, approved patterns and checks work; it does not expand into delivery
+of the remaining product features.
 
 ## Starting point: verified facts
 
@@ -81,7 +87,7 @@ The dev-lane remains independently operable without the Symfony kernel or vendor
 | 3. Serena v2 code work | PHP discovery and edits work through the dev-lane with persistent REPL state |
 | 4. Project execution and source lifecycle | Agents can build, check, manage dependencies, and hand off changes without shell |
 | 5. Mate integration | Agents can inspect the actual Symfony application through MCP |
-| 6. Maker integration | Existing Makers are reused; custom generation follows a demonstrated recurring need |
+| 6. Maker integration | Agents can generate approved Symfony structures through MCP, with checks that detect departures from the selected pattern |
 | 7. Live development and handoff | The assembled system completes a real prod-lane task locally |
 
 The stages describe outcomes, not mandatory PR counts or separate management processes. Combine compatible work and checks. Exercise live communication early, then reuse those sessions and checks as development capabilities become available.
@@ -247,30 +253,39 @@ catalogue of all Symfony features or a new context/permission engine.
 
 ## Stage 6 — Custom Makers for repeatable project patterns
 
-**Outcome:** Generation saves work on a demonstrated recurring structure.
+**Outcome:** Makers establish the correct starting implementation for selected
+recurring structures. Agents reuse approved PHP/Symfony patterns instead of
+redesigning their wiring on every task.
 
-**Current decision (owner, 2026-09-26):** Use Symfony and PHP's native features
-first. MCP Bundle discovers `#[McpTool]` on an autoconfigured service method;
-Symfony autowires its dependencies. Serena can make that source edit directly.
-There is no default wrapper layer and no custom generator for adding this
-attribute. MakerBundle is available in dev/test; no custom Maker or MCP generation
-capability is included until selected product work establishes a need.
+**Current implementation:** MakerBundle is available in dev/test. Custom Makers
+and MCP generation are not implemented; this stage remains open. The native MCP
+attribute/autowiring fixture proves one framework connection, not Maker readiness.
+
+**Design decision:** Native features are what a Maker should generate where they
+fit. For an existing suitable service, adding `#[McpTool]` can be a direct Serena
+edit. For a matching new structure, the approved Maker supplies the typed boundary,
+attributes and dependency wiring. Neither case implies a separate wrapper layer.
 
 **Requirements**
 
 - Inspect the installed PHP/Symfony APIs, attributes, autowiring and autoconfiguration before designing custom scaffolding. Reuse an existing Maker if it covers the selected work.
-- Implement a custom Maker only for a concrete recurring pattern whose remaining work is not already handled by native features. A wrapper example in an earlier plan is not an architectural requirement.
+- Select the patterns needed by the upcoming local assignments from the existing product requirements. Define their responsibility, allowed changes, native facilities, dependencies, observable wiring and meaningful failure cases. This preparation does not require implementing the product first.
+- Use an existing Maker where its output meets the pattern. Otherwise use a project-owned `AbstractMaker` and Symfony's generator; the installed MakerBundle autoconfigures `MakerInterface` services. Do not build a parallel template or registration framework. Keep development tooling outside the production runtime.
 - Expose it through a custom Mate tool or the existing Symfony action adapter; choose the smaller integration. Supply all required parameters without interactive prompts.
-- Validate names, targets, dependencies, and collisions before writing. Do not overwrite unrelated existing implementation; return generated/changed paths and useful diagnostics.
+- Provide preview without target-checkout writes, declaring or isolating kernel/cache effects. Validate names, targets, dependencies and relevant path/class/registration collisions before bounded application. Return a machine-readable manifest with inputs, changed paths and Maker/pattern revision. Do not overwrite unrelated implementation or change dependencies without the task requiring it.
 - Register generation as a source mutation in the same assignment. Serena performs the subsequent implementation and edits.
+- Deliver the relevant pattern and its limits through the existing project-context/skill path and task handoff, including after session resume. A matching Maker is the normal starting path, not a reason to regenerate existing code for ordinary edits.
 - Keep generator logic/templates project-owned and dependency versions pinned. Verify generated output against this project's Symfony version.
+- Preserve the pattern through behavior and wiring checks after subsequent Serena edits. CI accepts the resulting implementation, not the appearance of a Maker command in a transcript. Explain a necessary alternative in the existing review; no extra approval process is introduced.
 
 **Done when**
 
-- A native participant discovers the custom generation capability and invokes it through MCP.
-- Generated code loads and follows the selected pattern; Serena can complete or modify it.
-- A meaningful integration check exercises the generated connection. A skeleton test alone is not behavioral evidence.
-- Repeating generation against an existing target or providing an invalid target produces the documented result without clobbering work.
+- A native participant discovers the approved generation capability and invokes it through MCP.
+- Preview leaves the target unchanged; apply changes only the declared paths and enters the existing source-change accounting.
+- Generated code loads and follows the selected pattern, using native attributes/autowiring where appropriate; Serena can complete or modify it. A compiled but unfinished skeleton is reported as incomplete, not successful product behavior.
+- A meaningful integration check exercises the generated connection and catches a planted wrong binding or behavior after a later edit. Generated test scaffolding alone is not an independent acceptance oracle.
+- Repeating generation against an existing target produces a no-op or explicit conflict; invalid targets and collisions leave existing work intact.
+- A fresh and a resumed local participant can find the applicable pattern, generate it and run its checks without inventing parallel infrastructure. Installing MakerBundle or adding guidance alone does not satisfy this stage.
 
 **May change:** Development dependency/configuration, custom Maker/template files, the exposing tool, and focused generator fixtures.  
 **Do not touch:** Vendor templates, unrelated application services, or a broad generation framework. Generated code does not become a runtime dependency on MakerBundle.
