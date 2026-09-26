@@ -217,7 +217,9 @@ is needed. CI runs this smoke. Python fixtures additionally cover missing PHP or
 vendor, bindings, partial writes, bounded output and process cleanup. These checks
 do not claim installed native-harness or complete local workflow acceptance.
 
-The prod CI uses the latest patch on PHP 8.5 and enforces Composer platform
+The prod CI selects the latest PHP 8.5 patch on hosted runners. Self-hosted
+Linux/X64 jobs use a checksum-pinned PHP 8.5.11 binary in their temporary
+directory, leaving the host's global PHP unchanged. Both enforce Composer platform
 requirements. Its artifact records the locked baseline and available direct
 dependency updates. The current-version check on 2026-09-26 used
 [PHP releases](https://www.php.net/releases/) and

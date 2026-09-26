@@ -144,7 +144,7 @@ def main():
         config.write_text(json.dumps({"version": 1, "provider": "symfony", "php": php, "environment": "test"}))
         env = world.env(extra={"LANE_CONF": str(conf), "WF_AGENT": "Codex <test@example.test>",
                                "CLAUDE_CODE_SESSION_ID": "smoke", "COORDINATION_CAPABILITY": "a" * 64})
-        for command in (["git", "init", "-q", "-b", "dev"], ["git", "config", "user.name", "Fixture"],
+        for command in (["git", "init", "-q", "-b", "work"], ["git", "config", "user.name", "Fixture"],
                         ["git", "config", "user.email", "fixture@example.test"], ["git", "add", "."],
                         ["git", "commit", "-qm", "fixture"],
                         [sys.executable, "-B", str(ROOT / "ops/conductor/tools/coordination.py"), "bind", "--roles", "worker"]):
