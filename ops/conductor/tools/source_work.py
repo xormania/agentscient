@@ -92,7 +92,7 @@ def connect(*, write=False):
     conn.row_factory = sqlite3.Row
     if write:
         conn.executescript(SCHEMA)
-    elif not conn.execute("SELECT 1 FROM sqlite_master WHERE name='source_workspaces'").fetchone():
+    elif not conn.execute("SELECT 1 FROM sqlite_schema WHERE name='source_workspaces'").fetchone():
         conn.close()
         return None
     return conn

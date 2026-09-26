@@ -1,7 +1,8 @@
 """Private persistent Serena v2 REPL, using the existing stdio RPC primitive.
 
-Pattern adapted from xormania/mcp-poc-agentscient at 144fdde. No Serena
-implementation is vendored. This process serves prod-lane source work only.
+Private-session pattern adapted from the MCP PoC; provenance is in the
+commit Source trailer. No Serena implementation is vendored. This process
+serves prod-lane source work only.
 """
 
 import contextlib
