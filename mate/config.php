@@ -6,6 +6,10 @@
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $container): void {
+    $environment = $_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'dev';
+    if (!in_array($environment, ['dev', 'test'], true)) {
+        throw new \InvalidArgumentException('Mate development diagnostics require APP_ENV=dev or test.');
+    }
     $container->parameters()
         // The command your coding agent must use to run Mate. It is materialized into the
         // generated agent instructions, so a container prefix ends up where the agent reads it.
@@ -14,7 +18,9 @@ return static function (ContainerConfigurator $container): void {
         // The PHP version this project runs on. Mate refuses to start under a different
         // major.minor, because it would then report on a runtime that is not your application's
         // and extensions may behave differently. Set to null to disable the check.
-        ->set('mate.php_version', '8.4')
+        ->set('mate.php_version', '8.5')
+        ->set('ai_mate_symfony.cache_dir', '%mate.root_dir%/var/cache/'.$environment)
+        ->set('ai_mate_symfony.profiler_dir', '%mate.root_dir%/var/cache/'.$environment.'/profiler')
 
         // Override default parameters here
         // ->set('mate.cache_dir', sys_get_temp_dir().'/mate')

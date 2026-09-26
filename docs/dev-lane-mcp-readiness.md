@@ -24,10 +24,10 @@ The inspected source is [uscient/agentscient, dev at 4303bfd](https://github.com
 | Optional dispatch (explicit owner request only) | ops/conductor/tools/dispatch_mcp.py: coord_launch, coord_status, coord_wait, coord_collect |
 | Persistent native communication | ops/conductor/tools/sessions.py, courier.py, and session_adapters/ |
 | Harness startup and configuration | ops/devlane/hooks/profiles.py; currently projects existing MCP settings into profiles |
-| Symfony application | Root application; Symfony FrameworkBundle locked at 8.1.6 |
-| Mate | symfony/ai-mate and symfony/ai-symfony-mate-extension locked at 0.13.0; mate/ contains configuration and instructions |
+| Symfony application | PHP 8.5.11 or newer on the selected 8.5 runtime; Symfony FrameworkBundle locked at 8.1.7 |
+| Mate | symfony/ai-mate and symfony/ai-symfony-mate-extension locked at 0.14.0; mate/ contains configuration and instructions |
 | Serena configuration | The repository MCP configuration currently exposes Serena directly using a different upstream pin from the separate v2 PoC |
-| Additional dependencies | MakerBundle, the Monolog Mate extension, and the production MCP Bundle are not declared in the inspected root composer.json |
+| Additional dependencies | MakerBundle 1.68.0, MCP Bundle 0.14.0 and Stopwatch are now declared; the Monolog Mate extension is not installed |
 
 These facts establish reusable parts, not a claim that the complete MCP-only development path already works. For example, the Grok adapter's automatic permission handling currently recognizes coordination calls specifically.
 
@@ -81,7 +81,7 @@ The dev-lane remains independently operable without the Symfony kernel or vendor
 | 3. Serena v2 code work | PHP discovery and edits work through the dev-lane with persistent REPL state |
 | 4. Project execution and source lifecycle | Agents can build, check, manage dependencies, and hand off changes without shell |
 | 5. Mate integration | Agents can inspect the actual Symfony application through MCP |
-| 6. Maker integration | A custom Maker generates a useful project pattern through MCP |
+| 6. Maker integration | Existing Makers are reused; custom generation follows a demonstrated recurring need |
 | 7. Live development and handoff | The assembled system completes a real prod-lane task locally |
 
 The stages describe outcomes, not mandatory PR counts or separate management processes. Combine compatible work and checks. Exercise live communication early, then reuse those sessions and checks as development capabilities become available.
@@ -196,6 +196,36 @@ complete the native-participant acceptance below. See the
 
 **Outcome:** Agents can use Symfony's own observations to guide reuse and diagnose changes.
 
+**Implemented:** Optional named Mate observations, container refresh and PHPUnit
+checks now use the same dev-lane MCP entry. The real PHP smoke exercises compiled
+service inspection, stale configuration, an actual profiled request, redaction
+and MCP invocation of a directly attributed, autowired service. Native harness
+acceptance remains separate. See [setup and evidence](../ops/devlane/providers/README.md#symfony-and-mate).
+
+**Framework knowledge delivery (KNOW-1/ENV-4 from the 2026-09-09 specification):**
+`project_context` now reports the actual PHP and Composer versions, project reuse
+guidance and version-selected documentation links. `mate_skills` and `mate_skill`
+load the installed Mate guidance on demand, with package/source hashes and project
+overrides. MCP initialization and `code_status` point participants to this context;
+the initial tool catalogue remains small. This reuses Mate's instruction aggregator,
+skill discovery and attribute/autowiring support, not a second skill registry.
+
+The next real product task must carry its compact reuse context through the
+existing assignment or live message: applicable native feature and source,
+existing implementation, observed wiring, unresolved gap and completion check.
+Review must examine the chosen design, not count documentation/tool calls. This
+incident supplies a concrete rehearsal: ask a native participant to expose an
+existing service through MCP and verify it uses the direct attribute path where
+appropriate. Repeat from a resumed session. The PHP smoke verifies delivery and
+framework behavior; it does not prove the model made that choice unaided.
+
+On-demand retrieval of arbitrary official documentation is not implemented by
+this integration; it supplies version-selected links and installed Mate skills.
+For each selected task, supply the relevant verified excerpts through the existing
+context handoff if that harness lacks documentation access. Extend the provider
+only when that real task identifies a remaining access gap. Avoid a speculative
+catalogue of all Symfony features or a new context/permission engine.
+
 **Requirements**
 
 - Start with the installed Mate and Symfony extension. Add extensions only for concrete missing capabilities, such as Monolog inspection.
@@ -217,12 +247,19 @@ complete the native-participant acceptance below. See the
 
 ## Stage 6 — Custom Makers for repeatable project patterns
 
-**Outcome:** A useful custom generator is available as a named MCP development capability.
+**Outcome:** Generation saves work on a demonstrated recurring structure.
+
+**Current decision (owner, 2026-09-26):** Use Symfony and PHP's native features
+first. MCP Bundle discovers `#[McpTool]` on an autoconfigured service method;
+Symfony autowires its dependencies. Serena can make that source edit directly.
+There is no default wrapper layer and no custom generator for adding this
+attribute. MakerBundle is available in dev/test; no custom Maker or MCP generation
+capability is included until selected product work establishes a need.
 
 **Requirements**
 
-- Add MakerBundle as a development dependency and implement one concrete recurring pattern required by the selected development work.
-- A relevant example is generating a thin MCP adapter around an existing application service. The generator should encode existing design decisions and reuse, not invent new application architecture.
+- Inspect the installed PHP/Symfony APIs, attributes, autowiring and autoconfiguration before designing custom scaffolding. Reuse an existing Maker if it covers the selected work.
+- Implement a custom Maker only for a concrete recurring pattern whose remaining work is not already handled by native features. A wrapper example in an earlier plan is not an architectural requirement.
 - Expose it through a custom Mate tool or the existing Symfony action adapter; choose the smaller integration. Supply all required parameters without interactive prompts.
 - Validate names, targets, dependencies, and collisions before writing. Do not overwrite unrelated existing implementation; return generated/changed paths and useful diagnostics.
 - Register generation as a source mutation in the same assignment. Serena performs the subsequent implementation and edits.

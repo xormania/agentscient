@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Small MCP entry for live development; existing services own all state.
 
-    dev_mcp.py [--binding FILE] [--evidence-config FILE] [--serena-python FILE] [--workspace PATH] check | serve
+    dev_mcp.py [--binding FILE] [--evidence-config FILE] [--serena-python FILE]
+               [--project-config FILE] [--workspace PATH] check | serve
 
 Only search, describe and invoke are exposed initially. Dispatch remains a
 separate, explicitly requested adapter; this entry never launches workers.
@@ -14,6 +15,7 @@ from pathlib import Path
 import code_work
 import coordination_mcp as coordination
 import mcp_transport
+import project_work
 from instrument import Refusal, refuse
 
 sys.dont_write_bytecode = True
@@ -94,19 +96,25 @@ def arguments_for(tool, arguments):
                    "use the described bounds or returned next_offset")
         if wanted == "string" and len(value) > rule.get("maxLength", 160):
             refuse("arguments", f"bounded {name}", "too long", "shorten the argument")
+        if ("enum" in rule and value not in rule["enum"]) or (wanted == "string" and
+                ("\x00" in value or (rule.get("pattern") and re.fullmatch(rule["pattern"], value) is None))):
+            refuse("arguments", f"{name} matching the described schema", "invalid value", "correct the argument")
     return dict(arguments)
 
 
 class Entry:
-    def __init__(self, binding=None, evidence=None, *, serena_python=None, workspace=None):
+    def __init__(self, binding=None, evidence=None, *, serena_python=None, workspace=None, project_config=None):
         self.binding = binding
         self.evidence = evidence
         self.code = code_work.CodeWork(serena_python, workspace)
+        self.project = project_work.ProjectWork(project_config, workspace)
         self.catalogue = {row["name"]: row for row in coordination._schemas()}
         for tool in LIVE_TOOLS:
             self.catalogue[tool.name] = schema(tool.name, tool.summary, tool.properties, tool.required)
         for name, (description, properties, required) in code_work.CAPABILITIES.items():
             self.catalogue[name] = schema(name, description, properties, required, mutates=name != "code_status")
+        for name, (description, properties, required, mutates) in self.project.capabilities.items():
+            self.catalogue[name] = schema(name, description, properties, required, mutates=mutates)
         # The optional evidence adapter can be absent without blocking messages.
         import lane_mcp
         self.catalogue.update({row["name"]: row for row in lane_mcp._schemas(
@@ -122,7 +130,9 @@ class Entry:
             reason = "No evidence configuration; start with --evidence-config FILE."
         if name in code_work.CAPABILITIES and name != "code_status":
             reason = self.code.unavailable()
-        if name in COORD_NAMES | set(code_work.CAPABILITIES) and self.binding is not None and name not in self.binding["capabilities"]:
+        if name in self.project.capabilities:
+            reason = self.project.unavailable(name)
+        if name in COORD_NAMES | set(code_work.CAPABILITIES) | set(self.project.capabilities) and self.binding is not None and name not in self.binding["capabilities"]:
             reason = "This launch binding does not permit the capability."
         return {"name": name, "description": row["description"],
                 "mutates": not row["annotations"]["readOnlyHint"],
@@ -145,7 +155,14 @@ class Entry:
             refuse("capability", "an available capability", name, card["reason"])
         if name in code_work.CAPABILITIES:
             checked = arguments_for(self.catalogue[name], arguments)
-            return self.code.call(self.binding, name, checked)
+            result = self.code.call(self.binding, name, checked)
+            if name == "code_status" and self.project.context_capability:
+                result["development_context"] = {"capability": self.project.context_capability,
+                                                 "instruction": "Load relevant project context before product edits."}
+            return result
+        if name in self.project.capabilities:
+            checked = arguments_for(self.catalogue[name], arguments)
+            return self.project.call(self.binding, name, checked)
         if name in coordination.BY_NAME:
             return coordination.call(self.binding, name, dict(arguments))
         if name in LIVE_BY_NAME:
@@ -203,7 +220,7 @@ class Entry:
         message = coordination._call_result(identifier, payload)
         if coordination.over_bound(message):
             reading = coordination.unavailable(payload)
-            for key in ("source_event", "source_fingerprint", "provider_epoch", "cell_outcome", "verification_invalidated"):
+            for key in ("source_event", "source_fingerprint", "provider_epoch", "cell_outcome", "verification_invalidated", "outcome", "freshness", "result"):
                 if key in payload:
                     reading[key] = payload[key]
             message = coordination._call_result(identifier, reading)
@@ -213,7 +230,8 @@ class Entry:
         return mcp_transport.dispatch(request, self.route, strict_initialize=True, server={
             "serverInfo": {"name": SERVER_NAME, "version": "1"},
             "capabilities": {"tools": {"listChanged": False}},
-            "instructions": INSTRUCTIONS + (" " + code_work.INSTRUCTIONS if self.code.python else ""),
+            "instructions": INSTRUCTIONS + (" " + code_work.INSTRUCTIONS if self.code.python else "")
+                            + (" " + self.project.instructions if self.project.instructions else ""),
         })
 
     def check(self):
@@ -224,6 +242,7 @@ class Entry:
                 "binding": "config" if self.binding is not None else "session",
                 "evidence": "configured" if self.evidence is not None else "unavailable",
                 "serena": self.code.unavailable() or "configured; validate with a real prod-lane code call",
+                "project": {"unavailable_reason": self.project.provider.unavailable(self.project.workspace, "")},
                 "native_harness_restrictions": "not established by this adapter"}
 
 
@@ -232,20 +251,22 @@ def main():
         args = sys.argv[1:]
         options = {}
         while args and args[0].startswith("--"):
-            if len(args) < 2 or args[0] not in ("--binding", "--evidence-config", "--serena-python", "--workspace") or args[0] in options:
-                refuse("arguments", "[--binding FILE] [--evidence-config FILE] [--serena-python FILE] [--workspace PATH] check | serve",
+            if len(args) < 2 or args[0] not in ("--binding", "--evidence-config", "--serena-python", "--workspace", "--project-config") or args[0] in options:
+                refuse("arguments", "[--binding FILE] [--evidence-config FILE] [--serena-python FILE] [--project-config FILE] [--workspace PATH] check | serve",
                        coordination.clip(args), "use each declared option once")
             options[args[0]] = Path(args[1])
             args = args[2:]
         if args not in (["check"], ["serve"]):
             refuse("arguments", "check or serve", coordination.clip(args), "select a declared verb")
-        binding = (coordination.load_config(options["--binding"], catalogue=COORD_NAMES | set(code_work.CAPABILITIES))
+        project_config = options.get("--project-config")
+        project_caps = project_work.ProjectWork(project_config).capabilities
+        binding = (coordination.load_config(options["--binding"], catalogue=COORD_NAMES | set(code_work.CAPABILITIES) | set(project_caps))
                    if "--binding" in options else None)
         evidence = None
         if "--evidence-config" in options:
             import lane_mcp
             evidence = lane_mcp.load_config(options["--evidence-config"])
-        entry = Entry(binding, evidence, serena_python=options.get("--serena-python"), workspace=options.get("--workspace"))
+        entry = Entry(binding, evidence, serena_python=options.get("--serena-python"), workspace=options.get("--workspace"), project_config=project_config)
         if args == ["check"]:
             print(coordination.canonical(entry.check()))
             return 0

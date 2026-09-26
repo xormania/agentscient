@@ -24,13 +24,28 @@ class McpOnlyProfiles(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
-    def profile(self, harness, *, mcp_only=True, serena_python=None):
+    def profile(self, harness, *, mcp_only=True, serena_python=None, project_config=None):
         return profiles.generate(harness, self.world.root / (harness + str(mcp_only)),
                                  source=ROOT, cwd=self.world.cwd, mode="interactive",
                                  executable=sys.executable, agent="Codex <test@example.test>",
                                  native_settings={"model": "operator-choice", "mcp_servers": {
                                      "unrelated": {"command": "/usr/bin/false"}}}, mcp_only=mcp_only,
-                                 serena_python=serena_python)
+                                 serena_python=serena_python, project_config=project_config)
+
+    def test_project_configuration_is_copied_pinned_and_uses_the_same_entry(self):
+        config = self.world.plant_text("project.json", json.dumps({
+            "version": 1, "provider": "symfony", "php": "/fixture/php", "environment": "test"}))
+        for harness in profiles.MEMBER_HARNESSES:
+            binding = self.profile(harness, project_config=config)
+            profiles.validate(binding)
+            retained = Path(binding["project_config"])
+            self.assertNotEqual(retained, config)
+            self.assertIn(str(retained), binding["config_pins"])
+            args = binding["native_settings"]["mcp_servers"]["coordination"]["args"]
+            self.assertEqual(args[args.index("--project-config") + 1], str(retained))
+            retained.write_text('{}')
+            with self.assertRaises(ValueError):
+                profiles.validate(binding)
 
     def test_private_serena_selection_keeps_venv_path_and_one_mcp_entry(self):
         python = self.world.root / "provider/bin/python"

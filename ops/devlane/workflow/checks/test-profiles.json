@@ -19,6 +19,7 @@
     "ops/conductor/tests/test_machine.py",
     "ops/conductor/tests/test_mcp_transport.py",
     "ops/conductor/tests/test_probes.py",
+    "ops/conductor/tests/test_project_work.py",
     "ops/conductor/tests/test_session_channel.py",
     "ops/conductor/tests/test_skills.py",
     "ops/conductor/tests/test_state_placement.py",
