@@ -5,7 +5,8 @@ repository documents and historical plans. Preserve unrelated work and report
 what was actually verified.
 
 - `src/`, `config/`, `packages/`, and `tests/` belong to the Symfony application.
-- `devtools/` contains only MCP, telemetry, and live native harness communication.
+- `devtools/` provides MCP tools for live native harness communication, telemetry,
+  work orders, their child jobs, and artifacts.
   It must remain usable without PHP or the Symfony application's dependencies.
 - The `dev` branch contains both. Branch names do not determine responsibility.
 
@@ -17,6 +18,9 @@ dependencies; their presence does not require a new wrapper or custom Maker.
 Participating live harnesses use the configured MCP tools. They communicate
 directly in persistent conversations. No task dispatch, assignment registry,
 grant system, review ladder, or workflow engine is provided.
+Work-order numbers bind the overall effort; jobs are bounded pieces delivered
+through PRs. Agents use task-facing MCP tools; the services handle storage and
+record association internally.
 
 Make changes on an owned branch based on `dev`, test the affected behavior, and
 use a PR into `dev`. The owner controls releases to `master`. See

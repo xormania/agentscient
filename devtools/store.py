@@ -8,8 +8,12 @@ import sqlite3
 import time
 import uuid
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
+
+REQUEST_WORK = ContextVar("request_work", default=None)
+UNSET = object()
 
 
 def stamp():
@@ -43,11 +47,64 @@ CREATE TABLE IF NOT EXISTS events (
  kind TEXT NOT NULL, data TEXT NOT NULL);
 """
 
+WORK_SCHEMA = (
+    """CREATE TABLE IF NOT EXISTS work_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, objective TEXT NOT NULL,
+        done_when TEXT NOT NULL, constraints TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open',
+        next_action TEXT NOT NULL DEFAULT '', blocker TEXT NOT NULL DEFAULT '',
+        created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL,
+        request_key TEXT, request_payload TEXT NOT NULL, UNIQUE(created_by,request_key))""",
+    """CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+        title TEXT NOT NULL, objective TEXT NOT NULL, done_when TEXT NOT NULL, constraints TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'open', next_action TEXT NOT NULL DEFAULT '', blocker TEXT NOT NULL DEFAULT '',
+        repository TEXT NOT NULL DEFAULT '', branch TEXT NOT NULL DEFAULT '', pull_request TEXT NOT NULL DEFAULT '',
+        created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL,
+        request_key TEXT, request_payload TEXT NOT NULL, UNIQUE(created_by,request_key))""",
+    """CREATE TABLE IF NOT EXISTS artifacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, media_type TEXT NOT NULL,
+        size INTEGER NOT NULL, sha256 TEXT NOT NULL, location TEXT NOT NULL,
+        created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL,
+        UNIQUE(created_by,name,media_type,sha256))""",
+    """CREATE TABLE IF NOT EXISTS work_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+        job INTEGER REFERENCES jobs(id),
+        kind TEXT NOT NULL, reference TEXT NOT NULL, repository TEXT NOT NULL DEFAULT '',
+        label TEXT NOT NULL DEFAULT '', created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL,
+        artifact INTEGER REFERENCES artifacts(id))""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS work_link_identity ON work_links(work_order,coalesce(job,0),kind,reference,repository)",
+)
+
 
 class Store:
     def __init__(self, directory):
         self.directory = Path(directory).expanduser().resolve()
         self.path = self.directory / "live.sqlite3"
+        if self.path.is_file():
+            self.upgrade()
+
+    def upgrade(self):
+        """Add work tracking to existing teams without rebuilding their state."""
+        with self.connect() as db:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 1:
+                return
+            db.execute("BEGIN IMMEDIATE")
+            for statement in WORK_SCHEMA:
+                db.execute(statement)
+            for table, column, target in (
+                ("members", "selected_work_order", "work_orders"),
+                ("members", "selected_job", "jobs"),
+                ("messages", "work_order", "work_orders"),
+                ("messages", "job", "jobs"),
+                ("events", "work_order", "work_orders"),
+                ("events", "job", "jobs"),
+            ):
+                columns = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+                if column not in columns:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER REFERENCES {target}(id)")
+            for table in ("events", "messages"):
+                db.execute(f"CREATE INDEX IF NOT EXISTS {table}_work ON {table}(work_order,job,id)")
+            db.execute("PRAGMA user_version=1")
 
     @contextmanager
     def connect(self):
@@ -78,11 +135,54 @@ class Store:
                     (name, member["harness"], str(root), stamp()),
                 )
         self.path.chmod(0o600)
+        self.upgrade()
+
+    @staticmethod
+    def current_work(db, actor, work_order=UNSET, job=UNSET):
+        context = REQUEST_WORK.get()
+        if context and context[0] == actor:
+            selected = context[1:]
+        else:
+            row = db.execute("SELECT selected_work_order,selected_job FROM members WHERE name=?", (actor,)).fetchone()
+            selected = tuple(row) if row else (None, None)
+        if job is not UNSET and job is not None:
+            row = db.execute("SELECT work_order FROM jobs WHERE id=?", (job,)).fetchone()
+            if not row:
+                raise ValueError(f"Unknown job: {job}")
+            if work_order is not UNSET and work_order != row[0]:
+                raise ValueError("That job belongs to a different work order.")
+            work_order = row[0]
+        else:
+            if job is UNSET:
+                job = selected[1] if work_order is UNSET else None
+            if work_order is UNSET:
+                work_order = selected[0]
+        if work_order is not None and not db.execute("SELECT 1 FROM work_orders WHERE id=?", (work_order,)).fetchone():
+            raise ValueError(f"Unknown work order: {work_order}")
+        return work_order, job
+
+    @contextmanager
+    def work_context(self, actor, work_order=UNSET, job=UNSET):
+        with self.connect() as db:
+            work_order, job = self.current_work(db, actor, work_order, job)
+        token = REQUEST_WORK.set((actor, work_order, job))
+        try:
+            yield work_order, job
+        finally:
+            REQUEST_WORK.reset(token)
 
     @staticmethod
     def _event(db, actor, kind, data):
+        data = dict(data)
+        work_order, job = Store.current_work(db, actor, data.pop("work_order", UNSET), data.pop("job", UNSET))
+        member = db.execute("SELECT generation,native_id FROM members WHERE name=?", (actor,)).fetchone()
+        if member:
+            for field in ("generation", "native_id"):
+                if member[field] is not None:
+                    data.setdefault(field, member[field])
         return db.execute(
-            "INSERT INTO events(at,actor,kind,data) VALUES (?,?,?,?)", (stamp(), actor, kind, canonical(data))
+            "INSERT INTO events(at,actor,kind,data,work_order,job) VALUES (?,?,?,?,?,?)",
+            (stamp(), actor, kind, canonical(data), work_order, job),
         ).lastrowid
 
     def event(self, actor, kind, **data):
@@ -141,7 +241,7 @@ class Store:
                 else:
                     raise ValueError("This member already has a running session.")
             db.execute(
-                "UPDATE members SET generation=?,pid=?,state='starting',desired='running',updated=? WHERE name=?",
+                "UPDATE members SET generation=?,native_id=NULL,pid=?,state='starting',desired='running',updated=? WHERE name=?",
                 (generation, pid, stamp(), name),
             )
             # A crashed transport may have delivered before recording success. Preserve uncertainty.
@@ -153,7 +253,7 @@ class Store:
             self._event(db, name, "session_starting", {"generation": generation, "pid": pid})
         return generation
 
-    def send(self, sender, recipient, body, *, key, reply_to=None):
+    def send(self, sender, recipient, body, *, key, reply_to=None, work_order=UNSET, job=UNSET):
         self.member(sender)
         self.member(recipient)
         with self.connect() as db:
@@ -161,32 +261,53 @@ class Store:
             old = db.execute("SELECT * FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
             values = (recipient, body, reply_to)
             if old:
-                if tuple(old[k] for k in ("recipient", "body", "reply_to")) != values:
+                if tuple(old[k] for k in ("recipient", "body", "reply_to")) != values or (
+                    job is not UNSET
+                    and job != old["job"]
+                    or work_order is not UNSET
+                    and work_order != old["work_order"]
+                ):
                     raise ValueError("That message key already identifies a different payload.")
                 return dict(old)
-            if (
-                reply_to
-                and not db.execute(
-                    "SELECT 1 FROM messages WHERE id=? AND (sender=? OR recipient=?)", (reply_to, sender, sender)
+            reply = None
+            if reply_to:
+                reply = db.execute(
+                    "SELECT * FROM messages WHERE id=? AND (sender=? OR recipient=?)", (reply_to, sender, sender)
                 ).fetchone()
-            ):
+            if reply_to and not reply:
                 raise ValueError("Reply to a message involving this member.")
+            if reply and work_order is UNSET and job is UNSET:
+                work_order, job = reply["work_order"], reply["job"]
+            work_order, job = self.current_work(db, sender, work_order, job)
             ident = db.execute(
-                "INSERT INTO messages(sender,recipient,body,reply_to,request_key,created) VALUES (?,?,?,?,?,?)",
-                (sender, *values, key, stamp()),
+                "INSERT INTO messages(sender,recipient,body,reply_to,request_key,created,work_order,job) VALUES (?,?,?,?,?,?,?,?)",
+                (sender, *values, key, stamp(), work_order, job),
             ).lastrowid
-            self._event(db, sender, "message_queued", {"message": ident, "recipient": recipient})
+            self._event(
+                db,
+                sender,
+                "message_queued",
+                {"message": ident, "recipient": recipient, "work_order": work_order, "job": job},
+            )
             return dict(db.execute("SELECT * FROM messages WHERE id=?", (ident,)).fetchone())
 
-    def inbox(self, member, after=0, limit=20, unacknowledged=False):
+    def inbox(self, member, after=0, limit=20, unacknowledged=False, work_order=None, job=None):
         with self.connect() as db:
             rows = [
                 dict(r)
                 for r in db.execute(
                     "SELECT * FROM messages WHERE recipient=? AND id>?"
                     + (" AND acknowledged IS NULL" if unacknowledged else "")
+                    + (" AND work_order=?" if work_order is not None else "")
+                    + (" AND job=?" if job is not None else "")
                     + " ORDER BY id LIMIT ?",
-                    (member, after, limit + 1),
+                    (
+                        member,
+                        after,
+                        *((work_order,) if work_order is not None else ()),
+                        *((job,) if job is not None else ()),
+                        limit + 1,
+                    ),
                 )
             ]
         more = len(rows) > limit
@@ -201,7 +322,12 @@ class Store:
                 raise ValueError("Only the recipient can acknowledge this message.")
             if not row["acknowledged"]:
                 db.execute("UPDATE messages SET acknowledged=? WHERE id=?", (stamp(), message))
-                self._event(db, member, "message_acknowledged", {"message": message})
+                self._event(
+                    db,
+                    member,
+                    "message_acknowledged",
+                    {"message": message, "work_order": row["work_order"], "job": row["job"]},
+                )
         return {"message": message, "acknowledged": True}
 
     def take_delivery(self, member):
@@ -237,11 +363,12 @@ class Store:
             ).rowcount
             if not changed:
                 raise ValueError("Delivery attempt no longer current.")
+            binding = db.execute("SELECT work_order,job FROM messages WHERE id=?", (message,)).fetchone()
             self._event(
                 db,
                 member,
                 "delivery_uncertain" if error else "message_submitted",
-                {"message": message, "transport": transport, "error": error},
+                {"message": message, "transport": transport, "error": error, **dict(binding)},
             )
 
     def retry(self, member, message):
@@ -251,12 +378,14 @@ class Store:
             if not row or row["acknowledged"] or row["delivery"] != "uncertain":
                 raise ValueError("Only the sender can explicitly retry an uncertain, unacknowledged delivery.")
             db.execute("UPDATE messages SET delivery='queued',attempt=NULL,error=NULL WHERE id=?", (message,))
-            self._event(db, member, "message_retry", {"message": message})
+            self._event(
+                db, member, "message_retry", {"message": message, "work_order": row["work_order"], "job": row["job"]}
+            )
         return {"message": message, "delivery": "queued"}
 
-    def events(self, after=0, limit=30, actor=None, kind=None):
+    def events(self, after=0, limit=30, actor=None, kind=None, work_order=None, job=None):
         sql, args = "SELECT * FROM events WHERE id>?", [after]
-        for key, value in (("actor", actor), ("kind", kind)):
+        for key, value in (("actor", actor), ("kind", kind), ("work_order", work_order), ("job", job)):
             if value:
                 sql += f" AND {key}=?"
                 args.append(value)
