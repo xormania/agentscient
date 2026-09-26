@@ -76,7 +76,7 @@ edited. Protocol messages describe how to acknowledge and reply through
 | Harness | Requested restriction |
 | --- | --- |
 | Claude Code | `--tools ""` removes built-in tools; strict private MCP configuration selects this entry |
-| Codex | Shell, unified exec, freeform patch, JS REPL and code-mode feature settings are disabled; the profile hook rejects direct reads/edits and other native project tools |
+| Codex | Shell, unified exec, freeform patch, JS REPL and code-mode feature settings are disabled; CLI overrides retain those settings and the selected entry across project config layers; the profile hook rejects direct reads/edits and other native project tools |
 | Grok | ACP receives the selected MCP server; the profile hook admits discovery and `use_tool` calls to this entry, and rejects other project tools |
 
 The selected profile's PreToolUse boundary admits the three published entry

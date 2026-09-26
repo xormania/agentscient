@@ -19,6 +19,9 @@ from pathlib import Path
 
 HARNESSES = ("claude", "codex", "grok", "agy")
 EVENTS = ("PreToolUse", "PostToolUse", "Stop", "SessionStart")
+MCP_CODEX_FEATURES = {"hooks": True, "shell_tool": False, "unified_exec": False,
+                      "apply_patch_freeform": False, "js_repl": False, "code_mode": False,
+                      "plugins": False, "apps": False, "multi_agent": False}
 
 
 def canonical(value):
@@ -460,6 +463,12 @@ def native_launch(binding, argv, env):
             tokens = ["--strict-mcp-config", "--mcp-config", str(Path(binding["helper"]).parent / "mcp.json"), *tokens]
     elif harness == "codex":
         tokens = [x for x in tokens if x != "--ignore-user-config"]
+        if binding.get("mcp_only"):
+            # CLI overrides outrank project config layers. A checkout must not
+            # turn shell/REPL back on or replace the selected entry's command.
+            selected = {**{"features." + key: value for key, value in MCP_CODEX_FEATURES.items()},
+                        "mcp_servers.coordination": binding["native_settings"]["mcp_servers"]["coordination"]}
+            tokens = [part for key, value in selected.items() for part in ("-c", key + "=" + toml_value(value))] + tokens
         tokens.insert(1 if tokens and tokens[0] == "exec" else 0, "--dangerously-bypass-hook-trust")
         out["CODEX_HOME"] = binding["home"]
     elif harness == "grok":

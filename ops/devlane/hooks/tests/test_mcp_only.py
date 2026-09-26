@@ -60,6 +60,9 @@ class McpOnlyProfiles(unittest.TestCase):
                     config = tomllib.loads((Path(binding["home"]) / "config.toml").read_text())
                     for key in ("shell_tool", "unified_exec", "apply_patch_freeform", "js_repl", "code_mode"):
                         self.assertFalse(config["features"][key])
+                    self.assertIn("features.shell_tool=false", command)
+                    self.assertIn("features.hooks=true", command)
+                    self.assertTrue(any(arg.startswith("mcp_servers.coordination=") and "dev_mcp.py" in arg for arg in command))
 
     def test_real_helpers_deny_native_project_tools_and_allow_broker(self):
         seeded = run([sys.executable, "-B", str(ROOT / "ops/conductor/tools/coordination.py"), "bind", "--roles", "worker"],
