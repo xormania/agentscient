@@ -1,1 +1,0 @@
-Item 49/R4 false-positive rows. hand-write: lane path as data or read is not a write. direct-launch: pgrep with launch.py as argument is allowed; launch.py as command word is not. clipped-sweep: keep head, skip tail. Frozen: python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'

@@ -1,2 +1,0 @@
-{"id": "P-LD26-20260912-unresolved", "kind": "serve", "lane": "forge", "question": "What replaced hand-write permission checks?", "serve": "rg -F 'ordinary writes need no grant' ops/devlane/hooks/claude/matrix.py", "expect": "ordinary writes need no grant"}
-{"id": "P-LD26-20260912-ledger", "kind": "serve", "lane": "ledger", "question": "Was the hand-write bypass recorded as a lane defect?", "serve": "rg -c 'LD-26' ops/conductor/handoff/lane-defects.md", "expect": "1"}

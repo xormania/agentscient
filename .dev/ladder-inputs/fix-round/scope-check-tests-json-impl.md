@@ -1,1 +1,0 @@
-python3 -m unittest discover -s ops/devlane/task/tests -p 'test_check_tests_json.py' && python3 -m unittest discover -s ops/devlane/task/tests -p 'test_jobs.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'

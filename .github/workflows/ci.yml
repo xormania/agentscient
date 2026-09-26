@@ -1,149 +1,28 @@
 {
-  "name": "ci",
+  "name": "CI",
   "on": {
     "pull_request": {
-      "types": [
-        "opened",
-        "synchronize",
-        "reopened"
-      ],
       "branches": [
-        "dev"
-      ]
-    },
-    "merge_group": {
-      "branches": [
-        "dev"
+        "dev",
+        "master"
       ]
     },
     "push": {
       "branches": [
-        "dev"
+        "dev",
+        "master"
       ]
-    }
+    },
+    "merge_group": {},
+    "workflow_dispatch": {}
   },
   "permissions": {
-    "contents": "read",
-    "actions": "read"
-  },
-  "concurrency": {
-    "group": "ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
-    "cancel-in-progress": "${{ github.event_name == 'pull_request' }}"
+    "contents": "read"
   },
   "jobs": {
-    "scope": {
+    "live-mcp": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 2,
-      "outputs": {
-        "dev": "${{ steps.scope.outputs.dev }}",
-        "prod": "${{ steps.scope.outputs.prod }}",
-        "revision": "${{ steps.scope.outputs.revision }}",
-        "symfony": "${{ steps.scope.outputs.symfony }}"
-      },
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "persist-credentials": false,
-            "fetch-depth": 0
-          }
-        },
-        {
-          "name": "Prepare hosted Python",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
-          "with": {
-            "python-version": "3.12"
-          }
-        },
-        {
-          "name": "Select lanes from changed files",
-          "id": "scope",
-          "run": "python3 .github/ci_scope.py"
-        }
-      ]
-    },
-    "dev-lane": {
-      "needs": "scope",
-      "if": "${{ needs.scope.outputs.dev == 'true' }}",
-      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 4,
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "persist-credentials": false,
-            "fetch-depth": 0
-          }
-        },
-        {
-          "name": "Prepare hosted Python",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
-          "with": {
-            "python-version": "3.12"
-          }
-        },
-        {
-          "name": "Prepare hosted CUE",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
-          "with": {
-            "version": "v0.17.1"
-          }
-        },
-        {
-          "name": "Prepare hosted lane tools",
-          "if": "${{ runner.environment == 'github-hosted' }}",
-          "run": "python3 -m pip --isolated install --disable-pip-version-check ruff==0.16.8\nmissing=()\ncommand -v rg >/dev/null || missing+=(ripgrep)\ncommand -v jq >/dev/null || missing+=(jq)\nif ((${#missing[@]})); then\n  sudo apt-get update -qq\n  sudo apt-get install -y --no-install-recommends \"${missing[@]}\"\nfi"
-        },
-        {
-          "name": "records branches by local name \u2014 the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)",
-          "run": "git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f \"$b\" \"origin/$b\"; done"
-        },
-        {
-          "name": "Run fast checks; add integration checks on local runners",
-          "id": "verify",
-          "env": {
-            "TERM_WALL": "${{ vars.TERM_WALL }}",
-            "GITHUB_TOKEN": "${{ github.token }}",
-            "CI_RUNNER_MODE": "${{ vars.CI_RUNNER_MODE || 'hosted' }}",
-            "CI_RUNNER_ENVIRONMENT": "${{ runner.environment }}"
-          },
-          "run": "python3 -m ops.devlane.workflow.checks.ci lane"
-        },
-        {
-          "name": "Preserve executed verification evidence",
-          "if": "${{ always() && steps.verify.outputs.receipt != '' }}",
-          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-          "with": {
-            "name": "${{ steps.verify.outputs.artifact }}",
-            "path": "${{ steps.verify.outputs.receipt }}",
-            "if-no-files-found": "error",
-            "retention-days": 30
-          }
-        }
-      ]
-    },
-    "prod-lane": {
-      "needs": "scope",
-      "if": "${{ needs.scope.outputs.prod == 'true' }}",
-      "uses": "./.github/workflows/ci-prod-lane.yml"
-    },
-    "symfony-integration": {
-      "needs": "scope",
-      "if": "${{ needs.scope.outputs.symfony == 'true' }}",
-      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 10,
-      "defaults": {
-        "run": {
-          "shell": "bash"
-        }
-      },
-      "env": {
-        "APP_ENV": "test",
-        "APP_DEBUG": "1"
-      },
+      "timeout-minutes": 5,
       "steps": [
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -152,7 +31,7 @@
           }
         },
         {
-          "name": "Prepare hosted Python",
+          "name": "Prepare Python",
           "if": "${{ runner.environment == 'github-hosted' }}",
           "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
           "with": {
@@ -160,55 +39,38 @@
           }
         },
         {
-          "name": "Prepare PHP and Composer",
-          "uses": "./.github/actions/php-runtime"
+          "name": "Install linter",
+          "run": "python3 -m venv \"$RUNNER_TEMP/live-mcp-venv\"\n\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m pip install ruff==0.16.8"
         },
         {
-          "name": "Install the integration fixture dependencies",
-          "run": "mkdir -p var/ci\ngit rev-parse HEAD > var/ci/revision.txt\ncomposer install --prefer-dist --no-progress --no-interaction\ncomposer check-platform-reqs"
+          "name": "Lint live support",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools"
         },
         {
-          "name": "Verify Mate and native MCP attributes through the dev-lane MCP",
-          "run": "python3 ops/devlane/providers/symfony_smoke.py --php \"$(command -v php)\" | tee var/ci/symfony-integration.json"
-        },
-        {
-          "name": "Preserve Symfony integration evidence",
-          "if": "${{ always() }}",
-          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-          "with": {
-            "name": "symfony-integration-${{ github.run_id }}-${{ github.run_attempt }}",
-            "path": "var/ci/",
-            "if-no-files-found": "error",
-            "retention-days": 30
-          }
+          "name": "Verify live MCP and transport protocols",
+          "run": "python3 -m unittest discover -s devtools/tests -v"
         }
       ]
     },
+    "symfony": {
+      "uses": "./.github/workflows/ci-prod-lane.yml"
+    },
     "lane": {
       "needs": [
-        "scope",
-        "dev-lane",
-        "prod-lane",
-        "symfony-integration"
+        "live-mcp",
+        "symfony"
       ],
       "if": "${{ always() }}",
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
       "timeout-minutes": 1,
       "steps": [
         {
-          "name": "Require successful results for the selected lanes",
-          "shell": "bash",
+          "name": "Require passing checks",
           "env": {
-            "REVISION": "${{ needs.scope.outputs.revision }}",
-            "SCOPE_RESULT": "${{ needs.scope.result }}",
-            "DEV_SELECTED": "${{ needs.scope.outputs.dev }}",
-            "PROD_SELECTED": "${{ needs.scope.outputs.prod }}",
-            "DEV_RESULT": "${{ needs.dev-lane.result }}",
-            "PROD_RESULT": "${{ needs.prod-lane.result }}",
-            "SYMFONY_SELECTED": "${{ needs.scope.outputs.symfony }}",
-            "SYMFONY_RESULT": "${{ needs.symfony-integration.result }}"
+            "LIVE_RESULT": "${{ needs.live-mcp.result }}",
+            "SYMFONY_RESULT": "${{ needs.symfony.result }}"
           },
-          "run": "printf '%s\\n' \"Tested revision: $REVISION\" \"Scope: $SCOPE_RESULT\" \"Dev-lane selected=$DEV_SELECTED result=$DEV_RESULT\" \"Prod-lane selected=$PROD_SELECTED result=$PROD_RESULT\" \"Symfony integration selected=$SYMFONY_SELECTED result=$SYMFONY_RESULT\" | tee -a \"$GITHUB_STEP_SUMMARY\"\n[[ \"$SCOPE_RESULT\" == success ]]\n[[ \"$DEV_SELECTED:$DEV_RESULT\" == true:success || \"$DEV_SELECTED:$DEV_RESULT\" == false:skipped ]]\n[[ \"$PROD_SELECTED:$PROD_RESULT\" == true:success || \"$PROD_SELECTED:$PROD_RESULT\" == false:skipped ]]\n[[ \"$SYMFONY_SELECTED:$SYMFONY_RESULT\" == true:success || \"$SYMFONY_SELECTED:$SYMFONY_RESULT\" == false:skipped ]]"
+          "run": "test \"$LIVE_RESULT\" = success\ntest \"$SYMFONY_RESULT\" = success"
         }
       ]
     }

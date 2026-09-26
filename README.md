@@ -1,79 +1,32 @@
 # Agentscient
 
-Agentscient is a Symfony application for agentic software development. It
-manages project design, context, work, sessions, and evidence so agents can
-make decisions with a shared understanding across sessions and over time.
+Agentscient is a Symfony application. Its foundation includes the Symfony MCP
+Bundle, Maker Bundle, and Symfony AI Mate. Runtime versions and dependencies are
+defined in `composer.json` and `composer.lock`.
 
-The product supports the software lifecycle, including planning,
-implementation, verification, delivery, operation, and improvement. It is
-under active development; design documents describe intended capabilities,
-while the code and configuration establish what is currently implemented.
+The development support in [`devtools/`](devtools/README.md) contains only an MCP
+server, local telemetry, and live communication between persistent native
+harnesses. It runs independently of PHP and the application.
 
-## Two lanes, one repository
-
-| Lane | Purpose | Main locations |
-| --- | --- | --- |
-| **Prod-lane** | The Agentscient Symfony application and the capabilities it provides to managed projects. | `src/`, `config/`, `packages/`, and the application's entry points and tests. |
-| **Dev-lane** | The tools, automation, and working records used to develop Agentscient. | `ops/` and `.dev/`. |
-
-**The `dev` Git branch contains work for both lanes.** `dev-lane` names the
-development tooling, not everything on that branch. `prod-lane` names the
-application, including local and unfinished application work. `master` is
-the release branch.
-
-Lane names describe responsibilities, independently of the Git branch,
-deployment environment, harness, model, or agent role.
-
-Dev-lane tooling operates independently of the Symfony application, its
-services, and its `vendor/` directory. Using that tooling to build the
-application does not make it part of the product. Delivering a similar
-product capability does not imply replacing or retiring development tools.
-
-The development processes Agentscient provides to managed projects are
-product capabilities. They do not prescribe the process used to build
-Agentscient itself. See [the lane boundary](AGENTS.md#lane-boundary-and-precedence)
-for working guidance.
-
-## Repository layout
-
-| Location | Contents |
-| --- | --- |
-| `src/`, `config/`, `public/`, `bin/` | Application code, configuration, and entry points. |
-| `packages/` | Application packages composed through Composer. |
-| `tests/`, `phpunit.dist.xml` | Application test support and suite configuration. |
-| `mate/` | Application diagnostic configuration and instructions. |
-| `ops/`, `.dev/` | Development tooling, configuration, and working records. |
-| `docs/` | Design documents, contracts, and reference material; check each document's scope and currency. |
-| `.github/workflows/` | Repository CI definitions. |
-
-## Getting started
-
-For application work, use a PHP runtime and Composer installation compatible
-with [composer.json](composer.json), [composer.lock](composer.lock), and the
-relevant tool configuration. From an owned checkout:
+## Symfony application
 
 ```sh
 composer install
 php bin/console about
+php bin/console list make
+vendor/bin/mate tools:list
+vendor/bin/phpunit
 ```
 
-Use environment-specific configuration for local settings and credentials.
-Application diagnostics are described in [Mate's instructions](mate/AGENT_INSTRUCTIONS.md).
-For development tooling, start with [ops/README.md](ops/README.md) and the
-instructions for the component you are using.
+Application code belongs in `src/`, with configuration in `config/` and tests in
+`tests/`. The application is a foundation, not a completed product.
 
-## Contributing
+## Live development support
 
-Read [AGENTS.md](AGENTS.md), identify which lane the change belongs to, and
-preserve other sessions' work. Base working branches on `dev` and propose
-changes back into `dev`; release decisions belong to the owner.
+See [`devtools/README.md`](devtools/README.md) for setup, MCP configuration,
+session management, messages, and telemetry. The MCP surface has no shell or
+project editing/execution capabilities.
 
-Reuse existing Symfony, ecosystem, and project capabilities where they fit.
-Keep shared behavior in the services that own it and provide interfaces as
-needed. Component documentation owns implementation details, setup, and
-operating procedures as they evolve.
-
-Run checks appropriate to the change and report what they verified. The
-[CI definitions](.github/workflows/) describe the automated checks;
-[CONTRIB.md](CONTRIB.md) provides contribution conventions and templates,
-subject to current owner direction and the working guidance in `AGENTS.md`.
+The previous development system was removed. Its full pre-removal snapshot is
+preserved on [`shit`](https://github.com/uscient/agentscient/tree/shit) at
+`456457b9a0a9eb1ff285ee2d3e40535b6f722cdb`.
