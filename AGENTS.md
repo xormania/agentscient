@@ -16,6 +16,9 @@ review, and handoff.
 - Ordinary investigation, edits, testing, and branch work need no additional
   permission ceremony. Choose direct work, collaboration, or available
   tooling according to the task.
+- Live communication between persistent harnesses is the default collaboration
+  mechanism. Dispatch remains available only when the owner explicitly asks
+  to use it; do not select it automatically for ordinary development work.
 - Hooks and diagnostics provide guidance. CI is the acceptance gate;
   findings inform decisions rather than automatically becoming requirements.
   Owner recovery remains under the owner's control; agents do not configure
