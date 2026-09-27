@@ -1,0 +1,9 @@
+mcp:
+    servers:
+        default:
+            name: Agentscient
+            transports:
+                stdio: true
+                http: false
+            registry:
+                tools: '*'

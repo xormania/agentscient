@@ -1,0 +1,171 @@
+import json
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from support import Client, until
+
+from devtools.launch import initialize
+from devtools.store import Store
+
+
+class NativeProtocolTests(unittest.TestCase):
+    def test_co_direction_launches_xo_and_collaborator_and_pause_retains_live_session(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace, home = root / "workspace", root / "login-home"
+            workspace.mkdir()
+            home.mkdir()
+            state = root / "state"
+            initialize(state, workspace, ["owner:external", "chief:codex", "worker:codex"], co="owner")
+            fixture = Path(__file__).with_name("native_fixture.py")
+            fixture.chmod(0o755)
+            config = json.loads((state / "team.json").read_text())
+            for row in config["members"][1:]:
+                row["binary"] = str(fixture)
+            (state / "team.json").write_text(json.dumps(config))
+            env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / "codex")}
+            store = Store(state)
+            co, xo = Client(state, "owner", env=env), None
+            try:
+                co.tool(
+                    "direct",
+                    {
+                        "title": "Command path",
+                        "objective": "Organize live collaborators",
+                        "done_when": "Reported and steered",
+                        "constraints": "Fixture only",
+                    },
+                )
+                until(
+                    lambda: any(
+                        "Collaborator receipt observed" in row["body"] for row in store.inbox("owner")["messages"]
+                    ),
+                    timeout=10,
+                )
+                before = store.member("worker")
+                self.assertEqual("active", before["state"])
+                xo = Client(state, "chief", env=env)
+                paused = xo.tool("steer", {"action": "pause", "work": "Fixture implementation"})["work"][0]
+                paused_id = int(paused["direction"]["reference"].split(":")[1])
+                until(
+                    lambda: any(
+                        row["id"] == paused_id and row["acknowledged"] for row in store.inbox("worker")["messages"]
+                    )
+                )
+                current = store.member("worker")
+                self.assertEqual(
+                    (before["native_id"], before["generation"], before["pid"]),
+                    (current["native_id"], current["generation"], current["pid"]),
+                )
+                self.assertEqual("running", current["desired"])
+                progress = xo.tool("monitor", {})["collaborators"][0]
+                self.assertEqual("paused", progress["work_state"])
+                self.assertEqual(23, progress["latest_usage"]["observation"]["last"]["inputTokens"])
+                resumed = xo.tool("steer", {"action": "resume", "work": "Fixture implementation"})
+                self.assertFalse(resumed["work"][0]["session"]["launch_pending"])
+                self.assertEqual(before["generation"], store.member("worker")["generation"])
+                xo.tool("steer", {"action": "stop", "work": "Fixture implementation"})
+                until(lambda: store.member("worker")["state"] == "stopped", timeout=8)
+                self.assertEqual("paused", xo.tool("monitor", {})["collaborators"][0]["work_state"])
+            except Exception:
+                for member in ("chief", "worker"):
+                    log = state / "logs" / (member + ".log")
+                    if log.exists():
+                        print(log.read_text(), file=sys.stderr)
+                raise
+            finally:
+                for member in ("chief", "worker"):
+                    store.session(member, desired="stopped")
+                until(
+                    lambda: all(
+                        store.member(member)["state"] in {"stopped", "failed"} for member in ("chief", "worker")
+                    ),
+                    timeout=8,
+                )
+                if xo:
+                    xo.close()
+                co.close()
+
+    def test_live_messages_during_unfinished_work_keep_native_identity(self):
+        for harness in ("codex", "grok"):
+            with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                workspace = root / "workspace"
+                workspace.mkdir()
+                state = root / "state"
+                home = root / "login-home"
+                home.mkdir()
+                initialize(state, workspace, ["owner:external", "worker:" + harness])
+                fixture = Path(__file__).with_name("native_fixture.py")
+                fixture.chmod(0o755)
+                config = json.loads((state / "team.json").read_text())
+                config["members"][1]["binary"] = str(fixture)
+                (state / "team.json").write_text(json.dumps(config))
+                store = Store(state)
+                env = {
+                    **os.environ,
+                    "HOME": str(home),
+                    "CODEX_HOME": str(home / "codex"),
+                    "GROK_HOME": str(home / "grok"),
+                }
+                client = Client(state, "owner", env=env, operator=True)
+                try:
+                    order = client.invoke(
+                        "work_order_create", title="Protocol test", objective="Live work", done_when="Received"
+                    )
+                    client.invoke("member_bind", member="owner", role="co", work_order=order["work_order"]["id"])
+                    client.invoke(
+                        "member_bind",
+                        member="worker",
+                        role="coder",
+                        work_order=order["work_order"]["id"],
+                        reports_to="owner",
+                    )
+                    started = client.invoke("session_start", member="worker")
+                    self.assertEqual("running", started["requested"])
+                    until(lambda: store.member("worker")["state"] == "idle")
+                    original_id = store.member("worker")["native_id"]
+                    self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
+                    first = client.invoke(
+                        "message_send", to="worker", body="Keep working while a tool is held", key="first"
+                    )
+                    until(lambda: store.inbox("worker")["messages"][0]["acknowledged"])
+                    until(
+                        lambda: (
+                            store.events(kind="operation_started")["events"]
+                            and any(
+                                row["data"]["capability"] == "work_report"
+                                for row in store.events(kind="operation_started")["events"]
+                            )
+                        )
+                    )
+                    second = client.invoke(
+                        "message_send", to="worker", body="New message during unfinished work", key="second"
+                    )
+                    until(lambda: store.inbox("worker")["messages"][1]["acknowledged"], timeout=4)
+                    rows = store.inbox("worker")["messages"]
+                    self.assertEqual([first["id"], second["id"]], [row["id"] for row in rows])
+                    self.assertEqual(original_id, store.member("worker")["native_id"])
+                    self.assertEqual("active", store.member("worker")["state"])
+                    submissions = store.events(kind="message_submitted", actor="worker")["events"]
+                    until(lambda: len(store.events(kind="message_submitted", actor="worker")["events"]) == 2)
+                    if harness == "grok":
+                        submissions = store.events(kind="message_submitted", actor="worker")["events"]
+                        self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
+                    else:
+                        self.assertTrue(store.events(kind="native_usage")["events"])
+                except Exception:
+                    log = state / "logs/worker.log"
+                    if log.exists():
+                        print(log.read_text(), file=sys.stderr)
+                    raise
+                finally:
+                    try:
+                        client.invoke("session_stop", member="worker")
+                        until(lambda: store.member("worker")["state"] in {"stopped", "failed"}, timeout=8)
+                    finally:
+                        client.close()
+                self.assertEqual("stopped", store.member("worker")["state"])

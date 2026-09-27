@@ -1,0 +1,234 @@
+import json
+import tempfile
+import threading
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from unittest.mock import patch
+
+from support import Client, until
+
+from devtools.api import API
+from devtools.control import Control
+from devtools.launch import initialize
+from devtools.store import Store
+
+
+class ControlTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        workspace = root / "workspace"
+        workspace.mkdir()
+        self.state = root / "state"
+        initialize(self.state, workspace, [name + ":external" for name in ("owner", "xo", "coder", "audit", "idle")])
+        self.store = Store(self.state)
+        self.operator = self.client("owner", operator=True)
+        self.order = self.operator.invoke(
+            "work_order_create", title="One", objective="Build the feature", done_when="Works"
+        )["work_order"]["id"]
+        self.job = self.operator.invoke(
+            "job_create", title="Feature", objective="Implement contract", done_when="Checks pass"
+        )["job"]["id"]
+        self.other = self.operator.invoke(
+            "job_create", title="Unrelated", objective="SECRET SIBLING", done_when="Separate"
+        )["job"]["id"]
+        for member, role, parent, job in (
+            ("owner", "co", None, None),
+            ("xo", "xo", "owner", None),
+            ("coder", "coder", "xo", self.job),
+            ("audit", "audit", "xo", self.other),
+        ):
+            args = dict(member=member, role=role, work_order=self.order, brief="Use established contracts")
+            if parent:
+                args["reports_to"] = parent
+            if job:
+                args["job"] = job
+            self.operator.invoke("member_bind", **args)
+
+    def client(self, member, **args):
+        client = Client(self.state, member, **args)
+        self.addCleanup(client.close)
+        return client
+
+    def test_default_surface_supplies_brief_and_rejects_bypasses(self):
+        coder = self.client("coder")
+        self.assertEqual(
+            ["work_context", "work_report", "guidance_request"], [r["name"] for r in coder.call("tools/list")["tools"]]
+        )
+        self.assertIn("Implement contract", coder.initialization["instructions"])
+        self.assertNotIn("SECRET SIBLING", coder.initialization["instructions"])
+        context = coder.tool("work_context", {})
+        self.assertEqual("coder", context["role"])
+        self.assertNotIn("id", context["job"])
+        for name, args in (
+            ("capability_invoke", {"capability": "job_select", "arguments": {"job": self.other}}),
+            ("capability_describe", {"capability": "pr_merge"}),
+            ("job_select", {"job": self.other}),
+            ("member_bind", {"member": "coder", "role": "co", "work_order": self.order}),
+            ("work_context", {"job": self.other}),
+            ("work_report", {"text": "Override", "to": "owner"}),
+        ):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                coder.tool(name, args)
+        idle = self.client("idle")
+        self.assertEqual(["work_context"], [r["name"] for r in idle.call("tools/list")["tools"]])
+        self.assertEqual("awaiting_binding", idle.tool("work_context", {})["state"])
+        with self.assertRaises(ValueError):
+            idle.tool("work_report", {"text": "No scope"})
+
+    def test_routed_reports_evidence_retries_and_guidance_response_survive_restart(self):
+        coder, xo = self.client("coder"), self.client("xo")
+        args = {
+            "text": "Which interface is intended?",
+            "evidence": {"name": "question.md", "content": "Observed interface"},
+        }
+        question = coder.tool("guidance_request", args)
+        self.assertEqual("queued", question["delivery"])
+        again = coder.tool("guidance_request", args)
+        self.assertEqual(question["reference"], again["reference"])
+        self.assertTrue(again["reused"])
+        messages = self.store.inbox("xo")["messages"]
+        self.assertEqual(1, len(messages))
+        self.assertEqual(self.job, messages[0]["job"])
+        self.assertEqual("Observed interface", xo.tool("work_context", {"reference": question["evidence"]})["content"])
+        answer = xo.tool("work_report", {"text": "Use the existing contract", "responding_to": question["reference"]})
+        self.assertEqual("queued", answer["delivery"])
+        self.assertTrue(self.store.inbox("xo")["messages"][0]["acknowledged"])
+        self.assertEqual(self.job, self.store.inbox("coder")["messages"][0]["job"])
+        coder.close()
+        restarted = self.client("coder")
+        self.assertIn("Use the existing contract", json.dumps(restarted.tool("work_context", {})))
+        self.assertEqual(question["reference"], restarted.tool("guidance_request", args)["reference"])
+
+    def test_scope_filters_context_references_and_live_delivery(self):
+        audit, coder = self.client("audit"), self.client("coder")
+        secret = audit.tool(
+            "work_report", {"text": "SECRET NOTE", "evidence": {"name": "private.txt", "content": "SECRET CONTENT"}}
+        )
+        self.assertNotIn("SECRET", json.dumps(coder.tool("work_context", {"section": "activity"})))
+        self.assertNotIn("private.txt", json.dumps(coder.tool("work_context", {"section": "evidence"})))
+        for reference in (secret["reference"], secret["evidence"], "artifact:999999"):
+            with self.subTest(reference=reference), self.assertRaises(ValueError):
+                coder.tool("work_context", {"reference": reference})
+        self.store.send("owner", "coder", "Other job", key="other", work_order=self.order, job=self.other)
+        allowed = self.store.send("owner", "coder", "Relevant job", key="mine", work_order=self.order, job=self.job)
+        selected = self.store.take_delivery("coder", scoped=True)
+        self.assertEqual(allowed["id"], selected["id"])
+        self.assertIsNone(self.store.take_delivery("coder", scoped=True))
+        coder.tool("work_report", {"text": "Received", "responding_to": f"message:{allowed['id']}"})
+        self.assertTrue(self.store.inbox("coder")["messages"][1]["acknowledged"])
+
+    def test_active_connection_loses_tools_after_unbind_and_channel_is_scoped(self):
+        self.store.session("coder", state="idle", desired="running")
+        coder = self.client("coder", channel=True)
+        self.store.send("owner", "coder", "Hidden", key="hidden", work_order=self.order, job=self.other)
+        message = self.store.send("owner", "coder", "Visible", key="visible", work_order=self.order, job=self.job)
+        packet = until(
+            lambda: next((p for p in coder.notifications if p["method"] == "notifications/claude/channel"), None)
+        )
+        self.assertIn("Visible", packet["params"]["content"])
+        self.assertNotIn("Hidden", packet["params"]["content"])
+        self.assertEqual(str(message["id"]), packet["params"]["meta"]["message_id"])
+        # The initialized brief is not repeated for every ordinary live message.
+        self.assertNotIn("Updated brief", packet["params"]["content"])
+        self.operator.invoke("member_unbind", member="coder")
+        until(lambda: any(p["method"] == "notifications/tools/list_changed" for p in coder.notifications))
+        with self.assertRaises(ValueError):
+            coder.tool("work_report", {"text": "Stale session"})
+        self.assertEqual(["work_context"], [r["name"] for r in coder.call("tools/list")["tools"]])
+
+    def test_command_discussion_and_evidence_do_not_spill_into_specialist_context(self):
+        owner, xo, coder = self.client("owner"), self.client("xo"), self.client("coder")
+        question = xo.tool(
+            "guidance_request",
+            {
+                "text": "PRIVATE INTENT question",
+                "evidence": {"name": "private-intent.md", "content": "PRIVATE INTENT evidence"},
+            },
+        )
+        answer = owner.tool("work_report", {"text": "PRIVATE INTENT answer", "responding_to": question["reference"]})
+        for section in ("brief", "activity", "messages", "evidence"):
+            self.assertNotIn("PRIVATE INTENT", json.dumps(coder.tool("work_context", {"section": section})))
+            self.assertNotIn("private-intent.md", json.dumps(coder.tool("work_context", {"section": section})))
+        for reference in (question["reference"], question["evidence"], answer["reference"]):
+            with self.assertRaises(ValueError):
+                coder.tool("work_context", {"reference": reference})
+        self.assertIn("PRIVATE INTENT answer", xo.tool("work_context", {"reference": answer["reference"]})["text"])
+        self.assertEqual(
+            "PRIVATE INTENT evidence", owner.tool("work_context", {"reference": question["evidence"]})["content"]
+        )
+        api = API(self.state, "xo")
+        with patch.object(api.store, "_send", side_effect=OSError("interrupted")):
+            with self.assertRaises(OSError):
+                api.call(
+                    "work_report",
+                    {"text": "Fail safely", "evidence": {"name": "partial-private.md", "content": "PRIVATE INTENT"}},
+                )
+        self.assertNotIn("partial-private.md", json.dumps(coder.tool("work_context", {"section": "evidence"})))
+
+    def test_report_and_message_commit_atomically_and_concurrent_retries_deduplicate(self):
+        api = API(self.state, "coder")
+        with patch.object(api.store, "_send", side_effect=OSError("delivery record unavailable")):
+            with self.assertRaises(OSError):
+                api.call("work_report", {"text": "A finding"})
+        self.assertEqual([], api.call("work_context", {"section": "activity"})["activity"])
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            rows = list(pool.map(lambda _: api.call("work_report", {"text": "A finding"}), range(4)))
+        self.assertEqual(1, len({r["reference"] for r in rows}))
+        self.assertEqual(1, len(self.store.inbox("xo")["messages"]))
+
+    def test_large_unicode_evidence_and_retry_after_route_change(self):
+        coder = self.client("coder")
+        args = {"text": "🦉" * 3000, "evidence": {"name": "🦉" * 240, "content": "🦉" * 6000}}
+        saved = coder.tool("work_report", args)
+        self.operator.invoke("member_unbind", member="xo")
+        retried = coder.tool("work_report", args)
+        self.assertTrue(retried["reused"])
+        self.assertEqual(saved["reference"], retried["reference"])
+        self.assertEqual(1, len(self.store.inbox("xo")["messages"]))
+
+    def test_inflight_report_keeps_binding_while_next_call_uses_new_scope(self):
+        api = API(self.state, "coder")
+        entered, resume = threading.Event(), threading.Event()
+        original = api.control.report
+
+        def held(**args):
+            entered.set()
+            if not resume.wait(5):
+                raise TimeoutError("Report not released")
+            return original(**args)
+
+        with patch.object(api.control, "report", held), ThreadPoolExecutor() as pool:
+            pending = pool.submit(api.call, "work_report", {"text": "Original job result"})
+            self.assertTrue(entered.wait(3))
+            try:
+                self.operator.invoke("member_bind", member="coder", role="research", job=self.other, reports_to="xo")
+            finally:
+                resume.set()
+            result = pending.result()
+        self.assertEqual(self.job, self.store.inbox("xo")["messages"][0]["job"])
+        self.assertEqual("research", api.call("work_context", {})["role"])
+        with self.assertRaises(ValueError):
+            api.call("work_context", {"reference": result["reference"]})
+
+    def test_binding_validation_and_noop_rebind(self):
+        before = Control(self.store, "coder").snapshot()
+        again = self.operator.invoke(
+            "member_bind",
+            member="coder",
+            role="coder",
+            job=self.job,
+            reports_to="xo",
+            brief="Use established contracts",
+        )
+        self.assertEqual(before["revision"], again["revision"])
+        for args in (
+            dict(member="coder", role="xo", job=self.job, reports_to="audit"),
+            dict(member="xo", role="architect", work_order=self.order, reports_to="coder"),
+            dict(member="owner", role="co", work_order=self.order, reports_to="xo"),
+            dict(member="coder", role="invalid", job=self.job, reports_to="xo"),
+        ):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                self.operator.invoke("member_bind", **args)
