@@ -15,7 +15,9 @@ where they fit. Inspect installed packages and existing services before adding
 custom infrastructure. Basic Makers and Mate are already application development
 dependencies; their presence does not require a new wrapper or custom Maker.
 
-Participating live harnesses use role-bound MCP tools in persistent conversations.
+Managed local agents use role-bound MCP tools without a general shell tool in
+persistent conversations. This runtime restriction does not limit the tools
+authorized for maintainers building or repairing the dev-lane itself.
 The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
@@ -36,7 +38,9 @@ record association internally.
 Make changes on an owned branch based on `dev`, test the affected behavior, and
 use a PR into `dev`. The owner controls releases to `master`. See
 [`CONTRIB.md`](CONTRIB.md) for the short contribution conventions and
-[`devtools/README.md`](devtools/README.md) for the actual supported operations.
+[role/tool reference](docs/control-plane-roles-and-tools.md) for normal agent
+operations. [Local setup](docs/local-agent-readiness.md) and the
+[operator reference](devtools/OPERATIONS.md) cover installation and repair.
 
 <!-- BEGIN AI_MATE_INSTRUCTIONS -->
 AI Mate: project diagnostic tools, exposed through the `vendor/bin/mate` CLI.

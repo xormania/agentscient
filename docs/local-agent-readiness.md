@@ -1,13 +1,11 @@
-# Local agent readiness
+# Local setup and readiness
 
-Updated: 2026-09-27. Target: Monday, 2026-09-28.
-
-The dev-lane implementation is in `dev`: independent control-plane MCP services,
+The development environment provides independent control-plane MCP services,
 persistent native harness communication, work orders/jobs, telemetry, artifacts,
 managed Git/GitHub delivery, installed Symfony development tools and a separate
 Serena v2 REPL provider. The Symfony application remains a starting foundation.
-This document defines the setup stages and their completion evidence. It does not
-declare an authenticated model run successful because CI passed.
+This guide covers operator setup and the evidence needed before relying on a local
+team. For normal agent usage, see the [roles and tools](control-plane-roles-and-tools.md).
 
 ## Stages and completion requirements
 
@@ -24,9 +22,19 @@ declare an authenticated model run successful because CI passed.
 
 ## One-time operator setup
 
-These terminal commands are for the operator. Participating agents use MCP.
-From an up-to-date local `dev` checkout, install the locked application dependencies
-and build the pinned provider:
+These terminal commands are for the operator. Participating agents use MCP. Start
+with an up-to-date local `dev` checkout and these prerequisites:
+
+| Prerequisite | Used by |
+| --- | --- |
+| Linux/macOS or WSL; Python 3.11+ | Control plane and native harness adapters; SQLite is in the standard library. |
+| Git with commit identity and authenticated remote access | Managed worktrees, checkpoints and delivery. |
+| GitHub API access | PRs, CI and feedback; configure it as described below. |
+| PHP matching the committed Composer platform and Composer | Installed Symfony Makers, Mate and checks. |
+| Docker | Separate pinned Serena v2 REPL provider. |
+| Installed, authenticated Codex, Claude or Grok binaries | The collaborators you choose; Claude background sessions also need tmux. |
+
+Install the locked application dependencies and build the provider:
 
 ```sh
 composer install --prefer-dist --no-interaction
@@ -53,8 +61,8 @@ python3 devtools/run.py init \
 
 `init` enables managed workspaces, default installed Symfony tools/checks and the
 separate Serena image. It does not start models. It refuses to replace an existing
-team. For an existing team, edit its private `team.json`; the equivalent project
-configuration is documented in [`devtools/README.md`](../devtools/README.md).
+team. For an existing team, edit its private `team.json`; see
+[team and project configuration](../devtools/OPERATIONS.md#team-and-project-configuration).
 Set each slot's optional `binary`, `model` and `reasoning` there. No model is forced
 by the repository. For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
@@ -81,45 +89,20 @@ startup. A `preflight_passed` result still requires the authenticated acceptance
 stage. Image labels identify the configured build; runtime boundary checks are the
 separate integration test, not an inference from a label.
 
-## Current role surface
+## Start work through CO
 
-Every bound role gets `work_context`, `work_report` and `guidance_request`.
-Configured specialists also get `work_inspect`, `framework_inspect` and `work_check`.
-Editing roles get `work_save`, `work_refresh`, `work_recover`, `work_submit` and
-`review_respond`. Repository, branch, target, workspace and PR association stay
-behind those tools.
+The CO client uses `direct` to state the objective, completion criteria and
+boundaries. That binds XO; XO uses `orchestrate` to create named responsibilities
+and start live collaborators. Each receives its brief, role-scoped tools and job
+workspace automatically. Native managed profiles also attach the separate Serena
+provider when configured. Agents do not assemble connections or select branches.
 
-For delivery problems, `work_inspect(section="ci")` supplies actionable failure
-evidence and `work_inspect(section="feedback")` supplies external PR comments.
-The services choose their GitHub context and retain complete diagnostic packets.
-XO reads the same details with focused `monitor`; CI changes also arrive at the
-current supervisor automatically.
+Use the [role/tool reference](control-plane-roles-and-tools.md) for the actual
+catalog, source paths, retained operations, review and acceptance behavior.
+Externally hosted specialist clients require the separate
+[specialist connections](../devtools/OPERATIONS.md#external-specialist-connections).
 
-| Role | Additional control-plane tools | Serena source access |
-| --- | --- | --- |
-| CO | `direct`, `monitor`, `conclude` | None |
-| XO | `orchestrate`, `monitor`, `steer` | None |
-| Coder | Editing tools; `framework_generate` | Product paths |
-| Audit | `review_record` | Read-only submitted snapshot |
-| Docs | Editing tools | Documentation and README |
-| Research | Inspection, reports and evidence | Read-only source |
-| Test Writer | Editing tools; `framework_generate` restricted to `make:test` | Tests and PHPUnit configuration |
-| Architect | Editing tools | Documentation; other source read-only |
-
-Serena exposes its own `serena_repl`; the service supplies its session and workspace.
-Start with `s.info()` for progressive API documentation. Python variables persist
-while that provider session remains valid. Background execution is frozen between
-calls to coordinate with Git, checks and Makers. The container receives neither
-host credentials nor the control database, Docker socket or runtime network.
-Installed Symfony commands run as the local service user; their fixed command
-interface is not an OS sandbox for application code or Composer plugins.
-
-Research currently covers repository material, supplied sources and retained
-evidence. There is no general external web-search provider in the managed profiles.
-CO can supply external research as relevant context; provider expansion is separate
-from the working source-development path.
-
-## Bounded authenticated acceptance
+## Authenticated local acceptance
 
 Use a small owner-approved foundation improvement, or an operator-owned test
 repository containing this Symfony foundation. Set the actual objective, completion
@@ -158,19 +141,7 @@ work-order result.
 
 ## Verification already available
 
-CI runs the Python/MCP/native-protocol/Git/GitHub fixtures and the actual installed
-Symfony integration, including Maker attributes/autoconfiguration and Mate.
-It also builds the pinned upstream Serena beta and executes persistent Python,
-PHPactor navigation, edits, protected-file denial, pause/resume and a checkpoint
-inside the real container. These integration scripts are available locally:
-
-```sh
-python3 devtools/integration/symfony.py
-python3 devtools/integration/serena.py
-```
-
-They use disposable worktrees and no model account. Neither substitutes for the
-authenticated live-harness acceptance above. The old development system remains
-removed; this setup adds no dispatch workflow, grant system or mandatory review
-ladder. The trusted operator catalog is for setup/repair and is never attached to
-normal managed roles.
+The [CI guide](../.github/README.md) lists the Python/MCP/native-protocol fixtures,
+real installed Symfony integration, pinned Serena container integration and local
+verification commands. These checks use no model account. Authenticated native
+delivery and model behavior require the local acceptance run above.
