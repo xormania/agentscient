@@ -1,0 +1,279 @@
+{
+  "id": "20260915T063154Z-tests-grok-51b8b3",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "cfe884de40c59175a3554a131e2ca977ca34ec42"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:31:54Z",
+    "closed": "2026-09-15T06:40:57Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cfe884de40c59175a3554a131e2ca977ca34ec42",
+    "ref_sha": "cfe884de40c59175a3554a131e2ca977ca34ec42",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "3a356108-b639-4e6e-b819-1a2d040f90be",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok-stream/sessions/<snapshot-encoded>/3a356108-b639-4e6e-b819-1a2d040f90be/summary.json"
+  },
+  "session": {
+    "id": "3a356108-b639-4e6e-b819-1a2d040f90be",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok-stream/sessions/<snapshot-encoded>/3a356108-b639-4e6e-b819-1a2d040f90be/summary.json",
+    "stream_sha256_at_close": "6e7185af6b302bdcdf8d73d83c6f20d267b14f1a0fcb413d0861873fcc4ab805",
+    "spend": {
+      "input": 3384142,
+      "cached": 3125120,
+      "output": 24689,
+      "total": 3408831,
+      "cost_usd_ticks": 7577709200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok-stream/sessions/<snapshot-encoded>/3a356108-b639-4e6e-b819-1a2d040f90be/summary.json",
+      "messages": 377
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/task/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/task/tests/test_plan_job_assumptions.py, ops/devlane/task/tests/test_plan_job_calibration.py, ops/devlane/task/tests/test_plan_job_machine_lines.py, ops/devlane/task/tests/test_plan_job_deliverable.py, ops/devlane/task/tests/test_plan_job_walkthrough.py, ops/devlane/task/tests/test_plan_job_placeholders.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "191eaf54f9eedfcffb4c64d5553c62d0608406f556392eb9cc45b90faa5dcde0",
+    "bytes": 10533,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/lane-mcp.json",
+      "sha256": "c6e873809472f5dc013616656ab9187c06ffb4d2530132702ea66873b6eaf92c",
+      "job_ids": [
+        "20260915T063152Z-tests-codex-cede58",
+        "20260915T063151Z-tests-grok-71af00",
+        "20260915T063150Z-tests-codex-19346e",
+        "20260915T063148Z-tests-grok-313364",
+        "20260915T063147Z-tests-codex-6482a4",
+        "20260915T062927Z-tests-codex-72ebca",
+        "20260915T062926Z-tests-grok-efea87",
+        "20260915T062923Z-tests-codex-279bd2",
+        "20260915T062753Z-tests-grok-67cd94",
+        "20260915T062641Z-tests-codex-965e58",
+        "20260915T062640Z-tests-grok-dbd4c8",
+        "20260915T062423Z-tests-codex-b3c2f2",
+        "20260915T062421Z-tests-grok-51bb08",
+        "20260915T062420Z-tests-codex-99ca6e",
+        "20260915T062358Z-tests-grok-001105",
+        "20260915T062219Z-tests-codex-276394",
+        "20260915T062218Z-tests-grok-bb00e0",
+        "20260915T062216Z-tests-codex-35b463",
+        "20260915T062215Z-tests-grok-f5586b",
+        "20260915T062037Z-tests-codex-d3b00c"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:31:55Z",
+      "ended": "2026-09-15T06:40:57Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "d981655ccc620d757ec837a4243cec6a0d985f1e",
+    "changed_paths": [
+      "ops/devlane/task/tests/test_plan_job_assumptions.py",
+      "ops/devlane/task/tests/test_plan_job_calibration.py",
+      "ops/devlane/task/tests/test_plan_job_deliverable.py",
+      "ops/devlane/task/tests/test_plan_job_machine_lines.py",
+      "ops/devlane/task/tests/test_plan_job_placeholders.py",
+      "ops/devlane/task/tests/test_plan_job_walkthrough.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_assumptions.py",
+          "claim": "Preserved all 4 test names and count. Baseline and migrated runs passed 4 tests; a planted jobs.json stand-in produced 4 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_assumptions.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_calibration.py",
+          "claim": "Preserved all 5 test names and count. Baseline and migrated runs passed 5 tests; a planted jobs.json stand-in produced 5 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_calibration.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_machine_lines.py",
+          "claim": "Preserved all 6 test names and count. Baseline and migrated runs passed 6 tests; a planted jobs.json stand-in produced 6 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_machine_lines.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_deliverable.py",
+          "claim": "Preserved all 8 test names and count. Baseline and migrated runs passed 8 tests; a planted jobs.json stand-in produced 8 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_deliverable.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_walkthrough.py",
+          "claim": "Preserved all 10 test names and count. Baseline and migrated runs passed 10 tests; a planted jobs.json stand-in produced 10 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_walkthrough.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_plan_job_placeholders.py",
+          "claim": "Preserved all 6 test names and count. Baseline and migrated runs passed 6 tests; a planted jobs.json stand-in produced 6 assertion failures and 0 errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_plan_job_placeholders.py"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3408831,
+        "out": 24689,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cfe884de40c59175a3554a131e2ca977ca34ec42",
+        "started": "2026-09-15T06:31:54Z",
+        "ended": "2026-09-15T06:40:13Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nNo kit gap. Each module imports the kit, owns a closed World, and stages jobs.json through world.stage so the suite never reads the tree's own file. These modules have no subprocesses and no fakes, so the run and fake obligations are vacuous. No regression row was added because this was a behavior-preserving migration. Test-name comparison was exact for all six modules. Family: Ran 356 tests, OK. Ruff: All checks passed. Ratchet: home_by_hand 57 -> 19; the new floor; embedded_programs 30 -> 11; the new floor; run_without_timeout 185 -> 44; the new floor; ratchet holds: home_by_hand=19, embedded_programs=11, run_without_timeout=44. git diff --check passed; only the six scoped modules changed. Red then green commits landed per module (12 commits, HEAD d981655). The implementation and session store were not read. Reused agentscient-lane lane_brief, lane_jobs, lane_changes, and lane_findings. One producer; second producer absent."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T063154Z-tests-grok-51b8b3/home/grok-stream/sessions/<snapshot-encoded>/3a356108-b639-4e6e-b819-1a2d040f90be/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nNo kit gap. Each module imports the kit, owns a closed World, and stages jobs.json through world.stage so the suite never reads the tree's own file. These modules have no subprocesses and no fakes, so the run and fake obligations are vacuous. No regression row was added because this was a behavior-preserving migration. Test-name comparison was exact for all six modules. Family: Ran 356 tests, OK. Ruff: All checks passed. Ratchet: home_by_hand 57 -> 19; the new floor; embedded_programs 30 -> 11; the new floor; run_without_timeout 185 -> 44; the new floor; ratchet holds: home_by_hand=19, embedded_programs=11, run_without_timeout=44. git diff --check passed; only the six scoped modules changed. Red then green commits landed per module (12 commits, HEAD d981655). The implementation and session store were not read. Reused agentscient-lane lane_brief, lane_jobs, lane_changes, and lane_findings. One producer; second producer absent.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:40:55.992Z"
+    }
+  },
+  "status": "closed"
+}

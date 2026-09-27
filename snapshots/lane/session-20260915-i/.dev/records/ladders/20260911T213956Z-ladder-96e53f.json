@@ -1,0 +1,556 @@
+{
+  "base_sha": "2742d391a980faf5489bc99dbf5ac5e4ca3e1d3e",
+  "branch": "lane/item31-skeptic-wire-20260911",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/lane.conf",
+    "sha256": "9bb41d2ab1e32781b365987d2446c817a3cfe2047d0b4b9af96a8091ae4e088c"
+  },
+  "id": "20260911T213956Z-ladder-96e53f",
+  "implementation_markers": [
+    "20260911T223316Z-code-codex-c876fb",
+    "Assumption: this is the supplied slice-1 contract-only implementation because the plan bucket and frozen command name exactly these three contract files; later jobs.json, driver, and render-guard implementation remains outside this slice. The exact named command exits 0. No unrelated issue was changed. Git commit was blocked by the read-only .git filesystem, so out/COMMIT_MSG carries the required message.",
+    "ops/devlane/task/CONTRACT.md; ops/conductor/ladder-lever.md; ops/devlane/dispatch/CONTRACT.md",
+    "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py",
+    "Measured the input, ops README, and docs file sizes before reading.",
+    "wc -l /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md && rg --files docs | sort | xargs wc -l",
+    "The initial whole-plan display was truncated, so bounded reads followed.",
+    "cat /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+    "Read plan lines 1 through 400.",
+    "sed -n '1,400p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+    "Read plan lines 401 through 732, completing the input.",
+    "sed -n '401,732p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+    "Read the remaining brief inputs and began the governing documents; the combined display was truncated, so narrower reads followed.",
+    "sed -n '1,9999p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md",
+    "Read ops/README.md completely.",
+    "sed -n '1,183p' ops/README.md",
+    "Read concerns, probes, verified couplings, wire, and workflow completely.",
+    "sed -n '1,999p' docs/concerns.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md",
+    "Read docs/mapping.md completely.",
+    "sed -n '1,268p' docs/mapping.md",
+    "The required initial Graft repository map succeeded and covered 326 ops files.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'",
+    "Graft located the frozen contract tests and relevant ladder symbols.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"check-tests skeptic contract ladder tests-fix envelope custody role refusal\",\"limit\":10}'",
+    "Confirmed clean initial HEAD dd88432c05b927c05399078182e1fd8555f55031 and inspected recent trailer style.",
+    "git rev-parse HEAD && git status --short && git log -3 --format='%H%n%B'",
+    "Recent Codex-authored history uses the GPT-5.6 Sol noreply attribution.",
+    "git log -100 --format='%B' | rg -m 5 '^Co-Authored-By: .*Codex|^Co-Authored-By: GPT|^Co-Authored-By: OpenAI'",
+    "The baseline chained command exited 1 after 14 failures in the first suite.",
+    "Inspected the frozen test sources without editing them.",
+    "sed -n '1,500p' ops/devlane/task/tests/test_check_tests_contract_row.py ops/conductor/tests/test_ladder_lever_skeptic_contract.py ops/devlane/dispatch/tests/test_launch_role_contract.py",
+    "Read the ladder skeptic-contract test through line 420.",
+    "sed -n '1,420p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+    "Completed the ladder test and read the dispatch role-contract test.",
+    "sed -n '421,700p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py && sed -n '1,500p' ops/devlane/dispatch/tests/test_launch_role_contract.py",
+    "Read the authoritative neighboring sections in all three contract files.",
+    "sed -n '145,230p' ops/devlane/task/CONTRACT.md && sed -n '1,240p' ops/conductor/ladder-lever.md && sed -n '950,1030p' ops/devlane/dispatch/CONTRACT.md",
+    "The first edited diff was whitespace-clean and confined to three contract files.",
+    "git diff --check && git diff --stat && git diff -- ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md",
+    "The first verification reduced the task-contract suite to two line-wrapping failures.",
+    "After correcting task prose wrapping, its 14 tests passed; the ladder suite exposed five analogous phrase-shape failures.",
+    "After the final contract adjustments, all 38 named tests passed.",
+    "Final pre-commit inspection found no whitespace errors and exactly the three authorized contract files modified.",
+    "git diff --check && git status --short && git diff --name-only",
+    "Git commit was refused because snapshot/.git is read-only.",
+    "git add ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md && git commit -m 'docs: put skeptic contracts on the wire' -m 'Source: owner 2026-09-11",
+    "Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>'",
+    "The exact required command was rerun in the final tree and exited 0 with 38 tests passing.",
+    "Final inspection confirmed the three modified files, a clean diff check, unchanged HEAD, and the fallback commit message.",
+    "git status --short && git diff --check && git rev-parse HEAD && sed -n '1,10p' ../out/COMMIT_MSG",
+    "20260911T232020Z-code-codex-e3daf9",
+    "Assumption: this is the supplied slice-1 contract-only correction because the plan bucket and named tests target contract documents. No test file or command was changed. Follow-up outside this slice: the later driver implementation should address the supplied security review's quote-location/authenticity concern. Git commit was blocked by the read-only .git filesystem, so out/COMMIT_MSG carries the launcher commit message.",
+    "The initial combined input read was truncated; bounded reads followed.",
+    "sed -n '1,99999p' ../in/plan-item31-slice1-20260911.md ../in/scope-item31-20260911.md ../in/scope-discipline.md ../in/20260911T224145Z-review-codex-c5fc8b.json ../in/20260911T225002Z-review-grok-a00d0e.json ../in/scope-item31-20260911.scope.md ../in/implementation-records.md",
+    "Measured 1,290 total input lines before bounded reads.",
+    "wc -l ../in/plan-item31-slice1-20260911.md ../in/scope-item31-20260911.md ../in/scope-discipline.md ../in/20260911T224145Z-review-codex-c5fc8b.json ../in/20260911T225002Z-review-grok-a00d0e.json ../in/scope-item31-20260911.scope.md ../in/implementation-records.md",
+    "../in/plan-item31-slice1-20260911.md",
+    "Read the plan; bounded overlap completed the truncated display.",
+    "sed -n '1,732p' ../in/plan-item31-slice1-20260911.md",
+    "Read plan lines 200 through 460.",
+    "sed -n '200,460p' ../in/plan-item31-slice1-20260911.md",
+    "Read plan lines 461 through 732, completing the input.",
+    "sed -n '461,732p' ../in/plan-item31-slice1-20260911.md",
+    "Read the scope, discipline, concise scope, and implementation record whole.",
+    "sed -n '1,999p' ../in/scope-item31-20260911.md ../in/scope-discipline.md ../in/scope-item31-20260911.scope.md ../in/implementation-records.md",
+    "../in/20260911T224145Z-review-codex-c5fc8b.json",
+    "Read the supplied Codex security review whole.",
+    "sed -n '1,999p' ../in/20260911T224145Z-review-codex-c5fc8b.json",
+    "../in/20260911T225002Z-review-grok-a00d0e.json",
+    "Read the supplied Grok adversarial review whole.",
+    "sed -n '1,999p' ../in/20260911T225002Z-review-grok-a00d0e.json",
+    "Read the lane operating instructions and governing wire, workflow, probe, concern, and coupling contracts whole.",
+    "sed -n '1,9999p' ops/README.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md",
+    "The required initial Graft repository map succeeded over 326 files.",
+    "The starting HEAD was d22eb8fe64de458832aa6c54d2913a72249e9e29.",
+    "The starting snapshot was clean and detached.",
+    "git status --short --branch",
+    "named acceptance command",
+    "The baseline stopped after four ladder contract failures.",
+    "Read the frozen ladder contract tests whole without editing them.",
+    "sed -n '1,700p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+    "Read the authoritative ladder contract surface.",
+    "sed -n '1,220p' ops/conductor/ladder-lever.md",
+    "After correcting the ladder contract, task and ladder suites passed; two dispatch contract pins failed.",
+    "Read the frozen dispatch role-contract tests whole without editing them.",
+    "sed -n '1,420p' ops/devlane/dispatch/tests/test_launch_role_contract.py",
+    "Read the authoritative dispatch refusal table.",
+    "sed -n '970,1035p' ops/devlane/dispatch/CONTRACT.md",
+    "After both contract corrections, all 44 named tests passed.",
+    "The edited diff had no whitespace errors.",
+    "Exactly two tracked contract files were modified.",
+    "Inspected the complete two-file contract diff.",
+    "git diff -- ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md",
+    "Git staging was refused because snapshot/.git is read-only.",
+    "git add ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md",
+    "The final diff has no whitespace errors.",
+    "The final tree contains only the two intended tracked modifications.",
+    "HEAD remained d22eb8fe64de458832aa6c54d2913a72249e9e29 because committing was unavailable.",
+    "The fallback commit message contains the required Source and Codex attribution trailers.",
+    "sed -n '1,10p' ../out/COMMIT_MSG",
+    "The exact required command exited 0 in the final tree with all 44 tests passing."
+  ],
+  "inputs": [
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-item31-20260911.md",
+      "sha256": "1aa788cf21ae0613c1d7d9249fa41201bdd61a6651077553051624f1e5593284"
+    },
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-discipline.md",
+      "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+    }
+  ],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/plan-item31-slice1-20260911.md",
+    "sha256": "6a362cfd01fe53444455c1ab3067af6ecfb1437345caf5ee11ca827bdde00c65"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-item31-20260911.scope.md",
+    "sha256": "6da20a4bfdfe133be4841412511845ec9f31aa54bc661bcf3fae129264a4a769"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T213956Z-tests-grok-fe4899",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them."
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "author-tests",
+      "landed": [
+        "696ce6e16841a2ea7f741fe8d000751945c425c4",
+        "cbfe01098dccc7330c7a356f6a6275ca97a65b29",
+        "2c47704bc66b45f16c12a19c6432be451b231ca3"
+      ],
+      "landed_shas": [
+        "696ce6e16841a2ea7f741fe8d000751945c425c4",
+        "cbfe01098dccc7330c7a356f6a6275ca97a65b29",
+        "2c47704bc66b45f16c12a19c6432be451b231ca3"
+      ],
+      "minutes": 10.35672,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260911T213956Z-tests-grok-fe4899",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T215054Z-check-tests-codex-bc7bad",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "findings": 7,
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/dispatches/20260911T213956Z-tests-grok-fe4899.json",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T213956Z-tests-grok-fe4899"
+          ],
+          "withheld": []
+        },
+        "sha256": "9f4aae58e2205f4766fc8715ab4c4ebeeb9488d272b1cab2e4f9432fa3ba9b7b"
+      },
+      "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 8.088849,
+      "name": "check-tests",
+      "outcome": "ok",
+      "record": "20260911T215054Z-check-tests-codex-bc7bad",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 2,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T221847Z-tests-grok-a323b5",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T215054Z-check-tests-codex-bc7bad/out/SKEPTIC.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T215054Z-check-tests-codex-bc7bad"
+          ],
+          "withheld": []
+        },
+        "sha256": "1b2450b78c0aa94fe84ba4f7c7dd0ef0a7cf4876ab5b61fd7eda5f7d3ae43466"
+      },
+      "job": "author-tests",
+      "landed": [
+        "fa9115f3b977ae3f1df1e2eec01f85c3b1f50517",
+        "fa532e9eeaba2d3b32e67b2bb78612e075846db8",
+        "09de4e5e67dee1a5d60a5ca4e94be897c59d3704"
+      ],
+      "landed_shas": [
+        "fa9115f3b977ae3f1df1e2eec01f85c3b1f50517",
+        "fa532e9eeaba2d3b32e67b2bb78612e075846db8",
+        "09de4e5e67dee1a5d60a5ca4e94be897c59d3704"
+      ],
+      "minutes": 13.6908,
+      "name": "tests-fix",
+      "outcome": "ok",
+      "reason": "correction",
+      "record": "20260911T221847Z-tests-grok-a323b5",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T223316Z-code-codex-c876fb",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/ladders/20260911T213956Z-ladder-96e53f/test-command.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T221847Z-tests-grok-a323b5"
+          ],
+          "withheld": []
+        },
+        "sha256": "74b51b9053e893b3d084bc7bace496731748912221a47a504c4baed5a18857db"
+      },
+      "job": "implement",
+      "landed": [
+        "dd0350427295a3b4947a20bc0980e37e659158aa"
+      ],
+      "landed_shas": [
+        "dd0350427295a3b4947a20bc0980e37e659158aa"
+      ],
+      "minutes": 7.85435,
+      "name": "code",
+      "outcome": "ok",
+      "record": "20260911T223316Z-code-codex-c876fb",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "code"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T224145Z-review-codex-c5fc8b",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-daybreak-blue-latest"
+      },
+      "findings": 4,
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T223316Z-code-codex-c876fb"
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 7.672634,
+      "name": "security",
+      "outcome": "ok",
+      "record": "20260911T224145Z-review-codex-c5fc8b",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T225002Z-review-grok-a00d0e",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "findings": 1,
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T224145Z-review-codex-c5fc8b"
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "adversarial-review",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 16.00506,
+      "name": "adversarial",
+      "outcome": "ok",
+      "record": "20260911T225002Z-review-grok-a00d0e",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "review",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T230835Z-tests-grok-ae3bfa",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/ladders/20260911T213956Z-ladder-96e53f/adversarial-envelope.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T225002Z-review-grok-a00d0e"
+          ],
+          "withheld": [
+            "20260911T223316Z-code-codex-c876fb",
+            "Assumption: this is the supplied slice-1 contract-only implementation because the plan bucket and frozen command name exactly these three contract files; later jobs.json, driver, and render-guard implementation remains outside this slice. The exact named command exits 0. No unrelated issue was changed. Git commit was blocked by the read-only .git filesystem, so out/COMMIT_MSG carries the required message.",
+            "ops/devlane/task/CONTRACT.md; ops/conductor/ladder-lever.md; ops/devlane/dispatch/CONTRACT.md",
+            "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py",
+            "Measured the input, ops README, and docs file sizes before reading.",
+            "wc -l /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md && rg --files docs | sort | xargs wc -l",
+            "The initial whole-plan display was truncated, so bounded reads followed.",
+            "cat /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+            "Read plan lines 1 through 400.",
+            "sed -n '1,400p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+            "Read plan lines 401 through 732, completing the input.",
+            "sed -n '401,732p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+            "Read the remaining brief inputs and began the governing documents; the combined display was truncated, so narrower reads followed.",
+            "sed -n '1,9999p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md",
+            "Read ops/README.md completely.",
+            "sed -n '1,183p' ops/README.md",
+            "Read concerns, probes, verified couplings, wire, and workflow completely.",
+            "sed -n '1,999p' docs/concerns.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md",
+            "Read docs/mapping.md completely.",
+            "sed -n '1,268p' docs/mapping.md",
+            "The required initial Graft repository map succeeded and covered 326 ops files.",
+            "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'",
+            "Graft located the frozen contract tests and relevant ladder symbols.",
+            "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"check-tests skeptic contract ladder tests-fix envelope custody role refusal\",\"limit\":10}'",
+            "Confirmed clean initial HEAD dd88432c05b927c05399078182e1fd8555f55031 and inspected recent trailer style.",
+            "git rev-parse HEAD && git status --short && git log -3 --format='%H%n%B'",
+            "Recent Codex-authored history uses the GPT-5.6 Sol noreply attribution.",
+            "git log -100 --format='%B' | rg -m 5 '^Co-Authored-By: .*Codex|^Co-Authored-By: GPT|^Co-Authored-By: OpenAI'",
+            "The baseline chained command exited 1 after 14 failures in the first suite.",
+            "Inspected the frozen test sources without editing them.",
+            "sed -n '1,500p' ops/devlane/task/tests/test_check_tests_contract_row.py ops/conductor/tests/test_ladder_lever_skeptic_contract.py ops/devlane/dispatch/tests/test_launch_role_contract.py",
+            "Read the ladder skeptic-contract test through line 420.",
+            "sed -n '1,420p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+            "Completed the ladder test and read the dispatch role-contract test.",
+            "sed -n '421,700p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py && sed -n '1,500p' ops/devlane/dispatch/tests/test_launch_role_contract.py",
+            "Read the authoritative neighboring sections in all three contract files.",
+            "sed -n '145,230p' ops/devlane/task/CONTRACT.md && sed -n '1,240p' ops/conductor/ladder-lever.md && sed -n '950,1030p' ops/devlane/dispatch/CONTRACT.md",
+            "The first edited diff was whitespace-clean and confined to three contract files.",
+            "git diff --check && git diff --stat && git diff -- ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md",
+            "The first verification reduced the task-contract suite to two line-wrapping failures.",
+            "After correcting task prose wrapping, its 14 tests passed; the ladder suite exposed five analogous phrase-shape failures.",
+            "After the final contract adjustments, all 38 named tests passed.",
+            "Final pre-commit inspection found no whitespace errors and exactly the three authorized contract files modified.",
+            "git diff --check && git status --short && git diff --name-only",
+            "Git commit was refused because snapshot/.git is read-only.",
+            "git add ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md && git commit -m 'docs: put skeptic contracts on the wire' -m 'Source: owner 2026-09-11",
+            "Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>'",
+            "The exact required command was rerun in the final tree and exited 0 with 38 tests passing.",
+            "Final inspection confirmed the three modified files, a clean diff check, unchanged HEAD, and the fallback commit message.",
+            "git status --short && git diff --check && git rev-parse HEAD && sed -n '1,10p' ../out/COMMIT_MSG"
+          ]
+        },
+        "sha256": "b8d808b273abc989a3928f55c60e6c97f0a23f405b063f79bc92737bdfc2392a"
+      },
+      "job": "author-tests",
+      "landed": [
+        "a6dbd2a633995309f497d5e8e5ae5efe0777c652",
+        "00196f0812c3177a692ba9d2e236b7cf669a2a73"
+      ],
+      "landed_shas": [
+        "a6dbd2a633995309f497d5e8e5ae5efe0777c652",
+        "00196f0812c3177a692ba9d2e236b7cf669a2a73"
+      ],
+      "minutes": 11.10592,
+      "name": "fix-tests",
+      "outcome": "ok",
+      "reason": "undisposed",
+      "record": "20260911T230835Z-tests-grok-ae3bfa",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T232020Z-code-codex-e3daf9",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/ladders/20260911T213956Z-ladder-96e53f/implementation-records.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T230835Z-tests-grok-ae3bfa"
+          ],
+          "withheld": []
+        },
+        "sha256": "a5ca3309733056ab61a82af41f038df0bbfd5285484013dd93ba7d226c4636bc"
+      },
+      "job": "implement",
+      "landed": [
+        "cac2a45807933eb725e288dd557c5b11b7798f25"
+      ],
+      "landed_shas": [
+        "cac2a45807933eb725e288dd557c5b11b7798f25"
+      ],
+      "minutes": 4.021407,
+      "name": "fix-code",
+      "outcome": "ok",
+      "record": "20260911T232020Z-code-codex-e3daf9",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "code"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T232448Z-review-codex-5cb35f",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-daybreak-blue-latest"
+      },
+      "findings": 3,
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/dispatches/20260911T224145Z-review-codex-c5fc8b.json",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T232020Z-code-codex-e3daf9"
+          ],
+          "withheld": []
+        },
+        "sha256": "7fd24d8c54c50babdd26d7e173d6b785b153def2c2788f60ee88bc0ac9b60779"
+      },
+      "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 5.337947,
+      "name": "security-re",
+      "outcome": "changes",
+      "record": "20260911T232448Z-review-codex-5cb35f",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "stopped",
+  "stopped": {
+    "reason": null,
+    "record": "20260911T232448Z-review-codex-5cb35f",
+    "stage": "security-re",
+    "verdict": "changes"
+  },
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911"
+}

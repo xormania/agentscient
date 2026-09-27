@@ -1,0 +1,642 @@
+# Plan: the uncited-correction gate
+
+Tree: `bdf33f32442f60bfa1dd8da6c80a19117d01d427` (`git rev-parse HEAD`, this
+job, 2026-09-10). Inputs read whole: `in/scope-gate-20260910.md`,
+`in/scope-discipline.md`. The requirements are the ten numbered Contract
+items of the work order and nothing else. Boundaries as listed there; this
+plan does not widen them. Every claim below is either measured by a command
+in this job (marked `measured:`), taken from a tracked contract (marked
+`contract:`), or turned into a refusal the run will hit (marked `refusal:`).
+A claim that is none of these is listed under "Findings against this plan".
+
+## 1. What the tree has today
+
+- `measured: grep -n 'REFUSAL = ' ops/devlane/dispatch/launch.py` → line 33
+  `REFUSAL = 3`; `main` prints `launch.py: refusal: <line>` and returns 3
+  (lines 2509–2511). The launcher's refusals are not on the founding wire
+  (exit 2, bare line). `ops/devlane/dispatch/CONTRACT.md` §Refusals says so
+  and defers reconciliation.
+- `measured: grep -n 'follows' ops/devlane/dispatch/launch.py` → `--follows`
+  is `action="append"` (line 2494) and lands in the record verbatim (line
+  1488). Nothing reads the followed record at launch.
+- `measured: grep -c 'answers\|citation\|contract item'` → 0 in `ladder.py`,
+  `dispatch.sh`, `record.py`, `findings.py`, `ladder-lever.md`; the single
+  hits in `launch.py` (line 618, a comment) and `CONTRACT.md` (line 1477)
+  are unrelated. `grep -c correction` → 0 in `launch.py` and `dispatch.sh`.
+  `grep -c undisposed` → 0 in `ladder.py`, `ladder-lever.md`,
+  `test_ladder_lever.py`. `ls ops/conductor/tools/correction.py` → absent.
+- `measured: grep -n 'follows' ops/conductor/tools/dispatch.sh` → one scalar
+  `follows=$2` (last wins); an unknown flag refuses with
+  `expected a documented flag; found unknown flag $1` at exit 3.
+- `measured: sed -n 265,271p ops/conductor/tools/findings.py` → verbs are
+  `import, disposition, calibrate, export, summary`; `disposed_at` is written
+  as `YYYY-MM-DDTHH:MM:SSZ` (line 173); the store path is
+  `Path.home()/.local/state/<LANE_NAME>/findings.db` (lines 101–107);
+  `REVIEW_JOBS` for import is the three ladder reviewers (line 41).
+- `measured: ops/conductor/registry/findings.py.json` holds two rows, and
+  `ops/conductor/tests/test_instrument_conventions.py` line 232 pins
+  `findings.py` to exactly two rows. The registry admits only tools under
+  `ops/conductor/tools/` (lines 200, 256). `launch.py` cannot join it.
+- `measured: record.py` lines 13–17 `FIELDS`; `validate` requires every field
+  present (lines 133–134); `_write_record` re-validates loaded records at
+  settle, resume, collect and close (`grep -n '_write_record('` → lines
+  1517, 1997, 2192, 2316, 2406). A new required field would break closing
+  every record minted before it.
+- `measured: ops/conductor/tools/ladder.py` lines 1375–1380: one derived test
+  command is handed to every `code` bucket; lines 894–921: a landed path
+  outside the bucket's file list stops the ladder. Under the driver, the
+  first bucket of an M slice must make the whole frozen test set exit 0
+  while touching only its own files. Lines 1391–1395: `fix-tests` then
+  `fix-code` launch as soon as an audit says `changes`, with `--follows
+  <adversarial>` only (line 584) and the audit record JSON files as inputs
+  (lines 1011–1014).
+- `measured: .dev/records/dispatches` → 371 records; per job: adjudicate 8,
+  check-tests 30, security-audit 15, adversarial-review 107, sweep 9,
+  implement 116, author-tests 82, plan 22. The record the scope names,
+  `20260904T230616Z-code-codex-65775d`, is present: job implement, follows
+  the adjudicate record, inputs `in/security-fix-57.md` and `in/RULING.md`
+  copied from the adjudicate job's `out/`.
+- `measured: .dev/ladder-inputs/scope-gate-20260910.scope.md` is 506 bytes
+  (cap 1024); `scope-gate-20260910.md` and `scope-discipline.md` are
+  tracked beside it.
+- `measured: .github/workflows/ci.yml` → `runs-on: self-hosted`, checkout
+  with `persist-credentials: false`, `~/.local/bin` prepended to PATH, then
+  term wall, `ruff check .`, `bash ops/bin/suites.sh`, `laneconf.py
+  closure`, `laneconf.py literals`.
+- `measured:` in this job `python3 --version` → 3.12.3; `which gh` →
+  `/usr/bin/gh`; `which codex`, `which grok`, `which ruff` → under
+  `/home/scientdb/.local/bin`; `test -w .git` → writable; `git remote |
+  wc -l` → 0; `git branch --show-current` → empty (detached);
+  `git status --porcelain | wc -l` → 0.
+- `could not look:` HOME, XDG_STATE_HOME, the network probe and the job
+  directory listing were refused by this job's sandbox. The brief declares
+  the isolated home and no network; CONTRACT.md §Isolation describes the
+  homes per harness; those are cited below as `contract:`.
+
+## 2. Decisions that fix the design
+
+Each decision names the contract item it serves. Workers do not choose
+these; a worker that finds them ambiguous returns status invalid and says
+which line, rather than picking.
+
+D1. **The declared field (item 2)** is `--answers KEY`, repeatable, on
+`launch.py` and on `dispatch.sh`, recorded as `answers` in the dispatch
+record. KEY is a findings-store key `<record>#<n>`.
+
+D2. **The gate is a conductor instrument** `ops/conductor/tools/correction.py`
+(stdlib, inherits `instrument-conventions.md`), joined to the registry by
+`ops/conductor/registry/correction.py.json` (item 10). The launcher loads
+it by path, the way it already loads `laneconf.py` (`_module`, line 60),
+and calls `correction.check(...)` before minting. The gate cannot live in
+`launch.py` because the registry admits only `ops/conductor/tools/`, and
+cannot be a verb of `findings.py` because the conformance gate pins
+`findings.py` to two rows.
+
+D3. **Citation grammar (item 4)** is data in one place, `findings.py`:
+
+    CITATION = re.compile(r"contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,]+)")
+
+A disposition's evidence cites when `CITATION` matches, `path` resolves to
+a file under the invoking repository root, and that file has a line
+matching `^\s*<item>\.\s`. `findings.py` exposes `parse_citation(evidence)`
+(grammar only) and `citation_holds(evidence, root) -> (bool, reason)`;
+`correction.py` loads `findings.py` by path and calls `citation_holds`, so
+gate and ledger read one definition. Example evidence:
+`contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: found-text
+missing`.
+
+D4. **The gate's wire (item 3).** Class token `correction`. One bare stderr
+line, exit 2, stdout empty, no job directory, no record. `launch.py` gets a
+dedicated `except CORRECTION.Refused` before its own `except Refused` that
+prints `exc.line()` and returns 2. Every other launcher refusal stays at
+exit 3 with its prefix; reconciling them is outside this work order
+(CONTRACT.md §Refusals, lines 957–961). The row in the refusal table says
+"exit 2, founding wire" in its own column so the divergence is declared,
+not discovered. Newlines in evidence are collapsed to spaces in the line.
+
+D5. **The five found-texts (item 3)**, checked in `--answers` order, first
+failure reported:
+
+| arm | found text |
+|---|---|
+| no key | `no --answers key named for a correction following <id> (<job>)` |
+| absent | `key <key> absent from the findings store <path>` (a missing store file reads `absent from the findings store <path> (no store)`) |
+| open | `key <key> still open` |
+| uncited | `key <key> disposed <what> without a contract citation (<reason from citation_holds>)` |
+| late | `key <key> disposed at <disposed_at>, after the mint attempt at <stamp>` |
+
+The expected half is constant: `every finding answered by this correction
+disposed with a contract citation before <stamp>`. The needed half is the
+exact command: `python3 ops/conductor/tools/findings.py disposition <key>
+<disposition> 'contract item N of <scope path>: <why>'` with the real key
+for arms absent, open, uncited and late (arm absent prefixes `python3
+ops/conductor/tools/findings.py import, then`), and for arm no-key:
+`pass --answers <record>#<n> for each finding answered, each disposed by
+python3 ops/conductor/tools/findings.py disposition <record>#<n>
+<disposition> 'contract item N of <scope path>: <why>'`.
+
+D6. **Time order (item 5).** The launcher takes one stamp `_now()` before
+the gate and reuses it as `at.launched`. A row satisfies when
+`disposed_at <= stamp` by string comparison; both sides are
+`YYYY-MM-DDTHH:MM:SSZ` (measured: `findings.py` line 173, `launch.py`
+lines 141–142). "After" is strictly greater; same-second rows pass, which
+is the planner's reading of "precedes".
+
+D7. **Shape (item 1)** is decided from `role == write` in `jobs.json`, the
+`--follows` ids, and the `--input` paths. For each followed id the gate
+reads `<records>/<id>.json` and takes `job`; for each input whose resolved
+path lies under `<jobs_root>/<id>/out/` it reads `<records>/<id>.json` the
+same way. A followed or out/-input id with no readable record is refused,
+class `follows` (`expected a readable record for <id> under <records>;
+found none; needed name a record in .dev/records/dispatches`), because the
+shape cannot be read and guessing is what the gate exists to prevent. The
+review set is data in `correction.py`:
+`REVIEW_JOBS = ("check-tests", "security-audit", "adversarial-review",
+"adjudicate", "sweep")`. Read roles return at once, untouched (item 7).
+`--answers` on a write job that is not a correction is refused, class
+`arguments` (a claim the gate would not verify must not enter a record).
+
+D8. **Record (item 8).** `record.py` `FIELDS` gains `answers` after
+`follows`; `build` sets `[]`; `validate` checks the shape when present:
+a list of `{key, disposition, disposed_at, citation {item, path}}`. Absence
+is tolerated and declared in CONTRACT.md: a record with no `answers` key was
+minted before the field landed, which is a dated fact, not "none answered".
+The launcher writes `answers` from the gate's return value.
+
+D9. **No override (item 6).** `_parse_override` already refuses every id but
+`stale-base` (measured line 367). No code; a test pins
+`--override correction:reason` refused.
+
+D10. **The driver (item 9).** Before `fix-tests` and before `fix-code`, and
+before the attempt counter moves, the driver lists every key
+`<audit record>#<n>` for n over `result.envelope.findings` of the security
+and adversarial records and runs `python3 ops/conductor/tools/findings.py
+cited KEY` per key: exit 0 satisfied, exit 1 undisposed, exit 2 stop
+`ledger`. Any undisposed key stops with
+`stopped stage=<fix-tests|fix-code> record=none reason=undisposed`, the
+detail line `undisposed keys: <k1> <k2> …` printed first, and `keys` in
+the ladder record's `stopped` object. `resume` re-runs the check at the
+same place. The driver never calls `findings.py disposition`. When the
+check passes, the fix stage is dispatched with `--follows <previous>
+--follows <security id> --follows <adversarial id>` and one `--answers KEY`
+per key, so both fix stages have the item-1 shape mechanically and name
+every finding they answer.
+
+D11. **`findings.py cited KEY`** (read verb, no identity): exit 0 and
+`KEY\tcontract item N of PATH` when disposed with a holding citation;
+exit 1 and `KEY\topen` or `KEY\tuncited: <reason>` otherwise; exit 2 class
+`key` when absent. It is the ledger's half of "both directions" and the
+driver's only read of the store.
+
+D12. **Bucketing.** Five S slices, each its own ladder run and its own
+draft PR, in the order below. The scope declared "M as two S buckets". The
+driver cannot run an M slice whose second bucket has red tests of its own
+(measured above), so this plan declines M and says so; the declared row is
+still the one these slices are measured against.
+
+## 3. Slices
+
+Ordered by value per cost with dependencies respected. Every slice lands
+green alone: its tests are red only for the reasons named in §6 and its
+files are the only paths its bucket admits.
+
+### Slice 1 — `gate-contracts` (S) — its own PR, first
+
+Files: `ops/devlane/dispatch/CONTRACT.md`, `ops/conductor/ladder-lever.md`,
+`ops/conductor/findings/README.md`. Contracts first: the founding rule.
+
+Writes: §Verbs `[--answers KEY]...`; §Refusals rows `correction` (the five
+found-texts of D5, exit 2 on the founding wire, not overridable) and
+`follows`; §The record `answers [{key, disposition, disposed_at, citation
+{item, path}}]` with the pre-field absence declared (D8); the citation
+grammar of D3 quoted once, pointing at `findings.py` as its home; the
+ladder-lever stage table gains the `--follows` and `--answers` arguments
+of the fix stages and the stops table gains `undisposed` (D10); the
+ledger README names `cited` and the grammar's home.
+
+Unblocks: slices 2–5 (tests are written from these words). Risk class:
+contract. Edges touched: none live; declares the edges the later slices
+verify. Guarantees kept: closure both directions (every declared edge below
+has a counterparty slice). Depends on: nothing. Green alone: its tests are
+document pins.
+
+### Slice 2 — `ledger-gate` (S) — its own PR
+
+Files: `ops/conductor/tools/findings.py`, `ops/conductor/tools/correction.py`,
+`ops/conductor/registry/correction.py.json`.
+
+Writes: D3 grammar and `citation_holds` in `findings.py`; verb `cited`
+(D11); `correction.py` with `check(role, follows, inputs, answers, at,
+records, jobs_root, root)` returning `{"correction": bool, "answers":
+[...]}` or raising its `Refused` (class `arguments`, `follows`,
+`correction`, D5 and D7), and a CLI `correction.py check --job JOB --role
+write|read --at STAMP [--records DIR] [--jobs-root DIR] [--root DIR]
+[--follows ID]... [--input PATH]... [--answers KEY]...` printing the JSON
+on exit 0. The store is opened read-only (`file:<path>?mode=ro`); the gate
+never creates it. Registry rows: `["check"]` → `arguments`;
+`["check", "--job", "implement", "--role", "write", "--at",
+"2026-01-01T00:00:00Z", "--follows", "20260101T000000Z-review-codex-000000"]`
+→ `follows` (the registry runs in an empty temporary cwd, so the records
+directory is absent by construction: hermetic).
+
+Unblocks: slices 3 and 5. Risk class: none of dispatcher, argv, contract;
+its own slice because it is the gate's logic. Edges: `correction.py →
+findings.py` (by path; the same grammar object), `correction.py → findings
+store` (schema read only, not reshaped), `correction.py → .dev/records/
+dispatches/*.json` (reads `job` only). Guarantees to declare: shape (the
+key regex `^\S+#[1-9][0-9]*$`), behavior (five planted faults caught, clean
+neighbours pass), freshness (the registry runs the rows in CI on every
+push). Depends on: slice 1. Green alone: `test_instrument_conventions.py`
+runs the new registry file automatically; no launcher change needed.
+
+### Slice 3 — `dispatcher-answers` (S) — its own PR
+
+Files: `ops/conductor/tools/dispatch.sh`.
+
+Writes: `--follows` becomes repeatable (array, order kept); `--answers`
+repeatable; both appended to the launcher argv after the inputs, follows
+first. Pure pass-through, no validation of keys (the launcher owns that).
+
+Unblocks: slice 4's fix round through `dispatch.sh` (the only delegation
+path) and slice 5. Risk class: dispatcher, and the launcher's argv is built
+here. Edges: `dispatch.sh → launch.py` argv (the wrapper contract's flag
+order, `test_dispatch_wrapper.py` Row1 pins the existing order and is
+untouched because new flags appear only when given). Depends on: slice 1.
+Green alone: the wrapper suite uses a sentinel launcher, so `--answers`
+reaching argv is provable before `launch.py` accepts it.
+
+### Slice 4 — `launcher-mint` (S) — its own PR, the value
+
+Files: `ops/devlane/dispatch/launch.py`, `ops/devlane/dispatch/record.py`.
+
+Writes: `--answers` on the launch parser; `CORRECTION = _module(...)` beside
+`LANECONF`; in `_launch`, after the stale-base check (line 1408) and before
+`mint_id` (line 1430): `stamp = _now()`, then `gate =
+CORRECTION.check(role, args.follows, args.input, args.answers, stamp,
+repo/".dev/records/dispatches", _jobs_root(), repo)`; the record gets
+`"at": {"launched": stamp}` and `"answers": gate["answers"]`; `main` gets
+the exit-2 path of D4; `record.py` gets D8.
+
+Unblocks: the gate itself; slice 5. Risk class: touches the launcher's
+argv parsing and mint path. Edges: `launch.py → correction.py` (by path,
+new), `launch.py → record.py` (field), `dispatch.sh → launch.py`
+(`--answers` now accepted). Guarantees kept: the permitted delta to the
+invoking repository is unchanged (a refusal leaves no file, no ref);
+`brief --check` unaffected (answers are not in the brief); the record field
+order test moves by one field. Depends on: slices 1, 2, 3. Green alone:
+yes, with `launch_support.RECORD_FIELDS` updated in the tests stage.
+
+Interim, declared: until slice 5 lands, a ladder whose audits say `changes`
+launches `fix-tests` through `dispatch.sh` with no `--answers`; the new
+gate refuses and the driver stops with `reason=correction`. The conductor
+then disposes each key with the printed command and dispatches the fix
+round by hand through `dispatch.sh --answers …`. `ladder.sh resume` cannot
+finish that ladder (its relaunch omits `--answers`); the remaining stages
+are hand-driven, as before the driver existed. This applies to slice 4's
+own ladder and to slice 5's.
+
+### Slice 5 — `ladder-stop` (S) — its own PR
+
+Files: `ops/conductor/tools/ladder.py`.
+
+Writes: D10. Also `Stopped` carries `keys`; the record's `stopped` object
+carries them; `undisposed` is raised before `row["attempt"]` increments so
+a stop is not an attempt.
+
+Unblocks: item 9 whole; the conductor's fix rounds return to the driver.
+Risk class: the driver builds the dispatcher's argv. Edges: `ladder.py →
+findings.py cited` (subprocess, exit classes 0/1/2), `ladder.py →
+dispatch.sh` (`--follows` ×3, `--answers` ×n). Guarantees kept: custody 1
+(the previous id is still in the dispatched bytes; keys are not
+implementation markers), lineage 2, selection 3 (the dry-run carries the
+same flags), wire 4 (exit 3 with `stopped …` last). Depends on: slices 2,
+3, 4. Green alone: the ladder suite stubs `findings.py` and `dispatch.sh`.
+
+## 4. Walkthrough of the first run
+
+The first run is slice 1's ladder. Command, from the conductor's main
+checkout on `dev`, with `WF_AGENT` exported and the branch checked out in
+`../wt/ag-gate-contracts`:
+
+    ops/bin/ladder.sh .dev/ladder-inputs/scope-gate-20260910.scope.md \
+        lane/gate-contracts .dev/ladder-inputs/plan-gate-contracts.md
+
+The plan file for a run carries exactly the two machine lines of that
+slice (§8), copied by the conductor; a plan carrying every slice's lines
+would give the driver five `code` buckets (`parse_plan`, lines 324–356).
+
+Preconditions (`validate_preconditions`, lines 1442–1510): scope ≤ 1024
+bytes (506 measured); worktree clean; `WF_AGENT`, `LANE_AUTHOR` and the
+worktree git identity in `Name <address>` form; `gh` on PATH (measured in
+this job); every stage job in `jobs.json` (measured). A failure is exit 2
+on the wire before any dispatch.
+
+Stage `tests` (grok, `author-tests`). The dispatcher resolves
+`MODEL_GROK`/`EFFORT_GROK` from `ops/lane.conf`; the driver records the
+dry-run selection and later checks the minted record against it (stop
+`model`). The launcher mints a fresh repository: `git init`, fetch of the
+lineage branch, `checkout --detach` (contract: CONTRACT.md §Snapshot
+modes); the snapshot has no remote and a detached HEAD, exactly as this
+job's snapshot measures. Grok runs with `HOME` and `GROK_HOME` at
+`<job>/home/grok` holding only `auth.json` (contract: §Isolation), so it
+cannot find a global git config, any `gh` credential, or its own settings
+and skills; `--disable-web-search` is on argv; there is no network. What
+the worker then cannot do, and the refusal that stands: it cannot `git
+push` or `gh` (no credentials, no network: the commands fail and the prompt
+says to commit locally, or write to disk if commit is denied); it cannot
+`pip install` anything (the suites are stdlib-only by contract); it cannot
+read the implementation (custody withholds implementation record ids from
+the input bytes, `verify_custody`, lines 1137–1157, stop `withheld`; Graft
+is disabled, `GRAFT_INSTALL=''`). Its prompt demands each test proven red
+for its own assertion and committed at once. For slice 1 the tests are
+document pins (§6): red because the rows are absent, measured. A writer
+who instead pins prose it invents would be refuted at the next stage.
+
+Stage `check-tests` (codex, skeptic). `CODEX_HOME=<job>/home/codex` with
+only `auth.json`: no `config.toml`, no MCP servers, no skills (contract:
+§Isolation, and the measured behavioural observation named there). Sandbox
+`workspace-write` with `out/` the only writable root and the snapshot's
+write bits stripped (contract: CONTRACT.md lines 902–912), so an attempt to
+edit tests fails at the OS. The role card (`ops/process/roles/test-skeptic.md`)
+demands a named broken implementation per surviving test and refuses a red
+that is a collection or import error; the report goes to `{out}/SKEPTIC.md`
+and is named in `artifacts`. A `changes` verdict runs `tests-fix` once; a
+leaked implementation marker stops `withheld`.
+
+Stage `code` (codex, `implement`). The scope handed over is the derived
+test command: one `python3 -m unittest discover -s <dir> -p <file>` per
+test artifact under a `tests/` directory, joined by `&&` (lines 1091–1119).
+A test file the tests envelope did not name is not run: the writer must
+list every file in `artifacts`. The worker runs inside the snapshot with
+`ruff` reachable only if the conductor's PATH carried `~/.local/bin`
+(measured here: it does; the CI runner prepends it). Improvisations and
+the refusals that stand: editing a test file lands a path outside the
+bucket's file list, stop `bucket` (lines 894–921); reconciling all launcher
+refusals to exit 2, or adding an `overrides` row, lands outside the bucket
+the same way and, for slice 4, fails the item-6 test; inventing a citation
+grammar of its own fails the grammar tests written from D3; a status `ok`
+with the command failing is refused at `load_envelope` (line 717). The
+landing goes through `land.py` with the lane author and the ran model as
+co-author; a landed sha not descending from the stage base stops
+`lineage`.
+
+Stages `security` and `adversarial` (codex with
+`MODEL_CODEX_SECURITY_AUDIT`; grok), back to back, read only. Each finding
+without a reproduce command is an opinion by its own prompt. Under clause
+item 5 each finding should quote the contract item it violates; until the
+reviewer-prompt work order lands, a finding without one is an observation
+the conductor disposes as such. The driver imports both envelopes with
+`findings.py import` and commits the export.
+
+Stage `fix-tests`, then `fix-code`, then `security-re`, only if an audit
+says `changes`. For slices 1–3 the launcher has no gate yet, so these run
+as today. From slice 4 on, the gate stands here: the driver mints
+`fix-tests` through the branch's `dispatch.sh` with `--follows
+<adversarial>` and, until slice 5, no `--answers`; `launch.py` reads the
+followed record, finds a review job, finds no key, and refuses on one
+stderr line, exit 2, no job directory, no record:
+
+    correction: expected every finding answered by this correction disposed with a contract citation before 2026-09-1xT..Z; found no --answers key named for a correction following <adversarial id> (adversarial-review); needed pass --answers <record>#<n> for each finding answered, each disposed by python3 ops/conductor/tools/findings.py disposition <record>#<n> <disposition> 'contract item N of <scope path>: <why>'
+
+The driver prints that line as detail and `stopped stage=fix-tests
+record=none reason=correction`, exit 3. The conductor disposes each key
+with exactly the printed command, citing
+`.dev/ladder-inputs/scope-gate-20260910.md`, and dispatches the fix round
+by hand with `--answers`. From slice 5 on, the driver checks `findings.py
+cited` first and stops `undisposed` naming the keys before any mint, and
+`resume` continues once the rows exist.
+
+Stage `pr`: `gh pr create --draft` from the conductor's worktree, which
+has network and credentials; the snapshot never does.
+
+CI on the self-hosted runner (measured `ci.yml`): checkout without
+credentials, `~/.local/bin` on PATH, term wall (refuses with no
+`TERM_WALL` variable, never passes), `ruff check .` under the pinned
+range, `bash ops/bin/suites.sh` (each suite with a temporary HOME; the
+conformance gate invokes every registry row, so slice 2's rows run there),
+then `laneconf.py closure` and `literals`: new code must read lane names
+through `laneconf` and must not embed `agentscient`, `dev` or a home path
+(the gate's texts carry the resolved store path at run time, never a
+literal). The `app` job is the Symfony gate and does not read this lane's
+files.
+
+## 5. Assumptions: measured, refused, or a finding
+
+| # | assumption | status |
+|---|---|---|
+| A1 | launcher refusals exit 3 with a prefix | measured (line 33, 2510); D4 |
+| A2 | `findings.py` cannot take a third registry row | measured (test line 232); D2 |
+| A3 | the driver cannot run M with a red second bucket | measured (lines 1375–1380, 894–921); D12 |
+| A4 | `dispatch.sh` keeps one `--follows` and refuses unknown flags | measured; slice 3 |
+| A5 | `validate` runs on loaded records at close | measured (5 callers); D8 |
+| A6 | `--answers` today fails argparse with usage on stderr, exit 2 | measured behaviour of `argparse.parse_args` (2494–2496); the tests assert one bare wire line, so they are red for the right reason |
+| A7 | `disposed_at` and `at.launched` share one format | measured (findings.py 173, launch.py 141) |
+| A8 | overrides other than `stale-base` are refused | measured (line 367); D9 |
+| A9 | `Path.home()` follows `HOME` | relied on by `test_findings.py` (lines 54, 91), measured |
+| A10 | the ladder suite stubs `findings.py`, `launch.py`, `land.py`, `dispatch.sh` | measured (lines 1084–1098) |
+| A11 | the runner has python3, ruff, git | `ci.yml` measured; the runner host itself: could not look |
+| A12 | no network in a job | could not look (probe refused); contract: harness flags deny web tools (CONTRACT.md 921–922); brief |
+| A13 | isolated homes per harness | could not look; contract: CONTRACT.md §Isolation |
+| A14 | the ladder scope fits the cap | measured 506 bytes |
+| A15 | 657 rows, 532 open, none cited | not measured here (the store is not to be read); from the scope at 94ab7a0 |
+| A16 | test files under existing `tests/` dirs become the command | measured (`derive_command`) |
+| A17 | a same-second disposition counts as before the mint | D6, a decision; refusal: the `late` arm |
+| A18 | keys are `<record>#<n>` with n from 1 in envelope order | measured (`record_rows`, line 131) |
+| A19 | the snapshot git directory is writable | measured here (`test -w .git`); the brief's "read-only" is not what this snapshot shows; codex read roles get write bits stripped (contract 906–908) |
+
+## 6. Tests, by file, and why each is red at the ref
+
+All new files sit under existing `tests/` directories so the driver derives
+their command. The tests stage lists every file in `artifacts`.
+
+Slice 1
+- `ops/devlane/dispatch/tests/test_launch_correction_contract.py`: pins in
+  CONTRACT.md the `--answers` verb line, the `correction` and `follows`
+  rows with the five found-texts and "exit 2", the `answers` record field,
+  the grammar quote. Red: `grep -c correction CONTRACT.md` → 4, none a
+  table row; `answers` absent (measured).
+- `ops/conductor/tests/test_ladder_lever_correction_contract.py`: pins the
+  `undisposed` stop row, the fix-stage `--follows`/`--answers` note, "never
+  writes dispositions", and the README's `cited`. Red: `undisposed` count 0.
+
+Slice 2
+- `ops/conductor/tests/test_findings_citation.py`: `parse_citation` both
+  directions (item and path captured; missing "of", zero item, bare text
+  rejected); `citation_holds` with a planted scope file (item present,
+  item absent, path absent, path outside root); `cited KEY` exits 0/1/2
+  with the texts of D11 against a store planted under a temp HOME. Red:
+  no `cited` verb (`arguments` refusal), no `CITATION` attribute.
+- `ops/conductor/tests/test_correction.py`: against a temp HOME store, a
+  planted records directory and a planted scope file: each of the five
+  arms refuses with its found-text, exit 2, one line, empty stdout; the
+  accept path prints the JSON with citations; read role untouched; follows
+  a plan/tests/implement record or nothing → `correction: false`; an
+  out/-input under `<jobs_root>/<review id>/out/` counts as the shape;
+  unknown followed id → `follows`; `--answers` on a non-correction →
+  `arguments`; the registry file exists with the two rows of D2 (the
+  conventions gate runs them). Red: the tool is absent (`ls` measured).
+
+Slice 3
+- `ops/conductor/tests/test_dispatch_wrapper_answers.py`: two `--follows`
+  reach the sentinel argv in order; `--answers` twice reach it after the
+  follows; the dry-run JSON shows them; an unknown flag is still refused.
+  Red: last `--follows` wins and `--answers` is "unknown flag" (measured).
+
+Slice 4
+- `ops/devlane/dispatch/tests/test_launch_correction_gate.py` (on
+  `launch_support._TempLaunch`, planting a review record in the throwaway
+  repo and a store under its HOME): each arm at mint → exit 2, one bare
+  stderr line starting `correction:`, empty stdout, no job directory, no
+  record file, the fake CLI's start-witness absent; accept → record carries
+  `answers` with citations and `at.launched` equals the gate's stamp; item
+  7 neighbours launch with `answers: []`; `--override correction:x` →
+  `override` (exit 3, existing); a write job following an unknown id →
+  `follows` exit 2; a read job following an unknown id launches. Red: the
+  flag is unknown to argparse (A6) and the correction shape launches today.
+- `ops/devlane/dispatch/tests/test_record_answers.py`: `build` sets `[]`;
+  `validate` accepts the D8 shape, refuses a malformed entry naming the
+  field, tolerates absence. Red: `answers` is not in `FIELDS`.
+- `launch_support.py` `RECORD_FIELDS` gains `answers` (support edit in the
+  tests stage; `test_launch_record.py` key-order test then reads the new
+  order).
+
+Slice 5
+- `ops/conductor/tests/test_ladder_lever_undisposed.py` (on
+  `_LadderFixture`, extending the `FINDINGS_PY` stub with a plant
+  `dispositions` map answering `cited`): audits `changes` with one
+  undisposed key → `stopped stage=fix-tests record=none reason=undisposed`,
+  detail names the key, no `author-tests` dispatch after the audits,
+  attempt not incremented, `stopped.keys` in the record; after the plant
+  disposes every key, `resume` dispatches `fix-tests` and `fix-code` with
+  `--follows` ×3 and one `--answers` per key, and `disposition` never
+  appears in the findings argv log. Red: the driver launches `fix-tests` at
+  once (line 1391) and passes one `--follows` (line 584).
+
+## 7. Findings against this plan and the tree
+
+- F1 (tree, boundary): the launcher's refusals are off the founding wire
+  (exit 3, prefixed). This plan puts one refusal on the wire and leaves the
+  rest; the divergence is declared in the table, not fixed.
+- F2 (tree): the driver cannot run an M slice whose second bucket carries
+  red tests (§1). Recorded; no fix here.
+- F3 (plan): slices 4 and 5 estimate their implement run above ten
+  minutes (§8). By the owner's rule they may measure M by minutes while S
+  by files; the calibration rows decide, and the split alternative
+  (`record.py` alone) costs a full ladder for one field.
+- F4 (plan): the interim hand-driven fix round for slices 4 and 5 (§3) is
+  a cost the ordering cannot remove: the driver needs the launcher to accept
+  `--answers` before it can pass it.
+- F5 (plan): A11–A13 and A15 are not measured in this job; they rest on
+  contracts and the brief, as stated.
+- F6 (tree, boundary): item 1's out/-input arm only recognises inputs that
+  still live under the job store; a review artifact copied elsewhere first
+  is not a correction by shape. The scope fixed the definition; recorded.
+
+## 8. Calibration rows (declared; the driver writes the measured ones)
+
+| slice | plan said | stage | minutes | files / tests |
+|:--|:--|:--|--:|:--|
+| gate-contracts | S | tests | 10 | 2 test files |
+| gate-contracts | S | skeptic | 6 | |
+| gate-contracts | S | tests-fix | 8 | |
+| gate-contracts | S | implement | 8 | 3 files |
+| gate-contracts | S | security | 7 | |
+| gate-contracts | S | adversarial | 8 | |
+| gate-contracts | S | fix-tests | 8 | |
+| gate-contracts | S | fix-code | 6 | |
+| gate-contracts | S | security-re | 6 | |
+| ledger-gate | S | tests | 20 | 2 test files |
+| ledger-gate | S | skeptic | 10 | |
+| ledger-gate | S | tests-fix | 15 | |
+| ledger-gate | S | implement | 10 | 3 files |
+| ledger-gate | S | security | 8 | |
+| ledger-gate | S | adversarial | 10 | |
+| ledger-gate | S | fix-tests | 15 | |
+| ledger-gate | S | fix-code | 10 | |
+| ledger-gate | S | security-re | 7 | |
+| dispatcher-answers | S | tests | 15 | 1 test file |
+| dispatcher-answers | S | skeptic | 8 | |
+| dispatcher-answers | S | tests-fix | 10 | |
+| dispatcher-answers | S | implement | 8 | 1 file |
+| dispatcher-answers | S | security | 7 | |
+| dispatcher-answers | S | adversarial | 9 | |
+| dispatcher-answers | S | fix-tests | 10 | |
+| dispatcher-answers | S | fix-code | 8 | |
+| dispatcher-answers | S | security-re | 6 | |
+| launcher-mint | S | tests | 22 | 2 test files, 1 support edit |
+| launcher-mint | S | skeptic | 11 | |
+| launcher-mint | S | tests-fix | 20 | |
+| launcher-mint | S | implement | 12 | 2 files |
+| launcher-mint | S | security | 9 | |
+| launcher-mint | S | adversarial | 10 | |
+| launcher-mint | S | fix-tests | 18 | |
+| launcher-mint | S | fix-code | 12 | |
+| launcher-mint | S | security-re | 8 | |
+| ladder-stop | S | tests | 22 | 1 test file, stub extension |
+| ladder-stop | S | skeptic | 11 | |
+| ladder-stop | S | tests-fix | 20 | |
+| ladder-stop | S | implement | 12 | 1 file |
+| ladder-stop | S | security | 8 | |
+| ladder-stop | S | adversarial | 10 | |
+| ladder-stop | S | fix-tests | 18 | |
+| ladder-stop | S | fix-code | 12 | |
+| ladder-stop | S | security-re | 8 | |
+
+Reading: the scope declared one M as two S buckets; this plan declares
+five S slices. Minutes come from the measured rows in
+`.dev/wip/calibration-buckets.md.txt` (tests 13–23, skeptic 6–11, fix
+rounds 18–26, implement 7–16, audits 7–10).
+
+## 10. Rulings from the slice-1 audits, superseding the decisions they name
+
+Security audit 20260910T233738Z-review-codex-8f5dd0, adversarial audit
+20260910T234542Z-review-grok-9e3b5d and security re-audit
+20260911T002340Z-review-codex-461253, every finding citing a contract
+item and disposed fix-round in the ledger. Where a ruling below disagrees
+with a decision in §2, the ruling wins; the decision text is left as
+written so the history reads.
+
+- R1 (supersedes D3's regex; item 3, item 4). The citation grammar is
+  `contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s:;,]+)`: the path
+  stops before a colon, so the prescribed evidence
+  `contract item 3 of PATH: why` resolves PATH, not `PATH:`. The dispatch
+  contract already pins this form; the ledger slice implements it.
+- R2 (amends D5; item 3). A finding key must match
+  `^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$` before it
+  enters any printed remedy, and the printed remedy shell-quotes every
+  operand. A key that fails the shape is refused `arguments`, never
+  echoed. Slice 2 owns the validator, slice 4 the remedy text.
+- R3 (amends D3's `citation_holds`; item 4). The cited path must be the
+  scope file the correction's own brief names, not any repository file
+  with a numbered line. `citation_holds(evidence, root, scope_path)`
+  takes the scope path; a citation to any other file does not hold.
+  Slice 2.
+- R4 (amends slice 2; item 1, LD-5). `findings.py import` takes
+  `adjudicate` and `sweep` records as well as the three ladder review
+  jobs, so every review job named by item 1 can acquire ledger rows.
+- R5 (amends D7; item 1). A followed id is accepted only when it matches
+  the record-id shape above, and the record path is
+  `<records>/<id>.json` resolved and checked to lie under `<records>`;
+  otherwise refuse `follows`. Slice 2 for the gate, slice 4 for the
+  launcher's `--follows` validation.
+- R6 (amends D7; item 1). The followed record's own `id` field must equal
+  the requested id and its `job` must be a registry job; a record that
+  fails either is refused `follows`. Slice 2.
+- R7 (supersedes D6; item 5). A disposition satisfies only when
+  `disposed_at` is strictly earlier than the mint stamp; a same-second
+  row is refused with found `disposed at <t>, not before the mint attempt
+  at <t>` and needed `wait one second and retry`. Slice 4.
+
+- R8 (resolves the item 7 / D7 tension; item 7). A write job that
+  follows a plan, tests or implement record, or nothing, is not inspected
+  by the gate. `--answers` given on such a job is refused `arguments` at
+  argument parsing, before the gate runs, because a claim no gate would
+  verify must not enter a record. That refusal is parsing, not
+  inspection; item 7 holds.
+
+## 9. Machine lines
+
+This run: slice 2 only; slice 1 (gate-contracts) landed in PR 96. Rulings R1 to R8 in section 10 bind this slice. The other slices' lines are in plan-gate-20260910.md.
+
+slice	ledger-gate	S
+bucket	ledger-gate	S	ops/conductor/tools/findings.py ops/conductor/tools/correction.py ops/conductor/registry/correction.py.json

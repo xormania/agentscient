@@ -1,0 +1,250 @@
+{
+  "id": "20260913T023636Z-review-codex-bdbe55",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "test-census",
+  "lineage": {
+    "branch": "lane/session-20260912-k",
+    "base_sha": "cc91f00d7517af073b8a7314492a560250b6774f"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-13T02:36:36Z",
+    "closed": "2026-09-13T02:53:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cc91f00d7517af073b8a7314492a560250b6774f",
+    "ref_sha": "cc91f00d7517af073b8a7314492a560250b6774f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260912-k/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex-stream/sessions/2026/09/12/rollout-2026-09-12T22-36-50-01a0989f-e1e2-75b0-8643-9a41aa58d9f8.jsonl"
+  },
+  "session": {
+    "id": "01a0989f-e1e2-75b0-8643-9a41aa58d9f8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex-stream/sessions/2026/09/12/rollout-2026-09-12T22-36-50-01a0989f-e1e2-75b0-8643-9a41aa58d9f8.jsonl",
+    "stream_sha256_at_close": "44a8319701fccd90d3a04723e7d920b3d73754ac5eadc9b174165c495d96e172",
+    "spend": {
+      "input": 7529830,
+      "cached": 7324544,
+      "output": 46398,
+      "total": 7576228,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex-stream/sessions/2026/09/12/rollout-2026-09-12T22-36-50-01a0989f-e1e2-75b0-8643-9a41aa58d9f8.jsonl",
+      "messages": 449
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260912-k/ops/devlane/task/jobs.json",
+      "sha256": "bcf5a06b58a3b890fde90fa984075af4dd542fe99bbd3f6d093ae43fe5464204"
+    },
+    "scope": "Test-system census of every file under ops/**/tests/ and .claude/skills/*/tests/, per the work order in in/. The categories, disjoint: (1) world-building: HOME, XDG roots, temp root, cwd or environment set by hand in the test versus through a shared helper; (2) counterparty simulation: fake programs embedded as string constants or planted executables, each with its own call log, failure injection or cleanup; (3) subprocess and resource ownership: run or Popen without a reap, close or timeout policy; (4) representation pins: assertions on a whole serialization, a count, a path, a timestamp or a digest where the contract does not own that value; (5) regression-per-file: a test file that exists for one ledger row (LD-n) or one PR and rebuilds a world or a fake to do it; (6) support already generic: helpers used by two or more families that belong in a shared kit. Write out/census.json in the shape the work order gives; every finding names its files and carries a reproduce command.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/in/brief-test-census-20260912.md",
+        "sha256": "a013a658004ad7ff5daac55e55801343b5c784d3ff6ea3cdb83920a08f436bd1"
+      }
+    ],
+    "sha256": "7964869505350ef84340d111bb1fa0859050285a358e186d589b850a265a2805",
+    "bytes": 10067,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/lane-mcp.json",
+      "sha256": "b7701038fabe62d390bd7f7ac90a4f991711226d39bc67c49ed0612049986b7c",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "05042bb5ce0a2d3c173091931e66244f0e30c5c3dcb578a2fa1f646e4b51ad3c"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": null,
+    "turns_source": "none",
+    "turns_argv": [],
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-13T02:36:49Z",
+      "ended": "2026-09-13T02:53:33Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cc91f00d7517af073b8a7314492a560250b6774f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_branch_census.py, ops/conductor/tests/test_ci_store.py, ops/conductor/tests/test_co_doc.py, ops/conductor/tests/test_correction.py, ops/conductor/tests/test_decisions_register.py, ops/conductor/tests/test_deliverable.py, ops/conductor/tests/test_dispatch_wrapper.py, ops/conductor/tests/test_findings.py, ops/conductor/tests/test_findings_calibration.py, ops/conductor/tests/test_findings_citation.py, ops/conductor/tests/test_handwork_ledger.py, ops/conductor/tests/test_instrument_conventions.py, ops/conductor/tests/test_ladder_lever.py, ops/conductor/tests/test_land_lever.py, ops/conductor/tests/test_lane_mcp.py, ops/conductor/tests/test_laneconf.py, ops/conductor/tests/test_monitor.py, ops/conductor/tests/test_monitor_git_refs.py, ops/conductor/tests/test_onboard_lever.py, ops/conductor/tests/test_skills_registry.py, ops/conductor/tests/test_watch_lever.py, ops/conductor/tests/test_watchdog.py, ops/devlane/dispatch/tests/test_agy_dispatch.py, ops/devlane/dispatch/tests/test_launch_correction_gate.py, ops/devlane/dispatch/tests/test_launch_prompt_feed_findings.py, ops/devlane/dispatch/tests/test_launch_record_copy.py, ops/devlane/dispatch/tests/test_record_paths.py, ops/devlane/fixtures/tests/test_fixture_grade.py, ops/devlane/fixtures/tests/test_fixture_lever.py, ops/devlane/fixtures/tests/test_python_service_app.py, ops/devlane/fixtures/tests/test_python_tooling_app.py, ops/devlane/fixtures/tests/test_rust_crate_app.py, ops/devlane/fixtures/tests/test_symfony_app_app.py, ops/devlane/harness/tests/test_agy_isolation.py, ops/devlane/harness/tests/test_credential_age_second_producer.py, ops/devlane/harness/tests/test_isolation.py, ops/devlane/harness/tests/test_isolation_contract.py, ops/devlane/harness/tests/test_isolation_credential_age.py, ops/devlane/harness/tests/test_probe.py, ops/devlane/harness/tests/test_receipt.py, ops/devlane/hooks/tests/test_hooks.py, ops/devlane/task/tests/test_fileset.py, ops/devlane/task/tests/test_run.py, ops/devlane/task/tests/test_verify.py, ops/devlane/task/tests/test_write_path.py, ops/devlane/telemetry/tests/test_worth.py, ops/devlane/telemetry/tests/test_worth_claude_dir.py, ops/devlane/telemetry/tests/test_worth_dispatches.py, ops/devlane/workflow/tests/test_term_wall.py",
+          "claim": "Category (1), world-building: 49 test modules assign HOME directly instead of receiving the world from a shared helper.",
+          "reproduce": "git ls-files 'ops/**/tests/*.py' '.claude/skills/*/tests/*.py' | xargs rg -l '\\[\"HOME\"\\]\\s*=|\"HOME\"\\s*:' | sort | rg '/test_'"
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/pr-overview/tests/support.py, ops/conductor/tests/test_branch_census.py, ops/conductor/tests/test_ci_store.py, ops/conductor/tests/test_ladder_lever.py, ops/conductor/tests/test_monitor.py, ops/conductor/tests/test_onboard_lever.py, ops/conductor/tests/test_watch_lever.py, ops/conductor/tests/test_watchdog.py, ops/devlane/hooks/tests/gh_stub.py, ops/devlane/hooks/tests/test_pr_proof.py",
+          "claim": "Category (2), counterparty simulation: 10 files define 14 separate gh simulations with separate append/rewrite/no-log and failure-injection behavior, despite the existing verified gh_stub.py counterparty.",
+          "reproduce": "{ rg -l '^(GH_STUB|FAKE_GH|GH_PY)\\s*=|def _gh_preamble' $(git ls-files 'ops/**/tests/*.py' '.claude/skills/*/tests/*.py'); git ls-files 'ops/**/tests/gh_stub.py'; } | sort -u"
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/pr-overview/tests/support.py, ops/conductor/tests/test_board_contract.py, ops/conductor/tests/test_branch_census.py, ops/conductor/tests/test_control.py, ops/conductor/tests/test_decisions_register.py, ops/conductor/tests/test_deliverable.py, ops/conductor/tests/test_dispatch_wrapper.py, ops/conductor/tests/test_findings.py, ops/conductor/tests/test_gate_runner.py, ops/conductor/tests/test_handwork_ledger.py, ops/conductor/tests/test_ladder_lever.py, ops/conductor/tests/test_land_lever.py, ops/conductor/tests/test_laneconf.py, ops/conductor/tests/test_monitor_git_refs.py, ops/conductor/tests/test_onboard_lever.py, ops/conductor/tests/test_probes.py, ops/conductor/tests/test_watchdog_launcher_census.py, ops/devlane/dispatch/tests/launch_support.py, ops/devlane/dispatch/tests/test_launch_codex_read_containment.py, ops/devlane/dispatch/tests/test_launch_collect.py, ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py, ops/devlane/dispatch/tests/test_launch_harness_fixes.py, ops/devlane/dispatch/tests/test_launch_prompt_feed_findings.py, ops/devlane/dispatch/tests/test_launch_record_identity.py, ops/devlane/dispatch/tests/test_launch_snapshot.py, ops/devlane/dispatch/tests/test_launch_worker_mcp.py, ops/devlane/fixtures/tests/test_fixture_lever.py, ops/devlane/fixtures/tests/test_python_service_app.py, ops/devlane/fixtures/tests/test_python_tooling_app.py, ops/devlane/fixtures/tests/test_rust_crate_app.py, ops/devlane/fixtures/tests/test_stores.py, ops/devlane/fixtures/tests/test_symfony_app_app.py, ops/devlane/harness/tests/fakes/graft_bridge.py, ops/devlane/harness/tests/graft_support.py, ops/devlane/harness/tests/test_graft_bridge_fake.py, ops/devlane/harness/tests/test_isolation.py, ops/devlane/harness/tests/test_isolation_contract.py, ops/devlane/harness/tests/test_receipt.py, ops/devlane/hooks/tests/gh_stub.py, ops/devlane/hooks/tests/support.py, ops/devlane/hooks/tests/test_boundaries.py, ops/devlane/hooks/tests/test_commit_msg_gate.py, ops/devlane/hooks/tests/test_engine.py, ops/devlane/hooks/tests/test_hooks.py, ops/devlane/task/tests/test_fileset.py, ops/devlane/task/tests/test_run.py, ops/devlane/task/tests/test_verify.py, ops/devlane/telemetry/tests/test_breaker.py, ops/devlane/telemetry/tests/test_breaker_grok.py, ops/devlane/telemetry/tests/test_grok_usage_pulse.py, ops/devlane/telemetry/tests/test_grok_usage_reader.py, ops/devlane/telemetry/tests/test_pulse.py, ops/devlane/telemetry/tests/test_usage.py, ops/devlane/telemetry/tests/test_worth.py, ops/devlane/telemetry/tests/test_worth_claude_dir.py, ops/devlane/telemetry/tests/test_worth_dispatches.py, ops/devlane/telemetry/tests/test_worth_seams.py, ops/devlane/workflow/tests/test_term_wall.py",
+          "claim": "Category (3), subprocess/resource ownership: 171 subprocess.run calls across 58 files have no timeout keyword, so a wedged git, gh, cue, jq, shell, or subject process can hang the suite indefinitely.",
+          "reproduce": "python3 -c 'import ast,pathlib,subprocess; ps=subprocess.check_output([\"git\",\"ls-files\",\"ops/**/tests/*.py\",\".claude/skills/*/tests/*.py\"],text=True).splitlines(); rows=[(p,[n.lineno for n in ast.walk(ast.parse(pathlib.Path(p).read_text())) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name) and n.func.value.id==\"subprocess\" and n.func.attr==\"run\" and all(k.arg!=\"timeout\" for k in n.keywords)]) for p in ps]; print(\"\\n\".join(f\"{p}:{chr(44).join(map(str,ls))}\" for p,ls in rows if ls))'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/telemetry/tests/test_breaker.py:143-155",
+          "claim": "Category (3), subprocess/resource ownership: the stall-test timeout branch kills the breaker child and immediately raises self.fail without wait or communicate, leaving that child unreaped precisely on the failure path.",
+          "reproduce": "sed -n '143,158p' ops/devlane/telemetry/tests/test_breaker.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_co_doc.py, ops/conductor/tests/test_dispatch_wrapper.py, ops/devlane/hooks/tests/test_boundary_match.py, ops/devlane/hooks/tests/test_command_shape.py, ops/devlane/hooks/tests/test_context_precheck.py, ops/devlane/hooks/tests/test_test_guard.py, ops/devlane/hooks/tests/test_unsafe_command.py",
+          "claim": "Category (4), representation pins: 31 assertions pin corpus/table cardinalities that the governing behavior contracts do not own; adding a valid row changes the representation and forces unrelated count updates.",
+          "reproduce": "python3 -c 'import ast,pathlib,re,subprocess; ps=subprocess.check_output([\"git\",\"ls-files\",\"ops/**/tests/*.py\",\".claude/skills/*/tests/*.py\"],text=True).splitlines(); ns=(\"len(corpus.\",\"corpus.COUNTS[\",\"len(CASES),10\",\"must_flag,4\",\"must_not,6\",\"len(PROBE_IDS),9\",\"len(NAME_KEYS),5\",\"len(self.CASES),4\"); print(\"\\n\".join(f\"{p}:{n.lineno}\" for p in ps for n in ast.walk(ast.parse(pathlib.Path(p).read_text())) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr==\"assertEqual\" and any(x in re.sub(r\"\\s+\",\"\",ast.unparse(n)) for x in ns)))'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_ld16.py, ops/conductor/tests/test_findings_ld24_shelf_ambiguity.py, ops/conductor/tests/test_ladder_wall.py, ops/conductor/tests/test_watchdog_launcher_census.py, ops/devlane/dispatch/tests/test_launch_codex_read_containment.py, ops/devlane/fixtures/tests/test_stores_findings.py, ops/devlane/harness/tests/test_credential_age_second_producer.py, ops/devlane/harness/tests/test_isolation.py, ops/devlane/harness/tests/test_isolation_credential_age.py, ops/devlane/hooks/tests/test_no_subagents.py, ops/devlane/hooks/tests/test_pr_proof.py, ops/devlane/telemetry/tests/test_pulse_findings.py, ops/devlane/telemetry/tests/test_worth_seams.py, ops/devlane/workflow/tests/test_ci_two_jobs.py",
+          "claim": "Category (5), regression-per-file: 14 modules whose module docstring names one LD row or PR also rebuild a temporary world or embed a fake program, preserving issue/PR-specific fixture islands instead of adding the regression to an existing family fixture.",
+          "reproduce": "python3 -c 'import ast,pathlib,re,subprocess; ps=subprocess.check_output([\"git\",\"ls-files\",\"ops/**/tests/*.py\",\".claude/skills/*/tests/*.py\"],text=True).splitlines(); print(\"\\n\".join(p for p in ps if re.search(r\"LD-\\d+|PR\\s*#?\\s*\\d+\",ast.get_docstring(ast.parse(pathlib.Path(p).read_text()),clean=False) or \"\",re.I) and re.search(r\"TemporaryDirectory\\(|mkdtemp\\(|#!\",pathlib.Path(p).read_text())))'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/live_store_guard.py, ops/conductor/tests/worker_conf.py, ops/devlane/dispatch/tests/launch_support.py, ops/devlane/dispatch/tests/support.py, ops/devlane/hooks/tests/support.py, ops/devlane/task/tests/support.py",
+          "claim": "Category (6), support already generic: 21 support functions/classes in these six modules are already consumed by two or more production families, so they are cross-family test infrastructure rather than family-local support.",
+          "reproduce": "rg -n 'import launch_support|from live_store_guard|import worker_conf|^import support$' ops/devlane/dispatch/tests/test_*.py ops/conductor/tests/test_*.py ops/devlane/hooks/tests/test_*.py ops/devlane/task/tests/test_*.py"
+        }
+      ],
+      "artifacts": {
+        "census": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/out/census.json"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 7576228,
+        "out": 46398,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cc91f00d7517af073b8a7314492a560250b6774f",
+        "started": null,
+        "ended": "2026-09-13T02:52:32Z"
+      },
+      "note": "reused: lane MCP brief/jobs/changes and its measured no-configured-id findings refusal; prescribed Graft repo map; existing launch_support, hooks support/gh_stub, live_store_guard, worker_conf, and _LaneMcpFixture. Covered all six categories over 204 files (189 test, 15 support). Reproduced the work-order baselines at this ref: direct HOME 52 files, isolated_env/git_env 29, TemporaryDirectory/mkdtemp 86, subprocess.run/Popen 86 including tests/fakes/graft_bridge.py, live_store_guard 7, and Python shebangs 28 files/36 occurrences. lane_brief reported configured_ids=[]; lane_findings was therefore looked up and refused for lack of a configured ID, not silently treated as an empty record set."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260913T023636Z-review-codex-bdbe55/home/codex-stream/sessions/2026/09/12/rollout-2026-09-12T22-36-50-01a0989f-e1e2-75b0-8643-9a41aa58d9f8.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-13T02:53:32.813Z"
+    }
+  },
+  "status": "closed"
+}

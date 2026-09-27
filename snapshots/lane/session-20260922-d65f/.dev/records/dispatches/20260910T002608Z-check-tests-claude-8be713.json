@@ -1,0 +1,263 @@
+{
+  "id": "20260910T002608Z-check-tests-claude-8be713",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "f61755b6d729fe4c33660a97e0aa58de2dc4b1f6"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:26:08Z",
+    "closed": "2026-09-10T00:28:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f61755b6d729fe4c33660a97e0aa58de2dc4b1f6",
+    "ref_sha": "f61755b6d729fe4c33660a97e0aa58de2dc4b1f6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "f1e586f5-ac09-43c0-85e5-406cde8b37c9",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/f1e586f5-ac09-43c0-85e5-406cde8b37c9.jsonl"
+  },
+  "session": {
+    "id": "f1e586f5-ac09-43c0-85e5-406cde8b37c9",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/f1e586f5-ac09-43c0-85e5-406cde8b37c9.jsonl",
+    "stream_sha256_at_close": "f57c7bbdf207de63396fcf19f0e39da24691e03219430f700822bc1a19999fec",
+    "spend": {
+      "input": 12,
+      "cached": 284917,
+      "output": 10185,
+      "total": 295114,
+      "source": "result.usage",
+      "messages": 6,
+      "cost_usd": 0.897408
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Closure check ONLY for your two findings in in/freshness-test-review.json against current test_monitor_git_refs.py and monitor-lever.md. Verify UTC equivalence and OID assertions now follow correct metric events while still checking exact values. Prior accepted test surface remains accepted; no fresh audit/test inventory or onboarding requirements. Do not read production implementation. Reproduce targeted red if useful; output APPROVE if both specific corrections satisfy contract, else reproduce the remaining concrete mismatch. The monitor-only scope overrides older onboarding scope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/in/freshness-test-review.json",
+        "sha256": "04943cd5650c2084c90026b79d6fc967c149e4624f1590abc55bdb8faa31992d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/in/monitor-test-correction.json",
+        "sha256": "08cf9165e4b7648ab633368fdf7c3ad949e1a9110495101ddb05c342d3cc7b89"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      }
+    ],
+    "sha256": "1152042db4f8ec48ab663707fbb9fbd8beb079237e5b435dd0684de360589b6e",
+    "bytes": 1974
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:26:08Z",
+      "ended": "2026-09-10T00:28:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f61755b6d729fe4c33660a97e0aa58de2dc4b1f6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "judge-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002608Z-check-tests-claude-8be713/out/SKEPTIC.md",
+        "acceptance_monitor": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 295114,
+        "out": 10185,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f61755b6d729fe4c33660a97e0aa58de2dc4b1f6",
+        "started": null,
+        "ended": null
+      },
+      "note": "Closure check only for the two findings in in/freshness-test-review.json against current ops/conductor/tests/test_monitor_git_refs.py and ops/conductor/monitor-lever.md; production implementation not read (git-refs adapter unregistered at f61755b, so the file is a declared-API-absent red: 19 tests, 0 errors, 27 config-refusal failures `found 'git-refs'; needed choose a registered observation adapter`, no collection/import failure). Both corrections satisfy the contract. P2: OID exact-value checks moved off the refs_changed/freshness event onto local_changed (field=local_oid) and remote_changed (field=remote_oid) metric events via assert_oid_metric, which selects the single subject/condition event and asserts summary==oid exactly, guarded by len(found)==1; freshness events now assert only the freshness word; the literal-null embedding is replaced by assert_absent_oid_metric on the metric event while presence is proved by the sibling freshness/remote events; surviving aggregate json.dumps(events) OID checks are satisfied by the metric events, not by inlining into the freshness event. Summary-from-named-metric is contract-fixed, so this follows the correct metric events and still checks exact values. P3: assert_utc_observed_at compares _as_utc(value) to _as_utc(NOW), rewriting trailing Z to +00:00 and normalizing via astimezone(utc) with a tzinfo requirement, so Z and +00:00 both pass while the exact instant stays pinned to NOW and a naive/non-UTC timestamp still fails. Both surviving assertions name a broken implementation they would catch (wrong/stale OID in the metric event; non-UTC or wrong-instant observed_at). Monitor-only scope in in/monitor-only-scope.md governs; no fresh audit/test-inventory or onboarding requirement raised. Verdict approve."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

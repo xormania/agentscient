@@ -1,0 +1,271 @@
+{
+  "id": "20260906T043322Z-check-tests-claude-ed7b7d",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:33:22Z",
+    "closed": "2026-09-06T04:36:11Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "ref_sha": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "4c3e9ede-f4db-4b63-b8c9-1945ea4becab",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/4c3e9ede-f4db-4b63-b8c9-1945ea4becab.jsonl"
+  },
+  "session": {
+    "id": "4c3e9ede-f4db-4b63-b8c9-1945ea4becab",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/4c3e9ede-f4db-4b63-b8c9-1945ea4becab.jsonl",
+    "stream_sha256_at_close": "7812ffe679903be88603a958aab1da5892cf90c2be442ff94262fa85ef33a94d",
+    "spend": {
+      "input": 30,
+      "cached": 842355,
+      "output": 12059,
+      "total": 854444,
+      "source": "result.usage",
+      "messages": 15,
+      "cost_usd": 1.316349
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Narrow design-only recheck of the corrected guard tests for b9e985 F1/F2 under policy-literal-test-correction.md. Never read implementation or edit. Verify the multiline/non-first-line allowed declaration, both composite allowed-line absence assertions, sibling-basename and other-directory/record.py rejections, proven plants and preserved prior cases. Contract and P3 wording suggestion are already ruled; do not reopen unaffected coverage or introduce an occurrence quota. Read the corrected tests, author record and two rulings. Give exact test/contract blobs and approve/changes with only remaining material corrections, inline SKEPTIC <=450 words. Native execution witness runs separately; do not repeat denied Python calls or claim execution. Candidate code preparation may run in an isolated snapshot, but integration requires both independent test gates. No source/host/DB/network edits, vendor launches or approval requests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/in/policy-literal-test-correction.md",
+        "sha256": "3cbac8f49ec57bb62e3aff96bdca7c30095e46ba44a5fa07197d603cdd539510"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/in/20260906T042617Z-tests-grok-741ff1.json",
+        "sha256": "fb9ca6f92b3bbc2cc300ff3ca7f8d37e29d0369539810f37810558808558c8b5"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043322Z-check-tests-claude-ed7b7d/in/20260906T042008Z-check-tests-claude-b9e985.json",
+        "sha256": "4ff18962431e3def98a5b8edda711178a2f975a815488db70f3bdcb7ca7a443e"
+      }
+    ],
+    "sha256": "13e48c93823998770aeaa4ffe70c0dc5d96f37efe230823ec1c0050aec5a6d6e",
+    "bytes": 1717
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:33:22Z",
+      "ended": "2026-09-06T04:36:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ref": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+        "base": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+        "tests": "ops/conductor/tests/test_laneconf.py blob 13e486c20ca2ffd22dc10a97a06d1926f70ca5f2",
+        "tests_prior_blob": "7283ee893f203addc7f672087fad334da570aba5 at 1cd00ab930129caa7505380bd0179a18bf9a4ad8",
+        "tests_base_blob": "7589ef8906d1b6cff9643c282654a4ba6a033030 at c06ed944",
+        "tests_commit": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+        "contract": "ops/conductor/lane-policy.md blob 166f2cde8631231392060101283bde893c7542f1 (unchanged since 1cd00ab)",
+        "class": "PolicyProtocolLiterals, test_laneconf.py:893-1193, 14 cases",
+        "f1_line_scope": "test_laneconf.py:977 test_exact_policy_schema_declaration_after_benign_lines_exits_0",
+        "f1_absence": "test_laneconf.py:1124 and :1150 assertNotIn ops/devlane/dispatch/record.py:1: forbidden literal agentscient",
+        "f2_sibling": "test_laneconf.py:1017 ops/devlane/dispatch/schema.py",
+        "f2_other_dir": "test_laneconf.py:1039 ops/conductor/tools/record.py",
+        "delta": "+77/-2, three new cases plus two absence assertions, no deletions of cases",
+        "collected": "52 test methods in the file, no duplicate method names"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 854444,
+        "out": 12059,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+        "started": null,
+        "ended": null
+      },
+      "note": "SKEPTIC \u2014 ref a0b972bddbc54b091a3ea94a9ce9c74a20f75acf against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Judged: ops/conductor/tests/test_laneconf.py blob 13e486c20ca2ffd22dc10a97a06d1926f70ca5f2, the sole file changed by a0b972b (+77/-2 against the reviewed blob 7283ee893f203addc7f672087fad334da570aba5 at 1cd00ab930129caa7505380bd0179a18bf9a4ad8; c06ed944 held 7589ef8906d1b6cff9643c282654a4ba6a033030). Contract ops/conductor/lane-policy.md blob 166f2cde8631231392060101283bde893c7542f1 is byte-identical to the reviewed one; ops/lane-policy.json and the record tests are unchanged since 1cd00ab. Read: the test file, lane-policy.md:70-84, both rulings, both records in in/. Not read: laneconf.py, record.py or any implementation. No suite ran here and none is claimed.\n\nF1, line scope: test_exact_policy_schema_declaration_after_benign_lines_exits_0 (test_laneconf.py:977) plants a three-line record.py, proves lines 1-2 are benign and carry no agentscient, proves line 3 is the exact declaration, asserts line_no != 1, and requires exit 0. A whole-file-equality or line-1-only allowance now fails a positive. F1, absence: both composite negatives (:1109, :1129) capture assert_forbidden's text and assertNotIn \"ops/devlane/dispatch/record.py:1: forbidden literal agentscient\". The intended hit \u2014 record.py:2 agentscient, and ops/bin/legacy-origin.sh:3 origin/dev \u2014 is asserted first, so the intended occurrence stays proven and the absence is the added red, distinct from the tree baseline test_literals_exits_0_on_the_tree, which is untouched.\n\nF2: test_exact_policy_schema_declaration_at_dispatch_sibling_exits_1 (:1017) plants ops/devlane/dispatch/schema.py, asserting same parent and different basename; test_exact_policy_schema_declaration_at_other_record_py_exits_1 (:1039) plants ops/conductor/tools/record.py, same basename and different parent. Each proves its plant, proves record.py does not carry the declaration, and asserts its own path:1: forbidden literal agentscient. Both directories are demonstrably scanned by preexisting cases. Together they reject directory-prefix and basename-only exemptions, as the correction demanded.\n\nPreservation: the change is additive \u2014 three new cases plus two assertions inside existing composites; nothing weakened, no skips, stand-ins, source or contract edits. 52 test methods, no duplicate names, no new imports needed. No occurrence quota is introduced, the exact stripped-line per-line predicate is unchanged, and F3 stays deferred.\n\nVerdict: approve, design only. Nothing material remains. Integration still requires the separate native execution witness on this blob, and implementation remains gated on both test gates and independent final review."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,156 @@
+{
+  "id": "20260910T013408Z-code-codex-1c093c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "6429d3e1f1c43f489e7c018c64e03952cdcdba55"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:34:08Z",
+    "closed": "2026-09-10T01:37:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+    "ref_sha": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-34-09-01a088f3-6af5-7e31-b22c-8505b6c048c9.jsonl"
+  },
+  "session": {
+    "id": "01a088f3-6af5-7e31-b22c-8505b6c048c9",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-34-09-01a088f3-6af5-7e31-b22c-8505b6c048c9.jsonl",
+    "stream_sha256_at_close": "094bc5226af0aabc201d6eff9818727cd397777118b832a832e03c05296d51a6",
+    "spend": {
+      "input": 703464,
+      "cached": 642944,
+      "output": 4372,
+      "total": 707836,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-34-09-01a088f3-6af5-7e31-b22c-8505b6c048c9.jsonl",
+      "messages": 113
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_malformed_git.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/in/monitor-malformed-code-brief.md",
+        "sha256": "aa64302356f1006d4de2a5a54c4ab743250b300b38911a3d9a95d369ac008355"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/in/monitor-malformed-test-brief.md",
+        "sha256": "f13e5fac55b462f9ee7796acc5de78f185d659cbac66a48f71ac36be7955b941"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013408Z-code-codex-1c093c/in/monitor-malformed-red.json",
+        "sha256": "3400e78d7cdcd71c77b6761bece38145788adfbb1ab803f1ca73b59294c011be"
+      }
+    ],
+    "sha256": "c49463c342e4ab19e54f73d33df8ddd2490714acb84da0a61a6e877b64d141a5",
+    "bytes": 4018
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:34:08Z",
+      "ended": "2026-09-10T01:37:26Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d1c85c3c41a4d7b10f154105bd409510e69942d7",
+    "changed_paths": [
+      "ops/conductor/monitor-lever.md",
+      "ops/conductor/tools/monitor.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "6429d3e1f1c43f489e7c018c64e03952cdcdba55"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}

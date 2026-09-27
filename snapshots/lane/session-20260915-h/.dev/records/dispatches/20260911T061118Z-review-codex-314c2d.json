@@ -1,0 +1,182 @@
+{
+  "id": "20260911T061118Z-review-codex-314c2d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "7aba71cf24ba94671d80cb8df9fafd626558a47c"
+  },
+  "follows": [
+    "20260911T060607Z-code-codex-55c699"
+  ],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:11:18Z",
+    "closed": "2026-09-11T06:21:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+    "ref_sha": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/out\"]",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl"
+  },
+  "session": {
+    "id": "01a08f17-b020-7823-95aa-2ac8e9b763b1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl",
+    "stream_sha256_at_close": "96c6b59fe05bb8061cbd7a81aa034eb7d9b92f9d3ccb4fb60340cd9590c74eae",
+    "spend": {
+      "input": 3784213,
+      "cached": 3625690,
+      "output": 22787,
+      "total": 3807000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl",
+      "messages": 313
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/in/plan-launcher-gate.md",
+        "sha256": "3f7502a2eda6ddb400552b5edddd578bf3e1bca13108bb034472a1bdc84c58b6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "f8da005231afb66517e276cd391fa5d935c9cc0b0caf5a5b6ffac38955f60ccf",
+    "bytes": 4798,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "33f4d5bc3bb57a2f5a6aeb6c040b72a67a172a187a3bed4a621eb96efe3daa1a"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:11:28Z",
+      "ended": "2026-09-11T06:21:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/correction.py:105; ops/devlane/dispatch/launch.py:1459",
+          "claim": "Contract item 1 is bypassed for symlinked review artifacts. Classification resolves the input before checking whether its argument is beneath a review job's out/, so an out/ symlink targeting elsewhere returns no review record. The launcher later follows that same symlink with shutil.copyfile. A lane harness writing its permitted out/ can therefore make an input-only correction mint with answers [] and cause the conductor to copy a readable file from outside the job.",
+          "reproduce": "python3 - <<'PY'\nimport importlib.util, json, shutil, tempfile\nfrom pathlib import Path\np = Path('ops/conductor/tools/correction.py').resolve()\ns = importlib.util.spec_from_file_location('audit_correction', p)\nm = importlib.util.module_from_spec(s)\ns.loader.exec_module(m)\nwith tempfile.TemporaryDirectory() as td:\n    t = Path(td); records = t/'records'; jobs = t/'jobs'; records.mkdir()\n    rid = '20260901T000000Z-review-grok-aaaaaa'\n    (records/f'{rid}.json').write_text(json.dumps({'id': rid, 'job': 'adversarial-review'}))\n    outside = t/'outside-secret'; outside.write_text('outside-job-data')\n    link = jobs/rid/'out'/'review.md'; link.parent.mkdir(parents=True); link.symlink_to(outside)\n    copied = t/'copied'; shutil.copyfile(link, copied)\n    print(link.is_relative_to(jobs/rid/'out'), copied.read_text())\n    print(m.check('write', [], [str(link)], [], '2026-09-11T00:00:00Z', records, jobs, Path.cwd()))\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 3807000,
+        "out": 22787,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+        "started": null,
+        "ended": "2026-09-11T06:21:04Z"
+      },
+      "note": "Read all named inputs and both tracked scope files whole. Covered argv, shell, SQL and template injection; credential leakage; path/ref containment; sandbox and permission claims; vendor-output trust; and supply-chain changes. Focused correction tests passed. The full suite was not a clean signal because unrelated environment-sensitive tests failed; initial Graft navigation returned the repository map but its process exited during sandbox mount cleanup. The findings store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T06:21:38.157Z"
+    }
+  },
+  "status": "closed"
+}

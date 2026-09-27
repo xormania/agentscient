@@ -1,0 +1,250 @@
+{
+  "id": "20260918T234641Z-native-audit-codex-01a0b3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-09",
+  "lineage": {
+    "branch": "lane/session-20260916-09",
+    "base_sha": "e45d32c0df2607d25a6bcd4c4604bfbcbca0c8f5"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": null,
+  "at": "2026-09-18T23:39:59.051490Z",
+  "snapshot": {
+    "mode": "whole",
+    "root": "/tmp/agentscient-a376-audit-01a0b32d",
+    "ref_sha": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+    "origin": "native reviewer isolated clone; not a dispatched snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "execution": "native-terminal",
+    "argv": null,
+    "containment": "policy",
+    "isolation": {
+      "observed": {
+        "unresolved": "Native terminal launch isolation was not measured. Reviewer used separate scratch; no dispatched-worker or OS containment claim."
+      }
+    }
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl:1793",
+    "measured_at": "2026-09-18T23:39:39.679Z",
+    "effort_requested": null,
+    "effort_argv": [],
+    "note": "Actual model read from owner-selected native Daybreak rollout turn_context."
+  },
+  "session": {
+    "id": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+    "participant": "PT-19",
+    "assignment": "A-376",
+    "execution": "native-terminal"
+  },
+  "brief": {
+    "source": "coordination A376/M377 with explicit correction M378/M380",
+    "receipt": "M381 and E22",
+    "envelope_sha256": "8aa3e347635ae8fef8311dcf2614b9553604edd60bf2ec6eec18cc123c98592e"
+  },
+  "caps": null,
+  "overrides": {},
+  "attempts": [],
+  "result": {
+    "head": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/handoff/probes/probes-2026-09-16-command-structure.jsonl:14; ops/conductor/command-structure.md:204",
+          "claim": "At immutable head 1b21652a, the restored first-XO restart removes the sentence that retained probe P-CMD-20260916-not-measured still requires. The full corpus therefore exits 1 with 494 pass, 0 fail and 1 unreachable, while the merge commit records 495/0/0. This is a concrete proof-integrity failure in the lane readiness corpus and blocks safe merge of that exact head.",
+          "reproduce": "At 1b21652a94ecd3ed128b375ddb7923c5aec4957b, python3 -B ops/conductor/tools/probes.py run exits1 with494pass/0fail/1unreachable at P-CMD-20260916-not-measured. The identical command at one-row correction 1ae16028053bb6bf61d4dcbf1868b293c4484fd5 independently exits0 with495pass/0fail/0unreachable (native M381)."
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+        "started": "2026-09-18T23:39:59.051490Z",
+        "ended": "2026-09-18T23:46:41.969711Z"
+      },
+      "note": "Four recovered defect records preserve their historical bytes and attribution exactly apart from the declared IDs and custody footers; canonical trunk rows and both histories remain intact. The restart page adds no authority bypass, and the four added probe commands are read-only. One retained corpus row contradicts the restored history at the audited head; the later one-row correction is an effective positive control but does not change this revision-bound verdict. Original negative verdict remains bound to1b21652a. M381 also independently measures the one-row records correction1ae16028 as positive control495/0/0. Full reviewer commands/custody/limits are retained in native_receipt.body. No allocator re-audit, live-store examination, provider call, worker dispatch or activation claimed. Envelope spend zeros are the existing job-contract placeholder; native-terminal spend was unmeasured."
+    },
+    "native_receipt": {
+      "message": "M-381",
+      "assignment": "A-376",
+      "body": {
+        "artifacts": {
+          "commands": [
+            {
+              "command": "git diff --name-status/--stat/--check BASE HEAD",
+              "result": "six files, 69 insertions/4 deletions; diff check clean; all modes 100644"
+            },
+            {
+              "command": "custom SHA256 and exact-transform comparison of 806be732 LD81/83/84/85 to LD110/111/112/113",
+              "result": "all four original hashes match their footers; only heading substitution plus exact custody footer; current hashes match M375"
+            },
+            {
+              "command": "git diff --quiet BASE HEAD for LD81 and LD86..90; parent inspection",
+              "result": "all canonical trunk rows unchanged; parents are exact original 806be732 and dev e45d32c0"
+            },
+            {
+              "command": "strict JSON, duplicate-key, shlex and read-only argv inspection of four restart rows",
+              "result": "4 unique rows; all commands are bounded rg reads; nearmiss alone has premise_flaw"
+            },
+            {
+              "command": "python3 -B ops/conductor/tools/probes.py run at 806be732",
+              "result": "exit 2, stdout empty; exact missing premise_flaw refusal for restart row 4"
+            },
+            {
+              "command": "python3 -B ops/conductor/tools/probes.py run at 1b21652a",
+              "result": "exit 1; 494 pass, 0 fail, 1 unreachable at P-CMD-20260916-not-measured"
+            },
+            {
+              "command": "python3 -B ops/conductor/tools/probes.py run at supplementary 1ae16028",
+              "result": "exit 0; 495 pass, 0 fail, 0 unreachable; no other source treated as audited"
+            },
+            {
+              "command": "credential/private-key/token pattern scan over six changed paths",
+              "result": "no secret or credential material found"
+            }
+          ],
+          "coverage": [
+            "original defect field/date/by custody",
+            "canonical trunk row preservation and merge ancestry",
+            "restart-page authority/history wording",
+            "probe schema, command transport and cross-row consistency",
+            "changed-path modes, containment and secrets"
+          ],
+          "custody": {
+            "LD81_to_LD110": {
+              "new_sha256": "b663e0ff6a6c8daf3467c8628df7d7450454a383ed1bc01483f23b0e08cf7908",
+              "old_sha256": "aef0a642515ea779b131ae38f51f269f38bc1b03f7eea8f1ebebfbfcb8736ef9"
+            },
+            "LD83_to_LD111": {
+              "new_sha256": "3e8480a0f69093689d5bf6ccf3f59d69b2d1a4c8164ca7ae720e3b0e41999796",
+              "old_sha256": "69da18ac08a68f6d5067eebbc269745c17f1fce7079b48e735ef56e0044a97b3"
+            },
+            "LD84_to_LD112": {
+              "new_sha256": "b3db10187c67fb0e7a4f4761baf4ec58f36467cd00812ef1e288d2881f9161ef",
+              "old_sha256": "543d07610fe6cefb7c7ecdc114e7a31d536d6cace1e924af2379afcf2ea91f0b"
+            },
+            "LD85_to_LD113": {
+              "new_sha256": "69ed00a4863c79129f03342c39c9f3d4284b05cf5f4d84cb22cc1b8f86ed6346",
+              "old_sha256": "6c926ebc99637345c801a4edf0ae786214736ec04397bee5658d2eaa1133cd18"
+            }
+          },
+          "limits": [
+            "No allocator implementation, concurrency, archive discovery or live-store behavior was re-audited; M278/M375/M348 were reused.",
+            "No live state-store read/write, source/ref mutation, activation, provider/model call, dispatch, CI/full suite or operational report.",
+            "The current PR head 1ae16028 was inspected only as the one-row positive control; it is not substituted for audited head 1b21652a.",
+            "Graft was not used because this Markdown/JSONL records delta has no matching indexed source context."
+          ],
+          "reused_evidence": {
+            "M278": "retained independent custody review and manifest verification",
+            "M348": "PR264 allocator/custody audit approval",
+            "M375": "live reserved/completed LD110..113 mapping",
+            "archive_manifest_sha256": "e96d256172a933520b113659c7e968caed708e76aeecef7109b71e279dabd26f"
+          },
+          "source": {
+            "base": "e45d32c0df2607d25a6bcd4c4604bfbcbca0c8f5",
+            "branch": "lane/session-20260916-09",
+            "head": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+            "live_worktree_clean": true,
+            "parents": [
+              "806be732fec0047de245bb6bec8c26c9919e95c1",
+              "e45d32c0df2607d25a6bcd4c4604bfbcbca0c8f5"
+            ],
+            "pr": 263,
+            "scratch": "/tmp/agentscient-a376-audit-01a0b32d",
+            "scratch_tracked_clean": true
+          }
+        },
+        "counts": {
+          "P0": 0,
+          "P1": 1,
+          "P2": 0,
+          "P3": 0,
+          "total": 1
+        },
+        "findings": [
+          {
+            "claim": "At immutable head 1b21652a, the restored first-XO restart removes the sentence that retained probe P-CMD-20260916-not-measured still requires. The full corpus therefore exits 1 with 494 pass, 0 fail and 1 unreachable, while the merge commit records 495/0/0. This is a concrete proof-integrity failure in the lane readiness corpus and blocks safe merge of that exact head.",
+            "reproduce": {
+              "at": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+              "command": "python3 -B ops/conductor/tools/probes.py run",
+              "observed": {
+                "counts": {
+                  "fail": 0,
+                  "pass": 494,
+                  "unreachable": 1
+                },
+                "detail": "exit 1; stderr empty",
+                "exit": 1,
+                "row": "P-CMD-20260916-not-measured"
+              },
+              "positive_control": {
+                "at": "1ae16028053bb6bf61d4dcbf1868b293c4484fd5",
+                "change": "only P-CMD-20260916-not-measured is updated to ask for the remaining Lead/unseen-message limits",
+                "same_command": {
+                  "counts": {
+                    "fail": 0,
+                    "pass": 495,
+                    "unreachable": 0
+                  },
+                  "exit": 0
+                }
+              }
+            },
+            "severity": "P1",
+            "where": "ops/conductor/handoff/probes/probes-2026-09-16-command-structure.jsonl:14; ops/conductor/command-structure.md:204"
+          }
+        ],
+        "job": "security-audit",
+        "note": "Four recovered defect records preserve their historical bytes and attribution exactly apart from the declared IDs and custody footers; canonical trunk rows and both histories remain intact. The restart page adds no authority bypass, and the four added probe commands are read-only. One retained corpus row contradicts the restored history at the audited head; the later one-row correction is an effective positive control but does not change this revision-bound verdict.",
+        "spend": {
+          "harness": "codex",
+          "out": null,
+          "runs": null,
+          "state": "unmeasured-native-terminal",
+          "total": null
+        },
+        "stamp": {
+          "attribution": "GPT Daybreak <noreply@openai.com>",
+          "base": "e45d32c0df2607d25a6bcd4c4604bfbcbca0c8f5",
+          "dispatched_by": null,
+          "ended_at": "2026-09-18T23:46:41.969711Z",
+          "execution": "native-terminal",
+          "harness": "codex",
+          "head": "1b21652a94ecd3ed128b375ddb7923c5aec4957b",
+          "model": "gpt-daybreak-blue-latest",
+          "native_session": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+          "participant": "PT-19",
+          "rollout": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl",
+          "started_at": "2026-09-18T23:39:59.051490Z"
+        },
+        "status": "ok",
+        "verdict": "changes"
+      },
+      "provenance": "Reviewer-authored SQLite receipt exported through existing record/envelope builders; no dispatched execution claimed."
+    }
+  },
+  "status": "closed"
+}

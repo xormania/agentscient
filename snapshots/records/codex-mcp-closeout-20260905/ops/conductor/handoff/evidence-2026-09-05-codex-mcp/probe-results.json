@@ -1,0 +1,76 @@
+{
+  "method": "Read-only manual execution of the authored row argv with shlex, no shell; allowlist rg/gh; identity stripping was not implemented; production probe runner is absent.",
+  "source_head": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+  "rows": [
+    {
+      "id": "P-MCP-C1",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 7,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C2",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 162,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C3",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 77,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C4",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 49,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C5",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 26,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C6",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 78,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C7",
+      "exit": 1,
+      "outcome": "pass",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    {
+      "id": "P-MCP-C8",
+      "exit": 0,
+      "outcome": "pass",
+      "stdout_bytes": 19,
+      "stderr_bytes": 0
+    }
+  ],
+  "passed": 8,
+  "failed": 0,
+  "unreachable": 0,
+  "calibration_extraction": {
+    "available": true,
+    "source": "ops/conductor/AAR-2026-09-05T22-codex-mcp-closeout.md"
+  },
+  "measured_at": "2026-09-05T22:45:33.544808+00:00",
+  "artifact_sha256": {
+    "ops/conductor/AAR-2026-09-05T22-codex-mcp-closeout.md": "55accddaf0e4033dcf60363052f08cd130c48c04ebe0ceeff192f55102c51b05",
+    "ops/conductor/handoff/HANDOFF-2026-09-05-codex-mcp-closeout.md": "0d8997dac775844a21a937c7495077dcaa942e28ba6511415225a956bb85c613",
+    "ops/conductor/handoff/probes/probes-2026-09-05-codex-mcp-closeout.jsonl": "f5aad4d06537a7c314c14e45b1e60d207f6d3b9dad9148afaee5de23bb4476fc",
+    "ops/conductor/handoff/evidence-2026-09-05-codex-mcp/measurements.json": "4656bd44cf7a9e577848a3656bcf189ea3865bd3d5f6989538b141800472dddd"
+  }
+}

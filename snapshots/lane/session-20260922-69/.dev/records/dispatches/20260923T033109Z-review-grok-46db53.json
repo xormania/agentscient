@@ -1,0 +1,441 @@
+{
+  "id": "20260923T033109Z-review-grok-46db53",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260922-69",
+  "lineage": {
+    "branch": "lane/session-20260922-69",
+    "base_sha": "272e859ec95cf9a4a9439c92bd753b403bc7e7ab"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-23T03:31:09Z",
+    "closed": "2026-09-23T03:46:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "272e859ec95cf9a4a9439c92bd753b403bc7e7ab",
+    "ref_sha": "272e859ec95cf9a4a9439c92bd753b403bc7e7ab",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/usr/bin/bwrap",
+      "--die-with-parent",
+      "--unshare-user",
+      "--bind",
+      "/",
+      "/",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/enforcement/binding.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/enforcement/binding.json",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/enforcement/guard.sh",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/enforcement/guard.sh",
+      "--ro-bind",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok/hooks/agentscient.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok/hooks/agentscient.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/branches.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ci.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/co_doc.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/control.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/coordination_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/correction.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/courier.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/decisions.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/defects.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/deliverable.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/dispatcher.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/findings.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/hand.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/handoff.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/instrument.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/keepalive.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ladder.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/land.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_mcp.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_read.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/lane_refs.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/laneconf.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/ledger.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/machine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/monitor.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/onboard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/probes.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/sessions.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/sessions.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/skills.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watch.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/conductor/tools/watchdog.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/harness/isolation.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/boundaries.json",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/boundary-match.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/command_shape.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/conductor-enforce.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/context-precheck.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/engine.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/matrix.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/miss.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/no-subagents.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/skill-use.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/test-guard.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/trunk-forward.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/claude/unsafe-command.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/enforcement.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/native.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/hooks/profiles.py",
+      "--ro-bind",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/lane.conf",
+      "--chdir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/snapshot",
+      "--",
+      "/home/scientdb/.grok/downloads/grok-1.0.40-linux-x86_64",
+      "-s",
+      "d68a553f-40c3-453c-a229-ed8afd715aa2",
+      "--model",
+      "grok-4.7",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.7",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.7",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok-stream/sessions/<snapshot-encoded>/d68a553f-40c3-453c-a229-ed8afd715aa2/summary.json"
+  },
+  "session": {
+    "id": "d68a553f-40c3-453c-a229-ed8afd715aa2",
+    "binding_id": "d68a553f-40c3-453c-a229-ed8afd715aa2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok-stream/sessions/<snapshot-encoded>/d68a553f-40c3-453c-a229-ed8afd715aa2/summary.json",
+    "stream_sha256_at_close": "6851834ba0e1aed81b98982de18dc794da70717a55a01a8f978be2be8e76dc64",
+    "bound": "participant PT-56 bound for session d68a553f-40c3-453c-a229-ed8afd715aa2 by PT-22 for A-529",
+    "spend": {
+      "input": 2917629,
+      "cached": 2551552,
+      "output": 55068,
+      "total": 2972697,
+      "cost_usd_ticks": 7950349200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok-stream/sessions/<snapshot-encoded>/d68a553f-40c3-453c-a229-ed8afd715aa2/summary.json",
+      "messages": 349
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260922-69/ops/devlane/task/jobs.json",
+      "sha256": "a9719b15d7e2edcba9cfa3f43eddc3ca3551bad36e2f727c9be574423befd5cf"
+    },
+    "scope": "Supersedes 20260923T031929Z-review-grok-a83954 (stopped). Read first,\nwhole, in/: fuckup.md, fuckup2.md, fuckup3.md, fuckup4.md (2026-09-19 Codex\ndebriefs; fuckup.md: the skill name onboard has its sigil dropped, 3\nplaces, else unchanged). Then Terra's local branch\nlane/session-20260919-terra-01a0b759 at 60c8d80b (812a0b7e..60c8d80b); if\nunreachable, say so. Then:\n(1) candidates: the owner's work since 2026-09-12 abstracting onboarding,\nhooks and skills across claude, codex, grok: all branches by committer\ndate (tip, subject); worktrees under\n/home/scientdb/projects/uscient/ag-wt and .../wt; ops/conductor/ideas,\nops/conductor/handoff, .xor/in; sibling repos under /home/scientdb/projects\n(poc/multi-harness-proof too). Graft for code, git for history.\n(2) each: path or branch, tip sha, author, dates, one paragraph, landed or\ncut short, what the slices or wall PRs can lift, Source: sha.\n(3) list only: skill-hooks-01a0b7596f92 (39a13050), poc/multi-harness-proof\n(a944f31). Read only; reproduce command each.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/in/fuckup.md",
+        "sha256": "497dff58c61dd00265d10545a627435f92b3f713fda685ebb6dab8efa10a4b86"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/in/fuckup2.md",
+        "sha256": "277657d447559a8d8eaf1dc3cbf87b99ad10fb647beb6dfcd1674729cadab746"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/in/fuckup3.md",
+        "sha256": "2eaaec0a18014c48581c5d0b22092fede24e57dabb8d8fba67b7705592b57994"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/in/fuckup4.md",
+        "sha256": "a0c2d5b5cf5f3c7eb4ff3b210a67f55acf5c4162aa2d1a6593dbd04a5c4da63a"
+      }
+    ],
+    "sha256": "0ae9b81e6f1c51cf5229d58ab6c424ca102a85f9c06e78cba6dcb5569a699ca0",
+    "bytes": 12514,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/lane-mcp.json",
+      "sha256": "372a3032dd7a14450295d6925ab562a42ec34e4d398ca54ddb1f28d0d3af89c2",
+      "job_ids": [
+        "20260923T031929Z-review-grok-a83954",
+        "20260923T025926Z-review-claude-d9ef7e",
+        "20260923T011022Z-review-codex-ffbf13",
+        "20260923T003033Z-review-codex-c99cc9",
+        "20260923T003019Z-review-grok-112f90",
+        "20260923T000019Z-code-grok-075a27",
+        "20260922T235722Z-code-grok-710abd",
+        "20260922T234512Z-review-codex-5b18d7",
+        "20260922T231526Z-code-grok-312c63",
+        "20260922T224945Z-code-grok-a8b48e",
+        "20260922T221641Z-code-grok-06f90e",
+        "20260922T215604Z-review-codex-f6777b",
+        "20260922T213030Z-code-grok-1693c9",
+        "20260922T212631Z-code-grok-123236"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok/config.toml"
+    },
+    "coordination": {
+      "unresolved": "the acting server is wired for codex today; this dispatch is grok"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "cac2b23e60f37877aa793ac168177cff9c0f2bb93db412553b5123622129f2f8"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true,
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT",
+    "timeout_requested": 1200.0
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-23T03:31:26Z",
+      "ended": "2026-09-23T03:46:45Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "272e859ec95cf9a4a9439c92bd753b403bc7e7ab",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/projects/uscient/wt/ag-session-20260919-skills-01a0b759/ops/conductor/tools/skills.py",
+          "claim": "The skills worktree on lane/session-20260919-skills-01a0b759 is still the uncommitted draft at f81be8f1dd789713fc619e9e002e54773da4ccaf: skills.py fc141c39ccd4854836a1d072a5bf098ac507a5b9, SKILL.md 8d4c04d343241101e9005fe1f72de6359aa47e73, untracked test_skills_managed.py b216db7652968ca8d3c9a0cdf6bc923bb1122061 (182 lines). Those blobs match neither 812a0b7e nor 60c8d80b. The draft defines managed_catalog, load_skill, use_skill and record_event, and _record_event stores redact(detail) with no size refuse. It has no _read_canonical_page and no _event_detail. Tip 60c8d80b has both, plus MAX_EVENT_DETAIL_BYTES = 16 * 1024, and _event_detail refuses a larger detail before the store opens. Landing this worktree would record the pre-hardening draft. The bytes to lift are the terra tip. Source: 60c8d80bbd3d834222c764139ca50667b4ed6986.",
+          "reproduce": "bash -lc 'WT=/home/scientdb/projects/uscient/wt/ag-session-20260919-skills-01a0b759; REPO=/home/scientdb/projects/uscient/agentscient; echo draft $(git -C \"$WT\" hash-object ops/conductor/tools/skills.py .claude/skills/skills/SKILL.md ops/conductor/tests/test_skills_managed.py); echo api $(git -C \"$REPO\" rev-parse 812a0b7e2df212a680ad059f57a7e0bff76b7893:ops/conductor/tools/skills.py); echo tip $(git -C \"$REPO\" rev-parse 60c8d80bbd3d834222c764139ca50667b4ed6986:ops/conductor/tools/skills.py 60c8d80bbd3d834222c764139ca50667b4ed6986:.claude/skills/skills/SKILL.md 60c8d80bbd3d834222c764139ca50667b4ed6986:ops/conductor/tests/test_skills_managed.py); echo draft-symbols $(rg -c \"_event_detail|_read_canonical_page\" \"$WT/ops/conductor/tools/skills.py\" || true); echo tip-symbols $(git -C \"$REPO\" grep -n -e _event_detail -e _read_canonical_page -e MAX_EVENT_DETAIL_BYTES 60c8d80bbd3d834222c764139ca50667b4ed6986 -- ops/conductor/tools/skills.py)'"
+        },
+        {
+          "severity": "p2",
+          "where": "/home/scientdb/projects/uscient/wt/ag-session-20260919-skill-hooks-01a0b7596f92",
+          "claim": "Branch lane/session-20260919-skill-hooks-01a0b7596f92 HEAD is 39a13050f75a1ccae9c60f974d72f63ab4b5e8eb, and the index still stages ops/devlane/hooks/CONTRACT.md, profiles.py and tests/test_enforcement.py. The staged binary diff SHA256 is 0410d79cc15fe6939d710f21dcee1849d742b6747cdb687b5a956ecb8b9b2690, the withdrawn cwd delta named in the 2026-09-19 debrief. Those three paths are also in the 39a13050 diff from f81be8f1, so a commit of this index would mix that delta into the cleared wall commit. Lift the commit. Source: 39a13050f75a1ccae9c60f974d72f63ab4b5e8eb.",
+          "reproduce": "bash -lc 'HK=/home/scientdb/projects/uscient/wt/ag-session-20260919-skill-hooks-01a0b7596f92; echo HEAD $(git -C \"$HK\" rev-parse HEAD); git -C \"$HK\" diff --cached --name-only; git -C \"$HK\" diff --cached --binary | sha256sum'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2972697,
+        "out": 55068,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "272e859ec95cf9a4a9439c92bd753b403bc7e7ab",
+        "started": "2026-09-23T03:31:09Z",
+        "ended": "2026-09-23T03:45:00Z"
+      },
+      "note": "Categories covered, each looked at: terra-branch; branches since 2026-09-12 (200 tips); worktrees under ag-wt and wt; ops/conductor/ideas; ops/conductor/handoff; .xor/in; sibling repos under /home/scientdb/projects including poc/multi-harness-proof; list-only skill-hooks and list-only poc. Findings are the two worktree lift hazards. Zero findings in the terra commits, the snapshot tree, ideas, handoff, xor-in, ag-wt, and the sibling repos. The snapshot git dir has one ref and cannot name the terra branch; the main repo /home/scientdb/projects/uscient/agentscient resolves it. reused: agentscient-lane lane_brief, lane_jobs sweep card, lane_changes, lane_findings for 20260923T031929Z-review-grok-a83954; graft_repo_map and graft_find_code on the fresh snapshot context (prepare_interactive, hook_profile, onboard.py, skills.py). Terra: lane/session-20260919-terra-01a0b759 tip 60c8d80bbd3d834222c764139ca50667b4ed6986, author and committer xormania, also origin. Parent of the asked range is 812a0b7e2df212a680ad059f57a7e0bff76b7893 (2026-09-19T00:19:33-04:00, skills: complete managed catalogue API, grant 313, on f81be8f1, +470/-24 in skills.py, SKILL.md, test_skills_managed.py). Range 812a0b7e..60c8d80b is six commits from 2026-09-19T00:23:48-04:00 through 2026-09-19T00:51:46-04:00 (eab9cc20, f6e3e45d, 69905ee3, 8f188e1e, 9913eb69, 60c8d80b): 16KiB event-detail bound, logical-name guard, confined alias pins, alias-leaf closure, ancestor-swap and profile-attribution regressions, exact 16KiB accept and 100KiB refusal. Worktree clean at the tip. The 04:02Z debrief measured this worktree clean at f81be8f1, which was before these commits. Cut short of landing: not an ancestor of dev or of 272e859. merge-tree --write-tree of the tip onto dev exits 0 (tree 50de565d401969bd9fa9743da72df9d691317cc2). File set is disjoint from the wall commit, whose merge-base with the tip is f81be8f1. Sessions slices 2 and 3 leave onboard.py and skills to slice 4 (handoff cc8b5f5f). Slice 4's contract does not contain these bytes. Source: 60c8d80bbd3d834222c764139ca50667b4ed6986, with the API import at 812a0b7e2df212a680ad059f57a7e0bff76b7893. List only, skill-hooks: lane/session-20260919-skill-hooks-01a0b7596f92 tip 39a13050f75a1ccae9c60f974d72f63ab4b5e8eb, author xormania, committed 2026-09-18T23:25:56-04:00, subject fix(hooks): bind skill guidance to interactive source pins, parent 2c6065ebc016801c1c6a37647d3f949316103bbb (feat(hooks): project managed skills through shared enforcement, 2026-09-18T23:01:34-04:00). Local and origin. Not an ancestor of dev or of 272e859. Diff from f81be8f1 is seven hook files, 541 insertions. merge-tree onto dev exits 0 (tree 9e72354eef0c8c6867e2e77c1c1a79581eb46586). git grep onboard at 39a13050 in ops/devlane/hooks/profiles.py and ops/devlane/harness/isolation.py is empty, so this commit does not carry the private-home onboard wrapper. Source: 39a13050f75a1ccae9c60f974d72f63ab4b5e8eb. The index beside it is the second finding. List only, poc/multi-harness-proof: /home/scientdb/projects/poc/multi-harness-proof master HEAD a944f31b7527807d000da985c546e8b5bc9ff476, author xor, committed 2026-09-19T20:53:54-04:00, subject Fix tmux option targeting during managed startup, status clean, contained by master and origin/master. Source listed, source not re-read: a944f31b7527807d000da985c546e8b5bc9ff476. Landed and already in 272e859, so a slice does not need to lift them again: onboard brief line 64f7aae0 (2026-09-15, ancestor of dev); skills logging 85dfe597 and the refusal-wire skills commit 9950d14d; enforcement 9ed8684e87 and recovery b57eac8ef1 (2026-09-18); sessions slice 1 4c81e9d5 (ancestor of dev). Sweep tree 272e859 has no ops/conductor/tests/test_skills_managed.py. Branches that can carry the debrief forward and are absent from 272e859 and from dev: b44fd6a07c6625295d25e39722acc12f907af529 (2026-09-22T23:28:02-04:00, xormania, sessions-lever.md only, four debrief clauses; present on lane/session-20260923-87, b3, cf, s3, lane/session-20260922-0a45 and 4f75) and cf tip 662f9407aed55e7bf92d1cb38565eb186a426a20 (2026-09-22T23:39:54-04:00, test(sessions): slice 4's rows, red at da3e5e06, Ran 8 failures=8). Handoff cc8b5f5f1d3d1cd382911c6177ed443e0e7b002e (2026-09-22T21:06:04-04:00) assigns ops/conductor/tools/onboard.py, role guidance and skills to S4. Ideas since 2026-09-12 are I-029 through I-035; onboard mentions in I-016, I-021, I-028 and I-032 are compaction and worker-brief notes. ag-wt tips since 2026-09-12 are landed session records or unmerged dispatch-record tips. Other wt directories (hooks-port, onboard-lever, skills-doctor, harness-*) have tips before 2026-09-12; ag-codex-policy-probe.bIVZxE is not a git worktree and is dated 2026-09-04. .xor/in/multi-agents/agentscient-dev-lane-multi-harness-integration-plan-2026-09-22.md (mtime 2026-09-22 16:18 -0400, sha256 34309997a2cab9a1a983fa9e3777c8e0f6670d6d6dbe73fe8c860f10dae85b98, untracked) is the plan whose section 6 starts from prepare-interactive and whose slices 1-4 are the sessions work above; it has no commit sha. claude-codex-grok-messaging-implementation.md (2026-09-16, sha256 74bb6021e65aa6b9f6c5e2ebd8b55166432929c3858d756909f51f8309d356af) is the messaging reference beside it. Sibling minspec tips and uscient/scientdb are dated 2026-09-01. tac/groxor tip 4247f661 (2026-09-19T17:07:56Z, grokkybara[bot], Synced from monorepo) is Grok product source, including xai-grok-hooks, and is a vendor sync. xo-handover-20260916 is not a git repo.; framework-unused: the worker made no lane MCP call; the brief named the server and its tools"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 0,
+      "mcp_tools": [],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260923T033109Z-review-grok-46db53/home/grok-stream/sessions/<snapshot-encoded>/d68a553f-40c3-453c-a229-ed8afd715aa2/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-23T03:46:42.903Z"
+    },
+    "store_sweep": {
+      "swept": true,
+      "days": 5,
+      "reclaimed": 0,
+      "kept": 153,
+      "ids": []
+    }
+  },
+  "status": "closed"
+}

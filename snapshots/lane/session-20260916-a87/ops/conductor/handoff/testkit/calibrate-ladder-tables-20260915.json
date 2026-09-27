@@ -1,0 +1,18 @@
+{
+ "clean": "green",
+ "command": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_tables.py",
+ "commit": "598e0f98",
+ "mutants": {
+  "M-derive-abs": "caught",
+  "M-derive-dotdot": "caught",
+  "M-derive-first-per-directory": "caught",
+  "M-derive-support": "caught",
+  "M-resume-options": "caught",
+  "M-retry-unspent": "caught",
+  "M-wall-default": "caught"
+ },
+ "ok": true,
+ "quiet": [],
+ "subject": "ops/conductor/tools/ladder.py",
+ "verb": "calibrate"
+}

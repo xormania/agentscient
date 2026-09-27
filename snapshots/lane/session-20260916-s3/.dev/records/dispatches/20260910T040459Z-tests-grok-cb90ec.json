@@ -1,0 +1,147 @@
+{
+  "id": "20260910T040459Z-tests-grok-cb90ec",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "audit-collect-lint",
+  "lineage": {
+    "branch": "lane/audit-collect-recovery-20260910",
+    "base_sha": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8"
+  },
+  "follows": [
+    "20260910T035954Z-tests-grok-944b4c"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T04:04:59Z",
+    "closed": "2026-09-10T04:07:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8",
+    "ref_sha": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/tmp/ag-audit-collect-recovery-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2b2fd4aa-f5cf-4955-8882-908bcd601f36",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok-stream/sessions/<snapshot-encoded>/2b2fd4aa-f5cf-4955-8882-908bcd601f36/summary.json"
+  },
+  "session": {
+    "id": "2b2fd4aa-f5cf-4955-8882-908bcd601f36",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok-stream/sessions/<snapshot-encoded>/2b2fd4aa-f5cf-4955-8882-908bcd601f36/summary.json",
+    "stream_sha256_at_close": "a53cc2710395cda34239ae77433fa27e6d87bbbc002a40884f409315a5e8b3d6",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/home/grok-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-audit-collect-recovery-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "In ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py only, correct the four reproduced Ruff unused-local findings: plant at lines 290 and 310, snap at 587, out at 662. Rename each unused binding with a leading underscore; preserve every call, assertion and fixture byte otherwise. No source, helper, contract or lint-config edits, no new tests. Run ruff check on the file, then its full unittest command. Retain the test file and commit with original/model trailers. This is a mechanical test correction, not a new behavior or code implementation.\n",
+    "inputs": [],
+    "sha256": "e4375d5cdb9eaf6cbf4894681355e96fc514a959568db62feb3ca485f4576f80",
+    "bytes": 2910
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T04:04:59Z",
+      "ended": "2026-09-10T04:07:24Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8",
+    "changed_paths": [],
+    "residual_paths": [
+      " M ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py"
+    ],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8"
+      },
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited -15; cause: {\"reason\": \"harness-cli:-15\"}"
+    },
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/residual.patch",
+      "sha256": "f2f82b5b861ec787216a429dc1de7fd61d9995b05326b914e3ce432c5b5c597a",
+      "untracked": []
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}

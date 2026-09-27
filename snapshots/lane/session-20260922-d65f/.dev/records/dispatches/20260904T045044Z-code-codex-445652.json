@@ -1,0 +1,323 @@
+{
+  "id": "20260904T045044Z-code-codex-445652",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "4ca2dd3d398c1a2b1c612240f5314ff27322303c"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T04:50:44Z",
+    "closed": "2026-09-04T05:01:14Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4ca2dd3d398c1a2b1c612240f5314ff27322303c",
+    "ref_sha": "4ca2dd3d398c1a2b1c612240f5314ff27322303c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-50-44-01a06ac1-401e-7832-a6ae-190b70c0d115.jsonl"
+  },
+  "session": {
+    "id": "01a06ac1-401e-7832-a6ae-190b70c0d115",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-50-44-01a06ac1-401e-7832-a6ae-190b70c0d115.jsonl",
+    "stream_sha256_at_close": "5649d6e23402af1872a9a43ed782f5e6084b7124851cc5498956e03756152549",
+    "spend": {
+      "input": 4082809,
+      "cached": 3956992,
+      "output": 24171,
+      "total": 4106980,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-50-44-01a06ac1-401e-7832-a6ae-190b70c0d115.jsonl",
+      "messages": 339
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py' && ruff check .",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/in/contract-lane-fixes-1-auditfix-impl.md",
+        "sha256": "2f44d7308164c66b0d8e41b8d347bf9827b2f82e07a0431a0889534bc8699443"
+      }
+    ],
+    "sha256": "2d808e996aa99d2dc5cf3ffdc30ffd841a164d1100f17a17984c5783ab6f81ad",
+    "bytes": 3978
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T04:50:44Z",
+      "ended": "2026-09-04T05:01:14Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eb1b581973aec1a0d0de242d992f80c4206e4397",
+    "changed_paths": [
+      ".claude/skills/pr-overview/SKILL.md",
+      ".claude/skills/pr-overview/pr_overview.py",
+      "ops/conductor/land-lever.md",
+      "ops/conductor/tools/dispatch.sh",
+      "ops/conductor/tools/land.py",
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/dispatch/record.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "contract-lane-fixes-1-auditfix-impl",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 26,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "Confirmed the snapshot starts at the requested ref and inventoried inputs, contracts, and lane files.",
+          "reproduce": "pwd\ngit rev-parse HEAD\ngit status --short\nrg --files ../in docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "briefs",
+          "claim": "Read the supplied brief, founding contracts, and ops overview; combined output was truncated, so subsequent commands completed the reads in bounded sections.",
+          "reproduce": "awk 'FNR == 1 { print \"FILE \" FILENAME } { print }' ../in/contract-lane-fixes-1-auditfix-impl.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "briefs",
+          "claim": "Measured the input and contract lengths to bound complete reads.",
+          "reproduce": "wc -l ../in/contract-lane-fixes-1-auditfix-impl.md docs/*.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-lane-fixes-1-auditfix-impl.md",
+          "claim": "Read lines 1\u2013350 of the supplied input.",
+          "reproduce": "sed -n '1,350p' ../in/contract-lane-fixes-1-auditfix-impl.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-lane-fixes-1-auditfix-impl.md",
+          "claim": "Read lines 351\u2013700 of the supplied input.",
+          "reproduce": "sed -n '351,700p' ../in/contract-lane-fixes-1-auditfix-impl.md"
+        },
+        {
+          "severity": "p3",
+          "where": "briefs",
+          "claim": "Completed the supplied input read and reread the repository contracts and ops overview.",
+          "reproduce": "sed -n '701,910p' ../in/contract-lane-fixes-1-auditfix-impl.md\nawk 'FNR == 1 { print \"FILE \" FILENAME } { print }' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Completed the mapping read and found the root and devlane instruction files.",
+          "reproduce": "sed -n '1,140p' docs/mapping.md\nsed -n '141,255p' docs/mapping.md\nrg --files -g 'AGENTS.md' -g '!vendor/**' -g '!var/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/AGENTS.md",
+          "claim": "Read the applicable devlane trust-boundary instructions before editing.",
+          "reproduce": "sed -n '1,240p' ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "acceptance command",
+          "claim": "The baseline acceptance run exited 1 with six dispatch and four conductor failures; the chained overview and Ruff checks did not run.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": ".claude/skills/pr-overview/tests/test_collect_rows.py",
+          "claim": "The isolated overview baseline had one failure: an unreadable review page refused the entire board.",
+          "reproduce": "python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "implementation paths",
+          "claim": "Inspected the launcher, record validator, dispatch wrapper, land lever, and overview collection paths implicated by the failures.",
+          "reproduce": "sed -n '180,390p' ops/devlane/dispatch/launch.py\nsed -n '1180,1540p' ops/devlane/dispatch/launch.py\nsed -n '70,125p' ops/devlane/dispatch/record.py\nsed -n '1,240p' ops/conductor/tools/dispatch.sh\nsed -n '80,190p' ops/conductor/tools/land.py\nsed -n '450,550p' .claude/skills/pr-overview/pr_overview.py\nsed -n '1280,1355p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "pinned tests",
+          "claim": "Read the exact assertions for collection, permission filtering, JSON-false validation, dry-run disclosure, landing, and review-page isolation.",
+          "reproduce": "sed -n '1320,1515p' ops/devlane/dispatch/launch.py\nsed -n '1660,1760p' ops/devlane/dispatch/launch.py\nsed -n '455,555p' ops/devlane/dispatch/tests/test_launch_collect.py\nsed -n '360,455p' ops/devlane/dispatch/tests/test_launch_collect.py\nsed -n '620,670p' ops/devlane/dispatch/tests/test_launch_isolation.py\nsed -n '460,500p' ops/devlane/dispatch/tests/test_record.py\nsed -n '1035,1090p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '1100,1180p' ops/conductor/tests/test_land_lever.py\nsed -n '390,440p' .claude/skills/pr-overview/tests/test_collect_rows.py"
+        },
+        {
+          "severity": "p3",
+          "where": "implementation paths",
+          "claim": "Located parser, validator, permission-filter, and collection entry points and inspected the complete wrapper boundaries.",
+          "reproduce": "rg -n \"def _child_env|collect_parser|add_parser\\(\\\"collect|result\\.collected|CLAUDE_NETWORK_RULE_PREFIXES|def _write_record|def validated_collection|def collect\\(\" ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py\nsed -n '70,120p' ops/devlane/dispatch/record.py\nsed -n '1580,1675p' ops/devlane/dispatch/launch.py\nsed -n '1,90p' ops/conductor/tools/dispatch.sh\nsed -n '240,320p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "overview and environment paths",
+          "claim": "Inspected child-environment construction, record writing, land validation, and the complete overview test fixture.",
+          "reproduce": "sed -n '395,435p' ops/devlane/dispatch/launch.py\nsed -n '640,680p' ops/devlane/dispatch/launch.py\nsed -n '90,140p' ops/conductor/tools/land.py\nsed -n '1,120p' .claude/skills/pr-overview/tests/test_collect_rows.py\nsed -n '120,240p' .claude/skills/pr-overview/tests/test_collect_rows.py\nsed -n '240,390p' .claude/skills/pr-overview/tests/test_collect_rows.py"
+        },
+        {
+          "severity": "p3",
+          "where": "contracts and tests",
+          "claim": "Confirmed the existing recorded-wall test and identified contract sections requiring aligned updates.",
+          "reproduce": "rg -n \"collect.*timeout|verify_is_walled|ALLOW_DROP|def _collect\\(\" ops/devlane/dispatch/tests/test_launch_collect.py ops/devlane/dispatch/tests/test_launch_isolation.py\nsed -n '280,380p' ops/devlane/dispatch/tests/test_launch_collect.py\nsed -n '570,625p' ops/devlane/dispatch/tests/test_launch_isolation.py\nrg -n \"collect|verify|permission|project rules\" ops/devlane/dispatch/CONTRACT.md | head -80\nrg -n \"envelope-status|collected|collect\" ops/conductor/land-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "focused verification",
+          "claim": "The first focused check found one transient implementation error: job_dir was undefined in collection verification.",
+          "reproduce": "git diff --check && ruff check ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_collect.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_isolation.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_record.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_land_lever.py' && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "focused verification",
+          "claim": "After correction, Ruff and all 143 focused tests passed.",
+          "reproduce": "git diff --check && ruff check ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_collect.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_isolation.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_record.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_land_lever.py' && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Reviewed the complete implementation and contract diff and confirmed only intended paths were modified.",
+          "reproduce": "git diff --stat\ngit diff -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/dispatch.sh ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py ops/devlane/dispatch/CONTRACT.md ops/conductor/land-lever.md\ngit status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "contracts",
+          "claim": "Checked related dry-run, detach, and unreadability declarations; diff checks and focused Ruff remained clean.",
+          "reproduce": "rg -n \"dry.run|dry run|detach|launcher.*source|argv\\[0\\]|execut\" ops/conductor/*.md ops/devlane/dispatch/CONTRACT.md ops/README.md\nsed -n '35,65p' ops/devlane/dispatch/CONTRACT.md\nsed -n '30,48p' .claude/skills/pr-overview/SKILL.md\ngit diff --check\nruff check ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Measured the repository\u2019s required Codex trailer spelling from existing commits and records.",
+          "reproduce": "git log -8 --format='%h%n%B%n---' | sed -n '1,180p'\nrg -n \"Co-Authored-By:.*Codex\" -g '!vendor/**' .dev ops 2>/dev/null | head -20"
+        },
+        {
+          "severity": "p3",
+          "where": "acceptance command",
+          "claim": "The first post-change full acceptance command exited 0: 1,162 lane tests, four overview tests, and Ruff passed.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Diff validation passed and no test file was modified.",
+          "reproduce": "git diff --check\ngit status --short\ngit diff --stat\ngit diff --name-only -- ':(glob)**/tests/**'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Git commit was attempted with required trailers but failed because the sandbox exposes .git as read-only.",
+          "reproduce": "git add .claude/skills/pr-overview/SKILL.md .claude/skills/pr-overview/pr_overview.py ops/conductor/land-lever.md ops/conductor/tools/dispatch.sh ops/conductor/tools/land.py ops/devlane/dispatch/CONTRACT.md ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py && git commit -m \"lane: close audit recovery gaps\" -m \"Harden collection ancestry and verification isolation, retain recoverability after resume, disclose wrapper execution plans, validate collection evidence exactly, and isolate per-PR overview failures.\" -m \"Source: original\" -m \"Co-Authored-By: Codex GPT-5 <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "../out",
+          "claim": "Confirmed the output directory had no pre-existing COMMIT_MSG before creating the fallback artifact.",
+          "reproduce": "ls -la ../out\nif [[ -e ../out/COMMIT_MSG ]]; then sed -n '1,120p' ../out/COMMIT_MSG; fi"
+        },
+        {
+          "severity": "p3",
+          "where": "acceptance command",
+          "claim": "The final-tree acceptance command exited 0: all 1,162 lane tests, all four requested overview tests, and Ruff passed.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final audit found eight intended modified files, no modified tests, base ref 4ca2dd3d398c1a2b1c612240f5314ff27322303c, and a fallback commit message with the required trailers.",
+          "reproduce": "git diff --check\ngit status --short\ngit diff --name-only\ngit diff --name-only -- ':(glob)**/tests/**'\ngit rev-parse HEAD\ndate -u +%Y-%m-%dT%H:%M:%SZ\nsha256sum ../out/COMMIT_MSG\nsed -n '1,120p' ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T045044Z-code-codex-445652/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4106980,
+        "out": 24171,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4ca2dd3d398c1a2b1c612240f5314ff27322303c",
+        "started": null,
+        "ended": "2026-09-04T04:59:40Z"
+      },
+      "note": "Implemented the pinned audit fixes without editing tests. Assumed collect --timeout is a floor-raising override, matching the audit wording and pinned test. Follow-up: the otherwise-green suites emit pre-existing ResourceWarning messages for live subprocesses and one unclosed file. Git commit was blocked by the read-only .git filesystem; COMMIT_MSG was written for launcher commit.",
+      "commit": {
+        "subject": "lane: close audit recovery gaps",
+        "body": "Harden collection ancestry and verification isolation, retain recoverability\nafter resume, disclose wrapper execution plans, validate collection evidence\nexactly, and isolate per-PR overview failures.\n\nSource: original\nCo-Authored-By: Codex GPT-5 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T05:01:14.072Z"
+    }
+  },
+  "status": "closed"
+}

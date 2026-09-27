@@ -1,0 +1,423 @@
+{
+  "id": "20260911T032424Z-code-codex-f94a44",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/gate-dispatcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-dispatcher-20260911",
+    "base_sha": "9e7cc30eb8fbc935d04b2e2d8a38d9aab85a3f9a"
+  },
+  "follows": [
+    "20260911T031453Z-tests-grok-033816"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T03:24:34Z",
+    "closed": "2026-09-11T03:33:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9e7cc30eb8fbc935d04b2e2d8a38d9aab85a3f9a",
+    "ref_sha": "9e7cc30eb8fbc935d04b2e2d8a38d9aab85a3f9a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-24-36-01a08e7e-e56e-74c2-b547-c7e73ab2fe98.jsonl"
+  },
+  "session": {
+    "id": "01a08e7e-e56e-74c2-b547-c7e73ab2fe98",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-24-36-01a08e7e-e56e-74c2-b547-c7e73ab2fe98.jsonl",
+    "stream_sha256_at_close": "3c2527b8e65e2c726731836d7a2b23a02aaef2350e03431ecdb6ef381ec66494",
+    "spend": {
+      "input": 2458654,
+      "cached": 2372480,
+      "output": 18644,
+      "total": 2477298,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-24-36-01a08e7e-e56e-74c2-b547-c7e73ab2fe98.jsonl",
+      "messages": 287
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests -p test_dispatch_wrapper_answers.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/in/plan-dispatcher-gate.md",
+        "sha256": "e7b5f7faefbef0dce092a154ebaf7ca7b8a073e0f359e78c8ffde3cf53ba7afd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T032424Z-code-codex-f94a44/in/scope-gate-20260910.scope.md",
+        "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+      }
+    ],
+    "sha256": "98e8ce58e612a17239b8c404ab9adcbb525f724a912772cd52481d59e8bbbf6f",
+    "bytes": 4986,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "81e00d920e45f4364e865fdc06436ef8b235f911da8af4fc6928ecef0c9fee25"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:24:35Z",
+      "ended": "2026-09-11T03:33:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "52d389e0eb94071a388edd9aafbf1639f09ef34d",
+    "changed_paths": [
+      "ops/conductor/tools/dispatch.sh"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "dispatcher-answers",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 38,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "The combined initial input read exceeded the output cap; each named input was subsequently read separately.",
+          "reproduce": "sed -n '1,$p' ../in/plan-dispatcher-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Initial Graft navigation mapped the ops tree successfully.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "The snapshot started clean and detached at 9e7cc30eb8fbc935d04b2e2d8a38d9aab85a3f9a; six docs files were enumerated.",
+          "reproduce": "git rev-parse HEAD && git status --short --branch && rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Read lines 1-260 of the dispatcher-gate plan.",
+          "reproduce": "sed -n '1,260p' ../in/plan-dispatcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Read lines 261-520 of the dispatcher-gate plan.",
+          "reproduce": "sed -n '261,520p' ../in/plan-dispatcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Read the remainder of the dispatcher-gate plan.",
+          "reproduce": "sed -n '521,$p' ../in/plan-dispatcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Read scope-gate-20260910.md whole.",
+          "reproduce": "sed -n '1,$p' ../in/scope-gate-20260910.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Read scope-discipline.md whole.",
+          "reproduce": "sed -n '1,$p' ../in/scope-discipline.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Read scope-gate-20260910.scope.md whole.",
+          "reproduce": "sed -n '1,$p' ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Read docs/wire.md whole.",
+          "reproduce": "sed -n '1,$p' docs/wire.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Read docs/workflow.md whole.",
+          "reproduce": "sed -n '1,$p' docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Read docs/probes.md whole.",
+          "reproduce": "sed -n '1,$p' docs/probes.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Read docs/verified-couplings.md whole.",
+          "reproduce": "sed -n '1,$p' docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Read docs/concerns.md whole.",
+          "reproduce": "sed -n '1,$p' docs/concerns.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Read docs/mapping.md whole.",
+          "reproduce": "sed -n '1,$p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Read ops/README.md whole before changing the lane.",
+          "reproduce": "sed -n '1,$p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Graft navigation identified the repeatable correction argument machinery and relevant dispatch surfaces.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"dispatch wrapper follows answers parsing launcher argv dry run\",\"limit\":5}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Read the externally supplied seven-test acceptance module whole.",
+          "reproduce": "sed -n '1,$p' /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests/test_dispatch_wrapper_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "The first Graft file API query refused the unsupported path argument and required file.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"path\":\"ops/conductor/tools/dispatch.sh\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "The corrected Graft file API query reported no indexed definitions for the shell script.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"file\":\"ops/conductor/tools/dispatch.sh\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Read the dispatcher wrapper source whole.",
+          "reproduce": "sed -n '1,$p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Inspected the existing dispatcher wrapper fixture and expected argv construction.",
+          "reproduce": "sed -n '1,560p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "The dispatch contract declares repeatable --follows and --answers, with inputs before follows before answers.",
+          "reproduce": "rg -n --context 8 -- '--follows|--answers|^## Verbs|^### Verbs' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Before implementation, the named command ran seven tests and failed five because --answers was unknown and repeated --follows was last-wins.",
+          "reproduce": "python3 -m unittest discover -s /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests -p test_dispatch_wrapper_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "After editing the current snapshot, the named command still ran the implementation in the separate tests snapshot and retained the same five failures.",
+          "reproduce": "python3 -m unittest discover -s /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests -p test_dispatch_wrapper_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "The current and tests-snapshot dispatch.sh files resolve to different paths and inodes; the tests snapshot is at 31d0a2a9a3a91c57d3bb95282af5a222ea8f6033.",
+          "reproduce": "realpath ops/conductor/tools/dispatch.sh /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tools/dispatch.sh && stat -c '%i %n' ops/conductor/tools/dispatch.sh /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tools/dispatch.sh && git -C /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Recent history established the repository's required Source and Co-Authored-By trailer style.",
+          "reproduce": "git log -5 --format='%h%n%B%n'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "The current snapshot contains its own dispatcher tests; the implementation diff is limited to dispatch.sh and passes diff checking.",
+          "reproduce": "rg --files ops/conductor/tests | rg 'test_dispatch_wrapper_answers.py|test_dispatch_wrapper.py' && git diff --check && git diff -- ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "The external target test module differs from the current snapshot's three-test module and contains seven tests.",
+          "reproduce": "git diff --no-index -- ops/conductor/tests/test_dispatch_wrapper_answers.py /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests/test_dispatch_wrapper_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 30",
+          "claim": "The current snapshot's three dispatcher-answer tests pass.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 31",
+          "claim": "All seven externally supplied tests pass when loaded against the current snapshot's wrapper fixture and implementation.",
+          "reproduce": "python3 -c 'import importlib.util,sys,unittest; sys.path.insert(0,\"ops/conductor/tests\"); import test_dispatch_wrapper; p=\"/home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests/test_dispatch_wrapper_answers.py\"; s=importlib.util.spec_from_file_location(\"target_dispatch_wrapper_answers\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); result=unittest.TextTestRunner(verbosity=1).run(unittest.defaultTestLoader.loadTestsFromModule(m)); raise SystemExit(not result.wasSuccessful())'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 32",
+          "claim": "All 89 current-tree dispatcher wrapper tests pass.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 33",
+          "claim": "The repository-wide lane suite passes 2497 tests with seven skips.",
+          "reproduce": "bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 34",
+          "claim": "History contains OpenAI model-specific co-author trailers.",
+          "reproduce": "git log --all --format='%B' | rg -m 5 '^Co-Authored-By: .*@openai\\.com>$'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 35",
+          "claim": "History confirms GPT-5 Codex <noreply@openai.com> as an established trailer identity.",
+          "reproduce": "git log --all --format='%B' | rg -m 10 '^Co-Authored-By: .*Codex.*@openai\\.com>$'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 36",
+          "claim": "The edited shell script passes bash syntax validation and git diff whitespace checking.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command 37",
+          "claim": "Git commit was attempted but the sandbox refused creation of .git/index.lock because the git directory is read-only.",
+          "reproduce": "git add ops/conductor/tools/dispatch.sh && git commit -m 'conductor: preserve repeated correction flags' -m 'Carry every --follows and --answers value through the wrapper in input, follows, answers order so correction dispatches retain their full lineage and finding set.\\n\\nSource: owner 2026-09-10\\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 38",
+          "claim": "Final writable-tree inspection shows only dispatch.sh modified, an 11-addition/4-deletion diff, clean diff checks, and a complete fallback commit message.",
+          "reproduce": "git status --short && git diff --stat && git diff --check && sed -n '1,$p' ../out/COMMIT_MSG && date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "final named command",
+          "claim": "The required absolute-path command exits 1 because its fixture derives REPO from the immutable tests snapshot and therefore executes that snapshot's unchanged dispatch.sh instead of the final implementation tree.",
+          "reproduce": "python3 -m unittest discover -s /home/scientdb/.local/state/agentscient/dispatch/20260911T025531Z-tests-grok-5a362c/snapshot/ops/conductor/tests -p test_dispatch_wrapper_answers.py"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/dispatch.sh",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "Current-tree wrapper tests and the full lane suite pass; all seven supplied tests pass when bound to the current implementation."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2477298,
+        "out": 18644,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9e7cc30eb8fbc935d04b2e2d8a38d9aab85a3f9a",
+        "started": null,
+        "ended": "2026-09-11T03:31:34Z"
+      },
+      "note": "Invalid under the mandated status rule because the named command exits 1. Failing tests: DispatcherAnswers.test_fix_stage_three_follows_and_one_answers_per_key; DispatcherAnswers.test_three_follows_reach_dry_run_argv_in_given_order; DispatcherAnswers.test_two_answers_reach_dry_run_argv_after_the_follows; DispatcherAnswers.test_two_answers_reach_the_foreground_launcher_after_follows; DispatcherAnswers.test_two_follows_reach_dry_run_argv_in_given_order. Follow-up: the frozen test fixture resolves the wrapper from its own separate snapshot rather than the implementation snapshot.",
+      "commit": {
+        "subject": "conductor: preserve repeated correction flags",
+        "body": "Carry every --follows and --answers value through the wrapper in input,\nfollows, answers order so correction dispatches retain their full lineage\nand finding set.\n\nSource: owner 2026-09-10\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T03:33:23.948Z"
+    }
+  },
+  "status": "closed"
+}

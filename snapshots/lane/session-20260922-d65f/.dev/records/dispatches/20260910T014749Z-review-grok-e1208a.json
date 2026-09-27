@@ -1,0 +1,164 @@
+{
+  "id": "20260910T014749Z-review-grok-e1208a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/collect-recovery-20260910",
+  "lineage": {
+    "branch": "lane/collect-recovery-20260910",
+    "base_sha": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:47:50Z",
+    "closed": "2026-09-10T01:55:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "ref_sha": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7fe48293-69cc-4bf6-be25-37b3a220af9e",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok-stream/sessions/<snapshot-encoded>/7fe48293-69cc-4bf6-be25-37b3a220af9e/summary.json"
+  },
+  "session": {
+    "id": "7fe48293-69cc-4bf6-be25-37b3a220af9e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok-stream/sessions/<snapshot-encoded>/7fe48293-69cc-4bf6-be25-37b3a220af9e/summary.json",
+    "stream_sha256_at_close": "09f206e383e8ad9fb7bcd9ab9e4572820eaee5e689d9ef273adf3d91b71dff39",
+    "spend": {
+      "input": 636158,
+      "cached": 521344,
+      "output": 22877,
+      "total": 659035,
+      "cost_usd_ticks": 1066855400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/home/grok-stream/sessions/<snapshot-encoded>/7fe48293-69cc-4bf6-be25-37b3a220af9e/summary.json",
+      "messages": 125
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Final independent acceptance of only two implemented process repairs at955e0a9 (current HEAD differs only by retained review record): collect committed failed write results; normalize canonical transient launcher logs in test guard. Read ../in/process-code-acceptance.md. Find demonstrated reachable contract violations only; no scope expansion or fresh test inventory.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/in/process-code-acceptance.md",
+        "sha256": "7ffeb9fcd176bd86e3f4e9ffd5585c924dfe45a891f81086b20d41a195100035"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014749Z-review-grok-e1208a/in/process-repairs-suites.json",
+        "sha256": "a4b903bf37120e825d374fb3ff424a5f15c1b87ce63b437acb8c5d81c9115077"
+      }
+    ],
+    "sha256": "d628ea1e727917f620a2721b7342a88fbd84e732d1d104cd91b87bb19bfe6dac",
+    "bytes": 2677
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:47:50Z",
+      "ended": "2026-09-10T01:55:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 659035,
+        "out": 22877,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+        "started": "2026-09-10T01:47:50Z",
+        "ended": "2026-09-10T01:54:35Z"
+      },
+      "note": "Reviewed only launch.py _collect and test_onboard_lever._without_new_job_dirs plus their contracts. git rev-parse at b3f792d: launch.py and test_onboard_lever.py blobs equal 955e0a9 (5396ae5b70c9045d8c2f60774468cb3c58eb2494, 116eafc694ae2022e4f9f56d84534121f994b592); sha256sum of the independent tests is f69dec3ad8f121f5d51b8ff60561e26882d3d1550064b7db7ec086154a447105 and 002fcb99419163d863e12dfc387fd387cafeda64a378ae7e19b044d11edb5eee. Committed arm admits closed write invalid/tripped envelope with empty recorded residue, exact HEAD==result.head strict descendant, nonempty matching delta, then existing verify; recheck refuses substituted HEAD or new residue and skips _commit_for_harness so the preserved commit is reused; verify/timeout/_refuse run before refs/dispatch or result.collected writes. Residue arm still selected when residual_paths is nonempty. Guard strips exactly .launcher.[A-Za-z0-9]{6} on both teardown sides and still fails near-misses, ordinary files, missing/type-changed stores, and removed original jobs. Candidate findings (arm chosen only from recorded residue; no post-verify merge-base; other testers\u2019 copies of the helper) were refuted as non-violations or out of this bound. process-repairs-suites.json exit 0 at 955e0a9 was not re-run here."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T01:55:02.774Z"
+    }
+  },
+  "status": "closed"
+}

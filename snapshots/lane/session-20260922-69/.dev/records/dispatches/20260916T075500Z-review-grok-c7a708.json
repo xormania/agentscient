@@ -1,0 +1,240 @@
+{
+  "id": "20260916T075500Z-review-grok-c7a708",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-d",
+  "lineage": {
+    "branch": "lane/session-20260916-d",
+    "base_sha": "98ffbc9826ff15e84cd6984d28b0502cf62063fe"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T07:55:00Z",
+    "closed": "2026-09-16T08:10:14Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "ref_sha": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f06b0d02-15b3-474b-8d5e-488573b464ca",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok-stream/sessions/<snapshot-encoded>/f06b0d02-15b3-474b-8d5e-488573b464ca/summary.json"
+  },
+  "session": {
+    "id": "f06b0d02-15b3-474b-8d5e-488573b464ca",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok-stream/sessions/<snapshot-encoded>/f06b0d02-15b3-474b-8d5e-488573b464ca/summary.json",
+    "stream_sha256_at_close": "cd915ff299f9b08f1d2dd379aaa8103e8ac092be85caceb32e3dcbd433c82147",
+    "spend": {
+      "input": 1960399,
+      "cached": 1806080,
+      "output": 41594,
+      "total": 2001993,
+      "cost_usd_ticks": 4968222800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok-stream/sessions/<snapshot-encoded>/f06b0d02-15b3-474b-8d5e-488573b464ca/summary.json",
+      "messages": 244
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Review the acting coordination MCP server, slice one (PR #242, lane/session-20260916-d, head 98ffbc98).\nContracts: ops/conductor/coordination-mcp-lever.md and the core contract ops/conductor/coordination-lever.md (on lane/session-20260916-c at 537f3a35).\nAim skepticism at: the claim that authority is enforced in the server by participant, capability and generation, never by a hook; the decision to check capability before argument validation; the requirement that every refusal on every path, including resources/read, carries the wire line (docs/wire.md).\n",
+    "inputs": [],
+    "sha256": "1536902321109d9024cfa0dfbe57a5ad9383c878ac288e619defff59242ed152",
+    "bytes": 10237,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/lane-mcp.json",
+      "sha256": "d843a704afc8e7382c3654045107b2a4b12c45cea2cc149ff20c18557b41d77e",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "34c5819494531eccdbc21bde0a2319e24294a585b9ec0b1db0f3cb51a64ef420"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T07:55:14Z",
+      "ended": "2026-09-16T08:10:14Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py \u00a7check_arguments",
+          "claim": "The server advertises generation and ttl as integers with minimum 1 (_INT) but check_arguments only rejects non-integers and bools. generation 0, generation -1, and ttl 0 pass the projection and are forwarded to the core. That is the only generation gate in this server: it never compares the stated generation to the assignment row (core CAS under the write lock, coordination-lever.md at 537f3a35), and it does not keep the bound it publishes. A stub core that implements submit accepts generation 0 with exit 0.",
+          "reproduce": "PYTHONPATH=ops/conductor/tools python3 -B -c \"import coordination_mcp as m; print(m.check_arguments(m.BY_NAME['coord_submit'], {'assignment':'A-1','evidence':'abc1234','revision':'abc1234','generation':0})); print(m.check_arguments(m.BY_NAME['coord_claim'], {'assignment':'A-1','branch':'b','generation':-1,'ttl':0}))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py \u00a7_refusal_result / _dispatch resources/read",
+          "claim": "Domain refusals on resources/read are JSON-RPC successes whose result is a tools/call body (content + isError), not a resources body (contents) and not a JSON-RPC error. The wire line sits in result.content[0].text. A client that reads contents or error \u2014 the two fields the resources/read schema actually has \u2014 never sees expected/found/needed, which is LD-68 in a different envelope. The suite only checks that the raw JSON contains those words and that key error is absent; it does not parse a ReadResourceResult. The same shape is used for a listed URI (coord://brief with no session) and for an unknown URI.",
+          "reproduce": "env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID python3 -B ops/conductor/tools/coordination_mcp.py serve <<'EOF'\n{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"coord://brief\"}}\nEOF"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py \u00a7load_config / resolve_binding",
+          "claim": "Contract \u00a72.1 says the server verifies the participant row and refuses class participant when it does not exist. load_config only regex-matches PT-n; the module contains no refuse('participant', ...). A well-formed config then always refuses class state for the slice-one bind gap, so a missing row and a missing dispatcher bind are the same class. Session-path participant existence is delegated to core.resolve(); with the core absent that path refuses state too. Participant authority is therefore not enforced in this server, and hooks cannot see tools/call either (core contract: the hook engine does not see MCP calls except serena).",
+          "reproduce": "python3 -B -c \"import json,subprocess,sys,tempfile,pathlib; p=pathlib.Path(tempfile.mkdtemp())/'c.json'; p.write_text(json.dumps({'version':1,'participant':'PT-7','assignment':'A-3','branch':'b','worktree':'/tmp','record':'r','capabilities':['coord_brief'],'issued_at':'t'})); r=subprocess.run([sys.executable,'-B','ops/conductor/tools/coordination_mcp.py','--config',str(p),'call','coord_brief'],capture_output=True,text=True); print(r.stderr); import pathlib as P; t=P.Path('ops/conductor/tools/coordination_mcp.py').read_text(); print('participant-refuse', 'refuse(\\\"participant\\\"' in t)\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination_mcp.py \u00a7call / check_capability",
+          "claim": "The capability-before-arguments decision holds only for schema validation (required, types, unknown keys). call() still runs check_named_authority first, so an unauthorized coord_observe with {\"role\":\"lead\"} refuses class arguments, not capability \u2014 the caller learns the forbidden-argument table rather than the allowlist miss. check_capability's docstring (\"before anything about arguments\") and the code commit (\"as soon as the tool is known and before any argument shape is judged\") overclaim. Contract \u00a73 still says validate arguments, resolve the binding, then check capability, and was not updated when the implementation moved to make the no-arg capability-not-carried row green. tools/list is unauthenticated, so hiding schema via error order is not a real bound.",
+          "reproduce": "python3 -B -c \"import json,subprocess,sys,tempfile,pathlib; cfg={'version':1,'participant':'PT-7','assignment':'A-3','branch':'b','worktree':'/tmp','record':'r','capabilities':['coord_brief','coord_submit'],'issued_at':'t'}; p=pathlib.Path(tempfile.mkdtemp())/'c.json'; p.write_text(json.dumps(cfg)); run=lambda args: subprocess.run([sys.executable,'-B','ops/conductor/tools/coordination_mcp.py','--config',str(p),'call',*args],capture_output=True,text=True); a=run(['coord_observe', json.dumps({'role':'lead'})]); b=run(['coord_observe']); c=run(['coord_observe', json.dumps({'assignment':'A-1','observation':'x','revision':'abc1234'})]); print('role', a.stderr.strip()); print('noargs', b.stderr.strip()); print('valid', c.stderr.strip())\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/registry/coordination_mcp.py.json / coordination-mcp-lever.md \u00a72.3 / \u00a74",
+          "claim": "Contract \u00a74 requires hermetic registry invocations at least one for config and one for identity. The registry is config plus class arguments (unknown tool). The server never emits class identity: no binding refuses class session (\u00a72.2 and test no-binding-at-all), while the second \u00a72.3 (Precedence) still says mutations refuse class identity. The wire gate therefore never asserts the binding refusal. Two sections are numbered 2.3.",
+          "reproduce": "python3 -B -c \"import json; print(json.load(open('ops/conductor/registry/coordination_mcp.py.json'))); import subprocess,sys; r=subprocess.run([sys.executable,'-B','ops/conductor/tools/coordination_mcp.py','call','coord_submit', json.dumps({'assignment':'A-1','evidence':'abc1234','revision':'abc1234','generation':1})],capture_output=True,text=True); print(r.stderr)\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2001993,
+        "out": 41594,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+        "started": "2026-09-16T07:55:00Z",
+        "ended": "2026-09-16T08:10:00Z"
+      },
+      "note": "reused: agentscient-lane lane_brief/lane_jobs/lane_changes; graft_repo_map and graft_file_api; lane_mcp.py as the copied JSON-RPC loop; LD-68; coordination-lever.md at 537f3a35; testkit.refusal_wire as the CLI-wire oracle. Inputs under in/ were empty. Aimed at the three named claims: hook-invisibility holds (no hook in the module; matrix cannot see tools/call). Participant is not looked up here. Capability runs only on the config path, which then refuses state; the session path slice one serves has no allowlist. Generation is a required int passed through, with advertised minimum 1 unenforced. Capability-before-schema is real; capability-before-any-argument is not. resources/read does emit the wire line, but as a tools/call result on a JSON-RPC success."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 3,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075500Z-review-grok-c7a708/home/grok-stream/sessions/<snapshot-encoded>/f06b0d02-15b3-474b-8d5e-488573b464ca/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T08:10:13.406Z"
+    }
+  },
+  "status": "closed"
+}

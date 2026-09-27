@@ -1,0 +1,391 @@
+{
+  "id": "20260904T160923Z-code-codex-dbdef4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/matrix-hook",
+  "lineage": {
+    "branch": "lane/matrix-tests",
+    "base_sha": "44fb14e6d45c3bba1996e8cc3efa4b5b33f6c21a"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:09:23Z",
+    "closed": "2026-09-04T16:17:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "44fb14e6d45c3bba1996e8cc3efa4b5b33f6c21a",
+    "ref_sha": "44fb14e6d45c3bba1996e8cc3efa4b5b33f6c21a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-09-24-01a06d2e-94ae-7711-b6c3-0915ee060f67.jsonl"
+  },
+  "session": {
+    "id": "01a06d2e-94ae-7711-b6c3-0915ee060f67",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-09-24-01a06d2e-94ae-7711-b6c3-0915ee060f67.jsonl",
+    "stream_sha256_at_close": "c9dc8c51f39888aaa540669d4db163efa3ee882dd88ab724eb549bb02c793e32",
+    "spend": {
+      "input": 2064566,
+      "cached": 1998208,
+      "output": 14417,
+      "total": 2078983,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-09-24-01a06d2e-94ae-7711-b6c3-0915ee060f67.jsonl",
+      "messages": 307
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-matrix-tests/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/input-matrix-impl.md",
+        "sha256": "df9b0197540cb47c3106aeacd4285b1d0ebb8af0014f4b94dca3206dbbe0e088"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/contract-matrix-hook.md",
+        "sha256": "a381a29a372ceb8922a7823ed114dc856a041bc975624eda401ad287809ee6af"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/contract-matrix-hook-v2.md",
+        "sha256": "a696757b7c52428c27b98d19ffe0dc5db9358fb05a2480faf67707584dfd9ff1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/contract-matrix-hook-v3.md",
+        "sha256": "3abace48f891903a01e43ec99dd4e63ad79a5f5cce299dcba059de52d830f8be"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/contract-matrix-hook-v4.md",
+        "sha256": "12ff7292f192143fd093c4ca0deb036d71c5cf87c070403ad25af3c55712e695"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/in/findings-matrix-hook.md",
+        "sha256": "dc7bf0d33190e8bee8235bc1002e70dda7032429c2b9c8383f0f33e78dd56d90"
+      }
+    ],
+    "sha256": "b0e1874eac6558dd51a935f74aa8112608235236721b11551d1718f7f8906705",
+    "bytes": 3996
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:09:23Z",
+      "ended": "2026-09-04T16:17:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b360fabc2b4be48376343487d49eaf552ae86c0e",
+    "changed_paths": [
+      "ops/devlane/hooks/claude/matrix.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "matrix-hook-extras",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 35,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository state",
+          "claim": "Initial worktree was clean and detached.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "repository ref",
+          "claim": "HEAD matched the requested tree 44fb14e6d45c3bba1996e8cc3efa4b5b33f6c21a.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Enumerated the governing contract documents.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Measured the governing documents as 608 lines total before reading them.",
+          "reproduce": "wc -l docs/concerns.md docs/wire.md docs/workflow.md docs/mapping.md docs/verified-couplings.md docs/probes.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Read lines 1\u2013400 of the required contracts and lane documentation.",
+          "reproduce": "sed -n '1,400p' docs/concerns.md docs/wire.md docs/workflow.md docs/mapping.md docs/verified-couplings.md docs/probes.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Read lines 401\u2013800, completing the required contracts and lane documentation.",
+          "reproduce": "sed -n '401,800p' docs/concerns.md docs/wire.md docs/workflow.md docs/mapping.md docs/verified-couplings.md docs/probes.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests",
+          "claim": "Baseline acceptance failed in test_matrix.py with 45 failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks",
+          "claim": "Enumerated the hook implementation and test surface.",
+          "reproduce": "rg --files ops/devlane/hooks"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions",
+          "claim": "Located the root, devlane, and Mate instruction files.",
+          "reproduce": "rg --files -g 'AGENTS.md' -g 'AGENT_INSTRUCTIONS.md'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/AGENTS.md",
+          "claim": "Read the nested devlane instructions completely.",
+          "reproduce": "sed -n '1,240p' ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix implementation and tests",
+          "claim": "Measured the relevant files before inspection.",
+          "reproduce": "wc -l ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/tests/test_matrix.py ops/devlane/hooks/claude/command_shape.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/claude/matrix.py",
+          "claim": "Read the complete matrix implementation.",
+          "reproduce": "sed -n '1,520p' ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py",
+          "claim": "Read matrix tests lines 1\u2013430.",
+          "reproduce": "sed -n '1,430p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py",
+          "claim": "Read matrix tests lines 431\u2013850.",
+          "reproduce": "sed -n '431,850p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py",
+          "claim": "Read matrix tests lines 851\u20131226, completing the file.",
+          "reproduce": "sed -n '851,1226p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Inspected recent history for the matrix implementation and tests.",
+          "reproduce": "git log --oneline --decorate -8 -- ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git branches",
+          "claim": "Only the detached HEAD and lane/matrix-tests branch were present.",
+          "reproduce": "git branch --all --no-color"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 735b7c1",
+          "claim": "Confirmed the red-test commit changed only test_matrix.py.",
+          "reproduce": "git show --stat --oneline 735b7c1"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 735b7c1",
+          "claim": "Read the red-test commit provenance and stated contract.",
+          "reproduce": "git show -s --format=full 735b7c1"
+        },
+        {
+          "severity": "p3",
+          "where": "commits 44fb14e and 791bc6c",
+          "claim": "Read the ordering and dispatch-by-hand contract refinements.",
+          "reproduce": "git show -s --format=full 44fb14e 791bc6c"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/claude/command_shape.py",
+          "claim": "Located the command-shape parser entry points.",
+          "reproduce": "rg -n \"^def commands|^def split|yield|return\" ops/devlane/hooks/claude/command_shape.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/claude/command_shape.py",
+          "claim": "Read the parser logic used by the matrix hook.",
+          "reproduce": "sed -n '330,462p' ops/devlane/hooks/claude/command_shape.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "The implementation patch had no whitespace errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py",
+          "claim": "Focused verification passed all 53 matrix tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/claude/matrix.py",
+          "claim": "Reviewed the complete implementation diff.",
+          "reproduce": "git diff -- ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests",
+          "claim": "Started the exact acceptance command; its first stage passed before the command outlived the initial collection window.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests",
+          "claim": "Final exact acceptance passed: 53 matrix tests and 212 total hook tests, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Measured the repository's Codex trailer spelling as GPT-5.6 Sol <noreply@openai.com>.",
+          "reproduce": "git log -12 --format='%B' | rg 'Co-Authored-By:.*openai'"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Only matrix.py was modified before the commit attempt.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "git index",
+          "claim": "The sandbox refused staging because .git/index.lock is on a read-only filesystem.",
+          "reproduce": "git add ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/COMMIT_MSG",
+          "claim": "No prior fallback commit-message file existed.",
+          "reproduce": "test -e /home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "out/COMMIT_MSG",
+          "claim": "Verified the fallback commit message and required trailers.",
+          "reproduce": "sed -n '1,80p' /home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Final snapshot contains only the intended matrix.py modification.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests",
+          "claim": "Confirmed no test files were edited.",
+          "reproduce": "git diff --name-only -- ops/devlane/hooks/tests"
+        },
+        {
+          "severity": "p3",
+          "where": "session stamp",
+          "claim": "Measured completion at 2026-09-04T16:16:12Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/hooks/claude/matrix.py",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160923Z-code-codex-dbdef4/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2078983,
+        "out": 14417,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "44fb14e6d45c3bba1996e8cc3efa4b5b33f6c21a",
+        "started": null,
+        "ended": "2026-09-04T16:16:12Z"
+      },
+      "note": "Implemented the direct reading that only the four declared session-owned jobs may bypass the ladder. No out-of-scope follow-up was found. The exact named command exits 0; git staging/commit was refused by the read-only .git sandbox, so the launcher commit fallback is provided.",
+      "commit": {
+        "subject": "hooks: enforce matrix dispatch and unittest rows",
+        "body": "Refuse direct dispatch of ladder-owned jobs after the existing content\nchecks, while retaining the declared session-owned job allowlist and the\nunscoped grant escape. Refuse path-form unittest commands, including in\nimplement scopes, and close the unresolved-input and Python-write gaps.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T16:17:25.011Z"
+    }
+  },
+  "status": "closed"
+}

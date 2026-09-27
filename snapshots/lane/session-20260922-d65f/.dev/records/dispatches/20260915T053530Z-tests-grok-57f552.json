@@ -1,0 +1,251 @@
+{
+  "id": "20260915T053530Z-tests-grok-57f552",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T05:35:30Z",
+    "closed": "2026-09-15T05:53:10Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "ref_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ee3360cf-294d-4d2d-bebb-9019ffbd4a88",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok-stream/sessions/<snapshot-encoded>/ee3360cf-294d-4d2d-bebb-9019ffbd4a88/summary.json"
+  },
+  "session": {
+    "id": "ee3360cf-294d-4d2d-bebb-9019ffbd4a88",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok-stream/sessions/<snapshot-encoded>/ee3360cf-294d-4d2d-bebb-9019ffbd4a88/summary.json",
+    "stream_sha256_at_close": "2edfe7a4673da166b503c665cd43a5221d29a708a99cd591972477c3b8d053cc",
+    "spend": {
+      "input": 2397503,
+      "cached": 1991808,
+      "output": 39746,
+      "total": 2437249,
+      "cost_usd_ticks": 6955618000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok-stream/sessions/<snapshot-encoded>/ee3360cf-294d-4d2d-bebb-9019ffbd4a88/summary.json",
+      "messages": 257
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_handwork_ledger.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "68b4b513259bb1a28520c0e1d089fd03f8a57d89fe858489925ef3ce5e7b8e22",
+    "bytes": 10253,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/lane-mcp.json",
+      "sha256": "d03d32eacbcf2a7acb16cc5d65b26d5608f0afaddd8831f9934bb26d3e089ec0",
+      "job_ids": [
+        "20260915T053529Z-tests-codex-91518a",
+        "20260915T053528Z-tests-grok-d94271",
+        "20260915T053527Z-tests-codex-e32f1e",
+        "20260915T053526Z-tests-grok-1a9c2b",
+        "20260915T053525Z-tests-codex-f66d80",
+        "20260915T053524Z-tests-grok-7cb422",
+        "20260915T053523Z-tests-codex-391ada",
+        "20260915T053522Z-tests-grok-8497d2",
+        "20260915T053521Z-tests-codex-928ba9",
+        "20260915T053520Z-tests-grok-c14b8c",
+        "20260915T053518Z-tests-codex-34dc59",
+        "20260915T053517Z-tests-grok-c96ee3",
+        "20260915T053516Z-tests-codex-b41d6c",
+        "20260915T050556Z-tests-grok-688433",
+        "20260915T050130Z-tests-grok-438f06",
+        "20260915T050129Z-tests-codex-4835f9",
+        "20260915T050127Z-tests-codex-4ebecf",
+        "20260915T045629Z-tests-grok-5f6732",
+        "20260915T045627Z-tests-grok-62cb95",
+        "20260915T045626Z-tests-codex-c23e28"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T05:35:31Z",
+      "ended": "2026-09-15T05:53:10Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "8db670e0c6478d71d60fb0d7df148c925b68f41c",
+    "changed_paths": [
+      "ops/conductor/tests/test_handwork_ledger.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_handwork_ledger.py",
+          "claim": "Preserved all 29 test names and count; before and after both ran 29 tests OK. Each of the 29 methods failed its own assertion under an absent staged subject (Ran 29 tests FAILED, failures=30 including two subTests), then the restored module was green.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_handwork_ledger.py"
+        }
+      ],
+      "artifacts": {
+        "before": "python3 -m unittest discover -s ops/conductor/tests -p test_handwork_ledger.py -> Ran 29 tests in 2.072s OK",
+        "red": "same command with absent subject -> Ran 29 tests in 0.758s FAILED (failures=30)",
+        "after": "same command -> Ran 29 tests in 2.496s OK",
+        "red_commit": "47cdecbf0afd6d96bfff34699e928cfbfcf1e088",
+        "green_commit": "8db670e0c6478d71d60fb0d7df148c925b68f41c"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2437249,
+        "out": 39746,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+        "started": "2026-09-15T05:35:30Z",
+        "ended": "2026-09-15T05:52:07Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR; every subprocess goes through run with a timeout; the tool is staged with instrument.py and laneconf.py beside it (World.stage is the absent-tool stand-in). Git evidence uses world.require(\"git\"), world.git, and run(timeout=60). No planted fake program and no world.tools.plant: this module has none. Historical sqlite rows stay planted with sqlite3.connect (kit gap: no sqlite primitive). Refusals keep the family's assert_refusal so the assertions stay the same; Result.refusal() was not swapped in. No regression rows were added because this was a behavior-preserving migration. Same 29 names.\nbefore: python3 -m unittest discover -s ops/conductor/tests -p test_handwork_ledger.py -> Ran 29 tests in 2.072s OK\nred: same command against an absent staged subject -> Ran 29 tests in 0.758s FAILED (failures=30)\nafter: same command -> Ran 29 tests in 2.496s OK\nruff check ops/conductor/tests/test_handwork_ledger.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 47; the new floor\nembedded_programs: 30 -> 27; the new floor\nrun_without_timeout: 185 -> 128; the new floor\nratchet holds: home_by_hand=47, embedded_programs=27, run_without_timeout=128\ncensus: modules=224 on_kit=67 exempt=8 off_kit=149\nthis module vs the pre-edit measure: home_by_hand 48->47; run_without_timeout 134->128; on_kit 66->67\nfamily: python3 -m unittest discover -s ops/conductor/tests -> Ran 1172 tests in 284.895s, FAILED (failures=1); the failure is test_probes.TheTrackedCorpusRunsGreen.test_run_over_the_tracked_corpus_exits_zero (GH_TOKEN unset, decision store absent, missing git refs), a module this job did not touch.\ncommits 47cdecbf (red) then 8db670e0 (green) on lane/session-20260914-b (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053530Z-tests-grok-57f552/home/grok-stream/sessions/<snapshot-encoded>/ee3360cf-294d-4d2d-bebb-9019ffbd4a88/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR; every subprocess goes through run with a timeout; the tool is staged with instrument.py and laneconf.py beside it (World.stage is the absent-tool stand-in). Git evidence uses world.require(\"git\"), world.git, and run(timeout=60). No planted fake program and no world.tools.plant: this module has none. Historical sqlite rows stay planted with sqlite3.connect (kit gap: no sqlite primitive). Refusals keep the family's assert_refusal so the assertions stay the same; Result.refusal() was not swapped in. No regression rows were added because this was a behavior-preserving migration. Same 29 names.\nbefore: python3 -m unittest discover -s ops/conductor/tests -p test_handwork_ledger.py -> Ran 29 tests in 2.072s OK\nred: same command against an absent staged subject -> Ran 29 tests in 0.758s FAILED (failures=30)\nafter: same command -> Ran 29 tests in 2.496s OK\nruff check ops/conductor/tests/test_handwork_ledger.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 47; the new floor\nembedded_programs: 30 -> 27; the new floor\nrun_without_timeout: 185 -> 128; the new floor\nratchet holds: home_by_hand=47, embedded_programs=27, run_without_timeout=128\ncensus: modules=224 on_kit=67 exempt=8 off_kit=149\nthis module vs the pre-edit measure: home_by_hand 48->47; run_without_timeout 134->128; on_kit 66->67\nfamily: python3 -m unittest discover -s ops/conductor/tests -> Ran 1172 tests in 284.895s, FAILED (failures=1); the failure is test_probes.TheTrackedCorpusRunsGreen.test_run_over_the_tracked_corpus_exits_zero (GH_TOKEN unset, decision store absent, missing git refs), a module this job did not touch.\ncommits 47cdecbf (red) then 8db670e0 (green) on lane/session-20260914-b (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T05:53:08.688Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,254 @@
+{
+  "id": "20260915T062036Z-tests-grok-536015",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "e7048a24730bfe39e07fad714627b7005e4fb602"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:20:36Z",
+    "closed": "2026-09-15T06:29:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e7048a24730bfe39e07fad714627b7005e4fb602",
+    "ref_sha": "e7048a24730bfe39e07fad714627b7005e4fb602",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a096e33d-0cb7-45c9-a4d3-34c3c78f0aba",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok-stream/sessions/<snapshot-encoded>/a096e33d-0cb7-45c9-a4d3-34c3c78f0aba/summary.json"
+  },
+  "session": {
+    "id": "a096e33d-0cb7-45c9-a4d3-34c3c78f0aba",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok-stream/sessions/<snapshot-encoded>/a096e33d-0cb7-45c9-a4d3-34c3c78f0aba/summary.json",
+    "stream_sha256_at_close": "44617e0b57e23f2b4a2d1eba52992af3d16cee9dc024f4c4c45ecf45be4ec5e9",
+    "spend": {
+      "input": 2528907,
+      "cached": 2411392,
+      "output": 26108,
+      "total": 2555015,
+      "cost_usd_ticks": 5431071600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok-stream/sessions/<snapshot-encoded>/a096e33d-0cb7-45c9-a4d3-34c3c78f0aba/summary.json",
+      "messages": 258
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/dispatch/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/dispatch/tests/test_agy_envelope.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "327d9038474a5ca36900db3fff9af76579ad3a665564f4e77ff646f158dd9bf5",
+    "bytes": 10264,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/lane-mcp.json",
+      "sha256": "8d379eb905c4318a1f4dd98f31d3763b9b948124e2e08d5749d9579dd2e3d799",
+      "job_ids": [
+        "20260915T061911Z-tests-codex-f74be2",
+        "20260915T061909Z-tests-grok-de0cdd",
+        "20260915T061908Z-tests-codex-accf69",
+        "20260915T061906Z-tests-grok-d40c5f",
+        "20260915T061629Z-tests-codex-e4e7b5",
+        "20260915T061410Z-tests-grok-504dc6",
+        "20260915T060425Z-tests-codex-6926a3",
+        "20260915T060206Z-tests-grok-e3e4e8",
+        "20260915T060205Z-tests-codex-6e5f6f",
+        "20260915T060204Z-tests-grok-291224",
+        "20260915T060201Z-tests-codex-a1e9a9",
+        "20260915T060200Z-tests-grok-cbcce7",
+        "20260915T060159Z-tests-codex-ab9812",
+        "20260915T060158Z-tests-grok-bd62c7",
+        "20260915T060157Z-tests-codex-7742e6",
+        "20260915T060156Z-tests-grok-823ed1",
+        "20260915T060155Z-tests-codex-aa36a0",
+        "20260915T060153Z-tests-grok-644a41",
+        "20260915T060152Z-tests-codex-97f4d6",
+        "20260915T060151Z-tests-grok-2f9365"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:20:37Z",
+      "ended": "2026-09-15T06:29:38Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "de0eb6b39c6ec9622cb01e55b975eb4448d085bc",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_envelope.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py",
+          "claim": "Preserved all 34 test names and count; baseline and migrated runs passed 34 tests, while the absent-subject stand-in produced 34 assertion failures and zero errors before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py"
+        }
+      ],
+      "artifacts": {
+        "before": "Ran 34 tests in 0.111s OK",
+        "red": "Ran 34 tests in 0.044s FAILED (failures=34)",
+        "after": "Ran 34 tests in 0.120s OK",
+        "family": "Ran 622 tests in 88.879s OK",
+        "ruff": "All checks passed",
+        "ratchet": "home_by_hand: 57 -> 26; embedded_programs: 30 -> 21; run_without_timeout: 185 -> 78; ratchet holds",
+        "census": "modules=224 on_kit=126 exempt=8 off_kit=90",
+        "red_commit": "1475a8a tests: migrate test_agy_envelope onto the kit (red)",
+        "green_commit": "de0eb6b tests: migrate test_agy_envelope onto the kit"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2555015,
+        "out": 26108,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e7048a24730bfe39e07fad714627b7005e4fb602",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns each case; parse plants stdout bytes through world.plant_bytes. This module has no subprocess and no fake tool, so run and world.tools are unused. Kit gap: none. The in-process _envelope seam cannot exec World.stage's CLI stand-in (sys.exit at import); red used a callable empty-envelope stand-in so each of the 34 methods failed its own assertion. No regression rows were added because this was a behavior-preserving migration. Implementation and the session store were not read. Only the scoped module changed. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py -> Ran 34 tests in 0.111s OK\nred: absent stand-in -> Ran 34 tests in 0.044s FAILED (failures=34); 34 AssertionError, 0 errors; names unchanged\nafter: same command -> Ran 34 tests in 0.120s OK\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 88.879s OK\nruff check ops/devlane/dispatch/tests/test_agy_envelope.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 26; the new floor\nembedded_programs: 30 -> 21; the new floor\nrun_without_timeout: 185 -> 78; the new floor\nratchet holds: home_by_hand=26, embedded_programs=21, run_without_timeout=78\ncensus: modules=224 on_kit=126 exempt=8 off_kit=90\ncommits 1475a8a (red) de0eb6b (green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nSecond producer: absent."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 9,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062036Z-tests-grok-536015/home/grok-stream/sessions/<snapshot-encoded>/a096e33d-0cb7-45c9-a4d3-34c3c78f0aba/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns each case; parse plants stdout bytes through world.plant_bytes. This module has no subprocess and no fake tool, so run and world.tools are unused. Kit gap: none. The in-process _envelope seam cannot exec World.stage's CLI stand-in (sys.exit at import); red used a callable empty-envelope stand-in so each of the 34 methods failed its own assertion. No regression rows were added because this was a behavior-preserving migration. Implementation and the session store were not read. Only the scoped module changed. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py -> Ran 34 tests in 0.111s OK\nred: absent stand-in -> Ran 34 tests in 0.044s FAILED (failures=34); 34 AssertionError, 0 errors; names unchanged\nafter: same command -> Ran 34 tests in 0.120s OK\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 88.879s OK\nruff check ops/devlane/dispatch/tests/test_agy_envelope.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 26; the new floor\nembedded_programs: 30 -> 21; the new floor\nrun_without_timeout: 185 -> 78; the new floor\nratchet holds: home_by_hand=26, embedded_programs=21, run_without_timeout=78\ncensus: modules=224 on_kit=126 exempt=8 off_kit=90\ncommits 1475a8a (red) de0eb6b (green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nSecond producer: absent.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:29:37.101Z"
+    }
+  },
+  "status": "closed"
+}

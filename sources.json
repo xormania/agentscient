@@ -1,0 +1,176 @@
+{
+  "repository": "uscient/agentscient",
+  "archive_branch": "legacy-records",
+  "created_on": "2026-09-27",
+  "source_count": 21,
+  "sources": [
+    {
+      "branch": "lane/session-20260915-f",
+      "commit": "0257f66048f2761f875c6ebefddc22099d36fb29",
+      "tree": "35324ab783df97b1b696dd2c5f3729b4fbcf8acd",
+      "snapshot": "snapshots/lane/session-20260915-f",
+      "unmerged_records_at_audit": false,
+      "description": "Merged session closeout: defects, pitfalls, probes, and an idea record."
+    },
+    {
+      "branch": "lane/session-20260915-h",
+      "commit": "005c30881c284e52e10dab31e5141e82640bd740",
+      "tree": "84ee1ee71be205c9fdbd364bbd0ac6a4263204c7",
+      "snapshot": "snapshots/lane/session-20260915-h",
+      "unmerged_records_at_audit": false,
+      "description": "Merged held-change patch bundle and probe reference."
+    },
+    {
+      "branch": "lane/session-20260915-i",
+      "commit": "ff09ea6bb98fd12ed430e966d5d90f3377ff2df4",
+      "tree": "d9328ed9a04b0f086b8a660836eb3b2f4a55c1d2",
+      "snapshot": "snapshots/lane/session-20260915-i",
+      "unmerged_records_at_audit": false,
+      "description": "Merged review record and probe corpus update."
+    },
+    {
+      "branch": "lane/session-20260916-a",
+      "commit": "c4ae0b4cee67fb05e8720e55956b08a7b408830a",
+      "tree": "ee190a50a2084b58644fa773da62a11746e7f64e",
+      "snapshot": "snapshots/lane/session-20260916-a",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged defect records LD-71–LD-73 and review evidence."
+    },
+    {
+      "branch": "lane/session-20260916-a87",
+      "commit": "643f0e182a729b8f7f98ed69626db5742e9888db",
+      "tree": "94397a313937ac43db2e8529442c7309dcfd86d7",
+      "snapshot": "snapshots/lane/session-20260916-a87",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged dispatch evidence."
+    },
+    {
+      "branch": "lane/session-20260916-c",
+      "commit": "392df2571ee5dc24f3cdcfbdf82e014a7bed30f6",
+      "tree": "75c92779df308eb9d3bd31e180f4b81df308ae3c",
+      "snapshot": "snapshots/lane/session-20260916-c",
+      "unmerged_records_at_audit": false,
+      "description": "Merged package B after-action report."
+    },
+    {
+      "branch": "lane/session-20260916-recover",
+      "commit": "57e365baa87231838b42117ffaafc584ae25a8a3",
+      "tree": "55e443a2872323455cf6784f492de6c4d0457739",
+      "snapshot": "snapshots/lane/session-20260916-recover",
+      "unmerged_records_at_audit": false,
+      "description": "Merged recovery after-action report and probe evidence."
+    },
+    {
+      "branch": "lane/session-20260916-s2",
+      "commit": "f253bc6d1b2a4f1299bf0201df1b39ef30e2966e",
+      "tree": "1e447971ffbc4dacdcdf313bc0a97cb4d89d6e33",
+      "snapshot": "snapshots/lane/session-20260916-s2",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged scope and dispatch evidence."
+    },
+    {
+      "branch": "lane/session-20260916-s3",
+      "commit": "ba2682db4a1c133f1972c56f8e46844e5aa00097",
+      "tree": "fe92c811ee8b8eff9c0133c1af0f8831c43eb8e3",
+      "snapshot": "snapshots/lane/session-20260916-s3",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged scope and dispatch evidence."
+    },
+    {
+      "branch": "lane/session-20260922-69",
+      "commit": "a933e3bff6c157ef93b74d50e634054bf4805628",
+      "tree": "b96dd84faf3df6280d38f463c31867fd22a5c7cd",
+      "snapshot": "snapshots/lane/session-20260922-69",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged review evidence and defects LD-140 / LD-148."
+    },
+    {
+      "branch": "lane/session-20260922-d65f",
+      "commit": "3963cc33360e7a4d9ce16c66f85166cd2efa3e21",
+      "tree": "9ca35bd4c2ae58cc3d65c1f7df3167da7e53aae0",
+      "snapshot": "snapshots/lane/session-20260922-d65f",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged research handoffs, time-loss report, and session probes."
+    },
+    {
+      "branch": "lane/session-20260923-87",
+      "commit": "9ab4ea2e68695e6fb4ff16da3726252dfbdeb89c",
+      "tree": "be1cec0dd60551d26a09f10a1fe6ef8c09cbe4c5",
+      "snapshot": "snapshots/lane/session-20260923-87",
+      "unmerged_records_at_audit": false,
+      "description": "Merged history with a records-only probe correction at its tip."
+    },
+    {
+      "branch": "records/agy-closeout-20260909",
+      "commit": "b773c1c1bd9335c6ce7e717be7c44253c574dc07",
+      "tree": "03e2be9f8297524a612e66e0f73b6e19734938e9",
+      "snapshot": "snapshots/records/agy-closeout-20260909",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged after-action report, handoff, measurements, publication and probe evidence."
+    },
+    {
+      "branch": "records/audit-remediation-20260910",
+      "commit": "3dc93d931396d009e374b0925b827d0559706f55",
+      "tree": "f9c30a3e0f2190c62a57ab7d278b27cb81d84960",
+      "snapshot": "snapshots/records/audit-remediation-20260910",
+      "unmerged_records_at_audit": false,
+      "description": "Merged audit remediation report, handoff and evidence."
+    },
+    {
+      "branch": "records/codex-closeout-20260905",
+      "commit": "ce2bbf97aba915fcf0b3583f5ef04dfadcbdd52e",
+      "tree": "f146efe953f8fc67cae40e3b2c80b7ca86695ead",
+      "snapshot": "snapshots/records/codex-closeout-20260905",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged machinery closeout report, handoff and evidence."
+    },
+    {
+      "branch": "records/codex-machinery-20260904",
+      "commit": "082c6f7f823c0287e64cc6ff59350b31a4a3370f",
+      "tree": "6f56aee92db6f656dd415175c8fbbed8867585ed",
+      "snapshot": "snapshots/records/codex-machinery-20260904",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged machinery handoff."
+    },
+    {
+      "branch": "records/codex-mcp-closeout-20260905",
+      "commit": "fa584904db940e25afd0af80f1ae03b0d188f419",
+      "tree": "0942a5f13a6e1499725c63600f4237d0c1ad38d2",
+      "snapshot": "snapshots/records/codex-mcp-closeout-20260905",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged MCP closeout report, handoff, measurements and probes."
+    },
+    {
+      "branch": "records/wip-recovery-20260904",
+      "commit": "d2e168077a18f2596263de3116ec25a64547307b",
+      "tree": "016b38c7ec4384677d603db51391b5b2fce74e5c",
+      "snapshot": "snapshots/records/wip-recovery-20260904",
+      "unmerged_records_at_audit": false,
+      "description": "Merged WIP recovery archive, scopes, notes and logs; associated source also retained."
+    },
+    {
+      "branch": "review/mcp-cap-quality-20260905",
+      "commit": "216420e13ebdc6db321b294010e8c1a90e6d6262",
+      "tree": "04fb95405687e662ebd7a721c30012b905b1a199",
+      "snapshot": "snapshots/review/mcp-cap-quality-20260905",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged capability review report and evaluation."
+    },
+    {
+      "branch": "review/mcp-quality-20260905",
+      "commit": "3fe02bdac7fbc30e20c464c00b53e95fe31df65e",
+      "tree": "fd851d177bdfc46540f8eda19feb8f6ad8c11fe5",
+      "snapshot": "snapshots/review/mcp-quality-20260905",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged review rulings."
+    },
+    {
+      "branch": "review/mcp-security-20260905",
+      "commit": "076f1ac5d8ec10f879d384c0536f1e39b23cbf9e",
+      "tree": "86c823f853ade4a1c12dec393bf33b712a0c5c99",
+      "snapshot": "snapshots/review/mcp-security-20260905",
+      "unmerged_records_at_audit": true,
+      "description": "Unmerged security review evidence."
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "id": "20260905T074014Z-review-codex-874fc0",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "conductor-context",
+  "lineage": {
+    "branch": "review/mcp-security-20260905",
+    "base_sha": "e7558dea9e10835f3fcfaeebb703199119833b38"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T07:40:14Z",
+    "closed": "2026-09-05T07:43:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "ref_sha": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T03-40-15-01a07082-cbe8-7382-aaf3-9a26fc4173c1.jsonl"
+  },
+  "session": {
+    "id": "01a07082-cbe8-7382-aaf3-9a26fc4173c1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T03-40-15-01a07082-cbe8-7382-aaf3-9a26fc4173c1.jsonl",
+    "stream_sha256_at_close": "3512ea93b7f4010fc2804b38e44724038d0b23fd493ef4071e862075515a5760",
+    "spend": {
+      "input": 2664050,
+      "cached": 2522377,
+      "output": 16507,
+      "total": 2680557,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T03-40-15-01a07082-cbe8-7382-aaf3-9a26fc4173c1.jsonl",
+      "messages": 238
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-mcp-security-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security-audit candidate e7558dea9e10835f3fcfaeebb703199119833b38 against base 56b26b51fea0727ef75332c5d0469b2a9d11b3ee. Read in/ PR body, ops/conductor/lane-mcp-v2.md and baseline contract; audit the changed read service and stdio projection. Probe source allowlists/no-follow reads, source encodings, malformed registry text/slots, output/Unicode bounds, _meta versus closed arguments, no writes/network/actor imports, and the retained dev parsing guard. Tests may be run but not edited. Return normal structured envelope with exact candidate SHA and specific model, only reproduced actionable findings and explicit coverage limits. Existing declared numeric-edge hardening remains a nonblocking follow-up unless newly worsened. Do not create out/ reports; this read-role sandbox may refuse them. If running long, return completed findings.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074014Z-review-codex-874fc0/in/ag-mcp-pr.md",
+        "sha256": "f99c534de003c61acf451aaa6d02cf9251c9bd749ad051b48ec5d8ed0ab67ac5"
+      }
+    ],
+    "sha256": "1bb7762c8bd49b92e874edcfcebdac876b53148b3a65cf6c943bea6916bb534c",
+    "bytes": 4175
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T07:40:14Z",
+      "ended": "2026-09-05T07:43:53Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:376",
+          "claim": "The new lane_findings read does not enforce its UTF-8 source allowlist: raw bytes are passed directly to json.loads(), which auto-detects UTF-16. A UTF-16 record therefore returns state ok and republishes its note/findings instead of returning unavailable, allowing non-UTF-8 record data to bypass the declared encoding gate.",
+          "reproduce": "audit_tmp=$(mktemp -d) && mkdir -p \"$audit_tmp/store/job\" && AUDIT_TMP=\"$audit_tmp\" python3 -c 'import json,os,pathlib; d=pathlib.Path(os.environ[\"AUDIT_TMP\"]); (d/\"store/job/record.json\").write_bytes(json.dumps({\"status\":\"closed\",\"result\":{\"envelope\":{\"findings\":[],\"note\":\"utf16\"}}}).encode(\"utf-16\")); (d/\"config.json\").write_text(json.dumps({\"version\":2,\"dispatch_store\":\"store\",\"job_ids\":[\"job\"],\"monitor_state\":None,\"consumer\":\"conductor\",\"usage_rollout\":None,\"job_registry\":None}))' && python3 -B ops/conductor/tools/lane_mcp.py --config \"$audit_tmp/config.json\" query lane_findings '{\"id\":\"job\"}'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2680557,
+        "out": 16507,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e7558dea9e10835f3fcfaeebb703199119833b38"
+      },
+      "note": "Audited candidate e7558dea9e10835f3fcfaeebb703199119833b38 against 56b26b51fea0727ef75332c5d0469b2a9d11b3ee with GPT-5 Codex. Covered changed read/MCP code, source/path controls, registry projections and slots, output/Unicode bounds, _meta and closed arguments, imports/writes/network, committed records and permission claims, secrets, and supply-chain files. No argv, shell, SQL, template-execution, credential, permission, network/write/import, or dependency-pin defect was reproduced. The changed-file secret scan was clean across 27 files, and the supplied diff matched git diff byte-for-byte. The 49-test suite could not execute because the read-only sandbox provided no writable temporary directory; Ruff likewise could not create its cache, so fixture-based FIFO/symlink tests were not independently rerun. The declared unchanged numeric-edge limitations remain nonblocking and are not findings here."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T07:43:52.560Z"
+    }
+  },
+  "status": "closed"
+}

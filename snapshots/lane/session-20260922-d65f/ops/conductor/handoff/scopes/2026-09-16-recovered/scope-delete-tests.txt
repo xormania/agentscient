@@ -1,0 +1,24 @@
+Rows for a hook boundary refusing an agent's deletion of a git ref. No
+row and no predicate exist yet; assert that the refusal fires, never that
+any particular mechanism exists; work from this contract alone.
+
+Three shapes must fire:
+  git push --delete <remote> <ref>
+  git push <remote> :<ref>
+  git branch -D <name>, and -d
+
+It answers `ask`, not deny: deleting a branch destroys history, the owner's
+2026-09-12 word puts that class at ask and no agent forges the click.
+boundaries.json line 567 is the authority. The refusal names AGENTS.md's
+"never a deleted branch" as the standing rule, the owner's hand as the
+only deleter.
+
+Rows go in ops/devlane/hooks/tests/, each red for its own assertion before
+commit. Plant the three shapes and their `git -C <path>` forms, and clean
+neighbours that pass: an ordinary push, a push of a new branch, git branch
+with no delete flag, and `rm -r`, which another row owns.
+
+You are the only producer seeing this from outside. Plant the shape you
+would least expect a predicate to handle, not the one it obviously would:
+a row firing on the easy shape is green and proves nothing, and green is
+how this failure looks.

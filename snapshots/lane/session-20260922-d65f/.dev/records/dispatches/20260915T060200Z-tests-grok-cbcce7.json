@@ -1,0 +1,248 @@
+{
+  "id": "20260915T060200Z-tests-grok-cbcce7",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "283498184c25ab2eeb53762be850a7c80ffe863c"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:02:00Z",
+    "closed": "2026-09-15T06:19:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "ref_sha": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok-stream/sessions/<snapshot-encoded>/aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d/summary.json"
+  },
+  "session": {
+    "id": "aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok-stream/sessions/<snapshot-encoded>/aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d/summary.json",
+    "stream_sha256_at_close": "212c3ae26305dc2355de26f023dcf923ae085e5e8448165fa5f6367b49f3cd9a",
+    "spend": {
+      "input": 3919223,
+      "cached": 3772288,
+      "output": 39208,
+      "total": 3958431,
+      "cost_usd_ticks": 8211890800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok-stream/sessions/<snapshot-encoded>/aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d/summary.json",
+      "messages": 300
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_monitor.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "eaad0f10af68f55dad3e55e8a21ae2fcd80594a690ffdecae4cdc5b313941394",
+    "bytes": 10245,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/lane-mcp.json",
+      "sha256": "be3b6d16cdc5d64b9d95a8676fe72236fcbddf0e5ae26baa903ff6a05b1f7eec",
+      "job_ids": [
+        "20260915T060159Z-tests-codex-ab9812",
+        "20260915T060158Z-tests-grok-bd62c7",
+        "20260915T060157Z-tests-codex-7742e6",
+        "20260915T060156Z-tests-grok-823ed1",
+        "20260915T060155Z-tests-codex-aa36a0",
+        "20260915T060153Z-tests-grok-644a41",
+        "20260915T060152Z-tests-codex-97f4d6",
+        "20260915T060151Z-tests-grok-2f9365",
+        "20260915T060150Z-tests-codex-1a0148",
+        "20260915T060149Z-tests-grok-171b72",
+        "20260915T053533Z-tests-grok-79b916",
+        "20260915T053532Z-tests-codex-b7740b",
+        "20260915T053530Z-tests-grok-57f552",
+        "20260915T053529Z-tests-codex-91518a",
+        "20260915T053528Z-tests-grok-d94271",
+        "20260915T053527Z-tests-codex-e32f1e",
+        "20260915T053526Z-tests-grok-1a9c2b",
+        "20260915T053525Z-tests-codex-f66d80",
+        "20260915T053524Z-tests-grok-7cb422",
+        "20260915T053523Z-tests-codex-391ada"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:02:01Z",
+      "ended": "2026-09-15T06:19:34Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "94023eb4474a022b5ba9eb8d57337ddd47ee7742",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_monitor.py",
+          "claim": "Preserved all 48 test names and count; each method that invokes the tool failed its own assertion against the kit's absent stand-in (75 failures including subTests), then the migrated module passed 48 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_monitor.py"
+        }
+      ],
+      "artifacts": {
+        "test_monitor": "ops/conductor/tests/test_monitor.py",
+        "red": "9bc28a3",
+        "green": "94023eb"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3958431,
+        "out": 39208,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "283498184c25ab2eeb53762be850a7c80ffe863c",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR; every subprocess goes through run with a timeout; gh rate/raw fakes use world.tools.plant. Kit gap: the fake spec answers by argv match, not call order, and delay= does not write the owned marker, so plant_gh_sequence and plant_gh_sleep stay world.tools.plant(script=). Kit gap: Result has no pid, so spawn_named, dead_pid and the loop child are Popen registered with world.own. instrument.py and laneconf.py ride beside the staged tool (HANDOFF-2026-09-13-wall-migration.md). Refusals keep the family's assert_refusal so the assertions stay the same. No regression rows were added because this was a behavior-preserving migration. Same 48 names.\nbefore: python3 -m unittest discover -s ops/conductor/tests -p test_monitor.py -> Ran 48 tests in 11.532s OK\nred: absent stand-in -> Ran 48 tests in 1.380s FAILED (failures=75 including subTests); every invoking method failed; ToolPresence and GhMockWitness stayed green because they do not run the subject\nafter: same command -> Ran 48 tests in 16.116s OK\nruff check ops/conductor/tests/test_monitor.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 30; the new floor\nembedded_programs: 30 -> 22; the new floor\nrun_without_timeout: 185 -> 102; the new floor\nratchet holds: home_by_hand=30, embedded_programs=22, run_without_timeout=102\ncensus: modules=224 on_kit=103 exempt=8 off_kit=113\nthis module vs the pre-edit measure: home_by_hand 1->0; on_kit 102->103\nfamily: python3 -m unittest discover -s ops/conductor/tests -> Ran 1175 tests in 233.260s FAILED (failures=1, errors=4); errors are test_monitor_malformed_git (unscoped, git_control unset in inherited setUp); the remaining failure is outside this module (prior jobs named test_probes).\ncommits 9bc28a3 (red) 94023eb (green) on detached HEAD at 2834981 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 6,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060200Z-tests-grok-cbcce7/home/grok-stream/sessions/<snapshot-encoded>/aa07bab9-ea50-4a3d-b02d-8c6aa5300d6d/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR; every subprocess goes through run with a timeout; gh rate/raw fakes use world.tools.plant. Kit gap: the fake spec answers by argv match, not call order, and delay= does not write the owned marker, so plant_gh_sequence and plant_gh_sleep stay world.tools.plant(script=). Kit gap: Result has no pid, so spawn_named, dead_pid and the loop child are Popen registered with world.own. instrument.py and laneconf.py ride beside the staged tool (HANDOFF-2026-09-13-wall-migration.md). Refusals keep the family's assert_refusal so the assertions stay the same. No regression rows were added because this was a behavior-preserving migration. Same 48 names.\nbefore: python3 -m unittest discover -s ops/conductor/tests -p test_monitor.py -> Ran 48 tests in 11.532s OK\nred: absent stand-in -> Ran 48 tests in 1.380s FAILED (failures=75 including subTests); every invoking method failed; ToolPresence and GhMockWitness stayed green because they do not run the subject\nafter: same command -> Ran 48 tests in 16.116s OK\nruff check ops/conductor/tests/test_monitor.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 30; the new floor\nembedded_programs: 30 -> 22; the new floor\nrun_without_timeout: 185 -> 102; the new floor\nratchet holds: home_by_hand=30, embedded_programs=22, run_without_timeout=102\ncensus: modules=224 on_kit=103 exempt=8 off_kit=113\nthis module vs the pre-edit measure: home_by_hand 1->0; on_kit 102->103\nfamily: python3 -m unittest discover -s ops/conductor/tests -> Ran 1175 tests in 233.260s FAILED (failures=1, errors=4); errors are test_monitor_malformed_git (unscoped, git_control unset in inherited setUp); the remaining failure is outside this module (prior jobs named test_probes).\ncommits 9bc28a3 (red) 94023eb (green) on detached HEAD at 2834981 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:19:32.778Z"
+    }
+  },
+  "status": "closed"
+}

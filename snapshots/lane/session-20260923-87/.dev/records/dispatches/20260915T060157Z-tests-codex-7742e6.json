@@ -1,0 +1,262 @@
+{
+  "id": "20260915T060157Z-tests-codex-7742e6",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "283498184c25ab2eeb53762be850a7c80ffe863c"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:01:57Z",
+    "closed": "2026-09-15T06:21:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "ref_sha": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-01-58-01a0a3a8-6ac2-7123-826a-2e472c1dca27.jsonl"
+  },
+  "session": {
+    "id": "01a0a3a8-6ac2-7123-826a-2e472c1dca27",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-01-58-01a0a3a8-6ac2-7123-826a-2e472c1dca27.jsonl",
+    "stream_sha256_at_close": "3f6d0fb16f7aa15af5645a2b5c35ebcb2dddc35dcdf08073b3e42470523dc48f",
+    "spend": {
+      "input": 5839782,
+      "cached": 5698432,
+      "output": 21272,
+      "total": 5861054,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-01-58-01a0a3a8-6ac2-7123-826a-2e472c1dca27.jsonl",
+      "messages": 432
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_watchdog.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "f5e89e661bed58082a64be9413a0fafc8c19f065e903d207cafa302fcf5dbc9b",
+    "bytes": 10246,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/lane-mcp.json",
+      "sha256": "713733d6a0995c07c7a3abbca25021aa699d6d15a0590ab3e591c3e6d0208f51",
+      "job_ids": [
+        "20260915T060156Z-tests-grok-823ed1",
+        "20260915T060155Z-tests-codex-aa36a0",
+        "20260915T060153Z-tests-grok-644a41",
+        "20260915T060152Z-tests-codex-97f4d6",
+        "20260915T060151Z-tests-grok-2f9365",
+        "20260915T060150Z-tests-codex-1a0148",
+        "20260915T060149Z-tests-grok-171b72",
+        "20260915T053533Z-tests-grok-79b916",
+        "20260915T053532Z-tests-codex-b7740b",
+        "20260915T053530Z-tests-grok-57f552",
+        "20260915T053529Z-tests-codex-91518a",
+        "20260915T053528Z-tests-grok-d94271",
+        "20260915T053527Z-tests-codex-e32f1e",
+        "20260915T053526Z-tests-grok-1a9c2b",
+        "20260915T053525Z-tests-codex-f66d80",
+        "20260915T053524Z-tests-grok-7cb422",
+        "20260915T053523Z-tests-codex-391ada",
+        "20260915T053522Z-tests-grok-8497d2",
+        "20260915T053521Z-tests-codex-928ba9",
+        "20260915T053520Z-tests-grok-c14b8c"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:01:57Z",
+      "ended": "2026-09-15T06:21:53Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "912dd5945fe2b82bdb93e39fe22ec3150abccd80",
+    "changed_paths": [
+      "ops/conductor/tests/test_watchdog.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_watchdog.py",
+          "claim": "Migrated all 56 unchanged test names onto World, run with explicit timeouts, Result refusal parsing, and world.tools fakes. An absent staged subject made all 56 methods fail their contract assertions (61 failures, 0 errors); restoration passed all 56 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_watchdog.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests",
+          "claim": "The whole family reached 1175 tests, but four out-of-scope test_monitor_malformed_git fixture errors and the known unavailable tracked-corpus probe prevented a green result; scoped watchdog tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests"
+        }
+      ],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_watchdog.py",
+        "baseline": "Ran 56 tests in 4.344s; OK",
+        "red": "Ran 56 tests in 23.509s; FAILED (failures=61, errors=0)",
+        "green": "Ran 56 tests in 26.797s; OK",
+        "inherited_fixture": "Ran 9 tests in 5.668s; OK",
+        "ruff": "All checks passed!",
+        "ratchet": "home_by_hand: 57 -> 31; embedded_programs: 30 -> 21; run_without_timeout: 185 -> 102; ratchet holds",
+        "family": "Ran 1175 tests in 263.707s; FAILED (failures=1, errors=4)",
+        "sha256": "be3559f5f6a1a42d57be506e3e9dae19a5a51051128f09b926966cfeb8780b86"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5861054,
+        "out": 21272,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "283498184c25ab2eeb53762be850a7c80ffe863c",
+        "started": null,
+        "ended": "2026-09-15T06:21:27Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire\nWorld owns HOME, XDG roots, TMPDIR, fixtures, and staged subjects; every subprocess uses run with an explicit timeout; executable fakes use world.tools. Kit gap: fixture subclasses outside this touch scope still consume CompletedProcess.returncode, so a local Result compatibility subclass preserves that interface. No regression row was added because this is a behavior-preserving migration. The implementation source and session store were not inspected. Only the scoped module changed. Both red and green commit attempts were denied because .git/index.lock is on a read-only filesystem; finished green work remains on disk.",
+      "commit": {
+        "subject": "test(conductor): migrate watchdog onto testkit",
+        "body": "World owns the fixture roots, run bounds each subprocess, and world.tools plants executable fakes.\n\nSource: original\nCo-Authored-By: OpenAI Codex <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 23,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060157Z-tests-codex-7742e6/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-01-58-01a0a3a8-6ac2-7123-826a-2e472c1dca27.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire\nWorld owns HOME, XDG roots, TMPDIR, fixtures, and staged subjects; every subprocess uses run with an explicit timeout; executable fakes use world.tools. Kit gap: fixture subclasses outside this touch scope still consume CompletedProcess.returncode, so a local Result compatibility subclass preserves that interface. No regression row was added because this is a behavior-preserving migration. The implementation source and session store were not inspected. Only the scoped module changed. Both red and green commit attempts were denied because .git/index.lock is on a read-only filesystem; finished green work remains on disk.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T06:21:52.255Z"
+    }
+  },
+  "status": "closed"
+}

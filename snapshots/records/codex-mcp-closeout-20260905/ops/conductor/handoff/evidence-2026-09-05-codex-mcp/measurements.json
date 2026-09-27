@@ -1,0 +1,276 @@
+{
+  "measured_at": "2026-09-05T22:39:00.218086+00:00",
+  "source_head": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+  "refs": {
+    "origin/dev": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+    "origin/master": "0b1f1b68dc95e60cfeb458fe8ae956506f59af9c",
+    "records/codex-closeout-20260905": "ce2bbf97aba915fcf0b3583f5ef04dfadcbdd52e",
+    "review/mcp-cap-quality-20260905": "216420e13ebdc6db321b294010e8c1a90e6d6262",
+    "review/mcp-cap-security-20260905": "db0342bddc507c3676e6a2d62329ed1d3776f4e3",
+    "review/mcp-quality-20260905": "3fe02bdac7fbc30e20c464c00b53e95fe31df65e",
+    "review/mcp-security-20260905": "076f1ac5d8ec10f879d384c0536f1e39b23cbf9e",
+    "review/mcp-ruling-20260905": "7696494cd01aa3df8c653ffd2954119b5076059e"
+  },
+  "pull_requests": [
+    {
+      "number": 70,
+      "url": "https://github.com/uscient/agentscient/pull/70",
+      "title": "docs: document the implemented system and contributor workflow",
+      "state": "MERGED",
+      "is_draft": false,
+      "head": "5f80cbe88b533229cb76cb733213cf3937cfcc25",
+      "base_branch": "dev",
+      "merged_at": "2026-09-05T05:19:53Z",
+      "merge_commit": "c91d47a3ce165e620b6f03405d8f055e36b6a8e7"
+    },
+    {
+      "number": 71,
+      "url": "https://github.com/uscient/agentscient/pull/71",
+      "title": "release: ship lane MCP, preserved records, and contributor guide",
+      "state": "MERGED",
+      "is_draft": false,
+      "head": "7a6a1a7ef968e8a334652e4899fdcb7d4c95d26b",
+      "base_branch": "master",
+      "merged_at": "2026-09-05T21:24:54Z",
+      "merge_commit": "0b1f1b68dc95e60cfeb458fe8ae956506f59af9c"
+    },
+    {
+      "number": 72,
+      "url": "https://github.com/uscient/agentscient/pull/72",
+      "title": "lane: add paged findings, change checkpoints and job discovery",
+      "state": "MERGED",
+      "is_draft": false,
+      "head": "ac29ca8f79beb0b285884d7bf7f6635f34275c67",
+      "base_branch": "dev",
+      "merged_at": "2026-09-05T22:24:46Z",
+      "merge_commit": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc"
+    }
+  ],
+  "open_pull_requests": [],
+  "pr72_checks": [
+    {
+      "bucket": "pass",
+      "link": "https://github.com/uscient/agentscient/runs/101384951618",
+      "name": "CodeQL",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/uscient/agentscient/actions/runs/33995351001/job/101384830283",
+      "name": "Analyze (actions)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/uscient/agentscient/actions/runs/33995353049/job/101384834864",
+      "name": "lane",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/uscient/agentscient/actions/runs/33995353049/job/101384834642",
+      "name": "app",
+      "state": "SUCCESS"
+    }
+  ],
+  "review_threads": {
+    "p71": {
+      "reviewThreads": {
+        "nodes": [
+          {
+            "id": "PRRT_kwDOUK9QZs6fglO7",
+            "isResolved": true
+          },
+          {
+            "id": "PRRT_kwDOUK9QZs6fglO-",
+            "isResolved": true
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false
+        }
+      }
+    },
+    "p72": {
+      "reviewThreads": {
+        "nodes": [
+          {
+            "id": "PRRT_kwDOUK9QZs6fnECs",
+            "isResolved": true
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false
+        }
+      }
+    }
+  },
+  "post_merge_dev_ci": {
+    "conclusion": "success",
+    "headSha": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+    "url": "https://github.com/uscient/agentscient/actions/runs/33995834974",
+    "jobs": [
+      {
+        "name": "lane",
+        "conclusion": "success"
+      },
+      {
+        "name": "app",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "correction_runs": [
+    {
+      "id": "20260905T215513Z-tests-grok-f2787b",
+      "model": "grok-4.6",
+      "status": "ok",
+      "verdict": null,
+      "spend": {
+        "harness": "grok",
+        "total": 1124143,
+        "out": 16034,
+        "runs": 1
+      },
+      "attempts": [
+        {
+          "started": null,
+          "ended": "2026-09-05T21:59:56Z",
+          "exit": 0,
+          "tripped": false
+        }
+      ]
+    },
+    {
+      "id": "20260905T220422Z-check-tests-codex-b852fb",
+      "model": "gpt-daybreak-blue-latest",
+      "status": "ok",
+      "verdict": "approve",
+      "spend": {
+        "harness": "codex",
+        "total": 408786,
+        "out": 5494,
+        "runs": 1
+      },
+      "attempts": [
+        {
+          "started": null,
+          "ended": "2026-09-05T22:05:58Z",
+          "exit": 0,
+          "tripped": false
+        }
+      ]
+    },
+    {
+      "id": "20260905T220642Z-code-codex-3fe449",
+      "model": "gpt-5.6-sol",
+      "status": "ok",
+      "verdict": null,
+      "spend": {
+        "harness": "codex",
+        "total": 595831,
+        "out": 5690,
+        "runs": 1
+      },
+      "attempts": [
+        {
+          "started": null,
+          "ended": "2026-09-05T22:09:31Z",
+          "exit": 0,
+          "tripped": false
+        }
+      ]
+    },
+    {
+      "id": "20260905T221346Z-review-grok-7662b2",
+      "model": "grok-4.6",
+      "status": "ok",
+      "verdict": "approve",
+      "spend": {
+        "harness": "grok",
+        "total": 2167099,
+        "out": 23176,
+        "runs": 1
+      },
+      "attempts": [
+        {
+          "started": null,
+          "ended": "2026-09-05T22:20:18Z",
+          "exit": 0,
+          "tripped": false
+        }
+      ]
+    },
+    {
+      "id": "20260905T221355Z-review-codex-d51502",
+      "model": "gpt-daybreak-blue-latest",
+      "status": "ok",
+      "verdict": "approve",
+      "spend": {
+        "harness": "codex",
+        "total": 2245531,
+        "out": 14731,
+        "runs": 1
+      },
+      "attempts": [
+        {
+          "started": null,
+          "ended": "2026-09-05T22:17:22Z",
+          "exit": 0,
+          "tripped": false
+        }
+      ]
+    }
+  ],
+  "correction_spend_sum": {
+    "total": 6541390,
+    "out": 65125,
+    "interpretation": "Sum of five launcher-reported harness counters; includes repeated/cache context, not unique tokens, normalized billing or whole-session usage."
+  },
+  "mcp_connection": {
+    "entrypoint_head": "eb4eb53def151d419a0b37b35fcf629204d90f91",
+    "cli_exit": 0,
+    "cli_query": "lane_brief",
+    "cli_state": "ok",
+    "cli_reason": null,
+    "cli_bytes": 6083,
+    "entry": "agentscient_lane",
+    "config_version": 1,
+    "configured_job_ids": 7,
+    "advertised_tools": [
+      "lane_alerts",
+      "lane_brief",
+      "lane_record",
+      "lane_usage"
+    ],
+    "connected_brief_call": "MCP -32602 Invalid params",
+    "cause": "not established; saved runtime predates the merged metadata support",
+    "host_configuration_changed_this_session": false
+  },
+  "main_checkout": {
+    "head": "c715b24aaea4bf040b2bf63021b59125474e1485",
+    "status": "?? .dev/wip/"
+  },
+  "process_check": {
+    "method": "ps -eo pid=,comm=,etime=,args=; exact argv suffix /tools/watchdog.py or /tools/monitor.py",
+    "matches": [],
+    "limit": "Process presence only; unrelated actors and alternate entrypoints not inventoried."
+  },
+  "commands": {
+    "pull_requests": "gh api repos/uscient/agentscient/pulls/70 (also 71, 72); select status, head, merge and timestamp fields",
+    "checks": "gh pr checks 72 --repo uscient/agentscient --json name,state,bucket,link",
+    "open_prs": "gh pr list --repo uscient/agentscient --state open --json number,title,headRefName,baseRefName,isDraft,url",
+    "post_merge_ci": "gh run view 33995834974 --repo uscient/agentscient --json conclusion,headSha,url,jobs",
+    "threads": "query { repository(owner:\"uscient\", name:\"agentscient\") { p71: pullRequest(number:71) { reviewThreads(first:100) { nodes { id isResolved } pageInfo { hasNextPage } } } p72: pullRequest(number:72) { reviewThreads(first:100) { nodes { id isResolved } pageInfo { hasNextPage } } } } }",
+    "run_usage": "Read the five named canonical dispatch/ID/record.json files; project model.ran, result.envelope and attempts; sum spend.total/out",
+    "mcp": "codex mcp get agentscient_lane --json; inspect selected config fields; run configured command with serve replaced by query lane_brief {}; one connected lane_brief call",
+    "refs": "git fetch origin; git rev-parse REF for each named ref",
+    "main": "git status --short and git rev-parse HEAD in the read-only main checkout",
+    "post_merge_codeql": "gh run view 33995834945 --repo uscient/agentscient --json conclusion,headSha,url"
+  },
+  "post_merge_codeql": {
+    "conclusion": "success",
+    "headSha": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+    "url": "https://github.com/uscient/agentscient/actions/runs/33995834945"
+  }
+}

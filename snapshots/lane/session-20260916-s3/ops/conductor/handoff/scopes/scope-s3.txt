@@ -1,0 +1,17 @@
+Build what ops/conductor/handoff/briefs-2026-09-16-classes/
+S3-measure-as-argv.md specifies.
+Measured 2026-09-16: onboard.py printed 'lock: UNREACHABLE: timed
+out after 5s, retried and timed out after 20s', and `timeout 90
+python3 ops/conductor/tools/deliverable.py show` then returned the
+whole lock, exit 0. The store answers; each target's measure is a
+shell string re-run on every read, and that is what is slow.
+The brief, not this file, is the specification.
+Tests use isolated state and pin the refusal on an unrunnable
+measure.
+docs/tests.md rules 3 to 6 bind the tests: planted faults and clean
+neighbours, a hermetic world, every subprocess through testkit run with a
+timeout, fakes planted through the registry.
+Do not touch the wall paths AGENTS.md names (the CI workflow, the
+suite lever, the corpus runner, the closure levers, the hook registry
+and engine); wall, they refuse.
+Commit here with Source: and Co-Authored-By: trailers. Nothing else.

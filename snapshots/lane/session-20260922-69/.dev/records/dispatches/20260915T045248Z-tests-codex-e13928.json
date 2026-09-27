@@ -1,0 +1,267 @@
+{
+  "id": "20260915T045248Z-tests-codex-e13928",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T04:52:48Z",
+    "closed": "2026-09-15T05:00:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "ref_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T00-52-50-01a0a369-1d8b-7e63-a132-9eae0f1bb769.jsonl"
+  },
+  "session": {
+    "id": "01a0a369-1d8b-7e63-a132-9eae0f1bb769",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T00-52-50-01a0a369-1d8b-7e63-a132-9eae0f1bb769.jsonl",
+    "stream_sha256_at_close": "c0981d4d7015706692c4d16dbb40f4a732987dde7934974779cc98e86b0fbb0d",
+    "spend": {
+      "input": 3496331,
+      "cached": 3388288,
+      "output": 20518,
+      "total": 3516849,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T00-52-50-01a0a369-1d8b-7e63-a132-9eae0f1bb769.jsonl",
+      "messages": 324
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/workflow/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/workflow/tests/test_suites_ruff.py, ops/devlane/workflow/tests/test_term_wall_archives.py, ops/devlane/workflow/tests/test_term_wall.py, ops/devlane/workflow/tests/test_ci_two_jobs.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "7d6e26f7619d07aa9d4f8f96e4495d4dcad6faa82e98e7f10495acc6bdbf5559",
+    "bytes": 9981,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/lane-mcp.json",
+      "sha256": "5c145122b85441be2960162f854b575518ed9c5e77bc9bfa3a406c94cf06d008",
+      "job_ids": [
+        "20260915T045247Z-tests-grok-eaf433",
+        "20260915T045246Z-tests-codex-af6369",
+        "20260915T045245Z-tests-grok-1f5c25",
+        "20260915T045244Z-tests-codex-34c22f",
+        "20260915T045243Z-tests-grok-b9f958",
+        "20260915T045242Z-tests-codex-0353f2",
+        "20260915T025600Z-adjudicate-codex-68d3d9",
+        "20260915T023743Z-review-grok-7da077"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T04:52:49Z",
+      "ended": "2026-09-15T05:00:26Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "3ca7d689949a29674b0674e7b6b641c7ffe79ba9",
+    "changed_paths": [
+      "ops/devlane/workflow/tests/test_ci_two_jobs.py",
+      "ops/devlane/workflow/tests/test_suites_ruff.py",
+      "ops/devlane/workflow/tests/test_term_wall.py",
+      "ops/devlane/workflow/tests/test_term_wall_archives.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_suites_ruff.py",
+          "claim": "Test names remained identical; before and after both ran 3 tests OK. Removing the F401 fixture produced the intended assertion failure before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p test_suites_ruff.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_term_wall_archives.py",
+          "claim": "Test names remained identical; before and after both ran 13 tests OK. Moving the direct dispatch JSON fixture under a nested directory produced the intended assertion failure before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p test_term_wall_archives.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_term_wall.py",
+          "claim": "Test names remained identical; before and after both ran 15 tests OK. Removing the planted forbidden content produced the intended assertion failure before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p test_term_wall.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_ci_two_jobs.py",
+          "claim": "Test names remained identical; before and after both ran 20 tests OK. Renaming the staged app job to worker produced the intended exact-job assertion failure before restoration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p test_ci_two_jobs.py"
+        }
+      ],
+      "artifacts": {
+        "files": "ops/devlane/workflow/tests/test_suites_ruff.py; ops/devlane/workflow/tests/test_term_wall_archives.py; ops/devlane/workflow/tests/test_term_wall.py; ops/devlane/workflow/tests/test_ci_two_jobs.py",
+        "before": "test_suites_ruff.py: Ran 3 tests, OK; test_term_wall_archives.py: Ran 13 tests, OK; test_term_wall.py: Ran 15 tests, OK; test_ci_two_jobs.py: Ran 20 tests, OK",
+        "after": "test_suites_ruff.py: Ran 3 tests, OK; test_term_wall_archives.py: Ran 13 tests, OK; test_term_wall.py: Ran 15 tests, OK; test_ci_two_jobs.py: Ran 20 tests, OK",
+        "red": "Assertion-specific failures observed for test_a_lint_fault_is_a_red_run_with_a_ruff_block, test_direct_dispatch_json_exempt, test_planted_tracked_content, and test_jobs_are_exactly_lane_and_app.",
+        "parity": "AST comparison against da04bae4b4039d75cf3328a1a0613b0d4760bbb7: 3=3, 13=13, 15=15, 20=20; every test-name set equal.",
+        "family": "python3 -m unittest discover -s ops/devlane/workflow/tests: Ran 61 tests in 1.458s, OK",
+        "ruff": "ruff check over the four touched files: All checks passed!",
+        "ratchet": "home_by_hand: 57 -> 56; the new floor\nrun_without_timeout: 185 -> 183; the new floor\nratchet holds: home_by_hand=56, embedded_programs=30, run_without_timeout=183",
+        "scope": "git status --short reported only the four named modules modified; git diff --check passed.",
+        "commit_denial": "fatal: Unable to create 'snapshot/.git/index.lock': Read-only file system",
+        "commit_plan": "Intended file-by-file subjects: tests: migrate suites ruff onto testkit; tests: migrate term wall onto testkit; tests: migrate term wall archives onto testkit; tests: migrate CI two jobs onto testkit."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3516849,
+        "out": 20518,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+        "started": "2026-09-15T04:52:48Z",
+        "ended": "2026-09-15T04:59:40Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes; kit gaps: none. The migration guide was read whole, the session store was not read, and implementation source was not inspected. All finished work is on disk. Commits were impossible because the snapshot's .git filesystem is read-only.",
+      "commit": {
+        "subject": "tests: migrate workflow test family onto testkit",
+        "body": "Split this change into four commits in dependency order: test_suites_ruff.py, test_term_wall.py, test_term_wall_archives.py, test_ci_two_jobs.py. Each module retains its test names and count and has an assertion-specific red followed by green proof. One producer; the second producer is absent under the owner's dispatched hand grant.\n\nSource: original\nCo-Authored-By: OpenAI Codex <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 6,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045248Z-tests-codex-e13928/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T00-52-50-01a0a369-1d8b-7e63-a132-9eae0f1bb769.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes; kit gaps: none. The migration guide was read whole, the session store was not read, and implementation source was not inspected. All finished work is on disk. Commits were impossible because the snapshot's .git filesystem is read-only.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T05:00:25.596Z"
+    }
+  },
+  "status": "closed"
+}

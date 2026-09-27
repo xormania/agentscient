@@ -1,0 +1,74 @@
+{
+  "measured_at": "2026-09-10T03:05:53.050557+00:00",
+  "copied_audit_files": {
+    "REPORT.md": "0cd2d49213639d8feb2cfd03aa068364ff57dd253fb12d437a9b57cec1068c57",
+    "ALL-BRANCHES.md": "623d9e1d9479578a2904729dfdf171ba571be0ac91f88ffc4580ee48df0c87bd",
+    "measurement.json": "ce79372ac9d4d9787ebb007245de924323174b5809ad747891646524138d7baf",
+    "SHA256SUMS": "b033fa169116ca40128263c658611367069a061e7978b2916a792831141be5e4",
+    "uncommitted-custody-manifest.json": "9c947d7a13322dfff4e9048425f8a0803fb4edd72801d4ea2849254862e169f6"
+  },
+  "reads": [
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "dev",
+        "records/lost-work-audit-20260910",
+        "docs/tdd-valid-red-20260910"
+      ],
+      "cwd": "/home/scientdb/projects/uscient/agentscient",
+      "exit": 0,
+      "stdout": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b\n20f9bcaf2b3ae2152b9cab766637b5a89b71214b\n20f9bcaf2b3ae2152b9cab766637b5a89b71214b\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "cwd": "/home/scientdb/projects/uscient/agentscient",
+      "exit": 0,
+      "stdout": "## dev...origin/dev\n?? .dev/wip/calibration-buckets.md\n?? .dev/wip/watch-lane.py\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--short",
+        "--branch",
+        "--untracked-files=all"
+      ],
+      "cwd": "/home/scientdb/projects/uscient/wt/ag-tdd-valid-red-20260910",
+      "exit": 0,
+      "stdout": "## docs/tdd-valid-red-20260910\n M AGENTS.md\n M ops/process/tdd.md\n",
+      "stderr": ""
+    }
+  ],
+  "hook_wrapper": {
+    "argv": [
+      "sed",
+      "-n",
+      "17,24p",
+      "ops/devlane/hooks/claude/context-precheck.sh"
+    ],
+    "cwd": "/home/scientdb/projects/uscient/agentscient",
+    "exit": 0,
+    "stdout": "# The check matrix: killers made mechanical (hand writes to code, direct launches,\n# oversize scopes, whole-suite implement commands, missing walkthroughs, stale bases,\n# unvetted contracts, unpinned launchers, pruning). No network; reads files and git.\nrefusal=$(printf '%s' \"$input\" | python3 \"$DIR/matrix.py\" 2>/dev/null || true)\nif [ -n \"$refusal\" ]; then\n    printf '%s\\n' \"$refusal\"\n    exit 0\nfi\n",
+    "stderr": ""
+  },
+  "archive": {
+    "path": "/tmp/ag-lost-work-audit-20260910/uncommitted-custody.tar.gz",
+    "bytes": 114224,
+    "sha256": "b66095798c92f4c271f5217c7f082e5609c58528c0a2a9be8a25ffaad58d7432",
+    "published": false
+  },
+  "copy_normalization": {
+    "ALL-BRANCHES.md": {
+      "original_sha256": "1661854ccf7f6380a95f2ef885acd7e3dd5a6e740b3cd35bfd726728132a5d60",
+      "change": "Remove one extra blank line at EOF; all inventory content retained."
+    }
+  }
+}

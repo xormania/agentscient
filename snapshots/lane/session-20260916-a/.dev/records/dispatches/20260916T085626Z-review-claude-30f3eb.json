@@ -1,0 +1,334 @@
+{
+  "id": "20260916T085626Z-review-claude-30f3eb",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-a",
+  "lineage": {
+    "branch": "lane/session-20260916-a",
+    "base_sha": "46639344d5623c36a96ed27436952db3786f8084"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:56:26Z",
+    "closed": "2026-09-16T09:05:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "46639344d5623c36a96ed27436952db3786f8084",
+    "ref_sha": "46639344d5623c36a96ed27436952db3786f8084",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "c61b8c1434338cbc8b373f74fcccbb58f901c37d48ed6c57c6fb0bf51ff90876",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "cb9879c8-960f-4c13-98f1-1b7ca5538375",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "mcp__agentscient-lane",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}",
+      "--mcp-config",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/mcp.json",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/cb9879c8-960f-4c13-98f1-1b7ca5538375.jsonl"
+  },
+  "session": {
+    "id": "cb9879c8-960f-4c13-98f1-1b7ca5538375",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/cb9879c8-960f-4c13-98f1-1b7ca5538375.jsonl",
+    "stream_sha256_at_close": "5050e2c411017aa1635107d39a9fa92dd23b42d92b8d909d0eca7a01ab5fa62d",
+    "spend": {
+      "input": 322,
+      "cached": 1055020,
+      "output": 39438,
+      "total": 1094780,
+      "source": "result.usage",
+      "messages": 11,
+      "cost_usd": 4.93701925
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Inputs: issues-report.md (12 numbered live operating issues, measured today), coordination-objective.md, coordination-lever.md, instrument-conventions.md.\n\nGroup the 12 issues into classes by the mechanism that produces them, not by which tool or PR surfaced them (e.g. \"single mutable record with no history\" is one mechanism even if it shows up in the deliverable lock and the ledger id mint). For each class:\n- name it in plain words, no metaphor;\n- name one design pattern that removes the mechanism;\n- name which existing instrument or the coordination core already carries that pattern, or say none does;\n- say plainly what would change to apply it;\n- say what it costs;\n- say what it does not cover, plainly.\n\nEnd with an ordering of the classes by how many of the 12 issues each pattern removes, most first. Read only; do not propose code. Under 100 lines.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/issues-report.md",
+        "sha256": "de214e9fd5d48de72ef46bd96d821aa420f400a49d84ff65a31f644657772beb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/coordination-objective.md",
+        "sha256": "99c0d1a13e47216f50162df3f8dff4449ca79e9012e1d86eb710245a044c057e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/coordination-lever.md",
+        "sha256": "ea32563f5313a519a5f45f4fb298e0a8dbc2e2e1816248a3f0ee56caabd5fd6f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/instrument-conventions.md",
+        "sha256": "ca1f6f0d246300163bd11da2f6b81cf3c53610335d311a87e78c6150c39cbfc8"
+      }
+    ],
+    "sha256": "17d0eb56bc38541748ef40cafd8365afbbb4820328059c45af3f3ebdfcd8900e",
+    "bytes": 11363,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/lane-mcp.json",
+      "sha256": "eb2d8d63e1a23971214839ba9a7ad7823c0ed8e3b6987e481a74a395d9908e2b",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "29a7b9ae51829f875b6d9bbde7ec43d8f047c832fa669dc71d3ac2d981d03bf2"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 900.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T08:56:37Z",
+      "ended": "2026-09-16T09:05:22Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": []
+    }
+  ],
+  "result": {
+    "head": "46639344d5623c36a96ed27436952db3786f8084",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/claude/engine.py:242,251-253 (p_file_state_store) against the plan job's declared output out/PLAN.md",
+          "claim": "The file-state hook refuses every write of the plan job's own deliverable: STORE_SUFFIXES includes .md and the dispatch job directory lies under the lane state directory, so `Write out/PLAN.md` from a Claude worker is denied as 'a file store under the state directory' with the line 'No grant lifts this row'. The plan job (jobs.json outputs: PLAN.md) cannot complete on the Claude harness while this row stands; the deliverable of this run was not written. The plan text is carried whole in note.",
+          "reproduce": "From a Claude dispatch under this hook: Write /home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/out/PLAN.md (any content) -> stderr `file-state: expected state as rows in state.db ...; found a file store .../out/PLAN.md under the state directory; ...`. Rule: rg -n 'STORE_SUFFIXES|_state_dir\\(ctx\\) \\+ os.sep' ops/devlane/hooks/claude/engine.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/deliverable.py; ops/conductor/registry/; ops/conductor/",
+          "claim": "deliverable.py inherits instrument-conventions.md but has no row in the conformance registry and no contract page under ops/conductor/, so its refusal wire is not gated and the lock's contract (measure shape, claim history) has no home to change.",
+          "reproduce": "git ls-files ops/conductor/registry/deliverable.py.json | wc -l  -> 0 ; git ls-files ops/conductor | rg deliverable  -> placement, two tests, the tool, no contract page"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/wip/calibration-buckets.md.txt",
+          "claim": "The plan job prompt names .dev/wip/calibration-buckets.md as the calibration shape; the tree carries it as calibration-buckets.md.txt, so a worker reading the named path finds nothing.",
+          "reproduce": "git ls-files .dev/wip | rg calibration  -> .dev/wip/calibration-buckets.md.txt"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "claude",
+        "total": 1094780,
+        "out": 39438,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "46639344d5623c36a96ed27436952db3786f8084",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: lane MCP lane_brief, lane_jobs, lane_changes (lane_findings not called: no record id in reach); Graft graft_find_code, graft_find_all, graft_file_api for navigation; the plan proposes reuse of machine.py (state engine), instrument.run, testkit.World, launch.py --lineage/--ref and DISPATCH_JOBS, land.py record copy, monitor.py event/delivery columns, the coordination core of PR #243, harness-capabilities.md and the refused skill; nothing rebuilt.\nFinished: all inputs read whole; the classification, slices, walkthrough, assumptions, tests, calibration rows and machine lines were composed. Left: the file out/PLAN.md was not written because the file-state hook refused the Write (finding 1); no evasion was attempted. The full plan follows so the dispatcher can place it at out/PLAN.md by hand.\n\n===== PLAN.md =====\n# Plan: the 12 live issues of 2026-09-16 by the mechanism that produces them\n\nTree 46639344d5623c36a96ed27436952db3786f8084 (git rev-parse HEAD). Inputs read whole: issues-report.md, coordination-objective.md, coordination-lever.md, instrument-conventions.md. Lane MCP read first: lane_brief (records in reach: none; monitor not armed), lane_jobs (9 jobs, plan slots out/ref/scope), lane_changes (empty checkpoint); lane_findings needs a record id and none is in reach. Read only; nothing below is code.\n\n## Part 1 \u2014 classes by mechanism\nAn issue appears in two classes when two mechanisms produce it; the count at the end says so.\n\nC1. State kept as a read-then-written file or git row, with no transaction and no history. Issues 2 (the lock's by/at hold the latest claimant only; ~/.local/state/agentscient/deliverable.json is flat), 5 (ledger.py highest() L147-176 is max-over-tree-and-origin plus one; defects.py next L38 is that shim; no reservation, so two branches mint LD-68).\n- Pattern: a machine on the state engine with an append-only marking, ids allocated in one transaction (objective \u00a76).\n- Carried by: machine.py (_move_locked L266-309 reads under the write lock; marking append-only); instrument-conventions \u00a7State names the lock and ledgers as declared debt (FILE_BACKED pin: control, deliverable, ladder, ledger). Nothing carries an id reservation today.\n- Change: the lock becomes a `deliverable` machine with a side table; show prints the marking as history. next takes a row in a host-local reservations table before printing; add refuses an id not reserved by this session. Placement files flip file->sqlite; the gate's pin shrinks (its one invited edit).\n- Cost: two levers, two placement files, two test files, the watchdog's deliverable_lock() reader (watchdog.py L848-866) and test_watchdog_deliverable.py follow the store. deliverable.py has no contract page and no registry row (git ls-files ops/conductor/registry/deliverable.py.json -> 0): the slice adds both.\n- Does not cover: two hosts (store is host-local, machine-lever.md); the two LD-68s already filed (reconciled by hand before either PR merges); issue 2's \"three Opus sessions\" count.\n\nC2. Authority keyed on a value the actor supplies or shares. Issues 2 (_check_actor machine.py L253-263 compares row[\"holder\"] == agent, the WF_AGENT display string), 10 (bind-for mints a participant for a session id \"no dispatch produced\"; Codex/Grok have no session id).\n- Pattern: participant is a system-minted id checked against the record that minted it; no verb takes the acting participant as an argument (coordination-lever \u00a7Participants, class `arguments`).\n- Carried by: the coordination core (PR #243, 05b8aebe, not on dev); launch.py mints a session id per dispatch and passes --session-id.\n- Change: bind-for refuses class `participant` unless the session id is carried by a dispatch record in the jobs root (_find_record, launch.py L2518-2526); the launcher sets CLAUDE_SESSION_ID for Codex and Grok workers.\n- Cost: a read edge conductor tool -> launcher record shape (ops/devlane/dispatch/CONTRACT.md), declared and gated; one launcher env-building change.\n- Does not cover: subjects.holder stays the agent string for other machines (idea, not built); a worker that never binds.\n\nC3. One channel carries both the observation and the conclusion. Issues 4 (watchdog reports closed history as live deviations; Watch.__init__ L892-897 suppresses `closed` lines but scan_deviations L915 still runs on them), 8 (a worker writes status=tripped itself; the launcher keeps it, so one field says \"breaker fired\" and \"the worker chose the word\").\n- Pattern: status from evidence the runner holds, content from the worker; history and live reported as separate counts (probes.md).\n- Carried by: monitor.py (events with own state and delivery columns); the probe runner. PR #244 (515e5b72) is issue 4's fix in review.\n- Change: launcher sets envelope status from TRIPPED/breaker.log; a self-reported tripped with findings closes as the worker's verdict with note `self-reported tripped`; `deviation envelope` fires only on the launcher's own trip. Issue 4 waits on #244: no slice.\n- Cost: launcher envelope parse, its test, watchdog-lever.md L115.\n- Does not cover: an invalid envelope with findings (a real deviation); a worker that lies in findings.\n\nC4. A command stored as one string and re-tokenized by a tokenizer other than the shell that would run it. Issue 3 (reading() deliverable.py L111 runs shlex.split(target[\"measure\"]) with no shell).\n- Pattern: argv as a list, never a string (launch.py builds lists; testkit.run takes argv; the wrapper test pins exact lists).\n- Carried by: instrument.run(); the launcher.\n- Change: --measure stored and run as a JSON list; a string measure refuses class `arguments` naming the list shape; live targets re-added by their sessions.\n- Cost: one lever, its test, the skill page; live lock targets rewritten by hand.\n- Does not cover: onboard's own timeouts (TIMEOUT=5, RETRY_TIMEOUT=20), never measured twice.\n\nC5. A test guards a live host path instead of owning a hermetic world. Issue 6 (test_dispatch_wrapper.py L197-206 watches _jobs_roots_to_guard() on the host; L277-281 asserts them unchanged).\n- Pattern: docs/tests.md rule 4; the launcher admits DISPATCH_JOBS (live-target refusal, launch.py L1768-1769).\n- Carried by: testkit.World; the launcher.\n- Change: fixture sets DISPATCH_JOBS under the world root and watches that path; host watch and LD-16 tolerance go.\n- Cost: one test file. Does not cover: the other three copier suites the wall handoff names, if they watch the host too (not measured: a finding against this plan).\n\nC6. The transport's stamp and receipt stand in for the record's. Issues 9 (stamped 09:10Z, received 08:47:46Z), 11 (\"queued there\" is not a receipt; hold-for-approval is real).\n- Pattern: the core stamps queued_at, delivered_at, acked_at with its own clock and keeps queued/delivered/acknowledged/resolved apart (coordination-lever \u00a7Messages).\n- Carried by: the coordination core (#243); instrument.now(). Change: none beyond landing #243; the harness msg_id is delivery_ref, never the clock.\n- Cost: nothing new. Does not cover: the harness's own stamp skew (only measurable beside the core's); idle-session wakeup (no channels facility in Claude Code 2.1.273).\n\nC7. The launcher infers the target from where it is run. Issue 7 (_launch L1761-1763 refuses unless branch == lineage; record copies land in the cwd repo's .dev/records/dispatches, L1872).\n- Pattern: target named as data (--lineage with --ref), record written to the jobs root, copied to the branch by land.py at landing.\n- Carried by: the launcher already takes --lineage and --ref; land.py already copies records onto the lineage.\n- Change: from a checkout on the trunk, --lineage lane/session-* that exists is admitted; the checkout is never written; landing copies the record. I-010 is the gate.\n- Cost: launcher, land.py, CONTRACT.md, test_launch_lane_conf.py, test_launch_record_copy.py, test_land_lever.py. Highest risk: dispatcher and argv.\n- Does not cover: _collect/_close L2700, L2859 keep the same check until the record carries the lineage.\n\nC8. Permission decided by matching command text, outside the lever. Issues 1 (classifier denied hand.py declare as \"Self-Modification\"; chat \"approved\" passed the identical command), 12 (210 hook misses today, 191 `refused`; clipped-sweep 55, done-gate 51, claim-unmeasured 42), and issue 10's unmeasured premise that hooks cannot see MCP calls. This run added one: the file-state hook refused this plan's own out/PLAN.md.\n- Pattern: authority inside the function it guards, hooks as feedback only (coordination-lever \u00a7Conventions); the vendor classifier as an external surface with contract, probe and mock (verified-couplings \u00a7External surfaces).\n- Carried by: the coordination core's design; harness-capabilities.md; the refused skill; skills.py miss telemetry.\n- Change: a probe row for the classifier edge (command, denial text, chat-approval remedy) in harness-capabilities.md; the refused skill names the remedy; the hook-blindness claim is measured by a probe before a design rests on it; the file-state hook admits a dispatch job's declared outputs (jobs.json outputs) under the state directory.\n- Cost: two pages, a probe row, one hook edit under a wall grant. Does not cover: the miss rate itself (falls only when each top class gets a lever that does the compliant thing by default); the classifier's model.\n\nOrdering by issues removed: C1 (2,5)=2; C2 (2,10)=2; C3 (4,8)=2; C6 (9,11)=2; C8 (1,12)=2; C4 (3)=1; C5 (6)=1; C7 (7)=1. Ties by cost: C6 costs nothing new, then C5, C4, C8, C3, C1, C2, C7.\n\n## Part 2 \u2014 slices, ordered by value per cost with dependencies respected\n1 wrapper-hermetic-store | S | lane | test_dispatch_wrapper.py | unblocks a reproducible green while sessions dispatch (AC-13) | risk: test only | keeps live-target (world jobs root outside every worktree); testkit.world hermetic | depends: none | own PR: no\n2 envelope-status-from-evidence | S | lane | launch.py, dispatch/tests/test_launch_envelope_parse.py, watchdog-lever.md | triage without a human (issue 8) | risk: launcher, not argv | shape: envelope status set by launcher; behavior: deviation envelope fires on a launcher trip only | none | yes\n3 measure-as-argv | S | lane | deliverable.py, test_deliverable.py, .claude/skills/deliverable/SKILL.md | stable lock/onboard readings (issue 3) | lever | shape: measure is a list; refusal arguments on a string | none | no\n4 classifier-edge-probe | S | contract | harness-capabilities.md, .claude/skills/refused/SKILL.md, handoff/probes (one row) | issue 1 answered without a lost turn; issue 10's premise measured | contract | closure: classifier is a declared edge with a probe; freshness stamped to Claude Code version | none | no\n5 ledger-id-reservation | S | lane | ledger.py, test_ledger.py, placement/ledger.py.json | no second LD-68 on one host (issue 5) | lever | permission: state.db host-local; test_state_placement.py pin shrinks in the same commit as the flip | none | yes\n6 bind-for-needs-a-record | S | lane | coordination.py, test_coordination.py, coordination-lever.md | AC-02 impersonation refusal (issue 10) | contract + lever | closure: new read edge conductor -> dispatch record shape, stamped to launch.py version | PR #243 landed | no\n7 lock-on-the-engine | M | lane | a: deliverable.py, placement/deliverable.py.json, test_state_placement.py; b: test_deliverable.py, test_watchdog_deliverable.py, new registry row | claim history (issue 2); watchdog reads a store | lever + watchdog reader | shape: deliverable_lock() reads the store; behavior: history append-only; registry row asserts the wire | slice 3 | yes\n8 lineage-as-data | M | lane | a: launch.py, test_launch_lane_conf.py; b: land.py, dispatch/CONTRACT.md, test_land_lever.py | dispatch from the main checkout (issue 7) | dispatcher and argv | permission: I-010 gate; blast radius: _collect, _close, wrapper --branch mapping, test_launch_record_copy.py | slice 1 | yes\nNot sliced: issue 4 (PR #244 in review), issues 9 and 11 (carried by #243 as written). Every slice lands green alone: rows and implementation in one branch, no other slice's files.\n\n## Part 3 \u2014 walkthrough of the first run (slice 1, then slice 2 as the first launcher slice)\n1. Dispatch: ops/bin/dispatch.sh --job author-tests --scope-file (slice 1 rows) --branch lane/session-<date>-<id>. Refusal that stands: record-target at launch.py L1761 if the checkout is not on that branch (issue 7, unsolved until slice 8); the dispatcher enters the lineage's worktree, never edits, accepts the record copy.\n2. Snapshot and home: isolation.isolated() (isolation.py L564-577) builds a disposable HOME with XDG roots redirected (L544-549); ~/.claude skills and settings.local.json absent, so no allow-rules, no memory. .git is a directory; a read job may not write it, a write job commits inside it. No network: ledger.py trunk_ref L106-108 finds origin, its 20 s fetch fails silently and returns stale origin/dev; slice 5's tests must plant a scratch repository with a path-local origin or the row is UNREACHABLE, not red.\n3. author-tests demands: read only scope files, in ranges; import the kit from the repository root (ModuleNotFoundError: ops.testkit is the refusal from any other cwd); prove red, commit at once with trailers. Improvisation points: running the whole suite (prompt forbids); editing dispatch.sh to pass a row (\"do not edit the implementation\"; check-tests refutes); writing under the host ~/.local/state (XDG points into the world; live_store_guard.py is the second wall). Refusal that stands for a Claude write job: the file-state hook on any .md/.json/.txt under the state dir, including out/ (finding 1).\n4. check-tests (Codex, read): cases.py calibrate on the table; a table without a faults file is one finding, so slice 1 ships a faults file beside the four that exist (git ls-files ops/conductor/tests | rg -c faults -> 4).\n5. code (implement): slice 2 changes launch.py; the worker may not touch test files; git commit in the snapshot; if refused, out/COMMIT_MSG. Refusal that stands: trunk-commit hook, since the snapshot is on the lineage.\n6. security, adversarial: read jobs over the diff; findings answered by correction.py, which refuses a correction dispatch with undisposed findings.\n7. Runner: CI runs ops/bin/suites.sh from the workspace root with the runner's HOME; at the ref the wrapper suite reads that HOME's dispatch store (issue 6), so slice 1 makes the wall reproducible for every later slice.\n\n## Part 4 \u2014 assumptions\nMeasured at write time: HEAD sha; stage-sets.json keys contract, lane; .dev/wip/calibration-buckets.md exists as calibration-buckets.md.txt; coordination.py and test_coordination.py absent (git ls-files -> 0); 32 rows under handoff/lane-defects/, highest LD-67; deliverable.py has no registry row and no contract page; placement engines file for deliverable and ledger; line counts launch.py 3011, watchdog.py 1315, test_dispatch_wrapper.py 2310; STORE_SUFFIXES engine.py L242 includes .md.\nMade a refusal the run hits: slice 6 before #243 lands (import fails at stage one; do not launch); a string --measure after slice 3; a bind-for without a record after slice 6.\nNeither, so findings against this plan: the minutes in Part 6 are guesses calibrated only against the 2026-09-04 rows; whether the other copier suites watch the host store (C5); whether the hook engine sees MCP calls (C8; the plan does not rest on it); _jobs_roots_to_guard()'s body not read; no probe row search for \"Self-Modification\" was run.\n\n## Part 5 \u2014 tests by file, and why each is red at the ref\n- ops/conductor/tests/test_dispatch_wrapper.py, row jobs-root-inside-world: DISPATCH_JOBS in the fixture env lies under the world root; no host path watched. Red: setUp L197 watches host roots, sets no DISPATCH_JOBS.\n- ops/devlane/dispatch/tests/test_launch_envelope_parse.py, row self-reported-tripped: status=tripped with findings and no TRIPPED file closes status=ok, note self-reported tripped. Red: launcher keeps the worker's word (record 20260916T082610Z-review-codex-ee08a7).\n- ops/conductor/tests/test_deliverable.py, row measure-is-argv: add --measure '[\"sh\",\"-c\",\"printf $X\"]' reads the same on two show calls. Red: L111 shlex.split on a string; a list refuses arguments.\n- ops/conductor/tests/test_ledger.py, row next-reserves: two next calls from two roots on one host print distinct ids. Red: highest()+1 is stateless.\n- ops/conductor/tests/test_deliverable.py, row claim-history: two claims then show --history prints both. Red: the lock holds the latest by/at only.\n- ops/conductor/tests/test_state_placement.py: red when deliverable.py.json flips to sqlite before the pin shrinks; the shrink is the same commit.\n- ops/devlane/dispatch/tests/test_launch_lane_conf.py, row lineage-from-trunk-checkout: --lineage lane/x --ref <sha> from a checkout on the conf trunk is not record-target. Red: L1761 branch != lineage.\n- ops/conductor/tests/test_coordination.py, row bind-for-no-record: refuses class participant. Red: #243's bind-for is unguarded (its PR body); file absent at the ref, so UNREACHABLE until #243 lands.\n- ops/conductor/handoff/probes, one serve row for the classifier edge. Red: no row names it (unmeasured, a finding against the plan).\n\n## Part 6 \u2014 calibration rows (shape of .dev/wip/calibration-buckets.md; stages joined per slice to stay short)\n| slice | plan said | stage | minutes | files / tests |\n| wrapper-hermetic-store | S | tests\u00b7skeptic\u00b7implement\u00b7security\u00b7adversarial | 12\u00b78\u00b76\u00b77\u00b710 | 1 file, 1 row |\n| envelope-status-from-evidence | S | tests\u00b7skeptic\u00b7implement\u00b7security\u00b7adversarial | 15\u00b78\u00b78\u00b77\u00b710 | 3 files, 2 rows |\n| measure-as-argv | S | tests\u00b7skeptic\u00b7implement\u00b7security\u00b7adversarial | 12\u00b78\u00b78\u00b77\u00b710 | 3 files, 2 rows |\n| classifier-edge-probe | S | tests\u00b7skeptic\u00b7implement\u00b7adversarial | 8\u00b76\u00b76\u00b78 | 3 files, 1 probe row |\n| ledger-id-reservation | S | tests\u00b7skeptic\u00b7implement\u00b7security\u00b7adversarial | 15\u00b78\u00b78\u00b77\u00b710 | 3 files, 2 rows |\n| bind-for-needs-a-record | S | tests\u00b7skeptic\u00b7implement\u00b7security\u00b7adversarial | 15\u00b78\u00b78\u00b77\u00b710 | 3 files, 1 row |\n| lock-on-the-engine | M | tests\u00b7skeptic\u00b7implement A\u00b7implement B\u00b7security\u00b7adversarial | 22\u00b710\u00b78\u00b78\u00b78\u00b710 | 6 files, 3 rows |\n| lineage-as-data | M | tests\u00b7skeptic\u00b7implement A\u00b7implement B\u00b7security\u00b7adversarial | 22\u00b710\u00b78\u00b710\u00b78\u00b712 | 6 files, 3 rows |\n\n## Machine lines\nslice\twrapper-hermetic-store\tS\tlane\nbucket\twrapper-hermetic-store\tS\tops/conductor/tests/test_dispatch_wrapper.py\nslice\tenvelope-status-from-evidence\tS\tlane\nbucket\tenvelope-status-from-evidence\tS\tops/devlane/dispatch/launch.py ops/devlane/dispatch/tests/test_launch_envelope_parse.py ops/conductor/watchdog-lever.md\nslice\tmeasure-as-argv\tS\tlane\nbucket\tmeasure-as-argv\tS\tops/conductor/tools/deliverable.py ops/conductor/tests/test_deliverable.py .claude/skills/deliverable/SKILL.md\nslice\tclassifier-edge-probe\tS\tcontract\nbucket\tclassifier-edge-probe\tS\tops/conductor/harness-capabilities.md .claude/skills/refused/SKILL.md ops/conductor/handoff/probes\nslice\tledger-id-reservation\tS\tlane\nbucket\tledger-id-reservation\tS\tops/conductor/tools/ledger.py ops/conductor/tests/test_ledger.py ops/conductor/placement/ledger.py.json\nslice\tbind-for-needs-a-record\tS\tlane\nbucket\tbind-for-needs-a-record\tS\tops/conductor/tools/coordination.py ops/conductor/tests/test_coordination.py ops/conductor/coordination-lever.md\nslice\tlock-on-the-engine\tM\tlane\nbucket\tlock-engine-a\tS\tops/conductor/tools/deliverable.py ops/conductor/placement/deliverable.py.json ops/conductor/tests/test_state_placement.py\nbucket\tlock-engine-b\tS\tops/conductor/tests/test_deliverable.py ops/conductor/tests/test_watchdog_deliverable.py ops/conductor/registry/deliverable.py.json\nslice\tlineage-as-data\tM\tlane\nbucket\tlineage-a\tS\tops/devlane/dispatch/launch.py ops/devlane/dispatch/tests/test_launch_lane_conf.py\nbucket\tlineage-b\tS\tops/conductor/tools/land.py ops/devlane/dispatch/CONTRACT.md ops/conductor/tests/test_land_lever.py\n===== end PLAN.md ====="
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 3,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.claude/projects/<snapshot-slug>/cb9879c8-960f-4c13-98f1-1b7ca5538375.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

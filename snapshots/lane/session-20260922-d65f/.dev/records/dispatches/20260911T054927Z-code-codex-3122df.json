@@ -1,0 +1,368 @@
+{
+  "id": "20260911T054927Z-code-codex-3122df",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "1b172d5b187cd5127285434ee4bbc2e017d7ce87"
+  },
+  "follows": [
+    "20260911T043313Z-tests-grok-3ab0c7"
+  ],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T05:49:27Z",
+    "closed": "2026-09-11T05:55:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "1b172d5b187cd5127285434ee4bbc2e017d7ce87",
+    "ref_sha": "1b172d5b187cd5127285434ee4bbc2e017d7ce87",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T01-49-41-01a08f03-bbff-7691-bde0-209d77190627.jsonl"
+  },
+  "session": {
+    "id": "01a08f03-bbff-7691-bde0-209d77190627",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T01-49-41-01a08f03-bbff-7691-bde0-209d77190627.jsonl",
+    "stream_sha256_at_close": "00b30968c39161e58b23338a4accc6b8de0e2402445c47166e1993ebb4ce9769",
+    "spend": {
+      "input": 1427896,
+      "cached": 1355648,
+      "output": 11486,
+      "total": 1439382,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T01-49-41-01a08f03-bbff-7691-bde0-209d77190627.jsonl",
+      "messages": 210
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p launch_support.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/in/plan-launcher-gate.md",
+        "sha256": "3f7502a2eda6ddb400552b5edddd578bf3e1bca13108bb034472a1bdc84c58b6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T054927Z-code-codex-3122df/in/scope-gate-20260910.scope.md",
+        "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+      }
+    ],
+    "sha256": "cc13c85327d6236dd46e1fa7eefba6e9fd06c698939ffa1979186a1791421df1",
+    "bytes": 5067,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "913048aff13f55cee60dae97a77291339439d484c44f27df86c1c947214ea078"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T05:49:41Z",
+      "ended": "2026-09-11T05:55:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1b172d5b187cd5127285434ee4bbc2e017d7ce87",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "launcher-mint",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 30,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/",
+          "claim": "Initial Graft repository-map navigation succeeded.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/",
+          "claim": "The four named inputs were read; the captured combined output was truncated, so they were subsequently read in bounded commands.",
+          "reproduce": "sed -n '1,$p' ../in/plan-launcher-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/",
+          "claim": "The named inputs contain 767 lines total.",
+          "reproduce": "wc -l ../in/plan-launcher-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Plan lines 1\u2013250 were read.",
+          "reproduce": "sed -n '1,250p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Plan lines 251\u2013500 were read.",
+          "reproduce": "sed -n '251,500p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Plan lines 501\u2013642 were read.",
+          "reproduce": "sed -n '501,642p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/",
+          "claim": "The scope, discipline clause, and scope pointer were read whole.",
+          "reproduce": "sed -n '1,$p' ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Six documentation files were enumerated.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Required documentation contains 702 lines total.",
+          "reproduce": "wc -l docs/wire.md docs/concerns.md docs/probes.md docs/verified-couplings.md docs/mapping.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Wire, concerns, probes, verified couplings, and workflow contracts were read whole.",
+          "reproduce": "sed -n '1,$p' docs/wire.md docs/concerns.md docs/probes.md docs/verified-couplings.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "The mapping document was read whole.",
+          "reproduce": "sed -n '1,268p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "The lane operating instructions were read whole.",
+          "reproduce": "sed -n '1,183p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "The initial HEAD matched the requested tree exactly.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "The initial detached worktree was clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "session",
+          "claim": "The measured start stamp was 2026-09-11T05:51:14Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "acceptance command",
+          "claim": "Baseline execution passed 8 record-answer tests and 29 correction-gate tests, then exited 5 because launch_support.py discovered zero tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Graft query",
+          "claim": "A graft_file_api query using the unsupported path argument refused with the required file argument.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"path\":\"ops/devlane/dispatch/tests/launch_support.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/launch_support.py",
+          "claim": "The corrected Graft query showed _TempLaunch has fixture methods but no discovered test methods.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"file\":\"ops/devlane/dispatch/tests/launch_support.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/launch_support.py",
+          "claim": "The support module imports only standard-library modules and its sibling support module before defining fixtures; it does not import the scoped production modules during discovery.",
+          "reproduce": "sed -n '1,180p' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/support.py",
+          "claim": "The sibling support module only establishes paths and a path-based module loader.",
+          "reproduce": "sed -n '1,240p' ops/devlane/dispatch/tests/support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/",
+          "claim": "The discovery root has no nested test package that could independently match launch_support.py.",
+          "reproduce": "find ops/devlane/dispatch/tests -maxdepth 3 -type d -print"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Recent history showed the launcher correction feature and its tests had already landed before the requested ref.",
+          "reproduce": "git log -5 --oneline --decorate --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Commit 7478d31 is the latest commit touching launch.py or record.py.",
+          "reproduce": "git log --oneline --all -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py | head -20"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 7478d31",
+          "claim": "The existing implementation changed correction.py, launch.py, and record.py.",
+          "reproduce": "git show --stat --oneline 7478d31"
+        },
+        {
+          "severity": "p3",
+          "where": "Python runtime",
+          "claim": "The repository root is on the Python import path, but using startup shadowing to fabricate a test would be an out-of-scope test-runner alteration.",
+          "reproduce": "python3 -c 'import sys; print(sys.path)'"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "No existing sitecustomize or general discovery override exists; one unrelated test module has its own load_tests hook.",
+          "reproduce": "rg -n \"sitecustomize|def load_tests|NO TESTS RAN\" . --glob '!vendor/**' --glob '!.git/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "The worktree remained clean after investigation.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/launch_support.py",
+          "claim": "The final named command exits 5: launch_support.py is a support-only module and discovery runs zero tests. Making it pass would require editing/adding test-discovery material or altering Python startup/command behavior, contrary to the frozen-test and command constraints.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "The final worktree is clean, with no files changed.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "The final HEAD remains 1b172d5b187cd5127285434ee4bbc2e017d7ce87.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "session",
+          "claim": "The measured end stamp was 2026-09-11T05:54:39Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "tree": "1b172d5b187cd5127285434ee4bbc2e017d7ce87 (clean and unchanged; no commit created)"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1439382,
+        "out": 11486,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1b172d5b187cd5127285434ee4bbc2e017d7ce87",
+        "started": "2026-09-11T05:51:14Z",
+        "ended": "2026-09-11T05:54:39Z"
+      },
+      "note": "Failing target: launch_support.py. Its discovery run contains zero tests and exits 5; test_record_answers.py (8 tests) and test_launch_correction_gate.py (29 tests) both pass. No permissible scoped production edit can change discovery of the unimporting support-only module, and editing tests or the command was expressly forbidden."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T05:55:51.740Z"
+    }
+  },
+  "status": "closed"
+}

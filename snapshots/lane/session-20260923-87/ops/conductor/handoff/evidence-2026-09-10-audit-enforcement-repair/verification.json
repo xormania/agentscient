@@ -1,0 +1,72 @@
+{
+  "measured_at": "2026-09-10T06:07:35.038964+00:00",
+  "against": "9067f0877d3e21d964e2862bfc6ff50984c33399 plus staged repair",
+  "sha256": {
+    "ops/conductor/tools/control.py": "ad4fa1b1eeeb58facc3ced96e15f832bbd3acd24e220eca7f897c37497045131",
+    "ops/devlane/hooks/conductor-control.py": "d7c749551f68e9e22992f88640ad09b76b26451f0913c51befee3f846e92fc78",
+    "ops/conductor/tests/test_control.py": "abb71a74c4ed8205080ee8c40cefb55dcc2661648910b33acf37f8c1a3d25735",
+    "ops/devlane/harness/isolation.py": "a8f499a223c22c140fd3a651efb2bfa62d39f374857700c4f3adfe24bda841d9"
+  },
+  "suite_command": [
+    "bash",
+    "ops/bin/suites.sh"
+  ],
+  "suite_exit": 0,
+  "suite_counts": [
+    450,
+    41,
+    312,
+    227,
+    215,
+    221,
+    48,
+    699,
+    8
+  ],
+  "suite_skips": 7,
+  "checks": [
+    {
+      "argv": [
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/conductor/tools/laneconf.py",
+        "closure"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/conductor/tools/laneconf.py",
+        "literals"
+      ],
+      "exit": 0,
+      "stdout": "skipped: ops/devlane/infra\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "native_proof": "Six native CLI executions using local protocol fixtures. Worker controls use the real dispatch isolation adapter through a declared controller action, not full dispatcher job creation.",
+  "review_boundary": "Independent test producer: GPT-5.6 Sol. Exact producer corrections retained. No subsequent independent approval of corrected tests or implementation is claimed."
+}

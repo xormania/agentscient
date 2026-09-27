@@ -1,0 +1,1 @@
+python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py

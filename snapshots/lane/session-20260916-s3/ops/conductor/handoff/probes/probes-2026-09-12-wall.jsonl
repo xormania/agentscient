@@ -1,0 +1,3 @@
+{"id": "P-WALL-20260912-row", "kind": "serve", "lane": "forge", "question": "What guards the CI and test machinery from an ordinary hand grant?", "serve": "rg -c 'def wall_write' ops/devlane/hooks/claude/matrix.py", "expect": "1"}
+{"id": "P-WALL-20260912-class", "kind": "serve", "lane": "ledger", "question": "Which lever class does wall work declare?", "serve": "rg -c -F '\"wall\": None' ops/conductor/tools/hand.py", "expect": "1"}
+{"id": "P-WALL-20260912-paths", "kind": "serve", "lane": "forge", "question": "Which paths are the wall?", "serve": "rg -c -F '\"ops/devlane/hooks/claude/engine.py\")' ops/devlane/hooks/claude/matrix.py", "expect": "1"}

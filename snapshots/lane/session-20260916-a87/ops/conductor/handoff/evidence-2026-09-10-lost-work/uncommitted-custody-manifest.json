@@ -1,0 +1,177 @@
+[
+  {
+    "source": "/home/scientdb/projects/uscient/agentscient/.dev/wip/calibration-buckets.md",
+    "kind": "worktree",
+    "archive_path": "00/.dev/wip/calibration-buckets.md",
+    "bytes": 3072,
+    "sha256": "ef799ccca9d6016636608c3fe5044ee37817c9cf36ef9a8605b5920d23fa02b9"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/agentscient/.dev/wip/watch-lane.py",
+    "kind": "worktree",
+    "archive_path": "00/.dev/wip/watch-lane.py",
+    "bytes": 4238,
+    "sha256": "eaa747c9c0b4c60e5b651137bdf8ade6cad3c4147c685fadf85693b8d8e2b688"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/PLAN-check-tests-json-2.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/PLAN-check-tests-json-2.md",
+    "bytes": 16007,
+    "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/fix-code.log",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/fix-code.log",
+    "bytes": 1139,
+    "sha256": "6961ffce88ba1ed43d54bea2acbad9086a7c64f1bb9b751e83d4609be12ca8ee"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/input-check-tests-json-2-fix-tests.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/input-check-tests-json-2-fix-tests.md",
+    "bytes": 17458,
+    "sha256": "672b186d689bea4d4f2001ddc9f485ec28791131adc8042a8eb6abfa9e13cd78"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/input-check-tests-json-2-impl.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/input-check-tests-json-2-impl.md",
+    "bytes": 13242,
+    "sha256": "0de3401aa5a35e62fe8bfabe7e75e4181a57905b9f7a38eb7bb9c92b3b01692b"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/input-check-tests-json-2-plan.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/input-check-tests-json-2-plan.md",
+    "bytes": 11194,
+    "sha256": "9792718ca3c0fd16ae49be84579a7e480b1816dac85339bae21b91ff31b5a632"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/reaudit.log",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/reaudit.log",
+    "bytes": 2091,
+    "sha256": "fbd49ce33392569b10cca236f9693e86925497d636ee2d7db8f9fb54839003de"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/run-check-tests-json-2-security-audit.sh",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/run-check-tests-json-2-security-audit.sh",
+    "bytes": 926,
+    "sha256": "1032097922a5e77786acfcee02191fa5509ff6bd790c082567e290922bb77141"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/run-fix-code.sh",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/run-fix-code.sh",
+    "bytes": 705,
+    "sha256": "8d44a3dd810fa9d5af154fb8947df51b001ec8656c7f36386337a395b141cf28"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/run-reaudit.sh",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/run-reaudit.sh",
+    "bytes": 873,
+    "sha256": "d240e7a726d3d55b64fa3352b26bd6781f196cdd95fef65146a198f6f8341ae5"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/scope-check-tests-json-2-audit.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/scope-check-tests-json-2-audit.md",
+    "bytes": 899,
+    "sha256": "66aaf24ec8a0ef1fe8f8998755447e2856f6fa1ccd4f892823cdf6510b85e1a1"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/scope-check-tests-json-2-fix-tests.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/scope-check-tests-json-2-fix-tests.md",
+    "bytes": 768,
+    "sha256": "f4b43b8fdbcf73527dc970f1070266f4ec990c238376480479835f9edaaa1a09"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/scope-check-tests-json-impl.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/scope-check-tests-json-impl.md",
+    "bytes": 242,
+    "sha256": "85690a01970a7c421d42b0281057c0c108a64e690b79e464c870944d1b672c93"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/fix-round/token-churn-2026-09-04.md",
+    "kind": "worktree",
+    "archive_path": "01/.dev/ladder-inputs/fix-round/token-churn-2026-09-04.md",
+    "bytes": 6291,
+    "sha256": "b7fcc3f43ba2d66a475a33105557b1c08803d32375fd692229ff51c5b597ef63"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/conductor/AAR-2026-09-10-review-process-failures.md",
+    "kind": "worktree",
+    "archive_path": "02/ops/conductor/AAR-2026-09-10-review-process-failures.md",
+    "bytes": 16028,
+    "sha256": "26181a8bda7cae585c8e85d9cec42824e25132f68805396377c9c6afde9e5599"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/conductor/handoff/evidence-2026-09-10-review-process/growth.json",
+    "kind": "worktree",
+    "archive_path": "02/ops/conductor/handoff/evidence-2026-09-10-review-process/growth.json",
+    "bytes": 8405,
+    "sha256": "accdf2b138d362f8d29191813aecb856a2de7acd94da3032028536c39fbbd166"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-tdd-valid-red-20260910/AGENTS.md",
+    "kind": "worktree",
+    "archive_path": "03/AGENTS.md",
+    "bytes": 9688,
+    "sha256": "94ecbd7c49ee5599b9fde63f7626290b227b6da4fac2b99c86204531c72322f8"
+  },
+  {
+    "source": "/home/scientdb/projects/uscient/wt/ag-tdd-valid-red-20260910/ops/process/tdd.md",
+    "kind": "worktree",
+    "archive_path": "03/ops/process/tdd.md",
+    "bytes": 8311,
+    "sha256": "8a564682da369ff1de2e56056e32348069b97f1d68c1e07ae1c7049abbf7e3aa"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/snapshot/ops/conductor/tools/lane_mcp.py",
+    "kind": "dispatch",
+    "archive_path": "04/ops/conductor/tools/lane_mcp.py",
+    "bytes": 24225,
+    "sha256": "f31b9bc97d94f666be29d66b21ac6b81c76476f7b9c354d4a138a8d90d21916f"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/snapshot/ops/conductor/tools/lane_read.py",
+    "kind": "dispatch",
+    "archive_path": "04/ops/conductor/tools/lane_read.py",
+    "bytes": 81907,
+    "sha256": "66ca65ab7192b3074841c6fa12ee1bd9b7eded4a2c5dbef7a57ea0a9004fde66"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/snapshot/ops/conductor/tools/lane_refs.py",
+    "kind": "dispatch",
+    "archive_path": "04/ops/conductor/tools/lane_refs.py",
+    "bytes": 41042,
+    "sha256": "bc06a080c057d2aeb80ebcf234c9e806cb42ef30f3958f88237803e021dd76f6"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/snapshot/ops/conductor/tools/lane_policy.py",
+    "kind": "dispatch",
+    "archive_path": "05/ops/conductor/tools/lane_policy.py",
+    "bytes": 42643,
+    "sha256": "cecc0c5ecffc861ff4fba913c65806470d617faeb1acc4f886e3cdc7077adfe5"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010956Z-code-codex-cedae4/snapshot/ops/conductor/conductor-start-plan.md",
+    "kind": "dispatch",
+    "archive_path": "06/ops/conductor/conductor-start-plan.md",
+    "bytes": 38034,
+    "sha256": "482bf16fece7592d730fa2138e8f31c49e27426329db48619b361e7b8d0662b5"
+  },
+  {
+    "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010956Z-code-codex-cedae4/snapshot/ops/conductor/session-onboarding.md",
+    "kind": "dispatch",
+    "archive_path": "06/ops/conductor/session-onboarding.md",
+    "bytes": 47388,
+    "sha256": "a2dee1144d6b445efbce00bb25046e6d7f0b8d8053dedbd3fadf710cfd5d379b"
+  }
+]

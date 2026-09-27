@@ -1,0 +1,183 @@
+{
+  "id": "20260911T024148Z-review-codex-2abcc1",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-ledger-20260911",
+  "lineage": {
+    "branch": "lane/gate-ledger-20260911",
+    "base_sha": "30e2234788937c93237b42fa498fbcada35914e5"
+  },
+  "follows": [
+    "20260911T023535Z-code-codex-30a316"
+  ],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T02:41:48Z",
+    "closed": "2026-09-11T02:47:56Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "30e2234788937c93237b42fa498fbcada35914e5",
+    "ref_sha": "30e2234788937c93237b42fa498fbcada35914e5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-41-49-01a08e57-bad5-7973-9861-82b365312c4f.jsonl"
+  },
+  "session": {
+    "id": "01a08e57-bad5-7973-9861-82b365312c4f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-41-49-01a08e57-bad5-7973-9861-82b365312c4f.jsonl",
+    "stream_sha256_at_close": "70f706ecf381ce639210f261f0c1ad538926c810a6983b629aaa048486c4808c",
+    "spend": {
+      "input": 2442868,
+      "cached": 2290987,
+      "output": 21680,
+      "total": 2464548,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-41-49-01a08e57-bad5-7973-9861-82b365312c4f.jsonl",
+      "messages": 249
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/in/plan-ledger-gate.md",
+        "sha256": "ba159269c62cf91721641820220bc907fe458864fd01af268cfca6e838de2847"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/in/20260911T020630Z-review-codex-bc441c.json",
+        "sha256": "d8089db78bb106f4203df19a05b48dbb2bab4558659ed6cda0f07395d6e45af5"
+      }
+    ],
+    "sha256": "beeab52b51867bf5ef96b6d20e8cb22c12c830f63d23bf299446e755bb7b6823",
+    "bytes": 4426
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T02:41:48Z",
+      "ended": "2026-09-11T02:47:56Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "30e2234788937c93237b42fa498fbcada35914e5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/correction.py:189-230",
+          "claim": "Contract items 3, 4, and 8: acceptance verifies only that disposition evidence cites some numbered item in the scope; it never requires that item to match the item named by the finding. A finding citing item 8 is therefore accepted and recorded with unrelated item-1 evidence, providing a no-override escape and false audit trail.",
+          "reproduce": "python3 -B -c 'import importlib.util,pathlib; p=pathlib.Path(\"ops/conductor/tools/correction.py\"); s=importlib.util.spec_from_file_location(\"c\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); rid=\"20260901T000000Z-review-grok-aaaaaa\"; key=rid+\"#1\"; row={\"key\":key,\"record\":rid,\"disposition\":\"fixed\",\"evidence\":\"contract item 1 of .dev/ladder-inputs/scope-gate-20260910.md: unrelated\",\"disposed_at\":\"2000-01-01T00:00:00Z\",\"claim\":\"contract item 8 of .dev/ladder-inputs/scope-gate-20260910.md: audit trail missing\"}; C=type(\"C\",(),{\"execute\":lambda self,*a,**k:type(\"Q\",(),{\"fetchone\":lambda self:row})(),\"close\":lambda self:None}); m._read_record=lambda *a:{\"job\":\"security-audit\"}; m.FINDINGS.database_path=lambda:pathlib.Path(\"ops/conductor/tools/findings.py\"); m.FINDINGS.work_order_scope=lambda *a:\".dev/ladder-inputs/scope-gate-20260910.md\"; m.sqlite3.connect=lambda *a,**k:C(); got=m.check(\"write\",[rid],[],[key],\"2099-01-01T00:00:00Z\",\"records\",\"jobs\",pathlib.Path.cwd()); print(got); assert got[\"correction\"] and got[\"answers\"][0][\"citation\"][\"item\"]==\"1\"'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/context/diff.patch",
+        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260911T024148Z-review-codex-2abcc1/snapshot",
+        "base": "8e8d5c9bcf54f5ae847d3c4d490de494f14559f6",
+        "head": "30e2234788937c93237b42fa498fbcada35914e5"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2464548,
+        "out": 21680,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "30e2234788937c93237b42fa498fbcada35914e5",
+        "started": null,
+        "ended": "2026-09-11T02:47:41Z"
+      },
+      "note": "Read all four named in/ files and both tracked scope documents whole. Covered argv/shell, SQL/template, secrets, path/ref containment, sandbox/permission records, vendor-output trust, and supply-chain surfaces. The secret scanner was clean across all 20 changed files; SQL is parameterized; eight dispatch records validated and their sandbox labels matched argv; no dependency or fetched-action changes occurred. Temp-backed suites could not run because the read-only sandbox exposes no writable temporary directory; pure read-only reproductions, JSON validation, Ruff, and diff checks ran successfully. The findings store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T02:47:55.848Z"
+    }
+  },
+  "status": "closed"
+}

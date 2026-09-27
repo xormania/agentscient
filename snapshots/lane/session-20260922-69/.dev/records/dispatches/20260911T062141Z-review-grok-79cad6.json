@@ -1,0 +1,187 @@
+{
+  "id": "20260911T062141Z-review-grok-79cad6",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "659ca1931ed59a4d6463d11f0025e9e3df2f41c4"
+  },
+  "follows": [
+    "20260911T061118Z-review-codex-314c2d"
+  ],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:21:41Z",
+    "closed": "2026-09-11T06:38:47Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "659ca1931ed59a4d6463d11f0025e9e3df2f41c4",
+    "ref_sha": "659ca1931ed59a4d6463d11f0025e9e3df2f41c4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "03d4d5b9-7816-4fae-8484-c12211e221e7",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok-stream/sessions/<snapshot-encoded>/03d4d5b9-7816-4fae-8484-c12211e221e7/summary.json"
+  },
+  "session": {
+    "id": "03d4d5b9-7816-4fae-8484-c12211e221e7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok-stream/sessions/<snapshot-encoded>/03d4d5b9-7816-4fae-8484-c12211e221e7/summary.json",
+    "stream_sha256_at_close": "5fab59f006b4668add93c748bd924046ede226f0b4432e969309de04af845c5a",
+    "spend": {
+      "input": 2316823,
+      "cached": 2154112,
+      "output": 46294,
+      "total": 2363117,
+      "cost_usd_ticks": 2856411400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/home/grok-stream/sessions/<snapshot-encoded>/03d4d5b9-7816-4fae-8484-c12211e221e7/summary.json",
+      "messages": 249
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/in/plan-launcher-gate.md",
+        "sha256": "3f7502a2eda6ddb400552b5edddd578bf3e1bca13108bb034472a1bdc84c58b6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062141Z-review-grok-79cad6/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "80b0e9c41483b9b37741faa2a9a0b9c3e11121e2df7f2d7b22fdbe5b53b53c6c",
+    "bytes": 3770,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "6656eec5b1e7670d1edf98cded8f95b56c84807e7416b85979206b9b1264f05e"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:21:50Z",
+      "ended": "2026-09-11T06:38:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "659ca1931ed59a4d6463d11f0025e9e3df2f41c4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/correction.py:105-116; ops/devlane/dispatch/launch.py:1437-1447",
+          "claim": "Contract items 1, 2 and 3: item 1 reads the correction shape from the dispatch arguments (a write job whose --input is a file from a review record's out/). _input_record_id classifies via Path.resolve(), so the shape is taken from the symlink target, not the --input argument. A write job with --input lexically under a review job's out/ that is a symlink leaving jobs_root returns {\"correction\": false, \"answers\": []} and launch.py mints that record; item 2 (a correction that names no key is refused) and item 3 (no record minted) do not fire. The inverse also fails item 1 and item 7: a write that follows nothing, whose --input argument is outside out/, is inspected and refused as a correction when the path resolves into a review out/.",
+          "reproduce": "python3 - <<'PY'\nimport importlib.util, json, tempfile\nfrom pathlib import Path\np = Path('ops/conductor/tools/correction.py').resolve()\ns = importlib.util.spec_from_file_location('c', p)\nm = importlib.util.module_from_spec(s); s.loader.exec_module(m)\nwith tempfile.TemporaryDirectory() as td:\n    t = Path(td); records = t/'records'; jobs = t/'jobs'; records.mkdir()\n    rid = '20260901T000000Z-review-grok-aaaaaa'\n    (records/f'{rid}.json').write_text(json.dumps({'id': rid, 'job': 'adversarial-review'}))\n    regular = jobs/rid/'out'/'note.md'; regular.parent.mkdir(parents=True); regular.write_text('artifact')\n    outside = t/'outside'; outside.write_text('outside')\n    out_link = jobs/rid/'out'/'review.md'; out_link.symlink_to(outside)\n    inbound = t/'copied.md'; inbound.symlink_to(regular)\n    at = '2026-09-11T00:00:00Z'\n    def run(path):\n        try:\n            return ('ok', m.check('write', [], [str(path)], [], at, records, jobs, Path.cwd()))\n        except m.Refused as e:\n            return ('refused', e.kind)\n    control, escaped, inbound_r = run(regular), run(out_link), run(inbound)\n    print(control); print(escaped); print(inbound_r)\n    assert control == ('refused', 'correction'), control\n    assert escaped == ('ok', {'correction': False, 'answers': []}), escaped\n    assert inbound_r == ('refused', 'correction'), inbound_r\nPY"
+        }
+      ],
+      "artifacts": {
+        "correction": "ops/conductor/tools/correction.py",
+        "launch": "ops/devlane/dispatch/launch.py",
+        "scope": ".dev/ladder-inputs/scope-gate-20260910.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2363117,
+        "out": 46294,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "659ca1931ed59a4d6463d11f0025e9e3df2f41c4",
+        "started": null,
+        "ended": "2026-09-11T06:36:31Z"
+      },
+      "note": "Read in/scope-gate-20260910.md, in/scope-discipline.md and in/plan-launcher-gate.md whole. Slice 4 wires the mint gate (items 1-8); item 9 is not in this change; item 10 already sits on correction.py.json. Frozen tests at 659ca1931ed59a4d6463d11f0025e9e3df2f41c4: test_record_answers 8 ok, test_launch_correction_gate 29 ok. The --follows arm, five found-texts, citation_holds, time order, no override, and recording of keys plus disposition citations hold on regular files. Refuted: work_order_scope returning None on this tree (scope-gate-20260910.scope.md uniquely references the work order); copyfile of an outside symlink target as a new escape (--input of any readable path already copies). Independently reproduced the Path.resolve() out/-input hole; the --follows arm is unaffected."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T06:38:46.170Z"
+    }
+  },
+  "status": "closed"
+}

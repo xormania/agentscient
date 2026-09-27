@@ -1,0 +1,90 @@
+{
+  "id": "20260918T221113Z-native-audit-codex-01a0b3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-recover",
+  "lineage": {
+    "branch": "lane/session-20260916-recover",
+    "base_sha": "e12440f18c81636ffe6b47562eba523c1f2be1d8"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": null,
+  "at": "2026-09-18T22:07:35.022971Z",
+  "snapshot": {
+    "mode": "whole",
+    "root": "/tmp/agentscient-pr265-audit-01a0b32d",
+    "ref_sha": "af142061eb018e4997ae90667dcfef3269382a3a",
+    "origin": "native reviewer isolated clone; not a dispatched snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "execution": "native-terminal",
+    "argv": null,
+    "containment": "policy",
+    "isolation": {
+      "observed": {
+        "unresolved": "Native terminal launch isolation was not measured. Reviewer used a separate scratch clone; no dispatched worker or OS containment is claimed."
+      }
+    }
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl:662",
+    "measured_at": "2026-09-18T22:04:01.821Z",
+    "effort_requested": null,
+    "effort_argv": [],
+    "note": "Owner selected an existing Daybreak terminal. Actual model read from its native turn_context, not a dispatch request."
+  },
+  "session": {
+    "id": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+    "participant": "PT-19",
+    "assignment": "A-310",
+    "execution": "native-terminal"
+  },
+  "brief": {
+    "source": "coordination A-310; M-311; owner-selected native reviewer",
+    "receipt": "M-312 / A-310 observation",
+    "envelope_sha256": "ce7d143c75f26b6c93335f02950e0218b71edd1fcdc29a1d370ecc5d03cbb973"
+  },
+  "caps": null,
+  "overrides": {},
+  "attempts": [],
+  "result": {
+    "head": "af142061eb018e4997ae90667dcfef3269382a3a",
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "af142061eb018e4997ae90667dcfef3269382a3a",
+        "started": "2026-09-18T22:07:35.022971Z",
+        "ended": "2026-09-18T22:11:13.126367Z"
+      },
+      "note": "Native, non-dispatched records-only audit by PT-19; harness codex; actual rollout model gpt-daybreak-blue-latest / GPT Daybreak and session 01a0b32d-e3c8-7ef0-85b0-d24bd04ed089, read from the native rollout. Audited immutable PR265 head af142061eb018e4997ae90667dcfef3269382a3a against live dev/base e12440f18c81636ffe6b47562eba523c1f2be1d8 in /tmp/agentscient-pr265-audit-01a0b32d. Exact delta: two new regular mode-100644 files, 168 insertions and no deletions: ops/conductor/AAR-2026-09-16-lead-recovery.md (165 lines, 9222 bytes, sha256 b18b9417e9382c0ce7ba210371a80bb6b4a9b2820eb81ec603704de04550efa1) and ops/conductor/handoff/probes/probes-2026-09-18-lead-aar.jsonl (3 lines, 882 bytes, sha256 730fbeba6a42b4dbc08a4f8faa1039f8c6e43a77a9bf45a2796fe82bfdcaf706). The AAR is byte-identical to original commit c801f33cbe9d1eaf47fdf3c734df4a032493721c; it labels its owner words recollection/unmeasured and its board with the dated 21:28:35Z-21:29:06Z close window. Source-consumer search found no operational reader interpreting AAR prose as current policy; lane_refs.py enumerates bounded record blobs, and onboarding tests explicitly keep AAR files out of the current board. All three JSONL lines parsed as strict JSON without duplicate keys, split to fixed argv with shlex, passed the corpus read allowlist, and executed as git grep with '--' plus the fixed AAR path. The actual corpus runner returned PASS for P-LEAD-AAR-20260916-dated-board, P-LEAD-AAR-20260916-audit-miss, and P-LEAD-AAR-20260916-correction. No shell control token, interpreter, write command, path escape, executable/symlink change, hidden Unicode control, NUL, private-key marker, GitHub/AWS token form, bearer value, credential assignment, or secret environment name was found. git diff --check passed; merge-base equals e12440f18c81636ffe6b47562eba523c1f2be1d8; the range contains the original AAR commit, the dev-forward merge, and the three-row head commit; the scratch clone remained free of tracked changes. Test evidence: probes.py run in the local-origin scratch clone measured 474 pass, 0 fail, 4 unreachable; all three added rows passed. The four unreachable rows are pre-existing GitHub/gh reads (P-S1, P-03, P-D1, P-SUPPORT-20260915-t54-pr) because the disposable clone deliberately has a local filesystem origin, not a GitHub remote. test_probes.py therefore passed 22 of 23 tests and its sole failure was the same tracked-corpus GitHub-remote condition. Root supplied a separate dev-merged-candidate reading of 478 pass, 0 fail, 0 unreachable; that reading was not relabeled as this terminal's command. Looked and found no hidden policy, authority, credential, secret, command, template, path/ref, vendor-trust, or supply-chain change in the bounded delta. Unmeasured here: the four GitHub-backed corpus effects in a GitHub-origin clone, future trunk-forward commits including merged PR266, publication/readiness/merge behavior, provider/model calls, and live activation. Graft was not used because this two-file Markdown/JSONL records scope has no matching indexed source context. Spend remains the job-contract zero because this native terminal was not dispatched and no session store was read. No dispatch receipt, process launch claim, isolation/sandbox claim, report file, source/index/ref/settings write, commit, activation, readiness, merge, cleanup, additional agent, model, or provider was used."
+    },
+    "native_receipt": {
+      "message": "M-312",
+      "assignment": "A-310",
+      "provenance": "Export of reviewer-authored SQLite receipt using existing record builder. No dispatched execution claimed."
+    }
+  },
+  "status": "closed"
+}

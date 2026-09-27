@@ -1,0 +1,235 @@
+{
+  "id": "20260915T045247Z-tests-grok-eaf433",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T04:52:47Z",
+    "closed": "2026-09-15T05:07:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "ref_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok-stream/sessions/<snapshot-encoded>/90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab/summary.json"
+  },
+  "session": {
+    "id": "90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok-stream/sessions/<snapshot-encoded>/90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab/summary.json",
+    "stream_sha256_at_close": "afcbd12d2508b2c99b6973b68cb82badbe65e467948159da74aeb50ef1d74db0",
+    "spend": {
+      "input": 2428771,
+      "cached": 2201472,
+      "output": 44149,
+      "total": 2472920,
+      "cost_usd_ticks": 6188775200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok-stream/sessions/<snapshot-encoded>/90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab/summary.json",
+      "messages": 286
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of .claude/skills/pr-overview/tests onto the kit as in/testkit-migration-guide.md says, touching only them: .claude/skills/pr-overview/tests/support.py, .claude/skills/pr-overview/tests/test_collect_rows.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "817eb10756e9fc2d207caaacb599e1946028e2b2330b3e7a925624aeb43f5e99",
+    "bytes": 9853,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/lane-mcp.json",
+      "sha256": "69a26e5d825345917dbfd28b777fe7659d453ec806fc94d2944e906bf5df7aef",
+      "job_ids": [
+        "20260915T045246Z-tests-codex-af6369",
+        "20260915T045245Z-tests-grok-1f5c25",
+        "20260915T045244Z-tests-codex-34c22f",
+        "20260915T045243Z-tests-grok-b9f958",
+        "20260915T045242Z-tests-codex-0353f2",
+        "20260915T025600Z-adjudicate-codex-68d3d9",
+        "20260915T023743Z-review-grok-7da077"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T04:52:48Z",
+      "ended": "2026-09-15T05:07:02Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "994b96a17bc57e4de4996b300c081bdd863a2c44",
+    "changed_paths": [
+      ".claude/skills/pr-overview/tests/fixtures/gh_stub.py",
+      ".claude/skills/pr-overview/tests/support.py",
+      ".claude/skills/pr-overview/tests/test_collect_rows.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "support": "1b09886342abdc5dc1179a24da3d74392c68fa4f",
+        "collect_rows": "994b96a17bc57e4de4996b300c081bdd863a2c44",
+        "discover_support": "python3 -m unittest discover -s .claude/skills/pr-overview/tests -p support.py\nbefore da04bae4 and after 994b96a1: Ran 0 tests in 0.000s\nNO TESTS RAN (exit 5)",
+        "discover_collect_rows": "python3 -m unittest discover -s .claude/skills/pr-overview/tests -p test_collect_rows.py\nbefore da04bae4: Ran 8 tests in 0.922s OK\nafter 994b96a1: Ran 8 tests in 1.137s OK",
+        "family": "python3 -m unittest discover -s .claude/skills/pr-overview/tests\nRan 8 tests in 1.108s OK",
+        "ruff": "ruff check .claude/skills/pr-overview/tests/support.py .claude/skills/pr-overview/tests/test_collect_rows.py .claude/skills/pr-overview/tests/fixtures/gh_stub.py\nAll checks passed!",
+        "ratchet": "embedded_programs: 30 -> 29; the new floor\nrun_without_timeout: 185 -> 184; the new floor\nratchet holds: home_by_hand=57, embedded_programs=29, run_without_timeout=184"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2472920,
+        "out": 44149,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nMigrated .claude/skills/pr-overview/tests/support.py and test_collect_rows.py onto the kit. Same eight CollectRows names and the same assertions; support.py still has no TestCase (discover N=0, exit 5 before and after). Worlds through World; git probe through run(timeout=60); gh is tests/fixtures/gh_stub.py planted by world.tools.plant(script=), calls via world.tools.calls; conf and workflow files through plant_text.\nKit gap: World.enter does not take extra; GH_STUB_STATE, GH_STUB_LOG and TESTKIT_DIR are applied after enter. The stub is stateful (trees, per-PR check_errors/review_errors, git blob SHAs) so Tools responses cannot express it.\nProof at 994b96a1: family discover Ran 8 OK; ruff clean; ratchet embedded_programs 30 -> 29 and run_without_timeout 185 -> 184, the new floor (baseline not written). Commits 1b098863 (support+fixture) and 994b96a1 (collect-rows). Did not read pr_overview.py. reused also: agentscient-lane lane_brief/lane_jobs/lane_changes/lane_findings, docs/tests.md, ops/testkit modules and tests."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 12,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045247Z-tests-grok-eaf433/home/grok-stream/sessions/<snapshot-encoded>/90ccc9a3-6a40-4dd4-9f12-ef875b74e6ab/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nMigrated .claude/skills/pr-overview/tests/support.py and test_collect_rows.py onto the kit. Same eight CollectRows names and the same assertions; support.py still has no TestCase (discover N=0, exit 5 before and after). Worlds through World; git probe through run(timeout=60); gh is tests/fixtures/gh_stub.py planted by world.tools.plant(script=), calls via world.tools.calls; conf and workflow files through plant_text.\nKit gap: World.enter does not take extra; GH_STUB_STATE, GH_STUB_LOG and TESTKIT_DIR are applied after enter. The stub is stateful (trees, per-PR check_errors/review_errors, git blob SHAs) so Tools responses cannot express it.\nProof at 994b96a1: family discover Ran 8 OK; ruff clean; ratchet embedded_programs 30 -> 29 and run_without_timeout 185 -> 184, the new floor (baseline not written). Commits 1b098863 (support+fixture) and 994b96a1 (collect-rows). Did not read pr_overview.py. reused also: agentscient-lane lane_brief/lane_jobs/lane_changes/lane_findings, docs/tests.md, ops/testkit modules and tests.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T05:07:01.338Z"
+    }
+  },
+  "status": "closed"
+}

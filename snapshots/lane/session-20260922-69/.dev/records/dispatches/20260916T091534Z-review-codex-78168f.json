@@ -1,0 +1,248 @@
+{
+  "id": "20260916T091534Z-review-codex-78168f",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-f",
+  "lineage": {
+    "branch": "lane/session-20260916-f",
+    "base_sha": "cf067ff4f841a9fff24460c356abd8cd82680efb"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T09:15:34Z",
+    "closed": "2026-09-16T09:27:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "ref_sha": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T05-15-46-01a0a980-33a0-7892-ad08-3c3795f1b966.jsonl"
+  },
+  "session": {
+    "id": "01a0a980-33a0-7892-ad08-3c3795f1b966",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T05-15-46-01a0a980-33a0-7892-ad08-3c3795f1b966.jsonl",
+    "stream_sha256_at_close": "f47a93bc4ac172b5cc92b813a040961e8b65f3306d8383ac2b71106084ef9504",
+    "spend": {
+      "input": 3225248,
+      "cached": 3054592,
+      "output": 25465,
+      "total": 3250713,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T05-15-46-01a0a980-33a0-7892-ad08-3c3795f1b966.jsonl",
+      "messages": 317
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "PR #244, round 2, head cf067ff4. Check the eight round-1 findings (records 20260916T082610Z-review-codex-ee08a7, 20260916T082553Z-review-grok-61ba2a) against their fixes in a663b79b: does each fix answer that specific finding, not just touch nearby code.\n\nVerify the central repair: backlog silence keyed to the condition present at start (hold_silence and silent consulted in every condition family), with a control row proving silence is a real reading, not a default. Also check the watch skill's corrected recipes and new capability row, and the findings export in cf067ff4 that regenerates the shared ledger with rows from records not on this branch, as the PR body declares \u2014 verify the declaration against what the export actually did.\n\nFor the five new rows: do they pin the behaviour (fails if it regresses) or just the words (a string/shape check that survives a regression)? Name which is which.\n\nVERDICT/STAMP/FINDINGS on the wire. Detached snapshot; do not propose fixes, do not edit.\n",
+    "inputs": [],
+    "sha256": "7dd04928f754104b71f3c757312eeb3b1389328e508f36d5732804ee050498fc",
+    "bytes": 10705,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/lane-mcp.json",
+      "sha256": "5869ea7c5368b0b83e261a8a650c9a90d885bb2635e5ad6312f48d886f070c54",
+      "job_ids": [
+        "20260916T091513Z-review-grok-bf7932",
+        "20260916T082610Z-review-codex-ee08a7",
+        "20260916T082553Z-review-grok-61ba2a"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "59410c16f7afd6b2648e4ced20fbffa2930d157cff8c3db2816862859d5c7b91"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T09:15:45Z",
+      "ended": "2026-09-16T09:27:47Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/watchdog.py:919-925",
+          "claim": "hold_silence recomputes silence solely from the immutable startup tuple. If a startup no-copy directory disappears for a tick and later reappears empty under the same name, its kind and all-absent fingerprint equal the startup tuple, so it becomes silent again and the new live no-record-copy condition is lost. The contract says a directory appearing after start speaks and the docstring says only entries still standing in their original condition remain silent.",
+          "reproduce": "Create an empty job directory, start watchdog.py with --tick 0.1 --no-forge, remove the directory after 0.25s, and recreate it after another 0.25s. At cf067ff4 the output contains the armed line but no `no record copy <id>` line."
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/watch/SKILL.md:76-100",
+          "claim": "The corrected old-checkout recipe still drops a live condition named in round-1: watchdog emits `worker unobservable ...`, while the anchored filter accepts only `^unobservable `. The primary Monitor recipe also passes `harness gone` and `watchdog error` although its description omits them, contradicting the adjacent claim that the description names exactly what the filter passes. Codex #3 and Grok #2 are therefore only partially answered.",
+          "reproduce": "printf '%s\\n' 'worker unobservable 20260915T090000Z-code-grok-old: no usable worker PID, no exit written' | grep -E --line-buffered '^(stall |ci fail |ci cancel |harness gone |exit written|unobservable |long |heartbeat|watchdog error)' exits 1."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/harness-capabilities.md:27; .claude/skills/watch/SKILL.md:72-89",
+          "claim": "The new capability row records the exact Monitor behavior only as an anecdotal MEASURED assertion: it names no harness version, retained command/receipt, probe, or verified mock, and explicitly remains unprobed. The skill nevertheless relies on per-line delivery and timeout behavior, so the operational risk in Codex #4\u2014being unable to distinguish a delivery regression from a quiet watch\u2014remains a named gap rather than a repaired coupling.",
+          "reproduce": "rg -n 'Monitor\\(|200ms|30-minute|thirty-minute|per stdout line|stdout line' .claude ops/devlane/harness ops/conductor --glob '!ops/archive/**' finds the exact surface only in the skill, capability row, and imported finding; no probe or test exercises it."
+        },
+        {
+          "severity": "p3",
+          "where": "cf067ff4 commit declaration; ops/conductor/findings/findings.jsonl:889-935",
+          "claim": "The export declaration does not match the committed export. The 47 added rows come from nine records total; after the eight PR #244 rows, the remaining 39 come from seven records, not nine. Six source record files are absent from this branch, not four: c7a708, c22c2d, 652e46, 7be071, 62fa82, and b317d7.",
+          "reproduce": "Compare keys in `git show a663b79b:ops/conductor/findings/findings.jsonl` and `git show cf067ff4:ops/conductor/findings/findings.jsonl`, group the 47 additions by `record`, then check each path with `git cat-file -e cf067ff4:.dev/records/dispatches/<record>.json`."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_watchdog.py:1856-1905",
+          "claim": "The two unreadable-transition rows are behavioral pins for the original sticky-name regression, but each asserts only the watchdog error line. They do not pin the contract's second condition family, `deviation unavailable`; a partial regression that retains the error line while suppressing that deviation survives both rows.",
+          "reproduce": "sed -n '1856,1905p' ops/conductor/tests/test_watchdog.py shows both rows assert only `named_lines(proc, \"watchdog error: InputUnavailable\")`."
+        }
+      ],
+      "artifacts": {
+        "round1": "Codex #1 and Grok #1 are fixed for their stated no-copy\u2192record, amended-record, and readable\u2192unreadable reproductions, but the disappear/reappear case remains. Codex #2 is fixed. Codex #3 and Grok #2 are partial because the replacement filter misses `worker unobservable`. Codex #4 is declared and explicitly unprobed, not repaired. Codex #5 and Grok #3 are fixed.",
+        "five_rows": "`test_a_fresh_record_after_start_prints_its_closed_line_and_deviation` is a behavioral control and intentionally passes against 515e5b72. The no-copy\u2192record, amended-record, closed\u2192unreadable, and no-copy\u2192unreadable rows are behavioral regression pins and fail against 515e5b72; the two unreadable rows only pin the error half. Separately, the armed-count row executes behavior/output, while the help row checks words.",
+        "export": "Measured a663b79b\u2192cf067ff4: 888\u2192935 ledger rows, 47 additions, nine source records total, eight target rows, 39 other rows from seven records, and six source records absent from cf067ff4.",
+        "tests": "At cf067ff4: test_watchdog.py ran 68 tests OK; test_watchdog_deliverable.py ran 7 tests OK; test_watch_lever.py ran 29 tests OK. Overlaying watchdog.py from 515e5b72 made the four targeted transition rows fail while the fresh-name control remained green.",
+        "diff": "Provided diff.patch matches `git diff 46639344d5623c36a96ed27436952db3786f8084 cf067ff4f841a9fff24460c356abd8cd82680efb` at sha256 7fbd36114a74242a558331d3562f31625589b54d419735465bbbb0631f893723."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3250713,
+        "out": 25465,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cf067ff4f841a9fff24460c356abd8cd82680efb"
+      },
+      "note": "reused: agentscient-lane brief/jobs/changes/findings, Graft repository map, watchdog-lever contract, and the existing testkit World fixture. ../in existed and contained no files. Graft saved approximately 1,424,183 tokens. The detached snapshot remained clean."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 6,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091534Z-review-codex-78168f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T05-15-46-01a0a980-33a0-7892-ad08-3c3795f1b966.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T09:27:47.198Z"
+    }
+  },
+  "status": "closed"
+}

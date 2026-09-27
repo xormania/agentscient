@@ -1,0 +1,171 @@
+{
+  "id": "20260906T124459Z-review-codex-ed048d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-launcher-20260906",
+  "lineage": {
+    "branch": "lane/conduct-launcher-20260906",
+    "base_sha": "d109889061c83fe37133c463f765603480bd9b9f"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Daybreak <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T12:45:00Z",
+    "closed": "2026-09-06T12:48:40Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d109889061c83fe37133c463f765603480bd9b9f",
+    "ref_sha": "d109889061c83fe37133c463f765603480bd9b9f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-45-00-01a076c0-2b6f-7dc0-b6e0-cfd5e22f8f68.jsonl"
+  },
+  "session": {
+    "id": "01a076c0-2b6f-7dc0-b6e0-cfd5e22f8f68",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-45-00-01a076c0-2b6f-7dc0-b6e0-cfd5e22f8f68.jsonl",
+    "stream_sha256_at_close": "3effe71e825e18d795b5fb37d6b24845c68b91951bd4946db8e8fe4ac51a312c",
+    "spend": {
+      "input": 1338308,
+      "cached": 1234236,
+      "output": 10733,
+      "total": 1349041,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-45-00-01a076c0-2b6f-7dc0-b6e0-cfd5e22f8f68.jsonl",
+      "messages": 173
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-launcher-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Assess the external Codex mediation report's claimed mandatory vendor recording patch against the supplied scope ruling. This is security feasibility of vendor mechanisms, not approval of GPT-6 lane code. Read the reports/contracts and tagged official source as needed. Distinguish rejected CLI input, host-owned policy/attempt records, model-generated native call history, and authentication custody. Determine whether a sole-client relay can meet actual effect/secret/resume duties without vendor changes under the ruling, and identify remaining concrete security blockers and live probes. Challenge the ruling if it hides an unmet invariant; no arbitrary future-prose censorship assumption. No implementation, model launch, credential/settings/state access, alternate executor or live admission. Give a clear decision with exact evidence and limits; inline envelope note at most 700 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/in/ag-conduct-recording-scope-ruling.md",
+        "sha256": "fd73a27a9654282139042dcfba6dc8e9bfa36f3b99190ab9074851dfc16443d3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/in/ag-conduct-codex-mediation.json",
+        "sha256": "8616278ce05b36d6efc2643afdbf32b65c9930b012cce09d7b9c54b17fcf9593"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/in/ag-conduct-external-security.json",
+        "sha256": "d033dc113e69168c4a59d19b49ea89ded53ee960f9a81cb80c49094f7ee69ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "6bc12718498114e233cd48f63ad920af20753e32eac150eae8265fa2669865d9",
+    "bytes": 3201
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:45:00Z",
+      "ended": "2026-09-06T12:48:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d109889061c83fe37133c463f765603480bd9b9f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review-codex-ed048d",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260906T123030Z-plan-codex-0fdfa5.json:139,173",
+          "claim": "The report incorrectly makes vendor pre-persistence censorship an admission prerequisite. The recorded arguments are model-generated native call history, whereas the governing duties cover rejected launcher input and lane-authored prompts, diagnostics, receipts, attempt records and Git. A sole-client relay can refuse before performing an effect without rewriting that private history.",
+          "reproduce": "Compare `nl -ba ops/conductor/harness-capabilities.md | sed -n '183,192p'`, `nl -ba ops/conductor/permission-surface.md | sed -n '122,166p'`, and the supplied recording-scope ruling with the report's cited rust-v0.153.4 stream_events_utils.rs:299-324 and dynamic.rs:199-247."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124459Z-review-codex-ed048d/context/diff.patch; sha256=87a52ddb1a24e3535a063e4ec8407807597bffedefaf468d604fadca625c3c0a; bytes=897160; byte-equal to requested git diff",
+        "inputs": "adoption=9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814; mediation=8616278ce05b36d6efc2643afdbf32b65c9930b012cce09d7b9c54b17fcf9593; external-security=d033dc113e69168c4a59d19b49ea89ded53ee960f9a81cb80c49094f7ee69ef8; ruling=fd73a27a9654282139042dcfba6dc8e9bfa36f3b99190ab9074851dfc16443d3",
+        "official_source": "rust-v0.153.4, reported commit 3d2ee51ca2d5db578f328aa75e20aa22c0197c9a; fresh GitHub retrieval was UNREACHABLE because DNS/network access was unavailable",
+        "limits": "Review only; no model/vendor launch, tests, credentials, settings, session-store access, admission, writes or implementation assessment"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1349041,
+        "out": 10733,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d109889061c83fe37133c463f765603480bd9b9f"
+      },
+      "note": "Decision: the stock-hook rejection and sole-upstream-client requirement remain valid, but the mandatory vendor recording patch does not. Rejected CLI tokens must be stopped before prompt assembly, subprocess launch or host records. Host policy/attempt transport may retain only admitted non-secret evidence and fixed refusal codes. By contrast, a model-generated dynamic call is already model output; its private native history is neither rejected launcher input nor the lane decision store, and it must never be published into Git.\n\nStock persistence can support native resume. Authority instead remains in host receipts: resume must revalidate the original binding before restoring state and reconcile call/dispatch identity. The crash window after a canonical effect but before its response is a concrete duplicate-effect blocker requiring idempotency/reconciliation proof, not vendor censorship.\n\nAdmission remains blocked pending live probes for complete fresh/resume tool-registry closure\u2014including model-selected code mode, extensions, apps and MCP\u2014forced direct and nested built-in attempts, sole-client socket custody, filtering of thread/config/auth/approval RPCs, malformed/disconnected/timed-out and replayed requests, and positive canonical delegation. Authentication must remain solely in trusted app-server plumbing; the TUI, model, relay capabilities, MCP servers and helper descendants must be proven unable to read auth files, environment aliases or credential-bearing filesystem paths. If that custody fails, host containment or capability removal is the minimal remedy. A vendor recording mode would become necessary only under a newly declared privacy requirement forbidding model-generated arguments in private vendor history; the supplied ruling establishes no such requirement. This does not approve GPT-6 lane code or create live admission."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T12:48:39.728Z"
+    }
+  },
+  "status": "closed"
+}

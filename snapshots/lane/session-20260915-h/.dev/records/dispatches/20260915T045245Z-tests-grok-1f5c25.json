@@ -1,0 +1,235 @@
+{
+  "id": "20260915T045245Z-tests-grok-1f5c25",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T04:52:45Z",
+    "closed": "2026-09-15T05:10:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "ref_sha": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok-stream/sessions/<snapshot-encoded>/2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8/summary.json"
+  },
+  "session": {
+    "id": "2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok-stream/sessions/<snapshot-encoded>/2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8/summary.json",
+    "stream_sha256_at_close": "3b6a8368a271948b9b5c6fde361fdc50c8668680a1fa6a71aea911343420a749",
+    "spend": {
+      "input": 3802226,
+      "cached": 3448064,
+      "output": 46969,
+      "total": 3849195,
+      "cost_usd_ticks": 9228178000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok-stream/sessions/<snapshot-encoded>/2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8/summary.json",
+      "messages": 344
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/hooks/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/hooks/tests/corpus.py, ops/devlane/hooks/tests/gh_stub.py, ops/devlane/hooks/tests/test_boundary_match.py, ops/devlane/hooks/tests/test_no_subagents.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "9a436f9ccd6d5b451adc1c141928bbe89bd594cb77ffe2d151eb7b59a8c21078",
+    "bytes": 9836,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/lane-mcp.json",
+      "sha256": "a897e42def74e5826fe12f18b32d4d4dd49ea8ce13de18d58602e84360bd3d20",
+      "job_ids": [
+        "20260915T045244Z-tests-codex-34c22f",
+        "20260915T045243Z-tests-grok-b9f958",
+        "20260915T045242Z-tests-codex-0353f2",
+        "20260915T025600Z-adjudicate-codex-68d3d9",
+        "20260915T023743Z-review-grok-7da077"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T04:52:46Z",
+      "ended": "2026-09-15T05:10:43Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "26d903ea4f7de59a81b7ad84083b98652ea669c0",
+    "changed_paths": [
+      "ops/devlane/hooks/tests/corpus.py",
+      "ops/devlane/hooks/tests/gh_stub.py",
+      "ops/devlane/hooks/tests/test_boundary_match.py",
+      "ops/devlane/hooks/tests/test_no_subagents.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "corpus": "python3 -m unittest discover -s ops/devlane/hooks/tests -p corpus.py\nbefore da04bae4 and after 5209311: Ran 0 tests in 0.000s / NO TESTS RAN (N=0)",
+        "gh_stub": "python3 -m unittest discover -s ops/devlane/hooks/tests -p gh_stub.py\nbefore da04bae4: Ran 1 test FAILED (errors=1) ImportError fake_program\nafter bdf7924: Ran 0 tests / NO TESTS RAN (the stub is not a TestCase; import now succeeds from the repo root)\npython3 -m unittest discover -s ops/devlane/hooks/tests -p test_pr_feedback.py: Ran 20 tests in 47.204s OK",
+        "test_boundary_match": "python3 -m unittest discover -s ops/devlane/hooks/tests -p test_boundary_match.py\nbefore da04bae4: Ran 5 tests in 0.007s OK\nafter 050b93d: Ran 5 tests in 0.009s OK\nred: dummy classify=None leaves 29/29 fire rows silent; dummy classify=('tree','x') false-positives 37/37 silent rows",
+        "test_no_subagents": "python3 -m unittest discover -s ops/devlane/hooks/tests -p test_no_subagents.py\nbefore da04bae4: Ran 3 tests in 0.407s OK\nafter 26d903e: Ran 3 tests in 0.252s OK\nred: dummy exit 0 fails refuse (0 != 2); dummy exit 2 stderr=no fails lets-through ((2,'','no\\n') != (0,'',''))",
+        "family": "python3 -m unittest discover -s ops/devlane/hooks/tests\nRan 304 tests in 81.676s OK",
+        "ruff": "ruff check ops/devlane/hooks/tests/corpus.py ops/devlane/hooks/tests/gh_stub.py ops/devlane/hooks/tests/test_boundary_match.py ops/devlane/hooks/tests/test_no_subagents.py\nAll checks passed!",
+        "ratchet": "python3 ops/devlane/workflow/checks/testkit_ratchet.py\nrun_without_timeout: 185 -> 184; the new floor\nratchet holds: home_by_hand=57, embedded_programs=30, run_without_timeout=184",
+        "commits": "5209311 tests: hooks corpus tables import the kit\nbdf7924 tests: gh stub jq and recorder go through the kit\n050b93d tests: boundary-match corpus runs in a World\n26d903e tests: no-subagents runs through World and run\nHEAD 26d903ea4f7de59a81b7ad84083b98652ea669c0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3849195,
+        "out": 46969,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "da04bae4b4039d75cf3328a1a0613b0d4760bbb7",
+        "started": "2026-09-15T04:52:45Z",
+        "ended": "2026-09-15T05:10:12Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nFour modules migrated onto the kit; same test names and counts on the two TestCase modules (5 and 3). Worlds through World; every subprocess through run with a timeout; gh fake is the existing fixture file, planted by path, recorder via fake_program.log_call. Kit gap: a copy of gh_stub on PATH cannot `from ops.testkit import run`, so it loads the kit modules by TESTKIT_DIR file path (no sys.path insert). World.stage of no-subagents.py takes sibling miss.py (imported inside main). gh_stub discover was an import error counted as 1 test; after the kit import it is 0 tests. Lane MCP: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings, lane_record."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 8,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T045245Z-tests-grok-1f5c25/home/grok-stream/sessions/<snapshot-encoded>/2a38d086-4b4d-44f0-9a5a-8d7eb77ca8a8/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nFour modules migrated onto the kit; same test names and counts on the two TestCase modules (5 and 3). Worlds through World; every subprocess through run with a timeout; gh fake is the existing fixture file, planted by path, recorder via fake_program.log_call. Kit gap: a copy of gh_stub on PATH cannot `from ops.testkit import run`, so it loads the kit modules by TESTKIT_DIR file path (no sys.path insert). World.stage of no-subagents.py takes sibling miss.py (imported inside main). gh_stub discover was an import error counted as 1 test; after the kit import it is 0 tests. Lane MCP: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings, lane_record.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T05:10:42.585Z"
+    }
+  },
+  "status": "closed"
+}

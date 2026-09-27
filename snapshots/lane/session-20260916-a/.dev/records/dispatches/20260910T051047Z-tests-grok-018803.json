@@ -1,0 +1,154 @@
+{
+  "id": "20260910T051047Z-tests-grok-018803",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/graft-integration-20260910",
+  "lineage": {
+    "branch": "lane/graft-integration-20260910",
+    "base_sha": "a3b8eb1b09565c0d83a8e1a884c0bc3ac00a6972"
+  },
+  "follows": [
+    "20260910T045959Z-check-tests-claude-d491e7"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T05:10:48Z",
+    "closed": "2026-09-10T05:22:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a3b8eb1b09565c0d83a8e1a884c0bc3ac00a6972",
+    "ref_sha": "a3b8eb1b09565c0d83a8e1a884c0bc3ac00a6972",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/tmp/ag-graft-integration-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c386a2a5-45f9-4ff2-b9b4-d7b730683317",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok-stream/sessions/<snapshot-encoded>/c386a2a5-45f9-4ff2-b9b4-d7b730683317/summary.json"
+  },
+  "session": {
+    "id": "c386a2a5-45f9-4ff2-b9b4-d7b730683317",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok-stream/sessions/<snapshot-encoded>/c386a2a5-45f9-4ff2-b9b4-d7b730683317/summary.json",
+    "stream_sha256_at_close": "65affc197a89210b78bc49d1ac42146dfee148d2e5300a4c29d32342354016f9",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/home/grok-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-graft-integration-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only existing Graft tests/fake/support under ops/devlane/{harness,dispatch}/tests against harness/graft/CONTRACT.md. Read in/ag-graft-tests-rulings-20260910.md and in/SKEPTIC.md. Apply the bounded rulings: valid-digest foreign root/cache and install drift/relocation, real linked-worktree default caches, disabled versus enabled-unreachable probe, failed prepare/refresh preservation, observed no-fetch boundaries, and fake GraphBuildResult numeric counts plus .graph/wiring.json matching the public upstream type supplied. No product implementation reads/edits. Preserve existing valid tests. Run each changed product file independently: genuine assertion reds against bootstrap, no collection/import errors; mock suite green. Commit with actual model trailers, report exact commands and source ref. This is a focused correction pass; do not expand scope or plan new machinery.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/in/ag-graft-tests-rulings-20260910.md",
+        "sha256": "3cb163a540558bcad237dc4516dd77f4aa06290fcee1434b2421964d925df00d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T051047Z-tests-grok-018803/in/SKEPTIC.md",
+        "sha256": "a8edaa7f6b02c8bdb51b66388aedaaa0cd30321541c07aec825b32a6ffb92ef0"
+      }
+    ],
+    "sha256": "6f05388b250b4a9ef37b97c6134bb1420a6c2a46a24e6cb2f5b529dac6088643",
+    "bytes": 3230
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T05:10:48Z",
+      "ended": "2026-09-10T05:22:36Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "97b5f89955639cfc80607556bab0dd32e5dc740c",
+    "changed_paths": [
+      "ops/devlane/harness/tests/fakes/graft_bridge.py",
+      "ops/devlane/harness/tests/graft_support.py",
+      "ops/devlane/harness/tests/test_graft_bridge_fake.py",
+      "ops/devlane/harness/tests/test_graft_install.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "a3b8eb1b09565c0d83a8e1a884c0bc3ac00a6972"
+      },
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited -15; cause: {\"reason\": \"harness-cli:-15\"}"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,157 @@
+{
+  "id": "20260910T054759Z-review-codex-6083b8",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/graft-integration-20260910",
+  "lineage": {
+    "branch": "lane/graft-integration-20260910",
+    "base_sha": "33504879c401829f2168a663989040222efb26f5"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T05:48:08Z",
+    "closed": "2026-09-10T05:48:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "33504879c401829f2168a663989040222efb26f5",
+    "ref_sha": "33504879c401829f2168a663989040222efb26f5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/tmp/ag-graft-integration-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"low\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "low",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"low\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T01-48-09-01a089db-f871-78e2-af04-7231a43ba095.jsonl"
+  },
+  "session": {
+    "id": "01a089db-f871-78e2-af04-7231a43ba095",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T01-48-09-01a089db-f871-78e2-af04-7231a43ba095.jsonl",
+    "stream_sha256_at_close": "db4c29455395e352c3e8db1f9dcbcd8a2fc19253b979d64c620596dd0ded4584",
+    "spend": {
+      "input": 36403,
+      "cached": 28672,
+      "output": 379,
+      "total": 36782,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T01-48-09-01a089db-f871-78e2-af04-7231a43ba095.jsonl",
+      "messages": 26
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-graft-integration-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Graft runtime smoke check only. Execute exactly one source-navigation command: python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{\"max_dirs\":1}'. Record its exit code and whether it returned nonempty navigation text in your final envelope note, with the source ref. Read no other source, do not edit source, do not perform a general review. An exit-zero query is success; no findings required. Return the sweep envelope promptly after that command.\n",
+    "inputs": [],
+    "sha256": "55a1bbe5962b7b43d2469bacf428a5b294d65df902e182001aa9adab1bfdac65",
+    "bytes": 3587,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "9206182be0bf212c3adf469cf5b4f93e0e1e69e304bb7bad49fae5f503839d75"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 180.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T05:48:09Z",
+      "ended": "2026-09-10T05:48:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "33504879c401829f2168a663989040222efb26f5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "graft-runtime-smoke",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 36782,
+        "out": 379,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "33504879c401829f2168a663989040222efb26f5",
+        "started": null,
+        "ended": null
+      },
+      "note": "Source ref 33504879c401829f2168a663989040222efb26f5: the single required Graft query exited 0 and returned nonempty navigation text."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T05:48:30.444Z"
+    }
+  },
+  "status": "closed"
+}

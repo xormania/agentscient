@@ -1,0 +1,256 @@
+{
+  "id": "20260916T131253Z-code-grok-30090b",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-s3",
+  "lineage": {
+    "branch": "lane/session-20260916-s3",
+    "base_sha": "3f6c3695b2e001417886ad2a85338ba0f173f0f2"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T13:12:53Z",
+    "closed": "2026-09-16T13:28:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3f6c3695b2e001417886ad2a85338ba0f173f0f2",
+    "ref_sha": "3f6c3695b2e001417886ad2a85338ba0f173f0f2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-s3/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "100e3cc1-7072-48f8-877c-75e957120649",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok-stream/sessions/<snapshot-encoded>/100e3cc1-7072-48f8-877c-75e957120649/summary.json"
+  },
+  "session": {
+    "id": "100e3cc1-7072-48f8-877c-75e957120649",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok-stream/sessions/<snapshot-encoded>/100e3cc1-7072-48f8-877c-75e957120649/summary.json",
+    "stream_sha256_at_close": "49bdb11fe7c24df4a3dcf36bc68c42c89d0de72f1fbd1922415807b49d2e35b5",
+    "spend": {
+      "input": 6041879,
+      "cached": 5759232,
+      "output": 54669,
+      "total": 6096548,
+      "cost_usd_ticks": 12827941600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok-stream/sessions/<snapshot-encoded>/100e3cc1-7072-48f8-877c-75e957120649/summary.json",
+      "messages": 488
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-s3/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Build what ops/conductor/handoff/briefs-2026-09-16-classes/\nS3-measure-as-argv.md specifies.\nMeasured 2026-09-16: onboard.py printed 'lock: UNREACHABLE: timed\nout after 5s, retried and timed out after 20s', and `timeout 90\npython3 ops/conductor/tools/deliverable.py show` then returned the\nwhole lock, exit 0. The store answers; each target's measure is a\nshell string re-run on every read, and that is what is slow.\nThe brief, not this file, is the specification.\nTests use isolated state and pin the refusal on an unrunnable\nmeasure.\ndocs/tests.md rules 3 to 6 bind the tests: planted faults and clean\nneighbours, a hermetic world, every subprocess through testkit run with a\ntimeout, fakes planted through the registry.\nDo not touch the wall paths AGENTS.md names (the CI workflow, the\nsuite lever, the corpus runner, the closure levers, the hook registry\nand engine); wall, they refuse.\nCommit here with Source: and Co-Authored-By: trailers. Nothing else.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/in/walkthrough.txt",
+        "sha256": "570050c545f1305810b0364217ffa70d72e7964b1a73c9dbf7db7b72f1f6a3e3"
+      }
+    ],
+    "sha256": "6773f4eb65b09b87b2a3e561d3c91cdb8a36c11c8b019bfc412da845fecd7a3c",
+    "bytes": 11573,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/lane-mcp.json",
+      "sha256": "01c3e178da27bc699847c195104e43b70e56c880f5a27e893f8e020840b1418e",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "6126fc9ca57703e3a25b36375a82fa61ddb41209cc2e12b9354655dea7265c6e"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T13:13:07Z",
+      "ended": "2026-09-16T13:28:53Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "59f74f49639959bfdb3d2a3e9edb8e588687eddf",
+    "changed_paths": [
+      ".claude/skills/deliverable/SKILL.md",
+      ".claude/skills/refused/SKILL.md",
+      "ops/conductor/tests/deliverable_faults.py",
+      "ops/conductor/tests/test_deliverable.py",
+      "ops/conductor/tests/test_onboard_lever.py",
+      "ops/conductor/tools/deliverable.py",
+      "ops/conductor/tools/onboard.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_deliverable.py",
+          "claim": "At head 59f74f49, python3 -m unittest discover -s ops/conductor/tests -p 'test_deliverable.py' Ran 21 tests in 4.115s OK.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_deliverable.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_onboard_lever.py",
+          "claim": "At head 59f74f49, python3 -m unittest discover -s ops/conductor/tests -p 'test_onboard_lever.py' -k TheLockLine Ran 6 tests in 6.210s OK, including onboard-prints-lock.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_onboard_lever.py' -k TheLockLine"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/deliverable.py",
+          "claim": "ruff check of deliverable.py, onboard.py, test_deliverable.py, test_onboard_lever.py and deliverable_faults.py: All checks passed.",
+          "reproduce": "ruff check ops/conductor/tools/deliverable.py ops/conductor/tools/onboard.py ops/conductor/tests/test_deliverable.py ops/conductor/tests/test_onboard_lever.py ops/conductor/tests/deliverable_faults.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_deliverable.py",
+          "claim": "RED at 3f6c3695 with this commit's tests and that sha's lever: MeasureAsArgv Ran 6 tests in 0.381s FAILED (failures=6), including FAIL: test_measure_is_argv AssertionError: 'met' not found and FAIL: test_string_refuses AssertionError: 0 != 2.",
+          "reproduce": "git show HEAD:ops/conductor/tools/deliverable.py > ops/conductor/tools/deliverable.py; python3 -m unittest discover -s ops/conductor/tests -p 'test_deliverable.py' -k MeasureAsArgv"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/deliverable_faults.py",
+          "claim": "M-string-tokenizer, M-show-runs-all and M-string-accepted each went red on the named row (measure-is-argv, show-runs-nothing 20.04 not less than 2, string-refuses 0 != 2); clean neighbour measure-is-argv Ran 1 test in 0.087s OK; subject restored.",
+          "reproduce": "apply each Mutant in ops/conductor/tests/deliverable_faults.py to ops/conductor/tools/deliverable.py, then python3 -m unittest ops.conductor.tests.test_deliverable.MeasureAsArgv.test_measure_is_argv (and the sibling rows)"
+        }
+      ],
+      "artifacts": {
+        "commit": "59f74f49639959bfdb3d2a3e9edb8e588687eddf"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6096548,
+        "out": 54669,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3f6c3695b2e001417886ad2a85338ba0f173f0f2",
+        "started": "2026-09-16T13:12:53Z",
+        "ended": "2026-09-16T13:28:24Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire, testkit.rows, instrument.run, deliverable.py, onboard.py lock_lines. Assumption: this gap implement job wrote the rows the brief named because author-tests had not landed at 3f6c3695. Follow-up: engine.py still calls bare show (wall, not touched); that read is now cheap and prints reading not run. Live lock targets remain legacy strings until sessions re-add them as lists."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 3,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131253Z-code-grok-30090b/home/grok-stream/sessions/<snapshot-encoded>/100e3cc1-7072-48f8-877c-75e957120649/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire, testkit.rows, instrument.run, deliverable.py, onboard.py lock_lines. Assumption: this gap implement job wrote the rows the brief named because author-tests had not landed at 3f6c3695. Follow-up: engine.py still calls bare show (wall, not touched); that read is now cheap and prints reading not run. Live lock targets remain legacy strings until sessions re-add them as lists.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T13:28:52.540Z"
+    }
+  },
+  "status": "closed"
+}

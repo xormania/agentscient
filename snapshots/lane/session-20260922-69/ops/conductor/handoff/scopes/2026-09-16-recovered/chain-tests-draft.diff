@@ -1,0 +1,177 @@
+diff --git a/ops/conductor/tests/test_onboard_lever.py b/ops/conductor/tests/test_onboard_lever.py
+index 8da0ac02..74c71188 100644
+--- a/ops/conductor/tests/test_onboard_lever.py
++++ b/ops/conductor/tests/test_onboard_lever.py
+@@ -1529,7 +1529,7 @@ class HandoffsSection(_OnboardFixture):
+         self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+         return proc.stdout
+ 
+-    def test_the_section_prints_after_state_and_is_the_last_section(self):
++    def test_the_section_prints_after_state_and_before_the_chain(self):
+         self.ready()
+         proc = self.invoke()
+         stdout = proc.stdout or ""
+@@ -1538,7 +1538,8 @@ class HandoffsSection(_OnboardFixture):
+         self.assertLess(state_i, handoffs_i, stdout)
+         self.assertNotIn("== thread", stdout)
+         headings = [ln for ln in stdout.splitlines() if ln.startswith("== ")]
+-        self.assertEqual(headings[-1], "== handoffs", headings)
++        self.assertEqual(headings[-2], "== handoffs", headings)
++        self.assertEqual(headings[-1], "== chain", headings)
+ 
+     def test_an_absent_state_store_is_a_measured_fact_not_an_absence(self):
+         self.ready()
+@@ -1733,5 +1734,153 @@ class ReadsThatCouldNotLook(_OnboardFixture):
+         self.assertEqual(proc.exit, 1, self.combined(proc))
+ 
+ 
++COORD_SIBLINGS = HANDOFF_SIBLINGS + ("coordination.py",)
++CHAIN_SESSION = "0f0f0f0f-c220-4c22-8c22-0f0f0f0f0f0f"
++CHAIN_OTHER = "1e1e1e1e-c220-4c22-8c22-1e1e1e1e1e1e"
++CHAIN_AGENT = "Chain Test <noreply@example.test>"
++
++
++class ChainSection(_OnboardFixture):
++    """`== chain`: the coordination store's participants, each with its
++    roles and whether the endpoint it bound with is live, this session's
++    own row, and whom a fresh session reports to (owner, 2026-09-16:
++    "i want you all to be able to fall in and have your agents at
++    attention at the start of new sessions"; "if anything - they should
++    report to your XO")."""
++
++    def state_store(self) -> Path:
++        return self.store.parent / "state.db"
++
++    def plant_coord_tools(self) -> Path:
++        tools = self.repo / "ops" / "conductor" / "tools"
++        tools.mkdir(parents=True, exist_ok=True)
++        for name in COORD_SIBLINGS:
++            source = TOOL.parent / name
++            self.assertTrue(source.is_file(), f"INVALID: sibling absent: {source}")
++            self._plant_bytes(tools / name, source.read_bytes())
++        return tools
++
++    def bind(self, tools: Path, session: str, roles: str, endpoint: str | None):
++        env = self.env()
++        env["WF_AGENT"] = CHAIN_AGENT
++        env["CLAUDE_CODE_SESSION_ID"] = session
++        argv = ["bind", "--roles", roles]
++        if endpoint is not None:
++            argv += ["--endpoint", endpoint]
++        proc = run(
++            [sys.executable, str(tools / "coordination.py"), *argv],
++            cwd=self.repo, env=env, timeout=RUN_CAP,
++        )
++        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
++        return proc.stdout
++
++    def socket_endpoint(self, pid: int) -> str:
++        socks = self.scratch / "cc-socks"
++        socks.mkdir(parents=True, exist_ok=True)
++        path = socks / f"{pid}.sock"
++        if not path.exists():
++            self._plant_bytes(path, b"")
++        return f"uds:{path}"
++
++    def dead_pid(self) -> int:
++        proc = run([sys.executable, "-c", "pass"], cwd=self.repo, env=self.env(), timeout=RUN_CAP)
++        self.assertEqual(proc.exit, 0, proc.stderr)
++        pid = getattr(proc, "pid", None)
++        if pid is None:
++            import subprocess
++            child = subprocess.Popen([sys.executable, "-c", "pass"])
++            child.wait()
++            pid = child.pid
++        try:
++            os.kill(pid, 0)
++        except ProcessLookupError:
++            return pid
++        self.skipTest(f"pid {pid} still exists; cannot plant a dead endpoint")
++
++    def test_chain_is_the_last_section_and_an_absent_store_is_measured(self):
++        self.ready()
++        proc = self.invoke()
++        stdout = proc.stdout or ""
++        headings = [ln for ln in stdout.splitlines() if ln.startswith("== ")]
++        self.assertEqual(headings[-1], "== chain", headings)
++        line = self.labelled_line(stdout, "chain")
++        self.assertTrue(line.startswith("chain: ABSENT "), line)
++        self.assertIn("state.db", line)
++        self.assertIn("(nobody bound)", line)
++        self.assertEqual(self.last_line(stdout), "brief complete")
++        self.assertEqual(proc.exit, 0, self.combined(proc))
++
++    def test_a_store_with_no_participant_says_so_and_names_the_bind(self):
++        self.ready()
++        tools = self.plant_handoff_tools()
++        self.run_handoff(tools, "open", HANDOFF_TITLE, "--summary", "what was left")
++        self.plant_coord_tools()
++        proc = self.invoke()
++        stdout = proc.stdout or ""
++        self.assertEqual(self.labelled_line(stdout, "chain"), "chain: none bound")
++        self.assertIn("this session: unbound", stdout)
++        self.assertIn("report to: nobody", stdout)
++        self.assertEqual(proc.exit, 0, self.combined(proc))
++
++    def test_participants_print_with_roles_liveness_own_row_and_report_to(self):
++        self.ready()
++        tools = self.plant_coord_tools()
++        live = self.socket_endpoint(os.getpid())
++        dead = self.socket_endpoint(self.dead_pid())
++        self.bind(tools, CHAIN_OTHER, "coordinator", dead)
++        self.bind(tools, CHAIN_SESSION, "worker", live)
++        self.assertTrue(self.state_store().is_file(), "INVALID: store not planted")
++        proc = self.invoke(extra_env={"CLAUDE_CODE_SESSION_ID": CHAIN_SESSION})
++        stdout = proc.stdout or ""
++        self.assertEqual(self.labelled_line(stdout, "chain"),
++                         "chain: 2 bound; lead none; coordinator PT-1 dead; dispatcher none")
++        self.assertIn(f"PT-1 coordinator dead — {CHAIN_AGENT} endpoint {dead}", stdout)
++        self.assertIn(f"PT-2 worker live — {CHAIN_AGENT} endpoint {live}", stdout)
++        self.assertIn("this session: PT-2 worker", stdout)
++        self.assertIn("report to: nobody live holds coordinator or lead; "
++                      "see ops/conductor/command-structure.md", stdout)
++        self.assertEqual(proc.exit, 0, self.combined(proc))
++
++    def test_a_live_coordinator_is_whom_a_fresh_session_reports_to(self):
++        self.ready()
++        tools = self.plant_coord_tools()
++        live = self.socket_endpoint(os.getpid())
++        self.bind(tools, CHAIN_OTHER, "coordinator", live)
++        proc = self.invoke()
++        stdout = proc.stdout or ""
++        self.assertEqual(self.labelled_line(stdout, "chain"),
++                         "chain: 1 bound; lead none; coordinator PT-1 live; dispatcher none")
++        self.assertIn("this session: unbound", stdout)
++        self.assertIn(f"report to: coordinator PT-1 at {live}", stdout)
++        self.assertEqual(proc.exit, 0, self.combined(proc))
++
++    def test_an_endpoint_never_recorded_is_unrecorded_not_dead(self):
++        self.ready()
++        tools = self.plant_coord_tools()
++        self.bind(tools, CHAIN_OTHER, "lead", None)
++        proc = self.invoke()
++        stdout = proc.stdout or ""
++        self.assertEqual(self.labelled_line(stdout, "chain"),
++                         "chain: 1 bound; lead PT-1 unrecorded; coordinator none; dispatcher none")
++        self.assertIn(f"PT-1 lead unrecorded — {CHAIN_AGENT} endpoint unrecorded", stdout)
++        self.assertIn("report to: lead PT-1, endpoint unrecorded: find it in the harness peer list",
++                      stdout)
++        self.assertEqual(proc.exit, 0, self.combined(proc))
++
++    def test_a_participants_read_that_fails_is_unavailable_and_counted(self):
++        self.ready()
++        tools = self.plant_handoff_tools()
++        self.run_handoff(tools, "open", HANDOFF_TITLE, "--summary", "what was left")
++        self._plant_bytes(tools / "coordination.py",
++                          b"import sys; sys.stderr.write('planted: fault\n'); sys.exit(1)\n")
++        proc = self.invoke()
++        stdout = proc.stdout or ""
++        line = self.labelled_line(stdout, "chain")
++        self.assertTrue(line.startswith("chain: unavailable: "), line)
++        self.assertIn("planted: fault", line)
++        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
++        self.assertEqual(proc.exit, 1, self.combined(proc))
++
++
+ if __name__ == "__main__":
+     unittest.main()

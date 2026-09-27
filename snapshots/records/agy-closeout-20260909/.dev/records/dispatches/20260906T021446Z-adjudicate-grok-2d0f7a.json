@@ -1,0 +1,210 @@
+{
+  "id": "20260906T021446Z-adjudicate-grok-2d0f7a",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "c2596ed078bca713eb311211b5fa40f098a53b68"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:14:47Z",
+    "closed": "2026-09-06T02:23:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c2596ed078bca713eb311211b5fa40f098a53b68",
+    "ref_sha": "c2596ed078bca713eb311211b5fa40f098a53b68",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f74d75de-0815-4429-b068-85983e3b9183",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok-stream/sessions/<snapshot-encoded>/f74d75de-0815-4429-b068-85983e3b9183/summary.json"
+  },
+  "session": {
+    "id": "f74d75de-0815-4429-b068-85983e3b9183",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok-stream/sessions/<snapshot-encoded>/f74d75de-0815-4429-b068-85983e3b9183/summary.json",
+    "stream_sha256_at_close": "56354478b25c1147a8df22d8006d1a3708d584703bbbfa2a0864ef300e045caa",
+    "spend": {
+      "input": 930515,
+      "cached": 824320,
+      "output": 32888,
+      "total": 963403,
+      "cost_usd_ticks": 1397192600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok-stream/sessions/<snapshot-encoded>/f74d75de-0815-4429-b068-85983e3b9183/summary.json",
+      "messages": 157
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate Claude e1c454's eight and Daybreak 695db7's two remaining discovery-contract findings; you authored neither revision nor findings. Read owner brief, reports and precise owning passages. Rule each UPHELD/PARTIAL/REJECTED with evidence; prescribe minimal coherent correction groups, preserving verified example payloads where possible. Scope is read-only conductor discovery, no worker server or live host implementation. Clarify actual trusted config/launch boundary without inventing host isolation; delimiting untrusted record text must precede model transport but cannot guarantee semantic injection resistance. Resolve realistic handoff/AAR defaults, complete/unknown semantics, work overflow reachability, exact lock membership and field fingerprints/evidence. Do not reopen resolved findings or demand future runtime. Return <=1400-word RULING as an inline envelope artifact with exact correction targets. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/discovery-contract-owner.md",
+        "sha256": "1d815b62cc5dd8e9d516e14f29455b0699744ff8d5baa87095b7b2575eafe901"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/20260906T015906Z-review-claude-e1c454.json",
+        "sha256": "fbe3fd85081dc350c561c65e1c9c04ea03fcda0cce77b669a0aacf230cc33c2b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/20260906T015323Z-review-codex-695db7.json",
+        "sha256": "c7818dbd74c0fcede7f101612e079b114cdd9b7f5f2129d2038d7bfa5cfffd77"
+      }
+    ],
+    "sha256": "4737cba7469cd66d47bac9ef81dcb65ce544da8694d5f5822de67ef90baf28d0",
+    "bytes": 3311
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:14:47Z",
+      "ended": "2026-09-06T02:23:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c2596ed078bca713eb311211b5fa40f098a53b68",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 6,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:288,296-317,449-453,691; ops/conductor/handoff/README.md:35-36",
+          "claim": "Group 1. Claude-1 UPHELD, Claude-2 PARTIAL. Missing bindings at 296-297 and D-A17 require selection unknown and complete false, but 313-316 never say an absent binding is a bindings failure, 306-307 then yields none for a complete zero-current scan, and 451-453 force unknown=0 when complete is true. An unbound HANDOFF-*.md therefore has two required outputs: treat an observed unbound handoff as a bindings failure and keep D-A17. Line 317 lets AAR metadata gaps block handoff selection, contradicting 288; four tracked AAR-*.md files would poison a unique bound handoff \u2014 remove that rule, keep unbound AARs listed and out of handoff counts, and add a row that one bound current handoff plus unbound AARs still yields one. Rejected: that empty shipped bindings defeat owner recovery. Four tracked HANDOFF-*.md files also yield unknown under D-A17; custody README:35-36 and D-A43 already allow exact uncertainty. Add a shipped-HEAD row: empty bindings give unknown, complete false, four unbound handoffs and four unbound AARs visible. Do not invent record_bindings.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '288,317p;449,453p;691p;717p'; ls ops/conductor/AAR-*.md ops/conductor/handoff/HANDOFF-*.md; sed -n '35,38p' ops/conductor/handoff/README.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:470-476,708; composer.lock:1301,1346; ops/conductor/conductor-start-plan.md:232",
+          "claim": "Group 2. Claude-3 UPHELD. locked is 'membership in readable composer.lock' without pinning packages[].name / packages-dev[].name. symfony/workflow occurs twice as constraint values and zero times as a package name, so a generic scan yields locked true while the plan lists lock-absent. D-A34 does not pin the site. Require name-field membership only; measured absence is false; D-A34 plants a real name entry; keep workflow-genus locked false on this tree.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '470,476p;708p'; grep -n 'symfony/workflow' composer.lock; python3 -c \"import json; d=json.load(open('composer.lock')); print([p.get('name') for p in d.get('packages',[])+d.get('packages-dev',[]) if p.get('name')=='symfony/workflow'])\"; sed -n '232p' ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:115,483-488,520-536",
+          "claim": "Group 3. Claude-4 UPHELD. work_bindings allows 20 entries; startup returns the first eight and 'work omitted: N'; the query table has no work query. Tool count is fixed at 11, so a fifth query is not the fix. Add optional cursor on lane_start that pages only work; page one remains the current eight-card startup envelope; later pages return the next work slice under the 8192 cap without dropping owners. Add a 20-binding reachability row. Keep fixture A's empty work array.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '115p;483,488p;520,536p;57p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:228,239-245,360,387-394,426-429; ops/conductor/discovery-examples.md:562-565",
+          "claim": "Group 4. Claude-5 and Claude-6 UPHELD. Contract revision has two recipes (compiled-definition digest at 228 versus Markdown SHA-256 at 387-389); 394 names only config/adapter as boot-supplied, while 360 keeps contract ok after validation, so a repo Markdown read failure would contradict 360. Make contract a boot-supplied definition source: observation data stays {protocol:\"discovery/3\", revision:SHA256} with revision the SHA-256 of launch-supplied discovery-lever.md bytes; that is the 228 digest; no second hash; repo failure does not mark contract unavailable; keep planted fixture/contract fingerprints. Home.evidence is declared at 429 with no derivation; the only instance is examples 562-565 [\"contract\",\"repo\"]. List contract for the compiled index row and repo iff document_present, implementation_present, or locked was measured or attempted from repo; no other source IDs; keep the wf-runtime example.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '228p;239,245p;360p;387,394p;426,429p'; nl -ba ops/conductor/discovery-examples.md | sed -n '548,565p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:13-23,105-138,539-549,716; ops/conductor/lane-mcp-lever.md:43; ops/conductor/tools/lane_mcp.py:310-325",
+          "claim": "Group 5. Daybreak-1 PARTIAL. The contract claims trusted launch selects audience and sources and forbids a caller-supplied path, yet CLI remains --config FILE (inherited v1/v2). That ambiguity is real. Rejected: authenticated wrapper, inherited OS capability, or worker-server refusal \u2014 that invents host isolation and a worker implementation this slice forbids. FILE is a launch-supplied trusted descriptor of the same class as anchors, not a query argument. Discovery tools/resources never accept config, audience, role, repository, or path. D-A42 plants two launch-supplied configs (conductor versus job-bound) and a rejected role argument; a process started with the wrong FILE is a launch defect, not a query defect. Do not edit lane_mcp.py in this docs slice; v3 is ABSENT.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '13,23p;105,138p;539,549p;716p'; sed -n '43p' ops/conductor/lane-mcp-lever.md; nl -ba ops/conductor/tools/lane_mcp.py | sed -n '310,325p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:321-327,439-448,706; ops/conductor/discovery-examples.md:633-671; ops/conductor/tools/lane_mcp.py:237-256",
+          "claim": "Group 6. Daybreak-2 UPHELD, limited. Named Candidate.body carries the hostile 64-byte fixture verbatim; the inherited MCP projection returns that envelope as text and structuredContent; 321-327 require a later consumer renderer, after the model seam. D-A32 already says JSON escaping is insufficient. Projection must wrap body on every surface before emit: begin line naming key and revision; raw UTF-8 body; end line END UNTRUSTED RECORD. Escape by prefixing any inner line that equals that end marker with one > and repeating until it does not match. revision, key, and body_bytes remain the inner 64-byte record (keep 1b8fdd01\u2026, e069b33f\u2026, 64). Update only the named-record example body string and its envelope byte count. D-A32 compares the literal emitted body. Delimiting is a boundary label, not semantic injection resistance; corroboration at 326-327 still applies.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '321,327p;439,448p;706p'; nl -ba ops/conductor/discovery-examples.md | sed -n '633,671p'; nl -ba ops/conductor/tools/lane_mcp.py | sed -n '237,256p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/discovery-lever.md:610,655-656; ops/conductor/conductor-start-plan.md:218-224; ops/conductor/registry/lane_mcp.py.json",
+          "claim": "Group 7. Claude-7 PARTIAL, Claude-8 UPHELD. lane-mcp registry is null at 610 though ops/conductor/registry/lane_mcp.py.json exists; set that path. lane-read has no lane_read.py.json, so 611 null is correct; step 2 still appends the v3 row to the lane_mcp file. Heading 'Symfony mapping, remeasured' asserts a current measurement; body 220-224 and discovery-lever.md:652-656 preserve invalid record 20260906T011424Z-code-codex-2a2af6 at 3682a8c5. Rename the heading to historical/preserved; do not remeasure; update the fragment if the slug changes.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '458,460p;610,611p;652,656p'; head -c 400 ops/conductor/registry/lane_mcp.py.json; ls ops/conductor/registry/lane_read.py.json; sed -n '218,224p' ops/conductor/conductor-start-plan.md"
+        }
+      ],
+      "artifacts": {
+        "ruling": "# RULING \u2014 discovery contract remaining findings\n\nAdjudicator grok-4.6. Artifact c2596ed078bca713eb311211b5fa40f098a53b68 versus c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Contract files are byte-identical to the Claude (87395bd) and Daybreak (531e0e3) review trees. This session authored neither the GPT-6 revision nor the findings. Scope is the read-only conductor discovery contract. No worker server, host isolation, executable tests, or live runtime is demanded. Prior resolved GPT-6 and Daybreak keys are not reopened.\n\nInputs read whole: in/discovery-contract-owner.md, in/20260906T015906Z-review-claude-e1c454.json, in/20260906T015323Z-review-codex-695db7.json.\n\n## Findings\n\nClaude-1 Selection.complete \u2014 UPHELD.\n296-297 and D-A17 make missing bindings yield selection unknown and complete false. 313-316 say only enumeration/reading/bindings failures affect complete, and do not say an absent binding is such a failure. 306-307 then yields none for a complete scan with zero current handoffs. 451-453 force unknown=0 when complete is true. One unbound HANDOFF-*.md with empty record_bindings therefore has two required outputs. Correction: an observed unbound handoff is a bindings failure (complete false, selection unknown, counts null). Keep D-A17.\n\nClaude-2 Unbound AARs / shipped defaults \u2014 PARTIAL.\n317 (\"AAR metadata gaps conservatively block selection\") contradicts 288 (an AAR never becomes the selected handoff). Four tracked ops/conductor/AAR-*.md files match 171-173, so AAR gaps would poison handoff selection beside a unique bound handoff. That is upheld. The claim that empty shipped bindings defeat owner recovery is rejected: four tracked HANDOFF-*.md files also keep selection unknown under D-A17, and that is honest. Custody README:35-36 and D-A43 already allow exact uncertainty. Do not invent record_bindings for old bytes. Correction: remove 317's AAR-blocks-handoff rule; unbound AARs remain listed and excluded from handoff counts; add a row that one bound current handoff plus unbound AARs still yields one; add a shipped-default HEAD row that empty bindings yield unknown, complete false, four unbound handoffs and four unbound AARs visible.\n\nClaude-3 Lock membership \u2014 UPHELD.\n470-473 say locked is membership in readable composer.lock for an exact named package and do not pin the site. symfony/workflow occurs at composer.lock:1301 and :1346 as constraint values and zero times as a packages/packages-dev name. Plan:232 lists it lock-absent. A generic scan yields locked true. D-A34 does not pin the site. Correction: locked true only when a packages[] or packages-dev[] object has name exactly equal to the intended package; other JSON locations are not membership; measured absence is false; D-A34 plants a real name entry. Keep workflow-genus locked false on this tree.\n\nClaude-4 Work overflow \u2014 UPHELD.\nwork_bindings allows 20 entries (115). Startup returns the first eight and \"work omitted: N\" (525-526, 536). Queries 483-488 have no work query. Tool count is 11, so a fifth query is not the fix. Correction: optional cursor on lane_start pages only work; page one remains the current eight-card startup envelope; later pages return the next work slice under the 8192 cap without dropping owners. Add a 20-binding row that omitted cards are reachable. Keep fixture A's empty work array and tool count 11.\n\nClaude-5 Contract revision \u2014 UPHELD.\n228 digests compiled card/shape/law/action data; 387-389 hashes this contract's trusted Markdown bytes; 394 names only config and adapter as boot-supplied; 360 keeps contract ok after validation. If Markdown is a repo read, a repo failure would make contract unavailable. Examples plant fixture/contract and do not pin the recipe. Correction: contract is a boot-supplied definition source, same class as config/adapter. Observation data stays {protocol:\"discovery/3\", revision:SHA256} with revision = SHA-256 of launch-supplied discovery-lever.md bytes; that is the 228 digest; no second hash; repo failure does not mark contract unavailable. Keep planted fingerprints.\n\nClaude-6 Home.evidence \u2014 UPHELD.\n429 declares evidence:[source_id,...] on Home with no derivation. StateSummary is defined at 239-245. The only Home instance is discovery-examples.md:562-565 [\"contract\",\"repo\"]. Correction: Home.evidence lists contract for the compiled index row and repo iff document_present, implementation_present, or locked was measured or attempted from repo observations; no other source IDs. Unresolved ownership, failed document read, and locked false/null still use that pair when repo was consulted. Keep the wf-runtime example.\n\nClaude-7 Registry null \u2014 PARTIAL.\nops/conductor/registry/lane_mcp.py.json exists (tool lane_mcp.py, one config-refusal row). Index 610 leaves lane-mcp registry null, against 458-460. lane-read has no lane_read.py.json, so 611 null is correct. Correction: set lane-mcp registry to ops/conductor/registry/lane_mcp.py.json; leave lane-read null; step 2 still appends the v3 row to that file.\n\nClaude-8 Mapping heading \u2014 UPHELD.\nHeading \"Symfony mapping, remeasured\" (conductor-start-plan.md:218) asserts a current measurement. Body 220-224 and discovery-lever.md:652-656 say the table is preserved from invalid record 20260906T011424Z-code-codex-2a2af6 at 3682a8c5, 2026-09-06T01:15:46Z. Rename the heading to historical/preserved. Do not remeasure. Update the fragment at discovery-lever.md:655-656 if the heading slug changes.\n\nDaybreak-1 Trusted config/launch \u2014 PARTIAL.\nThe contract claims trusted launch selects audience and sources and forbids a caller-supplied path (13-23, 109-110, 138). CLI remains --config FILE (539; lane_mcp.py:310-325; v1 baseline lane-mcp-lever.md:43). D-A42 wants a worker unable to obtain the conductor catalogue and also disclaims other-tool enforcement. The ambiguity is real. Rejected: authenticated wrapper, inherited OS capability, or worker-server refusal in this slice. Correction: FILE is a launch-supplied trusted descriptor of the same class as anchors, not a query argument; discovery tools/resources never accept config, audience, role, repository, or path; D-A42 plants two launch-supplied configs (conductor versus job-bound) and a rejected role argument; a process started with the wrong FILE is a launch defect, not a query defect. No sandbox or worker MCP is specified.\n\nDaybreak-2 Hostile body before transport \u2014 UPHELD, limited.\nNamed Candidate.body carries the hostile 64-byte fixture verbatim (discovery-examples.md:633-635). lane_mcp.py:237-256 returns that envelope as MCP text and structuredContent. 321-327 require a later consumer renderer to escape markers, after the model seam. D-A32 already says JSON escaping is insufficient. Correction: the projection wraps body on every surface (CLI, tool, resource, structuredContent) before emit. Wrap: begin line naming key and revision; raw UTF-8 body; end line END UNTRUSTED RECORD. Escape by prefixing any inner line that equals that end marker with one > and repeating until the line does not equal the marker. revision, key, and body_bytes remain the inner 64-byte record (keep 1b8fdd01\u2026, e069b33f\u2026, 64). Update only the named-record example body string and its envelope byte count. D-A32 compares the literal emitted body. Limit: delimiting is a boundary label, not semantic injection resistance; corroboration at 326-327 still applies.\n\n## Correction groups\n\n1. Selection and AAR/handoff defaults (Claude-1 UPHELD, Claude-2 PARTIAL): discovery-lever.md:296-317, 449-453, D-A17; add D-A17b and shipped-HEAD row.\n2. Lock name-site (Claude-3 UPHELD): discovery-lever.md:470-476, D-A34.\n3. Work paging on lane_start (Claude-4 UPHELD): discovery-lever.md:115, 483-488, 520-536; add reachability row; keep tools 11.\n4. Contract fingerprint and Home.evidence (Claude-5, Claude-6 UPHELD): discovery-lever.md:228, 360, 387-394, 426-429; keep planted fingerprints and examples.md:562-565.\n5. Launch descriptor versus query (Daybreak-1 PARTIAL): discovery-lever.md:13-23, 105-138, 539-549, D-A42. Do not edit lane_mcp.py in this docs slice.\n6. Pre-transport untrusted wrap (Daybreak-2 UPHELD): discovery-lever.md:321-327, 439-448, D-A32; discovery-examples.md named-record body only.\n7. Index labels (Claude-7 PARTIAL, Claude-8 UPHELD): discovery-lever.md:610; conductor-start-plan.md:218 and link at discovery-lever.md:655-656.\n\nPreserve the other seven example envelopes and the fixture/snapshot recipes. No v1/v2 payload change. No source, tests, settings, host, DB, or network work.\n\n## Missed by reviewers\n\nEmpty shipped bindings fail unique selection because of four unbound HANDOFFs, not only AARs. D-A43 already admits exact uncertainty. --config FILE is the v1/v2 launch descriptor; a wrapper would be host isolation. lane_mcp.py citations describe the inherited projection v3 will reuse; v3 is ABSENT. lane-read has no registry file. Delimiting cannot prove semantic immunity.",
+        "range": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc..c2596ed078bca713eb311211b5fa40f098a53b68",
+        "primary_contract": "ops/conductor/discovery-lever.md",
+        "claude_review": "in/20260906T015906Z-review-claude-e1c454.json",
+        "daybreak_review": "in/20260906T015323Z-review-codex-695db7.json",
+        "owner_brief": "in/discovery-contract-owner.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 963403,
+        "out": 32888,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c2596ed078bca713eb311211b5fa40f098a53b68",
+        "started": "2026-09-06T02:14:47Z",
+        "ended": "2026-09-06T02:21:17Z"
+      },
+      "note": "Ten input findings ruled (7 UPHELD, 3 PARTIAL, 0 wholly REJECTED). Seven correction groups remain. Full ruling is artifacts.ruling (1188 words). Example payloads preserved except the named hostile-body wrap."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:23:45.459Z"
+    }
+  },
+  "status": "closed"
+}

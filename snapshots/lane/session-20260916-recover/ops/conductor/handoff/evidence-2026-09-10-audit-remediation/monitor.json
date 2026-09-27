@@ -1,0 +1,78 @@
+{
+  "root": "/tmp/ag-audit-monitor-recovery-20260910",
+  "command": [
+    "ops/bin/suites.sh"
+  ],
+  "started": "2026-09-10T03:56:37.409930+00:00",
+  "head_before": "c334d1ebbfd511d6659c3f1b7a4884f2e9817f59",
+  "dev": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+  "status_before": "",
+  "ended": "2026-09-10T03:58:14.964616+00:00",
+  "exit": 0,
+  "head_after": "c334d1ebbfd511d6659c3f1b7a4884f2e9817f59",
+  "status_after": "",
+  "log": "/tmp/ag-audit-fixes-20260910/monitor-suites.log",
+  "log_sha256": "2adc7db3dd5499735dae16751cabf6d62d735135a9fce0d47b1b66957c867450",
+  "recorded_at": "2026-09-10T04:10:23.184851+00:00",
+  "tests": 2237,
+  "skipped": 7,
+  "tracked_nonrecord_bytes_unchanged": true,
+  "test_sha256": {
+    "ops/conductor/tests/test_monitor_git_refs.py": "17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881",
+    "ops/conductor/tests/test_monitor_malformed_git.py": "be2bbe63419e87421cbf8a05282bc7c5bd5e7a418b616082f152dc2d4a80cd5b"
+  },
+  "live_probe": {
+    "measured_at": "2026-09-10T04:01:54.039479+00:00",
+    "source_sha256": "1fc4d4b09fde8525c2dfacdfe43cfbaeb7746b8764bb313c1cea62593a8c3681",
+    "head": "c334d1ebbfd511d6659c3f1b7a4884f2e9817f59",
+    "repo": "/home/scientdb/projects/uscient/agentscient",
+    "remote": "origin",
+    "readings": [
+      {
+        "subject": "refs/heads/dev",
+        "state": "ok",
+        "metrics": {
+          "local_oid": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+          "remote_oid": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+          "freshness": "equal"
+        },
+        "generation": [
+          "/home/scientdb/projects/uscient/agentscient",
+          "origin",
+          "refs/heads/dev"
+        ],
+        "observed_at": "2026-09-10T04:01:54.039479Z",
+        "evidence": {
+          "repo": "/home/scientdb/projects/uscient/agentscient",
+          "remote": "origin",
+          "ref": "refs/heads/dev"
+        },
+        "reason": null
+      },
+      {
+        "subject": "refs/heads/master",
+        "state": "ok",
+        "metrics": {
+          "local_oid": "fc839a5f85f192acbea5efa6cc366efb7a7b5a42",
+          "remote_oid": "fc839a5f85f192acbea5efa6cc366efb7a7b5a42",
+          "freshness": "equal"
+        },
+        "generation": [
+          "/home/scientdb/projects/uscient/agentscient",
+          "origin",
+          "refs/heads/master"
+        ],
+        "observed_at": "2026-09-10T04:01:54.039479Z",
+        "evidence": {
+          "repo": "/home/scientdb/projects/uscient/agentscient",
+          "remote": "origin",
+          "ref": "refs/heads/master"
+        },
+        "reason": null
+      }
+    ],
+    "refs_unchanged": true,
+    "status_unchanged": true
+  },
+  "acceptance_boundary": "Retained independent reviews are pinned to source 61556038e3bec511bb17d53feb67d3a54699c0c0. This remeasurement ran the preserved source and tests; it is not a new independent review or periodic activation."
+}

@@ -1,0 +1,232 @@
+{
+  "id": "20260916T091513Z-review-grok-bf7932",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-f",
+  "lineage": {
+    "branch": "lane/session-20260916-f",
+    "base_sha": "cf067ff4f841a9fff24460c356abd8cd82680efb"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T09:15:13Z",
+    "closed": "2026-09-16T09:26:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "ref_sha": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dfbea5b8-c6e3-4393-a77a-32e78e015fae",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok-stream/sessions/<snapshot-encoded>/dfbea5b8-c6e3-4393-a77a-32e78e015fae/summary.json"
+  },
+  "session": {
+    "id": "dfbea5b8-c6e3-4393-a77a-32e78e015fae",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok-stream/sessions/<snapshot-encoded>/dfbea5b8-c6e3-4393-a77a-32e78e015fae/summary.json",
+    "stream_sha256_at_close": "69dc5a835084c61cc67bd37d0cb13361f9a266f908019ecb2354fffcd21f6733",
+    "spend": {
+      "input": 1964502,
+      "cached": 1821184,
+      "output": 37689,
+      "total": 2002191,
+      "cost_usd_ticks": 4839430800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok-stream/sessions/<snapshot-encoded>/dfbea5b8-c6e3-4393-a77a-32e78e015fae/summary.json",
+      "messages": 248
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "PR #244, round 2, head cf067ff4. Check the eight round-1 findings (records 20260916T082610Z-review-codex-ee08a7, 20260916T082553Z-review-grok-61ba2a) against their fixes in a663b79b: does each fix answer that specific finding, not just touch nearby code.\n\nVerify the central repair: backlog silence keyed to the condition present at start (hold_silence and silent consulted in every condition family), with a control row proving silence is a real reading, not a default. Also check the watch skill's corrected recipes and new capability row, and the findings export in cf067ff4 that regenerates the shared ledger with rows from records not on this branch, as the PR body declares \u2014 verify the declaration against what the export actually did.\n\nFor the five new rows: do they pin the behaviour (fails if it regresses) or just the words (a string/shape check that survives a regression)? Name which is which.\n\nVERDICT/STAMP/FINDINGS on the wire. Detached snapshot; do not propose fixes, do not edit.\n",
+    "inputs": [],
+    "sha256": "0723a2234119ad342dca9b21c2971dfcbb8ea7cc91877a3475bf28bd5e93af8e",
+    "bytes": 10667,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/lane-mcp.json",
+      "sha256": "9ee838a94d2b386ca4835dcb9dc7c183bc9e70b5d6692bc69a2864856ca64b1a",
+      "job_ids": [
+        "20260916T082610Z-review-codex-ee08a7",
+        "20260916T082553Z-review-grok-61ba2a"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "b046c16c266ac1b9370414bd55c8f1c52388ef26c30e1bcbcc96c46caadc768e"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T09:15:26Z",
+      "ended": "2026-09-16T09:26:54Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "carried"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": ".claude/skills/watch/SKILL.md:76-80",
+          "claim": "Declared (SKILL.md:80): \"The description names exactly what the filter passes.\" Practiced (SKILL.md:76-77): description is \"stalls, deviations, no record copy, CI\"; the same Monitor grep also passes \"harness gone\" and \"watchdog error\", which the description does not name. Round-1 ee08a7#2 (CI missing from a recipe that advertised CI) is fixed \u2014 forge stays on and `ci fail `|`ci cancel ` match \u2014 but the repair added an exact-match sentence that is still false.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\ntext=Path('.claude/skills/watch/SKILL.md').read_text()\ndesc='lane watchdog: stalls, deviations, no record copy, CI'\nassert desc in text\nassert 'The description names exactly what the filter passes' in text\ncmd=text.split('Monitor(')[1].split('```')[0]\nassert 'harness gone' in cmd and 'watchdog error' in cmd\nassert 'harness gone' not in desc and 'watchdog error' not in desc\nprint('ok')\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "cf067ff4 commit body; ops/conductor/findings/findings.jsonl",
+          "claim": "Declared (cf067ff4): \"935 rows, 47 lines added since the last export. Eight of those are this branch's; the other 39 belong to nine review records the same regeneration carries, four of which are not on this branch yet.\" Practiced: 935 and +47 hold, and the eight ee08a7+61ba2a rows are this branch's; the other 39 rows belong to 7 records, not 9. Six of those 7 have no record file on this branch or on origin/dev 46639344; only 20260916T030018Z-review-grok-df544a is already on trunk. The file itself is a real `findings.py export --write` (ORDER BY record, n; sort_keys), not a hand edit.",
+          "reproduce": "python3 - <<'PY'\nimport json, subprocess, collections\nfrom pathlib import Path\ndiff=subprocess.check_output(['git','diff','a663b79b','cf067ff4','--','ops/conductor/findings/findings.jsonl'], text=True)\nadded=[json.loads(l[1:]) for l in diff.splitlines() if l.startswith('+') and not l.startswith('+++')]\nassert len(added)==47 and sum(1 for _ in Path('ops/conductor/findings/findings.jsonl').open())==935\nby=collections.Counter(r['record'] for r in added)\nthis={'20260916T082610Z-review-codex-ee08a7','20260916T082553Z-review-grok-61ba2a'}\nassert sum(by[r] for r in this)==8 and len(by)==9\nother=[r for r in by if r not in this]\nassert len(other)==7 and sum(by[r] for r in other)==39\nhead=set(subprocess.check_output(['git','ls-tree','-r','--name-only','HEAD'], text=True).splitlines())\nbase=set(subprocess.check_output(['git','ls-tree','-r','--name-only','46639344'], text=True).splitlines())\nmissing=[r for r in sorted(other) if f'.dev/records/dispatches/{r}.json' not in head and f'.dev/records/dispatches/{r}.json' not in base]\nassert missing==['20260916T075500Z-review-grok-c7a708','20260916T075518Z-review-codex-c22c2d','20260916T082906Z-review-grok-652e46','20260916T082921Z-review-codex-7be071','20260916T084259Z-review-grok-62fa82','20260916T084315Z-review-codex-b317d7'], missing\nprint('ok', len(missing), 'absent')\nPY"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/context/diff.patch",
+        "tests": "unittest discover -s ops/conductor/tests -p test_watchdog.py -k ClosedAtStartIsSilent: Ran 11 tests OK",
+        "round1": "ee08a7#1 and 61ba2a#1 fixed (hold_silence/silent on kind+fingerprint in closed/deviation/no-copy/error/drift); ee08a7#2/#3/#5 and 61ba2a#2/#3 fixed (CI grep, condition-word pre-fix filter, help/armed/LD-70); ee08a7#4 addressed (Monitor row MEASURED 2026-09-16, cadence UNPROBED)",
+        "export": "cf067ff4 +47/935; 8 rows ee08a7+61ba2a disposed at a663b79b; 39 other from 7 records; 6 of those 7 absent from this git; file ordered by record,n with sort_keys"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2002191,
+        "out": 37689,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cf067ff4f841a9fff24460c356abd8cd82680efb",
+        "started": "2026-09-16T09:15:13Z",
+        "ended": "2026-09-16T09:25:50Z"
+      },
+      "note": "reused: lane MCP lane_brief/jobs/changes/findings/record (ee08a7, 61ba2a), Graft graft_repo_map, watchdog-lever.md, findings.py export, ClosedAtStartIsSilent via unittest discover. in/ empty (brief.inputs []). Eight round-1 findings vs a663b79b: each answers that finding, not nearby code \u2014 #1 pair is the condition-keyed silent set consulted in every backlog family; #2 CI recipe now has forge on and ci fail/cancel; #3 awk replaced by a ^condition-word grep that keeps id-bearing stalls; #4 is an honest named gap not a probe; #5/61ba2a#3 help+armed+LD-70 name all three families. Central repair holds; control test_a_fresh_record_after_start_prints_its_closed_line_and_deviation is a behaviour pin and passed at 515e5b72, so silence in the four red rows was a reading. Five behaviours named in a663b79b: test_a_no_copy_directory_that_gains_a_record_after_start_speaks behaviour (closed+deviation); test_an_amended_record_after_start_reports_its_new_deviation behaviour; test_inputs_that_become_unreadable_after_start_are_said and test_a_backlog_directory_whose_inputs_become_unreadable_is_said behaviour of the error line only (neither asserts deviation unavailable); test_the_armed_line_counts_every_backlog_family behaviour (ignored=4 on a 4-family plant); test_the_report_existing_help_names_every_backlog_family words (\"closed\"/\"no record copy\"/\"unreadable\" in --help). LD-70's five live rows are the control plus the four transition tests, all behaviour. Graft saved ~1424183 tokens this turn."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T091513Z-review-grok-bf7932/home/grok-stream/sessions/<snapshot-encoded>/dfbea5b8-c6e3-4393-a77a-32e78e015fae/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T09:26:53.578Z"
+    }
+  },
+  "status": "closed"
+}

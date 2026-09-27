@@ -1,0 +1,191 @@
+{
+  "id": "20260911T064453Z-tests-grok-b18f24",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "45338d8b4cd1ff1cb96e2687220c5b3af715bc25"
+  },
+  "follows": [
+    "20260911T061118Z-review-codex-314c2d",
+    "20260911T062141Z-review-grok-79cad6"
+  ],
+  "answers": [
+    {
+      "key": "20260911T061118Z-review-codex-314c2d#1",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T06:28:17Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-gate-20260910.md"
+      }
+    },
+    {
+      "key": "20260911T062141Z-review-grok-79cad6#1",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T06:44:43Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-gate-20260910.md"
+      }
+    }
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:44:53Z",
+    "closed": "2026-09-11T06:55:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "45338d8b4cd1ff1cb96e2687220c5b3af715bc25",
+    "ref_sha": "45338d8b4cd1ff1cb96e2687220c5b3af715bc25",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "8f21fabc-ea13-4c38-8bc6-6e2a025f5c38",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok-stream/sessions/<snapshot-encoded>/8f21fabc-ea13-4c38-8bc6-6e2a025f5c38/summary.json"
+  },
+  "session": {
+    "id": "8f21fabc-ea13-4c38-8bc6-6e2a025f5c38",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok-stream/sessions/<snapshot-encoded>/8f21fabc-ea13-4c38-8bc6-6e2a025f5c38/summary.json",
+    "stream_sha256_at_close": "e9f44ec74f52600c8a03e18767b2170e9203eca57e5a1dcb020bc0697d850d1c",
+    "spend": {
+      "input": 3099666,
+      "cached": 2955520,
+      "output": 26418,
+      "total": 3126084,
+      "cost_usd_ticks": 3271752000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/home/grok-stream/sessions/<snapshot-encoded>/8f21fabc-ea13-4c38-8bc6-6e2a025f5c38/summary.json",
+      "messages": 303
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Fix round for slice 4 (launcher gate), tests half. Read in/brief-gate-launcher-fix-tests-20260911.md WHOLE. Findings answered: 20260911T061118Z-review-codex-314c2d#1 and 20260911T062141Z-review-grok-79cad6#1, both citing contract item 1 of .dev/ladder-inputs/scope-gate-20260910.md (the correction shape is read from the --input argument as given, not the symlink target). Add two cases to CorrectionShape in ops/devlane/dispatch/tests/test_launch_correction_gate.py for a symlinked review artifact; prove them red on this tree and leave them red for the code half; touch no code under ops/devlane/dispatch/*.py or ops/conductor/tools/. Commit, list the file in artifacts. Named command: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T064453Z-tests-grok-b18f24/in/brief-gate-launcher-fix-tests-20260911.md",
+        "sha256": "a6894b87ada1b91072fa057260129b682b5f5d13001a4591a32e4251b64f5587"
+      }
+    ],
+    "sha256": "ccf90d933474a1fe95032323819780f02560f4790f57d4a78ed40bdf34980bff",
+    "bytes": 3410,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:44:54Z",
+      "ended": "2026-09-11T06:55:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f859565e7e259e73f2b39b58170477fe8984cc56",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_correction_gate.py": "ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3126084,
+        "out": 26418,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "45338d8b4cd1ff1cb96e2687220c5b3af715bc25",
+        "started": null,
+        "ended": null
+      },
+      "note": "CorrectionShape.test_symlinked_out_input_without_answers_is_a_correction fails at ops/devlane/dispatch/tests/test_launch_correction_gate.py:875 (assert_wire_line correction: exit 2, got 0, minted). CorrectionShape.test_symlinked_out_input_with_answers_is_not_a_readable_input fails at ops/devlane/dispatch/tests/test_launch_correction_gate.py:898 (assert_wire_line input: exit 2, got 0, launched). Left red for the code half."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T06:55:22.979Z"
+    }
+  },
+  "status": "closed"
+}

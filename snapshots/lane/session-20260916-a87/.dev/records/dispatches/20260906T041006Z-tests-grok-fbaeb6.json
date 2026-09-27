@@ -1,0 +1,157 @@
+{
+  "id": "20260906T041006Z-tests-grok-fbaeb6",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "1b17f14d32ce3246001825e99abd4fab1059eaa7"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:10:06Z",
+    "closed": "2026-09-06T04:19:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+    "ref_sha": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7a908c69-6a2d-4805-96b4-9a3b9d582d14",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json"
+  },
+  "session": {
+    "id": "7a908c69-6a2d-4805-96b4-9a3b9d582d14",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json",
+    "stream_sha256_at_close": "16fb38d8e306a1b06e99fb26738ad581c25f9bc321bc6c7ecf8ede0c881d4b52",
+    "spend": {
+      "input": 1621220,
+      "cached": 1411456,
+      "output": 33017,
+      "total": 1654237,
+      "cost_usd_ticks": 2249708600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json",
+      "messages": 219
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author only ops/conductor/tests/test_laneconf.py for the exact protocol-literal coupling and cases in policy-literal-repair-ruling.md. Use real literals CLI and existing scratch helpers with LANE_NAME=agentscient, proven plants and intended token/path/line assertions. Do not read laneconf.py, record.py or other implementation. Cover permitted exact/outer-whitespace declaration, wrong path, altered declaration/comment/statement, extra forbidden literals, token-specific exemption and unchanged MCP allowances. Preserve existing tests; no stand-ins/skips/source/config/host/DB/network edits or vendor launches. Run python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py and test-guard.py on that file. Show intended positive-case assertion reds and zero errors; report the separate known current-tree literal failure honestly. Commit tests only with actual-model provenance. Contract authoring runs separately; independent execution and Claude review follow before code.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      }
+    ],
+    "sha256": "8b8d572c448b269c530eb26ab916f12aed26fee9e5f3f73de1e600ea153a5305",
+    "bytes": 3336
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:10:06Z",
+      "ended": "2026-09-06T04:19:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "62dc570c9b0089c3fb9eeeea35d2a57d154543b1",
+    "changed_paths": [
+      "ops/conductor/tests/test_laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_laneconf.py",
+        "commit": "62dc570c9b0089c3fb9eeeea35d2a57d154543b1"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1654237,
+        "out": 33017,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+        "started": "2026-09-06T04:12:12Z",
+        "ended": "2026-09-06T04:19:14Z"
+      },
+      "note": "Authored PolicyProtocolLiterals in ops/conductor/tests/test_laneconf.py (11 cases) from policy-literal-repair-ruling.md with the real literals CLI, existing scratch helpers, and LANE_NAME=agentscient. Isolated intended positive-case assertion reds, each 1 collected / 1 failed / 0 errors: test_exact_policy_schema_declaration_at_record_py_exits_0 and test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0 fail AssertionError 1 != 0 because the planted exact/outer-whitespace line is still reported as ops/devlane/dispatch/record.py:1: forbidden literal agentscient. Full command python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py at 1b17f14d32ce3246001825e99abd4fab1059eaa7: 49 tests, 3 failed, 0 errors. The third failure is the separate known current-tree baseline test_literals_exits_0_on_the_tree (ops/devlane/dispatch/record.py:70 and :71 forbidden literal agentscient), not counted as a new test's red. Wrong-path, altered name/value, appended comment/statement, extra agentscient, extra origin/dev, token-specific lane-policy, and MCP allowance cases passed. python3 ops/devlane/hooks/claude/test-guard.py ops/conductor/tests/test_laneconf.py: every plant is guarded. Committed 62dc570c9b0089c3fb9eeeea35d2a57d154543b1 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Independent execution and Claude review follow before code."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T04:19:40.286Z"
+    }
+  },
+  "status": "closed"
+}

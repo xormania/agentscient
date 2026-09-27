@@ -1,0 +1,17 @@
+Build what ops/conductor/handoff/briefs-2026-09-16-classes/
+S2-ledger-id-reservation.md specifies: id reservation for the
+ledgers, so two sessions cannot mint the same id.
+The failure it fixes, measured 2026-09-16: LD-68 minted four times,
+LD-70, LD-76 and LD-78 each twice, and branch letters chosen by hand
+collided (k, 12:3xZ).
+Read the brief first; it, not this file, is the specification.
+Tests run against isolated state - never the live store under
+~/.local/state/agentscient - and prove the collision is refused by
+planting two concurrent minters.
+docs/tests.md rules 3 to 6 bind the tests: planted faults and clean
+neighbours, a hermetic world, every subprocess through testkit run with a
+timeout, fakes planted through the registry.
+Do not touch the wall paths AGENTS.md names (the CI workflow, the
+suite lever, the corpus runner, the closure levers, the hook registry
+and engine); wall, they refuse.
+Commit here with Source: and Co-Authored-By: trailers. Nothing else.

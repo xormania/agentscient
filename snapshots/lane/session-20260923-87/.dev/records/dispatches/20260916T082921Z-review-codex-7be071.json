@@ -1,0 +1,244 @@
+{
+  "id": "20260916T082921Z-review-codex-7be071",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-c",
+  "lineage": {
+    "branch": "lane/session-20260916-c",
+    "base_sha": "05b8aebe020979b677334ba61373c538ded9c27e"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:29:21Z",
+    "closed": "2026-09-16T08:37:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "ref_sha": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-29-35-01a0a955-ea2e-7782-8159-2da56afbfd6d.jsonl"
+  },
+  "session": {
+    "id": "01a0a955-ea2e-7782-8159-2da56afbfd6d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-29-35-01a0a955-ea2e-7782-8159-2da56afbfd6d.jsonl",
+    "stream_sha256_at_close": "eb88f4d70dca7aed615db6e03b0c0824691cd5c1a1ee902ece1745c6dd8fde2a",
+    "spend": {
+      "input": 2896782,
+      "cached": 2769664,
+      "output": 21519,
+      "total": 2918301,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-29-35-01a0a955-ea2e-7782-8159-2da56afbfd6d.jsonl",
+      "messages": 322
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Review the coordination core and its CLI (PR #243, lane/session-20260916-c, head 05b8aebe). Contract: ops/conductor/coordination-lever.md.\nAim skepticism at: the claim that authority is enforced inside the core's functions by a participant bound to the harness session id, never by the agent string, with generation and revision checks in the engine's gate; the seam of one function per verb keyed by wire name with the CLI as thin wrappers; the observe verb's hand-managed transaction and its --stale escape that lifts both the generation and the revision check; the dispatcher-only bind of a participant to a named session id; and that the tests and the module share one producer.\n",
+    "inputs": [],
+    "sha256": "f67e08a25277aaef1f18e4cea0dfc9d8ee301a9a170e60ff58c15d227d0d14d8",
+    "bytes": 10440,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/lane-mcp.json",
+      "sha256": "785a1dd7f4d972e3f70b63b0f676a8c58f76aa4757c189f8fb20b322bd60e385",
+      "job_ids": [
+        "20260916T082906Z-review-grok-652e46"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "e6b956aba8941b42cf0415740122ceaaced4beaf32b0aaf60cff9c43636c1b4a"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T08:29:34Z",
+      "ended": "2026-09-16T08:37:54Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/coordination.py:476",
+          "claim": "Role authority is self-issued: core_bind accepts any roles and overwrites an existing participant without authorization. A dispatcher-bound worker can re-bind itself as lead,dispatcher, while retaining bound_by/bound_for, and then draft work or bind more sessions. This defeats the dispatcher-only and role gates.",
+          "reproduce": "Bind a dispatcher, draft A-1, and bind-for worker-session as worker. Under worker-session run `coordination.py bind --roles lead,dispatcher` followed by `coordination.py draft ...`; both exit 0, and `participants` still reports the promoted participant as bound by the original dispatcher for A-1."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py:905",
+          "claim": "The revision gate is skipped when an assignment has no revision. An observation of revision A can therefore land current, submission can establish different revision B without staling it, and verification/coverage then count A's observation as current evidence for B.",
+          "reproduce": "Draft without --revision; offer and claim it; observe with revision a1b2c3d; submit and verify revision beefbee. `observations A-1` still reports a1b2c3d as current and `coverage` counts it beside candidate beefbee."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py:686",
+          "claim": "return checks generation before machine.move acquires the write lock and supplies no engine gate. If another session returns, reassigns, claims, and submits generation 2 between that check and the move, the delayed generation-1 return applies to the new submitted candidate.",
+          "reproduce": "Pause a generation-1 core_return after require_generation; on another connection perform return(gen1), reassign(gen1), claim(gen2), submit(gen2); resume the first call. The unguarded machine.move at line 691 succeeds against the generation-2 submitted place."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination.py:1164",
+          "claim": "The CLI does not enter through CORE as contracted; every wrapper calls core_<verb> directly. CORE/VERBS key equality therefore cannot detect misrouting, and changing or wrapping a CORE entry affects the MCP seam but not the CLI.",
+          "reproduce": "Import the module and inspect `do_draft.__code__.co_names`, `do_return.__code__.co_names`, and `do_observe.__code__.co_names`: each names core_<verb> and none names CORE. `rg -n 'shown = core_' ops/conductor/tools/coordination.py` shows the pattern across the wrappers."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/coordination-lever.md:312",
+          "claim": "The declared observe CLI omits both mandatory --generation and supported --stale. Following the contract's command form therefore refuses for a missing argument and does not disclose the documented stale-history escape.",
+          "reproduce": "Compare the contract row at line 312 with do_observe at coordination.py:1439-1453, where generation is required and stale is a flag."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/context/diff.patch",
+        "contract": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/snapshot/ops/conductor/coordination-lever.md",
+        "tests": "python3 -m unittest discover -s ops/conductor/tests -p test_coordination.py \u2014 42 tests passed",
+        "lint": "ruff check --cache-dir /tmp/agentscient-review-ruff-cache ops/conductor/tools/coordination.py ops/conductor/tests/test_coordination.py \u2014 passed"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2918301,
+        "out": 21519,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "05b8aebe020979b677334ba61373c538ded9c27e"
+      },
+      "note": "reused: lane MCP brief/jobs/changes/findings, Graft repository map, and the ops.testkit-backed coordination suite. Review complete; the same-producer exception was declared under grant 258, but its uncovered boundary cases are findings above."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082921Z-review-codex-7be071/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-29-35-01a0a955-ea2e-7782-8159-2da56afbfd6d.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T08:37:53.669Z"
+    }
+  },
+  "status": "closed"
+}

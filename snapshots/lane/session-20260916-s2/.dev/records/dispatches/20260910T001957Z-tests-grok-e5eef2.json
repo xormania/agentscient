@@ -1,0 +1,176 @@
+{
+  "id": "20260910T001957Z-tests-grok-e5eef2",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "6c1adc0de34aa5eedc2f80ee53fb0c5a880a4758"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:19:57Z",
+    "closed": "2026-09-10T00:25:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6c1adc0de34aa5eedc2f80ee53fb0c5a880a4758",
+    "ref_sha": "6c1adc0de34aa5eedc2f80ee53fb0c5a880a4758",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1407f3ce-5d8b-4c37-9ff2-1252539f2121",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok-stream/sessions/<snapshot-encoded>/1407f3ce-5d8b-4c37-9ff2-1252539f2121/summary.json"
+  },
+  "session": {
+    "id": "1407f3ce-5d8b-4c37-9ff2-1252539f2121",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok-stream/sessions/<snapshot-encoded>/1407f3ce-5d8b-4c37-9ff2-1252539f2121/summary.json",
+    "stream_sha256_at_close": "2b9c9b86d825eb794b377b81481090c1f841c7cc81d643a085db49f0474c2449",
+    "spend": {
+      "input": 1561660,
+      "cached": 1469184,
+      "output": 20732,
+      "total": 1582392,
+      "cost_usd_ticks": 1774691200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/home/grok-stream/sessions/<snapshot-encoded>/1407f3ce-5d8b-4c37-9ff2-1252539f2121/summary.json",
+      "messages": 191
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct ONLY the two monitor-test findings in in/freshness-test-review.json. Verify against monitor-lever.md: refs_changed events need not inline OIDs/null (test ref metrics using existing appropriate metric events/reader boundary); UTC observed_at should accept equivalent UTC encodings. Preserve substantive OID correctness, exact branch selection and time equality, not mere string presence. Scope is monitor only per in/monitor-only-scope.md; do not restore or edit onboarding tests/docs. Do not edit production. Re-run the original test_monitor_git_refs.py discovery command red, no errors, record hash and intended failures. No unrelated test expansion.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/in/freshness-test-review.json",
+        "sha256": "04943cd5650c2084c90026b79d6fc967c149e4624f1590abc55bdb8faa31992d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001957Z-tests-grok-e5eef2/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "355906fbe9904dd0a51b375de9fa532f6d0934eae9c2e3abfbf883a906575fa5",
+    "bytes": 3003
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:19:57Z",
+      "ended": "2026-09-10T00:25:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a58dfe0bef331eb97a0ff7988583be4535de78df",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_git_refs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "monitor_tests": "ops/conductor/tests/test_monitor_git_refs.py",
+        "monitor_commit": "a58dfe0bef331eb97a0ff7988583be4535de78df",
+        "monitor_sha256": "780fbf95841d68c6614fa26e58782f86f6eb3a9439c6030549b5ef1f76c91ba4",
+        "acceptance_monitor": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'",
+        "red_at_base": "6c1adc0de34aa5eedc2f80ee53fb0c5a880a4758"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1582392,
+        "out": 20732,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6c1adc0de34aa5eedc2f80ee53fb0c5a880a4758",
+        "started": "2026-09-10T00:24:29Z",
+        "ended": "2026-09-10T00:25:08Z"
+      },
+      "note": "Corrected only the two monitor-test findings in ops/conductor/tests/test_monitor_git_refs.py against monitor-lever.md. Did not read production. Did not edit onboarding tests/docs. refs_changed (field=freshness) no longer requires inlined OIDs or literal null; local_oid/remote_oid are asserted on local_changed/remote_changed summaries with exact OID equality per subject. observed_at compares as UTC instants (Z and +00:00 equivalent), not trailing-Z string equality. Committed a58dfe0bef331eb97a0ff7988583be4535de78df on lane/dev-freshness-20260909. File sha256 780fbf95841d68c6614fa26e58782f86f6eb3a9439c6030549b5ef1f76c91ba4. Command `python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'` at that commit: Ran 19 tests in 1.569s then 1.791s, FAILED (failures=27), 0 errors, 0 collection/import failures. ruff check clean; test-guard: every plant is guarded (1 file). Intended red: every failure is config refusal `expected monitors.branch_refs.adapter in ['codex-usage', 'dispatch', 'github-rate']; found 'git-refs'; needed choose a registered observation adapter` (declared API absent). test_invalid_params_refuse_before_any_query contributes 9 subTest failures (timeout-zero, timeout-31, timeout-bool, empty-branches, duplicate-branches, pattern-branch, leading-dash, bad-remote, extra-param) whose needle is the adapter name, not the param; that limitation is the missing adapter, not a fixture/import failure. The new metric-event and UTC assertions are not reached until git-refs is registered. Same command and hash are the green receipt after implementation."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:25:29.772Z"
+    }
+  },
+  "status": "closed"
+}

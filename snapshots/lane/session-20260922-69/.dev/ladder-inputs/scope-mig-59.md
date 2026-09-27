@@ -1,0 +1,1 @@
+Move these modules of ops/devlane/harness/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/harness/tests/test_receipt.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.

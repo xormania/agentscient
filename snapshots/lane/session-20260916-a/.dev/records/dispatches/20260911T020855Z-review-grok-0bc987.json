@@ -1,0 +1,210 @@
+{
+  "id": "20260911T020855Z-review-grok-0bc987",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/receipts-20260911",
+  "lineage": {
+    "branch": "lane/receipts-20260911",
+    "base_sha": "44995b6f072d7168335f329bdb7c62f883eef703"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T02:08:55Z",
+    "closed": "2026-09-11T02:28:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "ref_sha": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "42d2b9cd-74a7-4ca7-98c5-5371b85cd3bb",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok-stream/sessions/<snapshot-encoded>/42d2b9cd-74a7-4ca7-98c5-5371b85cd3bb/summary.json"
+  },
+  "session": {
+    "id": "42d2b9cd-74a7-4ca7-98c5-5371b85cd3bb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok-stream/sessions/<snapshot-encoded>/42d2b9cd-74a7-4ca7-98c5-5371b85cd3bb/summary.json",
+    "stream_sha256_at_close": "b2a956126bc99c1c2465ab234dde975acde093819bbc5d1b164882985fa5c09e",
+    "spend": {
+      "input": 2361730,
+      "cached": 2194432,
+      "output": 62432,
+      "total": 2424162,
+      "cost_usd_ticks": 3070886800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/home/grok-stream/sessions/<snapshot-encoded>/42d2b9cd-74a7-4ca7-98c5-5371b85cd3bb/summary.json",
+      "messages": 225
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adversarial review of PR 101 at this head: the receipt lever ops/devlane/harness/receipt.py, the four modules under ops/devlane/harness/receipt/ (extracted verbatim from the previous repository under an owner grant), and the tests ops/devlane/harness/tests/test_receipt.py by another harness. Read in/extraction-checklist-receipts-20260911.md and in/brief-receipt-tests-20260911.md WHOLE; the checklist's nineteen items and the contract ops/devlane/harness/evidence.cue are the only requirements; checklist items 6 and 12 are flagged for the owner, not defects. Try to break the promises: a receipt file not named by its own canonical digest, verify agreeing when it should not or refusing state wrongly, a wrong field type passing show, a test that passes against a stub lever. Reviews of tests may reject an assertion, not add cases. Each finding quotes the checklist item or contract field it violates or is marked observation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/in/extraction-checklist-receipts-20260911.md",
+        "sha256": "3126a46d3203cd3bb8828073fb01da4706e2a15d936e9b2c496c127defdd554a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/in/brief-receipt-tests-20260911.md",
+        "sha256": "0b9bb9e84b80d60dbee2e48383dc2cd84090d36a2e813b485b2f4a446e766dc4"
+      }
+    ],
+    "sha256": "8390f4b4142f86a5f3f00cbb2856c690dabcc1d4b5138f707af301843d86ef41",
+    "bytes": 3502
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T02:08:55Z",
+      "ended": "2026-09-11T02:28:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 6,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py \u00a7load_receipt",
+          "claim": "Contract #Receipt: show accepts a twelve-key object whose field types violate tree_dirty bool, exit_code int, duration_ms int & >=0, and #Digest, then prints it as a receipt. cue vet -d '#Receipt' rejects the same file.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py types"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py \u00a7load_receipt",
+          "claim": "Checklist item 5: refusals are one stderr line class: expected ...; found ...; needed ..., exit 2, stdout empty. show of a JSON array exits 1 with AttributeError: 'list' object has no attribute 'get' (14 stderr lines). Contract #Receipt is a struct, not a list.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py array"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py \u00a7cmd_record",
+          "claim": "Contract #Receipt.claim #NonEmpty and argv [#NonEmpty, ...#NonEmpty]: record --claim '' writes claim ''; record with argv ['true', ''] writes the empty element; both exit 0. cue vet -d '#Receipt' rejects each.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py empty-claim"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py \u00a7load_receipt",
+          "claim": "Checklist item 11: receipts live at .dev/records/receipts/<digest>.json, the digest being the canonical digest of the receipt itself, so the file name is tamper-evident. load_receipt never checks stem against canonical.digest(body). After rewriting argv and stdout_sha256 in place, verify of the old digest exits 0 while the stem no longer matches the body.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py tamper"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py \u00a7dirty_paths",
+          "claim": "Checklist item 11 (receipts at .dev/records/receipts/) and dirty_paths excluding that directory: after the first record in a repository that does not yet track .dev, git status --porcelain -z reports '?? .dev/'; the second record refuses class dirty. The exclusion matches paths under .dev/records/receipts/ but not the untracked parent.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py dirty"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_receipt.py \u00a7assert_named_by_digest",
+          "claim": "Reject assert_named_by_digest and Show.test_prints_the_canonical_json. Checklist item 11 requires the file name to be the canonical digest of the receipt; show must print canonical JSON. Those assertions hash file bytes minus a newline and json.loads-compare show output. A stub that writes indent-2 JSON named by sha256 of those bytes and pretty-prints show: 18 tests OK.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py stub"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt.py \u00a7main",
+          "claim": "Checklist item 5: one stderr line class: expected ...; found ...; needed ..., exit 2, stdout empty. record without --claim and verify without RECEIPT print argparse usage (two stderr lines, no class token) because parse_known_args runs before the Refused handler and those arguments are required.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py argparse"
+        }
+      ],
+      "artifacts": {
+        "pretty-stub": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/pretty-stub.py",
+        "repro": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020855Z-review-grok-0bc987/out/repro.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2424162,
+        "out": 62432,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "44995b6f072d7168335f329bdb7c62f883eef703",
+        "started": "2026-09-11T02:11:32Z",
+        "ended": "2026-09-11T02:26:01Z"
+      },
+      "note": "Checklist items 6 and 12 were not treated as defects. Write path names the file by canonical.digest(body) (measured). verify at the same HEAD agrees (measured). An extra field refuses class receipt (measured). Could not make verify refuse state while HEAD was still the recorded commit. A planted 40-hex head_sha is accepted by show (covered under the #Receipt type hole) and then refuses state; item 6's record-time sha256 of the 40-hex id is the flagged adaptation, not this. Frozen command: 18 tests OK against the real lever. The tests job's red was RECEIPT_TEST_LEVER exiting 99, which does not prove the canonical assertions. Item 1 blob ids match (receipts ff2afe19, canonical dbc04433, gitio d27994fe, errors 8c8b7540). Item 16 trailers present on 79da612 and 4aca8c1. Looked for .dev/app in the four modules and the lever: 0 hits. ruff check clean; cue vet ./ops/devlane/harness/ exit 0. term-wall.conf is gitignored so the wall itself could not be re-run; the .dev/app grep is what was measured."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T02:28:35.700Z"
+    }
+  },
+  "status": "closed"
+}

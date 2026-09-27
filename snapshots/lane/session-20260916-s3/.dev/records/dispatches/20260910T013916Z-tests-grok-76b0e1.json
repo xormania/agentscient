@@ -1,0 +1,176 @@
+{
+  "id": "20260910T013916Z-tests-grok-76b0e1",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "e9b2930ce6164e3bab975ee2b6f88d848e37480c"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:39:16Z",
+    "closed": "2026-09-10T01:44:35Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e9b2930ce6164e3bab975ee2b6f88d848e37480c",
+    "ref_sha": "e9b2930ce6164e3bab975ee2b6f88d848e37480c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ce7f1b97-b650-48e2-b135-19adcdeb35cb",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok-stream/sessions/<snapshot-encoded>/ce7f1b97-b650-48e2-b135-19adcdeb35cb/summary.json"
+  },
+  "session": {
+    "id": "ce7f1b97-b650-48e2-b135-19adcdeb35cb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok-stream/sessions/<snapshot-encoded>/ce7f1b97-b650-48e2-b135-19adcdeb35cb/summary.json",
+    "stream_sha256_at_close": "2aac26395dbfc466fefdd637e19a981eeab0662a79bb353cbb0c3014b8b17351",
+    "spend": {
+      "input": 1749726,
+      "cached": 1650688,
+      "output": 17269,
+      "total": 1766995,
+      "cost_usd_ticks": 1915957800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/home/grok-stream/sessions/<snapshot-encoded>/ce7f1b97-b650-48e2-b135-19adcdeb35cb/summary.json",
+      "messages": 229
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only the reproduced unsupported event-OID assertion in test_monitor_malformed_git.py. Read ../in/monitor-test-contract-correction.md and root reproduction. No source edits or broad test review. Prove the healthy consumer fixture independently GREEN before re-proving the admitted malformed metadata RED.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/in/monitor-test-contract-correction.md",
+        "sha256": "5f95e416c2c64787acc732f32d10bf876731207900a7c3c2256702568e1c821f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013916Z-tests-grok-76b0e1/in/monitor-test-oid-contradiction.json",
+        "sha256": "73bcdd88b4acae25a936c1a1f699e74e13c56bf14db3cb4282b3132db7c45401"
+      }
+    ],
+    "sha256": "85879f405b77f31861239582215ebbec4a987f4e763250eb8ba6dfc0a711b568",
+    "bytes": 2655
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:39:16Z",
+      "ended": "2026-09-10T01:44:35Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c67cad566a53227d49227440138e4497a25ede03",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_malformed_git.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/conductor/tests/test_monitor_malformed_git.py",
+        "test_sha256": "be2bbe63419e87421cbf8a05282bc7c5bd5e7a418b616082f152dc2d4a80cd5b",
+        "blob": "046fd3448efc42262093f402ee76bb13f5ced662",
+        "commit": "c67cad566a53227d49227440138e4497a25ede03",
+        "frozen_git_refs_sha256": "17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881",
+        "fixture_command": "(cd ops/conductor/tests && python3 -m unittest test_monitor_malformed_git.HealthyConsumerBaseline.test_disabled_absent_malformed_source_observes_healthy_consumer -v)",
+        "fixture_result": "Ran 1 test in 0.206s OK exit 0",
+        "whole_command": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_malformed_git.py'",
+        "whole_result": "Ran 4 tests in 0.613s FAILED (failures=5) 0 errors 1 ok (HealthyConsumerBaseline)"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1766995,
+        "out": 17269,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e9b2930ce6164e3bab975ee2b6f88d848e37480c",
+        "started": "2026-09-10T01:39:16Z",
+        "ended": "2026-09-10T01:44:14Z"
+      },
+      "note": "Corrected only assert_healthy_sibling_observed in test_monitor_malformed_git.py: dropped json.dumps(events) OID membership; kept subject/state/freshness and pinned evidence {repo,remote,ref}. Added HealthyConsumerBaseline.test_disabled_absent_malformed_source_observes_healthy_consumer (absent+disabled malformed source). Fixture-only GREEN: (cd ops/conductor/tests && python3 -m unittest test_monitor_malformed_git.HealthyConsumerBaseline.test_disabled_absent_malformed_source_observes_healthy_consumer -v) Ran 1 test in 0.206s OK. Whole-file RED: python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_malformed_git.py' Ran 4 tests FAILED (failures=5) 0 errors; admitted malformed metadata still exit 2 (2 != 0; restore the source metadata) on planted pointer and overlap cases. Final test sha256 be2bbe63419e87421cbf8a05282bc7c5bd5e7a418b616082f152dc2d4a80cd5b at c67cad566a53227d49227440138e4497a25ede03. Frozen test_monitor_git_refs.py untouched sha256 17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881. No source edits. Implementation not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T01:44:34.833Z"
+    }
+  },
+  "status": "closed"
+}

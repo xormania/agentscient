@@ -1,0 +1,157 @@
+{
+  "id": "20260904T230120Z-tests-grok-748886",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repo/monitor-oracle-20260904",
+  "lineage": {
+    "branch": "repo/monitor-oracle-20260904",
+    "base_sha": "ead3f18262a773e12b19fe1a581b624b4ac1ad78"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-04T23:01:20Z",
+    "closed": "2026-09-04T23:21:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ead3f18262a773e12b19fe1a581b624b4ac1ad78",
+    "ref_sha": "ead3f18262a773e12b19fe1a581b624b4ac1ad78",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5b78221e-39a8-42cb-bf2a-abdd90123d45",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok-stream/sessions/<snapshot-encoded>/5b78221e-39a8-42cb-bf2a-abdd90123d45/summary.json"
+  },
+  "session": {
+    "id": "5b78221e-39a8-42cb-bf2a-abdd90123d45",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok-stream/sessions/<snapshot-encoded>/5b78221e-39a8-42cb-bf2a-abdd90123d45/summary.json",
+    "stream_sha256_at_close": "411e6fcc2ee636644c3b9b9b1662a4f7060b85ebe337dc72208a6dc40da33878",
+    "spend": {
+      "input": 2939928,
+      "cached": 2712064,
+      "output": 71425,
+      "total": 3011353,
+      "cost_usd_ticks": 3808527000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/home/grok-stream/sessions/<snapshot-encoded>/5b78221e-39a8-42cb-bf2a-abdd90123d45/summary.json",
+      "messages": 261
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-monitor-oracle.u3mWe2/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "ops/conductor/monitor-lever.md; read ../in/monitor-tests-brief.md WHOLE. Author only ops/conductor/tests/test_monitor.py against the declared CLI, with synthetic sources and gh mock. Implementation is withheld and being independently produced; explicitly distinguish absent-entrypoint red from semantic coverage. No implementation, existing-test edits, broad suites or external calls.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230120Z-tests-grok-748886/in/monitor-tests-brief.md",
+        "sha256": "8d7fba748c9fd8486f9426139a744f155ff491febfc1c962f4401c6b2b806c3c"
+      }
+    ],
+    "sha256": "8b8572bc3face63adee8de93ad49c6f77d137e205a3942e48a538df21b5b4dee",
+    "bytes": 2728
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T23:01:20Z",
+      "ended": "2026-09-04T23:21:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d2336a0501709950d1b7600e3b66e44bc624f30a",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "oracle": "ops/conductor/tests/test_monitor.py",
+        "commit": "d2336a0501709950d1b7600e3b66e44bc624f30a"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3011353,
+        "out": 71425,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ead3f18262a773e12b19fe1a581b624b4ac1ad78",
+        "started": "2026-09-04T23:12:19Z",
+        "ended": "2026-09-04T23:21:03Z"
+      },
+      "note": "Wrote ops/conductor/tests/test_monitor.py (39 methods) from monitor-lever.md against the declared CLI with synthetic stores and a gh mock. python3 discover collected 39, 0 collection errors. Full file: 39 run, 0 errors, 0 pass; 59 assertion records including subTests. test_the_tool_file_is_present failed on absent ops/conductor/tools/monitor.py (absent-entrypoint red). The other 38 failed on contract assertions against a no-op stand-in (exit 0, empty stdout: refusal 0!=2 or missing JSON), which is not proof that every semantic counterexample was exercised against an implementation. ruff check on the file passed. Committed d2336a0501709950d1b7600e3b66e44bc624f30a on detached HEAD. Measured against ead3f18262a773e12b19fe1a581b624b4ac1ad78. Implementation unread; no approval from an absent target.; head_commit mismatch"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T23:21:23.679Z"
+    }
+  },
+  "status": "closed"
+}

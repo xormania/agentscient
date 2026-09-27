@@ -1,0 +1,273 @@
+# branch archive, 2026-09-18T01:52:17Z
+# bundle: /home/scientdb/wt-archive/agentscient-refs-20260918T015216Z.bundle
+#   bytes 12243117, refs 1339, sha256 9bdcd036ab7c6d5ebe651facc55dba1cf02550b66deceec9ce8fa34cc58407cf
+#   restore all: git clone /home/scientdb/wt-archive/agentscient-refs-20260918T015216Z.bundle <dir>
+#   restore one: git fetch /home/scientdb/wt-archive/agentscient-refs-20260918T015216Z.bundle <branch>:<branch>
+# every tip below was found in a clone of this bundle before any branch was retired
+name	sha	class	reason
+app/mate	d119b3e328a81dfe365591a9b3fae2fd16753f72	in-dev	every commit is already on the trunk
+app/shell	818a1012837179331cba4e9b8c87f7adb8a6a2e5	in-dev	every commit is already on the trunk
+deprecated/wip-20260904	1c9dcc976a0da80a7b10a1be5d97266125761cd2	records-only	the only files it adds are session records under .dev/
+docs/minspec-after-action-handoff	12ffddd5d4cf2e0426624910617b665434dbf6e6	in-dev	every commit is already on the trunk
+docs/readme-20260905	5f80cbe88b533229cb76cb733213cf3937cfcc25	in-dev	every commit is already on the trunk
+docs/symfony-ruling-and-mapping	dc0840242583a1f2b0e0506de251256b895af0fe	in-dev	every commit is already on the trunk
+handoff/pitfalls-18-20260911	d1192a32e0c4f60537ce700de187a579f52788b5	in-dev	every commit is already on the trunk
+lane/agy-accounting-acceptance-20260908	6292122fa07e080a08db95ce493403b6b34ecf34	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-canonical-smoke-20260908	71bbed2076047d559a747d8a05b266e95b5a886f	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/agy-claude-code-ruling-20260908	7bc4dd822b575477dd81467012f3b31482827db8	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-combined-review-20260908	317a12035fb2b18d92a39d43b023d0326be514ee	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-config-remaining-adjudication-20260908	1b6c8d111d6b693c2522bcb1801671d83fefd790	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-config-test-acceptance-20260908	978fff2e7f9002611f6942c6dbfdf96e1df6a1e2	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-corrected-contract-adjudication-20260908	7e19a4cf06bb3d5260705ddd1d012d019d9d88e9	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-corrected-contract-review-20260908	298b962b826c251391b62704b5d14369c3c8a8d2	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-correction-review-20260908	8a36c238f1f504f37dbfc737504c420e57a57b53	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-discovery-live-20260908	fbae378d4ebdfb998269103e4ac58b05a0c0c760	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-discovery-probe-recipe-20260908	fe355f18c5ba8da5c7d8976f69dc3766565be17f	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-envelope-remaining-adjudication-20260908	0d4ef3f66a277602eace8f09caa4cdeacb0468b7	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-envelope-test-acceptance-20260908	ae1e21ec4e4bc8edb08acd2904d6a0dff41ee9e6	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-final-candidate-20260908	25ddc8967d80097677f7d9cf62f6c749b8cdcb1a	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-final-test-ruling-20260908	6a1ff1515ba04691187dd3f67548fd0a67c9efda	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-grok-code-ruling-20260908	9cb34186a67639a8176fea93eb622aa5f79563f6	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-host-observation-20260908	a13debc6d24ee00e187701d415209b36babe2f36	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-isolation-implementation-20260908	ba9a6fc2bfe06005d3acb4d95f61944818723051	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/agy-live-observation-20260908	b3b0f1cab2751a57c5e5c1d0cf1fb5f699cde691	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-native-seams-20260908	c751c30c52a967c5944b9bbb07f244be1447d02d	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-parser-status-acceptance-20260908	924b159019f41cd65e1a0c7747e4d28a298b2fc2	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-permissions-observation-20260908	394ea4f0ffc1829b93445f1d54efe3e974f1a709	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-regression-final-ruling-20260908	4196205fa24cf0cbe4f03436167f414fcfee652d	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-runtime-candidate-20260908	8bd4afe4a59f043a7ff54b7d0e90b4d838f500c7	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/agy-security-ruling-20260908	f224f62bdfa0be7bdf755743270410be493e13c1	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-source-last-ruling-20260908	ddad5b023f9ce6be178c9a6ddc94782d6b977799	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-stdin-observation-20260908	6af47c3d7d2a45fc2759b98b1e8a3af2c99e7250	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-terminal-test-accept-20260908	6d8b2644dfd42417b83df6cc9eed081651fe044e	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-terminal-test-ruling-20260908	86b6a3c2978e98dea65eff3d3894d18d71315f55	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-test-final-acceptance-20260908	917e30c2741432014f5534bb860c8d4bf8f2f82e	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-wire-evidence-20260908	476ceaf2d22510cceeb5e7e07fd58e5c5cd66bc5	dispatch-records	every commit is a dispatch record the store also holds
+lane/agy-worker-20260908	c3f4c115f35333e0546cb63d2320cdcbf04ebd31	in-dev	every commit is already on the trunk
+lane/agy-worker-security-20260908	48c486bec2d2f0e8f28ffd3be626dbdaab2241ae	dispatch-records	every commit is a dispatch record the store also holds
+lane/ci-hardening-20260912	b40294a8a0e2e0dbbce97262e4c0498573589a73	in-dev	every commit is already on the trunk
+lane/ci-two-jobs	b6dd46d23d4db485d15e43301042cfe91f3adc40	in-dev	every commit is already on the trunk
+lane/collect-recovery-20260910	2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8	in-dev	every commit is already on the trunk
+lane/conduct-canonical-contract-review-20260906	2eaea576273776e91519c0138f1fe216a1af3863	dispatch-records	every commit is a dispatch record the store also holds
+lane/conduct-canonical-contracts-20260906	ebb126532dc52991e899e8400e0b1dbdec6b8943	dispatch-records	every commit is a dispatch record the store also holds
+lane/conduct-canonical-correction-20260906	895f6850fe8fb0571ceb8d2b73aafa88719145de	in-dev	every commit is already on the trunk
+lane/conduct-discovery-adjudication-20260906	2ec342f880ce03284372913c06218d59e06890e8	dispatch-records	every commit is a dispatch record the store also holds
+lane/conduct-interfaces-20260906	5bc38f32d4707be72392a7566a921f40a39d39dd	dispatch-records	every commit is a dispatch record the store also holds
+lane/conduct-launcher-20260906	88699b6d799bcc5c1d9da485c08af2773a3153c6	in-dev	every commit is already on the trunk
+lane/conduct-onboard-tests-20260906	8c4f7f74b463ae2b259aeefa609e0cd736cb074c	dispatch-records	every commit is a dispatch record the store also holds
+lane/conduct-policy-review-20260906	ffe64bcd150f38a2fa0624b66df9e22064ff9e07	in-dev	every commit is already on the trunk
+lane/conduct-startup-close-20260906	a582f942706640a602c895c49de5e5cb2ddfda52	in-dev	every commit is already on the trunk
+lane/conduct-task-outputs-20260906	5f3d179c09ee56c81a3ccb065e74146eed212ac8	in-dev	every commit is already on the trunk
+lane/conduct-wait-diagnostic-20260906	f3b8cde83b4163dcfa718f67e4cd61ad8e422515	dispatch-records	every commit is a dispatch record the store also holds
+lane/conductor	e755a36b9d4988a0cd214f8770b61b0de6f72767	in-dev	every commit is already on the trunk
+lane/conductor-context-20260905	ac29ca8f79beb0b285884d7bf7f6635f34275c67	in-dev	every commit is already on the trunk
+lane/conductor-start-20260905	7bc51b7a891b9772d217f06fc812b7b0645b7872	in-dev	every commit is already on the trunk
+lane/dev-freshness-20260909	c334d1ebbfd511d6659c3f1b7a4884f2e9817f59	in-dev	every commit is already on the trunk
+lane/dispatch-agent-local-20260916	faab9c037762adfe89704bb7b4e5c6f4a363aab2	dispatch-records	every commit is a dispatch record the store also holds
+lane/effort-per-role-2	72cac42a0881b344a018e53c460fd151bf94f415	in-dev	every commit is already on the trunk
+lane/effort-turns-20260912	f33e373036467ed95c53201d4adbd84485e95d12	in-dev	every commit is already on the trunk
+lane/fable-5-1	891aae52c0ee8692ca71459998eab4d2e67687e9	in-dev	every commit is already on the trunk
+lane/final-quality-20260905	b53b912aeda740043a8fba9dde8a1913bf0cd654	dispatch-records	every commit is a dispatch record the store also holds
+lane/final-security-20260905	71203d19d1354b3b8971a40a5dc0b30f90644787	dispatch-records	every commit is a dispatch record the store also holds
+lane/fixture-apps	5137d5213e42a57e3baa8d43c5f0787d5cf64376	in-dev	every commit is already on the trunk
+lane/fixture-apps-2	ba1960eb15bd370862017da02c4f707d24230f37	in-dev	every commit is already on the trunk
+lane/fixture-apps-3	e30269d9eceb9c5cb0c5de1f32724e8a93319600	in-dev	every commit is already on the trunk
+lane/fixture-apps-4	75d4b8af1a6c0da7c578b452c3219644531f38ab	in-dev	every commit is already on the trunk
+lane/fixture-apps-5	ecda2616716058c892c849e2dea91b6395b95d88	in-dev	every commit is already on the trunk
+lane/fixture-apps-grok-authored	9cbd3233a7404fa8fd6dccb8b526a2b4bf31495f	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/fixture-apps-grok-authored-2	38dbfdcbfe5572ef3ff3d867384ca5ed474ff892	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/gate-dispatcher-20260911	57a915089d81b10580654ea44fb5770d4308ddf3	in-dev	every commit is already on the trunk
+lane/gate-ladder-stop-20260911	8655c5cb8874fb0c1b9c877dc55e161cd7236acb	in-dev	every commit is already on the trunk
+lane/gate-launcher-20260911	7b7979baa6a959bf00f5e978d0934cc068be731c	in-dev	every commit is already on the trunk
+lane/gate-ledger-20260911	f8758eb06571cbadf34a58be0d13f09a2bdc7d04	in-dev	every commit is already on the trunk
+lane/genesis	dcd3b0ed55b40a9b16cea704ee3c01e24fad7aa2	in-dev	every commit is already on the trunk
+lane/hook-false-positives-local-20260916	781c9f6b6cd6b00865d0a881ca016e2b8b21a125	dispatch-records	every commit is a dispatch record the store also holds
+lane/hook-miss-log-20260911	bb56bd8099b37e9fc5bea70ca4a8e6e020a2731b	in-dev	every commit is already on the trunk
+lane/implement-prompt-scope	463864094ad7548415fd4cecb62df0f63db4356a	in-dev	every commit is already on the trunk
+lane/isolated-state-root	3af62c8166601530e4896a7a79527901325c6bcd	in-dev	every commit is already on the trunk
+lane/item31-skeptic-wire-20260911	98c973806c215ff18ccb64f9465ac6a3d29a8a6a	in-dev	every commit is already on the trunk
+lane/item31-slice2-skeptic-driver-20260911	bee78953ca68e42e678b4f93b07495e851fad194	in-dev	every commit is already on the trunk
+lane/item31-slice3-guard-20260912	2141963c24858cf46802c57fb185f8df4d991775	in-dev	every commit is already on the trunk
+lane/killers	3be799273f4ae812d9b57006c370e568eaee657d	dispatch-records	every commit is a dispatch record the store also holds
+lane/ladder-driver	228e096d9da491eb3cd74c8d72d6aca54693d21a	in-dev	every commit is already on the trunk
+lane/ladder-fix	c40094884c2b5f1da6cc7789505a0d9bbcdc1bd1	dispatch-records	every commit is a dispatch record the store also holds
+lane/lane-boundary-20260905	e8084862367a498e62eaff8653db5031b083c713	in-dev	every commit is already on the trunk
+lane/lane-conf	f1c84e25fad57ccb61b7b724af9439daa887feda	in-dev	every commit is already on the trunk
+lane/lane-conf-grok-authored	3e3640972f1be0840a1f8aa0fb9b9226842ec003	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/lane-conf-grok-authored-2	2c2814b6dec60aae98cf8681e323170698123a75	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/lane-fixes	5ba1bf859a7465f08abf91b83bb4e65e8d1b9829	in-dev	every commit is already on the trunk
+lane/law-hand-grants-20260912	ce2baae0ab987fd893b52791cf104d6168f4aee4	in-dev	every commit is already on the trunk
+lane/law-records-to-dev-20260912	edaea6fc215ae7454afbfb29b5f059599925f845	in-dev	every commit is already on the trunk
+lane/ld23-ld24-review-20260912	f1ff506eb676c23c438f486ae41fe6e8aa9d44da	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/live-proof-20260912	fe3200bdb4f35a88a7bed87bbc08eec1d4739b3e	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/live-store-guard-20260910	83eb1c220e2f166ee7c59d77068dfdef59611986	in-dev	every commit is already on the trunk
+lane/matrix-measure	20955a23e7659e8a7a2e8a1e448e998203827f51	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/matrix-tests	343cf6bd6e1073cd217ff730c2622e7551f408f3	dispatch-records	every commit is a dispatch record the store also holds
+lane/merge-check-53d23ff9	1c83d44b8a6c3ed75bff2d11d5c851b7cfb3ae35	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/merge-check-6bc6f898	f3ce88af1baedc3735ed128996081cd3328e03d7	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/merge-check-c2ee49f5	8a372f077f41217d39beac424175e58bd61fa429	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/merge-check-fcc9a150	28835ef38f903bb7ee31e9d5be615c8854b5cab1	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/onboard-running-local-20260916	739ae80723a3d8ef2b9410c22f09900d84f4fdb0	dispatch-records	every commit is a dispatch record the store also holds
+lane/onboarding-brief-inputs-20260910	846660adbbb70ebe6bacaeb315a8c7683f3df2eb	dispatch-records	every commit is a dispatch record the store also holds
+lane/onboarding-brief-inputs-fix-20260910	1601d9562bfbe536d8c85981ba42cca2cadb98cd	dispatch-records	every commit is a dispatch record the store also holds
+lane/overview-stale-tests	509c5a036b5caa6ec3c00694e809e7e0e5ed7934	in-dev	every commit is already on the trunk
+lane/plan-prompt	897b1db3c4a95667cc8087216929d18231836ef4	in-dev	every commit is already on the trunk
+lane/pr-proof-gate-20260912	e2ea4f938868351a64d60d039da9936e840101cf	in-dev	every commit is already on the trunk
+lane/pr66-review-fixes-20260905	925d88bce37743bc82131b37c0d820bf38dc1612	in-dev	every commit is already on the trunk
+lane/probes-runner-20260912	13769beb19a2a2b4e0f96c9bb337d217575e411e	in-dev	every commit is already on the trunk
+lane/receipts-20260911	8da7d410fe4328babcab7d207be13be4184a810c	in-dev	every commit is already on the trunk
+lane/record-paths	76d98bf60d8430595184cd0b7855b8caed67fb08	in-dev	every commit is already on the trunk
+lane/registry-rows	d9846e51c3cfbc08b6369648ef25734c66efc7a3	in-dev	every commit is already on the trunk
+lane/scope-gate-20260910	db41a32af6b0304edb1ef67b15ff74a44ee8384f	in-dev	every commit is already on the trunk
+lane/security-hook-families-20260904	e1e422a5d772eb5fe771c3bfd94b950bbb9fc45b	in-dev	every commit is already on the trunk
+lane/session-20260912	9d21f1197e162cb7f1d326aef9ce0d2a7a794ed1	in-dev	every commit is already on the trunk
+lane/session-20260912-b	6b66fdf3176aa0e597b68b428b30e26ef44081f1	in-dev	every commit is already on the trunk
+lane/session-20260912-c	a24a8f8366967703a59fc5ef76ef114d24cc6f03	in-dev	every commit is already on the trunk
+lane/session-20260912-d	e768c2aabd28d650366465b66770d41923fa3e68	in-dev	every commit is already on the trunk
+lane/session-20260912-e	63763b537f217e03dba2820a29963a3a4fa06a8a	in-dev	every commit is already on the trunk
+lane/session-20260912-f	cee0cbed3a59d42f05ad74a05f40a47fc1f1945f	in-dev	every commit is already on the trunk
+lane/session-20260912-g	c2796ccba77bfc6a4f597d62d044b61de8ebbed6	in-dev	every commit is already on the trunk
+lane/session-20260912-h	4bd146d60c3c5cbe99f5d55ee9b25e8ff2adfc44	in-dev	every commit is already on the trunk
+lane/session-20260912-i	a0fb22b14ec35e7298f3830da08360aad6bf8458	in-dev	every commit is already on the trunk
+lane/session-20260912-j	be7c0e06274b84e591fc9b5ca5e66c3367d1ab87	in-dev	every commit is already on the trunk
+lane/session-20260912-k	f7b1df3d49f8995b56a46f7d150a1ca3ff169cb6	in-dev	every commit is already on the trunk
+lane/session-20260912-l	5adc5c20c835ac9531d33e28117e40b6f6dd6838	in-dev	every commit is already on the trunk
+lane/session-20260912-m	7350cb5419e627a5090f3f7e8961a9732b0f78c1	in-dev	every commit is already on the trunk
+lane/session-20260912-n	54bac07ec530a4d88319a44ebbf7c999a41961cd	in-dev	every commit is already on the trunk
+lane/session-20260912-o	7e2f31beb227fa979beaf36d95b6a4cc231102f6	in-dev	every commit is already on the trunk
+lane/session-20260913-a	a93379ca006e54fc3f25223f1e6abab04ca4957d	in-dev	every commit is already on the trunk
+lane/session-20260913-b	e004897877c6b0923b73ed05fc59e37281d48c51	in-dev	every commit is already on the trunk
+lane/session-20260913-c	47c3a5402b4e820dc9681f287a46917919c242a8	in-dev	every commit is already on the trunk
+lane/session-20260913-d	d0bbd3c4b6e3b8319bdfa1f607ad6ac07e6e52a5	in-dev	every commit is already on the trunk
+lane/session-20260913-e	0798897ac99e29330c388029f4f2de675919ac4f	in-dev	every commit is already on the trunk
+lane/session-20260913-f	d1aac57622216bb9ba53376bfc186176e14cc61c	in-dev	every commit is already on the trunk
+lane/session-20260913-g	16ed212e32412fdb8d9d343413c5e82fdb2a5951	in-dev	every commit is already on the trunk
+lane/session-20260913-h	a0df93232b2b1f2c8a0e003134ca7147bf94064c	in-dev	every commit is already on the trunk
+lane/session-20260913-i	da9b3c62b835e6324c09ee512872967c5a8c6445	in-dev	every commit is already on the trunk
+lane/session-20260913-j	caa97cc86da33449adb0b499993f82e19a3eec9f	in-dev	every commit is already on the trunk
+lane/session-20260913-k	31d01a2b1de8b143151c6816a2f70f3cf217828b	in-dev	every commit is already on the trunk
+lane/session-20260913-l	616cf4a07bca825efeba246f03880bcb7b501616	in-dev	every commit is already on the trunk
+lane/session-20260913-m	84b6904f4c609f6231c390c9a2c77b2ad8ecc8e6	in-dev	every commit is already on the trunk
+lane/session-20260913-n	f292e4e542479a47dc2a10d654410c8ecfc17a12	in-dev	every commit is already on the trunk
+lane/session-20260914-a	564ab7690f3165789af33341d42eaf09c2f87067	in-dev	every commit is already on the trunk
+lane/session-20260914-b	5e00c406df772615312889752060c17fcbd562bb	in-dev	every commit is already on the trunk
+lane/session-20260915-a	5e182e89192669c48b92022baab2696c3a37c603	patch-equivalent	the trunk has an equivalent patch for every commit
+lane/session-20260915-b	ea5481ab081f8eb7414a7d1a45b63d8e5c65fd36	in-dev	every commit is already on the trunk
+lane/session-20260915-c	160a5830f2563660783751ea507e6bc92bb6b61b	in-dev	every commit is already on the trunk
+lane/session-20260915-d	b6124fa09823aa67e48a25baa4115226f2165805	in-dev	every commit is already on the trunk
+lane/session-20260916-ci-local-20260917	ce30599be8521c0fe909e75252f804c6ff012f65	dispatch-records	every commit is a dispatch record the store also holds
+lane/skeptic-write	eaf5d4f1edf82cfff2d44437b7b8874e7acd648b	in-dev	every commit is already on the trunk
+lane/skills-20260911	7239171f17998c685e24492ad6461d9ddf5fb754	in-dev	every commit is already on the trunk
+lane/stage-set-20260912	869c150313f159f6a1982fdbd5962992c6158d07	in-dev	every commit is already on the trunk
+lane/token-meter	ee4f9c2a6e1cafa9edbab52f47fb3185ca89a035	in-dev	every commit is already on the trunk
+lane/toolchains	5673b7e66f080bd8122dd08e6da40288385c7702	dispatch-records	every commit is a dispatch record the store also holds
+lane/wait-loop	c7681ace990000846343b2f1f71851e2927ea77e	in-dev	every commit is already on the trunk
+lane/watchdog	92dc317322d9b32d8e2a0c9b6e1afd4737a6db53	in-dev	every commit is already on the trunk
+lane/watchdog-deviations	fe072981c9d65fd730373ac4d733ccee13dc7280	in-dev	every commit is already on the trunk
+lane/worker-mcp-brief-20260912	b9a52cc49901a5f361951a23dcc36a9ec322f97a	in-dev	every commit is already on the trunk
+lane/workflow-spec	313c199d55d1ac7adbe05b58dbd622313ccbf2ab	in-dev	every commit is already on the trunk
+lane/worth-session-row-local-20260916	8a2695c97844e4cc281b642cb8fb85e673431e98	dispatch-records	every commit is a dispatch record the store also holds
+records/aar-20260911	7a976a8f30335e2fcc877c51046cbe0162c3a15c	in-dev	every commit is already on the trunk
+records/ci-and-tests-review-20260911	117fa73c5b0f5bd911eeca393c1c4f2c1f199eaa	in-dev	every commit is already on the trunk
+records/ci-and-tests-survey-20260911	ae1404e10ad16eb398f92de47b24af22fe13a623	in-dev	every commit is already on the trunk
+records/closeout-skills-20260911	62854ef3093aa53b16ec91de2c377c6ca1be549a	in-dev	every commit is already on the trunk
+records/e2e-fixture-wo-20260911	e7a7e790587ee370fc1bf8f54aa10b167b96d06e	in-dev	every commit is already on the trunk
+records/flag-141-20260911	1a990c87734b0b175a42636a9e3530f9373ed211	patch-equivalent	the trunk has an equivalent patch for every commit
+records/flag-141-b-20260911	1f6cb435898a6af1be36ab838dd266fe170db492	in-dev	every commit is already on the trunk
+records/idea-git-capabilities-20260911	30096cad2fa474de939c69acc031b7dc7b4b8bb2	in-dev	every commit is already on the trunk
+records/item31-scope-20260911	d2f8834fd4912a48c9e5b6eb3327950f2f4c69bc	in-dev	every commit is already on the trunk
+records/lost-work-audit-20260910	670b37d8b80e5ef53c4ec4798347d62564d3ac40	in-dev	every commit is already on the trunk
+records/monitor-follows-20260911	b4da271d90d0cd7674958ac8bc4c2fe3fb4fe9de	in-dev	every commit is already on the trunk
+records/pitfalls-20260911	2f4e47070149c60a40a8c47a3d87f710babb12ae	in-dev	every commit is already on the trunk
+records/pr-consolidation-20260910	7fac8eea89c705fdb750df69bc78e96380225a92	in-dev	every commit is already on the trunk
+records/register-review-2-20260911	da6241d555bd3605f4b7cf440e2b0608c022e0d7	in-dev	every commit is already on the trunk
+records/register-review-20260911	f917ca90a20b1a117ed07b2e728af36bb4444030	in-dev	every commit is already on the trunk
+records/session-2026-09-03	34c3a1b10228a6f66d8e381dd3f6a27fc2e91ed4	in-dev	every commit is already on the trunk
+records/session-2026-09-03-seat	1e637494ed2f199b6f9002420eee49c4776d235b	in-dev	every commit is already on the trunk
+records/session-2026-09-04-driver	d8248f050dc7a1aab82e393cac902adaeed6552e	in-dev	every commit is already on the trunk
+records/wip-recovery-20260904-local-20260916	64f647db39c1bcee7ea43cb07ea0854f210b4097	records-only	the only files it adds are session records under .dev/
+release/dev-into-master	0e3b792d92be80ea6a58c327fefd06393e33b3ff	in-dev	every commit is already on the trunk
+repair/codex-read-tmp-20260911	7ac9c9161e3d9bf45384ddbf918385fcde606327	in-dev	every commit is already on the trunk
+repair/deliverable-lock-20260911	c2fc808df4bbe615470738bfdcfa7e17a1ea7b64	in-dev	every commit is already on the trunk
+repair/dispatch-graft-env-20260911	8551bdbb1465c748d504be38f55d40904fc8eaa7	in-dev	every commit is already on the trunk
+repair/gate-closeout-20260911	5b8c7f9f72ac021361943ca174cb3d5f67ec5455	in-dev	every commit is already on the trunk
+repair/graft-first-20260911	5769956f339b0facf54e1325b910efff10963dc7	in-dev	every commit is already on the trunk
+repair/grok-credential-age-20260911	9adc5a689d91ed6ad30331f760a768312aa8f4a0	in-dev	every commit is already on the trunk
+repair/guard-friction-20260911	28ed66f37ceefbb6043592152338d4613f1e6520	in-dev	every commit is already on the trunk
+repair/hook-test-isolation-20260911	7fbdf728e8bdfac9f3669fba47a0ab2ed33dcd1a	in-dev	every commit is already on the trunk
+repair/ladder-artifact-paths-20260911	891c0a3b2439021778dbde7c1b72e0a82706a253	in-dev	every commit is already on the trunk
+repair/ladder-carries-inputs-20260910	9986c608d6dc8ed059f16e0a29c8e2071d57b035	in-dev	every commit is already on the trunk
+repair/ladder-input-wire-20260910	42fa2305c23404cc07a6e1851dc16e776d0ddfe1	in-dev	every commit is already on the trunk
+repair/ladder-inputs-tests-20260910	56eb074ec55802184cde2aa49b9ef1f569a90447	in-dev	every commit is already on the trunk
+repair/ladder-markers-20260910	f1de7d87fe8bd3cccc09a501a1841b472fe4efe2	in-dev	every commit is already on the trunk
+repair/ladder-rescope-20260910	d9a455f4dd5c5c5008207d015777a07bbf98da33	in-dev	every commit is already on the trunk
+repair/ladder-stop-commit-20260911	e3d7a5abdac819a5f173363c6b47708949a8ffba	in-dev	every commit is already on the trunk
+repair/ladder-support-modules-20260911	a35e50323a06cca20c493e3f97650d66e6d56df6	in-dev	every commit is already on the trunk
+repair/ladder-wall-20260911	7378c4e6192bf9c4a1d28d4ff929d119be91b066	in-dev	every commit is already on the trunk
+repair/ld-21-worth-serialized-whole-20260911	1edfbc0990afe1c230527a735bf445c915eb994a	in-dev	every commit is already on the trunk
+repair/ld-23-skeptic-answers-20260911	e9ef7e1d62dfc527e9cdbb0e176581516587fb28	in-dev	every commit is already on the trunk
+repair/ld14-regression-20260911	293f0d53399ff121ab93ed6342cf41b0114aadfe	in-dev	every commit is already on the trunk
+repair/ld15-regression-20260911	b7bcceeea5116285a57ff5df62f901962384cfa6	in-dev	every commit is already on the trunk
+repair/ld17-regression-20260911	c47cbb941b0018aa9627875cb478f482f6bd2b44	in-dev	every commit is already on the trunk
+repair/ld18-regression-20260911	8d4b1401a95a68c69fbb6205b4a3d1dc853de6de	in-dev	every commit is already on the trunk
+repair/ld19-regression-20260911	9fc561395ae67ba0be015ba1d20e95d7be1ef7ad	in-dev	every commit is already on the trunk
+repair/matrix-read-verbs-20260910	1b36a6d88ddf3ed8aecd8a787975f08902625e0f	in-dev	every commit is already on the trunk
+repair/monitor-shim-20260911	bc4558279763247917270420cf370e7868ad5c92	in-dev	every commit is already on the trunk
+repair/precheck-scope-20260911	cfcb90963247766fcc5a146a727eba8fbd8ade73	in-dev	every commit is already on the trunk
+repair/resource-leaks-20260912	0bd1c2a0a858812e2e6b5dc2fd1a16f345ab01f0	in-dev	every commit is already on the trunk
+repair/review-cap-20260911	7aba0b06923c9b1f78116b23c0d69fcf1e6bb734	in-dev	every commit is already on the trunk
+repair/term-wall-export-20260911	03499c403e98e61487492e99241a752b2e873986	in-dev	every commit is already on the trunk
+repair/tool-friction-20260911	183ae311c2818af3dbaf1724a9c65e0a9c7ec0e0	in-dev	every commit is already on the trunk
+repair/wrapper-store-guard-20260911	ccfe80823851bbd54c98e9154bc4becaa611063c	in-dev	every commit is already on the trunk
+repo/ci-checkout	7bc86a31e6f88596d00512ec8bdb38195a1d7434	in-dev	every commit is already on the trunk
+repo/ci-fast	28c3c19f9310438e6390193982352454dd9d31c8	in-dev	every commit is already on the trunk
+repo/ci-merge-group	e97e37377880ab6625e1a77bdf316e6c735f02db	in-dev	every commit is already on the trunk
+repo/claude-md-prose	c8256742262e031f450567821fe16b22f29462c0	in-dev	every commit is already on the trunk
+repo/codex-live-output-20260904	3470c456dff7d3f8750f3212141765b1b3d682ba	dispatch-records	every commit is a dispatch record the store also holds
+repo/compact-instructions	c09030169e6f35afe5d2b87de5300fe725bda244	in-dev	every commit is already on the trunk
+repo/daybreak-pr57-20260904	40f4a1e98b57e00c9eada4dbe18044ca72472fc8	dispatch-records	every commit is a dispatch record the store also holds
+repo/daybreak-pr58-20260904	18ae31a9195822c7a7ee3cc64065bed8ec5aca21	dispatch-records	every commit is a dispatch record the store also holds
+repo/daybreak-pr60-20260904	b7cb07e781c8c642418da4fc6a719a18b71c2dc5	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft62-codex-security-20260904	5e0cbeb42ca7cb0765a47c4b860b3b14f658efb9	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft62-grok-security-20260904	2f2dd26c828eb407e34472ce7a6ce8e8f9a38035	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft63-grok-security-20260904	47959db491089c39d423672bba5a69862e6e14ee	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft64-codex-security-20260904	92b48be3ce56308d11ff2ee078528f803097dc1a	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft64-grok-security-20260904	e25e4f385113ff3840b0022c0ce362058b21d442	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft65-codex-security-20260904	bad654df6207232f86f95ea6b95b260bb36258fe	dispatch-records	every commit is a dispatch record the store also holds
+repo/draft65-grok-security-20260904	d61631c5be075d818a9f8ffc09f89b947ad826dd	dispatch-records	every commit is a dispatch record the store also holds
+repo/grok-pr58-20260904	fb7ba5eb6f663fa41efc600223cae8f614d116c1	dispatch-records	every commit is a dispatch record the store also holds
+repo/idea-ci-tracking	34513bb0ccd8fe0e4c893658c68aee568e49aedb	in-dev	every commit is already on the trunk
+repo/idea-context-fixtures	99def3a6645da931649fb938399a268f13773b4e	in-dev	every commit is already on the trunk
+repo/idea-living-system	568f554189b6165b719abda3365cc79967494b64	in-dev	every commit is already on the trunk
+repo/idea-reports-and-metrics	832f5a589e2486fd804df5e6d95322e009c18ade	in-dev	every commit is already on the trunk
+repo/idea-subscriptions-and-usage	599e0be08d3c77de98db52f05efba781c9632924	in-dev	every commit is already on the trunk
+repo/idea-two-lane-branches	4a2718c00726eeb42653981bab420bde732c50dc	in-dev	every commit is already on the trunk
+repo/idea-watchers	1deec7adf0d0f6b0ea119d5931a4b0cdf704398b	in-dev	every commit is already on the trunk
+repo/lane-mcp-20260904	eb4eb53def151d419a0b37b35fcf629204d90f91	in-dev	every commit is already on the trunk
+repo/lineage-review-20260904	54c0f4ad6f1b9281eddf553ccd97b8b147abbe95	dispatch-records	every commit is a dispatch record the store also holds
+repo/monitor-machinery-20260904	1f7039652f4fc23fae2036b9054bce67d54e5be2	in-dev	every commit is already on the trunk
+repo/onboard-on-compact	c94be730af173d16fc317407ccbafc9479271f10	in-dev	every commit is already on the trunk
+repo/permissions	275a3f95f69f2b5dfcfc78ca32849ecb04ac011f	in-dev	every commit is already on the trunk
+repo/serena-config	95b6be635841871238add299e7ca76b1915650f4	in-dev	every commit is already on the trunk
+repo/serena-seat	2bc2dfff427393cd5fbd27bc658066e70dbb20ec	in-dev	every commit is already on the trunk
+repo/watchdog-efficiency-20260904	6e7eff15752c5de5e880759234c2b9ac4bd58631	in-dev	every commit is already on the trunk
+review/lane-mcp-quality-20260905	c5ce6c2fbea3476c3780114a444e90b5a193817b	dispatch-records	every commit is a dispatch record the store also holds
+review/lane-mcp-security-20260905	6a9d03666ba59ce9a8d1654b82cb4870fd73adea	dispatch-records	every commit is a dispatch record the store also holds
+review/mcp-cap-security-20260905	db0342bddc507c3676e6a2d62329ed1d3776f4e3	dispatch-records	every commit is a dispatch record the store also holds
+review/mcp-ruling-20260905	7696494cd01aa3df8c653ffd2954119b5076059e	dispatch-records	every commit is a dispatch record the store also holds
+review/pr63-final-daybreak-20260905	3421081855c34ba6c8ad55fe379b63ebc81e348f	dispatch-records	every commit is a dispatch record the store also holds
+review/pr63-final-grok-20260905	0cc00060263feb6b2ee00ec2214ca0975b035084	dispatch-records	every commit is a dispatch record the store also holds
+review/pr65-final-daybreak-20260905	cad2f74007ef969d613fa62c7b66e60f957e6a13	dispatch-records	every commit is a dispatch record the store also holds
+review/pr65-final-grok-20260905	1f52fb1c001b78f6e0ab321672ff5bbc6c3c0a6d	dispatch-records	every commit is a dispatch record the store also holds
+review/pr66-quality-20260905	e960740340ff095ad4341ef9e6982b136c9ae902	dispatch-records	every commit is a dispatch record the store also holds
+review/pr66-security-20260905	dbe94a27ceb32846c0143bc3b4cf2bb80649ebae	dispatch-records	every commit is a dispatch record the store also holds
+review/pr73-integration-20260906	c556b45a17290361e07540854dc432296eca9571	records-only	the only files it adds are session records under .dev/
+review/pr74-integration-20260906	f76a43218e7b44faa0c3869297f234f1cc8481ea	dispatch-records	every commit is a dispatch record the store also holds
+review/readme-20260905	21121f1a11e005eaa4cb15825e8b64afde2a5307	dispatch-records	every commit is a dispatch record the store also holds
+review/readme-claude-20260905	2362316c039ea128fe79382318ba79bb964631b7	dispatch-records	every commit is a dispatch record the store also holds
+review/readme-followup-20260905	c722871f3547c9817478cb853f8a4828eaae0d5d	dispatch-records	every commit is a dispatch record the store also holds
+review/readme-ruling-20260905	7a2544241a0cab849c7df119599f0bc99305d97e	dispatch-records	every commit is a dispatch record the store also holds
+reviews/final62-codex-20260905	2a300918ee4a4b0e231309845a3a450a33ea600f	dispatch-records	every commit is a dispatch record the store also holds
+reviews/final62-grok-20260905	07222bcb6d0d8b8b7b0b14c2a2b53d9a4996db55	dispatch-records	every commit is a dispatch record the store also holds
+reviews/final64-codex-20260905	2b741a051d4c592b9726161041466ddaf8263a78	dispatch-records	every commit is a dispatch record the store also holds
+reviews/final64-grok-20260905	285c8a08ec857cb154c9f92d6838fd0a7d223cf3	dispatch-records	every commit is a dispatch record the store also holds

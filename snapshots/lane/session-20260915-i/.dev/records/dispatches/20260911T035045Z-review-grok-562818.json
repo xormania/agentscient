@@ -1,0 +1,180 @@
+{
+  "id": "20260911T035045Z-review-grok-562818",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-dispatcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-dispatcher-20260911",
+    "base_sha": "e5698c3073323c61dc700c50f8e131daa98e0d17"
+  },
+  "follows": [
+    "20260911T034548Z-review-codex-225808"
+  ],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T03:50:55Z",
+    "closed": "2026-09-11T03:59:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+    "ref_sha": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f9d93513-4c8c-439f-a002-07ce93f53d5d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json"
+  },
+  "session": {
+    "id": "f9d93513-4c8c-439f-a002-07ce93f53d5d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json",
+    "stream_sha256_at_close": "ab35984f3ea42d4bdf72c6726d7afa971159569075ea047e6894469e2a045b77",
+    "spend": {
+      "input": 1897579,
+      "cached": 1723392,
+      "output": 24763,
+      "total": 1922342,
+      "cost_usd_ticks": 2309701600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json",
+      "messages": 196
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/in/plan-dispatcher-gate.md",
+        "sha256": "e7b5f7faefbef0dce092a154ebaf7ca7b8a073e0f359e78c8ffde3cf53ba7afd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "d3fb59a8854ff88db64880071c99e4140384e1f814a94a48bc6ba3b030f29813",
+    "bytes": 3772,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "20d73bc2b60d3a6b472df00f897b6dd4e79c04be4540707b9f49d9ece27d6053"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:50:56Z",
+      "ended": "2026-09-11T03:59:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/context/diff.patch",
+        "wrapper": "ops/conductor/tools/dispatch.sh",
+        "tests": "ops/conductor/tests/test_dispatch_wrapper_answers.py",
+        "scope": ".dev/ladder-inputs/scope-gate-20260910.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1922342,
+        "out": 24763,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+        "started": null,
+        "ended": "2026-09-11T03:59:04Z"
+      },
+      "note": "Slice 3 only: ops/conductor/tools/dispatch.sh now stores --follows and --answers as arrays and appends them after --input, follows first. Measured at e5698c3073323c61dc700c50f8e131daa98e0d17: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper_answers.py \u2192 3 ok; test_dispatch_wrapper.Row1FullFlagSetArgv and Row10 two-input order still exact-match with no stray --answers; bash -n dispatch.sh ok. A fixture probe of three --follows plus two --answers kept given order; a neighbour with no --answers emitted none. launch.py still has no --answers (slice 4). ladder.py dispatch_args still emits one --follows and no --answers (slice 5); the wrapper accepts that shape. Items 3\u20136, 8, 10 are not in this change. Tried and refuted against items 1, 2, 7, 9: last-wins on --follows; answers dropped on the exec path; wrapper inspection of non-corrections."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T03:59:20.813Z"
+    }
+  },
+  "status": "closed"
+}

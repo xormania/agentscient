@@ -1,0 +1,219 @@
+{
+  "id": "20260913T105222Z-review-grok-00b782",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260913-l",
+  "lineage": {
+    "branch": "lane/session-20260913-l",
+    "base_sha": "bdf8cf0c1fbfefcb32cd6457712122ad9495436c"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-13T10:52:22Z",
+    "closed": "2026-09-13T11:06:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "bdf8cf0c1fbfefcb32cd6457712122ad9495436c",
+    "ref_sha": "bdf8cf0c1fbfefcb32cd6457712122ad9495436c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/9f16d233-0758-4737-9cdf-831a62f32b03/scratchpad/release-conf/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "878ed6a5-ce06-4990-9899-12ab390997b4",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok-stream/sessions/<snapshot-encoded>/878ed6a5-ce06-4990-9899-12ab390997b4/summary.json"
+  },
+  "session": {
+    "id": "878ed6a5-ce06-4990-9899-12ab390997b4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok-stream/sessions/<snapshot-encoded>/878ed6a5-ce06-4990-9899-12ab390997b4/summary.json",
+    "stream_sha256_at_close": "605f20baf86725d54cef7c1ff65931d5073adea474bc2fa06803c579e384fefd",
+    "spend": {
+      "input": 3304124,
+      "cached": 3075328,
+      "output": 45662,
+      "total": 3349786,
+      "cost_usd_ticks": 7715375200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok-stream/sessions/<snapshot-encoded>/878ed6a5-ce06-4990-9899-12ab390997b4/summary.json",
+      "messages": 450
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260913-l/ops/devlane/task/jobs.json",
+      "sha256": "ee4b4ced5360a577719a06e335a4f918d555d2c6b789532b50c81b1d6c141b29"
+    },
+    "scope": "Release dev into master: review the whole diff at this ref, 162 files across ops/conductor tools and tests, ops/devlane hooks, dispatch and fixtures, .claude/skills, CI and records. Aim at behaviour defects a merge to master would ship: the shared instrument module and every tool now importing it (refusal classes, exits, identity), the hook rows and wall paths in matrix.py, ledger.py and defects.py id minting under parallel sessions, deliverable.py remove, the probes runner expect rule, suites.sh ruff step, the skill-use hook. Skip records prose.",
+    "inputs": [],
+    "sha256": "99e4630b11818bc41497075825fbc46a2a302c5fe6aaf05b4df5ab137cd5c029",
+    "bytes": 9301,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/lane-mcp.json",
+      "sha256": "943b07249b2c31d0381efe5d4f81f1f4674ef8771850b0f0f7eb53dfc07dc27d",
+      "job_ids": [
+        "20260913T104919Z-review-codex-9126d3"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "0a8c1d640fac0fca9c1cae95a52097105df5661b041e3e931b137025facae59a"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-13T10:52:32Z",
+      "ended": "2026-09-13T11:06:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bdf8cf0c1fbfefcb32cd6457712122ad9495436c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/claude/matrix.py graft_first",
+          "claim": "The new one-named-file exemption is `len(targets)==1 and not endswith('/') and '.' in basename`. That treats hidden CODE_ROOTS as files: `rg pattern .github` and `grep -rn foo .github` return None (allowed), while the same walk with a trailing slash still denies graft-first. `.claude` matches. The added test only covers real files (README.md, lane.conf, json); a merge to master ships a content-search walk of those code roots.",
+          "reproduce": "python3 -c \"import importlib.util,shlex,sys,tempfile; from pathlib import Path; p=Path('ops/devlane/hooks/claude/matrix.py'); sys.path.insert(0,str(p.parent)); s=importlib.util.spec_from_file_location('m',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); t=Path(tempfile.mkdtemp()); (t/'.git').mkdir(); (t/'.github/workflows').mkdir(parents=True); print('dot-github', m.graft_first(shlex.split('rg pattern .github'), str(t), str(t), 'x')); print('slash', bool(m.graft_first(shlex.split('rg pattern .github/'), str(t), str(t), 'x')))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/deliverable.py do_remove",
+          "claim": "remove (and add) read-modify-write the single host-wide deliverable.json with no lock or atomic replace. Sessions on one host share that file by design. If A reads a one-branch lock and unlinks because left==[], while B's add has already written a second branch, A's unlink deletes B's in-progress lock. Two overlapping removes from a stale copy restore a branch the other session just lifted. LD-28 added remove so landing one session would not wipe the others; the racy unlink reintroduces that wipe.",
+          "reproduce": "python3 -c \"import json,os,tempfile,time,threading; from pathlib import Path; d=Path(tempfile.mkdtemp()); p=d/'deliverable.json'; p.write_text(json.dumps({'branches':['lane/a'],'why':'a'})+'\\n'); def remove_last():\\n data=json.loads(p.read_text()); time.sleep(0.05);\\n if data['branches']==['lane/a']: p.unlink()\\ndef add_b():\\n time.sleep(0.02); data=json.loads(p.read_text()); data['branches']=['lane/a','lane/b']; p.write_text(json.dumps(data)+'\\n');\\n t1=threading.Thread(target=remove_last); t2=threading.Thread(target=add_b); t1.start(); t2.start(); t1.join(); t2.join(); print('exists', p.exists())\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3349786,
+        "out": 45662,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "bdf8cf0c1fbfefcb32cd6457712122ad9495436c",
+        "started": "2026-09-13T10:52:22Z",
+        "ended": "2026-09-13T11:05:41Z"
+      },
+      "note": "reused: agentscient-lane MCP (lane_brief, lane_jobs, lane_record, lane_findings, lane_changes); Graft graft_repo_map and graft_file_api; instrument-conventions.md plus the live matrix/ledger/deliverable/probes/suites/skill-use tests as oracles"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 5,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260913T105222Z-review-grok-00b782/home/grok-stream/sessions/<snapshot-encoded>/878ed6a5-ce06-4990-9899-12ab390997b4/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-13T11:06:57.295Z"
+    }
+  },
+  "status": "closed"
+}

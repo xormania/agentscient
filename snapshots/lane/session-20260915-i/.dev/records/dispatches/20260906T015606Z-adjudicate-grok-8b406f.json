@@ -1,0 +1,177 @@
+{
+  "id": "20260906T015606Z-adjudicate-grok-8b406f",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "80dd63cc96df22c625ef44f4bc5d5332993c8800"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:56:07Z",
+    "closed": "2026-09-06T02:02:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+    "ref_sha": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7c352062-0f8a-4547-9cbb-fac76c7b2ca8",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok-stream/sessions/<snapshot-encoded>/7c352062-0f8a-4547-9cbb-fac76c7b2ca8/summary.json"
+  },
+  "session": {
+    "id": "7c352062-0f8a-4547-9cbb-fac76c7b2ca8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok-stream/sessions/<snapshot-encoded>/7c352062-0f8a-4547-9cbb-fac76c7b2ca8/summary.json",
+    "stream_sha256_at_close": "769ee1dd8eabdc416cf6b8c18f054d3ab2bb7906bc1eaedc444a229ae8ab869b",
+    "spend": {
+      "input": 688597,
+      "cached": 551808,
+      "output": 23454,
+      "total": 712051,
+      "cost_usd_ticks": 1173350200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok-stream/sessions/<snapshot-encoded>/7c352062-0f8a-4547-9cbb-fac76c7b2ca8/summary.json",
+      "messages": 144
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Rule on the four Claude findings against GPT-6's lane-authority docs correction. You produced neither artifact nor review. Read owner brief and review input; reproduce each narrowly at the target tree. UPHELD/PARTIAL/REJECTED with evidence and smallest correction. Focus on active MCP research's replacement recommendation, overview's claimed precedence/retirement, onboarding reading-list wording, and historical citation closure. Preserve dated historical bodies; a clear supersession banner or pinned historical citation may be sufficient. Do not expand into runtime enforcement, unrelated defects, or a whole-lane audit. Return RULING as an envelope artifact string, with no file output; no snapshot edits, source/tests/settings/DB/host/network changes or vendor launches. This is bounded adjudication, not planning or implementation approval.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/in/20260906T014711Z-review-claude-e5ec77.json",
+        "sha256": "ed0c4e2d5b7a3ac931c4b4631ef6c70879aa83e9421d10a8685799daa4e9602f"
+      }
+    ],
+    "sha256": "e0662931343c0006c6e8dd9f483c221ba82dd9e8563c67cb8036aa6b29872d01",
+    "bytes": 3159
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:56:07Z",
+      "ended": "2026-09-06T02:02:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/MCP-RESEARCH-2026-09-05.md:126-131; ops/conductor/mcp-context-scope.md:3; README.md:344",
+          "claim": "UPHELD. Active MCP research still recommends the Symfony MCP bundle as the candidate for the later Symfony twin during this bounded incumbent-lane change, and the live worker-scope file still points at that report for measured demand. Header calls it research and a scoped recommendation, dated 2026-09-05; it is not in the AGENTS.md historical classes (stack/census/ideas/AARs/handoffs/captured plans). The correction withdrew the recommendation in lane-mcp-lever.md:10-16 and AGENTS.md:69-70 but git diff c06ed944 7e07a13 does not touch MCP-RESEARCH-2026-09-05.md. Smallest correction: a dated supersession banner at the top of MCP-RESEARCH-2026-09-05.md, same pattern as stack.md and census-package-map.md, stating the twin/incumbent recommendation is withdrawn per AGENTS.md \u00a7Lane boundary; pin mcp-context-scope.md:3 that measured demand remains and that recommendation does not. Preserve the 2026-09-05 body. Do not rewrite line 130. README.md:344 may keep the research citation once the target is bannered.",
+          "reproduce": "sed -n '1,6p;118,134p' ops/conductor/MCP-RESEARCH-2026-09-05.md; rg -n 'MCP-RESEARCH' README.md ops/conductor/mcp-context-scope.md; sed -n '8,16p' ops/conductor/lane-mcp-lever.md; git diff --name-only c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc 7e07a13 -- ops/conductor/MCP-RESEARCH-2026-09-05.md"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/wip/overview.md:6-8,490-496; ops/conductor/handoff/HANDOFF-2026-09-03-seat.md:5; ops/conductor/AAR-2026-09-03T15-seat.md:147",
+          "claim": "UPHELD. A tracked WIP spec that dated handoff/AAR instructions still tell the next session to read first continues to claim precedence over AGENTS.md and docs/ and continues to state verb-by-verb twin retirement. Lines 6-8: where the two disagree, this document is the newer intent and the law has not yet been updated to match \u2014 false after the 2026-09-05 correction (overview is dated 2026-09-03). Lines 490-496: in use as-is until each verb's agentscient twin passes the same row, which is the strangler rule ops/README.md already states, and retired verb by verb. git diff c06ed944 HEAD -- ops/README.md removed that strangler rule. git ls-files tracks .dev/wip/overview.md (blob 5eda0cf). The AGENTS.md blanket names handoffs and AARs, not this WIP spec; the supremacy sentence is in overview itself. Smallest correction: a supersession banner at the top of .dev/wip/overview.md neutralizing the supremacy clause and the strangler/retirement passage. Do not rewrite the 2026-09-03 body. Do not rewrite the dated HANDOFF/AAR (blanket already covers those records).",
+          "reproduce": "sed -n '1,10p;484,498p' .dev/wip/overview.md; git ls-files --error-unmatch .dev/wip/overview.md; rg -n 'wip/overview' ops/conductor/handoff/HANDOFF-2026-09-03-seat.md ops/conductor/AAR-2026-09-03T15-seat.md; git diff c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc HEAD -- ops/README.md | rg -n 'strangler|twin'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/onboard-lever.md:27-29",
+          "claim": "PARTIAL. The added onboarding paragraph overstates that ops/README.md is reached through the existing reading list. Instruction precedence homes are AGENTS.md \u00a7Lane boundary and ops/README.md, but onboard.py LAW (lines 20-30) and the lever table (lines 40-46) are AGENTS.md, CONTRIB.md, instrument-conventions.md, stack.md, coverage-zones.md; ops/README.md is only a second hop via AGENTS.md:137-138. Smallest correction: reword onboard-lever.md:29 so AGENTS.md is on the list and ops/README.md is named from there, not implied as a LAW entry. The stack.md incumbents one-liner in onboard.py:27-29 and test_onboard_lever.py:52 is rejected for this slice: the lever already disclaims changing the tool's data, stack.md is banner-superseded, and tool/test edits would expand into runtime enforcement.",
+          "reproduce": "sed -n '24,46p' ops/conductor/onboard-lever.md; sed -n '19,31p;279,284p' ops/conductor/tools/onboard.py; sed -n '50,54p' ops/conductor/tests/test_onboard_lever.py; sed -n '124,138p' AGENTS.md"
+        }
+      ],
+      "artifacts": {
+        "RULING": "RULING at 80dd63cc96df22c625ef44f4bc5d5332993c8800 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Producer GPT-6 docs correction 7e07a13; finder Claude 20260906T014711Z-review-claude-e5ec77 at 1552699e; adjudicator Grok 4.6 produced neither artifact nor review. After 1552699e the cited homes are unchanged (later commits are dispatch records and adjudication scopes only). Owner brief sha256 76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169.\n\nF1 active MCP research replacement recommendation \u2014 UPHELD (p2). Reproduced: MCP-RESEARCH-2026-09-05.md:130 still says the Symfony MCP bundle is the candidate for the later Symfony twin, not a reason to introduce a second server during this bounded incumbent-lane change. File header: research and a scoped recommendation, measured 2026-09-05, not pipeline law. Not in the AGENTS.md historical classes. Correction did not touch this file. Live path: mcp-context-scope.md:3 Use MCP-RESEARCH-2026-09-05.md for measured demand; README.md:344 cites it as the research report. Withdrawal exists at lane-mcp-lever.md:10-16 and AGENTS.md:69-70. Smallest correction: dated supersession banner on MCP-RESEARCH-2026-09-05.md (preserve the 2026-09-05 body) plus a pin on mcp-context-scope.md:3 that measured demand remains and the twin/incumbent recommendation does not. Do not rewrite line 130. README may keep the research citation once the target is bannered.\n\nF2 overview claimed precedence/retirement \u2014 UPHELD (p2). Reproduced: git ls-files tracks .dev/wip/overview.md (blob 5eda0cf, last commit 9cae533 2026-09-04). Lines 6-8 invert current precedence (doc dated 2026-09-03; correction 2026-09-05). Lines 490-496 still state the strangler/twin retirement and cite ops/README.md; git diff c06ed944 HEAD -- ops/README.md removed that rule (base README called the lane the bounded Python incumbent that retires when its twin passes the conformance row). HANDOFF-2026-09-03-seat.md:5 and AAR-2026-09-03T15-seat.md:147 still say read overview first. Blanket covers those dated records, not the WIP spec's supremacy sentence. Smallest correction: supersession banner at top of .dev/wip/overview.md neutralizing supremacy and strangler/retirement. Do not rewrite the 2026-09-03 body or the dated HANDOFF/AAR.\n\nF3 onboarding reading-list wording \u2014 PARTIAL (p3 remainder). Reproduced: onboard-lever.md:27-29 claims AGENTS.md and ops/README.md are reached through the existing reading list; LAW and the lever table omit ops/README.md; AGENTS.md:137-138 is the second hop. Smallest correction: reword that sentence. Rejected for this slice: onboard.py/test incumbents one-liner (lever already disclaims changing tool data; stack.md is bannered; no tool/test edits).\n\nF4 historical citation closure \u2014 REJECTED. Reproduced: I-011:14 cites twin passes its conformance row (AGENTS.md \u00a7The lane); at c06ed944 that section did contain that rule; after 7e07a13 it does not. I-011 is a dated 2026-09-04 idea, Not ruled. ops/docs/README.md:14 kept so the twins are written better is a shelf purpose line; ops/README.md:51 already classifies ops/docs as records, not law. AGENTS.md:66-68 already pins ideas, AARs, handoffs and captured plans as provenance without current operational authority. Neither site is a live replacement mandate. A dangling section pointer is real; a producer may add a parenthetical historical pin, but it is not required to close this correction. Rewriting those bodies would expand the slice.\n\nWhat the reviewer missed: nothing that changes these four rulings. AGENTS.md:69-70 already withdraws the shared-Symfony lane-MCP recommendation in the owning seed, which limits F1 to a banner rather than a seed rewrite; it does not close the research/scope path. AAR-2026-09-03T15-seat.md:147 still calls overview untracked; git ls-files shows it tracked \u2014 a stale label, not a fifth defect. The implement-record count of 22 links was correctly left out of the finding list (17 #lane-boundary-and-precedence references measured here).\n\nRemaining work is two p2 supersession banners and one p3 onboard-lever wording fix. No runtime enforcement, guard code, or whole-lane audit."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 712051,
+        "out": 23454,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+        "started": null,
+        "ended": null
+      },
+      "note": "Adjudication of four Claude findings against GPT-6 docs correction at 80dd63cc. F1 UPHELD p2 (MCP-RESEARCH banner plus mcp-context-scope pin). F2 UPHELD p2 (overview.md banner). F3 PARTIAL p3 (onboard-lever wording only). F4 REJECTED (ideas/shelf already class-pinned). Remaining work is documentation banners and wording; no runtime enforcement. Reviewer missed nothing that changes these rulings."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:02:45.834Z"
+    }
+  },
+  "status": "closed"
+}

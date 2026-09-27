@@ -1,0 +1,161 @@
+{
+  "id": "20260905T234559Z-review-codex-a079d6",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "65568e42240a728426b1a9a7d8d6406146ec61fa"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T23:46:00Z",
+    "closed": "2026-09-05T23:49:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "ref_sha": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T19-46-01-01a073f6-faf0-7ef3-b7c0-6fdf73ebf68f.jsonl"
+  },
+  "session": {
+    "id": "01a073f6-faf0-7ef3-b7c0-6fdf73ebf68f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T19-46-01-01a073f6-faf0-7ef3-b7c0-6fdf73ebf68f.jsonl",
+    "stream_sha256_at_close": "218f7e5e0f49e9ab849fe39b03a5bdca4221ef1ba469d3130cde6ec0840fc780",
+    "spend": {
+      "input": 657419,
+      "cached": 576670,
+      "output": 15995,
+      "total": 673414,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T19-46-01-01a073f6-faf0-7ef3-b7c0-6fdf73ebf68f.jsonl",
+      "messages": 143
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently assess the boundary required by scope-conductor-start.txt: an interactive codex/claude/grok conductor with forwarded CLI args and no manual approval interruptions. No implementation exists. Measure the installed CLI and OS capabilities; recommend the smallest usable protections against destructive host/repository/remote actions. Distinguish actual enforcement from hooks or prompt policy. Consider writable git common directories, isolated workspaces/state, credentials, network and host sockets, child workers, symlink paths, and parameter overrides. Preserve normal conductor dispatch, git/PR work and context access. Do not change settings, rulesets, source, or tests. Return a concise feasibility ruling with concrete expected/found/needed evidence and limits; do not require arbitrary owner approvals already superseded by this work order. Review/design evidence only, not an implementation review. Avoid broad repository onboarding and unrelated findings.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234559Z-review-codex-a079d6/in/scope-conductor-start.txt",
+        "sha256": "31b9fd1d2adb8b0e6d75e1a8ad8ca9d49db29ddb14b0f4b3e369adeb616783f9"
+      }
+    ],
+    "sha256": "6bd65036a9795f6b7eb113bf3faf9f1a3877117f3515954d911ff16c2d37de2c",
+    "bytes": 3286
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T23:46:00Z",
+      "ended": "2026-09-05T23:49:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ruling": "Feasible as a contract-first change, but no protection exists yet. The smallest usable boundary is an external bubblewrap sandbox around a private clone and isolated session state, with narrow dispatch and forge brokers. Approval-bypass flags operate only inside that boundary.",
+        "change_evidence": "Expected: scope only, without implementation. Found: the base is an ancestor; the diff adds only .dev/ladder-inputs/scope-conductor-start.txt and passes git diff --check. Needed: the planned contract, independent acceptance tests, then implementation.",
+        "cli_evidence": "Expected: codex, claude and grok support interactive operation without approval pauses. Found: codex-cli 0.153.4 has approval/sandbox overrides and multi_agent=true; Claude Code 2.1.260 has bypassPermissions, add-dir, settings, plugins and agents; grok 1.0.13 has --always-approve, --sandbox, --no-subagents, plugins and leader sockets. Needed: fixed no-prompt flags inside external confinement and a versioned allowlist that refuses safety-affecting forwarded flags.",
+        "os_evidence": "Expected: vendor-neutral enforcement. Found: Ubuntu 24.04.4 on WSL2; bubblewrap 0.9.0 and user namespaces work; basic and shared-network bwrap probes exited 0. AppArmor is disabled, nft/iptables/slirp are absent, and bwrap network isolation failed under the current seccomp filter. Needed: fail-closed mount, user and PID isolation; network isolation requires an added egress mechanism or must remain an explicit limit.",
+        "filesystem_boundary": "Use a private non-shared clone so the main checkout and writable git common directory are absent. Mount only required system files read-only, the private clone and new session state writable, and named context inputs read-only. Do not ro-bind the host root: read-only mounts still expose credentials and sockets. Open mount roots without following symlinks and bind by file descriptor; refuse symlinked roots or ancestors before side effects.",
+        "credentials_and_remote": "Found: model credential files and gh hosts.yml exist mode 0600; gh authentication is currently invalid and the snapshot has no remote, so PR behavior was not testable. Docker access was denied, but /run/user/1006/bus and the WSL interop socket are exposed. Needed: mask all host sockets and homes, sanitize remotes and Git credential helpers, withhold forge/SSH credentials, and expose only a broker permitting fast-forward pushes to the session branch and non-destructive draft-PR operations. Refuse force/delete, protected-branch updates, merge/close, rulesets and repository administration.",
+        "dispatch_and_children": "Hide direct worker-launch surfaces; expose a narrow broker that validates structured requests and invokes ops/bin/dispatch.sh externally. Disable Codex multi_agent, pass Grok --no-subagents, and remove Claude Agent/Task/Workflow tools. These CLI controls and the existing Claude hook enforce tool availability only when their configuration cannot be overridden; hooks and prompts are not host protection.",
+        "argument_contract": "Parse the conductor selector separately and forward permitted argument tokens byte-for-byte without eval. Reserve and refuse cwd/add-dir/worktree, sandbox/permission, config/profile/settings, plugin/MCP, remote/socket, credential, system-prompt/rules, agent/subagent and feature-toggle options, including aliases and key=value forms. Unknown options on a changed CLI version must refuse with expected-found-needed evidence.",
+        "acceptance": "Independent cases should prove: each harness launches through a PTY without approval; safe arguments retain exact token boundaries; conflicting or unknown safety arguments refuse before writes; normal commit, dispatch and draft-PR work succeeds; main checkout/common-dir/config/session hashes remain unchanged; protected refs and destructive forge calls fail; host sockets and credentials are absent; symlink escapes fail; direct child workers fail while brokered dispatch succeeds.",
+        "limits": "Shared networking permits access to localhost and arbitrary endpoints; readable model credentials can still be stolen or abused by a compromised harness; vendor services receive readable context by design; brokers and CLI behavior remain new trusted components. These risks cannot be claimed prevented until egress and credential mediation are independently demonstrated.",
+        "proposed_files": "Contract/profile under ops/conductor/contracts/; launcher shim under ops/bin/; implementation and narrow brokers under ops/conductor/tools/; independently authored contract, symlink, socket, argument, Git and remote acceptance tests under ops/conductor/tests/."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 673414,
+        "out": 15995,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+        "started": null,
+        "ended": "2026-09-05T19:49:08-04:00"
+      },
+      "note": "Approval covers the work-order scope and feasibility only; it does not attest that an enforcement boundary is presently implemented."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T23:49:37.064Z"
+    }
+  },
+  "status": "closed"
+}

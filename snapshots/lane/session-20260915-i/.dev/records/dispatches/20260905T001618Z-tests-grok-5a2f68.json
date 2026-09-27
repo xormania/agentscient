@@ -1,0 +1,160 @@
+{
+  "id": "20260905T001618Z-tests-grok-5a2f68",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repo/monitor-oracle-20260904",
+  "lineage": {
+    "branch": "repo/monitor-oracle-20260904",
+    "base_sha": "8a30a6b2ac472976b2969b5ca189aefe02609f0e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T00:16:19Z",
+    "closed": "2026-09-05T00:22:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8a30a6b2ac472976b2969b5ca189aefe02609f0e",
+    "ref_sha": "8a30a6b2ac472976b2969b5ca189aefe02609f0e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "9ea97c55-d64e-46f7-a44d-ad9a0a8aa912",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok-stream/sessions/<snapshot-encoded>/9ea97c55-d64e-46f7-a44d-ad9a0a8aa912/summary.json"
+  },
+  "session": {
+    "id": "9ea97c55-d64e-46f7-a44d-ad9a0a8aa912",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok-stream/sessions/<snapshot-encoded>/9ea97c55-d64e-46f7-a44d-ad9a0a8aa912/summary.json",
+    "stream_sha256_at_close": "3e943b0c254ffe0bb983584d09956043b0439ccacbb4b41f6d8777751607bad6",
+    "spend": {
+      "input": 1768816,
+      "cached": 1619968,
+      "output": 20564,
+      "total": 1789380,
+      "cost_usd_ticks": 2092808800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/home/grok-stream/sessions/<snapshot-encoded>/9ea97c55-d64e-46f7-a44d-ad9a0a8aa912/summary.json",
+      "messages": 275
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr57.A9JZzO/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/monitor-oracle-readmit-brief.md WHOLE. Produce a new oracle artifact from supplied monitor-oracle-existing.py; ONLY repair the second cooldown scenario's owned gh counter. Implementation withheld; do not seek it or rewrite oracle. Preserve 42 methods and semantics; validate standalone GhMockWitness, collection, Ruff/diff only. Historical invalid records stay invalid. Accurate adapted Source pointer and model attribution; concise result, no command diary.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/in/monitor-oracle-readmit-brief.md",
+        "sha256": "bd72ddbbc276edc2b41f23fce71f7014e58d9631c1310ae29c841e01958b9e7c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001618Z-tests-grok-5a2f68/in/monitor-oracle-existing.py",
+        "sha256": "4af9670d908bde415dd1ae0cae6f8712a85ecf427b04d398f23df95d72de5c58"
+      }
+    ],
+    "sha256": "bc0cc61e12e2f69b037ddee0166c6e9fc46e2c17c23cc61589797c2d7b85d33b",
+    "bytes": 2813
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T00:16:19Z",
+      "ended": "2026-09-05T00:22:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "854d72d68b3ca190b5becdcfcfffca6b8e11d445",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_monitor.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1789380,
+        "out": 20564,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8a30a6b2ac472976b2969b5ca189aefe02609f0e",
+        "started": "2026-09-05T00:20:41Z",
+        "ended": "2026-09-05T00:22:05Z"
+      },
+      "note": "Copied in/monitor-oracle-existing.py to ops/conductor/tests/test_monitor.py and changed only ConditionsCooldown.test_cooldown_pending_then_cancel_or_emit: after switching to state-cool-emit, unlink the owned scratch gh counter before the second plant_gh_sequence (lines 2068-2069: if self.counter.exists(): self.counter.unlink()). Diff vs supplied oracle is those two lines. unittest collected 42 methods; GhMockWitness 1/1 ok; ruff check exit 0. Full monitor semantics unmeasured: ops/conductor/tools/monitor.py absent. Historical invalid dispatch 20260904T232537Z-tests-grok-f24a8f untouched. Committed 854d72d68b3ca190b5becdcfcfffca6b8e11d445. Source: uscient/agentscient@8945b85d5e952dd48f8af0a74863f3934fb574fe."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T00:22:24.601Z"
+    }
+  },
+  "status": "closed"
+}

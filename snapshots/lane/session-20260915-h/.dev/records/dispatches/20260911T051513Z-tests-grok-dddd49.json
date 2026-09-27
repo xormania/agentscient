@@ -1,0 +1,152 @@
+{
+  "id": "20260911T051513Z-tests-grok-dddd49",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "a566746ebbf4edfb8747802eb6c6b339ba057000"
+  },
+  "follows": [
+    "20260911T045555Z-code-codex-532808"
+  ],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T05:15:13Z",
+    "closed": "2026-09-11T05:15:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a566746ebbf4edfb8747802eb6c6b339ba057000",
+    "ref_sha": "a566746ebbf4edfb8747802eb6c6b339ba057000",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ef770fe5-1b99-4e0f-a944-149a22c68707",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ef770fe5-1b99-4e0f-a944-149a22c68707",
+    "stream": null,
+    "stream_sha256_at_close": null,
+    "spend": {
+      "unresolved": "UNREACHABLE: no session stream discovered",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok-stream",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/home/grok"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Correct one wrong assertion in the frozen test set of slice 4 (launcher gate). Read in/brief-gate-launcher-testfix-20260911.md WHOLE. Finding: record 20260911T045555Z-code-codex-532808 p1; contract item 1 of .dev/ladder-inputs/scope-gate-20260910.md is what the test verifies and holds. Edit ops/devlane/dispatch/tests/test_launch_correction_gate.py (support module only if the helper lives there) so the no-mint check ignores job directories the fixture planted; keep every other assertion, add no cases, touch no code under ops/devlane/dispatch/*.py or ops/conductor/tools/. Prove red on this tree, then green, commit, list the file in artifacts. Named command: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T051513Z-tests-grok-dddd49/in/brief-gate-launcher-testfix-20260911.md",
+        "sha256": "de4bca2bd6d63552d849d8d0c546f2c6cf3c8483155b472f76371719f38e5415"
+      }
+    ],
+    "sha256": "31591b038e6446a26e7d380e15be9b0b98cb3fcb3e7ce3c4820ec47d3ea5b4e0",
+    "bytes": 3384,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T05:15:14Z",
+      "ended": "2026-09-11T05:15:18Z",
+      "exit": 1,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a566746ebbf4edfb8747802eb6c6b339ba057000",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "a566746ebbf4edfb8747802eb6c6b339ba057000"
+      },
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited 1; cause: {\"reason\": \"harness-cli:1\"}"
+    },
+    "cause": {
+      "reason": "harness-cli:1"
+    }
+  },
+  "status": "closed"
+}

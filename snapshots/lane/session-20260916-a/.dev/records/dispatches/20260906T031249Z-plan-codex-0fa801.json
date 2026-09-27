@@ -1,0 +1,174 @@
+{
+  "id": "20260906T031249Z-plan-codex-0fa801",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:12:49Z",
+    "closed": "2026-09-06T03:18:29Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7",
+    "ref_sha": "2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-12-50-01a074b4-54c3-7ce3-8bec-daf864e4e9a0.jsonl"
+  },
+  "session": {
+    "id": "01a074b4-54c3-7ce3-8bec-daf864e4e9a0",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-12-50-01a074b4-54c3-7ce3-8bec-daf864e4e9a0.jsonl",
+    "stream_sha256_at_close": "ca7a107e2ce2b73edf4b575f23b0650497d1c9c990c8ff150dd49b6c5b7d8cf1",
+    "spend": {
+      "input": 1131446,
+      "cached": 1028736,
+      "output": 8212,
+      "total": 1139658,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-12-50-01a074b4-54c3-7ce3-8bec-daf864e4e9a0.jsonl",
+      "messages": 117
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Map the reviewed lane-policy contract plus final-ruling corrections to the smallest testable implementation sequence. No new architecture. Specify exact public CLI/API inputs for trusted anchor, profile and maintenance receipt, their owning existing tools and first behavioral tests using real current seams with fake vendors/fixture stores. Avoid missing-import/collection-error reds or invented permissive stand-ins. Identify only the first ready 1-3-file bucket and its independent test/skeptic/code commands; explain how partial work remains inert until the minimum complete activation boundary. Keep all settle/resume/collect/land/ladder checks, bootstrap custody and ordinary authorized maintenance. D-LANES-1 is semantic evidence, not policy admission. No C2 output ownership, new executor or Symfony dependency. Return compact inline PLAN with precise interface/test-readiness gaps if any. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/in/lane-policy-final-ruling.md",
+        "sha256": "978eb58c7f0a029543a93837c1ec0a933cdfcdaf5ee39b6b3c5b0a249b1d94f2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031249Z-plan-codex-0fa801/in/20260906T025705Z-review-claude-104942.json",
+        "sha256": "590f44099784cd3f3598c3109e6274f78282b39428934817412cab6b312fc91b"
+      }
+    ],
+    "sha256": "c7886ebf63a97c4247f0ff26ac1dd33f34c3db587edeabb840d010db6fb59cf8",
+    "bytes": 3282
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:12:49Z",
+      "ended": "2026-09-06T03:18:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/lane-policy.json:8; ops/conductor/lane-policy.md:71",
+          "claim": "The final ruling requires protection of ops/conductor/tools/dispatch.sh and ops/bin/ladder.sh. Both remain absent at the reviewed ref. The wrapper says its body lives at ops/conductor/tools/dispatch.sh, while the policy protects only the dispatch front door. Add the two exact paths and extend N7; retain ordinary ops/bin and hook maintenance.",
+          "reproduce": "At 2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7: cat ops/lane-policy.json ops/bin/dispatch.sh ops/bin/ladder.sh; sed -n '71,76p;425p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:119; ops/conductor/lane-policy.md:184; ops/conductor/lane-policy.md:268",
+          "claim": "The contract names a trusted caller, explicit profile and derived receipts without specifying their public transport. Current dispatch/launch parsers expose none of them. Per-job evidence requires the dispatch ID, but _launch mints that ID internally immediately before snapshot preparation. Receipt serialization, dependency-evidence serialization and result.policy field names also remain insufficiently exact for complete integration fixtures. These are interface-readiness gaps, not grounds for replacing the architecture.",
+          "reproduce": "At the reviewed ref: sed -n '119,128p;180,213p;250,285p;312,324p' ops/conductor/lane-policy.md; sed -n '1145,1168p;2083,2125p' ops/devlane/dispatch/launch.py; sed -n '151,178p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:173; ops/conductor/lane-policy.md:417",
+          "claim": "The final ruling's rotation rule and paired acceptance cases remain unapplied. The text requires the complete standing-grant set but does not explicitly prescribe its replacement admission/anchor transition. Note-induced digest changes are described elsewhere, but no case pairs existing-binding refusal with fresh-dispatch success under unchanged authority. Add those exact cases without refreshing existing records.",
+          "reproduce": "At the reviewed ref: cat ../in/lane-policy-final-ruling.md; sed -n '135,141p;163,178p;414,434p' ops/conductor/lane-policy.md"
+        }
+      ],
+      "artifacts": {
+        "PLAN": "PLAN \u2014 measured against 2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7, base c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc.\n\nRequired contract correction: apply the supplied final ruling only to ops/conductor/lane-policy.md and ops/lane-policy.json: protect the two omitted entrypoints; require a fresh ratified admission and previously trusted verification for standing-set rotation; pair superseded-grant refusal with post-rotation success; pair note-induced existing-binding refusal with fresh-dispatch success without another owner act. D-LANES-1 remains semantic evidence, never blob admission, maintenance authorization or activation.\n\nPublic inputs to freeze before integration tests (PROPOSED additions, not current flags): dispatch.sh --trusted-anchor ABSOLUTE_FILE --profile ID [--maintenance-receipt ABSOLUTE_FILE], forwarded unchanged by ops/conductor/tools/dispatch.sh into launch.py's _launch_parser/_launch as args.trusted_anchor, args.profile and args.maintenance_receipt. No authority/profile environment variables or lane.conf keys. The trusted-anchor file is retained bootstrap custody evidence, not another policy registry: prescribe exact keys owner, host_home, repository, admission, consumer_ref, reader, reader_checkout, python, runtime_manifest; reader retains exactly ref/runtime_sha256. Paths are canonical absolute paths and refs/digests retain the contract's formats. The locator alone confers no trust: the admitted invoking consumer and host custody establish it; candidate/worktree copies cannot substitute. Policy remains the fixed Git blob ops/lane-policy.json.\n\nProfile is a nonempty configured ID; absence permits only the admitted default, while explicit empty/unknown/conflicting selections refuse. Keep any structured declaration with its launch/task owner; do not introduce a jobs schema here. Maintenance-receipt transport should have exactly dispatch, job, lineage, standing and per_job: lineage has branch/base_sha; the two lists contain sorted unique record/sha256 pairs matching brief.policy. This is conductor-derived evidence, independently recomputed from live admitted show output, not authorization supplied by the file. Standing coverage needs no fresh owner decision. Omitted receipt must never suppress standing-grant discovery. For later transitions, propose --trusted-anchor on launch.py resume/close/collect, land.py and ladder start/resume; reuse the bound profile and receipt, with no replacement flags. Onboard may display the selected admitted summary through the same loader; it cannot activate policy.\n\nExact remaining input gap: per-job receipt production needs an agreed handoff of launch.mint_id(stage, harness) before attempt/filesystem mutation. No current public reservation or caller-ID argument exists. Do not accept wildcard IDs, let a receipt silently choose the ID, or use wrapper --dry-run as reservation. Contract that handoff before enabling per-job CLI success. Also freeze normalized declaration/dependency/result-policy byte schemas and the verified reader runtime closure. Launch/task owns output and adapter declarations; C2 is not transferred into this work. Missing grants remain empty, unavailable dependency analysis remains unavailable. These gaps block complete activation, not the bucket below.\n\nFIRST READY EXECUTABLE BUCKET \u2014 exactly two files: ops/devlane/dispatch/tests/test_record.py (independent test producer) and ops/devlane/dispatch/record.py (different implementation producer). Implement only structural validation of optional brief.policy through the existing record.build(payload) and record.validate(rec, *, expected_id=None, expected_snapshot=None) APIs. Validate required binding fields, schema/path, Git IDs, digests, profile syntax, admission ID, template digest equality and the exact maintenance container/list shapes. Accept a syntactically valid synthetic profile without hardcoding membership. Preserve absent-policy legacy records and all existing identity/result checks; structural validity conveys no admission.\n\nFirst behavioral tests use the existing _RecordCase._minimum fixture and load the real module with support.load('record'), never require_module's absent/echo fallback. Assert RecordError naming brief.policy for string/null/empty bindings, malformed digests, template mismatch and malformed/duplicate/unsorted maintenance entries. Positive neighbors cover a complete binding, null maintenance, synthetic profile and unchanged legacy bytes. An in-memory probe on this ref confirmed record.build currently accepts string, null and empty-object brief.policy: the red is a missing behavioral refusal, not an import or collection error. Do not import the absent lane_policy.py, catch AttributeError as success, add skips, or construct an allow-all evaluator.\n\nIndependent commands, for subsequent authorized execution only: test producer runs python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py and records named assertion failures with zero errors; skeptic reruns that command and checks clean neighbors and planted malformed bindings; implementation producer runs the identical command to green, then bash ops/bin/suites.sh. Dispatch each producer through the existing lever: bash ops/bin/dispatch.sh --worktree \"$WT\" --job author-tests --harness codex --model \"$TEST_MODEL\" --stage tests --scope-file \"$TEST_SCOPE\"; bash ops/bin/dispatch.sh --worktree \"$WT\" --job check-tests --harness claude --model \"$SKEPTIC_MODEL\" --stage check-tests --scope-file \"$CONTRACT_SCOPE\" --input \"$WT/ops/devlane/dispatch/tests/test_record.py\"; bash ops/bin/dispatch.sh --worktree \"$WT\" --job implement --harness codex --model \"$CODE_MODEL\" --stage code --scope-file \"$COMMAND_SCOPE\". The conductor supplies explicit independent producer selections and bounded scope files, advances reviewed snapshots through existing custody/land checks, and supplies the test command verbatim in COMMAND_SCOPE. No producer authors or approves its own tests; no vendor is launched by this review.\n\nAfter that bucket, proceed in dependency order without declaring further buckets ready: freeze the interfaces above; implement the already-contracted stdlib evaluator/reader against real decisions.py fixtures; connect trusted preflight and binding; then connect every acceptance transition before cutover. Fixture authority uses the existing decisions.py add ID QUESTION --home ops/lane-policy.json, ratify ID --evidence 'PRINCIPAL: JSON', show ID, note ID TEXT and supersede ID --by SUCCESSOR --evidence EVIDENCE under temporary HOME. Stage the actual reader, laneconf and pinned configuration together; prohibit fallback imports. Do not reuse test_decisions_register's fixture unchanged: it snapshots the live store and permits an absent-tool stand-in. No live store read belongs in these new fixtures.\n\nIntegration tests use launch_support._TempLaunch/argv_for/dispatch, the existing fake CLI start witness and synthetic stores.py data, plus real temporary Git repositories. Test profile refusal before child/attempt creation; dev/prod/synthetic positive and negative paths; ordinary hooks/tooling with application/vendor absent; additive inspection reads; maintenance false despite valid evidence; repeated standing-authorized jobs; mixed standing/per-job coverage; rotation and note cases; candidate reader/config/seed substitution. Exercise actual _residual_entries for ignored/untracked/committed writes, binary paths, deletions, rename/copy endpoints and symlink escapes, retaining only existing cache exemptions. Assert new lane-* refusals as exit 2, empty stdout and expected/found/needed; the older generic launch assertion expects exit 3 and is unsuitable.\n\nActivation remains indivisible: prelaunch authority/grants/dependencies; record binding and launcher result evidence; _settle before automatic commit/ref publication; _resume before caps/markers/stores/attempt changes and full settlement afterward; _collect before verification and again after verification before commit/ref/collected-marker changes; land.preconditions against the exact accepted/fetched head; ladder.Driver.load_envelope and stage advancement independently. Extend test_launch_collect, test_land_lever, test_ladder_lever and test_onboard_lever with real seams and fake external tools. Successful verdicts, exit 0 and collection never bypass policy or existing lineage, custody, attribution, freshness and ladder checks. Preserve suite, laneconf closure/literal and instrument-conformance gates; register new CLI refusal surfaces with their consumers.\n\nPartial work is inert: optional record validation and uncalled library code neither select authority nor widen permissions. Keep the policy standing proposal; add no activation environment switch. Bootstrap development proceeds under existing explicit authorization, honestly unbound. Cutover requires independent verification and owner admission of the complete consumer/policy/reader-runtime custody boundary, verified ordinary maintenance support, and exclusion of old acceptance callers. Legacy records remain readable and unchanged but cannot write-resume, collect for acceptance, land or advance; continuation is a fresh bound dispatch retaining provenance. Runtime/profile limits remain acceptance detection unless adapter prevention is separately measured. No C2 output ownership, new executor, Symfony dependency or stronger containment claim."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1139658,
+        "out": 8212,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2ecf00e8de4c609b0b5bfd613e82d71ac7c2c9d7",
+        "started": "2026-09-06T03:12:59Z",
+        "ended": "2026-09-06T03:16:55Z"
+      },
+      "note": "Both in/ inputs read whole. Supplied patch exactly matches git diff for the requested refs. git diff --check exits 0; strict policy JSON parses; all 10 lane-policy relative link targets exist. Only source reads, static checks and an in-memory record API probe were performed. No edits, host/session/decision-store reads, database operations, network actions or vendor launches. Suites were not run. Public-input spellings in PLAN are proposed contract additions, not claims of existing support."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T03:18:29.103Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,296 @@
+{
+  "id": "20260905T234530Z-plan-claude-56d481",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "65568e42240a728426b1a9a7d8d6406146ec61fa"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T23:45:31Z",
+    "closed": "2026-09-05T23:58:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "ref_sha": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "295bae96-37a4-4726-b640-9fcaa2070e5f",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/295bae96-37a4-4726-b640-9fcaa2070e5f.jsonl"
+  },
+  "session": {
+    "id": "295bae96-37a4-4726-b640-9fcaa2070e5f",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/295bae96-37a4-4726-b640-9fcaa2070e5f.jsonl",
+    "stream_sha256_at_close": "11e3555b2fe412a5a07b79748e9da77296e6ffbf268ab1317387bf280ec4498d",
+    "spend": {
+      "input": 482,
+      "cached": 2860924,
+      "output": 64454,
+      "total": 2925860,
+      "source": "result.usage",
+      "messages": 16,
+      "cost_usd": 9.8614035
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Owner work order, 2026-09-05: deliver a command that starts a new interactive conductor session, selects codex/claude/grok by parameter, and forwards harness CLI arguments intact. Routine work must never pause for manual approval. Safeguards must enforce a declared boundary against destructive actions; do not equate disabling prompts with protection. Root conducts; workers investigate and produce artifacts through ops/bin/dispatch.sh only.\nPlan a bounded contract before code. Reuse the lane and installed CLIs; measure behavior and dependencies. Define permission profiles, protected assets, refusals, argument conflicts, startup context/handoff, and limits. No blanket claim of preventing all harm. Preserve main checkout, existing sessions/configuration, master ownership, and retained branches. No automatic forge ruleset changes. Produce a contract/plan with acceptance cases and proposed files for independent tests and review. No implementation.\n",
+    "inputs": [],
+    "sha256": "441bd0ff7158f0585cfaa9115fba521ef9fb207163116f51c93aafd060b5d75f",
+    "bytes": 3227
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T23:45:31Z",
+      "ended": "2026-09-05T23:58:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "out/PLAN.md \u00a79.1, \u00a72.2",
+          "claim": "Harness versions on this host are unmeasured: claude --version, codex --version, grok --version and gh --version were each refused by the harness permission layer under this read job. The plan leans on the lane's dated flag facts (codex 0.148.0, grok 1.0.5, claude 2026-08-28); PATH shows codex 0.153.4 installed, later than the measured version. The proposed probe verb (slice 3) is what closes this; a start refuses class freshness until it runs.",
+          "reproduce": "echo \"$PATH\" | tr ':' '\\n' | grep -n codex"
+        },
+        {
+          "severity": "p2",
+          "where": "out/PLAN.md \u00a79.2, \u00a73.2",
+          "claim": "Whether Claude honours the tracked deny rules and PreToolUse hooks under its prompt-skipping permission mode is unmeasured; if it does not, the Claude unattended profile's boundary is the git-native hooks only, containment stays policy, and the profile remains unproven (refusal profile-unproven) so sessions start attended, which pauses. The owner's two rules then conflict on Claude and the owner rules.",
+          "reproduce": "grep -n 'containment = \"os\" if name == \"codex\" else \"policy\"' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "out/PLAN.md \u00a79.4, \u00a73.4",
+          "claim": "laneconf.py closure scans only .py and .sh sources under ops/ and .claude/, so the proposed git hooks (extensionless files pre-push and reference-transaction) reading RELEASE_BRANCH and TRUNK_BRANCH would be undeclared reads invisible to the closure check; slice 2 must give them a scanned shape or extend the reader.",
+          "reproduce": "grep -n 'SOURCE_SUFFIXES' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a79.3",
+          "claim": "Codex interactive network access inside workspace-write and its config key are unmeasured; a conductor session needs gh and git push, so the codex unattended profile may have to choose danger-full-access with the git hooks as the only boundary, recorded as such.",
+          "reproduce": "sed -n 20,45p ops/devlane/dispatch/levers/codex/codex-dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a79.5",
+          "claim": "The term-wall pattern is gitignored configuration and a CI variable; whether any name proposed here trips it could not be looked at. The first PR's CI is the only oracle.",
+          "reproduce": "grep -n 'term-wall.conf' .gitignore ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a79.6, \u00a72.2",
+          "claim": "The self-hosted runner's PATH and hook state were not measured; ci.yml prepends only ~/.local/bin and never runs install.sh. Tests must plant stub harness binaries and scratch clones; a test that skips when a real binary is absent is an unreachable arm read as a pass.",
+          "reproduce": "grep -n 'GITHUB_PATH\\|install.sh' .github/workflows/ci.yml"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a79.7, \u00a73.3",
+          "claim": "The main checkout's working tree has no harness-independent guard: git offers no pre-checkout hook and a read-only .git directory would break every worktree. The plan declares the gap (Claude-only matrix row plus a start record) rather than claiming coverage.",
+          "reproduce": "grep -n 'The main checkout belongs to nobody' CONTRIB.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a72.2",
+          "claim": "The snapshot's .git directory is writable by this uid: .git/index mtime is 54 seconds after .git/HEAD mtime, so git refreshed the index during this job. Read-only holds by policy and read-role settlement, not by filesystem mode, for claude and grok read jobs.",
+          "reproduce": "ls -la --time-style=full-iso .git/index .git/HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a79.9, \u00a73.8",
+          "claim": "Starting the harness by exec leaves the session's end unrecorded unless the profile opts into a wrapper; the owner may prefer the wrapper for every session, a one-line data change.",
+          "reproduce": "grep -n 'exit: unrecorded (exec)' /home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/out/PLAN.md"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260905T234530Z-plan-claude-56d481/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2925860,
+        "out": 64454,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "65568e42240a728426b1a9a7d8d6406146ec61fa",
+        "started": "2026-09-05T23:45:30Z",
+        "ended": null
+      },
+      "note": "Plan written to out/PLAN.md (56 KB): a bounded contract for ops/bin/conduct.sh over ops/conductor/tools/conduct.py with profiles as data (prompting half and boundary half, boundary-absent refused), protected assets with per-layer binding and declared gaps, a harness-independent git-native boundary (pre-push and reference-transaction hooks keyed on CONDUCT_SESSION), argument-conflict rules over per-harness reserved flags, a startup brief from onboard.py, a two-arm probe verb with freshness and profile-unproven refusals, five slices (four S, one M with two named S buckets) each with tests named and why red at the ref, a first-run walkthrough with 15 assumption lines each measured or a refusal, calibration rows, and tab-separated machine lines. Could not look: harness and gh versions, network, env, the job directory above snapshot/, and a direct write probe into .git (each refused by the harness under this read job); all declared in the plan. The snapshot was not edited; the only writes were out/PLAN.md. The in/ directory was empty."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

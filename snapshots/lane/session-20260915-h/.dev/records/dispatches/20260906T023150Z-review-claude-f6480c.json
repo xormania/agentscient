@@ -1,0 +1,275 @@
+{
+  "id": "20260906T023150Z-review-claude-f6480c",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "27b97edece465025eb84af1cc6d9d23996e30ae8"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:31:50Z",
+    "closed": "2026-09-06T02:37:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "27b97edece465025eb84af1cc6d9d23996e30ae8",
+    "ref_sha": "27b97edece465025eb84af1cc6d9d23996e30ae8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "871b83ad-ffd4-48cb-ae05-40cf4c3d0150",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/871b83ad-ffd4-48cb-ae05-40cf4c3d0150.jsonl"
+  },
+  "session": {
+    "id": "871b83ad-ffd4-48cb-ae05-40cf4c3d0150",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/871b83ad-ffd4-48cb-ae05-40cf4c3d0150.jsonl",
+    "stream_sha256_at_close": "e344c0955fe97e04a5e4c4990be4329b9401a520b27e0f02b356d10e19da3a96",
+    "spend": {
+      "input": 114,
+      "cached": 4752879,
+      "output": 26355,
+      "total": 4779348,
+      "source": "result.usage",
+      "messages": 57,
+      "cost_usd": 3.9685664999999997
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review GPT-6 C1 contract changes against Grok ruling 518ab8 and owner brief. Only dispatch/CONTRACT.md and task/CONTRACT.md plus necessary owning seams. Verify one target execution authority with existing frontends, current-versus-proposed distinction, independent configurable harness/model/role/profile, launch/task output ownership, one semantic envelope authority, narrow inline workaround, preserved fileset refusal and honest per-harness capability evidence. Policy is a consume-only join; permanent dev tooling must not depend on or be replaced by Symfony. No extra roadmap, copied policy, dormant-feature obligation or current-runtime claim. Check precise testable next obligations, internal consistency and changed links. Return concise approve/changes, material gaps only with reproduction and smallest correction. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/in/20260906T021502Z-adjudicate-grok-518ab8.json",
+        "sha256": "c877984b6eac6f9d860b63788089ce9c7eb784e6d9d7990063a945e1eabf906f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023150Z-review-claude-f6480c/in/20260906T022239Z-code-codex-2d638a.json",
+        "sha256": "e331d75fb4ee9022c5adb0026e7ebbf8d03481f5f288d9159f530bc2eb1b2909"
+      }
+    ],
+    "sha256": "94e4f3aec9775623ae859d8a5995abadad15344cc8e25e7fe3fe9aa197ccd0ed",
+    "bytes": 1694
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:31:50Z",
+      "ended": "2026-09-06T02:37:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "27b97edece465025eb84af1cc6d9d23996e30ae8",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:337 (Refusals table, `caps` row); ops/devlane/dispatch/launch.py:2093; ops/devlane/task/run.py:422-434",
+          "claim": "The change rewrote the `caps` refusal owner from \"`run.py`'s own text\" to \"the launch preflight's own text\" under a table header it also rewrote to read \"Current dispatch refusal exit: 3\". launch.py has no caps preflight: there is no `_refuse(\"caps\"` anywhere in it, no `cap`/`total`/`cap_out`/`out` wire parsing, and its only cap input is `--cap-out` on resume (line 2093), assigned at 1759 with no validation. The text quoted by the row lives only in `run.py::_breaker_argv` (lines 428-434, `RunError`) - the same vendor engine this change classifies as manual/dormant and \"not a proven backend\". So a row presented as current dispatch behavior names a producer that does not exist, in a change whose stated discipline is separating measured behavior from proposals. Smallest correction: restore the measured attribution and mark the row proposed, e.g. \"| `caps` | ... | proposed; launch has no caps preflight, the text is `run.py::_breaker_argv`'s, on the dormant path |\".",
+          "reproduce": "grep -c '_refuse(\"caps\"' ops/devlane/dispatch/launch.py; grep -n 'caps' ops/devlane/dispatch/launch.py; sed -n '426,436p' ops/devlane/task/run.py; sed -n '337p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:45-47 (Measured baseline and limits)",
+          "claim": "The stamped baseline evidence is written with a moving ref: `git diff e59a52bce37dbd1fed52d358b655bae00267f71f HEAD --name-only -- ops/devlane ops/bin ops/conductor/tools ops/process` is stated to have \"returned no paths\". That holds at the stamped ref 2b0491203cb9b37459fb2af6ac703940051374d2, but the command as printed, run in the tree that carries the claim, returns ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md - the change's own two files. The reproduction contradicts its own stated result on first re-run. Smallest correction: replace `HEAD` in the printed command with the literal `2b0491203cb9b37459fb2af6ac703940051374d2`.",
+          "reproduce": "git diff e59a52bce37dbd1fed52d358b655bae00267f71f 2b0491203cb9b37459fb2af6ac703940051374d2 --name-only -- ops/devlane ops/bin ops/conductor/tools ops/process; git diff e59a52bce37dbd1fed52d358b655bae00267f71f HEAD --name-only -- ops/devlane ops/bin ops/conductor/tools ops/process"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md:224-238 (Declared job outputs); ops/devlane/task/jobs.json:55-96",
+          "claim": "The target says \"task owns output requirements in jobs.json\" and \"launch resolves declared `{out}` paths into grants\", and the ruling's C1 scope is \"job output grants derived from jobs.json declared {out} paths\". But no jobs.json entry has an outputs field: `{out}/PLAN.md`, `{out}/SKEPTIC.md` and `{out}/RULING.md` occur only as free prose inside `prompt` (and `deliverable`) strings. The contract names no field, no extraction rule and no refusal class for an undeclarable or unsupported output, so the next independent test author has no declared surface to assert grant derivation against and must invent the declaration mechanism the contract was supposed to fix. Smallest correction: add one sentence naming where the declaration lives for the next slice - either \"grants are derived from `{out}/...` occurrences in the job's rendered prompt\" as the measured interim rule, or \"a later slice adds a jobs.json `outputs` list; until it lands there is no machine-readable declaration\".",
+          "reproduce": "grep -n 'PLAN.md\\|SKEPTIC.md\\|RULING.md' ops/devlane/task/jobs.json; grep -c '\"outputs\"' ops/devlane/task/jobs.json; sed -n '222,238p' ops/devlane/task/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "dispatch": "ops/devlane/dispatch/CONTRACT.md",
+        "task": "ops/devlane/task/CONTRACT.md",
+        "diff": "context/diff.patch"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4779348,
+        "out": 26355,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "27b97edece465025eb84af1cc6d9d23996e30ae8",
+        "started": "2026-09-06T02:32:00Z",
+        "ended": "2026-09-06T02:38:00Z"
+      },
+      "note": "Scope held: git show --stat 27b97ed changes exactly ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md, no new file; the supplied diff.patch spans c06ed944..27b97ed and its other 70 files belong to earlier commits in the range, reviewed only as context. Verified against source at the snapshot: launch.py sandbox map (claude acceptEdits, codex read-only/workspace-write, grok always-approve) at 380-383; CLAUDE_DENIED_TOOLS and _grok_permission at 441,475; write-role-unadmitted 1089; mode-unavailable 1095 and tests/test_launch_refusals.py:602 HistoryVersusWithheldAndModeUnavailable; harness-only admission 1081; REFUSAL=3 at line 33 versus docs/wire.md Rejection 2; writable_out job-name branch at 952,1213; TRIPPED.md inline supervisor writes 1040; _schema_valid 708-745 versus envelope.validate 253-310 (FIELDS 9 keys, HANDLE_MAX 512, tally opinions 158) and run.py:298-309; launch reads env['commit'] at 1278 which validate would reject; run.py render supplies ref/base/diff/into only (911-919); both call subprocess.Popen (run.py:973, launch.py:989); go.sh:39,41 default claude for author-tests/implement, ladder.py:27-35 selects grok/codex; ops/conductor/tools/dispatch.sh:51-66 LAUNCHER_PIN; only ops/devlane/task/tests/test_run.py:410 calls run.run; ops/contracts/imports.json untracked and already a declared absence in ops/README.md:102, so no contradiction. All 13 relative links and the three heading anchors resolve. Ruling 518ab8's C1 In-list is covered item for item and its Out-list is respected: no runtime, adapters, breaker join, fileset/staging, task frontend parity, lever migration, authority-doc edit, wire-gate expansion, 28-bucket ladder or Symfony/prod-replacement content. Could not look: suites were not run, no vendor launch, no live containment probe, no session store or network measurement, and lane/lane-boundary-20260905 content is absent from this tree, so the consume-only join is unverified beyond its declaration."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

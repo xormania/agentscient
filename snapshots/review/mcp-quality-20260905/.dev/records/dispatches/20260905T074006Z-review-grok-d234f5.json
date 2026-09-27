@@ -1,0 +1,183 @@
+{
+  "id": "20260905T074006Z-review-grok-d234f5",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "conductor-context",
+  "lineage": {
+    "branch": "review/mcp-quality-20260905",
+    "base_sha": "e7558dea9e10835f3fcfaeebb703199119833b38"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T07:40:07Z",
+    "closed": "2026-09-05T07:51:39Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "ref_sha": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ab25c252-ddd8-42c0-bf3b-b0832dd0d700",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok-stream/sessions/<snapshot-encoded>/ab25c252-ddd8-42c0-bf3b-b0832dd0d700/summary.json"
+  },
+  "session": {
+    "id": "ab25c252-ddd8-42c0-bf3b-b0832dd0d700",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok-stream/sessions/<snapshot-encoded>/ab25c252-ddd8-42c0-bf3b-b0832dd0d700/summary.json",
+    "stream_sha256_at_close": "e7d8ba7cef6dfbc01ba311a4c697223c9eb4aa6119d4f6985d4f015e9ce611b1",
+    "spend": {
+      "input": 1791583,
+      "cached": 1641216,
+      "output": 37954,
+      "total": 1829537,
+      "cost_usd_ticks": 2293412200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/home/grok-stream/sessions/<snapshot-encoded>/ab25c252-ddd8-42c0-bf3b-b0832dd0d700/summary.json",
+      "messages": 183
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-mcp-quality-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review candidate e7558dea9e10835f3fcfaeebb703199119833b38 against base 56b26b51fea0727ef75332c5d0469b2a9d11b3ee. Read in/ PR body first, then ops/conductor/lane-mcp-v2.md and baseline contract; review the two changed production modules, README, research/evaluation claims and independent tests. Judge code against the contract, not merely green tests. Probe pagination/omissions, source encodings, structural registry slots/cards, stateless checkpoints and v1 preservation. No edits. Return normal structured review envelope, specific model stamp, exact candidate SHA, and actionable findings with reproductions. Distinguish measured bugs from suggestions; P3 speculative hardening is not automatically blocking. If running long, return completed findings rather than timing out. No separate report-file write is required.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T074006Z-review-grok-d234f5/in/ag-mcp-pr.md",
+        "sha256": "f99c534de003c61acf451aaa6d02cf9251c9bd749ad051b48ec5d8ed0ab67ac5"
+      }
+    ],
+    "sha256": "5d2cd7d9042d9501e91adff0afca25654558c14d9b40230eb8fbe5699a0f0c26",
+    "bytes": 3130
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T07:40:07Z",
+      "ended": "2026-09-05T07:51:39Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e7558dea9e10835f3fcfaeebb703199119833b38",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/lane_read.py:1125",
+          "claim": "lane_jobs rejects a UTF-8 BOM registry as malformed, while lane_findings accepts the same BOM on record.json. _jobs does raw.decode('utf-8') then json.loads, so the BOM becomes U+FEFF and fails JSON; _read_record uses json.loads(bytes), which accepts UTF-8-SIG. \u00a75 bounds the registry like a record; the two v2 source decoders do not agree on the same valid UTF-8 file.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nimport json, tempfile, subprocess, sys\nrepo=Path('.').resolve()\nentry=repo/'ops/conductor/tools/lane_mcp.py'\ntd=Path(tempfile.mkdtemp()); (td/'store'/'jobA').mkdir(parents=True)\njobs=json.dumps({'author-tests':{'adapter':'harness','role':'write','snapshot':'whole','prompt':'Do {scope} at {ref}.'}})\n(td/'jobs.json').write_bytes(b'\\xef\\xbb\\xbf'+jobs.encode())\nrec={'id':'jobA','status':'closed','result':{'envelope':{'findings':[{'severity':'p2','where':'a','claim':'c','reproduce':'r'}],'note':'n'}}}\n(td/'store'/'jobA'/'record.json').write_bytes(b'\\xef\\xbb\\xbf'+json.dumps(rec).encode())\ncfg=td/'c.json'; cfg.write_text(json.dumps({'version':2,'dispatch_store':str(td/'store'),'job_ids':['jobA'],'monitor_state':None,'consumer':'c','usage_rollout':None,'job_registry':str(td/'jobs.json')}))\ndef q(tool, args=None):\n    cmd=[sys.executable,'-B',str(entry),'--config',str(cfg),'query',tool]\n    if args: cmd.append(json.dumps(args))\n    return json.loads(subprocess.check_output(cmd))\nprint(q('lane_jobs')['state'], q('lane_jobs')['reason'])\nprint(q('lane_findings',{'id':'jobA'})['state'], q('lane_findings',{'id':'jobA'})['findings_total'])\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/lane_read.py:1281",
+          "claim": "A registry of 64 jobs with 256-byte adapter and role strings \u2014 both allowed by lane-mcp-v2.md \u00a75 \u2014 is not listed. query() throws away the \u00a75 payload and returns the inherited 16384-byte overflow object {schema,query,state,reason} with no jobs and no evidence.revision. The 64-row cap therefore does not keep a legal listing under the whole-query cap, unlike lane_findings which has an omission sequence so a successful page never hits this strip.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nimport json, tempfile, subprocess, sys\nrepo=Path('.').resolve()\nentry=repo/'ops/conductor/tools/lane_mcp.py'\ntd=Path(tempfile.mkdtemp())\nfat={f'job-{n:02d}':{'adapter':'A'*256,'role':'R'*256,'snapshot':'whole','prompt':'x {ref}'} for n in range(64)}\n(td/'jobs.json').write_text(json.dumps(fat))\ncfg=td/'c.json'; cfg.write_text(json.dumps({'version':2,'dispatch_store':None,'job_ids':[],'monitor_state':None,'consumer':'c','usage_rollout':None,'job_registry':str(td/'jobs.json')}))\nout=subprocess.check_output([sys.executable,'-B',str(entry),'--config',str(cfg),'query','lane_jobs'])\np=json.loads(out)\nprint(p['state'], p['reason'], sorted(p), len(out))\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:1125",
+          "claim": "lane_jobs does not apply the record 1024-depth guard. A 1200-deep object job value is returned as state ok with a sparse row, not the unavailable handling _read_record uses for excessively nested source JSON (lane-mcp-v2.md \u00a78). The process survived; this is hardening, not a crash.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nimport json, tempfile, subprocess, sys\ntd=Path(tempfile.mkdtemp()); nested={'leaf':True}\nfor _ in range(1200): nested={'k':nested}\n(td/'jobs.json').write_text(json.dumps({'deep-job':nested}))\ncfg=td/'c.json'; cfg.write_text(json.dumps({'version':2,'dispatch_store':None,'job_ids':[],'monitor_state':None,'consumer':'c','usage_rollout':None,'job_registry':str(td/'jobs.json')}))\np=json.loads(subprocess.check_output([sys.executable,'-B','ops/conductor/tools/lane_mcp.py','--config',str(cfg),'query','lane_jobs']))\nprint(p['state'], p['jobs'][0])\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_mcp_context.py:17",
+          "claim": "The independent test module still says 'v2 is not implemented' and that the file stages a copy-tool-bytes stand-in. That is false of candidate e7558dea9e10835f3fcfaeebb703199119833b38; the same file is the live v2 oracle.",
+          "reproduce": "sed -n '1,20p' ops/conductor/tests/test_lane_mcp_context.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:1070",
+          "claim": "Named lookup of a grammar-valid registry key whose value is not an object returns state ok and a full card (snapshot, deliverable, constraints, timeout, prompt_bytes) with name null. The list path uses the \u00a75 invalid-row shape {name,adapter,role,dispatchable,slots} only. Clients cannot tell this from a declared empty card.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nimport json, tempfile, subprocess, sys\ntd=Path(tempfile.mkdtemp()); (td/'jobs.json').write_text(json.dumps({'ok-object':'not-an-object'}))\ncfg=td/'c.json'; cfg.write_text(json.dumps({'version':2,'dispatch_store':None,'job_ids':[],'monitor_state':None,'consumer':'c','usage_rollout':None,'job_registry':str(td/'jobs.json')}))\nprint(subprocess.check_output([sys.executable,'-B','ops/conductor/tools/lane_mcp.py','--config',str(cfg),'query','lane_jobs',json.dumps({'name':'ok-object'})], text=True))\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 1829537,
+        "out": 37954,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e7558dea9e10835f3fcfaeebb703199119833b38",
+        "started": "2026-09-05T07:40:27Z",
+        "ended": "2026-09-05T07:50:49Z"
+      },
+      "note": "grok-4.6 review of e7558dea9e10835f3fcfaeebb703199119833b38 vs 56b26b51fea0727ef75332c5d0469b2a9d11b3ee. Pagination/omission order, stale-cursor class, stateless checkpoints, v1 four-tool surface and v1/v2 byte identity for the four original reads held in probes and in 8 targeted test_lane_mcp_context methods (OK). Production file SHA-256 and jobs.json sha256 match ops/conductor/reports/mcp-context-evaluation-2026-09-05.json. Did not re-run all 1,910 suite tests or the live operator-store evaluation script (those two records are outside this snapshot). P2s are measured decoder/bound bugs; P3s are hardening and test-doc drift."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T07:51:38.375Z"
+    }
+  },
+  "status": "closed"
+}

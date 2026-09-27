@@ -1,0 +1,255 @@
+{
+  "id": "20260911T221847Z-tests-grok-a323b5",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/item31-skeptic-wire-20260911",
+  "lineage": {
+    "branch": "lane/item31-skeptic-wire-20260911",
+    "base_sha": "fb5bb0aed677300d6a0c03c252fd7684bb1ad985"
+  },
+  "follows": [
+    "20260911T215054Z-check-tests-codex-bc7bad"
+  ],
+  "answers": [
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#1",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#2",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "2",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#3",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "3",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#4",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "4",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#5",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "7",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#6",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "5",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T215054Z-check-tests-codex-bc7bad#7",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T22:08:15Z",
+      "citation": {
+        "item": "7",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    }
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T22:18:47Z",
+    "closed": "2026-09-11T22:33:13Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fb5bb0aed677300d6a0c03c252fd7684bb1ad985",
+    "ref_sha": "fb5bb0aed677300d6a0c03c252fd7684bb1ad985",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1538185b-1618-472b-b160-fe7c36196888",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json"
+  },
+  "session": {
+    "id": "1538185b-1618-472b-b160-fe7c36196888",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json",
+    "stream_sha256_at_close": "6a73b46cb69cdb3e5dc12eb9b5ceb0373c9248bb10f4beaec36b5f09e6aefe31",
+    "spend": {
+      "input": 3141950,
+      "cached": 2666496,
+      "output": 58419,
+      "total": 3200369,
+      "cost_usd_ticks": 8957878000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json",
+      "messages": 254
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/in/plan-item31-slice1-20260911.md",
+        "sha256": "6a362cfd01fe53444455c1ab3067af6ecfb1437345caf5ee11ca827bdde00c65"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/in/scope-item31-20260911.md",
+        "sha256": "1aa788cf21ae0613c1d7d9249fa41201bdd61a6651077553051624f1e5593284"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/in/20260911T215054Z-check-tests-codex-bc7bad.json",
+        "sha256": "e0d7d483d1f8771df96b02d732c2996b33fb5c4957494122e884e5e048e51c57"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/in/SKEPTIC.md",
+        "sha256": "1b2450b78c0aa94fe84ba4f7c7dd0ef0a7cf4876ab5b61fd7eda5f7d3ae43466"
+      }
+    ],
+    "sha256": "2f8725622fde6ab6ffab524a8d7bf459097b973c94ac28656271820c56a2a66a",
+    "bytes": 3760,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T22:18:48Z",
+      "ended": "2026-09-11T22:33:13Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "feaa59a27591ad232ad795231d5dce6ca8068eb6",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_role_contract.py",
+      "ops/devlane/task/tests/test_check_tests_contract_row.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ops/devlane/task/tests/test_check_tests_contract_row.py": "item 1 and 2: check-tests row delivers the JSON envelope on stdout with artifacts empty and no file written, including a differently named path; quotation-pair grammar requires a non-empty reproduce command",
+        "ops/conductor/tests/test_ladder_lever_skeptic_contract.py": "item 3, 4 and 7: four envelope checks, custody regular file with path and digest that refuses a symlink or a path outside the inputs directory, refusal wire exit 2 one stderr line stdout empty",
+        "ops/devlane/dispatch/tests/test_launch_role_contract.py": "item 5 and 7: role refusal by instruction shape (write verb and path-shaped token, negated sentences excluded), exit 2 as a token not a substring of 20, one stderr line, stdout empty"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3200369,
+        "out": 58419,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fb5bb0aed677300d6a0c03c252fd7684bb1ad985",
+        "started": "2026-09-11T22:18:47Z",
+        "ended": "2026-09-11T22:32:47Z"
+      },
+      "note": "Slice-1 document pins, strengthened against the seven check-tests findings. Each file committed after its own red: 14, 17, and 7 assertion failures, 0 errors, at fb5bb0ae (ef792fe, 2ffbe1e, feaa59a). The 2026-09-11 near-miss mutants now fail the predicates; planned contract text makes them true. No implementation was read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T22:33:12.116Z"
+    }
+  },
+  "status": "closed"
+}

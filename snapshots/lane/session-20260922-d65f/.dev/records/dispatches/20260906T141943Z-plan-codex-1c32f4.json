@@ -1,0 +1,163 @@
+{
+  "id": "20260906T141943Z-plan-codex-1c32f4",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-coupling-reconciliation-20260906",
+  "lineage": {
+    "branch": "lane/conduct-coupling-reconciliation-20260906",
+    "base_sha": "ca96baf44baf553bfc2035e0c8db81c5357e2759"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:19:43Z",
+    "closed": "2026-09-06T14:23:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ca96baf44baf553bfc2035e0c8db81c5357e2759",
+    "ref_sha": "ca96baf44baf553bfc2035e0c8db81c5357e2759",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-19-44-01a07716-e5c4-7371-a485-033d3ba6f08c.jsonl"
+  },
+  "session": {
+    "id": "01a07716-e5c4-7371-a485-033d3ba6f08c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-19-44-01a07716-e5c4-7371-a485-033d3ba6f08c.jsonl",
+    "stream_sha256_at_close": "9373ec1fd1a2169f94287acc3a0cb9c1d7ae903e5f1caae740de313c6f6aaf96",
+    "spend": {
+      "input": 792910,
+      "cached": 693632,
+      "output": 5126,
+      "total": 798036,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-19-44-01a07716-e5c4-7371-a485-033d3ba6f08c.jsonl",
+      "messages": 105
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-coupling-reconciliation-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Plan only the smallest construction choices for the seven producer claims already adjudicated by Claude: retained evidence input, artifact ordering duty, stale source digest, dispatch binding, prior HOME custody, cache-path refusal and protocol literal ownership. Read the current composed contracts and supplied ruling; no edits/tests. Keep policy/evidence/dispatch/reader ownership separate, preserve common APIs, and do not bless the candidate's invented keys. For protocol identity compare an explicitly declared existing-owner coupling with a new protected guard exception; do not create maintenance authority or weaken guards. Name exact owning documents and independent test corrections. New code findings await separate Grok adjudication; do not rule them here. Return a concise concrete plan with assumptions/refusals, not a broad redesign; no live state, vendor or full floor.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/in/ag-conduct-policy-code-adjudication.json",
+        "sha256": "42fd4750452cab9d7943445c21db2ca026b619c517efeec735b3fedd044e074d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141943Z-plan-codex-1c32f4/in/ag-conduct-policy-code.json",
+        "sha256": "fc34c4b4f4a56ae1e9ce45deff7a389e25117d9a7e7b3880216bd0716348f8c4"
+      }
+    ],
+    "sha256": "6bef7fe5655a697ccc7a16f907e5926979cd84204510f56535a4b93132120fdb",
+    "bytes": 3193
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:19:43Z",
+      "ended": "2026-09-06T14:23:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ca96baf44baf553bfc2035e0c8db81c5357e2759",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "F2_retained_evidence": "Owners: ops/conductor/lane-policy.md \u00a7\u00a7Trusted binding input and declaration transport, Candidate evidence and PolicyResult; ops/devlane/dispatch/CONTRACT.md \u00a7Unit1a attempt and result transport. Declare one dispatch-owned, read-only evidence lookup carried by the existing opaque binding: given evidence kind, exact canonical bytes and bound transition identity, return the corresponding verified retained {path,sha256} handle or explicit unavailability. Dispatch owns persistence and custody; policy verifies correspondence and consumes values. Preserve check_transition's signature and five-key candidate_evidence. Launch handles remain prospective until post-claim retention; resume/collect preflight must not write evidence to manufacture admission. Independent correction: test_lane_policy.py::_LanePolicyCase.trusted_context/evidence and assert_policy_result supply genuinely retained fixture bytes, including CasesP1; cover missing, substituted, foreign and stale handles without copying the candidate's retention callbacks.",
+        "F3_artifact_ordering": "Owners: ops/conductor/lane-policy.md \u00a7Candidate evidence and PolicyResult; ops/devlane/dispatch/CONTRACT.md \u00a7Unit1a attempt and result transport. Make dispatch's manifest construction duty explicit: sort uniquely by the declared key before hashing, dependency binding and retention. Independent correction: test_lane_policy.py::CasesP2, both cited CasesP4 sites and CasesP5 must construct ordered manifests and recompute dependent digests. Do not silently sort inside the evaluator or infer a new consumer rejection requirement from the producer duty. Consumer rejection and Claude's separate mixed-layer ordering observation remain unresolved here; this plan does not uphold the candidate's strict rejection.",
+        "F1_source_digest": "Owner: ops/devlane/task/CONTRACT.md \u00a7Unit1a declaration transport, DeclarationSource; policy consumes its unchanged source-equality rule. Independent correction: test_lane_policy.py::CasesN2 must derive sources after changing requested_scope. Preserve a separate stale-digest negative expecting lane-policy, so the repaired positive still isolates environment/prose substitution. No declaration keys, digest relaxation or new authority source.",
+        "F4_dispatch_binding": "Owner: ops/devlane/dispatch/CONTRACT.md \u00a7\u00a7Unit1a pre-effect admission, Unit1a attempt and result transport. Preserve the reserved canonical DispatchID and OutputAttempt equality. Independent correction: CasesP4.test_p4_standing_grant_covers_two_jobs_without_fresh_owner_act must explicitly pass DISPATCH_B to output_attempt for context_b. Keep a separate foreign-dispatch negative. This fixes the reported masked fixture mismatch without changing standing grants or requiring another owner act.",
+        "F5_prior_HOME_custody": "Owners: ops/conductor/lane-policy.md \u00a7Reader custody and exact register evidence; dispatch's trusted-input acquisition; ops/conductor/decisions-register.md retains the existing show interface. Independent correction: CasesN9 must keep a separately held prior host-HOME anchor fixed, substitute only worker-controlled HOME/config/seed inputs, and use a pinned reader fixture whose store selection observably follows the supplied trusted HOME. Pair legitimate host evidence with worker-only forged evidence. Refuse unavailable or mismatched custody; do not infer provenance from directory names, store existence or a self-consistent replacement anchor. No new register flags or policy-owned HOME discovery.",
+        "F6_cache_path": "Owners: ops/devlane/dispatch/CONTRACT.md \u00a7Collect for residual classification; ops/conductor/lane-policy.md \u00a7\u00a7Effective grants and dependency evidence, Refusals and containment limits for acceptance. Independent correction: move CasesN4's cache-source lane-write negative beneath a product root, for example src/.cache/Example.php, with matching dependency coverage. Retain an ops/.cache source case proving it is measured: complete allowed evidence can pass; missing required coverage yields lane-dependency. Cache naming supplies neither an exemption nor an automatic write prohibition. Preserve grant-before-dependency precedence.",
+        "F7_protocol_identity": "Owner: ops/conductor/lane-policy.md \u00a7Data shape and path rules. Compare two bounded choices. A: reuse ops/devlane/dispatch/record.py::POLICY_SCHEMA through an explicitly declared, pinned constant-only coupling. This avoids another literal allowance, but currently conflicts with dispatch/CONTRACT.md \u00a7Unit1a pre-effect admission's no-reverse-import rule; both endpoint contracts must explicitly permit that narrow edge, with independent closure/import and unchanged record-schema/error tests. B: retain the dependency direction and declare one exact evaluator path/stripped-line/token exception, then separately implement it in protected ops/conductor/tools/laneconf.py. Independent test_laneconf.py::PolicyProtocolLiterals corrections must allow only that declaration while preserving rejection of neighboring paths, renamed constants, changed values, comments/statements and other configured tokens, plus both MCP allowances. Prefer A only with the explicit endpoint contract correction; otherwise retain refusal pending selection of B. Neither option authorizes itself, permits encoding tricks or directory exemptions, changes protocol identity, or creates maintenance evidence.",
+        "sequence_and_limits": "First produce the bounded owning-contract corrections; then a producer independent of the implementation corrects the named fixtures and another reviewer checks them; implementation follows against that reviewed contract/test boundary. Preserve bind_launch, check_transition, evaluate_tool, LaunchDeclarations, PolicyBinding, PolicyResult and permission-surface.md's opaque role/target operations. Do not adopt retain_evidence, evidence_handles, validate_tool, dependency_producer, dependency_coverage, dependency_host_roots or candidate_root as accepted keys. Claude's additional code findings await separate Grok adjudication. Protected work must use applicable existing bootstrap/old-authority authorization; this plan supplies no admission or maintenance grant.",
+        "evidence": "Read both supplied in/ JSON files whole and inspected the scoped diff and composed contracts at ca96baf44baf553bfc2035e0c8db81c5357e2759 against 710dbac38c3b187eb4b3302308430c0a6dec4d76. Input SHA256: adjudication 42fd4750452cab9d7943445c21db2ca026b619c517efeec735b3fedd044e074d; producer fc34c4b4f4a56ae1e9ce45deff7a389e25117d9a7e7b3880216bd0716348f8c4. Diff SHA256: ba928626247b4217fbe1285709bdb11dd0ed11803be1922dabac0483f41ff8c9. Measurements used cat/sed/rg, git diff/ls-tree/rev-parse/status and sha256sum."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 798036,
+        "out": 5126,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ca96baf44baf553bfc2035e0c8db81c5357e2759",
+        "started": "2026-09-06T14:19:54Z",
+        "ended": "2026-09-06T14:22:22Z"
+      },
+      "note": "Plan only; no new findings or candidate approval. The supplied ruling reports six UPHELD claims and F3 PARTIAL, and explicitly reports no independent suite rerun. Its candidate 9ab2a370351ec5b43f808ea6b97ebb3f489245e3 is unavailable in this snapshot's Git objects; the policy implementation and frozen policy tests are absent from HEAD. Test locations therefore come from the supplied ruling, not fresh source verification. No edits, tests, full floor, vendor execution, live authority/state access or session-store reads were performed. No output file was created; the plan is inline."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T14:23:41.059Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,285 @@
+{
+  "id": "20260909T200349Z-code-codex-bdbc8c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "records/agy-closeout-20260909",
+  "lineage": {
+    "branch": "records/agy-closeout-20260909",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T20:03:50Z",
+    "closed": "2026-09-09T20:15:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-closeout-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T16-03-51-01a087c5-0468-7823-8824-8667dec731ee.jsonl"
+  },
+  "session": {
+    "id": "01a087c5-0468-7823-8824-8667dec731ee",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T16-03-51-01a087c5-0468-7823-8824-8667dec731ee.jsonl",
+    "stream_sha256_at_close": "3d2baed7ff9679acead8c21a2b0d32f72a707182cb7acef57b36a47a97a3526c",
+    "spend": {
+      "input": 1377969,
+      "cached": 1294592,
+      "output": 16810,
+      "total": 1394779,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T16-03-51-01a087c5-0468-7823-8824-8667dec731ee.jsonl",
+      "messages": 154
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-closeout-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author the owner-requested AAR/handoff custody bundle per supplied holdings and measured evidence, on retained records/agy-closeout-20260909. Read docs/probes.md, ops/conductor/handoff/README.md, instrument conventions and relevant current homes. Produce the four specified report/corpus/evidence files; no implementation, policy changes, auth data or report-only PR. Keep candid lessons concise and facts stamped; distinguish current observations, inherited history, and proposals. Stable Git-ref retrieval, not a worktree-only handoff. Do not claim automatic onboard selection or independent probe grading. Validate JSON/JSONL and local links; git diff --check must exit 0. Commit with original/source and actual GPT-6 trailers. No network/full suite/new framework. Return artifact paths and measured limitations.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/in/agy-closeout-holdings.md",
+        "sha256": "09127391b7656793fa7d2b3f059cf565f42663a01a49f43d0276428f29c1fc12"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T200349Z-code-codex-bdbc8c/in/agy-closeout-evidence.json",
+        "sha256": "a20667aed9b851bcb0fce66f0b8fb6d78d4139e7bb7b18547bb1bef572119d94"
+      }
+    ],
+    "sha256": "d593c58b040810e74d848324399c3e5d1bde30b1e3e08828be46493f5cdaeea7",
+    "bytes": 4661
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T20:03:50Z",
+      "ended": "2026-09-09T20:15:21Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "10d59d718e4710db780fd5750cbef18f259b5dc2",
+    "changed_paths": [
+      "ops/conductor/AAR-2026-09-09-agy.md",
+      "ops/conductor/handoff/HANDOFF-2026-09-09-agy.md",
+      "ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json",
+      "ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 17,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "C01",
+          "claim": "Confirmed requested base and clean snapshot; located both inputs.",
+          "reproduce": "python3 ../out/reproduce-command.py C01"
+        },
+        {
+          "severity": "p3",
+          "where": "C02",
+          "claim": "Read supplied holdings, evidence and custody instructions; followed truncated output with additional reads.",
+          "reproduce": "python3 ../out/reproduce-command.py C02"
+        },
+        {
+          "severity": "p3",
+          "where": "C03",
+          "claim": "Parsed and rendered supplied evidence in compact form.",
+          "reproduce": "python3 ../out/reproduce-command.py C03"
+        },
+        {
+          "severity": "p3",
+          "where": "C04",
+          "claim": "Read clipped evidence rows and explicit empty launched-record selection.",
+          "reproduce": "python3 ../out/reproduce-command.py C04"
+        },
+        {
+          "severity": "p3",
+          "where": "C05",
+          "claim": "Located existing artifacts and read instrument conventions.",
+          "reproduce": "python3 ../out/reproduce-command.py C05"
+        },
+        {
+          "severity": "p3",
+          "where": "C06",
+          "claim": "Read shared wire, workflow, concerns and coupling contracts.",
+          "reproduce": "python3 ../out/reproduce-command.py C06"
+        },
+        {
+          "severity": "p3",
+          "where": "C07",
+          "claim": "Read probe schema and historical homes. Follow-up: older driver corpus uses noncontract lanes/read forms; untouched.",
+          "reproduce": "python3 ../out/reproduce-command.py C07"
+        },
+        {
+          "severity": "p3",
+          "where": "C08",
+          "claim": "Inspected current homes and recomputed scoped spend: 87 records, 85 with reported spend, 177093133 total and 1880809 output tokens.",
+          "reproduce": "python3 ../out/reproduce-command.py C08"
+        },
+        {
+          "severity": "p3",
+          "where": "C09",
+          "claim": "Found discovery readers; exact wf.py path and conduct PATH entry unavailable. No broader host absence inferred.",
+          "reproduce": "python3 ../out/reproduce-command.py C09"
+        },
+        {
+          "severity": "p3",
+          "where": "C10",
+          "claim": "Verified tracked final smoke, unresolved provider identity and preserved original invalid verdicts.",
+          "reproduce": "python3 ../out/reproduce-command.py C10"
+        },
+        {
+          "severity": "p3",
+          "where": "C11",
+          "claim": "Branch creation exited 128 because the requested retained branch already exists.",
+          "reproduce": "python3 ../out/reproduce-command.py C11"
+        },
+        {
+          "severity": "p3",
+          "where": "C12",
+          "claim": "Retained branch resolves to the base; snapshot detached; local origin tracking ref not found.",
+          "reproduce": "python3 ../out/reproduce-command.py C12"
+        },
+        {
+          "severity": "p3",
+          "where": "C13",
+          "claim": "Branch attachment exited 128: Git directory is read-only.",
+          "reproduce": "python3 ../out/reproduce-command.py C13"
+        },
+        {
+          "severity": "p3",
+          "where": "C14",
+          "claim": "Copied evidence verbatim and authored ten corpus rows. JSON/JSONL and 29 local links passed author validation.",
+          "reproduce": "python3 ../out/reproduce-command.py C14"
+        },
+        {
+          "severity": "p3",
+          "where": "C15",
+          "claim": "Staging exited 128: read-only .git/index.lock.",
+          "reproduce": "python3 ../out/reproduce-command.py C15"
+        },
+        {
+          "severity": "p3",
+          "where": "C16",
+          "claim": "Commit exited 128: read-only .git/index.lock. Launcher commit message supplied.",
+          "reproduce": "python3 ../out/reproduce-command.py C16"
+        },
+        {
+          "severity": "p3",
+          "where": "C17",
+          "claim": "Final validation passed; git diff --check exited 0. Four new report/data files, no tracked modifications. Retained-ref retrieval exited 128 pending launcher settlement.",
+          "reproduce": "python3 ../out/reproduce-command.py C17"
+        }
+      ],
+      "artifacts": {
+        "aar": "ops/conductor/AAR-2026-09-09-agy.md",
+        "handoff": "ops/conductor/handoff/HANDOFF-2026-09-09-agy.md",
+        "corpus": "ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl",
+        "evidence": "ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json",
+        "commit_message": "../out/COMMIT_MSG",
+        "command_records": "../out/command-records.json",
+        "command_reproducer": "../out/reproduce-command.py",
+        "data_authoring": "../out/build-data.py",
+        "author_validation": "../out/validate-bundle.py"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1394779,
+        "out": 16810,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+        "started": null,
+        "ended": "2026-09-09T20:14:14.312193+00:00"
+      },
+      "note": "Treated git diff --check as the named executable acceptance check; it exited 0. Git commit was sandbox-refused, so launcher settlement on records/agy-closeout-20260909 remains required. Origin publication was not attempted under the no-network instruction. Stable retrieval commands are documented but await settlement/publication. No independent probe grading, automatic onboard selection, live harness verification or full-suite result is claimed.",
+      "commit": {
+        "subject": "records: retain agy AAR and handoff custody bundle",
+        "body": "Preserve the owner-requested closeout against 20f9bcaf2b3ae2152b9cab766637b5a89b71214b on records/agy-closeout-20260909. Add the AAR, handoff, ten authored probe rows and verbatim supplied sanitized measurements. Distinguish inherited evidence, local observations and proposals; retain write-admission and publication limits.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-09T20:15:20.213Z"
+    }
+  },
+  "status": "closed"
+}

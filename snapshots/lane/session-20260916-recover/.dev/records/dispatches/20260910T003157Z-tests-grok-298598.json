@@ -1,0 +1,172 @@
+{
+  "id": "20260910T003157Z-tests-grok-298598",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "a135faed508642aeda326260a1323f7f5fde12b3"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:31:57Z",
+    "closed": "2026-09-10T00:36:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a135faed508642aeda326260a1323f7f5fde12b3",
+    "ref_sha": "a135faed508642aeda326260a1323f7f5fde12b3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "fcb21106-af6e-411a-abf3-b324ab265665",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok-stream/sessions/<snapshot-encoded>/fcb21106-af6e-411a-abf3-b324ab265665/summary.json"
+  },
+  "session": {
+    "id": "fcb21106-af6e-411a-abf3-b324ab265665",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok-stream/sessions/<snapshot-encoded>/fcb21106-af6e-411a-abf3-b324ab265665/summary.json",
+    "stream_sha256_at_close": "e789311160b94c9977a3a5bd794aa2ecbacefd1dd5c931fdf693224f7028a6ca",
+    "spend": {
+      "input": 918979,
+      "cached": 810112,
+      "output": 15163,
+      "total": 934142,
+      "cost_usd_ticks": 1213405600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/home/grok-stream/sessions/<snapshot-encoded>/fcb21106-af6e-411a-abf3-b324ab265665/summary.json",
+      "messages": 142
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only this concrete test-fixture defect in test_monitor_git_refs.py: git_refs_reg uses list(branches or [DEV, MASTER]); the empty-branches case passes [] which is silently replaced by valid defaults, so it expects refusal of valid input. Preserve an explicitly empty list and default only when omitted/None. Add the immediate fixture guard needed to prove the empty plant remains empty; no new test inventory or unrelated changes. Verify against monitor-lever.md; do not read/edit production, onboarding or other tests. Re-run original 19-test command on the pre-implementation branch, keep intended assertion-only RED/no errors, record hash and exact small diff, commit tests only with trailers.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003157Z-tests-grok-298598/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "a77890edbb9ba4ccc4b2065a39381d6821f65a7fd699f0c9db2d2fb245618f0a",
+    "bytes": 3047
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:31:57Z",
+      "ended": "2026-09-10T00:36:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b1cae15a8109eb92fd52029e04fb98266706dd7c",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_git_refs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_monitor_git_refs.py",
+        "commit": "b1cae15a8109eb92fd52029e04fb98266706dd7c",
+        "blob": "f2958d48a83b1afac6a7d6aabe55867ef2bf12c9",
+        "red_cmd": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'",
+        "pre_impl": "a135faed508642aeda326260a1323f7f5fde12b3"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 934142,
+        "out": 15163,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a135faed508642aeda326260a1323f7f5fde12b3",
+        "started": "2026-09-10T00:34:56Z",
+        "ended": "2026-09-10T00:36:09Z"
+      },
+      "note": "Corrected only git_refs_reg in ops/conductor/tests/test_monitor_git_refs.py against monitor-lever.md (branches is an ordered unique list of 1..32 names; empty is invalid and must refuse config). Explicit [] is now preserved; default [dev, master] applies only when branches is omitted/None. Immediate fixture guard asserts params['branches']==[] when the planted list is empty. No production, onboarding, or other tests were read or edited. Red on pre-implementation tree a135faed508642aeda326260a1323f7f5fde12b3: `python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'` \u2192 Ran 19 tests in 1.617s, FAILED (failures=27), 0 errors. empty-branches subtest is assertion-only FAIL at assertIn('branches', err) because git-refs is not a registered adapter (`config: expected monitors.branch_refs.adapter in ['codex-usage', 'dispatch', 'github-rate']; found 'git-refs'`). Diff is 8 insertions, 1 deletion in that file only. Commit b1cae15a8109eb92fd52029e04fb98266706dd7c on lane/dev-freshness-20260909 with Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:36:25.478Z"
+    }
+  },
+  "status": "closed"
+}

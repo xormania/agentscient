@@ -1,0 +1,158 @@
+{
+  "id": "20260906T005323Z-review-codex-c05e8f",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "0d8b600c278335620e261e72b0c8a36188f5560b"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T00:53:24Z",
+    "closed": "2026-09-06T00:56:11Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0d8b600c278335620e261e72b0c8a36188f5560b",
+    "ref_sha": "0d8b600c278335620e261e72b0c8a36188f5560b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-53-25-01a07434-b01f-7370-accf-424ce58738d5.jsonl"
+  },
+  "session": {
+    "id": "01a07434-b01f-7370-accf-424ce58738d5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-53-25-01a07434-b01f-7370-accf-424ce58738d5.jsonl",
+    "stream_sha256_at_close": "5f42952c9b189df6cd3037d0d81eac7626bc84072e666d7fe9887092c5eb0d76",
+    "spend": {
+      "input": 648703,
+      "cached": 572153,
+      "output": 9282,
+      "total": 657985,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-53-25-01a07434-b01f-7370-accf-424ce58738d5.jsonl",
+      "messages": 124
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independent acceptance design for authorized discovery contract step 1, parallel to Grok drafting. Read owner requirements and supplied MCP-fit review; inspect only necessary existing contracts. Do not read Grok's in-progress draft and do not repeat the whole-lane audit. Return <=1000-word acceptance matrix and high-value counterexamples for dev machinery and prod Symfony work: expected owner/tool answers, bounded startup/detail, zero/one/multiple/unreadable/stale/cross-profile handoffs, provenance/authority, missing metadata, source races, profile/harness independence, compatibility/CLI-MCP parity, malicious record text and no-write/no-network/no-arbitrary-command boundaries. Separate contract requirements from tests deferred to step 2. This is independent test-design input, not executable tests or an approval of Grok's plan (GPT-6 will review that). No edits, code, active settings/state or live host changes. Cite owning contract for each group; explicit unknowns. Inline artifact is sufficient.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/in/discovery-contract-owner.md",
+        "sha256": "cafbf66650c1e29c3597829c8b3543cd7f00b437439504f36b10197db5cb87cf"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T005323Z-review-codex-c05e8f/in/20260906T003931Z-review-codex-2dfe8d.json",
+        "sha256": "a3a2d087d8613aaa0de2737379b0ccd9f31844449fc6d3439c9b41e33f5b6990"
+      }
+    ],
+    "sha256": "8ccab161a0e15970c4690ab0b592e2e074c744c0d2dcc4a3a223cf1a95665fcd",
+    "bytes": 3319
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T00:53:24Z",
+      "ended": "2026-09-06T00:56:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0d8b600c278335620e261e72b0c8a36188f5560b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "independent-acceptance-design",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "acceptance_matrix": "Contract requirements for step 1:\n\n| Group | Required acceptance |\n|---|---|\n| Ownership and answers | A dev query for dispatch identifies `ops/devlane/dispatch/CONTRACT.md` and the existing dispatch lever; a prod query identifies the intended Symfony package/service and Console/MCP projections, but reports implementation, installation, activation and live probe separately. It must not promote the home-map report into authority or invent a Symfony service. Owners: `AGENTS.md` Standing rulings; `ops/README.md`; `ops/conductor/README.md`; `docs/mapping.md`.\n| Profiles and sources | Configuration is versioned and closed, with exactly `dev` and `prod` initially. Profiles select work context and authoritative sources; harness is an independent input. `codex prod` remains prod and `grok dev` remains dev. Requests accept logical concepts/IDs, never paths, argv or source overrides. Owners: owner brief, Owner requirements; `ops/lane.conf`; `ops/conductor/lane-mcp-lever.md` Configuration.\n| Startup and detail | One startup query returns schema/version, selected profile, compact owner/tool cards, source revisions, action availability and handoff summary within 16,384 canonical bytes. Record text is excluded. Targeted detail is ID-and-revision addressed, at most 16,384 bytes per response; text pages retain the existing 8,192-byte bound and revision-bound continuation. Owners: owner brief, bounded startup requirement; `lane-mcp-lever.md` Four tools; `lane-mcp-v2.md` Revision/Bounds.\n| Handoff selection | Zero eligible candidates: `state=ok`, empty candidates, null selection. Exactly one fresh, readable, profile-relevant candidate: selected without a supplied filesystem path. Multiple eligible candidates: explicit ambiguity and null selection. Unreadable candidates remain visible as unavailable; stale and cross-profile candidates carry those states and are never auto-selected. Missing profile, captured ref, time or lineage metadata remains visible as incomplete and prevents automatic selection. Owners: `ops/conductor/handoff/README.md`; `docs/probes.md`; owner brief Fresh-session acceptance.\n| Provenance, freshness and races | Every owner/tool/candidate value identifies logical source, owning contract, captured ref or byte revision, observation time and freshness result. Evidence never becomes authority. Enumeration and detail must form one declared snapshot; a changed source/ref yields conflict/Abort and no mixed payload. A continuation revision mismatch refuses and requires restart. Owners: `docs/verified-couplings.md` obligations 3\u20135; `docs/wire.md`; `lane-mcp-v2.md` Revision/Cursor.\n| Compatibility and projections | Existing v1/v2 configs and queries remain byte-identical. New discovery is opt-in through a declared version. Stationary source bytes produce identical canonical domain payloads through CLI query, MCP tool and MCP resource. CLI Rejection/Abort and MCP error results preserve expected\u2013found\u2013needed; absence, ambiguity and unavailability remain domain readings. Owners: `lane-mcp-lever.md` Compatibility/MCP transport; `instrument-conventions.md`; `docs/wire.md`.\n| Trust and effects | Record Markdown, JSON strings, URI-like text and command-looking text are escaped data and never instructions. `lane_read` spawns no subprocess. Retained-ref acquisition is a separate fixed adapter accepting only profile/logical source and returning typed projections; no request-supplied path or argv. Neither projection writes files, refs, databases or worktrees, follows unapproved symlinks, reads credentials/user directories, or uses network. Owners: `lane-mcp-lever.md` Existing capability and boundary; `onboard-lever.md` Thread; owner brief Source allowlisting.",
+        "counterexamples": "High-value counterexamples: (1) one readable candidate plus one unreadable candidate must not select the readable one; the unreadable record may be the relevant one. (2) A fresh file mtime with an obsolete captured ref is stale. (3) A branch containing `dev` cannot supply missing profile metadata. (4) Two equally relevant handoffs cannot be resolved by filename, filesystem order or newest-only guessing. (5) A candidate changing between enumeration and detail must conflict, not combine old metadata with new text. (6) A `prod` profile launched through Codex must not expose dev-only context merely because Codex defaults appear in lane configuration. (7) A registry row proves declaration, not installation, activation or successful probing. (8) Text containing shell commands, prompt injection, traversal paths, control bytes or MCP-looking JSON must be returned only as bounded escaped data. (9) FIFO/device/symlink-loop/oversized/malformed sources are unavailable, never empty. (10) Legacy v1/v2 payload drift caused by new fields fails compatibility.",
+        "deferred_step_2": "Deferred executable tests: independent producers should later build synthetic adapter fixtures for the full profile\u00d7harness matrix; zero/one/multiple/unreadable/stale/cross-profile and missing-metadata rows; source mutation and revision cursors; hostile text and special files; legacy golden payloads; CLI/tool/resource parity; and before/after hashes of refs, files and databases plus a denied-network/command spy. Symfony tests must use contract-verified adapter mocks and prove the shared service drives both Console and MCP projections. Live host activation and harness enforcement require separate protocol probes; they are not discovery tests.",
+        "unknowns": "The step-1 contract still must decide the canonical retained-ref namespace, fixed enumeration adapter, authoritative home for profile metadata, relevance ordering, freshness threshold, action-entrypoint metadata, new schema/config version, and Symfony package name. Current measurement at target: `packages/` contains only README, `composer.lock` has `symfony/console` 8.1.6 but no MCP package, and `vendor/` is absent; therefore prod implementation and activation are unavailable, not inferred."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 657985,
+        "out": 9282,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0d8b600c278335620e261e72b0c8a36188f5560b",
+        "started": null,
+        "ended": "2026-09-06T00:55:41Z"
+      },
+      "note": "Independent contract-test design only; no Grok draft or session store was read, no plan was approved, and no files, settings, state, refs, network resources or host configuration were changed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T00:56:10.643Z"
+    }
+  },
+  "status": "closed"
+}

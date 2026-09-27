@@ -1,0 +1,443 @@
+{
+  "id": "20260916T131239Z-code-codex-ebfc31",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-s2",
+  "lineage": {
+    "branch": "lane/session-20260916-s2",
+    "base_sha": "f450a551a2cf20adc1ec2d7f25c0ee45060c7d6e"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T13:12:39Z",
+    "closed": "2026-09-16T13:26:33Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f450a551a2cf20adc1ec2d7f25c0ee45060c7d6e",
+    "ref_sha": "f450a551a2cf20adc1ec2d7f25c0ee45060c7d6e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-s2/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-12-51-01a0aa59-410c-7953-87ba-07fc3b37ecd7.jsonl"
+  },
+  "session": {
+    "id": "01a0aa59-410c-7953-87ba-07fc3b37ecd7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-12-51-01a0aa59-410c-7953-87ba-07fc3b37ecd7.jsonl",
+    "stream_sha256_at_close": "fa1f16276e3922e5a972b628d025aff673ab16d506ac2c5f5e105d9316472243",
+    "spend": {
+      "input": 2981184,
+      "cached": 2884480,
+      "output": 32137,
+      "total": 3013321,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-12-51-01a0aa59-410c-7953-87ba-07fc3b37ecd7.jsonl",
+      "messages": 376
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-s2/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Build what ops/conductor/handoff/briefs-2026-09-16-classes/\nS2-ledger-id-reservation.md specifies: id reservation for the\nledgers, so two sessions cannot mint the same id.\nThe failure it fixes, measured 2026-09-16: LD-68 minted four times,\nLD-70, LD-76 and LD-78 each twice, and branch letters chosen by hand\ncollided (k, 12:3xZ).\nRead the brief first; it, not this file, is the specification.\nTests run against isolated state - never the live store under\n~/.local/state/agentscient - and prove the collision is refused by\nplanting two concurrent minters.\ndocs/tests.md rules 3 to 6 bind the tests: planted faults and clean\nneighbours, a hermetic world, every subprocess through testkit run with a\ntimeout, fakes planted through the registry.\nDo not touch the wall paths AGENTS.md names (the CI workflow, the\nsuite lever, the corpus runner, the closure levers, the hook registry\nand engine); wall, they refuse.\nCommit here with Source: and Co-Authored-By: trailers. Nothing else.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/in/walkthrough.txt",
+        "sha256": "570050c545f1305810b0364217ffa70d72e7964b1a73c9dbf7db7b72f1f6a3e3"
+      }
+    ],
+    "sha256": "089d82f66deae6c47d5c4bcaa4482c37baa38125c8027940ff6e20e974f00476",
+    "bytes": 11594,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/lane-mcp.json",
+      "sha256": "21f5cb63856045c5e1d9512466b32340b4b28e8a2a0a4dc0c1258a15f2f3c59f",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "5ee3f05a9cd881324d7f424873b69964f88237720e56b03a5c40f361f9c6b7d8"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T13:12:50Z",
+      "ended": "2026-09-16T13:26:32Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "f318911cb4e4451616c0f4f7848471f96ac628f2",
+    "changed_paths": [
+      "ops/conductor/placement/ledger.py.json",
+      "ops/conductor/tools/ledger.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 36,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "brief",
+          "claim": "Read the complete S2 ledger reservation specification.",
+          "reproduce": "cat ops/conductor/handoff/briefs-2026-09-16-classes/S2-ledger-id-reservation.md"
+        },
+        {
+          "severity": "p3",
+          "where": "input",
+          "claim": "Read the supplied walkthrough completely.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/in/walkthrough.txt"
+        },
+        {
+          "severity": "p3",
+          "where": "navigation",
+          "claim": "Mapped the ops tree with the required initial Graft query.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Enumerated the repository contracts under docs.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read the wire, workflow, probes, concerns, couplings, tests, and mapping contracts.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/tests.md docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "Confirmed the snapshot was detached and initially clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "Confirmed the requested base revision.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "navigation",
+          "claim": "The first Graft code query refused its unsupported path argument.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"ledger.py highest do_add do_next do_check machine.connect instrument.session repo_root\",\"path\":\"ops/conductor\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "navigation",
+          "claim": "Located ledger and state-engine symbols with the admitted Graft arguments.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"ledger.py highest do_add do_next do_check machine.connect instrument.session repo_root\",\"in\":\"ops/conductor\",\"limit\":20}'"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "Located the existing ledger and placement tests.",
+          "reproduce": "rg --files ops/conductor/tests | rg 'ledger|state_placement'"
+        },
+        {
+          "severity": "p3",
+          "where": "source",
+          "claim": "Read the ledger implementation, sealed tests, and placement declaration; the sealed FILE_BACKED pin still names ledger.py.",
+          "reproduce": "cat ops/conductor/tools/ledger.py ops/conductor/tests/test_ledger.py ops/conductor/placement/ledger.py.json ops/conductor/tests/test_state_placement.py"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "Looked for the brief's new reservation row identifiers and found none in the snapshot tests.",
+          "reproduce": "rg -n \"next-reserves|add-after-other-next|add-uses-own-reservation|check-reports-unfiled|highest-still-reads-origin|race-never-shares|read-never-creates|ledger_reservations|CLAUDE_CODE_SESSION_ID\" ops/conductor/tests ops/conductor/tools"
+        },
+        {
+          "severity": "p3",
+          "where": "navigation",
+          "claim": "The first Graft file API query refused its unsupported path key.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"path\":\"ops/conductor/tools/machine.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "navigation",
+          "claim": "Read the machine state-engine API through Graft.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"file\":\"ops/conductor/tools/machine.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "source",
+          "claim": "Inspected machine.connect and instrument.session implementation ranges.",
+          "reproduce": "sed -n '1,149p' ops/conductor/tools/machine.py && sed -n '110,170p' ops/conductor/tools/instrument.py"
+        },
+        {
+          "severity": "p3",
+          "where": "contracts",
+          "claim": "Read the lane README and instrument conventions before editing.",
+          "reproduce": "cat ops/README.md ops/conductor/instrument-conventions.md"
+        },
+        {
+          "severity": "p3",
+          "where": "source",
+          "claim": "Inspected the shared Refusal and identity implementation.",
+          "reproduce": "sed -n '1,110p' ops/conductor/tools/instrument.py"
+        },
+        {
+          "severity": "p3",
+          "where": "source",
+          "claim": "Located the shared timestamp and state-path readers.",
+          "reproduce": "rg -n \"^def (parse_stamp|state_dir|stored_identity|state_db)\" ops/conductor/tools/instrument.py"
+        },
+        {
+          "severity": "p3",
+          "where": "source",
+          "claim": "Inspected shared timestamp parsing and state-store resolution.",
+          "reproduce": "sed -n '165,260p' ops/conductor/tools/instrument.py"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "Measured the unmodified ledger suite green with 13 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "diff",
+          "claim": "Reviewed the initial implementation diff.",
+          "reproduce": "git diff -- ops/conductor/tools/ledger.py ops/conductor/placement/ledger.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "lint",
+          "claim": "The initial implementation passed Ruff.",
+          "reproduce": "ruff check ops/conductor/tools/ledger.py"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "The first implementation run exposed the missing legacy origin-fetch message on add.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "After restoring the bounded add refresh, all 13 ledger tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "testkit",
+          "claim": "Read the testkit runner to keep scratch subprocesses timeout-bound.",
+          "reproduce": "sed -n '1,240p' ops/testkit/command.py"
+        },
+        {
+          "severity": "p3",
+          "where": "verification",
+          "claim": "The first hermetic scratch check found its database-path assumption was wrong without touching live state.",
+          "reproduce": "python3 - <<'PY' # first hermetic reservation check using world.root/'xdg-state/agentscient/state.db'\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "verification",
+          "claim": "The corrected hermetic check proved concurrent distinct reservations, own-reservation consumption, filed metadata, check output, and non-creating reads.",
+          "reproduce": "python3 - <<'PY' # hermetic World check using XDG_STATE_HOME and concurrent ops.testkit.run calls\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "diff",
+          "claim": "The implementation diff contained no whitespace errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "Only the production ledger and placement files were modified.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "lint",
+          "claim": "The final ledger implementation passed Ruff.",
+          "reproduce": "ruff check ops/conductor/tools/ledger.py"
+        },
+        {
+          "severity": "p3",
+          "where": "tests",
+          "claim": "The final named ledger test command exited 0: 13 tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "diff",
+          "claim": "Measured a two-file implementation diff.",
+          "reproduce": "git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "diff",
+          "claim": "The final diff contained no whitespace errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "Git staging was refused because the sandbox mounted .git read-only.",
+          "reproduce": "git add ops/conductor/tools/ledger.py ops/conductor/placement/ledger.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "The final snapshot retains exactly the two intended modifications.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "commit",
+          "claim": "Verified the fallback commit message and required trailers in out/COMMIT_MSG.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/ledger.py",
+        "placement": "ops/conductor/placement/ledger.py.json",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/out/COMMIT_MSG",
+        "verification": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py' \u2014 Ran 13 tests, OK"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3013321,
+        "out": 32137,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f450a551a2cf20adc1ec2d7f25c0ee45060c7d6e",
+        "started": "2026-09-16T13:12:39Z",
+        "ended": "2026-09-16T13:25:10.584Z"
+      },
+      "note": "Implemented host-local transactional ledger ID reservations using the existing machine state.db, session/identity/timestamp readers, origin-aware highest scan, and ledger row record plane. reused: machine.connect, instrument.session, instrument.identity, instrument.stamp/parse_stamp, highest/trunk_ref, ops.testkit World/run. Assumption: preserved the existing identity-free `next` interface by recording agent `unknown` only when identity is absent; explicit identities remain attributed. The sealed test-owned FILE_BACKED shrink was not edited per the job instruction, while the production placement declaration now says sqlite. Git could not commit because .git is read-only; the launcher-ready message is in out/COMMIT_MSG. \ud83c\udf31 graft saved ~1,657,047 tokens this turn.",
+      "commit": {
+        "subject": "Reserve ledger ids transactionally",
+        "body": "Reserve each ledger number in the shared state.db before writing its git\nrecord, reuse an owner's open reservation across next and add, and report\nunfiled reservations with their owner and age.\n\nKeep origin-aware highest-number reads and mark filed reservations with\ntheir row path. Declare the ledger's state engine as SQLite.\n\nTests: python3 -m unittest discover -s ops/conductor/tests -p 'test_ledger.py'\nResult: Ran 13 tests in 1.138s; OK.\nTests: hermetic concurrent next/add scratch check through ops.testkit.run\nResult: reservation-check: OK.\n\nThe second producer is absent for the FILE_BACKED shrink: this job sealed\nall test files, so the implementation does not edit that test-owned line.\n\nSource: owner 2026-09-16\nCo-Authored-By: OpenAI GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T131239Z-code-codex-ebfc31/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-12-51-01a0aa59-410c-7953-87ba-07fc3b37ecd7.jsonl"
+    },
+    "reuse": "machine.connect, instrument.session, instrument.identity, instrument.stamp/parse_stamp, highest/trunk_ref, ops.testkit World/run. Assumption: preserved the existing identity-free `next` interface by recording agent `unknown` only when identity is absent; explicit identities remain attributed. The sealed test-owned FILE_BACKED shrink was not edited per the job instruction, while the production placement declaration now says sqlite. Git could not commit because .git is read-only; the launcher-ready message is in out/COMMIT_MSG. \ud83c\udf31 graft saved ~1,657,047 tokens this turn.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T13:26:32.115Z"
+    }
+  },
+  "status": "closed"
+}

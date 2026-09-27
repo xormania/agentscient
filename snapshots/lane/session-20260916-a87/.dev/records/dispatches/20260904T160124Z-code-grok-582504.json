@@ -1,0 +1,169 @@
+{
+  "id": "20260904T160124Z-code-grok-582504",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/matrix-hook",
+  "lineage": {
+    "branch": "lane/matrix-tests",
+    "base_sha": "5ac9d6998fb89726c95c7864bd9da2305c4322b5"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:01:24Z",
+    "closed": "2026-09-04T16:08:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5ac9d6998fb89726c95c7864bd9da2305c4322b5",
+    "ref_sha": "5ac9d6998fb89726c95c7864bd9da2305c4322b5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "067c0973-0278-494a-9d9d-cb6da259dc2a",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok-stream/sessions/<snapshot-encoded>/067c0973-0278-494a-9d9d-cb6da259dc2a/summary.json"
+  },
+  "session": {
+    "id": "067c0973-0278-494a-9d9d-cb6da259dc2a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok-stream/sessions/<snapshot-encoded>/067c0973-0278-494a-9d9d-cb6da259dc2a/summary.json",
+    "stream_sha256_at_close": "bad175ce5fdaf5fe373d11e6285ab1c87c182a729df17d7148d634c344d5998e",
+    "spend": {
+      "input": 1276891,
+      "cached": 1027072,
+      "output": 26062,
+      "total": 1302953,
+      "cost_usd_ticks": 1988228200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/home/grok-stream/sessions/<snapshot-encoded>/067c0973-0278-494a-9d9d-cb6da259dc2a/summary.json",
+      "messages": 182
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-matrix-tests/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Tests-fix for the check matrix hook, from the ruling in the first input (contract v4): sweep ops/devlane/hooks/tests/test_matrix.py whole and amend every method that plants a hand dispatch of a driver job (author-tests, check-tests, implement, security-audit, adversarial-review, *-fix) expecting ALLOW into \"content rows pass, refused dispatch-by-hand\"; touch nothing else; name every amended method and every remaining hand-dispatch ALLOW method in the note; prove each red; commit. Tests only; no implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/in/contract-matrix-hook-v4.md",
+        "sha256": "12ff7292f192143fd093c4ca0deb036d71c5cf87c070403ad25af3c55712e695"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/in/contract-matrix-hook-v3.md",
+        "sha256": "3abace48f891903a01e43ec99dd4e63ad79a5f5cce299dcba059de52d830f8be"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/in/contract-matrix-hook-v2.md",
+        "sha256": "a696757b7c52428c27b98d19ffe0dc5db9358fb05a2480faf67707584dfd9ff1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T160124Z-code-grok-582504/in/contract-matrix-hook.md",
+        "sha256": "a381a29a372ceb8922a7823ed114dc856a041bc975624eda401ad287809ee6af"
+      }
+    ],
+    "sha256": "3982afa5843471bd52e249e6711e5eb5ee9bdfa4378cf991cc8e62c43f960521",
+    "bytes": 2859
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:01:24Z",
+      "ended": "2026-09-04T16:08:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1230f19f02073eb486aa174d5aa964f08d8bc8fc",
+    "changed_paths": [
+      "ops/devlane/hooks/tests/test_matrix.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/hooks/tests/test_matrix.py",
+        "commit": "1230f19f02073eb486aa174d5aa964f08d8bc8fc"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1302953,
+        "out": 26062,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5ac9d6998fb89726c95c7864bd9da2305c4322b5",
+        "started": "2026-09-04T16:01:24Z",
+        "ended": "2026-09-04T16:08:00Z"
+      },
+      "note": "Swept ops/devlane/hooks/tests/test_matrix.py whole against contract v4. Implementation unread. Tests only; one file amended; committed 1230f19f02073eb486aa174d5aa964f08d8bc8fc on lane/matrix-tests.\n\nAmended (hand dispatch.sh/go.sh of a driver job that expected ALLOW, now content rows pass and refusal is dispatch-by-hand, not the content row):\n- test_bucket_command_allows_other_jobs_and_discover_with_p \u2014 implement with discover -p, and implement with a clean scope; verify plant still ALLOW\n- test_walkthrough_allows_when_heading_and_assumption_are_present \u2014 author-tests and implement with heading and assumption present; verify plant still ALLOW\n\nRed at 5ac9d6998fb89726c95c7864bd9da2305c4322b5 (hook allows those plants: empty stdout, exit 0):\n- python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py -k test_bucket_command_allows_other_jobs_and_discover_with_p \u2014 2 failed, 0 errors, each on assert_denied class dispatch-by-hand with empty stdout (verify subtest not among the failures)\n- python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py -k test_walkthrough_allows_when_heading_and_assumption_are_present \u2014 2 failed, 0 errors, each on assert_denied class dispatch-by-hand with empty stdout (author-tests and implement plants; verify plant not among the failures)\n\nRemaining hand-dispatch ALLOW methods (dispatch.sh/go.sh still expecting ALLOW). None of these is an unescaped driver job:\n- test_direct_launch_allows_dispatch_go_and_ladder_wrappers \u2014 verify on dispatch.sh and go.sh\n- test_override_allows_dispatch_without_model_or_effort \u2014 verify\n- test_input_absent_allows_existing_nonempty_resolved_files \u2014 verify\n- test_scope_cap_allows_a_scope_file_at_or_under_the_cap \u2014 verify\n- test_bucket_command_allows_other_jobs_and_discover_with_p \u2014 verify plant only\n- test_walkthrough_allows_when_heading_and_assumption_are_present \u2014 verify plant only\n- test_stale_base_allows_when_origin_trunk_is_an_ancestor \u2014 verify\n- test_contract_vet_allows_when_cue_vet_exits_zero \u2014 verify\n- test_dispatch_env_allows_when_pin_timeout_and_agent_are_in_the_text \u2014 verify\n- test_dispatch_by_hand_allows_jobs_named_as_data_at_the_top_of_the_module \u2014 plan, adjudicate, sweep, verify\n- test_dispatch_by_hand_grant_escape_allows_a_driver_job \u2014 implement with open HAND_GRANT; left because v2's grant escape stands (v4: v2's rows stand). Not an unescaped session dispatch.\n\nNo leftover unescaped driver-job ALLOW method (author-tests, check-tests, implement, security-audit, adversarial-review, *-fix)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T16:08:52.537Z"
+    }
+  },
+  "status": "closed"
+}

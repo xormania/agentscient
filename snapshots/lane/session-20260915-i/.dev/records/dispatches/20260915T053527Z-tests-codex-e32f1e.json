@@ -1,0 +1,253 @@
+{
+  "id": "20260915T053527Z-tests-codex-e32f1e",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T05:35:27Z",
+    "closed": "2026-09-15T05:46:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "ref_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-29-01a0a390-2c6d-7493-91c4-ee3fb692ae79.jsonl"
+  },
+  "session": {
+    "id": "01a0a390-2c6d-7493-91c4-ee3fb692ae79",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-29-01a0a390-2c6d-7493-91c4-ee3fb692ae79.jsonl",
+    "stream_sha256_at_close": "50e66107da2aa2319c4de11aeaed6a01650508893dc0e4d485319f17c010503c",
+    "spend": {
+      "input": 2446316,
+      "cached": 2333440,
+      "output": 17799,
+      "total": 2464115,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-29-01a0a390-2c6d-7493-91c4-ee3fb692ae79.jsonl",
+      "messages": 276
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_instrument_conventions.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "37972b7f606c3d36ffdda3610d5afc7041d229334c413ea036baa97167831b34",
+    "bytes": 10261,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/lane-mcp.json",
+      "sha256": "a9c264f55d413ee8bda7b8a8a928acd37e496203ab84fcc42a1a1ff4d816cbef",
+      "job_ids": [
+        "20260915T053526Z-tests-grok-1a9c2b",
+        "20260915T053525Z-tests-codex-f66d80",
+        "20260915T053524Z-tests-grok-7cb422",
+        "20260915T053523Z-tests-codex-391ada",
+        "20260915T053522Z-tests-grok-8497d2",
+        "20260915T053521Z-tests-codex-928ba9",
+        "20260915T053520Z-tests-grok-c14b8c",
+        "20260915T053518Z-tests-codex-34dc59",
+        "20260915T053517Z-tests-grok-c96ee3",
+        "20260915T053516Z-tests-codex-b41d6c",
+        "20260915T050556Z-tests-grok-688433",
+        "20260915T050130Z-tests-grok-438f06",
+        "20260915T050129Z-tests-codex-4835f9",
+        "20260915T050127Z-tests-codex-4ebecf",
+        "20260915T045629Z-tests-grok-5f6732",
+        "20260915T045627Z-tests-grok-62cb95",
+        "20260915T045626Z-tests-codex-c23e28",
+        "20260915T045625Z-tests-codex-6304c0",
+        "20260915T045249Z-tests-grok-da4a69",
+        "20260915T045248Z-tests-codex-e13928"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T05:35:28Z",
+      "ended": "2026-09-15T05:46:00Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "9182db4918ed57bef791c43580d38ba4bd4723ae",
+    "changed_paths": [
+      "ops/conductor/tests/test_instrument_conventions.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_instrument_conventions.py",
+          "claim": "Preserved all 18 test names and count; every method failed through its own assertion under a targeted planted fault, then the migrated module passed all 18 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_instrument_conventions.py"
+        }
+      ],
+      "artifacts": {
+        "test": "ops/conductor/tests/test_instrument_conventions.py",
+        "proof": "before: Ran 18 tests in 1.183s, OK; red: 18/18 methods failed through their assertions under targeted in-memory faults; after: Ran 18 tests in 1.688s, OK",
+        "lint": "ruff check ops/conductor/tests/test_instrument_conventions.py \u2014 All checks passed",
+        "ratchet": "home_by_hand: 57 -> 47; embedded_programs: 30 -> 27; run_without_timeout: 185 -> 134; ratchet holds",
+        "family": "python3 -m unittest discover -s ops/conductor/tests \u2014 Ran 1172 tests; one out-of-scope test_probes failure because the snapshot has no Git remotes and lacks historical record refs",
+        "commit_attempt": "Denied: .git/index.lock is on a read-only filesystem"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2464115,
+        "out": 17799,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+        "started": null,
+        "ended": "2026-09-15T05:45:21Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire. World owns every temporary root and fixture plant; the sole subprocess path uses run with timeout=60; registry rows carry origins into the shared refusal-wire assertion. No executable fakes are present, so no world.tools plant was required and there is no kit gap. The implementation and session store were not read. Only the named module changed. The family failure is independently reproducible in test_probes and is outside scope.",
+      "commit": {
+        "subject": "tests: migrate instrument conventions onto testkit",
+        "body": "World owns every temporary root and fixture plant. Every subprocess goes through the kit runner with an explicit timeout, and the refusal tables reuse the shared refusal-wire assertion. Preserve all 18 test names and their behavior.\n\nSecond producer: absent; work performed under the owner-dispatched tests job.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053527Z-tests-codex-e32f1e/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-29-01a0a390-2c6d-7493-91c4-ee3fb692ae79.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire. World owns every temporary root and fixture plant; the sole subprocess path uses run with timeout=60; registry rows carry origins into the shared refusal-wire assertion. No executable fakes are present, so no world.tools plant was required and there is no kit gap. The implementation and session store were not read. Only the named module changed. The family failure is independently reproducible in test_probes and is outside scope.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T05:45:59.594Z"
+    }
+  },
+  "status": "closed"
+}

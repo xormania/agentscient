@@ -1,0 +1,167 @@
+{
+  "id": "20260911T002238Z-tests-grok-8d7b79",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repair/precheck-scope-20260911",
+  "lineage": {
+    "branch": "repair/precheck-scope-20260911",
+    "base_sha": "cb7d43a099afd8b4b2662da8dcda22626f6f7bca"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T00:22:39Z",
+    "closed": "2026-09-11T00:35:55Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cb7d43a099afd8b4b2662da8dcda22626f6f7bca",
+    "ref_sha": "cb7d43a099afd8b4b2662da8dcda22626f6f7bca",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-precheck-scope-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4f361b97-c3b3-4c45-8c4e-f9187918a487",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok-stream/sessions/<snapshot-encoded>/4f361b97-c3b3-4c45-8c4e-f9187918a487/summary.json"
+  },
+  "session": {
+    "id": "4f361b97-c3b3-4c45-8c4e-f9187918a487",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok-stream/sessions/<snapshot-encoded>/4f361b97-c3b3-4c45-8c4e-f9187918a487/summary.json",
+    "stream_sha256_at_close": "482f44d1549839e7d1c3821967a56568a401377874aa717342112f8ab81b11c3",
+    "spend": {
+      "input": 2124472,
+      "cached": 1978112,
+      "output": 39011,
+      "total": 2163483,
+      "cost_usd_ticks": 2576931400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/home/grok-stream/sessions/<snapshot-encoded>/4f361b97-c3b3-4c45-8c4e-f9187918a487/summary.json",
+      "messages": 221
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-precheck-scope-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Regression tests for the scoped freshness pre-check (LD-10). Read in/brief-precheck-scope-tests-20260911.md WHOLE; the quoted rule is the only requirement. Write ops/devlane/hooks/tests/test_context_precheck_scope.py on the existing support fixture and change the one existing expectation the brief names; prove each new case red at this ref against the unrepaired hook, commit, list the files in artifacts. Do not edit the hook.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002238Z-tests-grok-8d7b79/in/brief-precheck-scope-tests-20260911.md",
+        "sha256": "7e05257940e44cb17674d5c12695f95b6dade34bdf042ba2cb55a585f8815750"
+      }
+    ],
+    "sha256": "e5f42b2724b4b44765a9f7edb9fb6847bfe1bc6231cd935e47d19fb1fd972242",
+    "bytes": 2912
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T00:22:39Z",
+      "ended": "2026-09-11T00:35:55Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ca7110a5dd8031032a33651f7a50c9e2b9d8ae15",
+    "changed_paths": [
+      "ops/devlane/hooks/tests/test_context_precheck_scope.py",
+      "ops/devlane/hooks/tests/test_context_precheck_selected_repo.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/hooks/tests/test_context_precheck_scope.py",
+        "selected": "ops/devlane/hooks/tests/test_context_precheck_selected_repo.py",
+        "commit": "ca7110a5dd8031032a33651f7a50c9e2b9d8ae15"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2163483,
+        "out": 39011,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cb7d43a099afd8b4b2662da8dcda22626f6f7bca",
+        "started": "2026-09-11T00:30:33Z",
+        "ended": "2026-09-11T00:35:40Z"
+      },
+      "note": "Wrote ops/devlane/hooks/tests/test_context_precheck_scope.py from in/brief-precheck-scope-tests-20260911.md on the existing StaleClone support fixture; did not read context-precheck.py. Changed and renamed test_minus_c_linked_worktree_of_other_denies_and_refreshes_other to test_minus_c_linked_worktree_of_other_allows_and_refreshes_other. Did not edit the hook. Commits 2e1462bcd3ad7403b895fe023f173abac21670b0 (scope tests) and ca7110a5dd8031032a33651f7a50c9e2b9d8ae15 (selected-repo expectation) on detached HEAD, Source: original, Co-Authored-By: Grok 4.6 <noreply@x.ai>. Frozen command python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_context_precheck*.py' at ca7110a5dd8031032a33651f7a50c9e2b9d8ae15 against the unrepaired hook: Ran 23 tests, FAILED (failures=4), 0 errors. Four reds, each an AssertionError on its own assertion: test_push_records_allows_when_only_origin_main_moved and test_push_head_refspec_to_records_allows_when_only_origin_main_moved (wanted not deny, got deny naming origin/main); test_push_records_denies_naming_origin_records_only (deny names origin/records and also origin/main); test_minus_c_linked_worktree_of_other_allows_and_refreshes_other (wanted not deny, got deny). Three new deny pins already green on the unrepaired hook: test_pr_create_base_main_denies_when_origin_main_moved, test_pr_create_without_base_denies_when_default_branch_moved, test_detached_head_push_records_denies_when_origin_main_moved. D2 and D3 in test_context_precheck.py still pass. ruff check on both edited files: All checks passed. git diff --name-only cb7d43a..HEAD is only those two test files."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T00:35:54.642Z"
+    }
+  },
+  "status": "closed"
+}

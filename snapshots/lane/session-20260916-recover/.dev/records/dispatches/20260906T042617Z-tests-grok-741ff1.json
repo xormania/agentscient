@@ -1,0 +1,169 @@
+{
+  "id": "20260906T042617Z-tests-grok-741ff1",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:26:17Z",
+    "closed": "2026-09-06T04:32:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+    "ref_sha": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7d08a49a-c3e0-472f-9ea4-d29a792b2e91",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json"
+  },
+  "session": {
+    "id": "7d08a49a-c3e0-472f-9ea4-d29a792b2e91",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json",
+    "stream_sha256_at_close": "3284fbd07fbedc64d35a1cff032a8d2210937b2ebf24fa1845241c4a3e39a37e",
+    "spend": {
+      "input": 1324353,
+      "cached": 1176576,
+      "output": 20937,
+      "total": 1345290,
+      "cost_usd_ticks": 1716088800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json",
+      "messages": 169
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only ops/conductor/tests/test_laneconf.py for F1/F2 in policy-literal-test-correction.md and Claude b9e985: multiline/non-first-line allowed declaration, absence of allowed-line findings in both composite negatives, wrong sibling basename and wrong directory with record.py basename. Preserve proven plants, intended token/path/line assertions, existing cases and contract. No implementation reads (laneconf.py/record.py), source/contract/host/DB/network edits, skips or vendor launches. Run python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py and the file's test-guard command. Report intended allowance assertion reds, separate known baseline failure, passing controls and zero errors. Commit tests only with actual-model provenance and plain prose. Independent checks follow; no other review expansion.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/policy-literal-test-correction.md",
+        "sha256": "3cbac8f49ec57bb62e3aff96bdca7c30095e46ba44a5fa07197d603cdd539510"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/20260906T042008Z-check-tests-claude-b9e985.json",
+        "sha256": "4ff18962431e3def98a5b8edda711178a2f975a815488db70f3bdcb7ca7a443e"
+      }
+    ],
+    "sha256": "ed4a26017a9a4e8f76441df0cfd6dc9a903766c58623d510b63622e1d6c122a9",
+    "bytes": 3180
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:26:17Z",
+      "ended": "2026-09-06T04:32:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a65dd9c3b55d3864a672e16223931e400071a6e6",
+    "changed_paths": [
+      "ops/conductor/tests/test_laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_laneconf.py",
+        "commit": "a65dd9c3b55d3864a672e16223931e400071a6e6",
+        "blob": "13e486c20ca2ffd22dc10a97a06d1926f70ca5f2",
+        "base": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+        "unittest": "python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py \u2014 52 collected, 6 failed, 0 errors",
+        "test-guard": "python3 ops/devlane/hooks/claude/test-guard.py ops/conductor/tests/test_laneconf.py \u2014 every plant is guarded"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1345290,
+        "out": 20937,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+        "started": null,
+        "ended": null
+      },
+      "note": "Corrected only ops/conductor/tests/test_laneconf.py at 49f2124459f80d1afcdd4d6d07c409daebbbc1ab; committed a65dd9c3b55d3864a672e16223931e400071a6e6 (blob 13e486c20ca2ffd22dc10a97a06d1926f70ca5f2). Did not read laneconf.py or record.py. Frozen command python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py: 52 collected, 6 failed, 0 errors. Intended allowance assertion reds: test_exact_policy_schema_declaration_after_benign_lines_exits_0 failed assertEqual(returncode, 0) with ops/devlane/dispatch/record.py:3: forbidden literal agentscient; test_permitted_declaration_plus_another_agentscient_use_exits_1 failed assertNotIn of record.py:1: forbidden literal agentscient while record.py:2: forbidden literal agentscient remained; test_permitted_declaration_plus_another_forbidden_token_exits_1 failed the same absence assertion while ops/bin/legacy-origin.sh:3: forbidden literal origin/dev remained; existing positives test_exact_policy_schema_declaration_at_record_py_exits_0 and test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0 failed on record.py:1: forbidden literal agentscient. Separate known baseline failure: test_literals_exits_0_on_the_tree (record.py:70 and :71). Passing controls: test_exact_policy_schema_declaration_at_dispatch_sibling_exits_1, test_exact_policy_schema_declaration_at_other_record_py_exits_1, existing other-path/altered-name/value/comment/statement/distinct-token negatives, and test_existing_mcp_declaration_allowances_remain_valid. test-guard: every plant is guarded. No skips, no source/contract edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T04:32:21.332Z"
+    }
+  },
+  "status": "closed"
+}

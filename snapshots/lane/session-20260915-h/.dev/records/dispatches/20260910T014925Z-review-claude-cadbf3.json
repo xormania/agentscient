@@ -1,0 +1,260 @@
+{
+  "id": "20260910T014925Z-review-claude-cadbf3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "61556038e3bec511bb17d53feb67d3a54699c0c0"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:49:25Z",
+    "closed": "2026-09-10T01:53:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "61556038e3bec511bb17d53feb67d3a54699c0c0",
+    "ref_sha": "61556038e3bec511bb17d53feb67d3a54699c0c0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "020a7b4e-441b-4c03-8199-6f9c3967a32d",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/020a7b4e-441b-4c03-8199-6f9c3967a32d.jsonl"
+  },
+  "session": {
+    "id": "020a7b4e-441b-4c03-8199-6f9c3967a32d",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/020a7b4e-441b-4c03-8199-6f9c3967a32d.jsonl",
+    "stream_sha256_at_close": "5ccab58c2e1c46d3b5ddcd99ea8edfff03980eac309057a63851b209da9658dd",
+    "spend": {
+      "input": 32,
+      "cached": 722239,
+      "output": 14944,
+      "total": 737215,
+      "source": "result.usage",
+      "messages": 16,
+      "cost_usd": 1.1282735
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Bounded followup acceptance at6155603: close only malformed Git metadata finding2a62fd#1 and affected state-separation/local-unavailable behavior. Read ../in/monitor-final-followup.md. Also verify the exact supported test correction; no general review restart or new test inventory. Existing event evidence schema must remain {repo,remote,ref}.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/in/monitor-final-followup.md",
+        "sha256": "62c7e7097b137ba1b97429bad48f21c3e60f8a265171a7907049b1aa460b8d15"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/in/monitor-corrected-suites.json",
+        "sha256": "def154d6b303e56fbe174b3a7e75c01c253d04b2fafbe30d8494273033877089"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014925Z-review-claude-cadbf3/in/monitor-malformed-red-corrected.json",
+        "sha256": "78c5e55e41bf898ffda3e3e7502f5f50b9d6a7aa57a846bdb3deaae0ef7e8763"
+      }
+    ],
+    "sha256": "2025482496ca5a625d07f21e0007c688c52720dfd5da57f0097a2850e17897a4",
+    "bytes": 2146
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:49:25Z",
+      "ended": "2026-09-10T01:53:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "61556038e3bec511bb17d53feb67d3a54699c0c0",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "20260910T014925Z-review-claude-cadbf3",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "claude",
+        "total": 737215,
+        "out": 14944,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "61556038e3bec511bb17d53feb67d3a54699c0c0",
+        "started": null,
+        "ended": null
+      },
+      "note": "Bounded followup acceptance at 6155603. Closure of the malformed-Git-metadata finding (2a62fd#1) and its changed state-separation / local-unavailable behavior, plus verification of the supported test correction. Zero reachable in-scope security defects; verdict approve.\n\nCLOSURE OF 2a62fd#1 (malformed Git metadata): ops/conductor/tools/monitor.py:_git_source_directories now treats a readable-but-syntactically-invalid `.git` pointer (data present, does not start with \"gitdir: \") as naming no external storage: it protects the current root and breaks, letting observation report unavailable instead of refusing the whole run. read_git_refs maps a failed local read to freshness/reason \"local-unavailable\" (state \"unavailable\"), never a run abort, so a malformed sibling no longer blocks a healthy sibling. Fail-closed retained for genuinely unreadable pointers/commondir (status!=\"ok\" or decode error \u2192 refuse \"state\"). This is strictly the accepted behavior; not a new hole (an unparseable pointer is also unresolvable by git itself, so no refs are read or written).\n\nSTATE-SEPARATION behavior: the overlap guard in _validate_state changed from `_paths_overlap(resolved, source)` to `any(_paths_overlap(path, source) for path in (resolved, *state_storage))`, and adds git-refs repos' [repo, worktree gitdir, commondir] to protected_directories. This only ADDS refusal conditions (linked-worktree shared storage even when the worktree path is outside the configured tree); it never removes one. No weakening. Verified in test_monitor_malformed_git.py: MalformedGitStorageOverlap.test_healthy_and_worktree_common_dir_overlap_refuses_with_malformed_sibling.\n\nTEST CORRECTION (exact, per brief): ops/conductor/tests/test_monitor_malformed_git.py at sha256 be2bbe63419e87421cbf8a05282bc7c5bd5e7a418b616082f152dc2d4a80cd5b \u2014 evidence schema pinned to exactly {repo,remote,ref} (line 312 assertEqual(set(evidence), {\"repo\",\"remote\",\"ref\"})); HealthyConsumerBaseline control added (class line 322, test_disabled_absent_malformed_source_observes_healthy_consumer); the unsupported healthy-OID-membership demand is gone (the 5 local_oid/remote_oid hits are in the pre-existing test_monitor_git_refs.py metric assertions, not this file). Event evidence schema {repo,remote,ref} preserved in source (read_git_refs evidence={\"repo\":repo,\"remote\":remote,\"ref\":ref}). Supplied receipts corroborate: monitor-malformed-red-corrected.json = RED exit 1 / 4 tests at e07c1a8 (pre-source), sha before==after; monitor-corrected-suites.json = ops/bin/suites.sh exit 0 at 6155603, head unchanged.\n\nSECURITY HUNT \u2014 each category looked at, zero findings:\n1. argv/shell/SQL/template injection: subprocess.Popen with code-built list argv, no shell=True. `git -C <repo>` where repo is a resolved absolute path (arg to -C); remote validated `[A-Za-z0-9][A-Za-z0-9._-]{0,63}` (no leading '-', no ':' or '/', so not coercible to a URL or ext::/upload-pack transport) and placed after `--`; branches \u2192 refs/heads/<name> validated by _branch_name (rejects leading '-', control<=32/127, ~^:?*[\\\\, '..', '@{', trailing '.', '.lock', dot-leading parts) and after `--`; --format literal. Regexes bounded, no ReDoS. Reproduce: `sed -n '164,200p;691,745p' ops/conductor/tools/monitor.py`.\n2. secrets/credentials into tree/record/log: recorded fields are evidence={repo,remote,ref} and metrics={local_oid,remote_oid,freshness} \u2014 remote is the config *name*, never a URL, so credentials embedded in a remote URL never reach a record. stderr is never surfaced: local read uses reject_stderr=True and returns a fixed \"process reported a read failure\"; the remote ls-remote buffers stderr then discards it (only stdout returned); all failures collapse to fixed reason strings. Test GIT_SECRET/assert_secret_absent are synthetic leak assertions; the .gemini/antigravity-cli/antigravity-oauth-token string in a dispatch record is a filename reference, not a value. Reproduce: `grep -cniE 'ghp_|github_pat|xox|-----BEGIN|AKIA|password|secret|bearer|authorization' context/diff.patch` (11 hits, all benign as above).\n3. path/ref escape of snapshot/worktree/job dir: read_git_refs performs no writes; _git_source_directories only resolves and ADDS paths to the protected set; _validate_state refuses state overlap. Separation strengthened, not loosened. Reproduce: `sed -n '834,905p' ops/conductor/tools/monitor.py`.\n4. permission/sandbox weaker than record claims: monitor-lever.md:218 \"Observation never fetches, resets\u2026\" matches implementation \u2014 only `git for-each-ref` and `git ls-remote --refs` run (read-only ref listing, no object fetch/checkout/reset/push, no hooks); the ls-remote network contact is disclosed at doc line 187. stdin=DEVNULL, shared monotonic deadline in (0,30], PROCESS_OUTPUT_BYTES output cap, proc.kill on failure bound any hang/OOM. Reproduce: `grep -niE 'ls-remote|for-each-ref|never fetches|read-only' ops/conductor/monitor-lever.md`.\n5. trust in vendor output without a check: git stdout strictly validated in _git_ref_rows \u2014 mandatory trailing newline, exact 2-field tab split, OID matched to `(?:[0-9a-f]{40}|[0-9a-f]{64})`, ref must start with refs/ and pass _branch_name, duplicate refs rejected, any violation \u2192 None; gated on exit 0 AND failure is None. Empty-successful \u2192 missing (found nothing); failure \u2192 unavailable (could not look): absence discipline honored. Reproduce: `sed -n '684,745p' ops/conductor/tools/monitor.py`.\n6. supply-chain surfaces loosened: ruff.toml change is a single comment edit to the pre-existing per-file S603 ignore for monitor.py; no new ignore, no pin/lockfile/fetched-action/dependency change anywhere in the diff. Reproduce: `git diff 20f9bca 6155603 -- ruff.toml`.\n\nCOVERAGE LIMITS (absence declared, not inferred): this was a static audit of the pinned tree. I did not dynamically execute the adapter or the unittest suite in-session; I relied on the two supplied receipts (suites exit 0 at 6155603; corrected RED exit 1 at e07c1a8). Per the bounded brief I did not re-inventory tests or re-review out-of-scope areas (onboarding, activation, discovery, filename-dispatch repair), which are owned by another session. The 18 added .dev/records/dispatches/*.json and the handoff tdd.json are session-provenance JSON (paths, isolation env, prior review notes) reviewed for secret values only \u2014 none present."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

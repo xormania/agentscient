@@ -1,0 +1,238 @@
+{
+  "id": "20260911T230835Z-tests-grok-ae3bfa",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/item31-skeptic-wire-20260911",
+  "lineage": {
+    "branch": "lane/item31-skeptic-wire-20260911",
+    "base_sha": "00cd3226a00b0d2454067638e03069a138b9585f"
+  },
+  "follows": [
+    "20260911T225002Z-review-grok-a00d0e",
+    "20260911T224145Z-review-codex-c5fc8b",
+    "20260911T225002Z-review-grok-a00d0e"
+  ],
+  "answers": [
+    {
+      "key": "20260911T224145Z-review-codex-c5fc8b#1",
+      "disposition": "deferred",
+      "disposed_at": "2026-09-11T23:08:24Z",
+      "citation": {
+        "item": "2",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T224145Z-review-codex-c5fc8b#2",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T23:08:24Z",
+      "citation": {
+        "item": "5",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T224145Z-review-codex-c5fc8b#3",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T23:08:24Z",
+      "citation": {
+        "item": "7",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T224145Z-review-codex-c5fc8b#4",
+      "disposition": "deferred",
+      "disposed_at": "2026-09-11T23:08:24Z",
+      "citation": {
+        "item": "4",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T225002Z-review-grok-a00d0e#1",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-11T23:08:24Z",
+      "citation": {
+        "item": "3",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    }
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T23:08:35Z",
+    "closed": "2026-09-11T23:20:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "00cd3226a00b0d2454067638e03069a138b9585f",
+    "ref_sha": "00cd3226a00b0d2454067638e03069a138b9585f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "3927e2cd-94d7-4f66-b0b0-cfe5e3505c0b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok-stream/sessions/<snapshot-encoded>/3927e2cd-94d7-4f66-b0b0-cfe5e3505c0b/summary.json"
+  },
+  "session": {
+    "id": "3927e2cd-94d7-4f66-b0b0-cfe5e3505c0b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok-stream/sessions/<snapshot-encoded>/3927e2cd-94d7-4f66-b0b0-cfe5e3505c0b/summary.json",
+    "stream_sha256_at_close": "b91de4bb99d8ac39dbe14740967aaa80781b83a2a8fde71d0f7b77ed3922ff1a",
+    "spend": {
+      "input": 3841136,
+      "cached": 3672448,
+      "output": 43844,
+      "total": 3884980,
+      "cost_usd_ticks": 8284657600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/home/grok-stream/sessions/<snapshot-encoded>/3927e2cd-94d7-4f66-b0b0-cfe5e3505c0b/summary.json",
+      "messages": 292
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/in/plan-item31-slice1-20260911.md",
+        "sha256": "6a362cfd01fe53444455c1ab3067af6ecfb1437345caf5ee11ca827bdde00c65"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/in/scope-item31-20260911.md",
+        "sha256": "1aa788cf21ae0613c1d7d9249fa41201bdd61a6651077553051624f1e5593284"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/in/security-envelope.md",
+        "sha256": "560e8f6265f8221ac678a0563d07975f834e32d1cd1a6cd540111e6c2f33686e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T230835Z-tests-grok-ae3bfa/in/adversarial-envelope.md",
+        "sha256": "b8d808b273abc989a3928f55c60e6c97f0a23f405b063f79bc92737bdfc2392a"
+      }
+    ],
+    "sha256": "14123b7e5c053712a3ee3065edef2ef356fb59fbc583b820d048b41ed5f4b1c6",
+    "bytes": 3747,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T23:08:36Z",
+      "ended": "2026-09-11T23:20:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8f21518c17ac4ba6cfbe3c5180900cc439f3db70",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_role_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ops/devlane/task/tests/test_check_tests_contract_row.py": "unchanged; items 1 and 2 were not in this fix round (item 2 deferred)",
+        "ops/conductor/tests/test_ladder_lever_skeptic_contract.py": "item 7: envelope and custody refusals are one stderr line and empty stdout, not then a stopped line; item 3: a schema-accepted envelope that fails item 2 shape is not consumed and landed, and resume does not relaunch that stop",
+        "ops/devlane/dispatch/tests/test_launch_role_contract.py": "item 5: Please write /tmp/result.md and Copy the report to /tmp/result.md are positive write-path instructions; eight verbs at sentence start is a near-miss"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3884980,
+        "out": 43844,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "00cd3226a00b0d2454067638e03069a138b9585f",
+        "started": "2026-09-11T23:08:35Z",
+        "ended": "2026-09-11T23:19:44Z"
+      },
+      "note": "Fix-tests for the three fix-round audit findings on slice-1 document pins. Item 7 (security #3): envelope/custody last-output may not continue then stopped (deb2526; 21 tests, 4 assertion failures, 0 errors). Item 3 (adversarial #1): never-retried amends standing resume so a schema-accepted item-2 failure is not consumed and landed and is not relaunched (same commit). Item 5 (security #2): ordinary positive write-path instructions Please write /tmp/result.md and Copy the report to /tmp/result.md are refused by shape, not an eight-verb sentence-start list (8f21518; 9 tests, 2 assertion failures, 0 errors). Each new method was red for its own assertion; prior pins stayed green. Deferred item 2 (quote locations) and item 4 (hard links) were not added. jobs.json, ladder.py, write_path.py, and launch.py were not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T23:20:17.020Z"
+    }
+  },
+  "status": "closed"
+}

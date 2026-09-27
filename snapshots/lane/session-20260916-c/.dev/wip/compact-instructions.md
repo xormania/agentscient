@@ -1,0 +1,7 @@
+# Compaction instructions for this lane's sessions
+
+Paste the text below as the argument of `/compact`, in one line. It is
+Anthropic's Fable 5.1 guidance for what a summary must retain, with the
+lane's own additions at the end. Written 2026-09-03.
+
+/compact Preserve, exactly: (1) any difficulties or problems that came up and how they were handled or resolved; (2) any options or approaches raised, tried, or set aside, and why; (3) anything asked for, decided, agreed, ruled out, or established as a preference, constraint, or boundary, stated exactly, in the owner's own words; (4) exactly where things stand now, what is covered, settled, or completed; (5) anything still open, unresolved, promised, or expected to happen next; (6) specific details that would be hard to reconstruct: names, numbers, dates, exact wording, links, commit shas, PR numbers, run record ids, file paths. Be complete on these even at the cost of length; keep everything else concise. Keep what the owner said close to their own words; condense the assistant's explanations to what they concluded or produced. For this lane also keep: every open PR with its number, branch, head sha and what it waits on; every dispatch still running with its record id and pid file; every worktree the session created; every ledger grant still open; the current list of lane defects and which are fixed; and the owner's standing instructions given this session (plain English, no index ids in replies, xormania authors all commits, one batch one PR for the fixes, releases as draft PRs from dev into master).

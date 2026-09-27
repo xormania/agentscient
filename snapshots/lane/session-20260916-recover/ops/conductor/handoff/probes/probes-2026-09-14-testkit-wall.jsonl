@@ -1,0 +1,3 @@
+{"id": "P-TESTKIT-20260914-wall-kit", "kind": "serve", "lane": "record", "question": "Is the test kit's directory a wall path?", "serve": "rg -c -F '\"ops/testkit/\"' ops/devlane/hooks/claude/matrix.py", "expect": "1"}
+{"id": "P-TESTKIT-20260914-wall-jobs", "kind": "serve", "lane": "record", "question": "Is the job catalogue, which carries the tests job's prompt, a wall path?", "serve": "rg -c -F '\"ops/devlane/task/jobs.json\"' ops/devlane/hooks/claude/matrix.py", "expect": "1"}
+{"id": "P-TESTKIT-20260914-suite", "kind": "serve", "lane": "record", "question": "Does the suite lever run the test kit's own suite?", "serve": "rg -c 'ops/testkit/tests' ops/bin/suites.sh", "expect": "1"}

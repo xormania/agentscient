@@ -1,0 +1,152 @@
+{
+ "against": {
+  "head": "e8fd35928aad8ff39b1f3a23026f2647997e9509",
+  "ops/conductor/tools/control.py": "9745f175abbbaea99abf56b1e6823c7c9bbd037d78af9156b6ffa05d4af55a8a",
+  "ops/devlane/hooks/conductor-control.py": "6d4e46f13760d0cffdd38e77a03b8508a4390190afe2c936150893bfa12e2ab8"
+ },
+ "host_script": "#!/bin/sh\n# fake codex conductor: report its own env, then run the one declared action\n/usr/bin/python3 -c \"import os,json;print(json.dumps({k:os.environ.get(k) for k in ('HOME','CODEX_HOME','CLAUDE_CONFIG_DIR','GROK_HOME')}))\"\n/usr/bin/python3 /tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py run read-env --state \"$CONTROL_STATE\"\n",
+ "hosts": {
+  "claude": {
+   "action": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "conductor_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": null,
+    "GROK_HOME": null,
+    "HOME": "/home/scientdb"
+   },
+   "conductor_in_private_home": false,
+   "seat": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "seat_argv": [
+    "<stand-in claude>",
+    "-p",
+    "prompt",
+    "--model",
+    "x"
+   ],
+   "worker_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": null,
+    "GROK_HOME": null,
+    "HOME": "/home/scientdb"
+   },
+   "worker_environment_recorded": null,
+   "worker_in_private_home": false
+  },
+  "codex": {
+   "action": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "conductor_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": "<probe>/state-codex/codex-home",
+    "GROK_HOME": null,
+    "HOME": "/home/scientdb"
+   },
+   "conductor_in_private_home": true,
+   "seat": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "seat_argv": [
+    "<stand-in codex>",
+    "exec",
+    "--model",
+    "x",
+    "prompt"
+   ],
+   "worker_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": "/home/scientdb/.codex",
+    "GROK_HOME": null,
+    "HOME": "/home/scientdb"
+   },
+   "worker_environment_recorded": {
+    "CODEX_HOME": "/home/scientdb/.codex"
+   },
+   "worker_in_private_home": false
+  },
+  "grok": {
+   "action": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "conductor_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": null,
+    "GROK_HOME": "<probe>/state-grok/grok-home",
+    "HOME": "<probe>/state-grok/grok-home"
+   },
+   "conductor_in_private_home": true,
+   "seat": {
+    "exit_code": 0,
+    "reason": null,
+    "status": "completed"
+   },
+   "seat_argv": [
+    "<stand-in grok>",
+    "-p",
+    "prompt",
+    "--model",
+    "x"
+   ],
+   "worker_env": {
+    "CLAUDE_CONFIG_DIR": null,
+    "CODEX_HOME": null,
+    "GROK_HOME": "/home/scientdb/.grok",
+    "HOME": "/home/scientdb"
+   },
+   "worker_environment_recorded": {
+    "GROK_HOME": "/home/scientdb/.grok",
+    "HOME": "/home/scientdb"
+   },
+   "worker_in_private_home": false
+  }
+ },
+ "limits": "Stand-in hosts, not the native CLIs; this measures the environment boundary of control.py only. Native conductor denials are in the codex/claude/grok receipts beside this file. Full dispatcher job creation was not exercised.",
+ "measured_at": "2026-09-10T07:46:34.018109+00:00",
+ "method": "A disposable Git repo and a one-action owner plan (kind check; argv prints HOME, CODEX_HOME, CLAUDE_CONFIG_DIR, GROK_HOME). For each host, seat launched a stand-in host script named codex, claude or grok that first prints its own environment, then runs the declared action through control.py run. No model, credential or network was used; the stand-in exercises only the seat environment and the run path. Paths under the session scratch directory are disposable.",
+ "owner_env_at_launch": {
+  "CLAUDE_CONFIG_DIR": null,
+  "CODEX_HOME": null,
+  "GROK_HOME": null,
+  "HOME": "/home/scientdb"
+ },
+ "plan": {
+  "actions": [
+   {
+    "argv": [
+     "/usr/bin/python3",
+     "-c",
+     "import os,json;print(json.dumps({k:os.environ.get(k) for k in ('HOME','CODEX_HOME','CLAUDE_CONFIG_DIR','GROK_HOME')}))"
+    ],
+    "id": "read-env",
+    "kind": "check",
+    "producer": "probe/python3",
+    "requires": [],
+    "tests": [],
+    "timeout": 10
+   }
+  ],
+  "branch": "probe",
+  "expires_at": "2026-09-10T07:54:22.507094+00:00",
+  "max_seconds": 120,
+  "repo": "<probe>/repo",
+  "scope": "scope.md",
+  "scope_sha256": "bc369f18bc34c3203191629ea86355983aeefac321f82d413b270663b5b9f025",
+  "version": 1
+ },
+ "question": "Does a declared action launched from a guarded seat inherit the conductor-only native home, or get the owner's original paths back?",
+ "reading": "Codex: conductor CODEX_HOME is the private state home; the action gets the owner's ~/.codex. Grok: conductor HOME and GROK_HOME are the private home; the action gets the owner's HOME and ~/.grok. Claude: the gate rides on command-line flags, no environment changes, nothing to restore. Every seat and action completed with exit 0."
+}

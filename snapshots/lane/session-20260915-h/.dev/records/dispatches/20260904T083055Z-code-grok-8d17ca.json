@@ -1,0 +1,157 @@
+{
+  "id": "20260904T083055Z-code-grok-8d17ca",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/registry-rows",
+  "lineage": {
+    "branch": "lane/registry-rows",
+    "base_sha": "a59e8a5faca134a16297f1b4269495b64dc4a5d8"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:30:55Z",
+    "closed": "2026-09-04T08:45:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a59e8a5faca134a16297f1b4269495b64dc4a5d8",
+    "ref_sha": "a59e8a5faca134a16297f1b4269495b64dc4a5d8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f4996597-8b2f-4c18-b7c6-06ae9e30b97d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok-stream/sessions/<snapshot-encoded>/f4996597-8b2f-4c18-b7c6-06ae9e30b97d/summary.json"
+  },
+  "session": {
+    "id": "f4996597-8b2f-4c18-b7c6-06ae9e30b97d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok-stream/sessions/<snapshot-encoded>/f4996597-8b2f-4c18-b7c6-06ae9e30b97d/summary.json",
+    "stream_sha256_at_close": "79852645c5311cbfd33117e1f942868d38af0cab5fdb12277f43b4b4cae4ad9e",
+    "spend": {
+      "input": 2824221,
+      "cached": 2343552,
+      "output": 47676,
+      "total": 2871897,
+      "cost_usd_ticks": 4112589000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/home/grok-stream/sessions/<snapshot-encoded>/f4996597-8b2f-4c18-b7c6-06ae9e30b97d/summary.json",
+      "messages": 288
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-registry-rows/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 35 (the conventions registry as one row-file per instrument under ops/conductor/registry/), tests only: rewrite ops/conductor/tests/test_instrument_conventions.py from the contract in the input file so the gate reads the directory instead of the REGISTRY tuple, keeps its three assertions, and gains the closure rules (file for a missing tool, declaring tool with no file, malformed file), with planted-fault fixtures under temporary directories and a clean planted registry that passes. Red at this ref because the directory does not exist; the seed files and the document change are the implementation and are not written here. One commit. Do not edit any tool.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T083055Z-code-grok-8d17ca/in/contract-registry-rows.md",
+        "sha256": "083c00258c079bc582c8733b737ce499a65b6706ed3eb9d407e21b77b4bf0ecc"
+      }
+    ],
+    "sha256": "af6801817834a1a4acfe2bcf93b62c498268def6844b54b2f3378f40095ba359",
+    "bytes": 3022
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:30:55Z",
+      "ended": "2026-09-04T08:45:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a28fe826c82b9f6dd05de98ff54b786ec13facc6",
+    "changed_paths": [
+      "ops/conductor/tests/test_instrument_conventions.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_instrument_conventions.py",
+        "commit": "a28fe826c82b9f6dd05de98ff54b786ec13facc6"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2871897,
+        "out": 47676,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a59e8a5faca134a16297f1b4269495b64dc4a5d8",
+        "started": "2026-09-04T08:38:56Z",
+        "ended": "2026-09-04T08:45:06Z"
+      },
+      "note": "Rewrote ops/conductor/tests/test_instrument_conventions.py from the contract. The REGISTRY tuple is gone. The gate loads ops/conductor/registry/*.json sorted by file name, keeps the three refusal-wire assertions, and adds closure (file for a missing tool; declaring tool with no file; malformed file naming the file and the field) with planted-fault fixtures under temporary directories and a clean planted registry that passes. python3 -m unittest ops.conductor.tests.test_instrument_conventions at a28fe826c82b9f6dd05de98ff54b786ec13facc6: 11 collected, 4 failed, 7 passed. The three live wire tests fail with AssertionError registry directory missing. test_every_declaring_tool_has_a_registry_file fails naming findings.py. The seven planted tests pass. No seed files, no document change, no tool edits. ruff check on the test file passed. One commit a28fe82 on lane/registry-rows. Implementation unread."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T08:45:25.368Z"
+    }
+  },
+  "status": "closed"
+}

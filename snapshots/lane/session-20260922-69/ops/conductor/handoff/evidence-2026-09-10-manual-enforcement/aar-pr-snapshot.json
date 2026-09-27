@@ -1,0 +1,58 @@
+{
+  "recorded_at": "2026-09-10 06:08:09 UTC",
+  "command": "gh pr list --repo uscient/agentscient --head repair/manual-enforcement-20260910 --state all --json number,url,state,isDraft,headRefOid,baseRefName,createdAt,updatedAt,statusCheckRollup",
+  "results": [
+    {
+      "baseRefName": "dev",
+      "createdAt": "2026-09-10T05:59:10Z",
+      "headRefOid": "013f8583fa7658bd7dd8ca9698c0be27ef0f253f",
+      "isDraft": true,
+      "number": 83,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T06:00:10Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34443257851/job/102762525464",
+          "name": "Analyze (actions)",
+          "startedAt": "2026-09-10T05:59:16Z",
+          "status": "COMPLETED",
+          "workflowName": "CodeQL"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T06:00:46Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34443259975/job/102762527441",
+          "name": "lane",
+          "startedAt": "2026-09-10T05:59:15Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T05:59:21Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34443259975/job/102762527653",
+          "name": "app",
+          "startedAt": "2026-09-10T05:59:15Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T06:00:03Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/runs/102762683143",
+          "name": "CodeQL",
+          "startedAt": "2026-09-10T06:00:01Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        }
+      ],
+      "updatedAt": "2026-09-10T06:01:37Z",
+      "url": "https://github.com/uscient/agentscient/pull/83"
+    }
+  ]
+}

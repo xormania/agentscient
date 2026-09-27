@@ -1,0 +1,158 @@
+{
+  "id": "20260904T013250Z-code-grok-ffc865",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "60ff1a4577f81849b019b9526a078fc740e45f03"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T01:32:51Z",
+    "closed": "2026-09-04T01:50:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "60ff1a4577f81849b019b9526a078fc740e45f03",
+    "ref_sha": "60ff1a4577f81849b019b9526a078fc740e45f03",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "648ffdd4-9587-4d24-8308-35bb671e15f9",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok-stream/sessions/<snapshot-encoded>/648ffdd4-9587-4d24-8308-35bb671e15f9/summary.json"
+  },
+  "session": {
+    "id": "648ffdd4-9587-4d24-8308-35bb671e15f9",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok-stream/sessions/<snapshot-encoded>/648ffdd4-9587-4d24-8308-35bb671e15f9/summary.json",
+    "stream_sha256_at_close": "45627319e88a1593bc321b6f109d9ac147f11273d8c86f0b7b3c5044beb1c4fb",
+    "spend": {
+      "input": 4550575,
+      "cached": 4391424,
+      "output": 59853,
+      "total": 4610428,
+      "cost_usd_ticks": 4884324400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/home/grok-stream/sessions/<snapshot-encoded>/648ffdd4-9587-4d24-8308-35bb671e15f9/summary.json",
+      "messages": 304
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "06ef9ff25759b502aa7b0f13dc997c3c4028c2c638b40aac3f4a7b2ade0198db"
+    },
+    "scope": "Lane fix batch 1, tests only, slice A of section 4 of the plan in the input file: ops/conductor/tests/test_dispatch_wrapper.py and ops/conductor/tests/test_co_doc.py, for the defects the plan assigns to slice A. Red at this ref, one commit per file, as the author-tests prompt says. Slices B and C are separate runs; do not write them.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T013250Z-code-grok-ffc865/in/contract-lane-fixes-1.md",
+        "sha256": "cf18136e09853166a70ca4278c81ffe3f1abb6eb10d145b02d57ec221044a17d"
+      }
+    ],
+    "sha256": "2f9ab3976b9a83fccd101b37413bb931b2b993734944530bd393f85e482fc158",
+    "bytes": 999
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T01:32:51Z",
+      "ended": "2026-09-04T01:50:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0a67c6f332962424d97696faf4924310ba53ad2d",
+    "changed_paths": [
+      "ops/conductor/tests/test_co_doc.py",
+      "ops/conductor/tests/test_dispatch_wrapper.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_dispatch_wrapper": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "test_co_doc": "ops/conductor/tests/test_co_doc.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "60ff1a4577f81849b019b9526a078fc740e45f03",
+        "started": "2026-09-04T01:32:51Z",
+        "ended": "2026-09-04T01:50:24Z"
+      },
+      "note": "Slice A only: 15 tests in two files, one commit each (62e79789cc0f03e3bb2007d3688dc02f3a0812fc wrapper, 0a67c6f332962424d97696faf4924310ba53ad2d co-doc). Implementation unread. Each new test was run by name at 60ff1a4 and failed its contracted assertion (two inputs kept only the second; missing input launched; no launcher object; --detach unknown; foreground record line was the newest jobs-root dir; planted DEFAULT_TIMEOUT still launched; unset pin was Abort unset). Slices B and C not written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T01:50:58.007Z"
+    }
+  },
+  "status": "closed"
+}

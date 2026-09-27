@@ -1,0 +1,8 @@
+{
+  "source_test": "/tmp/ag-manual-repair-20260910/small-tests/test_control.py",
+  "source_sha256": "00e31fb295f3d7e2f3585e911b585020e55a7fc237218ef9b86091dfe3a5dfea",
+  "correction_source": "/tmp/ag-manual-repair-20260910/evidence/small-fix.stdout",
+  "producer": "GPT-5.6 Sol",
+  "test_sha256": "abb71a74c4ed8205080ee8c40cefb55dcc2661648910b33acf37f8c1a3d25735",
+  "independent_review": "Claude Opus 5 identified the unittest run-method collision; corrected bytes have not received a new approval. Owner explicitly requested immediate manual repair without more model loops."
+}

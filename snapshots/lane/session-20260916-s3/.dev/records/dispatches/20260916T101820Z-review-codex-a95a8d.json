@@ -1,0 +1,257 @@
+{
+  "id": "20260916T101820Z-review-codex-a95a8d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-d",
+  "lineage": {
+    "branch": "lane/session-20260916-d",
+    "base_sha": "4853d96a5207ff4fa6be884672ddd4166c132e26"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 (1M context) <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T10:18:20Z",
+    "closed": "2026-09-16T10:26:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4853d96a5207ff4fa6be884672ddd4166c132e26",
+    "ref_sha": "4853d96a5207ff4fa6be884672ddd4166c132e26",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-d/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-18-34-01a0a9b9-b33c-7cf0-bdd8-5242178eb194.jsonl"
+  },
+  "session": {
+    "id": "01a0a9b9-b33c-7cf0-bdd8-5242178eb194",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-18-34-01a0a9b9-b33c-7cf0-bdd8-5242178eb194.jsonl",
+    "stream_sha256_at_close": "f442cd8bea8597320c7a933150560db326e4d059dbf24ad759d7762155b05128",
+    "spend": {
+      "input": 3304119,
+      "cached": 3163392,
+      "output": 18162,
+      "total": 3322281,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-18-34-01a0a9b9-b33c-7cf0-bdd8-5242178eb194.jsonl",
+      "messages": 301
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-d/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Package C, the acting MCP server, at 4853d96a. Round three.\n\nFour closures. For each: does it answer its finding or move it, and what\nhole did it open?\n1 Composition: agent from the bound row, show's `assignment` renamed to\n`target`, generation sent as a string, every keyword checked against the\ncore's signature first.\n2 The participant lookup reads the core's {\"participants\": [...]} shape.\n3 The store handle: a read gets reader(), a mutation writer(), proven by\nreading the write back through the core's CLI.\n4 The response bound is measured after serialisation; paging is the\nserver's own, with a cursor.\n\nThe mock is pinned by inspect.signature equality with the real verb:\nenough, or can a stub accept what the core refuses?\n\nIt found three defects in my own fixtures: a resolver with no `agent`, a\nparameter named `participant` where the core says `part`, a read case\nasking as a holder of nothing. More of that class?\n\ncore_assignments filters to what the asker holds: an empty list for a\nnon-holder is by design.",
+    "inputs": [],
+    "sha256": "88d79a25ae7daeee815dc2b3837e667e0b8dd9a7c06f42a11c42ad475a10b173",
+    "bytes": 11016,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/lane-mcp.json",
+      "sha256": "b9ec2c38a02faa362d74b0c1454c3207e233a00c794e04e16c80ce1a28abf6cd",
+      "job_ids": [
+        "20260916T101802Z-review-grok-7bbe10",
+        "20260916T084315Z-review-codex-b317d7",
+        "20260916T084259Z-review-grok-62fa82",
+        "20260916T075518Z-review-codex-c22c2d",
+        "20260916T075500Z-review-grok-c7a708"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "acfad35df5dc473e86cca453e501065a2ea2a49150d09962d3c55dbae8e11f4a"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T10:18:34Z",
+      "ended": "2026-09-16T10:26:18Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "4853d96a5207ff4fa6be884672ddd4166c132e26",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:682-762,774-801",
+          "claim": "The response-bound closure moved the bound rather than making it global. Only successful tools/call and resources/read results are measured; refusals, ping, initialize, list responses, and other errors reach _send unchecked. A 20,000-byte JSON-RPC id on ping produces a 20,038-byte response despite RESPONSE_BYTES=16,384, and even the checked paths do not recheck the fallback after retaining an oversized id.",
+          "reproduce": "python3 -c \"import json,subprocess,sys; q={'jsonrpc':'2.0','id':'i'*20000,'method':'ping'}; r=subprocess.run([sys.executable,'-B','ops/conductor/tools/coordination_mcp.py','serve'],input=json.dumps(q)+'\\n',text=True,capture_output=True); print(len(r.stdout.encode()))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:126-131,470-508; ops/conductor/tools/coordination.py:896-912",
+          "claim": "Composition still advertises an argument the core refuses. coord_assignments exposes `mine`, but core_assignments accepts only `state` and `to`; compose therefore refuses class state whenever `mine` is supplied. The MCP path already passes the bound participant, so assignments are holder-filtered without this flag. This is another catalogue/core mismatch of the fixture-defect class the round found.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c \"import coordination,coordination_mcp as m; m.compose(coordination.CORE['assignments'],m.BY_NAME['coord_assignments'],{'agent':'A'},{'mine':True})\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:696-709,730-733",
+          "claim": "Method-specific parameter validation remains incomplete. A present `protocolVersion: null` is accepted although the contract permits only a string, and a non-object tools/call `arguments` value becomes a successful JSON-RPC result carrying a domain refusal instead of protocol error -32602. The new cases cover list/string examples but miss these neighboring malformed forms.",
+          "reproduce": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":null}}' '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"coord_brief\",\"arguments\":[]}}' | python3 -B ops/conductor/tools/coordination_mcp.py serve"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination_mcp.py:379-401",
+          "claim": "The participant lookup reads the real {\"participants\": [...]} shape but does not enforce it. `_row_named` still treats a bare list as valid, and malformed counterparty output is consequently accepted or misreported as an absent participant instead of a state/coupling refusal. The old mock shape therefore remains admissible.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c \"import coordination_mcp as m; print(m._row_named([{'participant':'PT-7','id':7}],'PT-7'))\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_coordination_mcp.py:202-296,843-882",
+          "claim": "inspect.signature equality pins only call shape, not the mock's behavior, so it is not enough for the test's claim that the stub cannot accept what the core refuses. The signature-equal submit stub accepts malformed assignment, evidence, revision, and generation values without any of the core's gates. Real-core cases cover only a subset of catalogue behavior, as the surviving `mine` mismatch demonstrates.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"import inspect; from ops.conductor.tests import test_coordination_mcp as t; from ops.testkit import World; w=World(); s=t.Subject(w); stub=t.load_module(s.core(t.STUB_CORE),'stub_probe'); real=t.load_core(); print(inspect.signature(stub.CORE['submit'])==inspect.signature(real.CORE['submit'])); print(stub.CORE['submit'](None,{},agent='a',assignment='bad',evidence='bad',revision='bad',generation='not-a-number')); w.close()\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_coordination_mcp.py:1057-1074",
+          "claim": "The replacement resource-safety case is another fixture that never executes or inspects the subject. It compares test-local RESOURCE_ROWS and MUTATIONS constants and plants a row only in a local tuple; changing the server's RESOURCES mapping to a mutating tool would leave the case green, contrary to the file's own rule that a behavioral case must run the subject.",
+          "reproduce": "nl -ba ops/conductor/tests/test_coordination_mcp.py | sed -n '1057,1074p'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/context/diff.patch",
+        "targeted_tests": "python3 -m unittest discover -s ops/conductor/tests -p 'test_coordination_mcp.py' \u2014 Ran 40 tests, OK",
+        "lint": "RUFF_CACHE_DIR=/tmp/agentscient-ruff-review-cache ruff check ops/conductor/tools/coordination_mcp.py ops/conductor/tests/test_coordination_mcp.py \u2014 All checks passed",
+        "inputs": "The sibling in/ directory existed and contained no files",
+        "worktree": "git status --short and git diff --check were clean"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3322281,
+        "out": 18162,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4853d96a5207ff4fa6be884672ddd4166c132e26",
+        "started": null,
+        "ended": "2026-09-16T10:25:08Z"
+      },
+      "note": "reused: agentscient-lane lane_brief/lane_jobs/lane_changes/lane_findings; Graft repo map (saved approximately 1,476,363 tokens); prior review records; the coordination MCP/core contracts and targeted suites. Composition moved because `mine` remains mismatched; participant lookup reads the new shape but still admits the old one; the reader/writer closure is proven against the real store; paging works, while the whole-response bound remains partial. Signature equality answers call shape only, not whether a stub accepts values the core refuses. No files were edited."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 8,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101820Z-review-codex-a95a8d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-18-34-01a0a9b9-b33c-7cf0-bdd8-5242178eb194.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T10:26:17.803Z"
+    }
+  },
+  "status": "closed"
+}

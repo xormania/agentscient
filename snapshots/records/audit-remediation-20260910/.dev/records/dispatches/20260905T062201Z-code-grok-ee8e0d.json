@@ -1,0 +1,171 @@
+{
+  "id": "20260905T062201Z-code-grok-ee8e0d",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-context-20260905",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "a09f01c0744c835dc58b63a2c8ba6301f75683d6"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T06:22:03Z",
+    "closed": "2026-09-05T06:38:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a09f01c0744c835dc58b63a2c8ba6301f75683d6",
+    "ref_sha": "a09f01c0744c835dc58b63a2c8ba6301f75683d6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b00c3d5c-3928-4504-9678-ad1a0607381b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok-stream/sessions/<snapshot-encoded>/b00c3d5c-3928-4504-9678-ad1a0607381b/summary.json"
+  },
+  "session": {
+    "id": "b00c3d5c-3928-4504-9678-ad1a0607381b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok-stream/sessions/<snapshot-encoded>/b00c3d5c-3928-4504-9678-ad1a0607381b/summary.json",
+    "stream_sha256_at_close": "1fc257115806386b9b10a5b2632ae4a2514162f316644b9b8b5ca5b39969c943",
+    "spend": {
+      "input": 3061508,
+      "cached": 2854272,
+      "output": 59543,
+      "total": 3121051,
+      "cost_usd_ticks": 3738072200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T062201Z-code-grok-ee8e0d/home/grok-stream/sessions/<snapshot-encoded>/b00c3d5c-3928-4504-9678-ad1a0607381b/summary.json",
+      "messages": 249
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author focused acceptance tests from ops/conductor/lane-mcp-v2.md and the v1 lever contract. Write ops/conductor/tests/test_lane_mcp_context.py, reusing existing test fixtures when useful. Do not read lane_read.py or lane_mcp.py; no new implementation exists. Cover all three v2 reads, config/version isolation, _meta transport parity, source boundaries, cursor/progress behavior, explicit missing/unavailable/omitted data, and registry cards. Use small synthetic fixtures and meaningful positive/negative pairs; avoid a large generated corpus or a test for each literal. Check CLI, real stdio tools and resources. Preserve old tests. Run each new behavior and record the actual red cause; distinguish new-feature absence from assertions already green on the baseline. Commit the test file as soon as the red evidence exists, with specific model trailers. No production edits. If a contract ambiguity prevents a decisive assertion, report it rather than invent behavior.\n",
+    "inputs": [],
+    "sha256": "2846aa562ce0cc95deaeb31d16f4981ee03c842894d1bad0c3317ad185799433",
+    "bytes": 3314
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T06:22:03Z",
+      "ended": "2026-09-05T06:38:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e72c51cf53dd5c7e39eecd51b80c140efa3971f1",
+    "changed_paths": [
+      "ops/conductor/tests/test_lane_mcp_context.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-mcp-v2.md \u00a73 page fit",
+          "claim": "A first-page frame that exceeds 8192 bytes, or that leaves too little room for a fully reduced entry so the note must be dropped, cannot be planted from the declared field caps and Linux PATH_MAX without measuring the encoder. Tests force pagination with eight ~900-byte claims and pin omitted-for-type/cap; they do not assert the exact omission sequence at the 8192-byte edge.",
+          "reproduce": "python3 -c \"import os; print(os.pathconf('.', 'PC_PATH_MAX'))\" at a09f01c0744c835dc58b63a2c8ba6301f75683d6; compare 4096 with note cap 2048 and where/claim/reproduce caps 256/1024/1024 in ops/conductor/lane-mcp-v2.md \u00a73"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-mcp-v2.md \u00a76",
+          "claim": "resources/templates/list names the template object fields but not the JSON-RPC result key. Tests assert the MCP 2025-06-18 key resourceTemplates.",
+          "reproduce": "sed -n '269,282p' ops/conductor/lane-mcp-v2.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-mcp-v2.md \u00a73 cursor",
+          "claim": "An index above findings_total names class cursor and the needed phrase only. Tests assert that class and substring, not a full expected/found line.",
+          "reproduce": "sed -n '142,148p' ops/conductor/lane-mcp-v2.md"
+        }
+      ],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_lane_mcp_context.py",
+        "commit": "e72c51cf53dd5c7e39eecd51b80c140efa3971f1"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3121051,
+        "out": 59543,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a09f01c0744c835dc58b63a2c8ba6301f75683d6",
+        "started": "2026-09-05T06:22:03Z",
+        "ended": "2026-09-05T06:38:00Z"
+      },
+      "note": "Looked at in/ and found no files (record.json inputs is []). Did not read lane_read.py or lane_mcp.py. Wrote and committed ops/conductor/tests/test_lane_mcp_context.py as e72c51cf53dd5c7e39eecd51b80c140efa3971f1 with Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. Command python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp_context.py' at that commit: 16 collected, 3 already green on the v1 baseline (check tools 4 and v1 example; v1 query of the three v2 names is arguments; v1 tools/list, resources/list and templates/list stay four tools, no v2 URIs, -32601), 13 red. Actual red causes: v2 check and every v2 read/list/parity case refuse config with exact-keys naming job_registry as unknown (version 2 plus job_registry is absent); version 2 without job_registry is class config but the line is expected version 1, not the v2 key set; object _meta on tools/call and resources/read is JSON-RPC -32602 Invalid params; non-object _meta on ping, tools/list and initialize is accepted instead of -32602. Already green inside mixed tests: v1 plus job_registry is config and names job_registry; tools/call and resources/read without _meta still return lane_record; resources/read with non-object _meta is already -32602 because any _meta is currently invalid params. Old tests were not edited; a v1 smoke of presence, check and initialize stayed ok. No production edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T06:38:40.237Z"
+    }
+  },
+  "status": "closed"
+}
