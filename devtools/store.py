@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 2:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 3:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -118,7 +118,19 @@ class Store:
                 "CREATE UNIQUE INDEX IF NOT EXISTS github_watch_identity "
                 "ON github_watches(member,repository,coalesce(pr,0),coalesce(run,0),revision)"
             )
-            db.execute("PRAGMA user_version=2")
+            db.execute("""CREATE TABLE IF NOT EXISTS member_bindings (
+                member TEXT PRIMARY KEY REFERENCES members(name), role TEXT NOT NULL,
+                work_order INTEGER NOT NULL REFERENCES work_orders(id), job INTEGER REFERENCES jobs(id),
+                reports_to TEXT REFERENCES members(name), brief TEXT NOT NULL DEFAULT '',
+                revision INTEGER NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS work_updates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT NOT NULL REFERENCES members(name),
+                kind TEXT NOT NULL, text TEXT NOT NULL, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), binding_revision INTEGER NOT NULL, request_key TEXT NOT NULL,
+                artifact INTEGER REFERENCES artifacts(id), message INTEGER REFERENCES messages(id), created TEXT NOT NULL,
+                UNIQUE(actor,request_key))""")
+            db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
+            db.execute("PRAGMA user_version=3")
 
     @contextmanager
     def connect(self):
@@ -272,38 +284,39 @@ class Store:
         self.member(recipient)
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            old = db.execute("SELECT * FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
-            values = (recipient, body, reply_to)
-            if old:
-                if tuple(old[k] for k in ("recipient", "body", "reply_to")) != values or (
-                    job is not UNSET
-                    and job != old["job"]
-                    or work_order is not UNSET
-                    and work_order != old["work_order"]
-                ):
-                    raise ValueError("That message key already identifies a different payload.")
-                return dict(old)
-            reply = None
-            if reply_to:
-                reply = db.execute(
-                    "SELECT * FROM messages WHERE id=? AND (sender=? OR recipient=?)", (reply_to, sender, sender)
-                ).fetchone()
-            if reply_to and not reply:
-                raise ValueError("Reply to a message involving this member.")
-            if reply and work_order is UNSET and job is UNSET:
-                work_order, job = reply["work_order"], reply["job"]
-            work_order, job = self.current_work(db, sender, work_order, job)
-            ident = db.execute(
-                "INSERT INTO messages(sender,recipient,body,reply_to,request_key,created,work_order,job) VALUES (?,?,?,?,?,?,?,?)",
-                (sender, *values, key, stamp(), work_order, job),
-            ).lastrowid
-            self._event(
-                db,
-                sender,
-                "message_queued",
-                {"message": ident, "recipient": recipient, "work_order": work_order, "job": job},
-            )
-            return dict(db.execute("SELECT * FROM messages WHERE id=?", (ident,)).fetchone())
+            return self._send(db, sender, recipient, body, key=key, reply_to=reply_to, work_order=work_order, job=job)
+
+    def _send(self, db, sender, recipient, body, *, key, reply_to=None, work_order=UNSET, job=UNSET):
+        """Reuse the message service inside a caller's transaction."""
+        old = db.execute("SELECT * FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
+        values = (recipient, body, reply_to)
+        if old:
+            if tuple(old[k] for k in ("recipient", "body", "reply_to")) != values or (
+                job is not UNSET and job != old["job"] or work_order is not UNSET and work_order != old["work_order"]
+            ):
+                raise ValueError("That message key already identifies a different payload.")
+            return dict(old)
+        reply = None
+        if reply_to:
+            reply = db.execute(
+                "SELECT * FROM messages WHERE id=? AND (sender=? OR recipient=?)", (reply_to, sender, sender)
+            ).fetchone()
+        if reply_to and not reply:
+            raise ValueError("Reply to a message involving this member.")
+        if reply and work_order is UNSET and job is UNSET:
+            work_order, job = reply["work_order"], reply["job"]
+        work_order, job = self.current_work(db, sender, work_order, job)
+        ident = db.execute(
+            "INSERT INTO messages(sender,recipient,body,reply_to,request_key,created,work_order,job) VALUES (?,?,?,?,?,?,?,?)",
+            (sender, *values, key, stamp(), work_order, job),
+        ).lastrowid
+        self._event(
+            db,
+            sender,
+            "message_queued",
+            {"message": ident, "recipient": recipient, "work_order": work_order, "job": job},
+        )
+        return dict(db.execute("SELECT * FROM messages WHERE id=?", (ident,)).fetchone())
 
     def inbox(self, member, after=0, limit=20, unacknowledged=False, work_order=None, job=None):
         with self.connect() as db:
@@ -331,26 +344,35 @@ class Store:
     def acknowledge(self, member, message):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT * FROM messages WHERE id=? AND recipient=?", (message, member)).fetchone()
-            if not row:
-                raise ValueError("Only the recipient can acknowledge this message.")
-            if not row["acknowledged"]:
-                db.execute("UPDATE messages SET acknowledged=? WHERE id=?", (stamp(), message))
-                self._event(
-                    db,
-                    member,
-                    "message_acknowledged",
-                    {"message": message, "work_order": row["work_order"], "job": row["job"]},
-                )
+            return self._acknowledge(db, member, message)
+
+    def _acknowledge(self, db, member, message):
+        row = db.execute("SELECT * FROM messages WHERE id=? AND recipient=?", (message, member)).fetchone()
+        if not row:
+            raise ValueError("Only the recipient can acknowledge this message.")
+        if not row["acknowledged"]:
+            db.execute("UPDATE messages SET acknowledged=? WHERE id=?", (stamp(), message))
+            self._event(
+                db,
+                member,
+                "message_acknowledged",
+                {"message": message, "work_order": row["work_order"], "job": row["job"]},
+            )
         return {"message": message, "acknowledged": True}
 
-    def take_delivery(self, member):
+    def take_delivery(self, member, *, scoped=False):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            clause, args = "1", ()
+            if scoped:
+                from .control import binding, scope_sql
+
+                clause, args = scope_sql(binding(db, member))
             row = db.execute(
-                "SELECT * FROM messages WHERE recipient=? AND delivery='queued' AND acknowledged IS NULL "
-                "ORDER BY id LIMIT 1",
-                (member,),
+                "SELECT * FROM messages WHERE recipient=? AND delivery='queued' AND acknowledged IS NULL AND "
+                + clause
+                + " ORDER BY id LIMIT 1",
+                (member, *args),
             ).fetchone()
             if not row:
                 return None

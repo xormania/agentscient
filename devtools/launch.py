@@ -68,6 +68,12 @@ def configuration(directory, member):
         raise ValueError("Member is not configured in team.json")
     if selected["harness"] == "external":
         raise ValueError("External members connect their own MCP client; there is no managed process to start.")
+    from .control import Control
+
+    if not Control(store, member).snapshot():
+        raise ValueError(
+            "Bind this member's role and work through the operator member_bind capability before starting it."
+        )
     selected = dict(selected)
     binary = shutil.which(selected.get("binary", selected["harness"]))
     if not binary:

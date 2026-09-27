@@ -29,7 +29,7 @@ class LiveTests(unittest.TestCase):
         self.store = Store(self.directory)
 
     def client(self, member, channel=False):
-        client = Client(self.directory, member, channel)
+        client = Client(self.directory, member, channel, operator=True)
         self.addCleanup(client.close)
         return client
 
@@ -106,10 +106,10 @@ class LiveTests(unittest.TestCase):
         for harness in ("codex", "claude", "grok"):
             for tool in ("Bash", "exec_command", "read_file", "apply_patch", "unknown", {}, None):
                 self.assertFalse(permitted(harness, tool, {}))
-        self.assertTrue(permitted("codex", "capability_search", {}))
-        self.assertTrue(permitted("claude", "mcp__agentscient_dev__capability_search", {}))
+        self.assertTrue(permitted("codex", "work_context", {}))
+        self.assertTrue(permitted("claude", "mcp__agentscient_dev__work_context", {}))
         self.assertTrue(
-            permitted("grok", "use_tool", {"tool_name": "agentscient_dev__capability_search", "tool_input": {}})
+            permitted("grok", "use_tool", {"tool_name": "agentscient_dev__work_context", "tool_input": {}})
         )
         self.assertFalse(permitted("grok", "use_tool", {"tool_name": {}, "tool_input": {}}))
         result = subprocess.run(

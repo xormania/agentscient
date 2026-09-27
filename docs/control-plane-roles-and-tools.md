@@ -9,6 +9,15 @@ direction from candidate tool names and from capabilities implemented today.
 It is not a frozen API, a detailed implementation plan, or evidence that the
 proposed tools already exist. The owner's subsequent direction can change it.
 
+Implementation progress: the first shared-work slice now provides direct
+`work_context`, `work_report`, and `guidance_request` tools, trusted role/work
+bindings, scoped context and live delivery, routed reports, and retained evidence.
+All eight role names currently receive this common core. Additional command and
+specialist capabilities remain to be implemented. The older low-level catalog is
+available only through an explicit operator connection for setup/diagnostics.
+See [`devtools/README.md`](../devtools/README.md) for the current callable interface.
+The catalog sections below retain the discussion baseline for continuing revision.
+
 ## Delivery scope and deadline
 
 The entire dev-lane is being built in these chats. It must be ready for local
@@ -203,8 +212,9 @@ tool, or that a command role automatically needs all specialist capabilities.
 
 ## Candidate control-plane catalog
 
-The names below preserve the current discussion baseline. They are not implemented
-MCP names. Revise them together with the role list before defining schemas.
+The names below preserve the discussion baseline. The three shared tools identified
+in the implementation-progress note are now callable; the remaining names are
+proposals. Revise those together with the role list before defining schemas.
 
 ### Shared context and coordination
 
@@ -260,9 +270,9 @@ At the recording baseline, `dev` is commit
 `730df2a9d8b14b3c7eaee3fd8e8dbf5105c3ee5d`. The supported interface is documented in
 [`devtools/README.md`](../devtools/README.md).
 
-Implemented development support includes persistent live harness transports,
+At that baseline, implemented development support included persistent live harness transports,
 messages, telemetry, numbered work orders, child jobs, managed artifacts, and
-GitHub PR/CI services. MCP currently exposes `capability_search`,
+GitHub PR/CI services. MCP then exposed `capability_search`,
 `capability_describe`, and `capability_invoke` over those capabilities.
 
 [PR #309](https://github.com/uscient/agentscient/pull/309) added work and artifact
@@ -275,9 +285,10 @@ handle context and state internally, and expose only the operations appropriate
 to the caller's profile. Existing operational documentation continues to describe
 what can actually be called until implementation changes it.
 
-Local Git orchestration, the role-based tool surface, automatic brief provisioning,
-responsibility-based routing, and the integrated Serena workspace contract are
-proposed work. This document does not mark them complete.
+The shared role-bound surface, initial briefs, and report/guidance routing are now
+implemented as described above. Local Git orchestration, command/specialist tools,
+proactive command updates, and the integrated Serena workspace contract remain
+part of the delivery work. This document does not mark the complete dev-lane ready.
 
 ## What done means
 

@@ -29,7 +29,7 @@ class WorkTests(unittest.TestCase):
         self.store = Store(self.directory)
 
     def client(self, member="alpha"):
-        client = Client(self.directory, member)
+        client = Client(self.directory, member, operator=True)
         self.addCleanup(client.close)
         return client
 
@@ -214,7 +214,7 @@ class WorkTests(unittest.TestCase):
         self.assertEqual("complete", service.read(saved["id"])["content"])
 
     def test_inflight_tool_keeps_context_during_concurrent_selection(self):
-        api = API(self.directory, "alpha")
+        api = API(self.directory, "alpha", operator=True)
 
         def invoke(capability, **args):
             return api.call("capability_invoke", {"capability": capability, "arguments": args})
@@ -260,7 +260,7 @@ class WorkTests(unittest.TestCase):
                 "INSERT INTO events(id,at,actor,kind,data) VALUES (9,'before','alpha','native_usage',?)",
                 (json.dumps({"observation": {"inputTokens": 10}}),),
             )
-        api = API(directory, "alpha")
+        api = API(directory, "alpha", operator=True)
         self.assertEqual(7, api.store.inbox("beta")["messages"][0]["id"])
         event = api.store.events()["events"][0]
         self.assertEqual(9, event["id"])

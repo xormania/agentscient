@@ -1,15 +1,79 @@
 # MCP tools for live work
 
-This directory provides task-facing MCP tools for live communication, measured
-telemetry, work orders, jobs, artifacts, and GitHub PR/CI work. Agents ask to track
-work, inspect a PR, diagnose CI, save evidence, or retrieve context; services handle
-provider calls, database records and storage internally.
+This directory provides role-bound MCP tools for shared work, backed by live
+communication, telemetry, work orders/jobs, artifacts, and GitHub PR/CI services.
+Normal sessions expose `work_context`, `work_report`, and `guidance_request`
+directly. Services supply context and handle routing, records, and storage.
 Python 3.11+ and SQLite from its standard library are sufficient on Linux/macOS.
 Native launchers require the selected locally
 installed, authenticated harness. Background Claude sessions also require tmux.
 
-There is no dispatcher, task engine, assignment registry, grant system, audit
-ladder, source editor, shell capability, or project command runner.
+This is the first implementation slice of the
+[control-plane design](../docs/control-plane-roles-and-tools.md). CO/XO command
+tools, specialist tools, local Git, and Serena/Maker/Mate integration are still
+being built. There is no dispatcher, task engine, grant system, audit ladder,
+source editor, shell capability, or project command runner in this slice.
+
+## Agent-facing tools
+
+| Tool | Outcome |
+| --- | --- |
+| `work_context` | Read the supplied brief, scoped activity, incoming messages, or evidence. |
+| `work_report` | Retain and route progress, findings, blockers, recommendations, results, or responses, with optional evidence. |
+| `guidance_request` | Retain and route a question or request for assistance through the reporting relationship. |
+
+All eight initial profiles (`co`, `xo`, `coder`, `audit`, `docs`, `research`,
+`test_writer`, `architect`) currently share these three core tools. Their additional
+command/specialist capabilities arrive in subsequent PRs. An unbound member can
+only call `work_context`, which reports that a role and work must be supplied.
+No role or member name implicitly unlocks the operator catalog.
+
+The initialization response includes the current brief. Managed Codex and Claude
+also receive it in their startup instructions; Grok receives MCP instructions and
+context with its first live delivery. Changed briefs are included with the next
+live delivery; unchanged briefs are not repeated in every message. Proactive
+updates from command tools are part of the following command-tool work.
+
+Examples of direct tool arguments:
+
+```json
+{"name":"work_context","arguments":{}}
+{"name":"work_report","arguments":{"kind":"finding","text":"The existing service already supports this contract."}}
+{"name":"guidance_request","arguments":{"text":"Should this behavior apply to existing records?"}}
+{"name":"work_report","arguments":{"text":"Here is the evidence","evidence":{"name":"observations.md","content":"Measured results..."}}}
+```
+
+Optional `section` values for `work_context` are `brief`, `activity`, `messages`,
+and `evidence`. Listings are bounded; use returned `next_after` as `after` for
+another page. A returned `reference` retrieves a complete update/message or a
+bounded artifact read. Pass an artifact's `next_offset` as `offset` to continue.
+References are information handles, never permission to change the active work.
+
+`responding_to` on a report or guidance request accepts an update/message reference.
+The service routes the response to its author with the original work association.
+Responding to a shared work-order item from a job retains the caller's narrower
+job scope. An answer to an incoming message also records its acknowledgement;
+agents do not need an acknowledgement tool. A submitted live message alone is not
+proof that the agent read or acted on it.
+
+Reports and their outbound messages commit together. Identical report contents,
+evidence, response reference, and binding reuse the same record on retry, including
+after restart. Evidence uses the existing managed artifact service; a failure after
+saving evidence can leave a private, unlinked artifact, reused on retry. The visible
+evidence association commits with its report and audience. Delivery is reported
+as observed (`queued`, `submitted`, or `uncertain`), not as inferred completion.
+CO reports without a recipient are saved and returned as `recorded_for_user`.
+
+A job binding can read that job and shared work-order material. A work-order binding
+can read material across its jobs. CO/XO reports at work-order level and their
+attached evidence are visible to the relevant command scope and their participants;
+they do not automatically appear in specialist context. References, context listings, and live delivery
+enforce that scope. Artifact reads omit other work associations and provider
+metadata from the backing catalog. Agents cannot supply a work-order/job/recipient
+override or invoke raw operations through a guessed name or the former discovery
+wrapper. The server checks each call, including calls on already-open connections.
+In-flight calls retain the binding under which they started; subsequent calls use
+the current binding. These are service boundaries, not a claim of OS isolation.
 
 ## Set up a team
 
@@ -30,27 +94,57 @@ members can use separate worktrees. Existing member identities cannot silently
 move to a different harness or workspace; use a new member name for that change.
 No model is selected by this repository.
 
-Add this server to the managing client's MCP configuration, replacing the paths
-with absolute paths on your machine (the command must be your Python executable):
+For trusted setup and diagnostics, add this temporary operator connection,
+replacing the paths with absolute paths on your machine. The command must be your
+Python executable. Managed agent profiles never include `--operator`; remove this
+connection from any client used as an agent role after setup.
 
 ```json
 {
   "mcpServers": {
-    "agentscient_dev": {
+    "agentscient_operator": {
       "command": "/absolute/path/to/python3",
       "args": ["/absolute/path/to/agentscient/devtools/run.py", "mcp",
-               "--state", "/absolute/path/to/state", "--member", "owner"]
+               "--state", "/absolute/path/to/state", "--member", "owner", "--operator"]
     }
   }
 }
 ```
 
-`tools/list` exposes only `capability_search`, `capability_describe`, and
+On this operator connection, `tools/list` exposes `capability_search`, `capability_describe`, and
 `capability_invoke`. Search returns five capabilities per page; describe supplies
 the input schema. Invoke takes `{"capability":"name","arguments":{...}}`.
 
+Create a work order and its jobs with the existing operator capabilities below,
+then bind roles from the top down. For example, with work order 1 and job 2:
+
+```json
+{"capability":"member_bind","arguments":{"member":"owner","role":"co","work_order":1,"brief":"Represent the user's intent."}}
+{"capability":"member_bind","arguments":{"member":"codex","role":"xo","work_order":1,"reports_to":"owner","brief":"Coordinate the work within the stated boundaries."}}
+{"capability":"member_bind","arguments":{"member":"claude","role":"coder","job":2,"reports_to":"codex","brief":"Implement the job using existing framework capabilities."}}
+```
+
+The reporting member must cover the child's work scope. XO reports to CO; CO
+reports to the user. Cycles and mismatched work-order/job bindings are rejected.
+Rebinding identical values is a no-op. `member_unbind` with `member` removes the
+active binding; existing connections immediately lose report/guidance access.
+MCP clients receive a tool-list-change notification when the advertised list changes.
+Changing a supervisor's scope can require updating its collaborators' reporting
+bindings; a stale route reports an error instead of delivering into unrelated work.
+
+Normal external clients use the same server configuration **without `--operator`**,
+under the name `agentscient_dev`. Managed sessions are launched only after their
+role/work binding exists. The upcoming CO/XO command tools will perform this setup
+behind their own outcomes; agents will not assemble these operator calls.
+
+## Operator and backing-service capabilities
+
+The remainder of this guide describes the operator surface and underlying services.
+These capabilities are not advertised or invocable on normal agent connections.
+
 | Capability | Purpose |
 | --- | --- |
+| `member_bind`, `member_unbind` | Configure or remove a trusted role/work/reporting binding |
 | `peers` | Configured members, observed state, and actual native conversation IDs |
 | `session_start`, `session_stop` | Start a configured member or request that it stops |
 | `message_send` | Send a durable message with an idempotency key |
@@ -259,7 +353,7 @@ allows it; otherwise the service selects an allowed method from repository setti
 
 ## Storage for operators
 
-Work orders, jobs, associations, GitHub watches, artifact sources and metadata share the existing
+Role/work bindings, routed updates, work orders, jobs, associations, GitHub watches, artifact sources and metadata share the existing
 `live.sqlite3`. Payloads live under `artifacts/` in the private state directory.
 Services manage paths, hashes, publication and integrity checks; agents receive
 IDs, useful summaries, and requested content. Opening existing state adds the new

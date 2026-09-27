@@ -29,6 +29,9 @@ def main():
             command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
         elif name == "mcp":
             command.add_argument("--channel", action="store_true")
+            command.add_argument(
+                "--operator", action="store_true", help="Trusted setup/diagnostics; never pass to managed agents"
+            )
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -40,7 +43,7 @@ def main():
         if args.command == "init":
             result = launch.initialize(args.state, args.workspace, args.member)
         elif args.command == "mcp":
-            serve(args.state, args.member, args.channel)
+            serve(args.state, args.member, args.channel, args.operator)
             return 0
         elif args.command == "agent":
             launch.agent(args.state, args.member)
@@ -53,7 +56,7 @@ def main():
         elif args.command == "status":
             result = {"members": Store(args.state).members()}
         elif args.command == "send":
-            result = API(args.state, args.member).call(
+            result = API(args.state, args.member, operator=True).call(
                 "capability_invoke",
                 {"capability": "message_send", "arguments": {"to": args.to, "body": args.body, "key": args.key}},
             )

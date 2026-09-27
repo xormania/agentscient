@@ -42,13 +42,13 @@ class Fixture:
         return {}
 
     async def tool(self, capability, arguments):
-        args = {"capability": capability, "arguments": arguments}
+        args = arguments
         if self.harness == "codex":
             result = await self.request(
                 "item/tool/call",
                 {
                     "threadId": self.session,
-                    "tool": "capability_invoke",
+                    "tool": capability,
                     "arguments": args,
                     "callId": f"call-{self.count}",
                 },
@@ -56,7 +56,7 @@ class Fixture:
             if not result["success"]:
                 raise ValueError(result)
             return result
-        return await self.mcp.request("tools/call", {"name": "capability_invoke", "arguments": args})
+        return await self.mcp.request("tools/call", {"name": capability, "arguments": args})
 
     async def accept(self, text, hold):
         ident = int(re.search(r"Live message #(\d+)", text)[1])
@@ -81,9 +81,10 @@ class Fixture:
                     },
                 }
             )
-        await self.tool("message_ack", {"message": ident})
+        await self.tool("work_report", {"text": f"Received message {ident}", "responding_to": f"message:{ident}"})
         if hold:
-            await self.tool("message_wait", {"after": 1000000, "timeout": 10})
+            # The native turn remains unfinished while a second message is handled.
+            await asyncio.sleep(10)
 
     def background(self, awaitable):
         task = asyncio.create_task(awaitable)
