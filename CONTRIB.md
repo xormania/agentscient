@@ -11,6 +11,7 @@ behavior, verification and material limits in the PR.
 | Symfony product behavior | `src/`, `config/`, `packages/`, application tests |
 | Local agent tools, live coordination or operator support | `devtools/` and its tests |
 | Usage and setup documentation | `README.md`, `docs/`, `devtools/README.md`, `devtools/OPERATIONS.md` |
+| CI documentation | `.github/CI.md` |
 
 The dev-lane core must remain usable without PHP or the application's vendor
 packages. Its framework tools intentionally call the installed Symfony application.
@@ -25,16 +26,15 @@ the existing integration.
 
 ## Verify and document
 
-Run checks relevant to the change; [CI](.github/README.md) documents the service,
+Run checks relevant to the change; [CI](.github/CI.md) documents the service,
 Symfony and Serena jobs. A documentation-only change needs checked links, accurate
-examples and consistency with the implemented tools. It does not require new
-behavior tests or a new approval process.
+examples and consistency with the implemented tools. Check that GitHub displays
+the root project README on the repository homepage.
 
 Put setup in the [readiness guide](docs/local-agent-readiness.md), normal agent
 usage in the [role/tool reference](docs/control-plane-roles-and-tools.md), and
 backing-service details in the [operator reference](devtools/OPERATIONS.md).
-Describe implemented behavior in the present tense and label proposals as proposals.
-Avoid appending delivery progress notes to the main usage guides.
+Keep these guides focused on the current code and its supported operations.
 
 Preserve source/license attribution for reused code. Use `Source:` and
 `Co-Authored-By:` trailers where applicable. The Mate block in `AGENTS.md` is

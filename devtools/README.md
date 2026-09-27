@@ -2,7 +2,7 @@
 
 `devtools/` is the dev-lane: independent Python services behind MCP for live agent
 coordination and product development. The Symfony application in `src/`, `config/`
-and `packages/` is the prod-lane. Both are on the `dev` branch.
+and `packages/` is the prod-lane.
 
 ## Choose a guide
 
@@ -11,7 +11,7 @@ and `packages/` is the prod-lane. Both are on the `dev` branch.
 | First installation and local acceptance | [Local setup and readiness](../docs/local-agent-readiness.md) |
 | Normal CO, XO and specialist work | [Roles and tools](../docs/control-plane-roles-and-tools.md) |
 | Team configuration, credentials, native sessions, storage or repair | [Operator reference](OPERATIONS.md) |
-| Development checks and integration tests | [CI guide](../.github/README.md) |
+| Development checks and integration tests | [CI guide](../.github/CI.md) |
 
 ## Services and providers
 
@@ -30,7 +30,8 @@ outcome tools while the services manage repository and provider details.
 The normal tool catalog is role-scoped and directly callable. It does not expose
 the backing GitHub catalog or a shell. The separate operator connection is for
 setup and repair; it is not attached to managed agents. Live conversation is the
-coordination mechanism; there is no task dispatcher or mandatory review ladder.
+coordination mechanism. XO allocates responsibilities and routes guidance through
+each collaborator's work binding.
 
 ## Runtime
 
@@ -57,5 +58,8 @@ explains REPL lifetime and workspace isolation.
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |
 
-Native adapter provenance and the removed system's archive are recorded in the
-[operator reference](OPERATIONS.md#source-and-historical-material).
+Source and license details are in the
+[operator reference](OPERATIONS.md#source-attribution).
+
+An older development system is preserved on the
+[`shit` branch](https://github.com/uscient/agentscient/tree/shit).

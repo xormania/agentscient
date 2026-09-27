@@ -430,16 +430,10 @@ Queued, submitted, and acknowledged are distinct. A crash during delivery become
 retry that message; the ID stays the same. Traces and message history stay local.
 
 
-## Source and historical material
+## Source attribution
 
-Native transport adapters derive from the accepted
+Native transport adapters use code from the
 [multi-harness proof](https://github.com/xormania/multi-harness-proof/tree/a944f31b7527807d000da985c546e8b5bc9ff476).
 Its MIT notice is retained in [PROVENANCE-LICENSE](PROVENANCE-LICENSE). The pinned
 Serena image retains its upstream source and GPL license as described in the
 [Serena reference](../docs/control-plane-roles-and-tools.md#serena-v2-repl).
-
-The removed development system is preserved on the
-[`shit` archive branch](https://github.com/uscient/agentscient/tree/shit), at
-`456457b9a0a9eb1ff285ee2d3e40535b6f722cdb`. Its Conductor, dispatch and hand-grant
-instructions describe that historical implementation. Current operation is
-documented in the guides linked above.

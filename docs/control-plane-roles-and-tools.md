@@ -287,8 +287,8 @@ a clean producer workspace at that revision. The service merges through normal
 GitHub rules, retains the assessment/evidence and marks the job done.
 
 For report-only work, a retained `work_report(kind="result")` and no unsubmitted
-source changes are required. Audit is available when the responsibility needs it;
-there is no mandatory sequence of review roles.
+source changes are required. XO can assign an auditor when the responsibility
+needs review.
 
 `steer(action="cancel", work="Job name", direction="Reason")` preserves the
 worktree, PR and evidence and marks the job cancelled. An existing PR remains open
@@ -296,8 +296,8 @@ for the owner to decide its disposition. Acceptance/cancellation releases bindin
 and requests shutdown; slots become reusable after the native processes stop.
 
 Completed jobs stay visible in `monitor`. New responsibilities use new names and
-new worktrees based on the configured target. Old branches, worktrees, messages and
-artifacts remain; acceptance does not delete history.
+new worktrees based on the configured target. Completed work retains its branches,
+worktrees, messages and artifacts.
 
 When every job is done or cancelled, CO calls `conclude(assessment)` to retain the
 work-order outcome and release the remaining team. The next authorized `direct`

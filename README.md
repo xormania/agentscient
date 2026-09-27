@@ -1,8 +1,7 @@
 # Agentscient
 
-Agentscient is being built to manage software projects with teams of agents.
-This repository contains the **Symfony product foundation** and the **local agent
-development environment** used to build it.
+Agentscient combines a **Symfony application foundation** with an **MCP-based
+development environment** for teams of agents.
 
 **Development targets [`dev`](https://github.com/uscient/agentscient/tree/dev);
 `master` is the release branch.** Use `dev` when contributing or setting up a team
@@ -12,12 +11,11 @@ to work on the product.
 
 | Part | Purpose | Current state |
 | --- | --- | --- |
-| **Prod-lane — Symfony application** | The Agentscient product under development. | Application foundation, MCP Bundle, basic Maker Bundle, AI Mate, and PHPUnit. Product features and UI are still to be built. |
+| **Prod-lane — Symfony application** | The Agentscient product under development. | Symfony application skeleton with MCP Bundle, basic Maker Bundle, AI Mate, and PHPUnit. |
 | **Dev-lane — local development support** | Give persistent agent sessions the tools and context to develop the product. | Role-scoped MCP, live coordination, work orders/jobs, artifacts, telemetry, managed Git/GitHub delivery, framework tools and separate Serena v2 REPL. |
 
-Both components share this repository. A lane identifies a responsibility, not a
-Git branch. The control plane in `devtools/` runs independently of PHP; its Symfony
-development capabilities use the installed application packages when requested.
+The control plane in `devtools/` runs independently of PHP. Its Symfony development
+capabilities use the installed application packages when requested.
 
 ## Start here
 
@@ -49,13 +47,13 @@ Mate supplies application diagnostics.
 | Understand roles, context and the available tools | [Control-plane roles and tools](docs/control-plane-roles-and-tools.md) |
 | Understand the development services | [Dev-lane overview](devtools/README.md) |
 | Configure, inspect or repair a local installation | [Operator reference](devtools/OPERATIONS.md) |
-| Contribute changes or verify them | [Contributing](CONTRIB.md) and [CI](.github/README.md) |
+| Contribute changes or verify them | [Contributing](CONTRIB.md) and [CI](.github/CI.md) |
 
 ## Verification
 
 CI exercises the control plane and native protocol adapters with fixtures, real
 local Git repositories, and HTTP provider fixtures. It also runs the installed
-Symfony Makers/Mate and the pinned Serena container. See the [CI guide](.github/README.md)
+Symfony Makers/Mate and the pinned Serena container. See the [CI guide](.github/CI.md)
 for the checks and their scope.
 
 An authenticated run with the chosen local harnesses is a separate acceptance
