@@ -88,8 +88,12 @@ class Serena:
             raise ValueError("Configure a local Serena container image.")
         self.docker = config.get("docker", "docker")
         root = Path(workspace["root"])
+        project_state = root / ".serena"
+        if project_state.is_symlink() or project_state.resolve() != project_state:
+            raise ValueError("Provider mountpoint must not be a symlink.")
+        project_state.mkdir(exist_ok=True)
         private = self.store.directory / "providers" / self.member / self.container
-        private.mkdir(mode=0o700, parents=True)
+        private.mkdir(mode=0o700, parents=True, exist_ok=True)
         (private / "project.yml").write_text(
             "project_name: managed-job\nlanguage_servers: [php_phpactor]\nread_only: "
             + ("false" if scope["role"] in EDITORS else "true")
@@ -268,6 +272,9 @@ class Serena:
                     success=not result.get("isError", False),
                 )
                 return result
+            except Exception:
+                self.close()
+                raise
             finally:
                 if self.process is not None:
                     self.freeze(True)
