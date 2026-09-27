@@ -11,12 +11,12 @@ ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 class Client:
     """A real stdio MCP client, including concurrent requests and notifications."""
 
-    def __init__(self, directory, member, channel=False, env=None, operator=False):
+    def __init__(self, directory, member, channel=False, env=None, operator=False, provider="mcp"):
         self.process = subprocess.Popen(
             [
                 sys.executable,
                 str(ENTRY),
-                "mcp",
+                provider,
                 "--state",
                 str(directory),
                 "--member",

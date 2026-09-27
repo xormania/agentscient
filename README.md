@@ -33,8 +33,9 @@ and telemetry.
 Configured jobs now get managed Git workspaces, checkpoints, recovery, upstream
 refresh, and PR submission through outcome tools. There is no general shell tool.
 Installed Makers, Mate diagnostics and configured validation now have scoped MCP
-tools and retained asynchronous results. Serena and final review/acceptance are
-being integrated toward the documented Monday readiness target.
+tools and retained asynchronous results. Serena v2 REPL is a separate, automatically
+bound provider with protected workspace mounts. Final review/acceptance and local
+native-harness acceptance are being completed toward the Monday readiness target.
 
 The proposed control-plane direction, CO/XO relationship, role profiles, and draft
 tool catalog are recorded in

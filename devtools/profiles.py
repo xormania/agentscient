@@ -9,6 +9,10 @@ import tomllib
 from pathlib import Path
 
 from .api import SERVER, TOOLS, validate
+from .serena_provider import SERVER as SERENA_SERVER
+from .serena_provider import TOOL as SERENA_TOOL
+from .serena_provider import enabled as serena_enabled
+from .serena_provider import server_config as serena_config
 
 ENTRY = Path(__file__).resolve().parent / "run.py"
 CODEX_FEATURES = {
@@ -54,8 +58,8 @@ def permitted(harness, tool, arguments):
         tool, arguments = arguments["tool_name"], arguments["tool_input"]
         if not isinstance(tool, str) or not isinstance(arguments, dict):
             return False
-    for row in TOOLS:
-        names = {f"mcp__{SERVER}__{row['name']}", f"{SERVER}__{row['name']}"}
+    for provider, row in [(SERVER, row) for row in TOOLS] + [(SERENA_SERVER, SERENA_TOOL)]:
+        names = {f"mcp__{provider}__{row['name']}", f"{provider}__{row['name']}"}
         if harness == "codex":
             names.add(row["name"])
         if tool in names:
@@ -99,9 +103,16 @@ def prepare(directory, member, harness):
     }
     server = {"command": sys.executable, "args": [str(ENTRY), "mcp", "--state", str(directory), "--member", member]}
     if harness == "claude":
+        from .control import Control
+        from .store import Store
+
         server["args"].append("--channel")
         write_json(private / "settings.json", {"hooks": groups})
-        write_json(private / "mcp.json", {"mcpServers": {SERVER: server}})
+        servers = {SERVER: server}
+        store = Store(directory)
+        if serena_enabled(store, Control(store, member).snapshot()):
+            servers[SERENA_SERVER] = serena_config(directory, member)
+        write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
         for name in ("auth.json",):

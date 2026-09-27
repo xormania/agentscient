@@ -277,9 +277,13 @@ class Control:
                     from .workspaces import Workspaces, project_config
 
                     if project_config(self.store):
+                        from .serena_provider import enabled as serena_enabled
+
                         result["development"] = {
                             "editable_paths": Workspaces(self.store, self.member).paths(scope["role"]),
                             "workspace": "managed automatically for this job",
+                            "framework_tools": isinstance(project_config(self.store).get("development"), dict),
+                            "serena_repl": serena_enabled(self.store, scope),
                         }
                 parent = binding(db, scope["reports_to"])
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"

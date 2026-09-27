@@ -17,8 +17,9 @@ All eight role names receive this common core. The command slice now adds CO
 binding, configured harness selection/startup, scoped monitoring, and live brief
 updates. Pause retains the running conversation; stop requests session shutdown
 while preserving work and evidence. Managed Git workspaces, checkpoints, publication,
-installed Makers/Mate, and configured checks now have direct scoped tools. Serena,
-review/acceptance and completed-work turnover remain to be integrated. The older low-level catalog is
+installed Makers/Mate, and configured checks now have direct scoped tools. Serena
+v2 REPL now has a separate bound MCP provider with role-limited source mounts.
+Review/acceptance and completed-work turnover remain to be integrated. The older low-level catalog is
 available only through an explicit operator connection for setup/diagnostics.
 See [`devtools/README.md`](../devtools/README.md) for the current callable interface.
 The catalog sections below retain the discussion baseline for continuing revision.
@@ -301,7 +302,9 @@ checkpoint, recovery, upstream refresh and PR submission. The service binds the
 repository, branch and target automatically, preserves conflicts/checkpoints, and
 retains diff and CI evidence. Installed Maker generation, Mate diagnostics and
 configured validation now execute behind role-bound MCP, with retained asynchronous
-results and automatic worker/supervisor delivery. Serena editing and completed-job turnover
+results and automatic worker/supervisor delivery. Serena v2 REPL editing is attached
+as a separate provider, with container boundaries and shared workspace locking.
+Completed-job turnover and review/acceptance
 are the remaining integration work. Protocol fixtures exercise the command flow and live pause/resume; authenticated
 local model acceptance remains outstanding. This document does not mark the complete
 dev-lane ready.
