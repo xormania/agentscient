@@ -11,7 +11,7 @@ installed, authenticated harness. Background Claude sessions also require tmux.
 
 This implements the shared-work and command portions of the
 [control-plane design](../docs/control-plane-roles-and-tools.md). Specialist tools,
-local Git, and Serena/Maker/Mate integration are still
+and Serena/Maker/Mate integration are still
 being built. There is no dispatcher, task engine, grant system, audit ladder,
 source editor, shell capability, or project command runner in this slice.
 
@@ -30,7 +30,7 @@ All eight initial profiles (`co`, `xo`, `coder`, `audit`, `docs`, `research`,
 | --- | --- |
 | CO | `direct`, `monitor` |
 | XO | `orchestrate`, `monitor`, `steer` |
-| Specialists | None yet; editing, validation and delivery integration follows. |
+| Specialists | Managed workspace inspection; editing roles also get checkpoints, recovery, refresh and PR submission. |
 
 An unbound member can only call `work_context`, unless explicitly appointed as CO
 in trusted team configuration. That user-facing session also gets `direct` and
@@ -86,6 +86,11 @@ the current binding. Commands recheck authority inside their write transaction a
 reject a stale call before changing work. These are service boundaries, not a claim of OS isolation.
 
 ## CO and XO command outcomes
+
+With `project` configured, a bound specialist also receives `work_inspect`.
+Editing roles receive `work_save`, `work_refresh`, `work_recover`, and `work_submit`.
+Their brief includes the role's editable paths. Repository, branch, worktree and
+target selection remain service responsibilities.
 
 CO calls `direct` with the authorized `title`, `objective`, `done_when`, and
 `constraints`. The first call creates the work order, binds CO and an available XO,
@@ -150,9 +155,61 @@ that a model received or followed it. Superseded queued directions remain in his
 without being delivered; a delayed live direction renders the current brief.
 
 This slice supports one current work order per CO and one collaborator per named
-job. Completed-job turnover, automatic workspace/Git lifecycle, and specialist
+job. Completed-job turnover and further specialist
 delivery outcomes are still to be integrated. Stopping a collaborator does not
 release its binding or mark its job done.
+
+## Managed job workspaces and delivery
+
+Add trusted project configuration to the team's `team.json` before starting product
+work. `checkout` is an existing local Git checkout; `target` is its integration branch.
+Authentication for the Git remote and GitHub is supplied by the operator's installed
+Git/GitHub configuration, never by agent arguments.
+
+```json
+{
+  "project": {
+    "checkout": "/absolute/path/to/agentscient",
+    "repository": "uscient/agentscient",
+    "target": "dev",
+    "remote": "origin"
+  }
+}
+```
+
+Each job gets an owned worktree and branch outside the source checkout and private
+control-plane state. Managed harnesses start in that worktree; artifact file sources
+use it as well. Creation is retryable and serialized. Git changes, checkpoints,
+refresh, recovery and submission share a per-job lock, which provider calls also
+need to use. This is coordination between managed services, not OS isolation.
+
+| Tool | Outcome |
+| --- | --- |
+| `work_inspect` | Read changed-file summaries, bounded diffs, checkpoint history and editable scope. |
+| `work_save` | Commit allowed changes as a checkpoint and retain diff evidence. |
+| `work_refresh` | Preserve changes, fetch the configured target, and merge it; abort conflicts while retaining the checkpoint. |
+| `work_recover` | Restore a checkpoint belonging to this job as a new commit, preserving current work first. |
+| `work_submit` | Checkpoint, push without force, create/reuse the job's PR, start CI observation, and report the result. |
+
+`work_inspect(section="changes", path="src/Example.php")` reads a bounded diff.
+Use `next_offset` for more. `work_save` takes a `note`; `work_submit` takes a
+`summary`. Recovery takes a returned `checkpoint` reference and a `reason`.
+These references identify retained evidence, not arbitrary Git revisions.
+
+Default coder paths cover the Symfony product (`src`, `config`, `packages`, `tests`,
+`templates`, `assets`, `translations`, `public`, `migrations`, Composer/Symfony lock
+files and PHPUnit configuration). Test writers own tests; docs and architect profiles
+own documentation. `devtools` and control-plane configuration are outside those
+defaults. The operator can explicitly set `project.paths` by role. Unexpected
+changes are preserved and reported for guidance; they are not silently discarded.
+Optional `project.identity` has `name` and `email` when a dedicated commit identity
+is needed; otherwise Git uses its configured identity. Git hooks and external diff
+programs are disabled in managed operations.
+
+Submission does not merge a PR or mark the objective done. CI observation is retained
+by the existing GitHub service. A failed remote step preserves completed checkpoints
+and publication; retry reuses the branch and PR. Source authoring and configured
+validation are separate integration work, described in the readiness document.
 
 ## Set up a team
 
@@ -320,7 +377,7 @@ An in-flight MCP call keeps its original context if another call changes selecti
 `job_select` without an ID clears only the job; `work_order_select` without a number
 clears both. Selection persists across MCP process restarts. Records remain after
 branches disappear and PRs merge. Work-tracking tools store references; GitHub
-tools retrieve current provider state. Local Git operations are not implemented.
+tools retrieve current provider state. Managed Git operations are described above.
 Status (`open`, `in_progress`, `blocked`, `done`, `cancelled`) is freely editable.
 Closing jobs does not automatically close their work order. Optional creation
 `key` values let a caller retry without creating duplicate records.
@@ -527,6 +584,9 @@ restart behavior, channel registration, telemetry, and the native-tool boundary.
 Command tests cover CO bootstrap, role-scoped tools, automatic CO→XO→collaborator
 startup through MCP, atomic allocation, retries, changed authority, private context,
 live steering, persistent pause/resume, startup failures, and version-three upgrades.
+Workspace tests use real local Git repositories and a bare remote for isolation,
+publication, retry, checkpoint recovery and merge-conflict preservation; GitHub PR
+behavior is tested separately with the provider fixtures.
 Work/storage tests cover the work-order/job hierarchy, PR and artifact associations,
 legacy database upgrades, restart recovery, concurrent selection, file snapshots,
 publication failure/retry, integrity failures, and binary/UTF-8 reads through MCP.

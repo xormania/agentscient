@@ -26,7 +26,7 @@ class Native:
         self.api = API(directory, member)
         self.control = self.api.control
         self.config, self.generation = config, generation
-        self.workspace = self.store.member(member)["workspace"]
+        self.workspace = config["workspace"]
         self.harness = config["harness"]
         self.private, self.env, self.server = prepare(directory, member, self.harness)
         self.trace = Trace(directory, member)
@@ -387,7 +387,7 @@ def claude(directory, member, config, generation):
     if config.get("reasoning"):
         argv += ["--effort", config["reasoning"]]
     argv += ["--", "Stay in this conversation and handle live peer messages through " + SERVER + "."]
-    process = subprocess.Popen(argv, cwd=store.member(member)["workspace"], env=env, start_new_session=True)
+    process = subprocess.Popen(argv, cwd=config["workspace"], env=env, start_new_session=True)
     store.session(member, generation=generation, native_id=native_id, detail={"transport": "claude/channel"})
     ready = False
     try:

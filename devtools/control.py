@@ -274,6 +274,13 @@ class Control:
                 }
                 if scope["job"]:
                     result["job"] = self._summary(record(db, "jobs", scope["job"]))
+                    from .workspaces import Workspaces, project_config
+
+                    if project_config(self.store):
+                        result["development"] = {
+                            "editable_paths": Workspaces(self.store, self.member).paths(scope["role"]),
+                            "workspace": "managed automatically for this job",
+                        }
                 parent = binding(db, scope["reports_to"])
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"
                 sql, args = update_sql(scope, self.member)

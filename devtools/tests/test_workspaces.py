@@ -1,0 +1,182 @@
+import json
+import os
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from support import Client
+
+from devtools.api import API
+from devtools.launch import initialize
+from devtools.store import Store
+from devtools.workspaces import git
+
+
+class WorkspaceTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.checkout = self.root / "checkout"
+        self.checkout.mkdir()
+        subprocess.run(["git", "init", "-b", "dev", str(self.checkout)], capture_output=True, check=True)
+        git(self.checkout, "config", "user.name", "Fixture")
+        git(self.checkout, "config", "user.email", "fixture@example.invalid")
+        (self.checkout / "src").mkdir()
+        (self.checkout / "src/Example.php").write_text("original\n")
+        (self.checkout / "README.md").write_text("Example\n")
+        (self.checkout / "devtools").mkdir()
+        (self.checkout / "devtools/protected.py").write_text("protected\n")
+        git(self.checkout, "add", ".")
+        git(self.checkout, "commit", "-m", "Initial")
+        self.remote = self.root / "remote.git"
+        subprocess.run(["git", "init", "--bare", str(self.remote)], capture_output=True, check=True)
+        git(self.checkout, "remote", "add", "origin", str(self.remote))
+        git(self.checkout, "push", "origin", "dev")
+        self.state = self.root / "state"
+        initialize(
+            self.state, self.checkout, ["co:external", "xo:external", "coder:external", "docs:external"], co="co"
+        )
+        config = json.loads((self.state / "team.json").read_text())
+        config["project"] = {"checkout": str(self.checkout), "repository": "example/project", "target": "dev"}
+        (self.state / "team.json").write_text(json.dumps(config))
+        API(self.state, "co").call(
+            "direct",
+            {"title": "Local work", "objective": "Implement", "done_when": "Delivered", "constraints": "Product only"},
+        )
+        API(self.state, "xo").call(
+            "orchestrate",
+            {
+                "work": [
+                    {
+                        "name": "Feature",
+                        "role": "coder",
+                        "objective": "Feature",
+                        "done_when": "Works",
+                        "constraints": "Product only",
+                    }
+                ]
+            },
+        )
+        self.api = API(self.state, "coder")
+        self.store = Store(self.state)
+
+    def prepared(self):
+        self.api.call("work_inspect", {})
+        return Path(self.api.workspaces.ensure()["root"])
+
+    def test_job_prepares_owned_worktree_and_normal_mcp_checkpoint(self):
+        client = Client(self.state, "coder")
+        self.addCleanup(client.close)
+        context = client.tool("work_inspect", {})
+        workspace = self.prepared()
+        self.assertNotEqual(workspace, self.checkout)
+        self.assertEqual("prepared", context["workspace"])
+        (workspace / "src/Example.php").write_text("changed\n")
+        saved = client.tool("work_save", {"note": "Implement the feature"})
+        self.assertEqual("original\n", (self.checkout / "src/Example.php").read_text())
+        self.assertEqual([], self.api.call("work_inspect", {})["changes"])
+        self.assertFalse(client.tool("work_save", {"note": "Implement the feature"})["changed"])
+        evidence = client.tool("work_context", {"reference": saved["evidence"]})
+        self.assertIn("changed", evidence["content"])
+        self.assertNotIn(str(self.root), json.dumps(context))
+
+    def test_role_pause_and_protected_changes_are_checked_before_commit(self):
+        workspace = self.prepared()
+        (workspace / "devtools/protected.py").write_text("unauthorized\n")
+        before = git(workspace, "rev-parse", "HEAD").stdout
+        with self.assertRaisesRegex(ValueError, "outside this role"):
+            self.api.call("work_save", {"note": "Try a protected change"})
+        self.assertEqual(before, git(workspace, "rev-parse", "HEAD").stdout)
+        self.assertEqual("unauthorized\n", (workspace / "devtools/protected.py").read_text())
+        API(self.state, "xo").call("steer", {"action": "pause", "work": "Feature"})
+        with self.assertRaisesRegex(ValueError, "paused"):
+            self.api.call("work_save", {"note": "Try while paused"})
+        self.assertEqual("prepared", self.api.call("work_inspect", {})["workspace"])
+        with self.api.workspaces.lock("job-" + str(self.api.control.snapshot()["job"])):
+            with self.assertRaisesRegex(ValueError, "Another operation"):
+                self.api.call("work_inspect", {})
+
+    def test_recovery_preserves_history_without_rewriting_published_commits(self):
+        workspace = self.prepared()
+        first = self.api.call("work_save", {"note": "Initial checkpoint"})
+        (workspace / "src/Example.php").write_text("second\n")
+        second = self.api.call("work_save", {"note": "Second checkpoint"})
+        (workspace / "src/Example.php").write_text("third\n")
+        result = self.api.call(
+            "work_recover", {"checkpoint": first["checkpoint"], "reason": "Restore original behavior"}
+        )
+        self.assertEqual("original\n", (workspace / "src/Example.php").read_text())
+        ancestor = git(
+            workspace, "merge-base", "--is-ancestor", second["checkpoint"].split(":")[1], "HEAD", check=False
+        )
+        self.assertEqual(0, ancestor.returncode)
+        self.assertNotEqual(result["preserved"]["checkpoint"], result["restored"]["checkpoint"])
+        with self.assertRaisesRegex(ValueError, "this job"):
+            self.api.call("work_recover", {"checkpoint": "checkpoint:" + "a" * 40, "reason": "Foreign revision"})
+
+    def test_refresh_fast_forward_and_conflict_preserve_job_work(self):
+        workspace = self.prepared()
+        (self.checkout / "README.md").write_text("Upstream documentation\n")
+        git(self.checkout, "commit", "-am", "Upstream documentation")
+        git(self.checkout, "push", "origin", "dev")
+        self.assertEqual("refreshed", self.api.call("work_refresh", {})["state"])
+        (workspace / "src/Example.php").write_text("local version\n")
+        (self.checkout / "src/Example.php").write_text("remote version\n")
+        git(self.checkout, "commit", "-am", "Upstream feature")
+        git(self.checkout, "push", "origin", "dev")
+        result = self.api.call("work_refresh", {})
+        self.assertEqual("needs_guidance", result["state"])
+        self.assertEqual(["src/Example.php"], result["conflicts"])
+        self.assertEqual("local version\n", (workspace / "src/Example.php").read_text())
+        self.assertEqual([], self.api.call("work_inspect", {})["changes"])
+
+    def test_submit_retries_reuse_checkpoint_and_bind_pr_with_git_publication(self):
+        workspace = self.prepared()
+        (workspace / "src/Example.php").write_text("Delivered\n")
+        provider_calls = []
+
+        class Provider:
+            def __init__(self, store, member):
+                pass
+
+            def _context(self, **kwargs):
+                return kwargs
+
+            def pr_open(self, context, **kwargs):
+                provider_calls.append(kwargs)
+                return {
+                    "pr": {
+                        "revision": git(workspace, "rev-parse", "HEAD").stdout.decode().strip(),
+                        "url": "https://github.com/example/project/pull/1",
+                    }
+                }
+
+            def ci_watch(self, context):
+                return {"state": "watching"}
+
+        with patch("devtools.github.GitHub", Provider):
+            first = self.api.call("work_submit", {"summary": "Deliver feature"})
+            second = self.api.call("work_submit", {"summary": "Deliver feature"})
+        self.assertEqual(first, second)
+        branch = self.api.workspaces.ensure()["branch"]
+        published = git(self.remote, "rev-parse", "refs/heads/" + branch).stdout.decode().strip()
+        self.assertEqual(first["checkpoint"].split(":")[1], published)
+        self.assertEqual("dev", provider_calls[0]["base"])
+        self.assertTrue(self.store.inbox("xo")["messages"])
+
+    def test_artifact_source_uses_bound_job_and_rejects_symlink_escape(self):
+        workspace = self.prepared()
+        (workspace / "src/Example.php").write_text("Job-specific evidence\n")
+        evidence = self.api.artifacts.save(name="example.txt", source="src/Example.php")
+        read = self.api.artifacts.read(evidence["artifact"]["id"])
+        self.assertEqual("Job-specific evidence\n", read["content"])
+        os.symlink(self.checkout / "README.md", workspace / "outside")
+        with self.assertRaisesRegex(ValueError, "relative"):
+            self.api.artifacts.save(name="outside.txt", source="outside")
+
+
+if __name__ == "__main__":
+    unittest.main()

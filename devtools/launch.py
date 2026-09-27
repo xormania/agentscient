@@ -81,11 +81,16 @@ def configuration(directory, member):
         raise ValueError("External members connect their own MCP client; there is no managed process to start.")
     from .control import Control
 
-    if not Control(store, member).snapshot():
+    scope = Control(store, member).snapshot()
+    if not scope:
         raise ValueError(
             "Bind this member's role and work through the operator member_bind capability before starting it."
         )
     selected = dict(selected)
+    from .workspaces import Workspaces, project_config
+
+    if scope["job"] and project_config(store):
+        selected["workspace"] = Workspaces(store, member).ensure()["root"]
     binary = shutil.which(selected.get("binary", selected["harness"]))
     if not binary:
         raise ValueError(f"Install/login to {selected['harness']} and set its binary in team.json")
