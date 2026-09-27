@@ -355,7 +355,7 @@ class GitHubTests(unittest.TestCase):
     def client(self, member="alpha"):
         env = {**os.environ, "FIXTURE_GITHUB_ROOT": self.provider.url}
         with patch("support.ENTRY", Path(__file__).with_name("github_fixture.py")):
-            client = Client(self.directory, member, env=env)
+            client = Client(self.directory, member, env=env, operator=True)
         self.addCleanup(client.close)
         return client
 
@@ -560,7 +560,7 @@ class GitHubTests(unittest.TestCase):
         self.assertEqual(order, report["work"][0]["work_order"])
         self.assertEqual([], report["sources"])
         with self.store.connect() as db:
-            self.assertEqual(2, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(3, db.execute("PRAGMA user_version").fetchone()[0])
 
 
 if __name__ == "__main__":

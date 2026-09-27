@@ -15,9 +15,12 @@ where they fit. Inspect installed packages and existing services before adding
 custom infrastructure. Basic Makers and Mate are already application development
 dependencies; their presence does not require a new wrapper or custom Maker.
 
-Participating live harnesses use the configured MCP tools. They communicate
-directly in persistent conversations. No task dispatch, assignment registry,
-grant system, review ladder, or workflow engine is provided.
+Participating live harnesses use role-bound MCP tools in persistent conversations.
+The control plane supplies work context and routes reports and guidance. Normal
+agents cannot select arbitrary work, recipients, or backing-provider operations.
+Trusted operator setup is separate; never give managed agents the `--operator`
+connection. No task dispatch, grant system, review ladder, or workflow engine is
+provided. Command and specialist tools are being added in subsequent PRs.
 Work-order numbers bind the overall effort; jobs are bounded pieces delivered
 through PRs. Agents use task-facing MCP tools; the services handle storage and
 record association internally.

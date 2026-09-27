@@ -34,8 +34,19 @@ class NativeProtocolTests(unittest.TestCase):
                     "CODEX_HOME": str(home / "codex"),
                     "GROK_HOME": str(home / "grok"),
                 }
-                client = Client(state, "owner", env=env)
+                client = Client(state, "owner", env=env, operator=True)
                 try:
+                    order = client.invoke(
+                        "work_order_create", title="Protocol test", objective="Live work", done_when="Received"
+                    )
+                    client.invoke("member_bind", member="owner", role="co", work_order=order["work_order"]["id"])
+                    client.invoke(
+                        "member_bind",
+                        member="worker",
+                        role="coder",
+                        work_order=order["work_order"]["id"],
+                        reports_to="owner",
+                    )
                     started = client.invoke("session_start", member="worker")
                     self.assertEqual("running", started["requested"])
                     until(lambda: store.member("worker")["state"] == "idle")
@@ -49,7 +60,7 @@ class NativeProtocolTests(unittest.TestCase):
                         lambda: (
                             store.events(kind="operation_started")["events"]
                             and any(
-                                row["data"]["capability"] == "message_wait"
+                                row["data"]["capability"] == "work_report"
                                 for row in store.events(kind="operation_started")["events"]
                             )
                         )
@@ -62,10 +73,10 @@ class NativeProtocolTests(unittest.TestCase):
                     self.assertEqual([first["id"], second["id"]], [row["id"] for row in rows])
                     self.assertEqual(original_id, store.member("worker")["native_id"])
                     self.assertEqual("active", store.member("worker")["state"])
-                    submissions = store.events(kind="message_submitted")["events"]
-                    until(lambda: len(store.events(kind="message_submitted")["events"]) == 2)
+                    submissions = store.events(kind="message_submitted", actor="worker")["events"]
+                    until(lambda: len(store.events(kind="message_submitted", actor="worker")["events"]) == 2)
                     if harness == "grok":
-                        submissions = store.events(kind="message_submitted")["events"]
+                        submissions = store.events(kind="message_submitted", actor="worker")["events"]
                         self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
                     else:
                         self.assertTrue(store.events(kind="native_usage")["events"])

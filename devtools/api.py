@@ -5,13 +5,15 @@ from __future__ import annotations
 import time
 
 from .artifacts import Artifacts
+from .control import REQUEST_BINDING, ROLES, Control
+from .control import capabilities as control_capabilities
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
 
 SERVER = "agentscient_dev"
-INSTRUCTIONS = (
+OPERATOR_INSTRUCTIONS = (
     "You are a participant in a persistent live team. Discover capabilities with capability_search, "
     "inspect inputs with capability_describe, then call capability_invoke. Communicate directly with peers. "
     "A queued or submitted message is not an acknowledgement; acknowledge messages you receive. "
@@ -240,8 +242,31 @@ CAPABILITIES = [
     ),
 ]
 CAPABILITIES += github_capabilities(spec)
+CAPABILITIES.append(
+    spec(
+        "member_bind",
+        "Operator setup: bind a member's role, work scope, reporting relationship and brief.",
+        {
+            "member": NAME,
+            "role": {"type": "string", "enum": list(ROLES)},
+            "work_order": POSITIVE,
+            "job": POSITIVE,
+            "reports_to": NAME,
+            "brief": DETAIL,
+        },
+        ("member", "role"),
+    )
+)
+CAPABILITIES.append(
+    spec(
+        "member_unbind",
+        "Operator setup: remove a member's active role and work binding.",
+        {"member": NAME},
+        ("member",),
+    )
+)
 BY_NAME = {row["name"]: row for row in CAPABILITIES}
-TOOLS = [
+OPERATOR_TOOLS = [
     spec(
         "capability_search",
         "Discover a small page of tools for coordination, work orders, jobs, GitHub PR/CI, artifacts and telemetry.",
@@ -258,6 +283,9 @@ TOOLS = [
         ("capability", "arguments"),
     ),
 ]
+
+
+TOOLS = control_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -301,17 +329,47 @@ def validate(value, schema, path="arguments"):
 
 
 class API:
-    def __init__(self, directory, member):
+    def __init__(self, directory, member, *, operator=False):
         self.store = Store(directory)
         self.member = self.store.member(member)["name"]
+        self.operator = operator
+        self.control = Control(self.store, self.member)
         self.work = Work(self.store, self.member)
         self.artifacts = Artifacts(self.store, self.member)
         from .github import GitHub
 
         self.github = GitHub(self.store, self.member)
 
+    def tools(self):
+        if self.operator:
+            return OPERATOR_TOOLS
+        scope = self.control.snapshot()
+        return TOOLS if scope and scope["role"] in ROLES else TOOLS[:1]
+
+    def instructions(self):
+        return OPERATOR_INSTRUCTIONS if self.operator else self.control.instructions()
+
     def call(self, name, arguments):
-        outer = next((row for row in TOOLS if row["name"] == name), None)
+        if self.operator:
+            return self._operator_call(name, arguments)
+        scope = self.control.snapshot()
+        allowed = TOOLS if scope and scope["role"] in ROLES else TOOLS[:1]
+        schema = next((row for row in allowed if row["name"] == name), None)
+        if schema is None:
+            self.store.event(self.member, "tool_denied", tool=str(name)[:80])
+            raise ValueError("Tool is not available in your current role and work context")
+        validate(arguments, schema["inputSchema"])
+        token = REQUEST_BINDING.set((self.member, scope))
+        try:
+            with self.store.work_context(
+                self.member, scope["work_order"] if scope else None, scope["job"] if scope else None
+            ):
+                return self.run(name, arguments)
+        finally:
+            REQUEST_BINDING.reset(token)
+
+    def _operator_call(self, name, arguments):
+        outer = next((row for row in OPERATOR_TOOLS if row["name"] == name), None)
         if outer is None:
             raise ValueError("Unknown MCP tool")
         validate(arguments, outer["inputSchema"])
@@ -373,6 +431,16 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name == "work_context":
+            return self.control.work_context(**args)
+        if name == "work_report":
+            return self.control.report(**args)
+        if name == "guidance_request":
+            return self.control.report(kind="guidance", **args)
+        if name == "member_bind":
+            return self.control.bind(**args)
+        if name == "member_unbind":
+            return self.control.unbind(**args)
         if name in GITHUB_NAMES:
             return self.github.call(name, args)
         if name == "peers":

@@ -6,13 +6,13 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from . import VERSION
-from .api import API, INSTRUCTIONS, SERVER, TOOLS, render
+from .api import API, SERVER, render
 
 MAX_FRAME = 131072
 
 
-def serve(directory, member, channel=False):
-    api = API(directory, member)
+def serve(directory, member, channel=False, operator=False):
+    api = API(directory, member, operator=operator)
     output_lock = threading.Lock()
     initialized = threading.Event()
     stopped = threading.Event()
@@ -29,7 +29,7 @@ def serve(directory, member, channel=False):
             session = api.store.member(member)
             if session["desired"] != "running" or session["state"] not in {"idle", "active"}:
                 continue
-            message = api.store.take_delivery(member)
+            message = api.store.take_delivery(member, scoped=not operator)
             if message is None:
                 continue
             try:
@@ -37,7 +37,7 @@ def serve(directory, member, channel=False):
                     {
                         "method": "notifications/claude/channel",
                         "params": {
-                            "content": render(message),
+                            "content": render(message) if operator else api.control.render(message),
                             "meta": {"message_id": str(message["id"]), "sender_id": message["sender"]},
                         },
                     }
@@ -57,21 +57,21 @@ def serve(directory, member, channel=False):
             return
         try:
             if method == "initialize":
-                caps = {"tools": {"listChanged": False}}
+                caps = {"tools": {"listChanged": not operator}}
                 if channel:
                     caps["experimental"] = {"claude/channel": {}}
                 result = {
                     "protocolVersion": "2025-06-18",
                     "capabilities": caps,
                     "serverInfo": {"name": SERVER, "version": VERSION},
-                    "instructions": INSTRUCTIONS,
+                    "instructions": api.instructions(),
                 }
             elif method == "ping":
                 result = {}
             elif not initialized.is_set():
                 raise ValueError("Initialize this MCP session first")
             elif method == "tools/list":
-                result = {"tools": TOOLS}
+                result = {"tools": api.tools()}
             elif method == "tools/call":
                 params = packet.get("params", {})
                 try:
@@ -87,9 +87,14 @@ def serve(directory, member, channel=False):
             write({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
 
     def watches():
+        tool_names = [row["name"] for row in api.tools()]
         initialized.wait()
         while not stopped.wait(1):
             try:
+                current = [row["name"] for row in api.tools()]
+                if current != tool_names:
+                    write({"method": "notifications/tools/list_changed"})
+                    tool_names = current
                 api.github.tick()
             except Exception as error:
                 api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])

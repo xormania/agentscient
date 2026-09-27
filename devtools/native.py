@@ -12,7 +12,7 @@ import sys
 import time
 import uuid
 
-from .api import INSTRUCTIONS, SERVER, TOOLS, render
+from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
 from .profiles import CODEX_FEATURES, ENTRY, permitted, prepare, toml
 from .rpc import RPC
@@ -23,6 +23,7 @@ from .telemetry import Trace
 class Native:
     def __init__(self, directory, member, config, generation):
         self.store, self.member = Store(directory), member
+        self.control = API(directory, member).control
         self.config, self.generation = config, generation
         self.workspace = self.store.member(member)["workspace"]
         self.harness = config["harness"]
@@ -107,7 +108,7 @@ class Native:
                 "cwd": self.workspace,
                 "sandbox": "read-only",
                 "approvalPolicy": "untrusted",
-                "developerInstructions": INSTRUCTIONS,
+                "developerInstructions": self.control.instructions(),
                 "dynamicTools": [
                     {
                         "type": "function",
@@ -256,7 +257,7 @@ class Native:
         try:
             await self.rpc.request(
                 "session/prompt",
-                {"sessionId": self.session, "prompt": [{"type": "text", "text": render(message)}]},
+                {"sessionId": self.session, "prompt": [{"type": "text", "text": self.control.render(message)}]},
                 timeout=3600,
                 on_sent=sent,
             )
@@ -292,7 +293,11 @@ class Native:
                     {
                         "threadId": self.session,
                         "input": [],
-                        "toolOutput": {"name": "peer_message_received", "namespace": None, "output": render(message)},
+                        "toolOutput": {
+                            "name": "peer_message_received",
+                            "namespace": None,
+                            "output": self.control.render(message),
+                        },
                     },
                 )
                 self.delivered(message, transport="codex/turn/start.toolOutput")
@@ -300,7 +305,11 @@ class Native:
                 self.pending_interjections.add(message["id"])
                 await self.rpc.request(
                     "_x.ai/interject",
-                    {"sessionId": self.session, "text": render(message), "interjectionId": str(message["id"])},
+                    {
+                        "sessionId": self.session,
+                        "text": self.control.render(message),
+                        "interjectionId": str(message["id"]),
+                    },
                 )
                 self.delivered(message, transport="grok/_x.ai/interject")
             else:
@@ -320,7 +329,7 @@ class Native:
             while not self.rpc.dead.is_set() and self.store.member(self.member)["desired"] == "running":
                 if self.harness == "grok":
                     self.grok_activity()
-                message = self.store.take_delivery(self.member)
+                message = self.store.take_delivery(self.member, scoped=True)
                 if message:
                     await self.deliver(message)
                 else:
@@ -370,7 +379,7 @@ def claude(directory, member, config, generation):
         "--allowedTools",
         ",".join("mcp__" + SERVER + "__" + row["name"] for row in TOOLS),
         "--append-system-prompt",
-        INSTRUCTIONS,
+        API(directory, member).instructions(),
     ]
     if config.get("model"):
         argv += ["--model", config["model"]]
