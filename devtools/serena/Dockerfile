@@ -3,6 +3,8 @@ FROM php:8.5.11-cli-bookworm
 # Serena remains an external GPL-3.0-or-later service. Its exact source and license
 # are retained in the image; no Serena implementation is copied into devtools.
 ARG SERENA_REVISION=b79e2a55f9d4072084977dd35bd07d31146d88b9
+LABEL org.opencontainers.image.source="https://github.com/oraios/serena" \
+      org.opencontainers.image.revision="$SERENA_REVISION"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-venv git curl ca-certificates libonig-dev \
     && docker-php-ext-install mbstring \

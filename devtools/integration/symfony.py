@@ -16,6 +16,7 @@ from support import Client  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
+from devtools.readiness import platform  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -35,6 +36,7 @@ def completed(client, tool, arguments):
 
 
 def main():
+    platform_result = platform(REPO, {})
     with tempfile.TemporaryDirectory(prefix="agentscient-symfony-") as temporary:
         root = Path(temporary)
         checkout = root / "checkout"
@@ -119,6 +121,7 @@ def main():
                             "configured checks",
                         ],
                         "mate": mate["result"],
+                        "platform": platform_result,
                         "validation": validation,
                     },
                     indent=2,

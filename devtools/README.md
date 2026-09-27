@@ -362,6 +362,15 @@ authenticated vendor-model run.
 
 ## Set up a team
 
+The [local readiness guide](../docs/local-agent-readiness.md) gives the complete
+setup stages, current role matrix and authenticated acceptance requirements.
+`init --repository owner/repository --target dev --serena-image agentscient-serena:v2-beta`
+adds the project binding, installed Symfony tools and separate Serena provider to
+the team created below. `connection --state ...` emits the normal CO MCP config.
+`doctor --state ... --online` checks local prerequisites and read-only provider
+access; it never starts models or certifies their authentication. `evidence --state
+... --work-order N` summarizes retained run observations without changing state.
+
 An operator runs this once from the repository checkout. State must be outside
 the source worktree. The `external` member represents the MCP client from which
 you manage the team; it does not spawn another model.
