@@ -30,6 +30,11 @@ session management, work tracking, GitHub PR/CI work, artifact storage, messages
 and telemetry.
 The MCP surface has no shell or project editing/execution capabilities.
 
+The proposed control-plane direction, CO/XO relationship, role profiles, and draft
+tool catalog are recorded in
+[`docs/control-plane-roles-and-tools.md`](docs/control-plane-roles-and-tools.md).
+That document separates the intended design from the capabilities available today.
+
 The previous development system was removed. Its full pre-removal snapshot is
 preserved on [`shit`](https://github.com/uscient/agentscient/tree/shit) at
 `456457b9a0a9eb1ff285ee2d3e40535b6f722cdb`.
