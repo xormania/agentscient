@@ -59,12 +59,15 @@ proof that the agent read or acted on it.
 Reports and their outbound messages commit together. Identical report contents,
 evidence, response reference, and binding reuse the same record on retry, including
 after restart. Evidence uses the existing managed artifact service; a failure after
-saving evidence can leave a valid artifact, reused on retry. Delivery is reported
+saving evidence can leave a private, unlinked artifact, reused on retry. The visible
+evidence association commits with its report and audience. Delivery is reported
 as observed (`queued`, `submitted`, or `uncertain`), not as inferred completion.
 CO reports without a recipient are saved and returned as `recorded_for_user`.
 
-A job binding can read that job and work-order-level material. A work-order binding
-can read material across its jobs. References, context listings, and live delivery
+A job binding can read that job and shared work-order material. A work-order binding
+can read material across its jobs. CO/XO reports at work-order level and their
+attached evidence are visible to the relevant command scope and their participants;
+they do not automatically appear in specialist context. References, context listings, and live delivery
 enforce that scope. Artifact reads omit other work associations and provider
 metadata from the backing catalog. Agents cannot supply a work-order/job/recipient
 override or invoke raw operations through a guessed name or the former discovery

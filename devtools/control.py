@@ -9,7 +9,7 @@ from contextvars import ContextVar
 
 from .artifacts import Artifacts
 from .store import canonical, stamp
-from .work import record
+from .work import Work, record
 
 ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect")
 REQUEST_BINDING = ContextVar("control_binding", default=None)
@@ -83,6 +83,29 @@ def scope_sql(scope, alias=""):
     return (
         f"{prefix}work_order=?" + (f" AND ({prefix}job IS NULL OR {prefix}job=?)" if scope["job"] else ""),
         (scope["work_order"], *((scope["job"],) if scope["job"] else ())),
+    )
+
+
+def update_sql(scope, member, alias=""):
+    clause, args = scope_sql(scope, alias)
+    prefix = alias + "." if alias else ""
+    if scope and scope["role"] not in {"co", "xo"}:
+        # Job reports inform collaborators on that job. Command conversations
+        # at work-order level are for their participants, not every specialist.
+        clause += (
+            f" AND ({prefix}job IS NOT NULL OR {prefix}actor=? OR "
+            f"{prefix}message IN (SELECT id FROM messages WHERE recipient=?))"
+        )
+        args += (member, member)
+    return clause, args
+
+
+def evidence_sql(scope, member):
+    clause, args = update_sql(scope, member, "u")
+    return (
+        "(NOT EXISTS (SELECT 1 FROM work_updates u WHERE u.artifact=a.id) OR EXISTS "
+        "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + "))",
+        args,
     )
 
 
@@ -175,7 +198,18 @@ class Control:
         row = db.execute(f"SELECT * FROM {table} WHERE id=?", (int(ident),)).fetchone()
         if kind == "artifact":
             sql, args = scope_sql(scope)
-            allowed = db.execute("SELECT 1 FROM work_links WHERE artifact=? AND " + sql, (int(ident), *args)).fetchone()
+            evidence, values = evidence_sql(scope, self.member)
+            allowed = db.execute(
+                "SELECT 1 FROM artifacts a WHERE a.id=? AND "
+                + evidence
+                + " AND EXISTS (SELECT 1 FROM work_links WHERE artifact=a.id AND "
+                + sql
+                + ")",
+                (int(ident), *values, *args),
+            ).fetchone()
+        elif kind == "update":
+            sql, args = update_sql(scope, self.member)
+            allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND " + sql, (int(ident), *args)).fetchone()
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
             if kind == "message":
@@ -237,9 +271,10 @@ class Control:
                     result["job"] = self._summary(record(db, "jobs", scope["job"]))
                 parent = binding(db, scope["reports_to"])
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"
-                sql, args = scope_sql(scope)
+                sql, args = update_sql(scope, self.member)
                 rows = db.execute("SELECT * FROM work_updates WHERE " + sql + " ORDER BY id DESC LIMIT 5", args)
                 result["recent_activity"] = [self._update(row, preview=True) for row in rows]
+                sql, args = scope_sql(scope)
                 result["incoming"] = [
                     self._message(row, preview=True)
                     for row in db.execute(
@@ -261,7 +296,7 @@ class Control:
                     "next_after": rows[9]["id"] if len(rows) > 10 else None,
                 }
             elif section == "activity":
-                sql, args = scope_sql(scope)
+                sql, args = update_sql(scope, self.member)
                 rows = db.execute(
                     "SELECT * FROM work_updates WHERE " + sql + " AND id>? ORDER BY id LIMIT 11", (*args, after)
                 ).fetchall()
@@ -271,10 +306,15 @@ class Control:
                 }
             else:
                 sql, args = scope_sql(scope, "l")
+                evidence, values = evidence_sql(scope, self.member)
                 rows = db.execute(
                     "SELECT DISTINCT a.id,a.name,a.media_type,a.size FROM artifacts a "
-                    "JOIN work_links l ON l.artifact=a.id WHERE " + sql + " AND a.id>? ORDER BY a.id LIMIT 11",
-                    (*args, after),
+                    "JOIN work_links l ON l.artifact=a.id WHERE "
+                    + sql
+                    + " AND "
+                    + evidence
+                    + " AND a.id>? ORDER BY a.id LIMIT 11",
+                    (*args, *values, after),
                 ).fetchall()
                 return {
                     "evidence": [
@@ -344,7 +384,9 @@ class Control:
         recipient, order, job, reply = destination
         saved = None
         if evidence:
-            saved = self.artifacts.save(**evidence, work_order=order, job=job)["artifact"]["id"]
+            # Publish bytes privately first; the visible link commits with its report
+            # and audience. A failed report cannot expose private evidence.
+            saved = self.artifacts.save(**evidence, work_order=None, job=None)["artifact"]["id"]
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             old = db.execute(
@@ -359,6 +401,8 @@ class Control:
                 "VALUES (?,?,?,?,?,?,?,?,?)",
                 (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp()),
             ).lastrowid
+            if saved:
+                Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
             if recipient:
                 body = f"{kind}: {text}\nReference: update:{ident}"
                 if saved:

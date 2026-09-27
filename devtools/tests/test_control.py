@@ -139,6 +139,35 @@ class ControlTests(unittest.TestCase):
             coder.tool("work_report", {"text": "Stale session"})
         self.assertEqual(["work_context"], [r["name"] for r in coder.call("tools/list")["tools"]])
 
+    def test_command_discussion_and_evidence_do_not_spill_into_specialist_context(self):
+        owner, xo, coder = self.client("owner"), self.client("xo"), self.client("coder")
+        question = xo.tool(
+            "guidance_request",
+            {
+                "text": "PRIVATE INTENT question",
+                "evidence": {"name": "private-intent.md", "content": "PRIVATE INTENT evidence"},
+            },
+        )
+        answer = owner.tool("work_report", {"text": "PRIVATE INTENT answer", "responding_to": question["reference"]})
+        for section in ("brief", "activity", "messages", "evidence"):
+            self.assertNotIn("PRIVATE INTENT", json.dumps(coder.tool("work_context", {"section": section})))
+            self.assertNotIn("private-intent.md", json.dumps(coder.tool("work_context", {"section": section})))
+        for reference in (question["reference"], question["evidence"], answer["reference"]):
+            with self.assertRaises(ValueError):
+                coder.tool("work_context", {"reference": reference})
+        self.assertIn("PRIVATE INTENT answer", xo.tool("work_context", {"reference": answer["reference"]})["text"])
+        self.assertEqual(
+            "PRIVATE INTENT evidence", owner.tool("work_context", {"reference": question["evidence"]})["content"]
+        )
+        api = API(self.state, "xo")
+        with patch.object(api.store, "_send", side_effect=OSError("interrupted")):
+            with self.assertRaises(OSError):
+                api.call(
+                    "work_report",
+                    {"text": "Fail safely", "evidence": {"name": "partial-private.md", "content": "PRIVATE INTENT"}},
+                )
+        self.assertNotIn("partial-private.md", json.dumps(coder.tool("work_context", {"section": "evidence"})))
+
     def test_report_and_message_commit_atomically_and_concurrent_retries_deduplicate(self):
         api = API(self.state, "coder")
         with patch.object(api.store, "_send", side_effect=OSError("delivery record unavailable")):
