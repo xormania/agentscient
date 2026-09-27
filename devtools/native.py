@@ -16,6 +16,10 @@ from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
 from .profiles import CODEX_FEATURES, ENTRY, permitted, prepare, toml
 from .rpc import RPC
+from .serena_provider import SERVER as SERENA_SERVER
+from .serena_provider import TOOL as SERENA_TOOL
+from .serena_provider import enabled as serena_enabled
+from .serena_provider import server_config as serena_config
 from .store import Store
 from .telemetry import Trace
 
@@ -36,6 +40,10 @@ class Native:
         self.native_busy = False
         self.pending_interjections = set()
         self.rpc = self.mcp = None
+        self.serena = None
+        self.serena_server = (
+            serena_config(directory, member) if serena_enabled(self.store, self.control.snapshot()) else None
+        )
         self.tasks = set()
 
     def event(self, kind, **data):
@@ -95,6 +103,23 @@ class Native:
             )
             await self.mcp.notify("notifications/initialized")
             catalogue = (await self.mcp.request("tools/list", {}))["tools"]
+            if self.serena_server:
+                self.serena = await self.spawn(
+                    [self.serena_server["command"], *self.serena_server["args"]],
+                    self.reject,
+                    self.ignore,
+                    component="serena",
+                )
+                await self.serena.request(
+                    "initialize",
+                    {
+                        "protocolVersion": "2025-06-18",
+                        "capabilities": {},
+                        "clientInfo": {"name": "native-codex-bridge", "version": "1"},
+                    },
+                )
+                await self.serena.notify("notifications/initialized")
+                catalogue.extend((await self.serena.request("tools/list", {}))["tools"])
             argv = [binary]
             for key, value in CODEX_FEATURES.items():
                 argv += ["-c", f"features.{key}={toml(value)}"]
@@ -146,7 +171,8 @@ class Native:
                     "cwd": self.workspace,
                     "mcpServers": [
                         {"name": SERVER, "command": self.server["command"], "args": self.server["args"], "env": []}
-                    ],
+                    ]
+                    + ([{"name": SERENA_SERVER, **self.serena_server, "env": []}] if self.serena_server else []),
                 },
             )
             self.session = result["sessionId"]
@@ -162,10 +188,13 @@ class Native:
         self.verify_identity(params)
         if self.harness == "codex" and method == "item/tool/call":
             name, args = params.get("tool"), params.get("arguments")
-            if not permitted("codex", name, args) or name not in {row["name"] for row in TOOLS}:
+            if not permitted("codex", name, args) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
                 self.event("native_tool_denied", tool=name)
                 raise ValueError("Use this team's MCP tools")
-            result = await self.mcp.request("tools/call", {"name": name, "arguments": args})
+            provider = self.serena if name == SERENA_TOOL["name"] else self.mcp
+            if provider is None:
+                raise ValueError("This provider is not available in the current role.")
+            result = await provider.request("tools/call", {"name": name, "arguments": args})
             self.event("native_tool", tool=name, call_id=params.get("callId"), native_id=self.session)
             return {
                 "contentItems": [
@@ -341,7 +370,7 @@ class Native:
             for task in list(self.tasks):
                 task.cancel()
             await asyncio.gather(*self.tasks, return_exceptions=True)
-            for rpc in (self.rpc, self.mcp):
+            for rpc in (self.rpc, self.mcp, self.serena):
                 if rpc:
                     await rpc.close()
                     try:
@@ -378,7 +407,10 @@ def claude(directory, member, config, generation):
         "--tools",
         "",
         "--allowedTools",
-        ",".join("mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()),
+        ",".join(
+            ["mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()]
+            + (["mcp__serena__serena_repl"] if serena_enabled(store, API(directory, member).control.snapshot()) else [])
+        ),
         "--append-system-prompt",
         API(directory, member).instructions(),
     ]

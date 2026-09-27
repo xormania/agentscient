@@ -11,8 +11,8 @@ installed, authenticated harness. Background Claude sessions also require tmux.
 
 This implements shared work, command outcomes, managed workspaces, installed
 Symfony development tools and validation from the
-[control-plane design](../docs/control-plane-roles-and-tools.md). Serena and final
-review/acceptance integration are being added. There is no dispatcher, task engine,
+[control-plane design](../docs/control-plane-roles-and-tools.md). Serena v2 REPL is
+a separate workspace-bound provider; final review/acceptance is being added. There is no dispatcher, task engine,
 grant system, audit ladder, source editor or general shell capability.
 
 ## Agent-facing tools
@@ -264,6 +264,57 @@ the job is rejected. Workers survive MCP disconnect, and a lost worker becomes
 service actions behind tools; it does not dispatch agent tasks or replace live
 conversations. Pause prevents a new process starting; an already-running process
 finishes or reaches its timeout, with the observed result retained.
+
+## Serena v2 REPL as a separate provider
+
+Build the pinned external provider once on the local Docker engine:
+
+```sh
+docker build --tag agentscient-serena:v2-beta devtools/serena
+```
+
+Add `"serena": {"image": "agentscient-serena:v2-beta"}` inside `project` in
+`team.json`. The source is Serena's `dev-v2` commit
+`b79e2a55f9d4072084977dd35bd07d31146d88b9`, with its PHPactor version and checksum
+preinstalled for operation without runtime network. The image retains upstream
+source and its GPL-3.0-or-later license. This repository only integrates the
+separate MCP process. `serena.docker` optionally selects an installed Docker binary;
+`serena.memory` sets its container memory limit (default `2g`).
+
+Managed Codex, Claude and Grok attach the separate `serena` MCP server automatically
+for configured specialist jobs. CO and XO do not receive it. External specialist
+clients can attach the same gateway with `python3 devtools/run.py serena --state
+/absolute/private/state --member configured-member`. They still attach the normal
+control-plane server separately.
+
+The provider exposes one tool, `serena_repl`, accepting only `code`. The gateway
+supplies the job workspace and persistent session. Start with `s.info()` or
+`s.info("lsp", "edit")`; use Serena's facade documentation progressively. Variables,
+functions and classes persist for that provider session. Large output is retained
+as job evidence. A process restart loses Python variables while preserving source
+files and managed evidence; the gateway reports timeout/restart failures explicitly.
+
+The v2 REPL executes unrestricted Python. Hiding its shell facade would not provide
+a workspace boundary. The supplied container has no runtime network, host home,
+credentials, Docker socket or control-plane database mount. The project is mounted
+read-only, with only the current editing role's configured paths writable. Audit
+and research source mounts stay read-only. Provider configuration/cache/memories
+have a separate private mount. Writable directory aliases/symlinks are rejected.
+This protects host paths exposed through this provider; application checks and
+Composer still execute locally as described above.
+
+Each REPL call holds the same job lock as Git, Makers and validation. Its container
+is paused before releasing that lock and resumed for the next call, retaining REPL
+state while preventing background Python from racing another managed operation.
+Work pause rejects new REPL calls. Role, job, supervisor or provider configuration
+changes invalidate an existing gateway, requiring a fresh connection. Removing a
+gateway stops its container; forcibly killing it or the Docker engine can require
+the operator to remove a leftover `agentscient-serena-*` container.
+
+CI builds this image and exercises real stdio MCP, persistent REPL variables,
+PHPactor symbol navigation, the Serena edit facade, denied writes to protected
+source, pause/resume and a control-plane checkpoint. This does not claim a live
+authenticated vendor-model run.
 
 ## Set up a team
 

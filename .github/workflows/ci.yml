@@ -58,7 +58,8 @@
     "lane": {
       "needs": [
         "live-mcp",
-        "symfony"
+        "symfony",
+        "serena"
       ],
       "if": "${{ always() }}",
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
@@ -68,9 +69,30 @@
           "name": "Require passing checks",
           "env": {
             "LIVE_RESULT": "${{ needs.live-mcp.result }}",
-            "SYMFONY_RESULT": "${{ needs.symfony.result }}"
+            "SYMFONY_RESULT": "${{ needs.symfony.result }}",
+            "SERENA_RESULT": "${{ needs.serena.result }}"
           },
-          "run": "test \"$LIVE_RESULT\" = success\ntest \"$SYMFONY_RESULT\" = success"
+          "run": "test \"$LIVE_RESULT\" = success\ntest \"$SYMFONY_RESULT\" = success\ntest \"$SERENA_RESULT\" = success"
+        }
+      ]
+    },
+    "serena": {
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Build pinned Serena v2 provider",
+          "run": "docker build --tag agentscient-serena:v2-beta devtools/serena"
+        },
+        {
+          "name": "Verify real Serena REPL and workspace boundary",
+          "run": "python3 devtools/integration/serena.py"
         }
       ]
     }
