@@ -64,8 +64,17 @@ def capabilities(spec):
             {
                 "offset": {"type": "integer", "minimum": 0},
                 "work": {**name, "description": "Optional named job to inspect its current review packet and CI."},
+                "section": {
+                    "type": "string",
+                    "enum": ["review", "ci", "feedback"],
+                    "description": "Details for a named responsibility.",
+                },
                 "path": {**text, "description": "Changed file to inspect within the named job's PR."},
-                "page": {"type": "integer", "minimum": 1, "description": "Changed-file page for a named job."},
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Files, CI failures or feedback page for a named job.",
+                },
             },
             readonly=True,
         ),
@@ -511,7 +520,7 @@ class Commands:
             "next": "Use direct when the user authorizes another objective.",
         }
 
-    def monitor(self, offset=0, work=None, path=None, page=1):
+    def monitor(self, offset=None, work=None, path=None, page=1, section="review"):
         if work:
             with self.store.connect() as db:
                 scope = self._scope(db, ROLE_TOOLS)
@@ -521,11 +530,12 @@ class Commands:
             return {
                 "work": {key: job[key] for key in BRIEF_FIELDS},
                 "delivery": Delivery(self.store, self.member).inspect(
-                    job=job["id"], path=path, offset=offset, page=page
+                    job=job["id"], path=path, offset=offset, page=page, section=section
                 ),
             }
-        if path is not None or page != 1:
-            raise ValueError("Review path and page require a named work responsibility.")
+        if path is not None or page != 1 or section != "review":
+            raise ValueError("Review details require a named work responsibility.")
+        offset = offset or 0
         config = self._config()
         with self.store.connect() as db:
             db.execute("BEGIN")

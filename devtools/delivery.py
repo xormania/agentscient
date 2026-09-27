@@ -101,9 +101,20 @@ class Delivery:
             raise ValueError("This role cannot perform that outcome.")
         return scope, work
 
-    def inspect(self, job=None, path=None, offset=0, page=1):
+    def inspect(self, job=None, path=None, offset=None, page=1, section="review"):
         scope, work = self.scope(job)
         with self.spaces.lock("job-" + str(work["id"])):
+            if section in {"ci", "feedback"}:
+                if path is not None:
+                    raise ValueError("path selects a changed file in section=review; diagnostics use page and offset.")
+                if not work["pull_request"]:
+                    return {"state": "not_submitted", "message": "No PR is attached to this responsibility yet."}
+                from .feedback import packet, retain
+
+                context = self.github._context(job=work["id"])
+                return retain(
+                    self.store, self.member, work, section, packet(self.github, context, section, page, offset)
+                )
             if scope["role"] == "audit":
                 with self.spaces.lock("repository"):
                     workspace = self.spaces._ensure(scope)
@@ -126,7 +137,7 @@ class Delivery:
             revision = result["pr"]["revision"]
             if view and view["review_revision"] != revision:
                 raise ValueError("The PR changed while preparing its audit snapshot. Inspect again.")
-            diff = self.github.pr_diff(context, revision=revision, path=path, offset=offset, page=page)
+            diff = self.github.pr_diff(context, revision=revision, path=path, offset=offset or 0, page=page)
             with self.store.connect() as db:
                 db.execute(
                     "INSERT INTO inspections(member,job,revision,updated) VALUES (?,?,?,?) ON CONFLICT(member,job) DO UPDATE SET revision=excluded.revision,updated=excluded.updated",

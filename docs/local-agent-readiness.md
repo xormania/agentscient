@@ -89,6 +89,12 @@ Editing roles get `work_save`, `work_refresh`, `work_recover`, `work_submit` and
 `review_respond`. Repository, branch, target, workspace and PR association stay
 behind those tools.
 
+For delivery problems, `work_inspect(section="ci")` supplies actionable failure
+evidence and `work_inspect(section="feedback")` supplies external PR comments.
+The services choose their GitHub context and retain complete diagnostic packets.
+XO reads the same details with focused `monitor`; CI changes also arrive at the
+current supervisor automatically.
+
 | Role | Additional control-plane tools | Serena source access |
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude` | None |

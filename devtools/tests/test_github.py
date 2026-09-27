@@ -28,6 +28,7 @@ class Provider:
 
     def __init__(self):
         self.requests, self.comments, self.reviews = [], [], []
+        self.inline = []
         self.exists = False
         self.logs_missing = False
         self.pr = {
@@ -233,6 +234,8 @@ class Provider:
                 self.reviews.append(result)
                 return 200, result, {}
             return 200, self.page(self.reviews, query), {}
+        if path == root + "/pulls/7/comments":
+            return 200, self.page(self.inline, query), {}
         if path == root + "/issues/7/comments":
             if method == "POST":
                 result = {

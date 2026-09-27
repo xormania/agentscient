@@ -192,6 +192,21 @@ continue the changed-file list and `path`/`offset` to inspect a file's provider 
 GitHub may omit large or binary patches; audit has the bound source snapshot too.
 Completed jobs remain in `monitor` with their status, PR and retained assessment.
 
+`work_inspect(section="ci")` supplies the bound PR's observed CI plus failure
+steps, annotations and log excerpts. It selects the relevant GitHub runs/checks
+internally. `page` continues two failed checks at a time; optional `offset=0`
+begins consecutive log reads. Expired/unavailable logs remain explicit. The full
+diagnostic packet is retained as evidence, with a small preview returned to the agent.
+CI changes also reach the worker's current supervising role when it still covers
+the original work; the worker need not relay routine status updates.
+
+`work_inspect(section="feedback")` retrieves paginated GitHub conversation, review
+and inline comments, including revision and file/line context. Full bodies are
+retained as evidence; `work_context(reference=...)` reads that evidence. CO/XO
+can use the same `section` values with `monitor(work="Job name")`. These reads
+never accept repository, PR, run or check overrides, and they do not replace the
+current review-packet inspection required for acceptance.
+
 `steer(action="cancel", work="Job name", direction="Reason")` retains the work,
 PR and evidence and releases the team. It leaves an existing PR open for the owner
 to decide its disposition. A new responsibility needs a new name; finished jobs are
