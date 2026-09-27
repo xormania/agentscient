@@ -239,6 +239,9 @@ class Serena:
                     "tools/call",
                     {"name": "serena_repl", "arguments": {"session": self.session, "code": arguments["code"]}},
                 )
+                # FastMCP also supplies structuredContent with the same rendered text.
+                # Keep the standard MCP content once rather than counting/returning it twice.
+                result = {"content": result.get("content", []), "isError": result.get("isError", False)}
                 text = json.dumps(result, ensure_ascii=False)
                 if len(text) > 18000:
                     import io

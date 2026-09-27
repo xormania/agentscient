@@ -81,9 +81,9 @@ def main():
             assert {r["name"] for r in client.call("tools/list")["tools"]} == {"serena_repl"}
             assert "42" in repl(client, "answer = 42; answer")
             assert "42" in repl(client, "answer")
-            documentation = repl(client, "s.info('lsp', 'edit.replace_content')")
+            documentation = repl(client, "s.info('lsp.get_symbols_overview', 'edit.replace_content')")
             assert "get_symbols_overview" in documentation, documentation
-            symbols = repl(client, "s.lsp.get_symbols_overview('src/Example.php')")
+            symbols = repl(client, "s.lsp.get_symbols_overview('src/Example.php', depth=1)")
             assert "Example" in symbols and "greeting" in symbols, symbols
             edited = repl(client, "s.edit.replace_content('src/Example.php', 'hello', 'welcome', 'literal')")
             assert "Error" not in edited, edited
