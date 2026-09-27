@@ -91,9 +91,9 @@ def main():
             assert "welcome" in (workspace / "src/Example.php").read_text(), edited
             blocked = repl(
                 client,
-                "from pathlib import Path\ntry:\n Path('/workspace/devtools/protected.txt').write_text('wrong')\nexcept OSError:\n print('protected')",
+                "from pathlib import Path\nprotected = False\ntry:\n Path('/workspace/devtools/protected.txt').write_text('wrong')\nexcept OSError:\n protected = True\nprotected",
             )
-            assert "protected" in blocked, blocked
+            assert "True" in blocked, blocked
             assert (workspace / "devtools/protected.txt").read_text() == "unchanged"
             assert "False" in repl(client, "Path('/var/run/docker.sock').exists()")
             xo.call("steer", {"action": "pause", "work": "Serena example"})
