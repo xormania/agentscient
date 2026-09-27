@@ -12,8 +12,12 @@ proposed tools already exist. The owner's subsequent direction can change it.
 Implementation progress: the first shared-work slice now provides direct
 `work_context`, `work_report`, and `guidance_request` tools, trusted role/work
 bindings, scoped context and live delivery, routed reports, and retained evidence.
-All eight role names currently receive this common core. Additional command and
-specialist capabilities remain to be implemented. The older low-level catalog is
+All eight role names receive this common core. The command slice now adds CO
+`direct`/`monitor` and XO `orchestrate`/`monitor`/`steer`, with automatic job/member
+binding, configured harness selection/startup, scoped monitoring, and live brief
+updates. Pause retains the running conversation; stop requests session shutdown
+while preserving work and evidence. Specialist delivery and environment integration
+remain to be implemented. The older low-level catalog is
 available only through an explicit operator connection for setup/diagnostics.
 See [`devtools/README.md`](../devtools/README.md) for the current callable interface.
 The catalog sections below retain the discussion baseline for continuing revision.
@@ -106,13 +110,14 @@ The intended XO surface has three operations:
 | `monitor` | Inspect progress, blockers, results, and measured usage. Significant developments also arrive automatically. |
 | `steer` | Clarify direction, change priorities or responsibilities, answer questions, and pause or stop work within scope. |
 
-These are outcome categories for the next tool design, not final parameter
-schemas. Small tool counts must not conceal a large command language that agents
-still have to learn and sequence manually.
+These outcomes now have an initial callable implementation, documented in
+`devtools/README.md`. Small tool counts must not conceal a large command language
+that agents still have to learn and sequence manually.
 
 A work order needs only enough command information to know who is participating,
 what each participant is responsible for, and where decisions and reports go.
-The interface through which XO establishes that structure remains to be discussed.
+XO now establishes the initial structure with named responsibilities through
+`orchestrate`; the service creates jobs and binds configured collaborators.
 Specialist roles do not automatically introduce additional command levels.
 
 Decisions should be made where the relevant context and responsibility reside.
@@ -186,7 +191,7 @@ they do not each require a separate implementation of reporting or storage.
 
 | Profile | Capabilities and responsibilities | Default context |
 | --- | --- | --- |
-| CO | Direct XO, resolve intent questions, change priorities, assess outcomes. Exact tool names remain open. | xor's broader intent, constraints, consequential decisions, and relevant XO reports. |
+| CO | `direct`, `monitor`, shared reporting/guidance tools. Resolve intent questions, change priorities, assess outcomes. | xor's broader intent, constraints, consequential decisions, and relevant XO reports. |
 | XO | `orchestrate`, `monitor`, `steer`. | Work order, responsibilities, dependencies, progress, exceptions, and measured usage. |
 | Coder | Inspect and edit through Serena, validate changes, submit work. | Assigned objective, relevant code and contracts, boundaries, and completion criteria. |
 | Audit | Inspect implementation and evidence, investigate concerns, record findings and review conclusions. | Changes under review, requirements, applicable standards, and supporting evidence. |
@@ -212,9 +217,9 @@ tool, or that a command role automatically needs all specialist capabilities.
 
 ## Candidate control-plane catalog
 
-The names below preserve the discussion baseline. The three shared tools identified
-in the implementation-progress note are now callable; the remaining names are
-proposals. Revise those together with the role list before defining schemas.
+The names below preserve the discussion baseline. The shared and command tools
+identified in the implementation-progress note are now callable; the remaining
+names are proposals. Revise those together with the role list before defining schemas.
 
 ### Shared context and coordination
 
@@ -260,8 +265,8 @@ the candidate `capability_find` should return a relevant description and callabl
 schema together. Agents should not repeatedly search, describe, and invoke just
 to perform routine work. Discovery and invocation must respect the role and scope.
 
-XO's candidate command tools remain `orchestrate`, `monitor`, and `steer`.
-CO's concrete tool names remain to be defined. This baseline does not restore the
+XO's implemented command tools are `orchestrate`, `monitor`, and `steer`.
+CO uses `direct` and `monitor`. This baseline does not restore the
 earlier, larger list of separate session and work-management tools for XO.
 
 ## Current implementation and the intended revision
@@ -285,10 +290,14 @@ handle context and state internally, and expose only the operations appropriate
 to the caller's profile. Existing operational documentation continues to describe
 what can actually be called until implementation changes it.
 
-The shared role-bound surface, initial briefs, and report/guidance routing are now
-implemented as described above. Local Git orchestration, command/specialist tools,
-proactive command updates, and the integrated Serena workspace contract remain
-part of the delivery work. This document does not mark the complete dev-lane ready.
+The shared role-bound surface, command tools, initial and updated briefs, and
+report/guidance routing are now implemented as described above. The initial command
+implementation keeps one current work order per CO and one collaborator per named
+job. Job turnover, local Git orchestration, specialist delivery tools, and the
+integrated Serena/Maker/Mate workspace contract remain part of the delivery work.
+Protocol fixtures exercise the command flow and live pause/resume; authenticated
+local model acceptance remains outstanding. This document does not mark the complete
+dev-lane ready.
 
 ## What done means
 

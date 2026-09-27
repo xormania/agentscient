@@ -25,6 +25,7 @@ def main():
         if name not in {"init", "status"}:
             command.add_argument("--member", required=True)
         if name == "init":
+            command.add_argument("--co", help="Name of the external user-facing CO session")
             command.add_argument("--workspace", required=True)
             command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
         elif name == "mcp":
@@ -32,6 +33,8 @@ def main():
             command.add_argument(
                 "--operator", action="store_true", help="Trusted setup/diagnostics; never pass to managed agents"
             )
+        elif name == "agent":
+            command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -41,12 +44,12 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "init":
-            result = launch.initialize(args.state, args.workspace, args.member)
+            result = launch.initialize(args.state, args.workspace, args.member, args.co)
         elif args.command == "mcp":
             serve(args.state, args.member, args.channel, args.operator)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member)
+            launch.agent(args.state, args.member, args.binding_revision)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)

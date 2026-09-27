@@ -3,14 +3,15 @@
 This directory provides role-bound MCP tools for shared work, backed by live
 communication, telemetry, work orders/jobs, artifacts, and GitHub PR/CI services.
 Normal sessions expose `work_context`, `work_report`, and `guidance_request`
-directly. Services supply context and handle routing, records, and storage.
+directly, with command tools added for CO and XO. Services supply context and
+handle routing, work records, configured collaborators, startup, and storage.
 Python 3.11+ and SQLite from its standard library are sufficient on Linux/macOS.
 Native launchers require the selected locally
 installed, authenticated harness. Background Claude sessions also require tmux.
 
-This is the first implementation slice of the
-[control-plane design](../docs/control-plane-roles-and-tools.md). CO/XO command
-tools, specialist tools, local Git, and Serena/Maker/Mate integration are still
+This implements the shared-work and command portions of the
+[control-plane design](../docs/control-plane-roles-and-tools.md). Specialist tools,
+local Git, and Serena/Maker/Mate integration are still
 being built. There is no dispatcher, task engine, grant system, audit ladder,
 source editor, shell capability, or project command runner in this slice.
 
@@ -23,16 +24,24 @@ source editor, shell capability, or project command runner in this slice.
 | `guidance_request` | Retain and route a question or request for assistance through the reporting relationship. |
 
 All eight initial profiles (`co`, `xo`, `coder`, `audit`, `docs`, `research`,
-`test_writer`, `architect`) currently share these three core tools. Their additional
-command/specialist capabilities arrive in subsequent PRs. An unbound member can
-only call `work_context`, which reports that a role and work must be supplied.
-No role or member name implicitly unlocks the operator catalog.
+`test_writer`, `architect`) share these three core tools once bound to work.
+
+| Role | Additional tools |
+| --- | --- |
+| CO | `direct`, `monitor` |
+| XO | `orchestrate`, `monitor`, `steer` |
+| Specialists | None yet; editing, validation and delivery integration follows. |
+
+An unbound member can only call `work_context`, unless explicitly appointed as CO
+in trusted team configuration. That user-facing session also gets `direct` and
+`monitor` before a work order exists. Member names do not confer authority.
+No normal connection can access the operator catalog.
 
 The initialization response includes the current brief. Managed Codex and Claude
 also receive it in their startup instructions; Grok receives MCP instructions and
 context with its first live delivery. Changed briefs are included with the next
-live delivery; unchanged briefs are not repeated in every message. Proactive
-updates from command tools are part of the following command-tool work.
+live delivery; unchanged briefs are not repeated in every peer message. Command
+tools proactively queue the affected current briefs through the same live transport.
 
 Examples of direct tool arguments:
 
@@ -72,8 +81,78 @@ enforce that scope. Artifact reads omit other work associations and provider
 metadata from the backing catalog. Agents cannot supply a work-order/job/recipient
 override or invoke raw operations through a guessed name or the former discovery
 wrapper. The server checks each call, including calls on already-open connections.
-In-flight calls retain the binding under which they started; subsequent calls use
-the current binding. These are service boundaries, not a claim of OS isolation.
+In-flight reports retain the binding under which they started; subsequent calls use
+the current binding. Commands recheck authority inside their write transaction and
+reject a stale call before changing work. These are service boundaries, not a claim of OS isolation.
+
+## CO and XO command outcomes
+
+CO calls `direct` with the authorized `title`, `objective`, `done_when`, and
+`constraints`. The first call creates the work order, binds CO and an available XO,
+queues direction, and records a pending managed startup. Later calls revise that
+same work order. A work-order change reaches XO and affected collaborators; private
+CO discussion is not copied into those briefs. Responses follow each collaborator's
+reporting relationship. CO remains the session used by the person, without spawning
+another CO model.
+
+XO calls `orchestrate` with up to four named responsibilities in `work`. Each has
+`name`, specialist `role`, `objective`, `done_when`, and `constraints`. The service
+creates or updates the job, claims an available configured member, binds its scope
+and reporting relationship, queues its brief, and records pending startup. Repeating
+a name updates the same job and collaborator. Names are stable, case-insensitive
+within the XO's work order. A failed batch rolls back its job, binding, and message
+changes, including when there are too few matching slots.
+
+Both tools accept optional `selection` filters (`harness`, `model`, `reasoning`);
+for `orchestrate`, selection belongs to each responsibility. These select configured
+slots, without accepting binaries, paths, shell commands, or arbitrary launch options.
+An existing collaborator keeps its session settings. Changing the local configuration
+applies on a later restart; active settings are taken from the recorded session start.
+Absent settings on older sessions remain unknown.
+
+`monitor` returns ten collaborators per page, current work, latest reports, observed
+session state, pending startup/errors, latest bounded usage observations, and available
+configured capacity. Continue with returned `next_offset` as `offset`. XO sees its
+own descendants; CO sees its work-order team. Missing usage is unknown, and raw
+observations are not added together as if they were independent totals. Session
+activity and reports do not establish that an objective is complete.
+
+XO calls `steer` with `action` (`guide`, `pause`, `resume`, `stop`), an optional work
+name, and optional `direction`. Omitting the name addresses its team. For one named
+responsibility, it can also revise `objective`, `done_when`, or `constraints`.
+These change that job's brief, never CO's work-order objective or boundaries.
+
+- `guide` retains direction and delivers the updated brief.
+- `pause` retains the live conversation and marks work paused. Reports and guidance
+  remain available. Paused command roles cannot expand or restart work. This asks
+  the current model turn to pause; it is not a native mid-turn interrupt.
+- `resume` clears the pause and starts a stopped managed session if necessary.
+- `stop` pauses work and requests an orderly managed-session shutdown. Work,
+  bindings, messages and evidence remain. Restarting after stop creates a new native
+  conversation; pause/resume of a running session preserves its conversation.
+
+Examples of normal MCP calls:
+
+```json
+{"name":"direct","arguments":{"title":"Prepare the Symfony starting point","objective":"Make local product development usable","done_when":"The bounded local workflow has evidence","constraints":"Do not implement the product"}}
+{"name":"orchestrate","arguments":{"work":[{"name":"Maker access","role":"coder","objective":"Expose the basic installed Makers through the prepared development tools","done_when":"Generation is demonstrated in the correct workspace","constraints":"Use installed Symfony capabilities; no custom project patterns"}]}}
+{"name":"steer","arguments":{"action":"guide","work":"Maker access","direction":"Inspect the installed command metadata before adding infrastructure"}}
+{"name":"monitor","arguments":{}}
+```
+
+Managed startup is asynchronous. Pending intent survives MCP restart and is serviced
+while a team MCP server remains connected. Launches are serialized per member and
+check the binding again before starting a native session. Startup failures are
+reported to the supervising role and retained for monitoring; retry with `direct`
+for XO or `steer`/`resume` for a collaborator. External slots connect their own MCP
+clients and are not reported as managed launches. Queued direction is not proof
+that a model received or followed it. Superseded queued directions remain in history
+without being delivered; a delayed live direction renders the current brief.
+
+This slice supports one current work order per CO and one collaborator per named
+job. Completed-job turnover, automatic workspace/Git lifecycle, and specialist
+delivery outcomes are still to be integrated. Stopping a collaborator does not
+release its binding or mark its job done.
 
 ## Set up a team
 
@@ -85,6 +164,7 @@ you manage the team; it does not spawn another model.
 python3 devtools/run.py init \
   --state "$HOME/.local/state/agentscient-live" \
   --workspace "$PWD" \
+  --co owner \
   --member owner:external --member codex:codex --member claude:claude --member grok:grok
 ```
 
@@ -93,6 +173,29 @@ each member's `binary`, optional `model` and `reasoning`, and workspace. Differe
 members can use separate worktrees. Existing member identities cannot silently
 move to a different harness or workspace; use a new member name for that change.
 No model is selected by this repository.
+
+Connect the user-facing CO through the normal MCP server, replacing these paths
+with absolute local paths:
+
+```json
+{
+  "mcpServers": {
+    "agentscient_dev": {
+      "command": "/absolute/path/to/python3",
+      "args": ["/absolute/path/to/agentscient/devtools/run.py", "mcp",
+               "--state", "/absolute/path/to/state", "--member", "owner"]
+    }
+  }
+}
+```
+
+CO can now use `direct`; XO receives its tools and brief automatically. No operator
+calls are required to construct that initial work/team. For an existing team, the
+equivalent trusted appointment is top-level `"co":"owner"` in `team.json`; it must
+name an external member. Removing a binding does not revoke that bootstrap
+appointment: remove `co` from configuration as well to remove CO's bootstrap tools.
+
+## Trusted setup and diagnostics
 
 For trusted setup and diagnostics, add this temporary operator connection,
 replacing the paths with absolute paths on your machine. The command must be your
@@ -115,8 +218,8 @@ On this operator connection, `tools/list` exposes `capability_search`, `capabili
 `capability_invoke`. Search returns five capabilities per page; describe supplies
 the input schema. Invoke takes `{"capability":"name","arguments":{...}}`.
 
-Create a work order and its jobs with the existing operator capabilities below,
-then bind roles from the top down. For example, with work order 1 and job 2:
+For importing existing work or repairing setup, the operator can create work and
+bind roles from the top down. For example, with work order 1 and job 2:
 
 ```json
 {"capability":"member_bind","arguments":{"member":"owner","role":"co","work_order":1,"brief":"Represent the user's intent."}}
@@ -134,8 +237,7 @@ bindings; a stale route reports an error instead of delivering into unrelated wo
 
 Normal external clients use the same server configuration **without `--operator`**,
 under the name `agentscient_dev`. Managed sessions are launched only after their
-role/work binding exists. The upcoming CO/XO command tools will perform this setup
-behind their own outcomes; agents will not assemble these operator calls.
+role/work binding exists. The CO/XO tools perform this setup behind their outcomes.
 
 ## Operator and backing-service capabilities
 
@@ -422,6 +524,9 @@ ruff check devtools
 Tests launch real stdio MCP servers and native protocol fixtures to exercise
 concurrent delivery during unfinished work, persistent identities, acknowledgements,
 restart behavior, channel registration, telemetry, and the native-tool boundary.
+Command tests cover CO bootstrap, role-scoped tools, automatic CO→XO→collaborator
+startup through MCP, atomic allocation, retries, changed authority, private context,
+live steering, persistent pause/resume, startup failures, and version-three upgrades.
 Work/storage tests cover the work-order/job hierarchy, PR and artifact associations,
 legacy database upgrades, restart recovery, concurrent selection, file snapshots,
 publication failure/retry, integrity failures, and binary/UTF-8 reads through MCP.

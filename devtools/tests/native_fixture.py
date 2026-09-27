@@ -23,6 +23,8 @@ class Fixture:
         self.session = "fixture-native-conversation"
         self.mcp = None
         self.tasks = set()
+        self.command = False
+        self.organized = False
 
     def write(self, packet):
         print(json.dumps(packet), flush=True)
@@ -81,7 +83,26 @@ class Fixture:
                     },
                 }
             )
+        if self.command and "progress: Received message" in text:
+            await self.tool("work_report", {"text": "Collaborator receipt observed"})
+            return
         await self.tool("work_report", {"text": f"Received message {ident}", "responding_to": f"message:{ident}"})
+        if self.command and not self.organized and "control-plane direction" in text:
+            self.organized = True
+            await self.tool(
+                "orchestrate",
+                {
+                    "work": [
+                        {
+                            "name": "Fixture implementation",
+                            "role": "coder",
+                            "objective": "Demonstrate the live command path",
+                            "done_when": "Direction received",
+                            "constraints": "Protocol fixture only",
+                        }
+                    ]
+                },
+            )
         if hold:
             # The native turn remains unfinished while a second message is handled.
             await asyncio.sleep(10)
@@ -98,7 +119,10 @@ class Fixture:
                 result = {"protocolVersion": 1, "authMethods": []}
             elif method == "thread/start":
                 assert params["sandbox"] == "read-only"
-                assert len(params["dynamicTools"]) == 3
+                names = {row["name"] for row in params["dynamicTools"]}
+                self.command = "orchestrate" in names
+                expected = {"work_context", "work_report", "guidance_request"}
+                assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
                 result = {"thread": {"id": self.session}}
             elif method == "session/new":
                 server = params["mcpServers"][0]

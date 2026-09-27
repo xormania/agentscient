@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 4:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -130,7 +130,20 @@ class Store:
                 artifact INTEGER REFERENCES artifacts(id), message INTEGER REFERENCES messages(id), created TEXT NOT NULL,
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
-            db.execute("PRAGMA user_version=3")
+            additions = {
+                "member_bindings": {
+                    "paused": "INTEGER NOT NULL DEFAULT 0",
+                    "launch_pending": "INTEGER NOT NULL DEFAULT 0",
+                    "launch_error": "TEXT",
+                },
+                "messages": {"category": "TEXT NOT NULL DEFAULT 'peer'"},
+            }
+            for table, fields in additions.items():
+                present = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+                for name, definition in fields.items():
+                    if name not in present:
+                        db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+            db.execute("PRAGMA user_version=4")
 
     @contextmanager
     def connect(self):
@@ -250,7 +263,7 @@ class Store:
             )
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
-    def begin_session(self, name, pid):
+    def begin_session(self, name, pid, *, binding_revision=None, settings=None):
         generation = uuid.uuid4().hex
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -266,6 +279,11 @@ class Store:
                     pass
                 else:
                     raise ValueError("This member already has a running session.")
+            if binding_revision is not None:
+                scope = db.execute("SELECT * FROM member_bindings WHERE member=?", (name,)).fetchone()
+                if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
+                    raise ValueError("Launch direction was superseded before the session started.")
+                db.execute("UPDATE member_bindings SET launch_pending=0,launch_error=NULL WHERE member=?", (name,))
             db.execute(
                 "UPDATE members SET generation=?,native_id=NULL,pid=?,state='starting',desired='running',updated=? WHERE name=?",
                 (generation, pid, stamp(), name),
@@ -276,7 +294,7 @@ class Store:
                 "WHERE recipient=? AND delivery='delivering'",
                 (name,),
             )
-            self._event(db, name, "session_starting", {"generation": generation, "pid": pid})
+            self._event(db, name, "session_starting", {"generation": generation, "pid": pid, "settings": settings})
         return generation
 
     def send(self, sender, recipient, body, *, key, reply_to=None, work_order=UNSET, job=UNSET):

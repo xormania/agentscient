@@ -12,6 +12,83 @@ from devtools.store import Store
 
 
 class NativeProtocolTests(unittest.TestCase):
+    def test_co_direction_launches_xo_and_collaborator_and_pause_retains_live_session(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace, home = root / "workspace", root / "login-home"
+            workspace.mkdir()
+            home.mkdir()
+            state = root / "state"
+            initialize(state, workspace, ["owner:external", "chief:codex", "worker:codex"], co="owner")
+            fixture = Path(__file__).with_name("native_fixture.py")
+            fixture.chmod(0o755)
+            config = json.loads((state / "team.json").read_text())
+            for row in config["members"][1:]:
+                row["binary"] = str(fixture)
+            (state / "team.json").write_text(json.dumps(config))
+            env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / "codex")}
+            store = Store(state)
+            co, xo = Client(state, "owner", env=env), None
+            try:
+                co.tool(
+                    "direct",
+                    {
+                        "title": "Command path",
+                        "objective": "Organize live collaborators",
+                        "done_when": "Reported and steered",
+                        "constraints": "Fixture only",
+                    },
+                )
+                until(
+                    lambda: any(
+                        "Collaborator receipt observed" in row["body"] for row in store.inbox("owner")["messages"]
+                    ),
+                    timeout=10,
+                )
+                before = store.member("worker")
+                self.assertEqual("active", before["state"])
+                xo = Client(state, "chief", env=env)
+                paused = xo.tool("steer", {"action": "pause", "work": "Fixture implementation"})["work"][0]
+                paused_id = int(paused["direction"]["reference"].split(":")[1])
+                until(
+                    lambda: any(
+                        row["id"] == paused_id and row["acknowledged"] for row in store.inbox("worker")["messages"]
+                    )
+                )
+                current = store.member("worker")
+                self.assertEqual(
+                    (before["native_id"], before["generation"], before["pid"]),
+                    (current["native_id"], current["generation"], current["pid"]),
+                )
+                self.assertEqual("running", current["desired"])
+                progress = xo.tool("monitor", {})["collaborators"][0]
+                self.assertEqual("paused", progress["work_state"])
+                self.assertEqual(23, progress["latest_usage"]["observation"]["last"]["inputTokens"])
+                resumed = xo.tool("steer", {"action": "resume", "work": "Fixture implementation"})
+                self.assertFalse(resumed["work"][0]["session"]["launch_pending"])
+                self.assertEqual(before["generation"], store.member("worker")["generation"])
+                xo.tool("steer", {"action": "stop", "work": "Fixture implementation"})
+                until(lambda: store.member("worker")["state"] == "stopped", timeout=8)
+                self.assertEqual("paused", xo.tool("monitor", {})["collaborators"][0]["work_state"])
+            except Exception:
+                for member in ("chief", "worker"):
+                    log = state / "logs" / (member + ".log")
+                    if log.exists():
+                        print(log.read_text(), file=sys.stderr)
+                raise
+            finally:
+                for member in ("chief", "worker"):
+                    store.session(member, desired="stopped")
+                until(
+                    lambda: all(
+                        store.member(member)["state"] in {"stopped", "failed"} for member in ("chief", "worker")
+                    ),
+                    timeout=8,
+                )
+                if xo:
+                    xo.close()
+                co.close()
+
     def test_live_messages_during_unfinished_work_keep_native_identity(self):
         for harness in ("codex", "grok"):
             with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
