@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 6:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 7:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -159,7 +159,23 @@ class Store:
             db.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS active_job_operation ON operations(job) WHERE state IN ('queued','running')"
             )
-            db.execute("PRAGMA user_version=6")
+            db.execute("""CREATE TABLE IF NOT EXISTS review_views (
+                member TEXT NOT NULL REFERENCES members(name), job INTEGER NOT NULL REFERENCES jobs(id),
+                root TEXT NOT NULL, revision TEXT NOT NULL, base_revision TEXT NOT NULL,
+                PRIMARY KEY(member,job))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS inspections (
+                member TEXT NOT NULL REFERENCES members(name), job INTEGER NOT NULL REFERENCES jobs(id),
+                revision TEXT NOT NULL, updated TEXT NOT NULL, PRIMARY KEY(member,job))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, job INTEGER NOT NULL REFERENCES jobs(id),
+                actor TEXT NOT NULL REFERENCES members(name), revision TEXT NOT NULL,
+                conclusion TEXT NOT NULL, summary TEXT NOT NULL, response_to INTEGER REFERENCES reviews(id),
+                request_key TEXT NOT NULL UNIQUE, state TEXT NOT NULL, remote_url TEXT,
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS deliveries (
+                job INTEGER PRIMARY KEY REFERENCES jobs(id), accepted_by TEXT NOT NULL REFERENCES members(name),
+                revision TEXT, merge_commit TEXT, assessment TEXT NOT NULL, outcome TEXT NOT NULL, created TEXT NOT NULL)""")
+            db.execute("PRAGMA user_version=7")
 
     @contextmanager
     def connect(self):

@@ -560,7 +560,7 @@ class GitHubTests(unittest.TestCase):
         self.assertEqual(order, report["work"][0]["work_order"])
         self.assertEqual([], report["sources"])
         with self.store.connect() as db:
-            self.assertEqual(6, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(7, db.execute("PRAGMA user_version").fetchone()[0])
 
 
 if __name__ == "__main__":

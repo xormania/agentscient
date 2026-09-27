@@ -89,6 +89,7 @@ class SerenaTests(unittest.TestCase):
 
         def start(*args):
             provider.process = sentinel
+            provider.workspace_root = args[1]["root"]
             events.append("start")
 
         def freeze(paused):

@@ -12,7 +12,8 @@ installed, authenticated harness. Background Claude sessions also require tmux.
 This implements shared work, command outcomes, managed workspaces, installed
 Symfony development tools and validation from the
 [control-plane design](../docs/control-plane-roles-and-tools.md). Serena v2 REPL is
-a separate workspace-bound provider; final review/acceptance is being added. There is no dispatcher, task engine,
+a separate workspace-bound provider. Revision-bound review, acceptance and team
+turnover are implemented. There is no dispatcher, task engine,
 grant system, audit ladder, source editor or general shell capability.
 
 ## Agent-facing tools
@@ -28,9 +29,9 @@ All eight initial profiles (`co`, `xo`, `coder`, `audit`, `docs`, `research`,
 
 | Role | Additional tools |
 | --- | --- |
-| CO | `direct`, `monitor` |
+| CO | `direct`, `monitor`, `conclude` |
 | XO | `orchestrate`, `monitor`, `steer` |
-| Specialists | Managed workspace inspection; editing roles also get checkpoints, recovery, refresh and PR submission. |
+| Specialists | Managed workspace inspection; editing roles also get checkpoints, recovery, refresh, PR submission and `review_respond`; audit gets `review_record`. |
 
 An unbound member can only call `work_context`, unless explicitly appointed as CO
 in trusted team configuration. That user-facing session also gets `direct` and
@@ -104,7 +105,8 @@ XO calls `orchestrate` with up to four named responsibilities in `work`. Each ha
 `name`, specialist `role`, `objective`, `done_when`, and `constraints`. The service
 creates or updates the job, claims an available configured member, binds its scope
 and reporting relationship, queues its brief, and records pending startup. Repeating
-a name updates the same job and collaborator. Names are stable, case-insensitive
+a name and role updates the same job and collaborator. One producer and an optional
+auditor can share the named job, with distinct briefs and source views. Names are stable, case-insensitive
 within the XO's work order. A failed batch rolls back its job, binding, and message
 changes, including when there are too few matching slots.
 
@@ -123,7 +125,7 @@ observations are not added together as if they were independent totals. Session
 activity and reports do not establish that an objective is complete.
 
 XO calls `steer` with `action` (`guide`, `pause`, `resume`, `stop`), an optional work
-name, and optional `direction`. Omitting the name addresses its team. For one named
+name and role filter, and optional `direction`. Omitting the name addresses its team. For one named
 responsibility, it can also revise `objective`, `done_when`, or `constraints`.
 These change that job's brief, never CO's work-order objective or boundaries.
 
@@ -154,10 +156,52 @@ clients and are not reported as managed launches. Queued direction is not proof
 that a model received or followed it. Superseded queued directions remain in history
 without being delivered; a delayed live direction renders the current brief.
 
-This slice supports one current work order per CO and one collaborator per named
-job. Completed-job turnover and further specialist
-delivery outcomes are still to be integrated. Stopping a collaborator does not
-release its binding or mark its job done.
+One current work order is bound to CO. Named jobs have one producer and optionally
+one auditor. Stopping a collaborator preserves its binding and unfinished work;
+accepting or cancelling the job releases its collaborators after orderly shutdown.
+
+## Review, acceptance and the next job
+
+XO adds an auditor with `orchestrate` using the producer's job name and role `audit`.
+The audit brief describes its review responsibility without rewriting the producer's
+completion criteria. Audit inspection, validation and Serena use a detached snapshot
+of the submitted PR revision, so producer edits cannot silently change reviewed files.
+`work_inspect(section="review")` refreshes that view and returns PR, CI, findings and
+changed files. If an existing Serena session mounted an older view, the next REPL
+call resets that provider and explains that its Python variables have been cleared.
+
+`review_record(conclusion, summary)` retains and publishes the auditor's `ready`,
+`changes_requested` or `comment` finding at the inspected revision. It routes the
+finding to the producer and XO. `review_respond(text, review?)` retains and routes a
+producer response in the same context. GitHub receives a COMMENT review: shared
+credentials do not fabricate a formal approval by a different reviewer. Repository
+review requirements still apply. Retries reconcile publication through a stable
+marker; an unknown write outcome is not automatically repeated.
+
+XO uses `monitor(work="Job name")` to inspect the current delivery packet, then
+`steer(action="accept", work="Job name", direction="Assessment")`. The service
+requires the same inspected PR revision, passing CI, the managed branch/target and
+a clean producer workspace at that revision. It merges through GitHub's ordinary
+rules, retains the assessment and evidence, marks the job done, and stops/releases
+its collaborators. If the PR changed, inspection is required again. A report-only
+job needs a retained `work_report(kind="result")` and no unsubmitted source changes.
+There is no mandatory audit ladder; XO applies the actual completion criteria.
+
+Both focused `monitor` and `work_inspect(section="review")` accept `page` to
+continue the changed-file list and `path`/`offset` to inspect a file's provider patch.
+GitHub may omit large or binary patches; audit has the bound source snapshot too.
+Completed jobs remain in `monitor` with their status, PR and retained assessment.
+
+`steer(action="cancel", work="Job name", direction="Reason")` retains the work,
+PR and evidence and releases the team. It leaves an existing PR open for the owner
+to decide its disposition. A new responsibility needs a new name; finished jobs are
+not silently reopened. New worktrees fetch the configured remote target, including
+previously accepted work (`project.fetch=false` opts into an offline local target).
+
+When every job is done or cancelled, CO calls `conclude(assessment)` to retain the
+work-order outcome and release its remaining team. The next authorized `direct`
+starts a new work order. Old branches, worktrees, messages and artifacts remain;
+automatic deletion is not part of acceptance.
 
 ## Managed job workspaces and delivery
 

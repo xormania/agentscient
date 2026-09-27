@@ -20,14 +20,15 @@ The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
 connection. No task dispatch, grant system, review ladder, or workflow engine is
-provided. CO uses `direct`/`monitor`; XO uses `orchestrate`/`monitor`/`steer`.
+provided. CO uses `direct`/`monitor`/`conclude`; XO uses `orchestrate`/`monitor`/`steer`.
 Command services bind work and configured collaborators, supply current briefs,
 and retain live direction. Managed workspace/Git outcomes and installed Maker/Mate
 capabilities are provided through MCP. Use installed Maker metadata, generate through
 `framework_generate`, inspect application facts with `framework_inspect`, and run
 configured validation through `work_check`. Serena v2 REPL is a separate provider
-for product source work; it receives the bound workspace automatically. Final
-review/acceptance is being added.
+for product source work; it receives the bound workspace automatically. Auditors
+review an immutable submitted revision; XO accepts a named job through `steer`
+after inspecting its current review packet with `monitor`. Normal GitHub rules apply.
 Work-order numbers bind the overall effort; jobs are bounded pieces delivered
 through PRs. Agents use task-facing MCP tools; the services handle storage and
 record association internally.
