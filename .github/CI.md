@@ -1,4 +1,4 @@
-# CI
+# Continuous integration
 
 [ci.yml](workflows/ci.yml) runs on pull requests and pushes to `dev` and `master`,
 merge groups, and manual invocation. Its `lane` check aggregates three jobs:

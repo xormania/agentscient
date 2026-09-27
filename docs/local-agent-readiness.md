@@ -141,7 +141,7 @@ work-order result.
 
 ## Verification already available
 
-The [CI guide](../.github/README.md) lists the Python/MCP/native-protocol fixtures,
+The [CI guide](../.github/CI.md) lists the Python/MCP/native-protocol fixtures,
 real installed Symfony integration, pinned Serena container integration and local
 verification commands. These checks use no model account. Authenticated native
 delivery and model behavior require the local acceptance run above.
