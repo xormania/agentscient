@@ -19,7 +19,7 @@ from .store import Store, identifier
 HARNESSES = {"codex", "claude", "grok", "external"}
 
 
-def initialize(directory, workspace, members, co=None):
+def initialize(directory, workspace, members, co=None, project=None):
     from .profiles import write_json
 
     directory = Path(directory).expanduser().resolve()
@@ -45,7 +45,7 @@ def initialize(directory, workspace, members, co=None):
     if co is not None and not any(row["name"] == co and row["harness"] == "external" for row in rows):
         raise ValueError("CO must name the external user-facing session.")
     Store(directory).initialize(rows)
-    write_json(config, {"members": rows, **({"co": co} if co else {})})
+    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {})})
     return {"state": str(directory), "members": rows}
 
 

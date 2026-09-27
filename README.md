@@ -27,6 +27,9 @@ Application code belongs in `src/`, with configuration in `config/` and tests in
 
 ## Live development support
 
+Start with the stages and operator commands in
+[`docs/local-agent-readiness.md`](docs/local-agent-readiness.md).
+
 See [`devtools/README.md`](devtools/README.md) for setup, MCP configuration,
 session management, work tracking, GitHub PR/CI work, artifact storage, messages,
 and telemetry.

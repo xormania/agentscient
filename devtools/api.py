@@ -419,8 +419,8 @@ class API:
             return OPERATOR_INSTRUCTIONS
         role = self.commands.role(self.control.snapshot())
         command = {
-            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team.",
-            "xo": " Use orchestrate to organize live collaborators, monitor for progress, and steer to guide, pause, resume or stop them.",
+            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team. Use conclude only when all jobs are finished and your assessment is ready.",
+            "xo": " Use orchestrate to organize named jobs and live collaborators; an audit role can share the producer's job name. Monitor shows progress or a named job's review packet. Steer guides, pauses, resumes, stops, or accepts/cancels a named job with an assessment. Inspect the current delivery before acceptance.",
         }.get(role, "")
         return self.control.instructions(self.invoke("work_context", {})) + command
 

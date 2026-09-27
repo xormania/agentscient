@@ -19,15 +19,41 @@ from devtools.store import Store
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "mcp", "agent", "start", "stop", "status", "send", "hook", "operation", "serena"):
+    for name in (
+        "init",
+        "mcp",
+        "agent",
+        "start",
+        "stop",
+        "status",
+        "send",
+        "hook",
+        "operation",
+        "serena",
+        "doctor",
+        "connection",
+        "evidence",
+    ):
         command = commands.add_parser(name)
         command.add_argument("--state", required=True, help="Private state directory outside source worktrees")
-        if name not in {"init", "status"}:
+        if name not in {"init", "status", "doctor", "connection", "evidence"}:
             command.add_argument("--member", required=True)
         if name == "init":
             command.add_argument("--co", help="Name of the external user-facing CO session")
             command.add_argument("--workspace", required=True)
             command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
+            command.add_argument(
+                "--repository", help="owner/repository; enables project workspaces and installed Symfony tools"
+            )
+            command.add_argument("--target", default="dev")
+            command.add_argument("--remote", default="origin")
+            command.add_argument("--serena-image", help="Locally built devtools/serena image; requires --repository")
+        elif name == "doctor":
+            command.add_argument(
+                "--online", action="store_true", help="Also read the Git remote and GitHub repository access"
+            )
+        elif name == "evidence":
+            command.add_argument("--work-order", type=int, required=True)
         elif name == "mcp":
             command.add_argument("--channel", action="store_true")
             command.add_argument(
@@ -46,7 +72,29 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "init":
-            result = launch.initialize(args.state, args.workspace, args.member, args.co)
+            from devtools.readiness import project
+
+            if args.serena_image and not args.repository:
+                raise ValueError("--serena-image requires --repository")
+            configured = (
+                project(args.workspace, args.repository, args.target, args.remote, args.serena_image)
+                if args.repository
+                else None
+            )
+            result = launch.initialize(args.state, args.workspace, args.member, args.co, configured)
+        elif args.command in {"doctor", "connection", "evidence"}:
+            from devtools import readiness
+
+            options = (
+                {"online": args.online}
+                if args.command == "doctor"
+                else {"work_order": args.work_order}
+                if args.command == "evidence"
+                else {}
+            )
+            result = getattr(readiness, args.command)(args.state, **options)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 2 if result.get("status") == "blocked" else 0
         elif args.command == "mcp":
             serve(args.state, args.member, args.channel, args.operator)
             return 0

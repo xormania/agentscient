@@ -23,6 +23,8 @@ Revision-bound audit/response, XO acceptance and completed-work turnover are als
 implemented. The older low-level catalog is
 available only through an explicit operator connection for setup/diagnostics.
 See [`devtools/README.md`](../devtools/README.md) for the current callable interface.
+The [local readiness guide](local-agent-readiness.md) records setup stages,
+completion requirements, the implemented role matrix and actual acceptance limits.
 The catalog sections below retain the discussion baseline for continuing revision.
 
 ## Delivery scope and deadline
