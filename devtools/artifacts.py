@@ -29,8 +29,10 @@ class Artifacts:
             raise ValueError("An artifact must be a managed file, not a symlink")
         return path
 
-    def _source(self, source):
-        workspace = Path(self.store.member(self.member)["workspace"])
+    def _source(self, source, job=UNSET):
+        from .workspaces import current_workspace
+
+        workspace = current_workspace(self.store, self.member, job=job)
         path = (workspace / source).resolve(strict=True)
         if Path(source).is_absolute() or not path.is_relative_to(workspace):
             raise ValueError("Use a file relative to this member's workspace.")
@@ -58,7 +60,7 @@ class Artifacts:
         with self.store.connect() as db:
             work_order, job = self.store.current_work(db, self.member, work_order, job)
         if source is not None:
-            stream = self._source(source)
+            stream = self._source(source, job=job)
         elif encoding == "base64":
             try:
                 stream = io.BytesIO(base64.b64decode(content, validate=True))

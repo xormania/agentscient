@@ -293,9 +293,13 @@ what can actually be called until implementation changes it.
 The shared role-bound surface, command tools, initial and updated briefs, and
 report/guidance routing are now implemented as described above. The initial command
 implementation keeps one current work order per CO and one collaborator per named
-job. Job turnover, local Git orchestration, specialist delivery tools, and the
-integrated Serena/Maker/Mate workspace contract remain part of the delivery work.
-Protocol fixtures exercise the command flow and live pause/resume; authenticated
+job. Further specialist tools and the integrated Serena/Maker/Mate workspace
+contract remain part of the delivery work.
+Configured jobs now have isolated Git worktrees and task-facing inspection,
+checkpoint, recovery, upstream refresh and PR submission. The service binds the
+repository, branch and target automatically, preserves conflicts/checkpoints, and
+retains diff and CI evidence. Provider editing/validation and completed-job turnover
+are the remaining integration work. Protocol fixtures exercise the command flow and live pause/resume; authenticated
 local model acceptance remains outstanding. This document does not mark the complete
 dev-lane ready.
 

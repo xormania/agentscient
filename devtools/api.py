@@ -13,6 +13,7 @@ from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
+from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "agentscient_dev"
 OPERATOR_INSTRUCTIONS = (
@@ -288,6 +289,37 @@ OPERATOR_TOOLS = [
 
 
 TOOLS = control_capabilities(spec) + command_capabilities(spec)
+TOOLS += [
+    spec(
+        "work_inspect",
+        "Inspect the current job's changes, checkpoints and editable scope; workspace and Git context are automatic.",
+        {"section": {"type": "string", "enum": ["overview", "changes"]}, "path": TEXT, "offset": AFTER},
+        readonly=True,
+    ),
+    spec(
+        "work_save",
+        "Preserve current changes as a checkpoint with retained diff evidence.",
+        {"note": REQUIRED_DETAIL},
+        ("note",),
+    ),
+    spec(
+        "work_refresh",
+        "Preserve a checkpoint and incorporate upstream changes; retain work if a conflict needs guidance.",
+    ),
+    spec(
+        "work_recover",
+        "Restore one of this job's checkpoints as a new commit, preserving current work first.",
+        {"checkpoint": {"type": "string", "pattern": "checkpoint:[0-9a-f]{40}"}, "reason": REQUIRED_DETAIL},
+        ("checkpoint", "reason"),
+    ),
+    spec(
+        "work_submit",
+        "Checkpoint and publish this job, create or reuse its PR, retain evidence and follow CI.",
+        {"summary": REQUIRED_DETAIL},
+        ("summary",),
+    ),
+]
+WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", "work_submit"}
 
 
 def validate(value, schema, path="arguments"):
@@ -337,6 +369,7 @@ class API:
         self.operator = operator
         self.control = Control(self.store, self.member)
         self.commands = Commands(self.store, self.member, self.control)
+        self.workspaces = Workspaces(self.store, self.member)
         self.work = Work(self.store, self.member)
         self.artifacts = Artifacts(self.store, self.member)
         from .github import GitHub
@@ -351,6 +384,10 @@ class API:
     def _tools(self, scope):
         role = self.commands.role(scope)
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        if scope and scope["job"] and project_config(self.store):
+            common.add("work_inspect")
+            if role in EDITORS:
+                common |= WORKSPACE_TOOLS
         return [row for row in TOOLS if row["name"] in common | ROLE_TOOLS.get(role, set())]
 
     def instructions(self):
@@ -445,6 +482,8 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in WORKSPACE_TOOLS:
+            return getattr(self.workspaces, name.removeprefix("work_"))(**args)
         if name in {tool for names in ROLE_TOOLS.values() for tool in names}:
             return getattr(self.commands, name)(**args)
         if name == "work_context":

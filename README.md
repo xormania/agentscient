@@ -30,8 +30,9 @@ Application code belongs in `src/`, with configuration in `config/` and tests in
 See [`devtools/README.md`](devtools/README.md) for setup, MCP configuration,
 session management, work tracking, GitHub PR/CI work, artifact storage, messages,
 and telemetry.
-The current MCP surface has no shell or project editing/execution capabilities.
-Specialist delivery tools, managed local Git, and Serena/Maker/Mate integration remain
+Configured jobs now get managed Git workspaces, checkpoints, recovery, upstream
+refresh, and PR submission through outcome tools. There is no general shell tool.
+Serena/Maker/Mate integration and configured project validation remain
 part of the work toward the documented Monday readiness target.
 
 The proposed control-plane direction, CO/XO relationship, role profiles, and draft
