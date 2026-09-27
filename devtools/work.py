@@ -52,47 +52,64 @@ class Work:
     def _create(self, table, title, objective, done_when, constraints="", key=None, work_order=UNSET, **bindings):
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            parent = self.resolve(db, work_order, None)[0] if table == "jobs" else None
-            payload = canonical([title, objective, done_when, constraints, parent, bindings])
-            old = db.execute(
-                f"SELECT id,request_payload FROM {table} WHERE created_by=? AND request_key=?", (self.member, key)
-            ).fetchone()
-            if old:
-                if old["request_payload"] != payload:
-                    raise ValueError("That request key already identifies different work.")
-                ident = old["id"]
-            else:
-                now = stamp()
-                fields = dict(
-                    title=title,
-                    objective=objective,
-                    done_when=done_when,
-                    constraints=constraints,
-                    created_by=self.member,
-                    created=now,
-                    updated=now,
-                    request_key=key,
-                    request_payload=payload,
-                )
-                if table == "jobs":
-                    self._check_branch(bindings)
-                    fields.update(work_order=parent, **bindings)
-                ident = db.execute(
-                    f"INSERT INTO {table}(" + ",".join(fields) + ") VALUES (" + ",".join("?" for _ in fields) + ")",
-                    tuple(fields.values()),
-                ).lastrowid
-                self.store._event(
-                    db,
-                    self.member,
-                    "job_created" if table == "jobs" else "work_order_created",
-                    {"work_order": parent if table == "jobs" else ident, "job": ident if table == "jobs" else None},
-                )
-            work_order, job = (parent, ident) if table == "jobs" else (ident, None)
+            return self.create_in(db, table, title, objective, done_when, constraints, key, work_order, **bindings)
+
+    def create_in(
+        self,
+        db,
+        table,
+        title,
+        objective,
+        done_when,
+        constraints="",
+        key=None,
+        work_order=UNSET,
+        *,
+        select=True,
+        **bindings,
+    ):
+        parent = self.resolve(db, work_order, None)[0] if table == "jobs" else None
+        payload = canonical([title, objective, done_when, constraints, parent, bindings])
+        old = db.execute(
+            f"SELECT id,request_payload FROM {table} WHERE created_by=? AND request_key=?", (self.member, key)
+        ).fetchone()
+        if old:
+            if old["request_payload"] != payload:
+                raise ValueError("That request key already identifies different work.")
+            ident = old["id"]
+        else:
+            now = stamp()
+            fields = dict(
+                title=title,
+                objective=objective,
+                done_when=done_when,
+                constraints=constraints,
+                created_by=self.member,
+                created=now,
+                updated=now,
+                request_key=key,
+                request_payload=payload,
+            )
+            if table == "jobs":
+                self._check_branch(bindings)
+                fields.update(work_order=parent, **bindings)
+            ident = db.execute(
+                f"INSERT INTO {table}(" + ",".join(fields) + ") VALUES (" + ",".join("?" for _ in fields) + ")",
+                tuple(fields.values()),
+            ).lastrowid
+            self.store._event(
+                db,
+                self.member,
+                "job_created" if table == "jobs" else "work_order_created",
+                {"work_order": parent if table == "jobs" else ident, "job": ident if table == "jobs" else None},
+            )
+        work_order, job = (parent, ident) if table == "jobs" else (ident, None)
+        if select:
             self._select(db, work_order, job)
-            result = {"work_order": record(db, "work_orders", work_order), "selected": True}
-            if job is not None:
-                result["job"] = record(db, "jobs", job)
-            return result
+        result = {"work_order": record(db, "work_orders", work_order), "selected": select}
+        if job is not None:
+            result["job"] = record(db, "jobs", job)
+        return result
 
     def work_order_create(self, **args):
         return self._create("work_orders", **args)
@@ -192,27 +209,34 @@ class Work:
             raise ValueError("Include the repository when recording a branch.")
 
     def _update(self, table, work_order=UNSET, job=UNSET, **fields):
+        with self.store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            return self.update_in(db, table, work_order, job, **fields)
+
+    def update_in(self, db, table, work_order=UNSET, job=UNSET, **fields):
         if not fields or fields.keys() - (FIELDS | (JOB_FIELDS if table == "jobs" else set())):
             raise ValueError("Supply the fields to update.")
         if "status" in fields and fields["status"] not in STATUSES:
             raise ValueError("Unknown status")
-        with self.store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
-            work_order, job = self.resolve(db, work_order, job, table == "jobs")
-            ident = job if table == "jobs" else work_order
-            if table == "jobs":
-                self._check_branch(record(db, table, ident) | fields)
-            db.execute(
-                f"UPDATE {table} SET " + ",".join(field + "=?" for field in fields) + ",updated=? WHERE id=?",
-                (*fields.values(), stamp(), ident),
-            )
-            self.store._event(
-                db,
-                self.member,
-                "job_updated" if table == "jobs" else "work_order_updated",
-                {"work_order": work_order, "job": job, "fields": sorted(fields)},
-            )
-            return {"job" if table == "jobs" else "work_order": record(db, table, ident)}
+        work_order, job = self.resolve(db, work_order, job, table == "jobs")
+        ident = job if table == "jobs" else work_order
+        current = record(db, table, ident)
+        fields = {key: value for key, value in fields.items() if current[key] != value}
+        if not fields:
+            return {"job" if table == "jobs" else "work_order": current}
+        if table == "jobs":
+            self._check_branch(record(db, table, ident) | fields)
+        db.execute(
+            f"UPDATE {table} SET " + ",".join(field + "=?" for field in fields) + ",updated=? WHERE id=?",
+            (*fields.values(), stamp(), ident),
+        )
+        self.store._event(
+            db,
+            self.member,
+            "job_updated" if table == "jobs" else "work_order_updated",
+            {"work_order": work_order, "job": job, "fields": sorted(fields)},
+        )
+        return {"job" if table == "jobs" else "work_order": record(db, table, ident)}
 
     def work_order_update(self, work_order=UNSET, **fields):
         return self._update("work_orders", work_order, None, **fields)

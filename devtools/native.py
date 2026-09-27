@@ -23,7 +23,8 @@ from .telemetry import Trace
 class Native:
     def __init__(self, directory, member, config, generation):
         self.store, self.member = Store(directory), member
-        self.control = API(directory, member).control
+        self.api = API(directory, member)
+        self.control = self.api.control
         self.config, self.generation = config, generation
         self.workspace = self.store.member(member)["workspace"]
         self.harness = config["harness"]
@@ -108,7 +109,7 @@ class Native:
                 "cwd": self.workspace,
                 "sandbox": "read-only",
                 "approvalPolicy": "untrusted",
-                "developerInstructions": self.control.instructions(),
+                "developerInstructions": self.api.instructions(),
                 "dynamicTools": [
                     {
                         "type": "function",
@@ -377,7 +378,7 @@ def claude(directory, member, config, generation):
         "--tools",
         "",
         "--allowedTools",
-        ",".join("mcp__" + SERVER + "__" + row["name"] for row in TOOLS),
+        ",".join("mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()),
         "--append-system-prompt",
         API(directory, member).instructions(),
     ]

@@ -1,6 +1,7 @@
 """Start and stop configured persistent sessions. There is no job dispatcher."""
 
 import asyncio
+import fcntl
 import hashlib
 import json
 import os
@@ -13,13 +14,14 @@ import threading
 import time
 from pathlib import Path
 
-from .profiles import ENTRY, write_json
 from .store import Store, identifier
 
 HARNESSES = {"codex", "claude", "grok", "external"}
 
 
-def initialize(directory, workspace, members):
+def initialize(directory, workspace, members, co=None):
+    from .profiles import write_json
+
     directory = Path(directory).expanduser().resolve()
     config = directory / "team.json"
     if config.exists():
@@ -40,14 +42,15 @@ def initialize(directory, workspace, members):
         )
     if not rows:
         raise ValueError("Configure at least one member.")
+    if co is not None and not any(row["name"] == co and row["harness"] == "external" for row in rows):
+        raise ValueError("CO must name the external user-facing session.")
     Store(directory).initialize(rows)
-    write_json(config, {"members": rows})
+    write_json(config, {"members": rows, **({"co": co} if co else {})})
     return {"state": str(directory), "members": rows}
 
 
-def configuration(directory, member):
-    store = Store(directory)
-    config = json.loads((store.directory / "team.json").read_text())
+def team_config(directory):
+    config = json.loads((Path(directory) / "team.json").read_text())
     rows = config.get("members")
     if not isinstance(rows, list) or not rows:
         raise ValueError("team.json needs a nonempty members array")
@@ -62,6 +65,14 @@ def configuration(directory, member):
         for key in ("binary", "model", "reasoning"):
             if key in row and (not isinstance(row[key], str) or not row[key] or "\0" in row[key]):
                 raise ValueError(f"{key} must be a nonempty string")
+    if config.get("co") and not any(row["name"] == config["co"] and row["harness"] == "external" for row in rows):
+        raise ValueError("CO must name the external user-facing session.")
+    return config
+
+
+def configuration(directory, member):
+    store = Store(directory)
+    rows = team_config(store.directory)["members"]
     store.initialize(rows)
     selected = next((row for row in rows if row["name"] == member), None)
     if selected is None:
@@ -87,7 +98,39 @@ def tmux_name(directory, member):
     return f"agentscient-{digest}-{identifier(member)}"
 
 
-def start(directory, member):
+def start(directory, member, *, binding_revision=None):
+    store = Store(directory)
+    locks = store.directory / "launch-locks"
+    locks.mkdir(exist_ok=True, mode=0o700)
+    with (locks / (identifier(member) + ".lock")).open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if binding_revision is not None:
+            from .control import Control
+
+            scope = Control(store, member).snapshot()
+            if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
+                return {"superseded": True}
+            current = store.member(member)
+            if current["pid"] and current["desired"] == "stopped":
+                try:
+                    os.kill(current["pid"], 0)
+                except ProcessLookupError:
+                    pass
+                else:
+                    return {"waiting_for_stop": True}
+        result = _start(directory, member, binding_revision)
+        if binding_revision is not None and result.get("already_running"):
+            with store.connect() as db:
+                db.execute(
+                    "UPDATE member_bindings SET launch_pending=0 WHERE member=? AND revision=?",
+                    (member, binding_revision),
+                )
+        return result
+
+
+def _start(directory, member, binding_revision):
+    from .profiles import ENTRY
+
     store = Store(directory)
     config = configuration(directory, member)
     current = store.member(member)
@@ -100,6 +143,8 @@ def start(directory, member):
         else:
             return {"member": member, "already_running": True, "session": current}
     argv = [sys.executable, str(ENTRY), "agent", "--state", str(store.directory), "--member", member]
+    if binding_revision is not None:
+        argv += ["--binding-revision", str(binding_revision)]
     if config["harness"] == "claude":
         if not shutil.which("tmux"):
             raise ValueError(
@@ -128,15 +173,26 @@ def start(directory, member):
             break
         time.sleep(0.05)
     current = store.member(member)
+    if binding_revision is not None and current["generation"] == previous_generation:
+        raise RuntimeError("Managed process did not establish a session; inspect monitor and retry with resume.")
     if current["generation"] != previous_generation and current["state"] == "failed":
         raise RuntimeError(current["detail"].get("error", "Native startup failed"))
     return {"member": member, "requested": "running", **detail, "session": current}
 
 
-def agent(directory, member):
+def agent(directory, member, binding_revision=None):
+    from .control import REQUEST_BINDING, Control
+
     store = Store(directory)
     config = configuration(directory, member)
-    generation = store.begin_session(member, os.getpid())
+    control = Control(store, member)
+    origin = control.snapshot()
+    generation = store.begin_session(
+        member,
+        os.getpid(),
+        binding_revision=binding_revision,
+        settings={key: config.get(key) for key in ("harness", "model", "reasoning")},
+    )
 
     def stop(_signal, _frame):
         store.session(member, generation=generation, desired="stopped")
@@ -164,3 +220,12 @@ def agent(directory, member):
             pid=None,
             detail={"error": error},
         )
+        if error and origin:
+            token = REQUEST_BINDING.set((member, origin))
+            try:
+                with store.work_context(member, origin["work_order"], origin["job"]):
+                    control.report("Native session failed: " + error[:600], kind="blocker")
+            except ValueError:
+                pass  # A revoked or changed reporting relationship cannot receive this report.
+            finally:
+                REQUEST_BINDING.reset(token)

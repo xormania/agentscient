@@ -20,7 +20,9 @@ The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
 connection. No task dispatch, grant system, review ladder, or workflow engine is
-provided. Command and specialist tools are being added in subsequent PRs.
+provided. CO uses `direct`/`monitor`; XO uses `orchestrate`/`monitor`/`steer`.
+Command services bind work and configured collaborators, supply current briefs,
+and retain live direction. Specialist delivery tools are still being added.
 Work-order numbers bind the overall effort; jobs are bounded pieces delivered
 through PRs. Agents use task-facing MCP tools; the services handle storage and
 record association internally.

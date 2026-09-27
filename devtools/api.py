@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 
 from .artifacts import Artifacts
+from .commands import ROLE_TOOLS, Commands
+from .commands import capabilities as command_capabilities
 from .control import REQUEST_BINDING, ROLES, Control
 from .control import capabilities as control_capabilities
 from .github_tools import NAMES as GITHUB_NAMES
@@ -285,7 +287,7 @@ OPERATOR_TOOLS = [
 ]
 
 
-TOOLS = control_capabilities(spec)
+TOOLS = control_capabilities(spec) + command_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -314,8 +316,8 @@ def validate(value, schema, path="arguments"):
                 validate(key, {"type": "string", "maxLength": 100}, path + " key")
                 validate(item, schema["additionalProperties"], path + "." + key)
     elif kind == "array":
-        if len(value) > schema.get("maxItems", 100):
-            raise ValueError(f"{path} contains too many items")
+        if not schema.get("minItems", 0) <= len(value) <= schema.get("maxItems", 100):
+            raise ValueError(f"{path} is outside its item bounds")
         for item in value:
             validate(item, schema.get("items", {}), path + "[]")
     elif kind == "string":
@@ -334,6 +336,7 @@ class API:
         self.member = self.store.member(member)["name"]
         self.operator = operator
         self.control = Control(self.store, self.member)
+        self.commands = Commands(self.store, self.member, self.control)
         self.work = Work(self.store, self.member)
         self.artifacts = Artifacts(self.store, self.member)
         from .github import GitHub
@@ -343,17 +346,28 @@ class API:
     def tools(self):
         if self.operator:
             return OPERATOR_TOOLS
-        scope = self.control.snapshot()
-        return TOOLS if scope and scope["role"] in ROLES else TOOLS[:1]
+        return self._tools(self.control.snapshot())
+
+    def _tools(self, scope):
+        role = self.commands.role(scope)
+        common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        return [row for row in TOOLS if row["name"] in common | ROLE_TOOLS.get(role, set())]
 
     def instructions(self):
-        return OPERATOR_INSTRUCTIONS if self.operator else self.control.instructions()
+        if self.operator:
+            return OPERATOR_INSTRUCTIONS
+        role = self.commands.role(self.control.snapshot())
+        command = {
+            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team.",
+            "xo": " Use orchestrate to organize live collaborators, monitor for progress, and steer to guide, pause, resume or stop them.",
+        }.get(role, "")
+        return self.control.instructions(self.invoke("work_context", {})) + command
 
     def call(self, name, arguments):
         if self.operator:
             return self._operator_call(name, arguments)
         scope = self.control.snapshot()
-        allowed = TOOLS if scope and scope["role"] in ROLES else TOOLS[:1]
+        allowed = self._tools(scope)
         schema = next((row for row in allowed if row["name"] == name), None)
         if schema is None:
             self.store.event(self.member, "tool_denied", tool=str(name)[:80])
@@ -431,7 +445,15 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {tool for names in ROLE_TOOLS.values() for tool in names}:
+            return getattr(self.commands, name)(**args)
         if name == "work_context":
+            if not self.control.current() and self.commands.appointed_co():
+                return {
+                    "role": "co",
+                    "state": "ready_to_direct",
+                    "next_action": "Use direct with the user's authorized objective and boundaries.",
+                }
             return self.control.work_context(**args)
         if name == "work_report":
             return self.control.report(**args)

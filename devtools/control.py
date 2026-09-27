@@ -125,57 +125,60 @@ class Control:
         return request[1] if request and request[0] == self.member else self.snapshot()
 
     def bind(self, member, role, work_order=None, job=None, reports_to=None, brief=""):
-        """Operator/bootstrap entry point; future command services reuse this method."""
+        """Operator/bootstrap entry point; commands reuse bind_in in their transactions."""
         if role not in ROLES:
             raise ValueError("Unknown role profile")
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            if not db.execute("SELECT 1 FROM members WHERE name=?", (member,)).fetchone():
-                raise ValueError("Unknown member")
-            if job is not None:
-                parent = record(db, "jobs", job)["work_order"]
-                if work_order is not None and work_order != parent:
-                    raise ValueError("That job belongs to a different work order")
-                work_order = parent
-            record(db, "work_orders", work_order)
-            if role == "co" and reports_to is not None:
-                raise ValueError("CO reports to the user; omit reports_to")
-            if role != "co":
-                superior = binding(db, reports_to)
-                if not includes(superior, work_order, job) or (superior["job"] and job is None):
-                    raise ValueError("Bind the reporting member to a covering work scope first")
-                if role == "xo" and superior["role"] != "co":
-                    raise ValueError("XO reports to CO")
-            ancestor, seen = reports_to, {member}
-            while ancestor is not None:
-                if ancestor in seen:
-                    raise ValueError("Reporting relationships cannot contain a cycle")
-                seen.add(ancestor)
-                row = binding(db, ancestor)
-                ancestor = row["reports_to"] if row else None
-            old = binding(db, member)
-            fields = (role, work_order, job, reports_to, brief)
-            if old and tuple(old[k] for k in ("role", "work_order", "job", "reports_to", "brief")) == fields:
-                return old
-            revision = old["revision"] + 1 if old else 1
-            db.execute(
-                "INSERT INTO member_bindings(member,role,work_order,job,reports_to,brief,revision,updated) "
-                "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(member) DO UPDATE SET role=excluded.role,"
-                "work_order=excluded.work_order,job=excluded.job,reports_to=excluded.reports_to,brief=excluded.brief,"
-                "revision=excluded.revision,updated=excluded.updated",
-                (member, *fields, revision, stamp()),
-            )
-            # Existing operational services inherit the same scope; agent calls cannot select another one.
-            db.execute(
-                "UPDATE members SET selected_work_order=?,selected_job=? WHERE name=?", (work_order, job, member)
-            )
-            self.store._event(
-                db,
-                self.member,
-                "member_bound",
-                {"member": member, "role": role, "revision": revision, "work_order": work_order, "job": job},
-            )
-            return binding(db, member)
+            return self.bind_in(db, member, role, work_order, job, reports_to, brief)
+
+    def bind_in(self, db, member, role, work_order=None, job=None, reports_to=None, brief=""):
+        if role not in ROLES:
+            raise ValueError("Unknown role profile")
+        if not db.execute("SELECT 1 FROM members WHERE name=?", (member,)).fetchone():
+            raise ValueError("Unknown member")
+        if job is not None:
+            parent = record(db, "jobs", job)["work_order"]
+            if work_order is not None and work_order != parent:
+                raise ValueError("That job belongs to a different work order")
+            work_order = parent
+        record(db, "work_orders", work_order)
+        if role == "co" and reports_to is not None:
+            raise ValueError("CO reports to the user; omit reports_to")
+        if role != "co":
+            superior = binding(db, reports_to)
+            if not includes(superior, work_order, job) or (superior["job"] and job is None):
+                raise ValueError("Bind the reporting member to a covering work scope first")
+            if role == "xo" and superior["role"] != "co":
+                raise ValueError("XO reports to CO")
+        ancestor, seen = reports_to, {member}
+        while ancestor is not None:
+            if ancestor in seen:
+                raise ValueError("Reporting relationships cannot contain a cycle")
+            seen.add(ancestor)
+            row = binding(db, ancestor)
+            ancestor = row["reports_to"] if row else None
+        old = binding(db, member)
+        fields = (role, work_order, job, reports_to, brief)
+        if old and tuple(old[k] for k in ("role", "work_order", "job", "reports_to", "brief")) == fields:
+            return old
+        revision = old["revision"] + 1 if old else 1
+        db.execute(
+            "INSERT INTO member_bindings(member,role,work_order,job,reports_to,brief,revision,updated) "
+            "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(member) DO UPDATE SET role=excluded.role,"
+            "work_order=excluded.work_order,job=excluded.job,reports_to=excluded.reports_to,brief=excluded.brief,"
+            "revision=excluded.revision,updated=excluded.updated,launch_pending=0,launch_error=NULL",
+            (member, *fields, revision, stamp()),
+        )
+        # Existing operational services inherit the same scope; agent calls cannot select another one.
+        db.execute("UPDATE members SET selected_work_order=?,selected_job=? WHERE name=?", (work_order, job, member))
+        self.store._event(
+            db,
+            self.member,
+            "member_bound",
+            {"member": member, "role": role, "revision": revision, "work_order": work_order, "job": job},
+        )
+        return binding(db, member)
 
     def unbind(self, member):
         with self.store.connect() as db:
@@ -259,10 +262,12 @@ class Control:
                         "from": row["sender"],
                         "text": row["body"],
                         "delivery": row["delivery"],
+                        "type": row["category"],
                     }
             elif section == "brief":
                 result = {
                     "role": scope["role"],
+                    "work_state": "paused" if scope["paused"] else "active",
                     "context_revision": scope["revision"],
                     "responsibility": scope["brief"],
                     "work": self._summary(record(db, "work_orders", scope["work_order"])),
@@ -280,7 +285,7 @@ class Control:
                     for row in db.execute(
                         "SELECT * FROM messages WHERE recipient=? AND "
                         + sql
-                        + " AND acknowledged IS NULL ORDER BY id DESC LIMIT 3",
+                        + " AND acknowledged IS NULL AND delivery!='superseded' ORDER BY id DESC LIMIT 3",
                         (self.member, *args),
                     )
                 ]
@@ -335,6 +340,7 @@ class Control:
             "from": row["sender"],
             "text": row["body"][:600] if preview else row["body"],
             "delivery": row["delivery"],
+            "type": row["category"],
             "truncated": preview and len(row["body"]) > 600,
         }
 
@@ -434,8 +440,8 @@ class Control:
             result["evidence"] = f"artifact:{row['artifact']}"
         return result
 
-    def instructions(self):
-        brief = self.work_context()
+    def instructions(self, brief=None):
+        brief = self.work_context() if brief is None else brief
         with self._brief_lock:
             self._last_brief = canonical({k: v for k, v in brief.items() if k not in {"recent_activity", "incoming"}})
         return INSTRUCTIONS + "\nYour current brief:\n" + json.dumps(brief, ensure_ascii=False)
@@ -446,6 +452,18 @@ class Control:
         with self._brief_lock:
             changed = signature != self._last_brief
             self._last_brief = signature
+        if message.get("category") == "direction":
+            issued = json.loads(message["body"])
+            direction = (
+                issued["direction"]
+                if issued["context_revision"] == brief.get("context_revision")
+                else ("Earlier direction was superseded. Use the current brief.")
+            )
+            return (
+                f"Live message #{message['id']} — control-plane direction (message:{message['id']}):\n"
+                f"{direction}\nCurrent brief:\n{json.dumps(brief, ensure_ascii=False)}\n"
+                "Use work_report or guidance_request as needed. Your current brief governs work."
+            )
         return (
             f"Live message #{message['id']} from {message['sender']} (message:{message['id']}):\n"
             f"{message['body']}\n\nUse work_report to respond or guidance_request for help. "
