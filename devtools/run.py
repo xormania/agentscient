@@ -19,7 +19,7 @@ from devtools.store import Store
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "mcp", "agent", "start", "stop", "status", "send", "hook"):
+    for name in ("init", "mcp", "agent", "start", "stop", "status", "send", "hook", "operation"):
         command = commands.add_parser(name)
         command.add_argument("--state", required=True, help="Private state directory outside source worktrees")
         if name not in {"init", "status"}:
@@ -33,6 +33,8 @@ def main():
             command.add_argument(
                 "--operator", action="store_true", help="Trusted setup/diagnostics; never pass to managed agents"
             )
+        elif name == "operation":
+            command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
         elif name == "send":
@@ -47,6 +49,11 @@ def main():
             result = launch.initialize(args.state, args.workspace, args.member, args.co)
         elif args.command == "mcp":
             serve(args.state, args.member, args.channel, args.operator)
+            return 0
+        elif args.command == "operation":
+            from devtools.operations import execute
+
+            execute(args.state, args.member, args.operation)
             return 0
         elif args.command == "agent":
             launch.agent(args.state, args.member, args.binding_revision)

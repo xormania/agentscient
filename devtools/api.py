@@ -9,8 +9,11 @@ from .commands import ROLE_TOOLS, Commands
 from .commands import capabilities as command_capabilities
 from .control import REQUEST_BINDING, ROLES, Control
 from .control import capabilities as control_capabilities
+from .development import capabilities as development_capabilities
+from .development import configured as development_configured
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
+from .operations import ACTIONS, Operations
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
 from .workspaces import EDITORS, Workspaces, project_config
@@ -293,7 +296,7 @@ TOOLS += [
     spec(
         "work_inspect",
         "Inspect the current job's changes, checkpoints and editable scope; workspace and Git context are automatic.",
-        {"section": {"type": "string", "enum": ["overview", "changes"]}, "path": TEXT, "offset": AFTER},
+        {"section": {"type": "string", "enum": ["overview", "changes", "operations"]}, "path": TEXT, "offset": AFTER},
         readonly=True,
     ),
     spec(
@@ -320,6 +323,7 @@ TOOLS += [
     ),
 ]
 WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", "work_submit"}
+TOOLS += development_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -370,6 +374,7 @@ class API:
         self.control = Control(self.store, self.member)
         self.commands = Commands(self.store, self.member, self.control)
         self.workspaces = Workspaces(self.store, self.member)
+        self.operations = Operations(self.store, self.member)
         self.work = Work(self.store, self.member)
         self.artifacts = Artifacts(self.store, self.member)
         from .github import GitHub
@@ -388,6 +393,10 @@ class API:
             common.add("work_inspect")
             if role in EDITORS:
                 common |= WORKSPACE_TOOLS
+            if development_configured(self.store):
+                common |= {"framework_inspect", "work_check"}
+                if role in {"coder", "test_writer"}:
+                    common.add("framework_generate")
         return [row for row in TOOLS if row["name"] in common | ROLE_TOOLS.get(role, set())]
 
     def instructions(self):
@@ -482,6 +491,10 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in ACTIONS and development_configured(self.store):
+            return self.operations.start(name, args)
+        if name == "work_inspect" and args.get("section") == "operations":
+            return self.operations.inspect()
         if name in WORKSPACE_TOOLS:
             return getattr(self.workspaces, name.removeprefix("work_"))(**args)
         if name in {tool for names in ROLE_TOOLS.values() for tool in names}:

@@ -378,6 +378,18 @@ class Workspaces:
         with self.use(write=True) as (scope, workspace):
             saved = self._save(scope, workspace, summary)
             revision = saved["checkpoint"].split(":", 1)[1]
+            from .development import Development, configured
+
+            validation = None
+            if configured(self.store):
+                validation = Development(self.store, self.member).checks(workspace["root"])
+                if not validation["passed"] or validation["uncommitted"]:
+                    return {
+                        "state": "needs_attention",
+                        "checkpoint": saved["checkpoint"],
+                        "validation": validation,
+                        "message": "Validation failed or changed files. Inspect the evidence before submitting again.",
+                    }
             remote = self.config.get("remote", "origin")
             if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
                 raise ValueError("Invalid configured Git remote.")
@@ -401,6 +413,7 @@ class Workspaces:
                 "pr": opened["pr"]["url"],
                 "evidence": saved["evidence"],
                 "ci": watched,
+                "validation": validation,
             }
 
 

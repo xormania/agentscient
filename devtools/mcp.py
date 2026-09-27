@@ -100,6 +100,7 @@ def serve(directory, member, channel=False, operator=False):
                 api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
             try:
                 api.commands.tick()
+                api.operations.tick()
             except Exception as error:
                 api.store.event(member, "command_watch_error", error=str(error)[:1000])
 
