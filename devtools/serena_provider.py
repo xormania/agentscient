@@ -63,6 +63,7 @@ class Serena:
         self.container = "agentscient-serena-" + uuid.uuid4().hex
         self.session = uuid.uuid4().hex[:8]
         self.signature = None
+        self.workspace_root = None
         self.paused = False
         self.log = None
         atexit.register(self.close)
@@ -189,6 +190,7 @@ class Serena:
             argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, start_new_session=True
         )
         self.signature = signature
+        self.workspace_root = workspace["root"]
         threading.Thread(target=self.reader, args=(self.process, self.packets), daemon=True).start()
         self.request(
             "initialize",
@@ -230,6 +232,11 @@ class Serena:
         self.deadline = time.monotonic() + 100
         with self.spaces.use(write=scope["role"] in EDITORS) as (_, workspace):
             self.scope()
+            if self.process is not None and self.workspace_root != workspace["root"]:
+                self.close()
+                raise ValueError(
+                    "The inspected source snapshot changed. REPL variables were cleared; repeat inspection on the new snapshot."
+                )
             try:
                 if self.process is None:
                     self.start(scope, workspace, signature)

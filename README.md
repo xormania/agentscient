@@ -6,7 +6,7 @@ defined in `composer.json` and `composer.lock`.
 
 The development support in [`devtools/`](devtools/README.md) exposes shared work
 tools and CO/XO command tools through role-bound MCP sessions. CO uses `direct`
-and `monitor`; XO uses `orchestrate`, `monitor`, and `steer`. Services bind work,
+and `monitor`, then `conclude` when the work order is finished; XO uses `orchestrate`, `monitor`, and `steer`. Services bind work,
 start configured collaborators, supply briefs, route live messages, and retain evidence. Live harness transport,
 telemetry, work orders/jobs, artifacts, and GitHub PR/CI services back this surface;
 their lower-level tools remain on an explicit operator connection during setup.
@@ -34,8 +34,9 @@ Configured jobs now get managed Git workspaces, checkpoints, recovery, upstream
 refresh, and PR submission through outcome tools. There is no general shell tool.
 Installed Makers, Mate diagnostics and configured validation now have scoped MCP
 tools and retained asynchronous results. Serena v2 REPL is a separate, automatically
-bound provider with protected workspace mounts. Final review/acceptance and local
-native-harness acceptance are being completed toward the Monday readiness target.
+bound provider with protected workspace mounts. Revision-bound review, acceptance,
+and collaborator turnover complete the delivery tools. Authenticated local
+native-harness acceptance remains to be demonstrated on the operator's machine.
 
 The proposed control-plane direction, CO/XO relationship, role profiles, and draft
 tool catalog are recorded in

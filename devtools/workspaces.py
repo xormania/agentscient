@@ -86,6 +86,10 @@ class Workspaces:
             raise ValueError("This capability needs your current job binding.")
         if write and (current["role"] not in EDITORS or current["paused"]):
             raise ValueError("Your current role cannot change this work, or the work is paused.")
+        if write:
+            with self.store.connect() as db:
+                if record(db, "jobs", current["job"])["status"] in {"done", "cancelled"}:
+                    raise ValueError("This job is finished; new changes belong to a new responsibility.")
         return current
 
     @contextmanager
@@ -118,7 +122,12 @@ class Workspaces:
     def ensure(self):
         scope = self.scope()
         with self.lock("repository"):
-            return self._ensure(scope)
+            workspace = self._ensure(scope)
+            if scope["role"] == "audit":
+                from .delivery import review_snapshot
+
+                workspace = review_snapshot(self.store, self.member, workspace)
+            return workspace
 
     def _ensure(self, scope):
         checkout = self.checkout()
@@ -129,7 +138,14 @@ class Workspaces:
             self._verify(dict(old), checkout)
             return dict(old)
         target = self.target()
-        base = git(checkout, "rev-parse", "--verify", target + "^{commit}").stdout.decode().strip()
+        base_ref = target
+        remote = self.config.get("remote", "origin")
+        if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
+            raise ValueError("Invalid configured Git remote.")
+        if self.config.get("fetch", True) and git(checkout, "remote", "get-url", remote, check=False).returncode == 0:
+            base_ref = "refs/remotes/" + remote + "/" + target
+            git(checkout, "fetch", "--no-tags", remote, target + ":" + base_ref)
+        base = git(checkout, "rev-parse", "--verify", base_ref + "^{commit}").stdout.decode().strip()
         team = hashlib.sha256(str(self.store.directory).encode()).hexdigest()[:10]
         parent = (
             Path(self.config.get("workspaces", self.store.directory.parent / ("agentscient-work-" + team)))
@@ -181,6 +197,14 @@ class Workspaces:
 
         if common(root) != common(checkout):
             raise ValueError("Managed workspace no longer belongs to its configured repository.")
+        if workspace.get("review_revision"):
+            if git(root, "rev-parse", "HEAD").stdout.decode().strip() != workspace["review_revision"]:
+                raise ValueError("Audit snapshot revision changed outside the control plane.")
+            if git(root, "diff", "--quiet", "HEAD", check=False).returncode:
+                raise ValueError(
+                    "Audit snapshot has modified tracked source. Preserve the evidence and request guidance."
+                )
+            return
         branch = git(root, "symbolic-ref", "--short", "HEAD").stdout.decode().strip()
         if branch != workspace["branch"]:
             raise ValueError("Managed workspace changed branch outside the control plane.")
@@ -376,6 +400,19 @@ class Workspaces:
         from .github import GitHub
 
         with self.use(write=True) as (scope, workspace):
+            github, context = None, None
+            with self.store.connect() as db:
+                attached = record(db, "jobs", scope["job"])["pull_request"]
+            if attached:
+                github = GitHub(self.store, self.member)
+                context = github._context(job=scope["job"])
+                current = github._pr(context)
+                if current["head"]["ref"] != workspace["branch"] or current["base"]["ref"] != workspace["target"]:
+                    raise ValueError("The PR no longer matches this job's managed branch and target.")
+                if current.get("merged") or current["state"] == "closed":
+                    raise ValueError(
+                        "This job's PR is already closed. Ask XO to accept it or create new work; local changes were preserved."
+                    )
             saved = self._save(scope, workspace, summary)
             revision = saved["checkpoint"].split(":", 1)[1]
             from .development import Development, configured
@@ -394,9 +431,10 @@ class Workspaces:
             if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
                 raise ValueError("Invalid configured Git remote.")
             self.scope(write=True)
+            if github is None:
+                github = GitHub(self.store, self.member)
+                context = github._context(job=scope["job"])
             git(workspace["root"], "push", remote, "HEAD:refs/heads/" + workspace["branch"])
-            github = GitHub(self.store, self.member)
-            context = github._context(job=scope["job"])
             opened = github.pr_open(
                 context, base=workspace["target"], summary=summary + "\n\nEvidence: " + saved["evidence"], draft=False
             )
@@ -418,7 +456,10 @@ class Workspaces:
 
 
 def current_workspace(store, member, job=UNSET):
+    scope = Control(store, member).current()
     with store.connect() as db:
         _, job = store.current_work(db, member, job=job)
         row = db.execute("SELECT root FROM job_workspaces WHERE job=?", (job,)).fetchone() if job else None
+        if job and scope and scope["role"] == "audit":
+            row = db.execute("SELECT root FROM review_views WHERE member=? AND job=?", (member, job)).fetchone() or row
     return Path(row["root"] if row else store.member(member)["workspace"])

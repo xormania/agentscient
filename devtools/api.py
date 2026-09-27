@@ -9,6 +9,8 @@ from .commands import ROLE_TOOLS, Commands
 from .commands import capabilities as command_capabilities
 from .control import REQUEST_BINDING, ROLES, Control
 from .control import capabilities as control_capabilities
+from .delivery import Delivery
+from .delivery import capabilities as delivery_capabilities
 from .development import capabilities as development_capabilities
 from .development import configured as development_configured
 from .github_tools import NAMES as GITHUB_NAMES
@@ -296,7 +298,12 @@ TOOLS += [
     spec(
         "work_inspect",
         "Inspect the current job's changes, checkpoints and editable scope; workspace and Git context are automatic.",
-        {"section": {"type": "string", "enum": ["overview", "changes", "operations"]}, "path": TEXT, "offset": AFTER},
+        {
+            "section": {"type": "string", "enum": ["overview", "changes", "operations", "review"]},
+            "path": TEXT,
+            "offset": AFTER,
+            "page": {"type": "integer", "minimum": 1, "description": "Changed-file page for section=review."},
+        },
         readonly=True,
     ),
     spec(
@@ -324,6 +331,7 @@ TOOLS += [
 ]
 WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", "work_submit"}
 TOOLS += development_capabilities(spec)
+TOOLS += delivery_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -375,6 +383,7 @@ class API:
         self.commands = Commands(self.store, self.member, self.control)
         self.workspaces = Workspaces(self.store, self.member)
         self.operations = Operations(self.store, self.member)
+        self.delivery = Delivery(self.store, self.member)
         self.work = Work(self.store, self.member)
         self.artifacts = Artifacts(self.store, self.member)
         from .github import GitHub
@@ -393,11 +402,17 @@ class API:
             common.add("work_inspect")
             if role in EDITORS:
                 common |= WORKSPACE_TOOLS
+                common.add("review_respond")
+            if role == "audit":
+                common.add("review_record")
             if development_configured(self.store):
                 common |= {"framework_inspect", "work_check"}
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
-        return [row for row in TOOLS if row["name"] in common | ROLE_TOOLS.get(role, set())]
+        allowed = common | ROLE_TOOLS.get(role, set())
+        if scope is None:
+            allowed.discard("conclude")
+        return [row for row in TOOLS if row["name"] in allowed]
 
     def instructions(self):
         if self.operator:
@@ -491,6 +506,14 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name == "work_inspect" and args.get("section") == "review":
+            return self.delivery.inspect(**{key: value for key, value in args.items() if key != "section"})
+        if name == "work_inspect" and "page" in args:
+            raise ValueError("page is available for review inspection; other sections use offset.")
+        if name == "review_record":
+            return self.delivery.review(**args)
+        if name == "review_respond":
+            return self.delivery.respond(**args)
         if name in ACTIONS and development_configured(self.store):
             return self.operations.start(name, args)
         if name == "work_inspect" and args.get("section") == "operations":

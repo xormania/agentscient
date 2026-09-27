@@ -13,13 +13,14 @@ Implementation progress: the first shared-work slice now provides direct
 `work_context`, `work_report`, and `guidance_request` tools, trusted role/work
 bindings, scoped context and live delivery, routed reports, and retained evidence.
 All eight role names receive this common core. The command slice now adds CO
-`direct`/`monitor` and XO `orchestrate`/`monitor`/`steer`, with automatic job/member
+`direct`/`monitor`/`conclude` and XO `orchestrate`/`monitor`/`steer`, with automatic job/member
 binding, configured harness selection/startup, scoped monitoring, and live brief
 updates. Pause retains the running conversation; stop requests session shutdown
 while preserving work and evidence. Managed Git workspaces, checkpoints, publication,
 installed Makers/Mate, and configured checks now have direct scoped tools. Serena
 v2 REPL now has a separate bound MCP provider with role-limited source mounts.
-Review/acceptance and completed-work turnover remain to be integrated. The older low-level catalog is
+Revision-bound audit/response, XO acceptance and completed-work turnover are also
+implemented. The older low-level catalog is
 available only through an explicit operator connection for setup/diagnostics.
 See [`devtools/README.md`](../devtools/README.md) for the current callable interface.
 The catalog sections below retain the discussion baseline for continuing revision.
@@ -268,7 +269,7 @@ schema together. Agents should not repeatedly search, describe, and invoke just
 to perform routine work. Discovery and invocation must respect the role and scope.
 
 XO's implemented command tools are `orchestrate`, `monitor`, and `steer`.
-CO uses `direct` and `monitor`. This baseline does not restore the
+CO uses `direct`, `monitor` and `conclude`. This baseline does not restore the
 earlier, larger list of separate session and work-management tools for XO.
 
 ## Current implementation and the intended revision
@@ -294,9 +295,10 @@ what can actually be called until implementation changes it.
 
 The shared role-bound surface, command tools, initial and updated briefs, and
 report/guidance routing are now implemented as described above. The initial command
-implementation keeps one current work order per CO and one collaborator per named
-job. Further specialist tools and the integrated Serena/Maker/Mate workspace
-contract remain part of the delivery work.
+implementation keeps one current work order per CO and one producer plus an optional
+auditor per named job. Their source views differ: producer workspace versus immutable
+submitted revision. The implemented callable catalog is in `devtools/README.md`;
+the tables above preserve the discussion history rather than adding hidden tools.
 Configured jobs now have isolated Git worktrees and task-facing inspection,
 checkpoint, recovery, upstream refresh and PR submission. The service binds the
 repository, branch and target automatically, preserves conflicts/checkpoints, and
@@ -304,10 +306,14 @@ retains diff and CI evidence. Installed Maker generation, Mate diagnostics and
 configured validation now execute behind role-bound MCP, with retained asynchronous
 results and automatic worker/supervisor delivery. Serena v2 REPL editing is attached
 as a separate provider, with container boundaries and shared workspace locking.
-Completed-job turnover and review/acceptance
-are the remaining integration work. Protocol fixtures exercise the command flow and live pause/resume; authenticated
-local model acceptance remains outstanding. This document does not mark the complete
-dev-lane ready.
+Review findings and responses are retained and routed automatically. XO inspects a
+named delivery and accepts it through `steer`, which verifies the revision, workspace
+and CI and uses normal GitHub merge rules. Acceptance/cancellation releases slots
+after shutdown; CO concludes the completed work order. Protocol fixtures exercise
+these transitions and live pause/resume. Real CI executes installed Symfony Makers,
+Mate and checks, plus the pinned Serena REPL/PHPactor inside its container.
+Authenticated local model acceptance remains outstanding. This document does not
+substitute those checks for that local run.
 
 ## What done means
 
@@ -335,7 +341,8 @@ The completed dev-lane should demonstrate that:
 10. Live guidance and review work during that task; the result is visible to XO
     and CO. Record the actual local run and distinguish it from fixture-only checks.
 
-The next discussion should revise the tool/role matrix, resolve overlaps and
-missing outcomes, and order the remaining implementation toward Monday readiness.
-It should not turn this baseline into a detailed workflow that every work order
-must follow.
+The remaining readiness work is operator setup and an authenticated local run with
+the selected harnesses. The historical `work_control` and `capability_find` names
+above are not normal tools: XO's `steer` and the directly exposed role catalog cover
+those responsibilities. Avoid turning the baseline into a workflow every job must
+follow.

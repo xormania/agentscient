@@ -49,6 +49,7 @@ def main():
             "checkout": str(checkout),
             "target": "fixture-base",
             "repository": "example/fixture",
+            "fetch": False,
             "development": {},
         }
         (state / "team.json").write_text(json.dumps(config))
