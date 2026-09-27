@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 5:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 6:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -151,7 +151,15 @@ class Store:
                 "CREATE TABLE IF NOT EXISTS checkpoints (id INTEGER PRIMARY KEY,job INTEGER NOT NULL REFERENCES jobs(id), "
                 "revision TEXT NOT NULL,note TEXT NOT NULL,created TEXT NOT NULL,UNIQUE(job,revision))"
             )
-            db.execute("PRAGMA user_version=5")
+            db.execute("""CREATE TABLE IF NOT EXISTS operations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
+                work_order INTEGER NOT NULL REFERENCES work_orders(id), job INTEGER NOT NULL REFERENCES jobs(id),
+                binding TEXT NOT NULL, action TEXT NOT NULL, arguments TEXT NOT NULL,
+                state TEXT NOT NULL, result TEXT, error TEXT, created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS active_job_operation ON operations(job) WHERE state IN ('queued','running')"
+            )
+            db.execute("PRAGMA user_version=6")
 
     @contextmanager
     def connect(self):

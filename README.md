@@ -32,8 +32,9 @@ session management, work tracking, GitHub PR/CI work, artifact storage, messages
 and telemetry.
 Configured jobs now get managed Git workspaces, checkpoints, recovery, upstream
 refresh, and PR submission through outcome tools. There is no general shell tool.
-Serena/Maker/Mate integration and configured project validation remain
-part of the work toward the documented Monday readiness target.
+Installed Makers, Mate diagnostics and configured validation now have scoped MCP
+tools and retained asynchronous results. Serena and final review/acceptance are
+being integrated toward the documented Monday readiness target.
 
 The proposed control-plane direction, CO/XO relationship, role profiles, and draft
 tool catalog are recorded in

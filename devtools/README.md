@@ -9,11 +9,11 @@ Python 3.11+ and SQLite from its standard library are sufficient on Linux/macOS.
 Native launchers require the selected locally
 installed, authenticated harness. Background Claude sessions also require tmux.
 
-This implements the shared-work and command portions of the
-[control-plane design](../docs/control-plane-roles-and-tools.md). Specialist tools,
-and Serena/Maker/Mate integration are still
-being built. There is no dispatcher, task engine, grant system, audit ladder,
-source editor, shell capability, or project command runner in this slice.
+This implements shared work, command outcomes, managed workspaces, installed
+Symfony development tools and validation from the
+[control-plane design](../docs/control-plane-roles-and-tools.md). Serena and final
+review/acceptance integration are being added. There is no dispatcher, task engine,
+grant system, audit ladder, source editor or general shell capability.
 
 ## Agent-facing tools
 
@@ -208,8 +208,62 @@ programs are disabled in managed operations.
 
 Submission does not merge a PR or mark the objective done. CI observation is retained
 by the existing GitHub service. A failed remote step preserves completed checkpoints
-and publication; retry reuses the branch and PR. Source authoring and configured
-validation are separate integration work, described in the readiness document.
+and publication; retry reuses the branch and PR. With `project.development`
+configured, submission runs the configured checks before publication. Failed checks
+or files changed by checks return `needs_attention` with evidence and the preserved
+checkpoint. Source authoring is a separate Serena integration.
+
+## Installed Makers, Mate and validation
+
+Add `"development": {}` inside trusted `project` configuration to enable the
+installed Symfony tools. Local PHP and Composer must satisfy `composer.lock`.
+Optional `php` and `composer` settings select installed binaries; an absolute PHP
+path also supplies its directory to PATH so `vendor/bin/mate` uses that runtime.
+Each worktree gets its own locked Composer install. Dependencies are refreshed when
+Composer metadata changes; another checkout's vendor directory is never symlinked.
+
+| Tool | Outcome |
+| --- | --- |
+| `framework_inspect` | Discover installed Makers and their real inputs, or inspect/call installed Mate diagnostics. |
+| `framework_generate` | Run an installed basic Maker with structured arguments/options; available to coders and test writers. |
+| `work_check` | Run named configured checks or the complete configured suite, retaining measured results. |
+
+Examples:
+
+```json
+{"name":"framework_inspect","arguments":{"kind":"makers","name":"make:command"}}
+{"name":"framework_generate","arguments":{"maker":"make:command","arguments":{"name":"app:example"}}}
+{"name":"framework_inspect","arguments":{"kind":"mate","name":"server-info","parameters":{}}}
+{"name":"work_check","arguments":{}}
+```
+
+Omit `name` to list available Makers or Mate capabilities. A named Mate tool with
+no `parameters` returns its schema; supply an object (including `{}`) to call it.
+Maker inputs come from installed Console metadata, including repeated options.
+The generator stays Symfony's own implementation, including its current PHP
+attributes and autoconfiguration conventions. Global console/runtime options are
+service-managed. Test writers can generate with `make:test` only. A Maker that
+needs an uninstalled bundle or interactive answers reports its actual failure;
+partial changes are preserved and listed, including changes outside role paths.
+Workspace checkpoint/submission refuses those out-of-scope changes.
+
+Default checks are Symfony container and YAML validation plus PHPUnit. The operator
+can replace `development.checks` with a map of names to fixed argv arrays and set
+`check_timeout` (default 600 seconds per check). Agents supply only a check name.
+These installed application commands run as the local service user. This is a
+restricted tool interface, not OS isolation from application code or Composer plugins.
+
+Installation, inspection, generation, checks and configured submission return a
+retained operation receipt promptly. Completion is automatically delivered to the
+original worker and its supervisor, while their bindings still include that work.
+Results and artifacts retain the original job. Use
+`work_inspect(section="operations")` to inspect recent progress after reconnecting.
+An identical active call reuses its operation; another concurrent operation for
+the job is rejected. Workers survive MCP disconnect, and a lost worker becomes
+`uncertain` rather than silently repeating external effects. This executes fixed
+service actions behind tools; it does not dispatch agent tasks or replace live
+conversations. Pause prevents a new process starting; an already-running process
+finishes or reaches its timeout, with the observed result retained.
 
 ## Set up a team
 

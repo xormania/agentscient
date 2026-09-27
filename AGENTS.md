@@ -22,7 +22,10 @@ Trusted operator setup is separate; never give managed agents the `--operator`
 connection. No task dispatch, grant system, review ladder, or workflow engine is
 provided. CO uses `direct`/`monitor`; XO uses `orchestrate`/`monitor`/`steer`.
 Command services bind work and configured collaborators, supply current briefs,
-and retain live direction. Specialist delivery tools are still being added.
+and retain live direction. Managed workspace/Git outcomes and installed Maker/Mate
+capabilities are provided through MCP. Use installed Maker metadata, generate through
+`framework_generate`, inspect application facts with `framework_inspect`, and run
+configured validation through `work_check`. Serena and final acceptance are being added.
 Work-order numbers bind the overall effort; jobs are bounded pieces delivered
 through PRs. Agents use task-facing MCP tools; the services handle storage and
 record association internally.
