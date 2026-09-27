@@ -780,7 +780,7 @@ class GitHub:
             "watch": ident,
             "revision": revision,
             "run": run,
-            "notifications": "Durable messages to this member; use message_inbox or native live delivery.",
+            "notifications": "Durable messages to this member and its current supervising role when still scoped to the watched work.",
         }
 
     def ci_watch_stop(self, watch):
@@ -845,14 +845,29 @@ class GitHub:
                 f"GitHub CI watch {watch['id']} for {watch['repository']}: {result['state']}.\n"
                 + canonical(result)[:10000]
             )
-            self.store.send(
-                self.member,
-                self.member,
-                body,
-                key=f"github-watch-{watch['id']}-{signature}",
-                work_order=watch["work_order"],
-                job=watch["job"],
-            )
+            from .control import binding, includes
+
+            with self.store.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                current = db.execute("SELECT state,next_poll FROM github_watches WHERE id=?", (watch["id"],)).fetchone()
+                if current["state"] != "active" or current["next_poll"] != lease:
+                    return
+                recipients = {self.member}
+                scope = binding(db, self.member)
+                if includes(scope, watch["work_order"], watch["job"]) and scope["reports_to"]:
+                    parent = binding(db, scope["reports_to"])
+                    if includes(parent, watch["work_order"], watch["job"]):
+                        recipients.add(parent["member"])
+                for recipient in recipients:
+                    self.store._send(
+                        db,
+                        self.member,
+                        recipient,
+                        body,
+                        key=f"github-watch-{watch['id']}-{signature}-{recipient}",
+                        work_order=watch["work_order"],
+                        job=watch["job"],
+                    )
             self._event(
                 context, "ci_watch_update", watch=watch["id"], state=result["state"], revision=watch["revision"]
             )

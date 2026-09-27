@@ -297,12 +297,16 @@ TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
     spec(
         "work_inspect",
-        "Inspect the current job's changes, checkpoints and editable scope; workspace and Git context are automatic.",
+        "Inspect this job's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
         {
-            "section": {"type": "string", "enum": ["overview", "changes", "operations", "review"]},
+            "section": {"type": "string", "enum": ["overview", "changes", "operations", "review", "ci", "feedback"]},
             "path": TEXT,
             "offset": AFTER,
-            "page": {"type": "integer", "minimum": 1, "description": "Changed-file page for section=review."},
+            "page": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Review files, CI failures or external feedback page.",
+            },
         },
         readonly=True,
     ),
@@ -506,10 +510,10 @@ class API:
         return result
 
     def invoke(self, name, args):
-        if name == "work_inspect" and args.get("section") == "review":
-            return self.delivery.inspect(**{key: value for key, value in args.items() if key != "section"})
+        if name == "work_inspect" and args.get("section") in {"review", "ci", "feedback"}:
+            return self.delivery.inspect(**args)
         if name == "work_inspect" and "page" in args:
-            raise ValueError("page is available for review inspection; other sections use offset.")
+            raise ValueError("page is available for review, CI and feedback inspection; other sections use offset.")
         if name == "review_record":
             return self.delivery.review(**args)
         if name == "review_respond":
