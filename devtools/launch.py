@@ -89,7 +89,7 @@ def configuration(directory, member):
     selected = dict(selected)
     from .workspaces import Workspaces, project_config
 
-    if scope["job"] and project_config(store):
+    if project_config(store):
         selected["workspace"] = Workspaces(store, member).ensure()["root"]
     binary = shutil.which(selected.get("binary", selected["harness"]))
     if not binary:
@@ -207,11 +207,13 @@ def agent(directory, member, binding_revision=None):
     error = None
     try:
         from .native import Native, claude
+        from .retirement import lease
 
-        if config["harness"] == "claude":
-            claude(directory, member, config, generation)
-        else:
-            asyncio.run(Native(directory, member, config, generation).run())
+        with lease(store, config["workspace"]):
+            if config["harness"] == "claude":
+                claude(directory, member, config, generation)
+            else:
+                asyncio.run(Native(directory, member, config, generation).run())
     except Exception as exc:
         error = str(exc)[:1000]
         store.event(member, "session_failed", error=error)

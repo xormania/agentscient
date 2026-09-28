@@ -125,12 +125,33 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual("refreshed", self.api.call("work_refresh", {})["state"])
         (workspace / "src/Example.php").write_text("local version\n")
         (self.checkout / "src/Example.php").write_text("remote version\n")
+        (self.checkout / "README.md").write_text("More upstream documentation\n")
         git(self.checkout, "commit", "-am", "Upstream feature")
         git(self.checkout, "push", "origin", "dev")
         result = self.api.call("work_refresh", {})
-        self.assertEqual("needs_guidance", result["state"])
+        self.assertEqual("needs_resolution", result["state"])
         self.assertEqual(["src/Example.php"], result["conflicts"])
-        self.assertEqual("local version\n", (workspace / "src/Example.php").read_text())
+        contents = (workspace / "src/Example.php").read_text()
+        self.assertIn("local version", contents)
+        self.assertIn("remote version", contents)
+        with self.assertRaisesRegex(ValueError, "Resolve conflict"):
+            self.api.call("work_save", {"note": "Still unresolved"})
+        (workspace / "src/Example.php").write_text("Resolved local and remote behavior\n")
+        (workspace / "devtools/protected.py").write_text("unauthorized\n")
+        with self.assertRaisesRegex(ValueError, "outside this role"):
+            self.api.call("work_save", {"note": "Cannot smuggle edits with upstream changes"})
+        git(workspace, "restore", "devtools/protected.py")
+        (workspace / "README.md").write_text("Unauthorized replacement of an imported file\n")
+        git(workspace, "add", "README.md")
+        with self.assertRaisesRegex(ValueError, "outside this role"):
+            self.api.call("work_save", {"note": "Staging an imported file cannot bypass role limits"})
+        git(workspace, "restore", "--source=origin/dev", "--staged", "--worktree", "README.md")
+        saved = self.api.call("work_save", {"note": "Resolve upstream integration"})
+        self.assertTrue(saved["changed"])
+        self.assertEqual("More upstream documentation\n", (workspace / "README.md").read_text())
+        for ancestor in ("origin/dev", result["preserved"]["checkpoint"].split(":")[1]):
+            self.assertEqual(0, git(workspace, "merge-base", "--is-ancestor", ancestor, "HEAD").returncode)
+        self.assertEqual("refreshed", self.api.call("work_refresh", {})["state"])
         self.assertEqual([], self.api.call("work_inspect", {})["changes"])
 
     def test_submit_retries_reuse_checkpoint_and_bind_pr_with_git_publication(self):
@@ -164,7 +185,8 @@ class WorkspaceTests(unittest.TestCase):
         branch = self.api.workspaces.ensure()["branch"]
         published = git(self.remote, "rev-parse", "refs/heads/" + branch).stdout.decode().strip()
         self.assertEqual(first["checkpoint"].split(":")[1], published)
-        self.assertEqual("dev", provider_calls[0]["base"])
+        self.assertEqual(self.api.workspaces.ensure()["target"], provider_calls[0]["base"])
+        self.assertTrue(provider_calls[0]["base"].startswith("work-order/"))
         self.assertTrue(self.store.inbox("xo")["messages"])
 
     def test_artifact_source_uses_bound_job_and_rejects_symlink_escape(self):

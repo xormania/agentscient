@@ -66,8 +66,8 @@ def capabilities(spec):
                 "work": {**name, "description": "Optional named job to inspect its current review packet and CI."},
                 "section": {
                     "type": "string",
-                    "enum": ["review", "ci", "feedback"],
-                    "description": "Details for a named responsibility.",
+                    "enum": ["overview", "review", "ci", "feedback"],
+                    "description": "Review or diagnostics for named work, or the integrated result when work is omitted.",
                 },
                 "path": {**text, "description": "Changed file to inspect within the named job's PR."},
                 "page": {
@@ -96,7 +96,7 @@ def capabilities(spec):
         ),
         spec(
             "conclude",
-            "CO: record your assessment of the completed work order and release its team; retain all history.",
+            "CO: deliver the inspected, checked work-order result and release its team; retain all history.",
             {"assessment": text},
             ("assessment",),
         ),
@@ -277,6 +277,13 @@ class Commands:
             return {"work": title, "xo": self._participant(db, xo, config), "direction": sent}
 
     def orchestrate(self, work):
+        from .workspaces import Workspaces
+
+        scope = self.control.current()
+        with Workspaces(self.store, self.member).lock("order-" + str(scope["work_order"]), timeout=1):
+            return self._orchestrate(work)
+
+    def _orchestrate(self, work):
         config = self._config()
         names = [item["name"].strip().casefold() for item in work]
         if (
@@ -494,7 +501,18 @@ class Commands:
         return rows[0]
 
     def conclude(self, assessment):
+        from .orders import Orders
+        from .workspaces import Workspaces
+
+        with self.store.connect() as db:
+            scope = self._scope(db, {"co"})
+        with Workspaces(self.store, self.member).lock("order-" + str(scope["work_order"])):
+            delivery = Orders(self.store, self.member).finish(scope)
+            return self._conclude(assessment, delivery)
+
+    def _conclude(self, assessment, delivery):
         from .delivery import Delivery
+        from .retirement import queue
 
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -508,6 +526,12 @@ class Commands:
             Work(self.store, self.member).update_in(
                 db, "work_orders", scope["work_order"], None, status="done", next_action="", blocker=""
             )
+            db.execute(
+                "INSERT INTO order_deliveries(work_order,revision,merge_commit,assessment,created) VALUES (?,?,?,?,?)",
+                (scope["work_order"], delivery.get("revision"), delivery.get("merge_commit"), assessment, stamp()),
+            )
+            if delivery.get("merge_commit"):
+                queue(db, scope["work_order"], None, delivery["revision"])
             for row in [*self._descendants(db, scope), scope]:
                 Delivery.release(db, row["member"])
             self.store._event(
@@ -520,7 +544,7 @@ class Commands:
             "next": "Use direct when the user authorizes another objective.",
         }
 
-    def monitor(self, offset=None, work=None, path=None, page=1, section="review"):
+    def monitor(self, offset=None, work=None, path=None, page=1, section="overview"):
         if work:
             with self.store.connect() as db:
                 scope = self._scope(db, ROLE_TOOLS)
@@ -530,11 +554,23 @@ class Commands:
             return {
                 "work": {key: job[key] for key in BRIEF_FIELDS},
                 "delivery": Delivery(self.store, self.member).inspect(
-                    job=job["id"], path=path, offset=offset, page=page, section=section
+                    job=job["id"],
+                    path=path,
+                    offset=offset,
+                    page=page,
+                    section="review" if section == "overview" else section,
                 ),
             }
-        if path is not None or page != 1 or section != "review":
-            raise ValueError("Review details require a named work responsibility.")
+        if section != "overview":
+            from .orders import Orders
+
+            return {
+                "delivery": Orders(self.store, self.member).inspect(
+                    section=section, path=path, offset=offset, page=page
+                )
+            }
+        if path is not None or page != 1:
+            raise ValueError("Choose section review for delivery details.")
         offset = offset or 0
         config = self._config()
         with self.store.connect() as db:
@@ -562,6 +598,18 @@ class Commands:
                 capacity.setdefault(key, {**settings, "available": 0})["available"] += 1
             return {
                 "work": self._brief(db, scope)["work"] if scope else None,
+                "delivery": {"pr": record(db, "work_orders", scope["work_order"])["pull_request"] or None}
+                if scope
+                else None,
+                "cleanup": [
+                    dict(row)
+                    for row in db.execute(
+                        "SELECT job,state,detail FROM managed_worktrees WHERE work_order=? AND state!='active' ORDER BY updated DESC LIMIT 10",
+                        (scope["work_order"],),
+                    )
+                ]
+                if scope
+                else [],
                 "collaborators": [self._participant(db, row, config) for row in team[offset : offset + 10]],
                 "next_offset": offset + 10 if len(team) > offset + 10 else None,
                 "capacity": list(capacity.values()),

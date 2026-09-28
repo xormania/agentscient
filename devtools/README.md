@@ -53,7 +53,7 @@ explains REPL lifetime and workspace isolation.
 | `api.py`, `mcp.py`, `control.py`, `commands.py` | MCP surface, role/context enforcement and CO/XO outcomes |
 | `launch.py`, `native.py`, `profiles.py`, `compat.py` | Persistent native sessions, private profiles and protocol checks |
 | `work.py`, `store.py`, `artifacts.py`, `telemetry.py` | Work records, SQLite state, artifacts and measured observations |
-| `workspaces.py`, `github.py`, `delivery.py`, `feedback.py` | Git workspaces, PR/CI, review, acceptance and delivery diagnostics |
+| `workspaces.py`, `orders.py`, `retirement.py`, `github.py`, `delivery.py`, `feedback.py` | Job/work-order integration, worktree retirement, PR/CI, review, acceptance and diagnostics |
 | `development.py`, `operations.py`, `serena_provider.py` | Installed framework tools, retained long operations and the separate REPL gateway |
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |

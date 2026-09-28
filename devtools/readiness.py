@@ -33,7 +33,14 @@ def project(workspace, repository, target="dev", remote="origin", serena_image=N
     git(root, "check-ref-format", "--branch", target)
     if target.startswith("-"):
         raise ValueError("Invalid integration branch.")
-    value = {"checkout": str(root), "repository": repository, "target": target, "remote": remote, "development": {}}
+    value = {
+        "checkout": str(root),
+        "repository": repository,
+        "target": target,
+        "remote": remote,
+        "workspaces": str(root.parent / "wt-ag"),
+        "development": {},
+    }
     if serena_image:
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:@-]+", serena_image):
             raise ValueError("Invalid Serena container image name.")
@@ -276,6 +283,16 @@ def evidence(directory, work_order):
         order = db.execute("SELECT id,title,status FROM work_orders WHERE id=?", (work_order,)).fetchone()
         if not order:
             raise ValueError("No recorded work order has that number.")
+        current_schema = db.execute("PRAGMA user_version").fetchone()[0] >= 8
+        delivery = (
+            db.execute(
+                "SELECT w.pull_request,d.revision,d.merge_commit,d.assessment FROM work_orders w "
+                "LEFT JOIN order_deliveries d ON d.work_order=w.id WHERE w.id=?",
+                (work_order,),
+            ).fetchone()
+            if current_schema
+            else None
+        )
         rows = db.execute("SELECT actor,kind,data FROM events WHERE work_order=? ORDER BY id", (work_order,))
         sessions, tools, denied, serena = {}, {}, 0, 0
         for row in rows:
@@ -289,6 +306,16 @@ def evidence(directory, work_order):
             serena += row["kind"] == "serena_call" and data.get("success") is True
         return {
             "work_order": dict(order),
+            "delivery": dict(delivery) if delivery else None,
+            "cleanup": [
+                dict(r)
+                for r in db.execute(
+                    "SELECT job,state,detail FROM managed_worktrees WHERE work_order=? ORDER BY root",
+                    (work_order,),
+                )
+            ]
+            if current_schema
+            else [],
             "native_sessions": {actor: sorted(ids) for actor, ids in sessions.items()},
             "completed_tool_calls": tools,
             "successful_serena_calls": serena,

@@ -1,13 +1,14 @@
 # Continuous integration
 
-[ci.yml](workflows/ci.yml) runs on pull requests and pushes to `dev` and `master`,
-merge groups, and manual invocation. Its `lane` check aggregates three jobs:
+[ci.yml](workflows/ci.yml) runs on pull requests into `dev`, `master` and
+`work-order/*`, pushes to `dev` and `master`, merge groups, and manual invocation.
+Its `lane` check aggregates three jobs:
 
 | Job | Checks |
 | --- | --- |
 | `live-mcp` | Ruff and the Python service, stdio MCP, native protocol, Git and GitHub fixture tests. |
 | `symfony / php` | Locked Composer metadata/platform, PHP/YAML/container lint, PHPUnit, and real Maker/Mate integration through normal MCP. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
-| `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume and checkpointing. |
+| `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
 | `lane` | Succeeds only when all three preceding jobs succeed. This is the aggregate result for branch protection. |
 
 The Symfony job uploads its tested revision, dependency observations, PHPUnit
@@ -51,3 +52,41 @@ They use disposable repositories/worktrees. The Python suite uses native protoco
 and GitHub HTTP fixtures; the integrations execute real Symfony and Serena code.
 Neither proves authenticated model behavior. Record that separately through the
 [local acceptance run](../docs/local-agent-readiness.md#authenticated-local-acceptance).
+
+## GitHub settings
+
+Configure these as the repository owner in **Settings → Rules → Rulesets**:
+
+| Target | Rules |
+| --- | --- |
+| `dev` | Require a pull request and successful `lane` from GitHub Actions; block force pushes and deletion. |
+| `work-order/*` | Require a pull request and successful `lane` from GitHub Actions; block force pushes. Allow branch creation and deletion. |
+
+Use an active branch ruleset with the exact `work-order/*` pattern; generated
+work-order names contain one slash. Do not target job branches with this rule:
+their normal publication uses non-forced pushes. Leave **Restrict creations** and
+**Restrict updates** off. For the work-order status check, select **Do not require
+status checks on creation**, so a new branch can start at the tested development
+revision. Keep the required aggregate named `lane`; remove obsolete required
+contexts only after checking they are no longer produced by current CI.
+
+The workflow tests each job PR against its work-order base and the final work-order
+PR against development. **Require branches to be up to date before merging** is
+optional additional strictness: it can require refreshing jobs and an integration
+job before final delivery when development advances. No service bypass is needed.
+The runtime honors GitHub's merge eligibility and never configures these rules.
+
+Under **Settings → General → Pull Requests**, leave at least one supported merge
+method enabled. Merge commits preserve the relationship between sibling jobs;
+squash and rebase remain supported, with merge evidence retained separately.
+Optional **Automatically delete head branches** removes remote job branches after
+their PRs merge and the work-order branch after its final merge. Local cleanup is
+independent. This PR does not change release/master or archive protections.
+
+Required approving reviews are an owner choice. The runtime's audit comments are
+not approvals from another GitHub identity. Do not grant the automation an owner
+bypass merely to satisfy a review count.
+
+References: [creating rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository),
+[available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets),
+[required status checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
