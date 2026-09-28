@@ -82,8 +82,10 @@ Unchanged briefs and the CO's whole conversation are not copied into every messa
 
 `work_context.section` accepts `brief`, `activity`, `messages` or `evidence`.
 Continue listings with the returned `next_after` as `after`. A returned `reference`
-retrieves an update/message or a bounded artifact read; continue artifact reads
-with `next_offset` as `offset`.
+retrieves an update/message or a bounded artifact/operation read; continue reads
+with `next_offset` as `offset`. Operation pages contain JSON text; concatenate their
+`content` fields to recover the complete result. Workers and their covering command
+roles can read an operation reference; unrelated jobs cannot.
 
 Reports and guidance accept `responding_to` with an update/message reference.
 The service routes the response in its original work context. Responding to an
@@ -183,7 +185,9 @@ required checks still apply. Branch names and PR targets remain service-managed.
 
 `work_inspect` defaults to `overview`. Use `section="changes"` with optional `path`
 and `offset` for bounded local diffs. `section="operations"` reads retained long
-operation status. Delivery sections are described below.
+operation summaries, without diagnostic bodies. Continue with `next_offset` as
+`offset`; this cursor remains stable when new operations finish. Read one returned
+`operation:N` reference through `work_context` for detail. Delivery sections are described below.
 
 Default coder paths cover `src`, `config`, `packages`, `tests`, `templates`,
 `assets`, `translations`, `public`, `migrations`, Composer/Symfony lockfiles and
@@ -230,7 +234,7 @@ Framework inspection, generation, checks and configured submission return retain
 operation receipts promptly. Compact completion notices (including failed-check
 counts) and evidence references are delivered to the original worker and supervisor
 while their scope still covers that work. Full results remain available through
-`work_inspect(section="operations")`. Workers survive
+`work_context(reference="operation:N")`. Workers survive
 an MCP disconnect. An identical active call reuses its receipt; a lost worker becomes
 `uncertain` without automatically replaying external effects. Pausing prevents new
 processes; an already-running command finishes or reaches its timeout.

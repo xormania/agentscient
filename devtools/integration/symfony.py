@@ -29,11 +29,12 @@ def completed(client, tool, arguments):
     deadline = time.monotonic() + 700
     while value["state"] in {"queued", "running"} and time.monotonic() < deadline:
         time.sleep(0.2)
-        value = next(
-            row
-            for row in client.tool("work_inspect", {"section": "operations"})["operations"]
-            if row["reference"] == reference
-        )
+        parts, offset = [], 0
+        while offset is not None:
+            page = client.tool("work_context", {"reference": reference, "offset": offset})
+            parts.append(page["content"])
+            offset = page["next_offset"]
+        value = json.loads("".join(parts))
     assert value["state"] == "completed", value
     return value["result"]
 
@@ -175,3 +176,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -43,7 +43,8 @@ def capabilities(spec):
             "Read your supplied brief, scoped activity, or evidence. No work or repository identifiers are needed.",
             {
                 "section": {"type": "string", "enum": ["brief", "activity", "messages", "evidence"]},
-                "reference": reference,
+                "reference": {**reference, "pattern": "^(message|update|artifact|operation):[1-9][0-9]*$",
+                              "description": "Read a returned reference; follow next_offset for complete evidence/results."},
                 "after": {"type": "integer", "minimum": 0},
                 "offset": {"type": "integer", "minimum": 0},
             },
@@ -197,7 +198,7 @@ class Control:
 
     def _reference(self, db, scope, reference):
         kind, ident = reference.split(":", 1)
-        table = {"message": "messages", "update": "work_updates", "artifact": "artifacts"}[kind]
+        table = {"message": "messages", "update": "work_updates", "artifact": "artifacts", "operation": "operations"}[kind]
         row = db.execute(f"SELECT * FROM {table} WHERE id=?", (int(ident),)).fetchone()
         if kind == "artifact":
             sql, args = scope_sql(scope)
@@ -254,6 +255,16 @@ class Control:
         with self.store.connect() as db:
             if reference:
                 kind, row = self._reference(db, scope, reference)
+                if kind == "operation":
+                    from .operations import Operations
+
+                    content = json.dumps(Operations.public(row), ensure_ascii=False)
+                    if offset > len(content):
+                        raise ValueError("The read offset is beyond the operation result.")
+                    return {
+                        "reference": reference, "content": content[offset:offset + 8000], "encoding": "utf8",
+                        "next_offset": offset + 8000 if offset + 8000 < len(content) else None,
+                    }
                 if kind == "update":
                     return self._update(row)
                 if kind == "message":
@@ -481,3 +492,4 @@ class Control:
             "This message does not change your current role or work.\n"
             + ("Updated brief:\n" + json.dumps(brief, ensure_ascii=False) if changed else "")
         )
+
