@@ -2,18 +2,51 @@
 
 [ci.yml](workflows/ci.yml) runs on pull requests into `dev`, `master` and
 `work-order/*`, pushes to `dev` and `master`, merge groups, and manual invocation.
-Its `lane` check aggregates three jobs:
+The workflow always starts so its required `lane` check can report a result.
+The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
+| `changes` | Tests CI routing and the aggregate gate, then compares the event's Git revisions to select jobs. |
 | `live-mcp` | Ruff and the Python service, stdio MCP, native protocol, Git and GitHub fixture tests. |
-| `symfony / php` | Locked Composer metadata/platform, PHP/YAML/container lint, PHPUnit, and real Maker/Mate integration through normal MCP. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
+| `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
+| `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
 | `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
-| `lane` | Succeeds only when all three preceding jobs succeed. This is the aggregate result for branch protection. |
+| `lane` | Requires successful selection and every selected job to succeed. Accepts a skipped job only when the selector explicitly excluded it. |
 
 The Symfony job uploads its tested revision, dependency observations, PHPUnit
-results and development-tool output as a CI artifact. The Serena job records its
-build and integration results in the workflow logs.
+results as a CI artifact. Maker/Mate retains separate revision and integration
+evidence. The Serena job records its build and integration results in the logs.
+
+## File filters
+
+| Changed files | Selected suites |
+| --- | --- |
+| `devtools/`, agent instructions and skills | `live-mcp`, `maker-mate`, `serena`; no product suite. |
+| Application code/configuration, Composer, PHP environment, Mate or PHPUnit configuration/bootstrap | Product suite and `maker-mate`. |
+| Other product tests, public files, assets, templates and translations | Product suite. |
+| `ruff.toml` / `.phpactor.json` | `live-mcp` / `serena`, respectively. |
+| Ordinary Markdown documentation and listed repository metadata | No suites; selection tests and `lane` still run. Agent instructions/skills remain tested inputs. |
+| CI machinery, `.gitignore`, unclassified paths or manual invocation | All suites. |
+
+Rules use case-sensitive Python `fnmatch` patterns: `*` also matches `/`, so
+`devtools/*` includes nested files. `ignore` takes precedence, then `all`, then
+the union of matching jobs. Unclassified paths select everything so new code
+cannot silently lose coverage. Add an explicit rule when adding a component.
+The workflow summary lists selected and skipped jobs.
+
+Selection uses the full Git history without GitHub's changed-file API limits.
+PRs compare their tested merge commit with the event's base SHA, including job
+PRs targeting work orders. Pushes compare the event's entire before/after range;
+merge groups compare their base/head commits. Renames include both old and new
+paths, and deletions count. Manual runs, initial pushes and unavailable Git
+comparisons run everything. A selector failure, missing output, or failed,
+cancelled or unexpectedly skipped selected job makes `lane` fail.
+
+Maker/Mate still installs the locked PHP development dependencies to exercise
+the actual tools. Its fixture configures only the generated test as a check;
+normal agents retain their default container, YAML and application test checks.
+The product workflow can also be invoked manually on its own.
 
 ## Runner selection
 
@@ -35,8 +68,9 @@ without replacing global PHP. Select runner mode as an operator choice.
 From the repository root, use the relevant checks:
 
 ```sh
+python3 -m unittest discover -s .github/tests -v
 python3 -m unittest discover -s devtools/tests -v
-uv tool run --from ruff==0.16.8 ruff check devtools
+uv tool run --from ruff==0.16.8 ruff check devtools .github/ci.py .github/tests
 ```
 
 The Ruff command uses `uv`; an installed Ruff matching the workflow pin also works.

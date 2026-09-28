@@ -2,7 +2,11 @@
   "name": "CI",
   "on": {
     "pull_request": {
-      "types": ["opened", "reopened", "synchronize"],
+      "types": [
+        "opened",
+        "reopened",
+        "synchronize"
+      ],
       "branches": [
         "dev",
         "master",
@@ -22,6 +26,42 @@
     "contents": "read"
   },
   "jobs": {
+    "changes": {
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 5,
+      "outputs": {
+        "live-mcp": "${{ steps.select.outputs['live-mcp'] }}",
+        "maker-mate": "${{ steps.select.outputs['maker-mate'] }}",
+        "symfony": "${{ steps.select.outputs['symfony'] }}",
+        "serena": "${{ steps.select.outputs['serena'] }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false,
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Prepare Python",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Verify CI selection and aggregate gate",
+          "run": "python3 -m unittest discover -s .github/tests -v"
+        },
+        {
+          "name": "Select jobs from changed files",
+          "id": "select",
+          "run": "python3 .github/ci.py select"
+        }
+      ]
+    },
     "live-mcp": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
       "timeout-minutes": 5,
@@ -46,7 +86,7 @@
         },
         {
           "name": "Lint live support",
-          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools"
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/ci.py .github/tests"
         },
         {
           "name": "Prepare tmux",
@@ -55,40 +95,77 @@
         },
         {
           "name": "Verify live MCP and transport protocols",
-          "env": {"AGENTSCIENT_REQUIRE_TMUX": "1", "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence"},
+          "env": {
+            "AGENTSCIENT_REQUIRE_TMUX": "1",
+            "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence"
+          },
           "run": "python3 -m unittest discover -s devtools/tests -v"
         },
         {
           "name": "Retain runtime fixture evidence",
           "if": "${{ always() }}",
           "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-          "with": {"name": "runtime-fixture-evidence", "path": "${{ runner.temp }}/runtime-evidence", "retention-days": 7}
+          "with": {
+            "name": "runtime-fixture-evidence",
+            "path": "${{ runner.temp }}/runtime-evidence",
+            "retention-days": 7
+          }
         }
-      ]
-    },
-    "symfony": {
-      "uses": "./.github/workflows/ci-prod-lane.yml"
-    },
-    "lane": {
-      "needs": [
-        "live-mcp",
-        "symfony",
-        "serena"
       ],
-      "if": "${{ always() }}",
+      "needs": [
+        "changes"
+      ],
+      "if": "${{ needs.changes.outputs['live-mcp'] == 'true' }}"
+    },
+    "maker-mate": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 1,
+      "timeout-minutes": 15,
+      "env": {
+        "APP_ENV": "test",
+        "APP_DEBUG": "1"
+      },
       "steps": [
         {
-          "name": "Require passing checks",
-          "env": {
-            "LIVE_RESULT": "${{ needs.live-mcp.result }}",
-            "SYMFONY_RESULT": "${{ needs.symfony.result }}",
-            "SERENA_RESULT": "${{ needs.serena.result }}"
-          },
-          "run": "test \"$LIVE_RESULT\" = success\ntest \"$SYMFONY_RESULT\" = success\ntest \"$SERENA_RESULT\" = success"
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Prepare PHP and Composer",
+          "uses": "./.github/actions/php-runtime"
+        },
+        {
+          "name": "Record integration revision and versions",
+          "run": "mkdir -p var/ci/maker-mate\ngit rev-parse HEAD > var/ci/maker-mate/revision.txt\nphp --version\ncomposer --version"
+        },
+        {
+          "name": "Exercise Maker/Mate through normal MCP",
+          "run": "python3 devtools/integration/symfony.py > var/ci/maker-mate/development-tools.json"
+        },
+        {
+          "name": "Retain Maker/Mate integration evidence",
+          "if": "${{ always() }}",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "maker-mate-${{ github.run_id }}-${{ github.run_attempt }}",
+            "path": "var/ci/maker-mate/",
+            "if-no-files-found": "error",
+            "retention-days": 7
+          }
         }
-      ]
+      ],
+      "needs": [
+        "changes"
+      ],
+      "if": "${{ needs.changes.outputs['maker-mate'] == 'true' }}"
+    },
+    "symfony": {
+      "uses": "./.github/workflows/ci-prod-lane.yml",
+      "needs": [
+        "changes"
+      ],
+      "if": "${{ needs.changes.outputs['symfony'] == 'true' }}"
     },
     "serena": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
@@ -107,6 +184,37 @@
         {
           "name": "Verify real Serena REPL and workspace boundary",
           "run": "python3 devtools/integration/serena.py"
+        }
+      ],
+      "needs": [
+        "changes"
+      ],
+      "if": "${{ needs.changes.outputs['serena'] == 'true' }}"
+    },
+    "lane": {
+      "needs": [
+        "changes",
+        "live-mcp",
+        "maker-mate",
+        "symfony",
+        "serena"
+      ],
+      "if": "${{ always() }}",
+      "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
+      "timeout-minutes": 2,
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Require all selected checks to pass",
+          "env": {
+            "NEEDS_JSON": "${{ toJSON(needs) }}"
+          },
+          "run": "python3 .github/ci.py gate"
         }
       ]
     }

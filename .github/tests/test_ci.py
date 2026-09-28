@@ -1,0 +1,141 @@
+"""Exercise file routing, real Git ranges, and the fail-closed required check."""
+
+import contextlib
+import importlib.util
+import io
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location("ci", ROOT / ".github/ci.py")
+ci = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(ci)
+
+
+class RoutingTests(unittest.TestCase):
+    def test_component_boundaries(self):
+        dev = {"live-mcp", "maker-mate", "serena"}
+        product = {"symfony", "maker-mate"}
+        cases = [
+            (["devtools/telemetry.py", "docs/runtime-telemetry.md"], dev),
+            (["devtools/tests/test_runtime.py"], dev),
+            ([".agents/skills/agentscient-xo/SKILL.md"], dev),
+            (["AGENTS.md", ".claude/skills/mate-system-information"], dev),
+            (["composer.lock", "config/bundles.php", "src/Kernel.php"], product),
+            ([".env.test", "phpunit.dist.xml", "tests/bootstrap.php"], product),
+            (["tests/DevelopmentBoundaryTest.php", "public/index.php"], {"symfony"}),
+            ([".phpactor.json"], {"serena"}),
+            (["ruff.toml"], {"live-mcp"}),
+            (["README.md", "docs/tmux-control.md", "devtools/README.md", ".github/CI.md"], set()),
+            ([".github/workflows/ci.yml"], set(ci.JOBS)),
+            ([".github/actions/php-runtime/action.yml"], set(ci.JOBS)),
+            ([".github/ci.py", ".github/ci-paths.json"], set(ci.JOBS)),
+            (["new-component/code.py"], set(ci.JOBS)),
+            (["devtools/runtime.py", "src/Kernel.php"], set(ci.JOBS)),
+            ([], set()),
+        ]
+        for paths, expected in cases:
+            with self.subTest(paths=paths):
+                self.assertEqual(ci.select(paths), expected)
+
+    def test_workflow_wires_every_selection_into_the_required_gate(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        jobs = workflow["jobs"]
+        self.assertEqual(set(jobs["changes"]["outputs"]), set(ci.JOBS))
+        self.assertEqual(set(jobs["lane"]["needs"]), {"changes", *ci.JOBS})
+        self.assertEqual(jobs["lane"]["if"], "${{ always() }}")
+        for job in ci.JOBS:
+            self.assertEqual(jobs[job]["needs"], ["changes"])
+            self.assertEqual(jobs[job]["if"], "${{ needs.changes.outputs['" + job + "'] == 'true' }}")
+        for event in ("pull_request", "push"):
+            self.assertNotIn("paths", workflow["on"][event])
+            self.assertNotIn("paths-ignore", workflow["on"][event])
+
+    def test_lane_accepts_only_deliberate_skips_and_successful_selected_jobs(self):
+        for selected in ("true", "false"):
+            needs = {"changes": {"result": "success", "outputs": dict.fromkeys(ci.JOBS, selected)}}
+            expected = "success" if selected == "true" else "skipped"
+            needs.update({job: {"result": expected} for job in ci.JOBS})
+            with contextlib.redirect_stdout(io.StringIO()):
+                ci.gate(needs)
+                for job in ("changes", *ci.JOBS):
+                    for result in ("failure", "cancelled", "skipped", "success", "", None):
+                        if result == needs[job]["result"]:
+                            continue
+                        broken = {**needs, job: {**needs[job], "result": result}}
+                        with self.subTest(selected=selected, job=job, result=result), self.assertRaises(ValueError):
+                            ci.gate(broken)
+                for output in (None, "", "maybe"):
+                    needs["changes"]["outputs"][ci.JOBS[0]] = output
+                    with self.assertRaises(ValueError):
+                        ci.gate(needs)
+
+
+class GitRangeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.git("init", "--initial-branch=dev")
+        self.git("config", "user.name", "CI fixture")
+        self.git("config", "user.email", "ci@example.invalid")
+        self.write("src/old.php")
+        self.write("README.md")
+        self.base = self.commit()
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
+
+    def write(self, path):
+        target = self.root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(path + "\n")
+
+    def commit(self):
+        self.git("add", "-A")
+        self.git("commit", "-m", "fixture")
+        return self.git("rev-parse", "HEAD")
+
+    def test_pr_uses_its_base_and_tested_merge_not_unrelated_base_changes(self):
+        self.git("checkout", "-b", "job")
+        self.write("devtools/change.py")
+        self.commit()
+        self.git("checkout", "dev")
+        self.write("src/unrelated.php")
+        base = self.commit()
+        self.git("merge", "--no-ff", "job", "-m", "PR merge")
+        head = self.git("rev-parse", "HEAD")
+        paths = ci.changed_paths("pull_request", {"pull_request": {"base": {"sha": base}}}, head, self.root)
+        self.assertEqual(paths, ["devtools/change.py"])
+        self.assertNotIn("symfony", ci.select(paths))
+
+    def test_push_and_merge_group_include_all_commits_deletions_and_rename_sides(self):
+        self.git("mv", "src/old.php", "README-moved.md")
+        self.commit()
+        self.git("rm", "README.md")
+        self.write("devtools/file with\nnewline.py")
+        head = self.commit()
+        events = {
+            "push": {"before": self.base, "after": head},
+            "merge_group": {"merge_group": {"base_sha": self.base, "head_sha": head}},
+        }
+        for name, event in events.items():
+            with self.subTest(event=name):
+                paths = ci.changed_paths(name, event, head, self.root)
+                self.assertEqual(set(paths), {"src/old.php", "README-moved.md", "README.md", "devtools/file with\nnewline.py"})
+                self.assertEqual(ci.select(paths), set(ci.JOBS))
+
+    def test_manual_initial_push_and_unavailable_history_select_everything(self):
+        self.assertIsNone(ci.changed_paths("workflow_dispatch", {}, self.base, self.root))
+        for before in ("0" * 40, "f" * 40):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertIsNone(ci.changed_paths("push", {"before": before, "after": self.base}, self.base, self.root))
+        with self.assertRaises(ValueError):
+            ci.changed_paths("unknown", {}, self.base, self.root)
+
+
+if __name__ == "__main__":
+    unittest.main()

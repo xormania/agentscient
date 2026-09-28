@@ -52,7 +52,11 @@ def main():
             "target": "fixture-base",
             "repository": "example/fixture",
             "fetch": False,
-            "development": {},
+            "development": {
+                "checks": {
+                    "generated-test": ["php", "vendor/bin/phpunit", "tests/FixtureGeneratedTest.php"],
+                },
+            },
         }
         (state / "team.json").write_text(json.dumps(config))
         co, xo, coder = [Client(state, member) for member in ("owner", "xo", "coder")]
@@ -113,6 +117,7 @@ def main():
             assert tests["exit_code"] == 0, tests
             validation = completed(coder, "work_check", {})
             assert validation["passed"], validation
+            assert [row["check"] for row in validation["checks"]] == ["generated-test"], validation
             print(
                 json.dumps(
                     {
