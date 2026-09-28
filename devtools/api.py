@@ -132,7 +132,7 @@ CAPABILITIES = [
     ),
     spec(
         "session_stop",
-        "Request an orderly stop of a configured live member; its records survive.",
+        "Stop a configured managed member, escalating after a bounded grace period; records survive.",
         {"member": NAME},
         ("member",),
     ),
@@ -603,8 +603,9 @@ class API:
             result["observed"] = bool(result["events"])
             return result
         if name == "session_stop":
-            self.store.session(args["member"], desired="stopped")
-            return {"member": args["member"], "requested": "stopped"}
+            from .launch import stop
+
+            return stop(self.store.directory, args["member"])
         if name == "session_start":
             from .launch import start
 

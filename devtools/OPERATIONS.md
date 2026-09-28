@@ -138,7 +138,7 @@ All commands run from the repository root and take `--state`:
 | `status` | Read configured members and observed session state. |
 | `start --member NAME` | Start an already-bound managed member. |
 | `agent --member NAME` | Run an already-bound member in the current terminal. |
-| `stop --member NAME` | Request managed-session shutdown. |
+| `stop --member NAME` | Stop a managed session with bounded escalation and terminal cleanup. |
 
 `mcp` and `serena` are stdio provider entry points. `hook` and `operation` are
 internal launch targets. The compatibility `send` command is an operator aid;
@@ -226,7 +226,7 @@ Managed agents use the outcome tools in the [role/tool reference](../docs/contro
 | --- | --- |
 | `member_bind`, `member_unbind` | Configure or remove a trusted role/work/reporting binding |
 | `peers` | Configured members, observed state, and actual native conversation IDs |
-| `session_start`, `session_stop` | Start a configured member or request that it stops |
+| `session_start`, `session_stop` | Start a configured member or stop it with bounded escalation and owned-terminal recovery |
 | `message_send` | Send a durable message with an idempotency key |
 | `message_inbox`, `message_wait` | Read or briefly wait for incoming messages |
 | `message_ack`, `message_retry` | Acknowledge reception or explicitly retry uncertain delivery |

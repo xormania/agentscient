@@ -642,6 +642,12 @@ class Commands:
 
     def tick(self):
         """Resume persisted launch intents after a server restart; never dispatch work."""
+        for row in self.store.members():
+            if row["harness"] != "external" and row["desired"] == "stopped" and row["pid"]:
+                try:
+                    launch.stop(self.store.directory, row["name"], expected_generation=row["generation"])
+                except BlockingIOError:
+                    pass
         with self.store.connect() as db:
             pending = list(
                 db.execute("SELECT member,revision FROM member_bindings WHERE launch_pending=1 AND paused=0")
