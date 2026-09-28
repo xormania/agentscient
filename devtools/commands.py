@@ -181,7 +181,10 @@ class Commands:
 
     def _direction(self, db, scope, text):
         body = canonical({"direction": text, "context_revision": scope["revision"]})
-        key = "direction:" + digest([scope["member"], scope["revision"], body])
+        # A reused slot can restart its binding revision at one for another job/order.
+        key = "direction:" + digest([
+            scope["member"], scope["work_order"], scope["job"], scope["role"], scope["revision"], body
+        ])
         sender = scope["reports_to"] or self.member
         exists = db.execute("SELECT id FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
         message = self.store._send(
