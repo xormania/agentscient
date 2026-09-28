@@ -56,6 +56,50 @@ class DevelopmentTests(unittest.TestCase):
             messages = self.store.inbox(member)["messages"]
             self.assertTrue(any('"state":"completed"' in row["body"] for row in messages))
 
+    def test_completion_notices_preserve_outcomes_without_replaying_output(self):
+        self.configure()
+        for failed in (False, True):
+            result = {
+                "passed": not failed, "revision": "a" * 40,
+                "checks": [{"check": "fixture", "exit_code": int(failed),
+                            "output": "UNIQUE DIAGNOSTIC " * 1500, "evidence": "artifact:1"}],
+            }
+            with patch.object(Operations, "launch"), patch.object(Development, "check", return_value=result):
+                receipt = self.api.call("work_check", {})
+                ident = int(receipt["reference"].split(":")[1])
+                execute(self.state, "coder", ident)
+            self.assertEqual(result, self.api.operations.get(ident)["result"])
+            for member in ("coder", "xo"):
+                notice = json.loads(self.store.inbox(member)["messages"][-1]["body"])
+                self.assertEqual(receipt["reference"], notice["reference"])
+                self.assertEqual(not failed, notice["passed"])
+                self.assertEqual(int(failed), notice["checks"]["failed"])
+                self.assertNotIn("UNIQUE DIAGNOSTIC", json.dumps(notice))
+                self.assertLess(len(json.dumps(notice)), 1000)
+        with patch.object(Operations, "launch"):
+            receipt = self.api.call("work_check", {})
+            ident = int(receipt["reference"].split(":")[1])
+        from devtools.workspaces import Workspaces
+
+        blocked = {"state": "needs_attention", "message": "Validation changed files", "validation": result}
+        with self.store.connect() as db:
+            db.execute("UPDATE operations SET action='work_submit',arguments=? WHERE id=?",
+                       (json.dumps({"summary": "Review"}), ident))
+        with patch.object(Workspaces, "submit", return_value=blocked):
+            execute(self.state, "coder", ident)
+        notice = json.loads(self.store.inbox("xo")["messages"][-1]["body"])
+        self.assertEqual("needs_attention", notice["outcome"])
+        self.assertFalse(notice["passed"])
+        self.assertEqual(1, notice["checks"]["failed"])
+        with patch.object(Operations, "launch"), patch.object(Development, "check", side_effect=ValueError("failure " * 400)):
+            receipt = self.api.call("work_check", {})
+            ident = int(receipt["reference"].split(":")[1])
+            execute(self.state, "coder", ident)
+        notice = json.loads(self.store.inbox("coder")["messages"][-1]["body"])
+        self.assertEqual("failed", notice["state"])
+        self.assertEqual(500, len(notice["error"]))
+        self.assertEqual(2000, len(self.api.operations.get(ident)["error"]))
+
     def test_active_retry_reuses_operation_and_worker_rechecks_binding(self):
         self.configure()
         with patch.object(Operations, "launch"):
@@ -144,3 +188,4 @@ class DevelopmentTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

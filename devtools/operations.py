@@ -104,6 +104,34 @@ class Operations:
             "updated": row["updated"],
         }
 
+    @classmethod
+    def summary(cls, row):
+        """Keep live notices small; the existing operation/evidence reads retain detail."""
+        value = cls.public(row)
+        result = value.pop("result")
+        if value["error"]:
+            value["error"] = value["error"][:500]
+        if isinstance(result, dict):
+            for key in ("passed", "revision", "evidence", "checkpoint", "pr"):
+                if key in result:
+                    value[key] = result[key]
+            if "state" in result:
+                value["outcome"] = result["state"]
+            if result.get("message"):
+                value["message"] = result["message"][:500]
+            validation = result.get("validation") or result
+            if isinstance(validation.get("checks"), list):
+                checks = validation["checks"]
+                value["passed"] = validation["passed"]
+                value["checks"] = {"total": len(checks), "failed": sum(r["exit_code"] != 0 for r in checks)}
+                value["uncommitted"] = len(validation.get("uncommitted", []))
+            generated = result.get("result")
+            if isinstance(generated, dict) and "exit_code" in generated:
+                value["exit_code"] = generated["exit_code"]
+                value["outside_role_paths"] = len(generated.get("outside_role_paths", []))
+        value["details"] = 'Use work_inspect(section="operations") for retained results; work_context reads evidence references.'
+        return value
+
     def get(self, ident):
         scope = self.control.current()
         with self.store.connect() as db:
@@ -203,15 +231,8 @@ def execute(directory, member, ident):
                             "UPDATE operations SET state=?,result=?,error=?,updated=? WHERE id=?",
                             (state, canonical(result) if result is not None else None, error, stamp(), ident),
                         )
-                        body = canonical(
-                            {
-                                "operation": "operation:" + str(ident),
-                                "action": row["action"],
-                                "state": state,
-                                "result": result,
-                                "error": error,
-                            }
-                        )
+                        completed = db.execute("SELECT * FROM operations WHERE id=?", (ident,)).fetchone()
+                        body = canonical(Operations.summary(completed))
                         # Deliver to the original worker and supervisor only while their current scope still includes this job.
                         for recipient in {member, scope["reports_to"]} - {None}:
                             now = binding(db, recipient)
@@ -220,7 +241,7 @@ def execute(directory, member, ident):
                                     db,
                                     member,
                                     recipient,
-                                    body[:18000],
+                                    body,
                                     key="operation:" + str(ident) + ":" + recipient,
                                     work_order=scope["work_order"],
                                     job=scope["job"],
@@ -242,3 +263,4 @@ def execute(directory, member, ident):
     except ValueError as error:
         if not str(error).startswith("Another operation"):
             raise
+
