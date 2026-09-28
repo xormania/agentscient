@@ -64,14 +64,15 @@ class CommandTests(unittest.TestCase):
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
         co = self.client("owner")
         self.assertIn("ready_to_direct", co.initialization["instructions"])
-        self.assertEqual({"work_context", "direct", "monitor"}, {r["name"] for r in co.call("tools/list")["tools"]})
+        self.assertEqual({"work_context", "direct", "monitor", "onboard", "skill_read"},
+                         {r["name"] for r in co.call("tools/list")["tools"]})
         idle = self.client("xo")
         with self.assertRaisesRegex(ValueError, "not available"):
             idle.tool("direct", GOAL)
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer"},
+            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer", "onboard", "skill_read"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))

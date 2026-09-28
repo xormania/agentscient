@@ -100,6 +100,11 @@ def main():
             assert actual.returncode == 0, actual.stderr
             mate = completed(coder, "framework_inspect", {"kind": "mate", "name": "server-info", "parameters": {}})
             assert mate["result"], mate
+            onboarding = coder.tool("onboard", {})
+            assert onboarding["role"] == "coder" and len(onboarding["skills"]) == 8, onboarding
+            coder.tool("skill_read", {"name": "mate-system-information"})
+            package = completed(coder, "framework_inspect", {"kind": "packages", "package": "symfony/console"})
+            assert package["result"]["name"] == "symfony/console", package
             tests = completed(
                 coder,
                 "framework_generate",

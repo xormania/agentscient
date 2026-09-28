@@ -141,6 +141,8 @@ class NativeProtocolTests(unittest.TestCase):
                         "message_send", to="worker", body="Keep working while a tool is held", key="first"
                     )
                     until(lambda: store.inbox("worker")["messages"][0]["acknowledged"])
+                    self.assertEqual("coder", store.events(kind="onboarding_delivered", actor="worker")["events"][-1]["data"]["role"])
+                    self.assertTrue(store.events(kind="skill_loaded", actor="worker")["events"])
                     until(
                         lambda: (
                             store.events(kind="operation_started")["events"]
