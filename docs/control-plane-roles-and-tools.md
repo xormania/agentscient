@@ -176,6 +176,11 @@ through scoped locks. Branch routing and local paths are service responsibilitie
 | `work_recover` | Restore a returned `checkpoint` as a new commit; takes `reason` and preserves current work first. |
 | `work_submit` | Submit a checked contribution, or let XO submit the combined result once jobs are finished; takes `summary`. Publication and CI observation are automatic. |
 
+For review fixes before acceptance, keep working in the same job and call
+`work_submit` again. It updates the existing PR and starts observation of the new
+CI result. XO inspects the changed revision again before accepting it; GitHub's
+required checks still apply. Branch names and PR targets remain service-managed.
+
 `work_inspect` defaults to `overview`. Use `section="changes"` with optional `path`
 and `offset` for bounded local diffs. `section="operations"` reads retained long
 operation status. Delivery sections are described below.

@@ -64,13 +64,30 @@ changes. Do not share a vendor-directory symlink across worktrees.
 ### Branches and worktree lifetime
 
 Work-order source is prepared on first use, from the fetched `project.target`
-(normally `dev`). Its branch is `work-order/<team>-<number>-<generation>`.
+(normally `dev`). The services generate these related branch names:
+
+| Work | Branch | PR target |
+| --- | --- | --- |
+| Work order | `work-order/<wo>` | `project.target` (normally `dev`) |
+| Job | `work-order/<wo>-job-<job>` | `work-order/<wo>` |
+
+`<wo>` is the team identifier, work-order number and creation generation;
+`<job>` is the job number and creation generation. These are generated internally.
+The hyphen before `job` avoids Git's ref conflict between a branch and a child
+path of that branch. The work-order ruleset includes `work-order/*` and excludes
+`work-order/*-job-*`; see [GitHub settings](../.github/CI.md#github-settings).
 The initial remote publication contains the development revision. Each job starts
 from the latest remote work-order branch and submits its PR into that branch.
 XO acceptance merges the contribution; XO's `work_submit` validates the combined
 workspace and opens its PR into `project.target`. CO's `monitor(section="review")`
 and `conclude` inspect and deliver that final result under normal GitHub rules.
 The service never directly pushes new source commits into the integration branch.
+
+Review fixes use the existing job workspace and `work_submit` again. The service
+pushes without force to the same job branch and reuses its PR. GitHub reruns CI;
+XO must inspect the new revision before acceptance. Both job acceptance and final
+work-order delivery wait for current CI and GitHub's merge eligibility. New fixes
+after a job's PR has already merged belong to a new job.
 
 Job `work_refresh` incorporates both the parent work-order tip and current
 development changes. XO `work_refresh` fast-forwards the integration workspace

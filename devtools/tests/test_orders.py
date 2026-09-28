@@ -140,6 +140,57 @@ class OrderTests(unittest.TestCase):
             self.co.call("conclude", {"assessment": "Ready"})
         self.assertEqual("done", self.co.call("conclude", {"assessment": "Ready"})["outcome"])
 
+    def test_review_fix_updates_same_job_pr_before_both_merge_stages(self):
+        branch = self.managed["branch"]
+        self.assertTrue(branch.startswith(self.integration["branch"] + "-job-"))
+        self.assertEqual(1, branch.count("/"))
+        self.xo.call("monitor", {"work": "Feature"})
+        (self.workspace / "src/Example.php").write_text("Implementation with review fix\n")
+
+        def reuse_pr(context, base, **kwargs):
+            self.assertEqual(self.job, context["job"])
+            self.assertEqual(self.integration["branch"], base)
+            revision = git(self.remote, "rev-parse", branch).stdout.decode().strip()
+            self.provider.pr["head"]["sha"] = revision
+            self.provider.ci = "pending"
+            return {"pr": short_pr(self.provider.pr), "reused": True}
+
+        with (
+            patch("devtools.github.GitHub", return_value=self.provider),
+            patch.object(self.provider, "pr_open", side_effect=reuse_pr, create=True) as opened,
+            patch.object(self.provider, "ci_watch", return_value={"state": "watching"}, create=True),
+        ):
+            submitted = self.api.call("work_submit", {"summary": "Address review finding"})
+            self.api.call("work_submit", {"summary": "Confirm submitted fix"})
+        revised = submitted["checkpoint"].split(":")[1]
+        self.assertNotEqual(self.head, revised)
+        self.assertEqual(self.provider.pr["html_url"], submitted["pr"])
+        self.assertEqual(2, opened.call_count)
+        self.assertEqual(branch, self.api.workspaces.ensure()["branch"])
+        self.assertEqual(0, git(self.workspace, "merge-base", "--is-ancestor", self.head, revised).returncode)
+        self.assertEqual(self.initial, git(self.remote, "rev-parse", self.integration["branch"]).stdout.decode().strip())
+        self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
+
+        args = {"action": "accept", "work": "Feature", "direction": "Reviewed fix"}
+        with self.assertRaisesRegex(ValueError, "changed after inspection"):
+            self.xo.call("steer", args)
+        self.xo.call("monitor", {"work": "Feature"})
+        with self.assertRaisesRegex(ValueError, "CI has not passed"):
+            self.xo.call("steer", args)
+        self.assertEqual([], self.provider.merges)
+        self.provider.ci = "passed"
+        self.xo.call("steer", args)
+        self.assertEqual(revised, git(self.remote, "rev-parse", self.integration["branch"]).stdout.decode().strip())
+        self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
+
+        self.xo.call("work_submit", {"summary": "Integrated reviewed contribution"})
+        self.co.call("monitor", {"section": "review"})
+        self.co.call("conclude", {"assessment": "Combined result verified"})
+        self.cleanup.tick()
+        self.assertEqual(revised, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
+        self.assertFalse(self.workspace.exists())
+        self.assertFalse(Path(self.integration["root"]).exists())
+
     def test_final_delivery_rejects_changed_target_revision_and_dirty_integration(self):
         self.accept()
         self.xo.call("work_submit", {"summary": "Integrated result"})

@@ -60,18 +60,30 @@ Configure these as the repository owner in **Settings → Rules → Rulesets**:
 | Target | Rules |
 | --- | --- |
 | `dev` | Require a pull request and successful `lane` from GitHub Actions; block force pushes and deletion. |
-| `work-order/*` | Require a pull request and successful `lane` from GitHub Actions; block force pushes. Allow branch creation and deletion. |
+| Include `work-order/*`, exclude `work-order/*-job-*` | Require a pull request and successful `lane` from GitHub Actions; block force pushes. Allow branch creation and deletion. |
 
-Use an active branch ruleset with the exact `work-order/*` pattern; generated
-work-order names contain one slash. Do not target job branches with this rule:
-their normal publication uses non-forced pushes. Leave **Restrict creations** and
+In the active **work-order** ruleset's **Target branches**, include `work-order/*`
+and add an **Exclude by pattern** entry for `work-order/*-job-*`. Both generated
+names have one slash: `work-order/<wo>` is protected, while
+`work-order/<wo>-job-<job>` accepts normal, non-forced pushes of review fixes.
+For example, `work-order/123-job-7` opens its PR into `work-order/123`, and that
+work-order branch opens its final PR into `dev`. The exclusion is necessary:
+without it, the broad include would require a PR just to update a job branch.
+Ensure other active rulesets or classic protections do not independently require
+PRs on job branches; an exclusion applies only to the ruleset containing it.
+Leave **Restrict creations** and
 **Restrict updates** off. For the work-order status check, select **Do not require
 status checks on creation**, so a new branch can start at the tested development
 revision. Keep the required aggregate named `lane`; remove obsolete required
 contexts only after checking they are no longer produced by current CI.
 
 The workflow tests each job PR against its work-order base and the final work-order
-PR against development. **Require branches to be up to date before merging** is
+PR against development. Pushing a review fix to the same job branch triggers
+`pull_request.synchronize`, reruns CI on the updated PR and leaves the merge into
+the work order blocked until its required `lane` check passes. The MCP merge
+service rechecks both CI and GitHub's merge eligibility before requesting a merge;
+it does not use credential bypass authority to ignore reported requirements.
+**Require branches to be up to date before merging** is
 optional additional strictness: it can require refreshing jobs and an integration
 job before final delivery when development advances. No service bypass is needed.
 The runtime honors GitHub's merge eligibility and never configures these rules.
