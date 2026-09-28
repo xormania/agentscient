@@ -180,7 +180,7 @@ class Commands:
         return result
 
     def _direction(self, db, scope, text):
-        body = canonical({"direction": text, "context_revision": scope["revision"], "brief": self._brief(db, scope)})
+        body = canonical({"direction": text, "context_revision": scope["revision"]})
         key = "direction:" + digest([scope["member"], scope["revision"], body])
         sender = scope["reports_to"] or self.member
         exists = db.execute("SELECT id FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
@@ -685,3 +685,4 @@ class Commands:
                         "command_launch_failed",
                         {"error": detail, "work_order": current["work_order"], "job": current["job"]},
                     )
+

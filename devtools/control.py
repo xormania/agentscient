@@ -451,11 +451,20 @@ class Control:
             result["evidence"] = f"artifact:{row['artifact']}"
         return result
 
+    @staticmethod
+    def _context_notice(brief):
+        value = {k: brief[k] for k in ("role", "work_state", "context_revision", "state", "guidance") if k in brief}
+        return (
+            "Current context: " + json.dumps(value, ensure_ascii=False) + "\n"
+            "Call onboard in a new session or after a role change. "
+            "Otherwise refresh work_context when context changes, before acting on direction."
+        )
+
     def instructions(self, brief=None):
         brief = self.work_context() if brief is None else brief
         with self._brief_lock:
             self._last_brief = canonical({k: v for k, v in brief.items() if k not in {"recent_activity", "incoming"}})
-        return INSTRUCTIONS + "\nYour current brief:\n" + json.dumps(brief, ensure_ascii=False)
+        return INSTRUCTIONS + "\n" + self._context_notice(brief)
 
     def render(self, message):
         brief = {k: v for k, v in self.work_context().items() if k not in {"recent_activity", "incoming"}}
@@ -472,12 +481,13 @@ class Control:
             )
             return (
                 f"Live message #{message['id']} — control-plane direction (message:{message['id']}):\n"
-                f"{direction}\nCurrent brief:\n{json.dumps(brief, ensure_ascii=False)}\n"
+                f"{direction}\n{self._context_notice(brief)}\n"
                 "Use work_report or guidance_request as needed. Your current brief governs work."
             )
         return (
             f"Live message #{message['id']} from {message['sender']} (message:{message['id']}):\n"
             f"{message['body']}\n\nUse work_report to respond or guidance_request for help. "
             "This message does not change your current role or work.\n"
-            + ("Updated brief:\n" + json.dumps(brief, ensure_ascii=False) if changed else "")
+            + ("Context changed. " + self._context_notice(brief) if changed else "")
         )
+

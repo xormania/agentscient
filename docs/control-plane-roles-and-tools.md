@@ -68,10 +68,12 @@ catalog, even by guessing a backing capability's name.
 | `work_report` | Retain and route progress, findings, blockers, recommendations or results, optionally with evidence. |
 | `guidance_request` | Route a question or request for assistance through the reporting relationship. |
 
-The MCP initialization includes the current brief. Managed Codex and Claude also
-receive it in startup instructions; Grok receives MCP instructions and context with
-its first live delivery. Changed briefs accompany subsequent live delivery.
-Unchanged briefs and the CO's whole conversation are not copied into every message.
+MCP and native startup instructions identify the role/current context and direct
+the agent to `onboard`, which supplies the complete brief once. Live direction
+contains the current context revision and a refresh instruction, without copying
+the work-order/job text. Read `work_context` before acting on changed direction;
+use `onboard` for a new conversation or role change. Recovery uses these same tools.
+Superseded direction is identified and never replayed as current guidance.
 
 ```json
 {"name":"work_context","arguments":{}}
@@ -324,3 +326,4 @@ remaining team. The integration workspace retires after this final merge and
 shutdown. Report-only work with no source changes can conclude without a PR.
 The next authorized `direct` creates a new work order. Submission, contribution
 acceptance and delivery of the overall outcome remain distinct observations.
+

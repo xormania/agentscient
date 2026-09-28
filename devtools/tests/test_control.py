@@ -58,7 +58,9 @@ class ControlTests(unittest.TestCase):
             ["work_context", "work_report", "guidance_request", "onboard", "skill_read"],
             [r["name"] for r in coder.call("tools/list")["tools"]]
         )
-        self.assertIn("Implement contract", coder.initialization["instructions"])
+        self.assertNotIn("Implement contract", coder.initialization["instructions"])
+        self.assertIn("Call onboard", coder.initialization["instructions"])
+        self.assertIn("Implement contract", json.dumps(coder.tool("onboard", {})))
         self.assertNotIn("SECRET SIBLING", coder.initialization["instructions"])
         context = coder.tool("work_context", {})
         self.assertEqual("coder", context["role"])
@@ -132,7 +134,7 @@ class ControlTests(unittest.TestCase):
         self.assertIn("Visible", packet["params"]["content"])
         self.assertNotIn("Hidden", packet["params"]["content"])
         self.assertEqual(str(message["id"]), packet["params"]["meta"]["message_id"])
-        # The initialized brief is not repeated for every ordinary live message.
+        # Ordinary live messages do not repeat the brief.
         self.assertNotIn("Updated brief", packet["params"]["content"])
         self.operator.invoke("member_unbind", member="coder")
         until(lambda: any(p["method"] == "notifications/tools/list_changed" for p in coder.notifications))
@@ -233,3 +235,4 @@ class ControlTests(unittest.TestCase):
         ):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 self.operator.invoke("member_bind", **args)
+
