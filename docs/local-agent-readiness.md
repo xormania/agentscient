@@ -46,17 +46,17 @@ login. The GitHub service reuses `gh auth token`, an operator-maintained `token_
 in `team.json`'s `github` section, or `AGENTSCIENT_GITHUB_TOKEN`. Credentials never
 appear in agent tool inputs. Git push authentication is separate from API access.
 
-Create the team. Choose the installed harnesses you want; multiple slots can use
-the same harness. Names label configured slots, not permanent roles. XO allocates
-their actual roles and responsibilities through the control plane.
+Create the team with shared role policy. The service allocates instances as XO
+requests roles; multiple jobs can use the same role. Enable your logged-in vendors
+and edit ordered harness/model/reasoning preferences in the generated private
+`roles.json` and `vendors.json` files. See [runtime policy](shared-runtime-config.md).
 
 ```sh
 python3 devtools/run.py init \
   --state "$HOME/.local/state/agentscient-live" \
   --workspace "$PWD" --repository uscient/agentscient --target dev \
   --serena-image agentscient-serena:v2-beta \
-  --co owner --member owner:external \
-  --member chief:codex --member worker:claude --member reviewer:grok
+  --co owner --member owner:external --runtime
 ```
 
 `init` enables managed workspaces, default installed Symfony tools/checks and the
@@ -66,8 +66,9 @@ for both PR destinations before local acceptance. `init` also enables the
 separate Serena image. It does not start models. It refuses to replace an existing
 team. For an existing team, edit its private `team.json`; see
 [team and project configuration](../devtools/OPERATIONS.md#team-and-project-configuration).
-Set each slot's optional `binary`, `model` and `reasoning` there. No model is forced
-by the repository. For a PHP binary outside PATH, set `project.development.php` to
+Existing fixed-member teams remain supported. Shared runtime teams set optional
+`binary`, `model` and `reasoning` in role profiles. No model is forced by the repository.
+For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
 
 Check the setup and export the actual CO connection:
@@ -93,6 +94,10 @@ stage. Image labels identify the configured build; runtime boundary checks are t
 separate integration test, not an inference from a label.
 
 ## Start work through CO
+
+Each session calls `onboard` to receive its customized responsibilities, current
+tools and shared skill catalog. Use `skill_read` for relevant task guidance; see
+[role onboarding](role-onboarding.md).
 
 The CO client uses `direct` to state the objective, completion criteria and
 boundaries. That binds XO; XO uses `orchestrate` to create named responsibilities

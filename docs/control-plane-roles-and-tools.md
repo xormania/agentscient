@@ -31,7 +31,9 @@ role or work authority.
 
 ## Role catalog
 
-Every bound role gets **`work_context`, `work_report`, `guidance_request`**.
+Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
+Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
+and skill catalogs shared across all supported harnesses.
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -54,7 +56,7 @@ paths. The current research profile covers repository material, supplied sources
 and retained evidence; a general external web-search provider is not configured.
 
 An unbound member gets only `work_context`. The external member explicitly
-appointed as CO also gets `direct` and `monitor` before its first work order.
+appointed as CO also gets `onboard`, `skill_read`, `direct` and `monitor` before its first work order.
 Member names alone confer no role. Normal connections cannot invoke the operator
 catalog, even by guessing a backing capability's name.
 

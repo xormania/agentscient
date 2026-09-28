@@ -78,6 +78,9 @@ async def main():
         {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "claude-fixture", "version": "1"}},
     )
     await rpc.notify("notifications/initialized")
+    result = await rpc.request("tools/call", {"name": "onboard", "arguments": {}})
+    onboard = json.loads(result["content"][0]["text"])
+    await rpc.request("tools/call", {"name": "skill_read", "arguments": {"name": onboard["skills"][1]["name"]}})
     Path(option("--debug-file")).write_text(
         '2026-09-28T00:00:00.000Z [DEBUG] MCP server "agentscient_dev": Channel notifications registered\n'
     )

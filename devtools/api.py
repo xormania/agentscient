@@ -299,6 +299,9 @@ OPERATOR_TOOLS = [
 
 TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
+    spec("onboard", "Load your current role onboarding, shared essentials, allowed tools and skill catalog.", readonly=True),
+    spec("skill_read", "Load a relevant skill from your current role's onboard catalog.",
+         {"name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"}}, ("name",), readonly=True),
     spec(
         "work_inspect",
         "Inspect your work's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
@@ -401,11 +404,13 @@ class API:
     def tools(self):
         if self.operator:
             return OPERATOR_TOOLS
-        return self._tools(self.control.snapshot())
+        return self._tools(self.control.current())
 
     def _tools(self, scope):
         role = self.commands.role(scope)
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        if role:
+            common |= {"onboard", "skill_read"}
         if scope and scope["job"] and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
@@ -429,12 +434,9 @@ class API:
     def instructions(self):
         if self.operator:
             return OPERATOR_INSTRUCTIONS
-        role = self.commands.role(self.control.snapshot())
-        command = {
-            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team. Once XO submits the integrated result, inspect it with monitor section review. Use conclude with your assessment to deliver the checked outcome.",
-            "xo": " Use orchestrate to organize named jobs and live collaborators; an audit role can share the producer's job name. Monitor shows progress or a named job's review packet. Steer guides, pauses, resumes, stops, or accepts/cancels a named job with an assessment. Inspect the current delivery before acceptance. Once contributions are accepted, use work_submit to validate and submit the combined result to CO.",
-        }.get(role, "")
-        return self.control.instructions(self.invoke("work_context", {})) + command
+        from .onboarding import Onboarding
+
+        return Onboarding(self).startup() + "\n" + self.control.instructions(self.invoke("work_context", {}))
 
     def call(self, name, arguments, *, on_context=None):
         if self.operator:
@@ -524,6 +526,10 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {"onboard", "skill_read"}:
+            from .onboarding import Onboarding
+
+            return Onboarding(self).onboard() if name == "onboard" else Onboarding(self).read(**args)
         if name in {"terminal_status", "terminal_read"}:
             from . import terminals
 

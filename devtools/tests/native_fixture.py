@@ -25,6 +25,7 @@ class Fixture:
         self.tasks = set()
         self.command = False
         self.organized = False
+        self.onboarded = False
 
     def write(self, packet):
         print(json.dumps(packet), flush=True)
@@ -61,6 +62,10 @@ class Fixture:
         return await self.mcp.request("tools/call", {"name": capability, "arguments": args})
 
     async def accept(self, text, hold):
+        if not self.onboarded:
+            await self.tool("onboard", {})
+            await self.tool("skill_read", {"name": "agentscient-xo" if self.command else "agentscient-coder"})
+            self.onboarded = True
         ident = int(re.search(r"Live message #(\d+)", text)[1])
         if self.harness == "codex":
             self.write({"method": "turn/started", "params": {"threadId": self.session, "turn": {"id": "held-turn"}}})
@@ -121,7 +126,7 @@ class Fixture:
                 assert params["sandbox"] == "read-only"
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
-                expected = {"work_context", "work_report", "guidance_request"}
+                expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
                 assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
                 result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
