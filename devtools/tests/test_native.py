@@ -128,6 +128,8 @@ class NativeProtocolTests(unittest.TestCase):
                     self.assertEqual("running", started["requested"])
                     until(lambda: store.member("worker")["state"] == "idle")
                     original_id = store.member("worker")["native_id"]
+                    runtime = store.events(kind="runtime_observed", actor="worker")["events"]
+                    self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
                     first = client.invoke(
                         "message_send", to="worker", body="Keep working while a tool is held", key="first"

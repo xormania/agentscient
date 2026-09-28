@@ -293,6 +293,8 @@ class Store:
 
     @staticmethod
     def _event(db, actor, kind, data):
+        from .telemetry import clean
+
         data = dict(data)
         work_order, job = Store.current_work(db, actor, data.pop("work_order", UNSET), data.pop("job", UNSET))
         member = db.execute("SELECT generation,native_id FROM members WHERE name=?", (actor,)).fetchone()
@@ -302,7 +304,7 @@ class Store:
                     data.setdefault(field, member[field])
         return db.execute(
             "INSERT INTO events(at,actor,kind,data,work_order,job) VALUES (?,?,?,?,?,?)",
-            (stamp(), actor, kind, canonical(data), work_order, job),
+            (stamp(), actor, kind, canonical(clean(data)), work_order, job),
         ).lastrowid
 
     def event(self, actor, kind, **data):
@@ -479,6 +481,10 @@ class Store:
             db.execute("UPDATE messages SET delivery='delivering',attempt=? WHERE id=?", (attempt, row["id"]))
             result = dict(row)
             result["attempt"] = attempt
+            self._event(db, member, "message_delivering", {
+                "message": row["id"], "attempt": attempt, "sender": row["sender"],
+                "body": row["body"], "work_order": row["work_order"], "job": row["job"],
+            })
             return result
 
     def delivered(self, member, message, attempt, *, error=None, transport=None):
@@ -503,7 +509,7 @@ class Store:
                 db,
                 member,
                 "delivery_uncertain" if error else "message_submitted",
-                {"message": message, "transport": transport, "error": error, **dict(binding)},
+                {"message": message, "attempt": attempt, "transport": transport, "error": error, **dict(binding)},
             )
 
     def retry(self, member, message):

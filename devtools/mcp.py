@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import VERSION
 from .api import API, SERVER, render
+from .telemetry import Trace, context
 
 MAX_FRAME = 131072
 
@@ -16,8 +17,10 @@ def serve(directory, member, channel=False, operator=False):
     output_lock = threading.Lock()
     initialized = threading.Event()
     stopped = threading.Event()
+    trace = Trace(directory, member, component="mcp", context=lambda: context(api.store, member))
 
     def write(packet):
+        trace.record("mcp_out", packet)
         encoded = json.dumps({"jsonrpc": "2.0", **packet}, ensure_ascii=False)
         with output_lock:
             sys.stdout.write(encoded + "\n")
@@ -57,6 +60,8 @@ def serve(directory, member, channel=False, operator=False):
             return
         try:
             if method == "initialize":
+                api.store.event(member, "mcp_client", client=packet.get("params", {}).get("clientInfo", {}),
+                                connection=trace.connection, channel=channel, operator=operator)
                 caps = {"tools": {"listChanged": not operator}}
                 if channel:
                     caps["experimental"] = {"claude/channel": {}}
@@ -133,9 +138,13 @@ def serve(directory, member, channel=False, operator=False):
                         break
                     continue
                 if packet["method"] == "tools/call":
+                    trace.record("mcp_in", packet)
                     pool.submit(handle, packet)
                 else:
+                    trace.record("mcp_in", packet)
                     handle(packet)
         finally:
             stopped.set()
             initialized.set()
+    trace.record("mcp_closed", {})
+    trace.close()

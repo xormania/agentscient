@@ -123,7 +123,7 @@ class Fixture:
                 self.command = "orchestrate" in names
                 expected = {"work_context", "work_report", "guidance_request"}
                 assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
-                result = {"thread": {"id": self.session}}
+                result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]
                 process = await asyncio.create_subprocess_exec(
@@ -143,7 +143,7 @@ class Fixture:
                     },
                 )
                 await self.mcp.notify("notifications/initialized")
-                result = {"sessionId": self.session}
+                result = {"sessionId": self.session, "models": {"currentModelId": "fixture-model"}}
             elif method == "turn/start":
                 assert params["threadId"] == self.session
                 assert params["input"] == []

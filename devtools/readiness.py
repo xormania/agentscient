@@ -295,8 +295,12 @@ def evidence(directory, work_order):
         )
         rows = db.execute("SELECT actor,kind,data FROM events WHERE work_order=? ORDER BY id", (work_order,))
         sessions, tools, denied, serena = {}, {}, 0, 0
+        runtime, actors = [], set()
         for row in rows:
+            actors.add(row["actor"])
             data = json.loads(row["data"])
+            if row["kind"] in {"runtime_requested", "runtime_observed", "mcp_client", "runtime_selected"}:
+                runtime.append({"actor": row["actor"], "kind": row["kind"], **data})
             if row["kind"] in {"native_session", "channel_ready"} and data.get("native_id"):
                 sessions.setdefault(row["actor"], set()).add(data["native_id"])
             if row["kind"] == "operation_finished":
@@ -317,6 +321,12 @@ def evidence(directory, work_order):
             if current_schema
             else [],
             "native_sessions": {actor: sorted(ids) for actor, ids in sessions.items()},
+            "runtime_records": runtime,
+            "telemetry_files": [str(path.parent / "telemetry" / (actor + ".jsonl")) for actor in sorted(actors)
+                                if (path.parent / "telemetry" / (actor + ".jsonl")).is_file()],
+            "capture_notes": "Requested/inherited settings are not confirmed settings. Missing native fields are unknown. "
+                             "Wire captures contain exposed protocol traffic; Claude transcript capture begins when "
+                             "its hook registers a session transcript. External clients expose only their MCP traffic.",
             "completed_tool_calls": tools,
             "successful_serena_calls": serena,
             "denials_or_violations_to_inspect": denied,
