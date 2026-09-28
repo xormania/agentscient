@@ -82,7 +82,7 @@ def configuration(directory, member):
     store = Store(directory)
     team = team_config(store.directory)
     rows = team["members"]
-    store.initialize(rows)
+    store.initialize(rows, runtime=team.get("runtime", False))
     selected = next((row for row in rows if row["name"] == member), None)
     if selected is None and not team.get("runtime"):
         raise ValueError("Member is not configured in team.json")

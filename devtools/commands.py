@@ -109,7 +109,7 @@ class Commands:
 
     def _config(self):
         config = launch.team_config(self.store.directory)
-        self.store.initialize(config["members"])
+        self.store.initialize(config["members"], runtime=config.get("runtime", False))
         return config
 
     def _scope(self, db, roles, *, bootstrap=False):
