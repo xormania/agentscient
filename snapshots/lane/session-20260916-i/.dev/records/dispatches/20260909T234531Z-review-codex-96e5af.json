@@ -1,0 +1,170 @@
+{
+  "id": "20260909T234531Z-review-codex-96e5af",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "4bfa15d333358525f3d2c48917752a97c9254f18"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:45:31Z",
+    "closed": "2026-09-09T23:47:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4bfa15d333358525f3d2c48917752a97c9254f18",
+    "ref_sha": "4bfa15d333358525f3d2c48917752a97c9254f18",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"medium\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-45-32-01a0888f-fba6-7de3-975f-c085532b61c7.jsonl"
+  },
+  "session": {
+    "id": "01a0888f-fba6-7de3-975f-c085532b61c7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-45-32-01a0888f-fba6-7de3-975f-c085532b61c7.jsonl",
+    "stream_sha256_at_close": "d0f9cedb35ce013744954efbd0988bd5f175136a9badcc15744a4adac15492de",
+    "spend": {
+      "input": 413248,
+      "cached": 357376,
+      "output": 3958,
+      "total": 417206,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-45-32-01a0888f-fba6-7de3-975f-c085532b61c7.jsonl",
+      "messages": 70
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Investigate the demonstrated stale-local-branch issue in in/branch-freshness-scope.md for both dev and master. Read-only, no edits or tests. Identify existing freshness/onboarding/worktree-start levers; propose the smallest repair, owning contract edits and concrete TDD cases. No new framework, daemon or unrelated fixes. Distinguish local refs from freshly measured remote refs. Preserve dirty/diverged branches and checkout ownership. Return measured source paths and proposal in the envelope note.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T234531Z-review-codex-96e5af/in/branch-freshness-scope.md",
+        "sha256": "5acd37478903c46a496f661ec271a004b5a9fa145c80b9725c58ee4eaa7d8eb2"
+      }
+    ],
+    "sha256": "adda121dd5cf435bc125cd5685d8906aa74ab498d5a4959e9a1967b12ffd8492",
+    "bytes": 3098
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:45:31Z",
+      "ended": "2026-09-09T23:47:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4bfa15d333358525f3d2c48917752a97c9254f18",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/onboard.py:225; ops/conductor/tools/branches.py:239; ops/devlane/hooks/claude/context-precheck.py:190",
+          "claim": "Category: stale-local-branch prevention, covering dev and master. No inspected entry point compares both local branch tips with freshly measured remote tips. Onboarding's contract requests 'current branch and short sha'; branch_line implements only two rev-parse calls and returns True. The census enumerates 'refs/remotes/origin', preferring origin/dev over heads/dev, so its dev row cannot expose a lagging local dev. The context hook compares remote-tracking refs before and after fetch and exits silently when 'not moved'; it never compares refs/heads/dev or refs/heads/master. Thus an already-fetched remote can remain ahead of the local reference checkout indefinitely without these levers identifying that discrepancy. This explains the supplied stale-local-dev observation and leaves the same gap for master.",
+          "reproduce": "git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/conductor/onboard-lever.md | sed -n '90,98p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/conductor/tools/onboard.py | sed -n '225,230p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/conductor/tools/branches.py | sed -n '227,246p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/devlane/hooks/claude/context-precheck.py | sed -n '180,215p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/branch-census.md:28; ops/conductor/tools/branches.py:216",
+          "claim": "Category: stale-local-branch prevention, specifically configured release coverage. The existing branch diagnostic hardcodes main as release despite ops/lane.conf declaring RELEASE_BRANCH='master' and AGENTS.md declaring 'master is the release.' role_for('master') reaches 'return \"unknown\"'; release reachability uses origin/main or heads/main, dev feeds '-> main', and PR bases exclude only dev/main from STACKED. The owning census contract repeats these obsolete names. Consequently this lever does not correctly represent the release branch whose synchronization the brief requires.",
+          "reproduce": "git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/lane.conf | sed -n '6,9p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:AGENTS.md | sed -n '17,25p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/conductor/branch-census.md | sed -n '26,50p'; git show 4bfa15d333358525f3d2c48917752a97c9254f18:ops/conductor/tools/branches.py | sed -n '216,289p'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 417206,
+        "out": 3958,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4bfa15d333358525f3d2c48917752a97c9254f18",
+        "started": "2026-09-09T23:45:40Z",
+        "ended": "2026-09-09T23:46:38Z"
+      },
+      "note": "Coverage: the single supplied category was investigated for both dev and master. Findings are separate: missing freshness comparison and incorrect configured release identification. Review was read-only; no edits, tests, fetches, store reads or other-session operations were performed. The complete brief was read from ../in/branch-freshness-scope.md.\n\nMeasurement boundary: HEAD equals the requested SHA and git status --porcelain=v1 returned empty. git for-each-ref over heads/dev, heads/master, remotes/origin/dev and remotes/origin/master returned no rows; git remote -v returned empty; git worktree list --porcelain showed only this detached snapshot. git ls-remote --exit-code origin refs/heads/dev refs/heads/master failed with exit 128 because origin is unavailable here. Therefore the brief's historical 604-commit lag and subsequent dev/master synchronization are supplied observations, not freshly verified live facts. Live synchronization remains unmeasured; this does not prevent complete source review of the requested defect category.\n\nExisting boundaries, measured at the stamped SHA: README.md:137-151 and CONTRIB.md:150-179 prescribe owned worktrees and creation from origin/dev; README already requires fetching an existing clone first. There is no dedicated new-work creation lever in the inspected tree: dispatch.sh:200-216 and ladder.py:195-229 locate existing worktrees and otherwise prescribe git worktree add. onboard.py:225-230 reports checkout identity, while onboard-lever.md:19-23 forbids ref writes. context-precheck.py:180-215 handles outward commands, fetches remote-tracking refs and detects their movement; context-boundary.sh only records/warns after changes. matrix.py:635-646 checks an explicitly supplied dispatch worktree against cached origin/TRUNK_BRANCH without acquiring fresh remote evidence. launch.py:1380-1384 checks the requested commit's ancestry in its lineage, not remote freshness. land.py:250-320 and land-lever.md:60 provide an existing probe/fetch/failure distinction, scoped to the landing lineage, not trunk/release startup. branches.py and branch-census.md are the smallest existing branch-state owner. laneconf.py already owns TRUNK_BRANCH and RELEASE_BRANCH configuration.\n\nSmallest proposed repair: extend branches.py with one bounded read-only freshness operation, independent of gh and dispatch stores, and consume it from onboard.py. Resolve both configured names through laneconf.py. For each, report the fully qualified local ref and SHA or explicit absence, cached remote-tracking ref and SHA or absence, separately measured remote refs/heads/<name> SHA, repository identity and observation time. Probe origin with bounded ls-remote; cached equality alone must never mean remotely verified. Classify equal, behind, ahead, diverged, local-absent, remote-absent and unavailable. If remote objects are unavailable locally, report the differing tips with ancestry unmeasured; do not fetch inside a read. Missing origin, timeout and probe failure must remain explicit. Onboarding must identify stale/unverified source context and return Finding rather than brief complete. Preserve its useful diagnostic output and read-only mandate.\n\nFor new work, amend the existing README/CONTRIB worktree-start sequence to require successful acquisition of the exact configured trunk and release remote refs, followed by that same freshness reading. Explicit acquisition must fetch only remote-tracking refs, check failures, and verify the acquired tips against the remote observation; changed observations require remeasurement. Start the new owned worktree from the recorded verified trunk SHA, not a mutable local dev name or an unverified origin/dev. Refuse the sequence on unresolved freshness and require rerunning it after synchronization. This closes the documented startup boundary without claiming to intercept arbitrary raw Git commands or introducing a framework. Correct census role/feed/release-base selection to use configuration in the same bounded repair.\n\nSynchronization and custody: use detection plus explicit owner remediation for the minimum repair. Do not automatically fast-forward from onboarding or a hook. A branch being absent from worktree list does not establish ownership. A separately authorized synchronization may create a missing local branch at its verified remote tip with tracking, or fast-forward an existing branch only with established custody, proven ancestry and rechecked expected old SHA. Never directly move a checked-out branch ref; any permitted checkout update must occur in its owning clean worktree using ff-only semantics. The main reference checkout remains read-only under CONTRIB.md and the brief. Dirty, ahead, diverged, foreign-owned, locked or concurrently changed branches remain untouched with expected-found-needed diagnostics. Master compares only with its own remote branch: no merge from dev, release publication, reset, force or branch deletion.\n\nOwning contract edits: ops/conductor/branch-census.md owns the configured identities, freshness readings and exit semantics; ops/conductor/onboard-lever.md owns the additional state source and incomplete/finding outcome; README.md and CONTRIB.md own the verified new-work baseline and custody sequence. ops/README.md should link this lever and distinguish movement warnings from freshness verification. Inherit docs/wire.md and instrument-conventions.md rather than inventing new outcome classes. Preserve discovery-lever.md's local-only acquisition boundary: do not add network or mutation to lane_refs/MCP. No change to dispatch lineage semantics or a new startup framework is needed.\n\nConcrete TDD cases for an independent test producer, not authored or run here: (1) Both configured branches equal freshly advertised remote tips: two verified rows, exit 0, no writes. (2) Local dev=A, cached origin/dev=B, remote dev=B with A an ancestor of B: report dev behind despite no remote-tracking movement; repeat independently for master. (3) Local and cached tips=A but remote=B: report stale cached evidence, never current; unavailable B objects produce ancestry-unmeasured rather than guessed counts. (4) Local branch absent with remote present: explicit local-absent row and startup refusal, independently for dev/master. (5) Local ahead and diverged histories: distinct states and unchanged tips/index/worktree. (6) Remote missing, absent origin, timeout and failed acquisition: distinguish measured absence from unavailable, never accept cached equality. (7) Rename configuration to trunkx/relx: both rows and census roles/feed/release-base recognition follow configuration; master is release under repository defaults. (8) Dirty tracked tree, another owner's checkout, main checkout, locked worktree and an ownership-unknown unchecked-out branch: no synchronization and no checkout takeover. (9) Remote advances between acquisition and verification: startup refuses; verified clean startup creates its new branch at the recorded trunk SHA and preserves both baseline branches. (10) Already-used branch or occupied destination: Git worktree creation refuses without force or eviction. (11) Onboarding on stale dev and stale master fixtures returns Finding with explicitly stale context; equal fixtures retain complete output; byte/ref comparisons prove the read changed no repository data. (12) For any later authorized ff-only action, clean owned behind branch advances exactly to its own verified remote tip, while dirty/diverged/racing cases preserve state; master never moves to dev's tip merely because dev advanced."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-09T23:47:51.236Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,192 @@
+{
+  "id": "20260910T233710Z-review-codex-cd4bef",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "repair/ladder-inputs-tests-20260910",
+  "lineage": {
+    "branch": "repair/ladder-inputs-tests-20260910",
+    "base_sha": "935b23ebd92a22f2d4eaee7b36ffd6dc4a393891"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-10T23:37:11Z",
+    "closed": "2026-09-10T23:42:13Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "935b23ebd92a22f2d4eaee7b36ffd6dc4a393891",
+    "ref_sha": "935b23ebd92a22f2d4eaee7b36ffd6dc4a393891",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-ladder-inputs-tests-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-37-11-01a08dae-b2c4-70e3-a0ba-e8c8168c5fbb.jsonl"
+  },
+  "session": {
+    "id": "01a08dae-b2c4-70e3-a0ba-e8c8168c5fbb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-37-11-01a08dae-b2c4-70e3-a0ba-e8c8168c5fbb.jsonl",
+    "stream_sha256_at_close": "b651d417acdf9df0c32689972ffbad84f1b5b81ec1650d57f614bd4d348cafed",
+    "spend": {
+      "input": 2054317,
+      "cached": 1961216,
+      "output": 13110,
+      "total": 2067427,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-37-11-01a08dae-b2c4-70e3-a0ba-e8c8168c5fbb.jsonl",
+      "messages": 240
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder-inputs-tests-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Rule on five red regression tests. Read in/failures-ladder-inputs-tests-20260910.md and in/brief-ladder-inputs-tests-20260910.md WHOLE; the brief's quoted contract paragraphs are the only requirements. For each of the five failing tests in ops/conductor/tests/test_ladder_lever_inputs.py, decide UPHELD, REJECTED or PARTIAL against the fix in ops/conductor/tools/ladder.py, citing the contract sentence, and report each as a finding with a reproduce command. Read-only; edit nothing.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/in/failures-ladder-inputs-tests-20260910.md",
+        "sha256": "6a3ca86e6bf25026723c4a26a5a75cc3d667b9f60f58c8a627a001ab1c00b31c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T233710Z-review-codex-cd4bef/in/brief-ladder-inputs-tests-20260910.md",
+        "sha256": "cc24409f7ab9c93dac66ab9070f3f6e9c2578c14947feeaed40d0322bf080210"
+      }
+    ],
+    "sha256": "a4954bdcc1100cbd7d97a325c28d13f00c487e806924cb1503fe5f5c90cdbadb",
+    "bytes": 3350
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:37:11Z",
+      "ended": "2026-09-10T23:42:13Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "935b23ebd92a22f2d4eaee7b36ffd6dc4a393891",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "ladder-inputs-tests-ruling",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever_inputs.py:297; ops/conductor/tests/test_ladder_lever.py:294",
+          "claim": "REJECTED \u2014 The test requires dry-run launch argv to expose the plan and start inputs in after-plan order. The contract says only, \u201cEach `--input PATH` names a file handed to every stage beside the scope and plan\u201d; it does not specify dry-run output or argv ordering. The fixture stub omits every input from its dry-run `launch_argv`, causing this failure independently of the fix.",
+          "reproduce": "TMPDIR=/dev/shm python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py -k test_dry_run_argv_carries_input_after_the_plan"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:1557",
+          "claim": "UPHELD \u2014 A bare `--input` refuses with expected text `--input followed by a path`, rather than naming the documented form. This violates: \u201cRefusal `arguments` names the form `SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID`.\u201d",
+          "reproduce": "TMPDIR=/dev/shm python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py -k test_input_flag_without_a_path_refuses_arguments"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:290",
+          "claim": "UPHELD \u2014 A missing input reports needed `supply a input`. This violates: \u201cRefusal `input`: a `--input` path is absent or unreadable; needed \"supply a readable input file\".\u201d",
+          "reproduce": "TMPDIR=/dev/shm python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py -k test_missing_input_refuses_input"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:284",
+          "claim": "UPHELD \u2014 An unreadable input reports needed `correct its permissions`. This violates: \u201cRefusal `input`: a `--input` path is absent or unreadable; needed \"supply a readable input file\".\u201d",
+          "reproduce": "TMPDIR=/dev/shm python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py -k test_unreadable_input_refuses_input"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever_inputs.py:337; ops/conductor/tests/test_ladder_lever.py:1660",
+          "claim": "REJECTED \u2014 The failing assertion requires a clean fixture worktree before resume, which the quoted contract does not require. `close_tripped_record` rewrites a tracked dispatch record without committing it, so the test fails at line 346 before invoking resume. The applicable contract sentence is: \u201cResume: a recorded input whose bytes changed refuses class `record`, \"restore the recorded bytes or repair the digest\", before any dispatch.\u201d The fix implements that check at ladder.py:1605 and ladder.py:377; committing the fixture\u2019s rewritten dispatch record makes the test pass.",
+          "reproduce": "TMPDIR=/dev/shm python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py -k test_resume_refuses_when_input_bytes_changed"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2067427,
+        "out": 13110,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "935b23ebd92a22f2d4eaee7b36ffd6dc4a393891",
+        "started": null,
+        "ended": "2026-09-10T23:41:34Z"
+      },
+      "note": "All five failing tests were ruled against the quoted contract only: 3 UPHELD, 2 REJECTED, 0 PARTIAL. The tracked tree remained clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T23:42:12.291Z"
+    }
+  },
+  "status": "closed"
+}

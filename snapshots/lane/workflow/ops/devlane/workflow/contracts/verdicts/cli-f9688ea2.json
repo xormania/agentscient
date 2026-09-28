@@ -1,0 +1,24 @@
+{
+  "id": "cli-f9688ea2",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md specifies wf advance <wo> with --to and --reason, not --kind, --objective, or --by.",
+  "observed": "The derived _id for commands[0].arguments[4] is absent from the observation and fails a closed identity disjunction at the contract's --kind/--objective/--by branch.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "253-253",
+      "quote": "| `wf advance <wo>` | enter the next stage; refuses if required evidence is missing; seals the frozen set on entry to implementation; `--to <stage> --reason` re-enters an earlier stage (§3.3) |"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "45-45",
+      "quote": "if _id == \"--kind\" || _id == \"--objective\" || _id == \"--by\" {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "17-17",
+      "quote": "no value at facts.commands.0.arguments.4._id"
+    }
+  ],
+  "action": "record-finding"
+}

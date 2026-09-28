@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"higher layer dep","violates":"strict layering","reject_path":"registry.layer","site":["capabilities",0,"deps"]}

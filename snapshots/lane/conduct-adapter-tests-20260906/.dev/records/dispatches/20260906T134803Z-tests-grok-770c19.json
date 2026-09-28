@@ -1,0 +1,214 @@
+{
+  "id": "20260906T134803Z-tests-grok-770c19",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-adapter-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-adapter-tests-20260906",
+    "base_sha": "9c892b4387c24fc53bdd379a0a8ce9142fb3f782"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:48:03Z",
+    "closed": "2026-09-06T14:08:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9c892b4387c24fc53bdd379a0a8ce9142fb3f782",
+    "ref_sha": "9c892b4387c24fc53bdd379a0a8ce9142fb3f782",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "86a9e9d6-6173-4bbd-a471-f7eca2e97b6d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok-stream/sessions/<snapshot-encoded>/86a9e9d6-6173-4bbd-a471-f7eca2e97b6d/summary.json"
+  },
+  "session": {
+    "id": "86a9e9d6-6173-4bbd-a471-f7eca2e97b6d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok-stream/sessions/<snapshot-encoded>/86a9e9d6-6173-4bbd-a471-f7eca2e97b6d/summary.json",
+    "stream_sha256_at_close": "db9ca786791471c68603696e8084cd95580adbad72156e26530eff2a74554987",
+    "spend": {
+      "input": 2938311,
+      "cached": 2563584,
+      "output": 75106,
+      "total": 3013417,
+      "cost_usd_ticks": 4219199400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/home/grok-stream/sessions/<snapshot-encoded>/86a9e9d6-6173-4bbd-a471-f7eca2e97b6d/summary.json",
+      "messages": 215
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-adapter-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only harness/tests/adapter_test_support.py, test_adapter_argv.py and test_output_capability.py from original Grok d3ea314b using merged adapter contracts and supplied original review/ruling. Verify original hashes. Close role-axis inversion, real independently held evidence controls, exact transport/insertion/resume custody, worker versus conductor C2 encoding, mandatory source isolation, closed result shape, meaningful env/model controls and 8192-byte vector bound. Include all six carried selection axes without inventing multi-defect validation priority. No runtime inspection/edit, contracts, other tests or live authority. These contract candidates remain under review: report remaining gaps; do not freeze pending tests until reviews settle. Run focused assertion-red with zero collection errors, lint and local guards; reseal three hashes and retain exact patch/receipts. No full floor during dispatch.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/in/ag-conduct-adapter-tests.json",
+        "sha256": "b7c7d0b64345edc88b7fa00dc55e398dc811f693e8669462b35285065a02726b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/in/ag-conduct-adapter-tests-review.json",
+        "sha256": "eec29c8fd91a50ed8bc686e5f47463a40ca59dc8346ee36981b96ace5cc9a5e9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/in/ag-conduct-adapter-coupling-ruling.md",
+        "sha256": "3d9035a5b0870013b2428aa7717ae541163c05f2b98b86e55964cbb51fec87fd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-770c19/in/ag-conduct-adapter-coupling.json",
+        "sha256": "e4a38a71d8335c6e19c1b3c39f4308e93c81ee934456c65b0edb81b5b51b675c"
+      }
+    ],
+    "sha256": "a97a150dc8efcff9acb3111c6baa1f06f816048a95509b3286f0ec6af1cedd35",
+    "bytes": 3265
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:48:03Z",
+      "ended": "2026-09-06T14:08:02Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "5bea99f1fe7b4270ad779e5798ce3544fd2b5817",
+    "changed_paths": [
+      "ops/devlane/harness/tests/adapter_test_support.py",
+      "ops/devlane/harness/tests/test_adapter_argv.py",
+      "ops/devlane/harness/tests/test_output_capability.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/harness-capabilities.md",
+          "claim": "Adapter and C2 worker-encoding candidates remain PROPOSED/under review. These tests were not frozen and must be rechecked after contract review settles.",
+          "reproduce": "sed -n '1,15p;77,95p;366,411p' ops/conductor/harness-capabilities.md; git log -1 --format=%H -- ops/devlane/harness/tests/test_adapter_argv.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_output_capability.py:FaultyControlsAreDiscriminated.test_independent_observation_of_a_forbidden_write_is_held_apart",
+          "claim": "A planted forbidden source write is retained as an independent observation file. compile_launch still succeeds when the held verification digest matches; launch-side grading of that observation is not a compile duty.",
+          "reproduce": "python3 -B -m unittest ops.devlane.harness.tests.test_output_capability.FaultyControlsAreDiscriminated.test_independent_observation_of_a_forbidden_write_is_held_apart"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:LaunchResumeBinding.test_ordinary_cli_resume_equals_independently_compiled_expected_vector",
+          "claim": "Ordinary CLI resume requires the retained session.id to appear in argv and a digest distinct from launch. The compiler-owned flag spelling is not frozen.",
+          "reproduce": "python3 -B -m unittest ops.devlane.harness.tests.test_adapter_argv.LaunchResumeBinding.test_ordinary_cli_resume_equals_independently_compiled_expected_vector"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/adapter_test_support.py:compile_launch",
+          "claim": "In-process wire refusals still have no declared exception type. The wrapper accepts a raised or returned expected-found-needed line.",
+          "reproduce": "rg -n 'WIRE_LINE|undeclared exception' ops/devlane/harness/tests/adapter_test_support.py ops/conductor/harness-capabilities.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:SafeArgvGrammarNegative.test_a_token_longer_than_two_hundred_fifty_six_bytes_refuses",
+          "claim": "The 257-byte token is undeclared vocabulary as well as over-length. Index 0 is correct either way; a closed grammar cannot declare a 257-byte name under the token bound. 64/65 and 8192/8193 cases stay single-defect.",
+          "reproduce": "python3 -B -m unittest ops.devlane.harness.tests.test_adapter_argv.SafeArgvGrammarNegative.test_a_token_longer_than_two_hundred_fifty_six_bytes_refuses"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:LaunchResumeBinding.test_relay_resume_keeps_launch_argv_and_uses_thread_id",
+          "claim": "The relay resume case uses a synthetic empty-grammar fixture and fixture processes. It is not live relay evidence and does not activate a catalogue.",
+          "reproduce": "python3 -B -m unittest ops.devlane.harness.tests.test_adapter_argv.LaunchResumeBinding.test_relay_resume_keeps_launch_argv_and_uses_thread_id"
+        }
+      ],
+      "artifacts": {
+        "adapter_test_support": "ops/devlane/harness/tests/adapter_test_support.py",
+        "test_adapter_argv": "ops/devlane/harness/tests/test_adapter_argv.py",
+        "test_output_capability": "ops/devlane/harness/tests/test_output_capability.py",
+        "patch": "out/adapter-tests.patch",
+        "hashes": "out/file-hashes.txt",
+        "argv_red": "out/red-adapter-argv-HEAD.txt",
+        "output_red": "out/red-output-capability-HEAD.txt",
+        "combined_red": "out/red-combined-HEAD.txt"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3013417,
+        "out": 75106,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9c892b4387c24fc53bdd379a0a8ce9142fb3f782",
+        "started": "2026-09-06T13:48:34Z",
+        "ended": "2026-09-06T14:06:58Z"
+      },
+      "note": "Corrected only adapter_test_support.py, test_adapter_argv.py and test_output_capability.py from original Grok d3ea314ba00456ed65751d3f9aa0381e000a58b0 using merged adapter contracts and review 20260906T125857Z-review-claude-10edd9 / ruling. Implementation not read; adapters.py absent (ls). Input sha256 matched the brief: ruling 3d9035a5b0870013b2428aa7717ae541163c05f2b98b86e55964cbb51fec87fd, coupling e4a38a71d8335c6e19c1b3c39f4308e93c81ee934456c65b0edb81b5b51b675c, review eec29c8fd91a50ed8bc686e5f47463a40ca59dc8346ee36981b96ace5cc9a5e9, tests json b7c7d0b64345edc88b7fa00dc55e398dc811f693e8669462b35285065a02726b.\n\nOriginal hashes at d3ea314b reproduced: adapter_test_support.py 7adb1c9b14777f32ea42a8a61d123edf54691693cdad538deea4907ab9bda825, test_adapter_argv.py 977c7d84e7fb3b1cbab3a739fa8aaea725176fe47c4d8b78ee1b03e42c2ba625, test_output_capability.py 2816833c261c43fd83d2e63375534285d1cc94817d74b3824d186410ba348bd5. Grammar sha256 unchanged: c890b02324a81b0a78d0f8664e016b92097bf14fb13f9444120f10de1a2b2698 and empty d52b0691419a699f4d1ab444723926271740acae121864febfa470e3816a17b7.\n\nClosed: role-axis inversion (six valid rebounds with matching evidence; stale conductor witness and conductor job_role refuse separately; uniqueness over six success invariants, no shared refusal marker); independently held evidence (replaced candidate bytes differ from the fixed verification handle; self-consistent relabelled neighbour is not a compile fault); exact transport/insertion/resume custody (closed handle members, measured insertion, retained session identity, independently compiled expected resume vector); worker versus conductor C2 encoding; mandatory source isolation on empty and nonempty outputs; closed five-key result; model containing write plus subprocess spy; full trusted environment equality; 64/65 repeatable tokens and 8192/8193 total bytes as single-defect cases. No multi-defect validation priority.\n\nResealed at 5bea99f1fe7b4270ad779e5798ce3544fd2b5817: adapter_test_support.py 095de81ebc65038f3252212a54ce38cb31c4619e98899533d7e3e876039e3a43, test_adapter_argv.py f718a3d63a9a3f1e2953415d4b33caaaaf855a00c1a6b17f78fedfbaa2df073b, test_output_capability.py 827da6dd167a993e0c9620995beddbac1527003c59e2f012a1a2f52ac341da68. Patch sha256 06ad43843d569d243976235cc9884523180c9455d55a2ea2d8db37b3b7371c95. Commits 5ff0b2ade0cf957bd4e162b9753325a987d61925 then 5bea99f1fe7b4270ad779e5798ce3544fd2b5817.\n\nFocused assertion-red at HEAD, 0 collection errors, 0 errors: python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_adapter_argv.py' \u2192 Ran 40 tests, 64 assertion failures. python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_output_capability.py' \u2192 Ran 26 tests, 26 assertion failures. Combined TestSuite testsRun 66, failures 90, errors 0. ruff check exit 0; test-guard every plant guarded; git diff --check exit 0. Tests not frozen. No full floor."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:08:01.175Z"
+    }
+  },
+  "status": "closed"
+}

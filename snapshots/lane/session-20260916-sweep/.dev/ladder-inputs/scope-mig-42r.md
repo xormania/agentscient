@@ -1,0 +1,1 @@
+Move these modules of ops/devlane/dispatch/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/dispatch/tests/test_agy_dispatch.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.

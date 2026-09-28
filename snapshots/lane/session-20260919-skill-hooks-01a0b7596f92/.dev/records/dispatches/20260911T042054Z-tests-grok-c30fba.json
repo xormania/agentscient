@@ -1,0 +1,168 @@
+{
+  "id": "20260911T042054Z-tests-grok-c30fba",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repair/ld15-regression-20260911",
+  "lineage": {
+    "branch": "repair/ld15-regression-20260911",
+    "base_sha": "061df167f7f5f37d0623088224a3abb3f00558b7"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T04:20:54Z",
+    "closed": "2026-09-11T04:43:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "061df167f7f5f37d0623088224a3abb3f00558b7",
+    "ref_sha": "061df167f7f5f37d0623088224a3abb3f00558b7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-ld15-regression-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5fd27755-02a7-4f37-97ed-a7d958a26e7c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok-stream/sessions/<snapshot-encoded>/5fd27755-02a7-4f37-97ed-a7d958a26e7c/summary.json"
+  },
+  "session": {
+    "id": "5fd27755-02a7-4f37-97ed-a7d958a26e7c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok-stream/sessions/<snapshot-encoded>/5fd27755-02a7-4f37-97ed-a7d958a26e7c/summary.json",
+    "stream_sha256_at_close": "ba8bb93aad5d6079e4d364cf9880339a631bce40b7db49821559b49a52b5ce2b",
+    "spend": {
+      "input": 1903527,
+      "cached": 1779968,
+      "output": 42685,
+      "total": 1946212,
+      "cost_usd_ticks": 2368460400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/home/grok-stream/sessions/<snapshot-encoded>/5fd27755-02a7-4f37-97ed-a7d958a26e7c/summary.json",
+      "messages": 220
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ld15-regression-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Regression tests for LD-15 from a second producer. Read in/brief-ld15-regression-20260911.md WHOLE; the sentence \"The command names the tree\" in ops/conductor/ladder-lever.md is the requirement. Write ops/conductor/tests/test_ladder_command_names_the_tree.py only; do not read the repairer's test_ladder_derive_command.py and do not edit the driver. Prove each case red against a planted driver copy that uses the path verbatim, then green, commit, list the file in artifacts as a tree-relative path. Named command: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_command_names_the_tree.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042054Z-tests-grok-c30fba/in/brief-ld15-regression-20260911.md",
+        "sha256": "9adc9eff2ae62b70ac30b710df361f16b6ec65d1cd85a6274391aaeac27e3307"
+      }
+    ],
+    "sha256": "7f95c5a9984936e0c7b0db7ef1279c7542df853b731b2162f29d4c998a67d0e5",
+    "bytes": 3142,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:20:54Z",
+      "ended": "2026-09-11T04:43:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e4634d60a1054d5e6d56ee065a9fa4918ea6ae62",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_command_names_the_tree.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_ladder_command_names_the_tree.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1946212,
+        "out": 42685,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "061df167f7f5f37d0623088224a3abb3f00558b7",
+        "started": "2026-09-11T04:23:44Z",
+        "ended": "2026-09-11T04:41:50Z"
+      },
+      "note": "Wrote ops/conductor/tests/test_ladder_command_names_the_tree.py from the lever sentence in ops/conductor/ladder-lever.md and in/brief-ld15-regression-20260911.md. Did not open ops/conductor/tools/ladder.py or ops/conductor/tests/test_ladder_derive_command.py; did not edit the driver. Planted a loaded copy of the driver whose derive_command used each artifact path verbatim as python3 -m unittest discover -s <path> (no -p split, no snapshot rewrite, no artifacts stop). Each of the 8 methods run alone against that plant: 8 FAIL, 0 ERROR; every failure was AssertionError on that method's own claim (relative: -s was the file not dir -p file; snapshot-absolute: command kept the absolute directory; absolute-without-snapshot, a .. component, and empty: Stopped not raised; join/ignore: unsplit or extra paths). A second plant using Path.parent/name verbatim (the LD-15 bug) was red on the 3 absolute/.. cases and already green on relative, join, ignore, and empty. Committed e4634d60a1054d5e6d56ee065a9fa4918ea6ae62 on detached HEAD (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Frozen command python3 -m unittest discover -s ops/conductor/tests -p test_ladder_command_names_the_tree.py at that commit: Ran 8 tests, OK. ruff check on the file: All checks passed. Measured against 061df167f7f5f37d0623088224a3abb3f00558b7 then the commit."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T04:43:19.057Z"
+    }
+  },
+  "status": "closed"
+}

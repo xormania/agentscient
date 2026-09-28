@@ -1,0 +1,161 @@
+{
+  "id": "20260906T141233Z-adjudicate-grok-b63332",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conduct-first-start-adjudication-20260906",
+  "lineage": {
+    "branch": "lane/conduct-first-start-adjudication-20260906",
+    "base_sha": "a58ecf7bc9a085f9018d24027f323553fa0d1432"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T14:12:33Z",
+    "closed": "2026-09-06T14:18:40Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a58ecf7bc9a085f9018d24027f323553fa0d1432",
+    "ref_sha": "a58ecf7bc9a085f9018d24027f323553fa0d1432",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "43cce847-b1e5-4e4a-911c-09859fb94c43",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok-stream/sessions/<snapshot-encoded>/43cce847-b1e5-4e4a-911c-09859fb94c43/summary.json"
+  },
+  "session": {
+    "id": "43cce847-b1e5-4e4a-911c-09859fb94c43",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok-stream/sessions/<snapshot-encoded>/43cce847-b1e5-4e4a-911c-09859fb94c43/summary.json",
+    "stream_sha256_at_close": "dc2610a80f1a68eb3df100db79a48b916b3a46facef17d54d34107022e6f85a4",
+    "spend": {
+      "input": 997372,
+      "cached": 909184,
+      "output": 21288,
+      "total": 1018660,
+      "cost_usd_ticks": 1289783200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/home/grok-stream/sessions/<snapshot-encoded>/43cce847-b1e5-4e4a-911c-09859fb94c43/summary.json",
+      "messages": 204
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-first-start-adjudication-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the single original GPT-6 constructibility finding against exact startup snapshot a58ecf7b and the original report only. Determine whether conduct codex dev from an ordinary terminal has a named first host-bootstrap entrypoint, distinguish owner admission from a running-conductor requirement, and rule UPHELD/PARTIAL/REJECTED with measured responsibility boundaries. Preserve the existing canonical executor/store and common APIs. No later fixes/concessions or substantive implementation design beyond the minimal ownership remedy. Write out/RULING.md and return a valid envelope; no source edits, tests, full floor, vendor or live authority. This is a construction ruling, not security certification.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/in/ag-conduct-first-start-check.json",
+        "sha256": "14540216c3864f360f23eb72935877083e1fee8e2c0f5dc443f79535032107be"
+      }
+    ],
+    "sha256": "e267fa4bcd7de5fcf30a969439a4a24af3a35738169ba882c27b261d9b02488e",
+    "bytes": 3025
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:12:33Z",
+      "ended": "2026-09-06T14:18:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a58ecf7bc9a085f9018d24027f323553fa0d1432",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/conductor-start-plan.md:334-365",
+          "claim": "UPHELD. At a58ecf7bc9a085f9018d24027f323553fa0d1432, ordinary `conduct codex dev` has no named first host-bootstrap entrypoint. Owner admission in lane-policy.md:708-725 is a durable decision and does not require a running conductor; trust establishment is not circular. FD 3-8 production is assigned only to the role \"admitted parent\"; ops/bin/conduct is specified only as preserver and is absent. mint_id exists at launch.py:111; bind_launch, prepare_conductor and compile_launch remain declared APIs without definitions. Smallest ownership remedy, no new executor/store: assign host-bootstrap to the conduct frontend under the existing canonical launch owner, in order acquire already-admitted custody, resolve selection/declarations, call mint_id once, derive bind_launch, then supply FD 3-8. Preserve `conduct codex dev` and the existing mint_id, bind_launch, prepare_conductor, compile_launch and launch.py APIs.",
+          "reproduce": "git rev-parse HEAD; sed -n '76,83p;334,367p' ops/conductor/conductor-start-plan.md; sed -n '708,725p' ops/conductor/lane-policy.md; sed -n '957,958p;1064,1072p' ops/devlane/dispatch/CONTRACT.md; python3 -c \"import ast,pathlib; print('conduct_bin', pathlib.Path('ops/bin/conduct').exists()); print('conduct_py', pathlib.Path('ops/conductor/tools/conduct.py').exists()); print('lane_policy_py', pathlib.Path('ops/conductor/tools/lane_policy.py').exists()); names={'prepare_conductor','bind_launch','compile_launch','mint_id'}; found={n:[] for n in names};\nfor base in [pathlib.Path('ops/conductor/tools'), pathlib.Path('ops/devlane/dispatch'), pathlib.Path('ops/devlane/harness')]:\n  for p in base.rglob('*.py'):\n    if 'tests' in p.parts: continue\n    t=ast.parse(p.read_text());\n    [found[n].append(f'{p}:{x.lineno}') for x in ast.walk(t) if isinstance(x,ast.FunctionDef) and x.name in names for n in [x.name]];\nprint(found)\"; rg -n 'admitted parent|invoking consumer|host bootstrap|host-bootstrap|FD 3|ordinary terminal|ordinary shell' ops --glob '*.md' --glob '!**/tests/**' --glob '!**/archive/**'"
+        }
+      ],
+      "artifacts": {
+        "ruling": "/home/scientdb/.local/state/agentscient/dispatch/20260906T141233Z-adjudicate-grok-b63332/out/RULING.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1018660,
+        "out": 21288,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a58ecf7bc9a085f9018d24027f323553fa0d1432",
+        "started": "2026-09-06T14:15:45Z",
+        "ended": "2026-09-06T14:18:13Z"
+      },
+      "note": "Single original GPT-6 P2 constructibility finding UPHELD against snapshot a58ecf7b and that report only. Ordinary-shell host-bootstrap is unassigned; owner admission is not a running-conductor requirement. Minimal remedy is ownership assignment on the existing conduct frontend and canonical launch APIs. Ruling at artifacts.ruling. No source edits, tests, later fixes, vendor or live authority."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:18:39.738Z"
+    }
+  },
+  "status": "closed"
+}

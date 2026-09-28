@@ -1,0 +1,161 @@
+{
+  "id": "20260904T132832Z-tests-grok-2707e5",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/fixture-fix-2",
+  "lineage": {
+    "branch": "lane/fixture-fix-2",
+    "base_sha": "2bad238b44472b52e176afa6987aac39357e2213"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:28:32Z",
+    "closed": "2026-09-04T13:43:40Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2bad238b44472b52e176afa6987aac39357e2213",
+    "ref_sha": "2bad238b44472b52e176afa6987aac39357e2213",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b8ccb368-1026-435e-94e2-e39a6089313e",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json"
+  },
+  "session": {
+    "id": "b8ccb368-1026-435e-94e2-e39a6089313e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json",
+    "stream_sha256_at_close": "39e67d803912a2045ea6a6db8963588bf84479fa67889b853d2a4852bcef4776",
+    "spend": {
+      "input": 5963967,
+      "cached": 5506816,
+      "output": 52542,
+      "total": 6016509,
+      "cost_usd_ticks": 6771035400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json",
+      "messages": 434
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR.\nD-LADDER-1 (register, standing ratified, `ops/conductor/decisions.seed.json`, decided_by owner 2026-09-04): an implement run covers at most one S bucket and an M slice is implemented in two runs the plan names; the security and adversarial audits run once per batch on the merged tree, never per slice, with one fix round and the security re-audit only; the skeptic runs once on the first tests and never on the fixed tests.\nBucket sizes (owner, 2026-09-04): S = 1\u20133 files, one implement run under 10 minutes; M = two named S buckets (run A, run B), each landed and green alone; L = split.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/in/PLAN-fixture-fix2-fixture-lever-reaudit.md",
+        "sha256": "2de4c0162c60caeaaa1e267ab06d2666bafaf27fa5a04e9836eab545433eb2f4"
+      }
+    ],
+    "sha256": "6eef5ee65c82dee4ef8ae92a46cb60521a58cc9d6b65579d7445ea00a9e02e0c",
+    "bytes": 3365
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:28:32Z",
+      "ended": "2026-09-04T13:43:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "731c940b50abc3d85831266aaeeea1092b5af1ff",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_isolation.py",
+      "ops/devlane/fixtures/tests/test_fixture_grade.py",
+      "ops/devlane/fixtures/tests/test_fixture_lever.py",
+      "ops/devlane/fixtures/tests/test_python_service_app.py",
+      "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+      "ops/devlane/fixtures/tests/test_symfony_app_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "out/TESTS.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6016509,
+        "out": 52542,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2bad238b44472b52e176afa6987aac39357e2213",
+        "started": "2026-09-04T13:30:02Z",
+        "ended": "2026-09-04T13:43:26Z"
+      },
+      "note": "Six test files, six commits, HEAD 731c940. Each file was run and failed on its intended assertion before commit. Did not open ops/bin/fixture.sh or ops/devlane/dispatch/launch.py. Onboard counted 3 absences in the isolated grok home (decisions.db, handwork.db, dispatch dir)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:43:40.078Z"
+    }
+  },
+  "status": "closed"
+}

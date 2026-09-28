@@ -1,0 +1,216 @@
+{
+  "id": "20260911T042439Z-check-tests-codex-dd3c18",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/gate-launcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-launcher-20260911",
+    "base_sha": "f500c8c9798a513696cd78e99e95654ad615e1b8"
+  },
+  "follows": [
+    "20260911T040533Z-tests-grok-294c5d"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T04:24:40Z",
+    "closed": "2026-09-11T04:33:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f500c8c9798a513696cd78e99e95654ad615e1b8",
+    "ref_sha": "f500c8c9798a513696cd78e99e95654ad615e1b8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-24-40-01a08eb5-e64b-7032-8a03-ad5fc16a24fb.jsonl"
+  },
+  "session": {
+    "id": "01a08eb5-e64b-7032-8a03-ad5fc16a24fb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-24-40-01a08eb5-e64b-7032-8a03-ad5fc16a24fb.jsonl",
+    "stream_sha256_at_close": "cfc0174fc6c32f6d4c5ba8fe6e447c91c6a9ed716036a5de72b5efce61b7f4da",
+    "spend": {
+      "input": 1261262,
+      "cached": 1174912,
+      "output": 21596,
+      "total": 1282858,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-24-40-01a08eb5-e64b-7032-8a03-ad5fc16a24fb.jsonl",
+      "messages": 209
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/in/plan-launcher-gate.md",
+        "sha256": "3f7502a2eda6ddb400552b5edddd578bf3e1bca13108bb034472a1bdc84c58b6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/in/20260911T040533Z-tests-grok-294c5d.json",
+        "sha256": "0b4c6d220a696a5b11880355d9deb1b185157305141b6a88d1b80c51df63163c"
+      }
+    ],
+    "sha256": "cc73f7b896204bee0e89cf96267d568fad7ed781df9d24937c9b411c1fcbc341",
+    "bytes": 4201,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:24:40Z",
+      "ended": "2026-09-11T04:33:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f500c8c9798a513696cd78e99e95654ad615e1b8",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 4,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::FiveFoundTexts.test_first_failure_in_answers_order_is_the_open_key / AcceptRecordsAnswers.test_satisfying_row_records_answers_and_reuses_the_gate_stamp",
+          "claim": "Contract items 2, 3, and 8: a launcher that checks and records only answers[0] survives because the sole two-key case refuses on its first key and the sole accepted case has one key.",
+          "reproduce": "rg -n -C 12 'test_first_failure_in_answers_order|test_satisfying_row_records_answers|--answers\", second|len\\(rows\\)' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::CorrectionShape.test_out_input_under_a_review_job_is_a_correction",
+          "claim": "Contract item 1: the out/-input test covers only adversarial-review, so an implementation recognizing that input shape for only one of the five review jobs survives.",
+          "reproduce": "rg -n -C 10 'REVIEW_JOBS|test_every_review_job_follow|test_out_input_under_a_review_job' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::FiveFoundTexts.test_disposed_without_a_contract_citation",
+          "claim": "Contract item 4: a launcher that accepts any evidence containing 'contract item' without validating its number or scope path survives; the path-varying helper is unused.",
+          "reproduce": "rg -n 'evidence_for|VALID_EVIDENCE|wrong|outside|item 11|scope.*other|citation' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::NoOverride.test_override_correction_is_refused_as_override",
+          "claim": "Contract item 6: the test supplies an unsupported override rejected before the gate, so an implementation that bypasses the gate for the supported stale-base override survives.",
+          "reproduce": "sed -n '699,725p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::AcceptRecordsAnswers.test_satisfying_row_records_answers_and_reuses_the_gate_stamp",
+          "claim": "Contract item 8: the fixture has no reviewer citation and asserts only the disposition citation, so dropping the finding's cited item or a citation disagreement from the audit record survives.",
+          "reproduce": "rg -n 'claim-|VALID_EVIDENCE|row\\[\"citation\"\\]|finding.*citation' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_gate.py::_CorrectionLaunch.assert_needed_disposition",
+          "claim": "Contract item 3: the helper checks only the first six command tokens and permits extras, so a printed disposition command containing a failing extra argument survives.",
+          "reproduce": "sed -n '326,350p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1282858,
+        "out": 21596,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f500c8c9798a513696cd78e99e95654ad615e1b8",
+        "started": null,
+        "ended": "2026-09-11T04:30:40Z"
+      },
+      "note": "Review only. All named inputs were read whole; implementation and session store were not read. The plant guard passed, and both frozen test commands failed on their intended assertions at the stamped ref."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T04:33:08.380Z"
+    }
+  },
+  "status": "closed"
+}

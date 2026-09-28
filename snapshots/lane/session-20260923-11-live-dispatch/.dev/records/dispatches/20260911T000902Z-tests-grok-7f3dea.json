@@ -1,0 +1,175 @@
+{
+  "id": "20260911T000902Z-tests-grok-7f3dea",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/scope-gate-20260910",
+  "lineage": {
+    "branch": "lane/scope-gate-20260910",
+    "base_sha": "16a1686137cbae345d259b64b5317d1bc89f38cc"
+  },
+  "follows": [
+    "20260910T234542Z-review-grok-9e3b5d"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T00:09:03Z",
+    "closed": "2026-09-11T00:20:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "16a1686137cbae345d259b64b5317d1bc89f38cc",
+    "ref_sha": "16a1686137cbae345d259b64b5317d1bc89f38cc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b02171f7-5005-4059-bda1-8af1ad759db5",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok-stream/sessions/<snapshot-encoded>/b02171f7-5005-4059-bda1-8af1ad759db5/summary.json"
+  },
+  "session": {
+    "id": "b02171f7-5005-4059-bda1-8af1ad759db5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok-stream/sessions/<snapshot-encoded>/b02171f7-5005-4059-bda1-8af1ad759db5/summary.json",
+    "stream_sha256_at_close": "1fd2e728573fddb9690ecc360656305b51cb12939ae97837ad474fcd02bdeb7c",
+    "spend": {
+      "input": 2022397,
+      "cached": 1780864,
+      "output": 38590,
+      "total": 2060987,
+      "cost_usd_ticks": 2728564600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/home/grok-stream/sessions/<snapshot-encoded>/b02171f7-5005-4059-bda1-8af1ad759db5/summary.json",
+      "messages": 215
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/in/plan-gate-contracts.md",
+        "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/in/security-envelope.md",
+        "sha256": "bf74152364cee50e80e4eaa99e8ff26e57e86e397f128c9825674ec66cbfa6f7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T000902Z-tests-grok-7f3dea/in/adversarial-envelope.md",
+        "sha256": "7f29e11ad35397be673e5f76379d6a75475d2fa7399c0f1b2350a43a3996d0ef"
+      }
+    ],
+    "sha256": "09a38fdb4dc717fafc170816c634c4f16315d22ebf5ea2f3eb94abd19dda1aab",
+    "bytes": 3305
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T00:09:03Z",
+      "ended": "2026-09-11T00:20:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a3c4e3f4960e00363f9615b5d32e1988d2470132",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_correction_contract.py": "ops/devlane/dispatch/tests/test_launch_correction_contract.py",
+        "test_ladder_lever_correction_contract.py": "ops/conductor/tests/test_ladder_lever_correction_contract.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2060987,
+        "out": 38590,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "16a1686137cbae345d259b64b5317d1bc89f38cc",
+        "started": "2026-09-11T00:09:03Z",
+        "ended": "2026-09-11T00:20:16Z"
+      },
+      "note": "Fix-tests after the slice-1 audits. Rejected two wrong frozen assertions in test_launch_correction_contract.py and added no cases. Item 4 grammar is now `[^^\\s;,:]+` so `contract item N of <scope path>: <why>` names the scope file, not a trailing colon; item 3 needed command requires a single-quoted key. Combined suite at a3c4e3f4960e00363f9615b5d32e1988d2470132: python3 -m unittest ops.devlane.dispatch.tests.test_launch_correction_contract ops.conductor.tests.test_ladder_lever_correction_contract \u2014 23 tests, 2 assertion failures, 0 errors. Ladder pins unchanged (10 ok). Not answered here, as new cases or later-slice/store work: 20260910T233738Z-review-codex-8f5dd0#2 (any file as citation target), #3 (adjudicate/sweep import; findings schema/export is a boundary), #5 (same-second disposed_at), 20260910T234542Z-review-grok-9e3b5d#2 (P3 item 7). Implementation unread. Commit a3c4e3f4960e00363f9615b5d32e1988d2470132."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T00:20:30.135Z"
+    }
+  },
+  "status": "closed"
+}

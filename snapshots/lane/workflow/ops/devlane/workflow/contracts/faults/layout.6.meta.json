@@ -1,0 +1,10 @@
+{
+  "contract": "layout",
+  "fault": "layout.6.json",
+  "from": "obs/layout.json",
+  "change": "there is no chains/ directory",
+  "violates": "PLAN.md §8 line 475 (with D1 lines 538-539, §8 lines 455-462)",
+  "quote": "\"  chains/<wo>.jsonl    # tracked: event chains, payload bytes verbatim\"",
+  "reject_path": "facts\\.dirs\\b|chains",
+  "implied": false
+}

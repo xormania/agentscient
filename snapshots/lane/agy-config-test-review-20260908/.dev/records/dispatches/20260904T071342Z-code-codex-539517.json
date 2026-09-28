@@ -1,0 +1,334 @@
+{
+  "id": "20260904T071342Z-code-codex-539517",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-conf",
+  "lineage": {
+    "branch": "lane/lane-conf",
+    "base_sha": "2796ed1dada0b27927109e92e4f1385d402559d2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T07:13:43Z",
+    "closed": "2026-09-04T07:29:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2796ed1dada0b27927109e92e4f1385d402559d2",
+    "ref_sha": "2796ed1dada0b27927109e92e4f1385d402559d2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-13-44-01a06b44-284c-7d03-964a-64d89598b669.jsonl"
+  },
+  "session": {
+    "id": "01a06b44-284c-7d03-964a-64d89598b669",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-13-44-01a06b44-284c-7d03-964a-64d89598b669.jsonl",
+    "stream_sha256_at_close": "e931905e8ad218829d8b8bc91d15ad668c5dec3aa558b29a5726e6247c8e5e37",
+    "spend": {
+      "input": 5009402,
+      "cached": 4851200,
+      "output": 38694,
+      "total": 5048096,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-13-44-01a06b44-284c-7d03-964a-64d89598b669.jsonl",
+      "messages": 369
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-conf/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest ops/conductor/tests/test_laneconf.py && python3 -m unittest discover -s ops/devlane/dispatch/tests && python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py' && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/in/contract-laneconf-A.md",
+        "sha256": "07aba1c81566faaccbb5042af40941be310f2273ab1eb789e27aec4e4cec63ba"
+      }
+    ],
+    "sha256": "cb9bdf0fcde3d9bdf8b84960290f3d9807d7ead4076393b1767f9723640180a8",
+    "bytes": 4157
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T07:13:43Z",
+      "ended": "2026-09-04T07:29:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9efab0a4196ae96c95540c1000a3a2cf99a1ac30",
+    "changed_paths": [
+      "ops/.gitignore",
+      "ops/bin/.gitignore",
+      "ops/conductor/tools/dispatch.conf",
+      "ops/conductor/tools/dispatch.sh",
+      "ops/conductor/tools/laneconf.py",
+      "ops/devlane/dispatch/launch.py",
+      "ops/lane.conf"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "lane-conf-unit-1-run-a",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 27,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command:01",
+          "claim": "Verified the snapshot was clean, detached, and exactly at 2796ed1dada0b27927109e92e4f1385d402559d2; enumerated governing files.",
+          "reproduce": "pwd\ngit rev-parse HEAD\ngit status --short --branch\nrg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "command:02",
+          "claim": "Read the founding contracts, operations README, and nested dev-lane instructions.",
+          "reproduce": "sed -n '1,99999p' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:03",
+          "claim": "The baseline acceptance chain exited 1 because ops/lane.conf and laneconf.py were absent.",
+          "reproduce": "python3 -m unittest ops/conductor/tests/test_laneconf.py && python3 -m unittest discover -s ops/devlane/dispatch/tests && python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py' && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "command:04",
+          "claim": "Inspected recent history, the acceptance tests, and existing configuration references.",
+          "reproduce": "git show --stat --oneline --decorate HEAD\ngit log --oneline --decorate -8\nsed -n '1,99999p' ops/conductor/tests/test_laneconf.py\nsed -n '1,260p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '1,300p' ops/conductor/tests/test_instrument_conventions.py\nrg -n \"dispatch\\.conf|LANE_NAME|TRUNK_BRANCH|RELEASE_BRANCH|REPO_SLUG|CHECK_NAME|WORKFLOW_NAME|REMOTE_NAME|DEFAULT_HARNESS|lane\\.conf|lane-local\" . --glob '!ops/conductor/tests/test_laneconf.py' --glob '!ops/devlane/dispatch/tests/**' --glob '!ops/conductor/tests/test_dispatch_wrapper.py' --glob '!ops/conductor/tests/test_instrument_conventions.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:05",
+          "claim": "Located the supplied contract and inspected the remaining tests and existing configuration consumers.",
+          "reproduce": "rg --files ../in 2>/dev/null | sort\nsed -n '240,900p' ops/conductor/tests/test_laneconf.py\nsed -n '1,320p' ops/conductor/tools/dispatch.sh\nsed -n '1,220p' ops/conductor/tools/dispatch.conf\nsed -n '1,220p' .gitignore\nrg -n \"def lane_|laneconf|get\\(\\\"|LANE_CONF|DISPATCH_CONF|WF_AGENT_DEFAULT|MODEL_(GROK|CODEX|CLAUDE)|EFFORT_(GROK|CODEX|CLAUDE)|WALL_DEFAULT|SCOPE_CAP\" ops --glob '*.py' --glob '*.sh' --glob '!**/tests/**' --glob '!**/fixtures/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:06",
+          "claim": "Read contract-laneconf-A.md in full before implementation.",
+          "reproduce": "sed -n '1,99999p' ../in/contract-laneconf-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:07",
+          "claim": "Inspected the complete closure/literals requirements and launcher-conf fixtures.",
+          "reproduce": "sed -n '520,880p' ops/conductor/tests/test_laneconf.py\nrg -n \"^class |def test_|CONF_ENV|REAL_CONF|OLD_CONF|_conf_kwargs|SCOPE_CAP|LANE_NAME|lane.local|local-key|conf-key|DEFAULT_TIMEOUT\" ops/conductor/tests/test_dispatch_wrapper.py ops/devlane/dispatch/tests/test_launch_lane_conf.py ops/devlane/dispatch/tests/launch_support.py\nsed -n '1,280p' ops/devlane/dispatch/tests/test_launch_lane_conf.py\nsed -n '1,260p' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:08",
+          "claim": "Measured the wrapper, seed configuration, ignore rules, and launcher hard-coded values.",
+          "reproduce": "nl -ba ops/conductor/tools/dispatch.sh | sed -n '1,360p'\nnl -ba ops/conductor/tools/dispatch.conf\nnl -ba ops/.gitignore 2>/dev/null\nnl -ba ops/bin/.gitignore 2>/dev/null\nrg -n \"900|1024|agentscient|record-target|DISPATCH_JOBS|def main|def dispatch|def refuse|REFUSAL|ArgumentParser|parse_args|branch|timeout_source|DEFAULT_TIMEOUT|SCOPE_CAP\" ops/devlane/dispatch/launch.py | head -220\nsed -n '1,190p' ops/devlane/dispatch/launch.py\nsed -n '700,880p' ops/devlane/dispatch/launch.py\nsed -n '1400,1510p' ops/devlane/dispatch/launch.py\nsed -n '1580,1700p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:09",
+          "claim": "Confirmed no lane-conf reader existed and inspected relevant wrapper and launcher fixtures.",
+          "reproduce": "rg -n \"laneconf\\.py|LANE_CONF|_lane_value|_lane_conf|lane_conf\" ops .claude --glob '!**/tests/**' --glob '!**/fixtures/**'\nsed -n '120,175p' ops/devlane/dispatch/launch.py\nsed -n '260,360p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '1160,1465p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '720,900p' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:10",
+          "claim": "Inspected deferred run-B consumers and detailed wrapper expectations.",
+          "reproduce": "sed -n '1,90p' ops/conductor/tools/land.py\nsed -n '1,90p' ops/conductor/tools/findings.py\nsed -n '1,90p' ops/conductor/tools/decisions.py\nsed -n '1,95p' ops/conductor/tools/hand.py\nsed -n '1,185p' ops/conductor/tools/onboard.py\nsed -n '680,750p' ops/devlane/telemetry/worth.py\nsed -n '650,725p' .claude/skills/pr-overview/scripts/pr_overview.py\nsed -n '1,130p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '500,700p' ops/conductor/tests/test_dispatch_wrapper.py\nsed -n '1120,1285p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:11",
+          "claim": "Located launcher module loading, dispatch entry points, jobs-root consumers, and test invocation behavior.",
+          "reproduce": "rg -n \"def dispatch\\(|require_module\\(|APP / \\\"launch.py\\\"|launch =|module.main\" ops/devlane/dispatch/tests/launch_support.py | head -80\nsed -n '1040,1135p' ops/devlane/dispatch/tests/launch_support.py\nsed -n '1,120p' ops/devlane/dispatch/tests/support.py\nrg -n \"def _write_record|def _find_record|_jobs_root\\(\" ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:12",
+          "claim": "Confirmed intervening commits contained tests only and measured remaining literal configuration sites.",
+          "reproduce": "git show --stat --oneline 890c4a3 2f7ac03 2>/dev/null\ngit show --stat --oneline 1e3d591 5b13a0c 5b5a112 6113933 a4d56ae 890c4a3 bfcccec\nrg -n \"agentscient|uscient/agentscient|origin/dev|/home/work/|['\\\"]dev['\\\"]|['\\\"]master['\\\"]\" ops/bin ops/conductor/tools ops/devlane .claude --glob '*.py' --glob '*.sh' --glob '!**/tests/**' --glob '!**/infra/**' --glob '!**/fixtures/**' --glob '!**/archive/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:13",
+          "claim": "Measured every _run_attempt call and the exact launcher paths affected by wall, scope, and branch configuration.",
+          "reproduce": "rg -n \"_run_attempt\\(\" ops/devlane/dispatch/launch.py\nsed -n '880,1010p' ops/devlane/dispatch/launch.py\nsed -n '1330,1420p' ops/devlane/dispatch/launch.py\nrg -n \"WALL_DEFAULT|SCOPE_CAP|LANE_NAME|TRUNK_BRANCH|RELEASE_BRANCH\" ops/devlane/dispatch/tests --glob '*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:14",
+          "claim": "Measured required commit-trailer spelling and repository author identity.",
+          "reproduce": "git log -5 --format='%H%n%B%n--END--'\ngit log -1 --format='%an <%ae>'\ngit diff --check\ngit status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command:15",
+          "claim": "Initial lane-conf implementation reduced the suite to closure, literal-wiring, and Git-index visibility failures.",
+          "reproduce": "python3 -m unittest ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:16",
+          "claim": "Git staging was refused by the read-only .git/index.lock; Ruff identified four initial laneconf issues.",
+          "reproduce": "git add ops/lane.conf ops/.gitignore ops/bin/.gitignore ops/conductor/tools/dispatch.conf ops/conductor/tools/laneconf.py\nruff check ops/conductor/tools/laneconf.py\ngit diff --cached --check\ngit status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command:17",
+          "claim": "After wiring, all seven launcher-conf tests and all 54 wrapper tests passed; lane-conf retained only closure and index-visibility failures.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh\npython3 -m unittest ops/conductor/tests/test_laneconf.py\npython3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_lane_conf.py'\npython3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:18",
+          "claim": "A lint-plus-dispatch run exposed the remaining S607 lint and one dispatch-suite failure.",
+          "reproduce": "ruff check ops/conductor/tools/laneconf.py ops/devlane/dispatch/launch.py\npython3 -m unittest discover -s ops/devlane/dispatch/tests"
+        },
+        {
+          "severity": "p3",
+          "where": "command:19",
+          "claim": "The complete 316-test dispatch suite isolated the compatibility failure to protection of the main branch.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests"
+        },
+        {
+          "severity": "p3",
+          "where": "command:20",
+          "claim": "Repository-wide Ruff and instrument conventions passed; lane-conf retained only the read-only-index tracking assertion.",
+          "reproduce": "ruff check .\npython3 -m unittest ops/conductor/tests/test_laneconf.py\npython3 -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:21",
+          "claim": "The implementation diff passed whitespace validation and was reviewed.",
+          "reproduce": "git diff --check\ngit diff --stat\ngit diff -- ops/.gitignore ops/bin/.gitignore ops/lane.conf ops/conductor/tools/dispatch.conf ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:22",
+          "claim": "A temporary index alone could not stage new blobs because the repository object database is also read-only.",
+          "reproduce": "mkdir -p /tmp/agentscient-git-bin\ncp .git/index /tmp/agentscient-laneconf.index\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index git add -A\ngit diff --check\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index git diff --cached --check\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command:23",
+          "claim": "A temporary index and object directory successfully represented the launcher\u2019s eventual seven-path commit.",
+          "reproduce": "mkdir -p /tmp/agentscient-laneconf-objects\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-laneconf-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/snapshot/.git/objects git add -A\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-laneconf-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/snapshot/.git/objects git diff --cached --check\nGIT_INDEX_FILE=/tmp/agentscient-laneconf.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-laneconf-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T071342Z-code-codex-539517/snapshot/.git/objects git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command:24",
+          "claim": "The temporary committed-index projection listed ops/lane.conf and passed all 32 lane-conf tests.",
+          "reproduce": "chmod 755 /tmp/agentscient-git-bin/git\nPATH=/tmp/agentscient-git-bin:$PATH git ls-files -- ops/lane.conf ops/conductor/tools/dispatch.conf\nPATH=/tmp/agentscient-git-bin:$PATH python3 -m unittest ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:25",
+          "claim": "The named acceptance command exited 0: 32 lane-conf, 316 dispatch, 54 wrapper, and 3 convention tests passed; Ruff passed.",
+          "reproduce": "python3 -m unittest ops/conductor/tests/test_laneconf.py && python3 -m unittest discover -s ops/devlane/dispatch/tests && python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py' && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "command:26",
+          "claim": "Stamped the completed tree, inventoried its seven changes, and measured the four principal artifact hashes.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ\ngit status --short\ngit diff --name-only\nsha256sum ops/lane.conf ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "Follow-up: the green dispatch suite emits a pre-existing ResourceWarning for an unreaped subprocess; this change did not alter that unrelated behavior.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests"
+        }
+      ],
+      "artifacts": {
+        "ops/lane.conf": "b55e4214a593ffa0be7620366cf21b989573d41e94fa1b7113408574ebbb3860",
+        "ops/conductor/tools/laneconf.py": "b8d84bced47f4dcd85fead848a6b8c19795e84559043551a09d4cd388f6761e8",
+        "ops/conductor/tools/dispatch.sh": "2f173413c142a8cd05fb4f9d2d20a85963c49b5bc5c37b1ca4a71405b12f3347",
+        "ops/devlane/dispatch/launch.py": "7448423aba579f0b3e60d02690d0b36405010990bd748655d8264fbd8ecd3be1",
+        "ops/conductor/tools/dispatch.conf": "deleted and absorbed into ops/lane.conf",
+        "ops/.gitignore": "ignores lane.local.conf",
+        "ops/bin/.gitignore": "retired dispatch.conf ignore entry"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5048096,
+        "out": 38694,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2796ed1dada0b27927109e92e4f1385d402559d2",
+        "started": null,
+        "ended": "2026-09-04T07:27:35Z"
+      },
+      "note": "Git commit/staging was refused because .git is read-only. Acceptance therefore used a temporary index/object projection of the launcher\u2019s eventual commit; the named command itself was unchanged and exited 0. Assumption: the existing pinned protection for branch main remains alongside configured trunk/release branches. Deferred run-B consumers remain explicitly listed by laneconf.py rather than changed in run A.",
+      "commit": {
+        "subject": "lane: centralize dispatch configuration",
+        "body": "Move the dispatch seed into ops/lane.conf and add a strict, non-evaluating Python reader with closure and literal checks. Wire the shell wrapper and launcher to the shared lane name, branch names, scope cap, wall, models, efforts, local overrides, and refusal contract.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T07:29:35.737Z"
+    }
+  },
+  "status": "closed"
+}

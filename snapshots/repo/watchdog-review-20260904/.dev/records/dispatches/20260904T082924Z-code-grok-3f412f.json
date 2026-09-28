@@ -1,0 +1,158 @@
+{
+  "id": "20260904T082924Z-code-grok-3f412f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-2",
+  "lineage": {
+    "branch": "lane/fixture-apps-2",
+    "base_sha": "4981d7a9cf16273155682437338051a6ca305571"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:29:24Z",
+    "closed": "2026-09-04T08:50:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4981d7a9cf16273155682437338051a6ca305571",
+    "ref_sha": "4981d7a9cf16273155682437338051a6ca305571",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "01d7444d-1d56-4a4b-904b-c4bb9d2671ec",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok-stream/sessions/<snapshot-encoded>/01d7444d-1d56-4a4b-904b-c4bb9d2671ec/summary.json"
+  },
+  "session": {
+    "id": "01d7444d-1d56-4a4b-904b-c4bb9d2671ec",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok-stream/sessions/<snapshot-encoded>/01d7444d-1d56-4a4b-904b-c4bb9d2671ec/summary.json",
+    "stream_sha256_at_close": "be4dc6649fafe6bc17ff182deaec8bca04dcc672a03b1fe5a393d33abc4707cd",
+    "spend": {
+      "input": 3239054,
+      "cached": 2936320,
+      "output": 72208,
+      "total": 3311262,
+      "cost_usd_ticks": 4261689200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/home/grok-stream/sessions/<snapshot-encoded>/01d7444d-1d56-4a4b-904b-c4bb9d2671ec/summary.json",
+      "messages": 280
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 2 (apps/python-tooling), the fix round on the tests: the Codex skeptic judged ops/devlane/fixtures/tests/test_python_tooling_app.py at this ref against the contract and found 1 P1, 3 P2, 1 P3 (verdict CHANGES); its findings are appended to the input file after the contract. Address every P1 and P2 and the P3 you agree with, saying in the commit which you left and why: each planted fault proved independently by its own probe and constrained to its declared span; clean neighbours proved apart from the manifest that names them; the app's check command actually run, not matched by substring; the make proof copying the lane and running suites.sh and a dry-run dispatch in the scratch; the README carrying the apparatus declaration itself. The test stays red-first at this ref (the app does not exist; do not write it). One commit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082924Z-code-grok-3f412f/in/contract-fixtures-2-fix.md",
+        "sha256": "62a0f7007e3a5005dc13c06c2526b04a3eb474f4a761e38d0a9d4b20df31148e"
+      }
+    ],
+    "sha256": "0efce4931c4833ef19cbc22f9428a94dae88c07198254a9fbd36940b3cbb1acd",
+    "bytes": 3207
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:29:24Z",
+      "ended": "2026-09-04T08:50:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ba94a98578d98a91def5327fca1a94ff6fd068ed",
+    "changed_paths": [
+      "ops/devlane/fixtures/tests/test_python_tooling_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/fixtures/tests/test_python_tooling_app.py",
+        "head": "ba94a98578d98a91def5327fca1a94ff6fd068ed",
+        "red": "out/test-python-tooling-app.red.txt"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3311262,
+        "out": 72208,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4981d7a9cf16273155682437338051a6ca305571",
+        "started": "2026-09-04T08:29:24Z",
+        "ended": "2026-09-04T08:50:47Z"
+      },
+      "note": "Addressed the Codex skeptic's 1 P1, 3 P2, and the P3 (agreed); left none. One commit ba94a98 on lane/fixture-apps-2. Red-first at 4981d7a: python3 -m unittest discover -s ops/devlane/fixtures/tests -p 'test_python_tooling_app.py' \u2192 23 tests, 31 failures, 0 errors, each on its assertion. App not written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T08:50:58.452Z"
+    }
+  },
+  "status": "closed"
+}

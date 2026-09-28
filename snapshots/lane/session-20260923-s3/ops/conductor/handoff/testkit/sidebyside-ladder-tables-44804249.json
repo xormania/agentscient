@@ -1,0 +1,39 @@
+{
+ "clean": {
+  "new": "green",
+  "old": "green"
+ },
+ "commit": "44804249",
+ "mutants": {
+  "M-derive-abs": {
+   "new": "red",
+   "old": "red"
+  },
+  "M-derive-dotdot": {
+   "new": "red",
+   "old": "red"
+  },
+  "M-derive-support": {
+   "new": "red",
+   "old": "red"
+  },
+  "M-resume-options": {
+   "new": "red",
+   "old": "red"
+  },
+  "M-retry-unspent": {
+   "new": "red",
+   "old": "red"
+  },
+  "M-wall-default": {
+   "new": "red",
+   "old": "red"
+  }
+ },
+ "new": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_tables.py",
+ "ok": true,
+ "old": "python3 -m unittest ops.conductor.tests.test_ladder_derive_command ops.conductor.tests.test_ladder_command_names_the_tree ops.conductor.tests.test_ladder_support_modules ops.conductor.tests.test_ladder_wall ops.conductor.tests.test_ladder_wall_from_job_cap ops.conductor.tests.test_ladder_retry ops.conductor.tests.test_ladder_ld19_second_producer",
+ "quiet_in_new": [],
+ "subject": "ops/conductor/tools/ladder.py",
+ "verb": "sidebyside"
+}

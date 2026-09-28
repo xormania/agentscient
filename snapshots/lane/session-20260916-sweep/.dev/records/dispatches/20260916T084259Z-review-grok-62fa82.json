@@ -1,0 +1,239 @@
+{
+  "id": "20260916T084259Z-review-grok-62fa82",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-d",
+  "lineage": {
+    "branch": "lane/session-20260916-d",
+    "base_sha": "e0e0b732679bbb400b9b2dd369da0f306de4558c"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:42:59Z",
+    "closed": "2026-09-16T08:53:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e0e0b732679bbb400b9b2dd369da0f306de4558c",
+    "ref_sha": "e0e0b732679bbb400b9b2dd369da0f306de4558c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b07820a4-0daa-4032-83b9-3e0ac2f30c49",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok-stream/sessions/<snapshot-encoded>/b07820a4-0daa-4032-83b9-3e0ac2f30c49/summary.json"
+  },
+  "session": {
+    "id": "b07820a4-0daa-4032-83b9-3e0ac2f30c49",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok-stream/sessions/<snapshot-encoded>/b07820a4-0daa-4032-83b9-3e0ac2f30c49/summary.json",
+    "stream_sha256_at_close": "f3a3e590475171cb43a449de3119d3759cb7e6a11f071333592c655107262d30",
+    "spend": {
+      "input": 1202404,
+      "cached": 1064704,
+      "output": 35353,
+      "total": 1237757,
+      "cost_usd_ticks": 3467558000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok-stream/sessions/<snapshot-encoded>/b07820a4-0daa-4032-83b9-3e0ac2f30c49/summary.json",
+      "messages": 211
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Fix-round review of PR #242 (lane/session-20260916-d, head e0e0b732), fresh round after the first (records 20260916T075500Z-review-grok-c7a708, 20260916T075518Z-review-codex-c22c2d), whose 11 accepted findings this head answers in fix commit 65967fa8, one Finding/Verified pair per finding: the server renamed to coordination, placement engine none, the seam settled against the core at 05b8aebe on lane/session-20260916-c via the CORE table with reader and writer store handles, refusals on resources/read as JSON-RPC error objects carrying the wire line, an explicit tool-to-verb table.\nCheck each fix against its finding: is any accepted finding only partly fixed; do the 11 new test cases pin the fixed behaviour itself, not just the words used to describe it.\n",
+    "inputs": [],
+    "sha256": "9633b759e6c236eafdaa8043d9c9936f45be97604861c9ac516da4ce2af4807a",
+    "bytes": 10511,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/lane-mcp.json",
+      "sha256": "5b5f7bdd16aaf052da13ef8d3756057e77069d2b3d65fb03270c68b311eb2776",
+      "job_ids": [
+        "20260916T075518Z-review-codex-c22c2d",
+        "20260916T075500Z-review-grok-c7a708"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "5a203a4104a830fa6d308eb5e2d5f49c7a62c1a5d08e96828d550e92570c9a5b"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T08:43:11Z",
+      "ended": "2026-09-16T08:53:22Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "e0e0b732679bbb400b9b2dd369da0f306de4558c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py \u00a7bounded / _send / _dispatch tools/call",
+          "claim": "X#3 is only partly fixed. bounded() caps the verb payload at 16384 bytes; tools/call then serialises that payload twice (content.text and structuredContent), so a 12000-byte payload becomes a 24134-byte JSON-RPC response, and _send itself is still uncapped. The original reproduce still writes 70009 bytes. test_a_payload_over_the_bound_answers_the_unavailable_reading exercises CLI call, not serve. test_every_paged_read_carries_an_explicit_cursor only asserts that tools/list schema contains the key cursor; it never calls a paged tool or checks that a cursor reached the core.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"import sys; sys.path.insert(0,'ops/conductor/tools'); import coordination_mcp as m; m._send({'x':'x'*70000})\" | wc -c"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/coordination-mcp-lever.md \u00a72.4",
+          "claim": "G#5 is only partly fixed. The duplicate 2.3 heading was split and a hermetic session row was added, but Precedence still says that with no binding, mutations refuse class identity and reads that carry no participant-specific content still answer. The new registry row and no-binding-at-all case refuse class session on coord_brief, a read; a mutation with no binding also refuses session, never identity.",
+          "reproduce": "env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID python3 -B ops/conductor/tools/coordination_mcp.py call coord_brief; env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID python3 -B ops/conductor/tools/coordination_mcp.py call coord_submit '{\"assignment\":\"A-1\",\"evidence\":\"abc1234\",\"revision\":\"abc1234\",\"generation\":1}'; sed -n '182,187p' ops/conductor/coordination-mcp-lever.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_coordination_mcp.py \u00a7test_the_store_handle_reaches_the_verb",
+          "claim": "The seam case named for reader and writer store handles does not pin that the handle reaches the verb, nor that a mutation receives writer(). It calls coord_brief only and reads participant.store, which the stub's bound_participant copies from its conn argument; stub verbs ignore conn. writer() is planted and never asserted. A projection that passed reader() to the resolver and a different handle to the verb, or reader() for every tool, would keep this case green.",
+          "reproduce": "rg -n 'store.: .writer|get\\(\\\"store\\\"\\)' ops/conductor/tests/test_coordination_mcp.py; sed -n '195,201p;695,706p' ops/conductor/tests/test_coordination_mcp.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_coordination_mcp.py \u00a7test_the_capability_refusal_says_arguments_come_after",
+          "claim": "The G#4/X#6 case pins the remedy sentence, not the G#4 reproduce. Unauthorized coord_observe with {\"role\":\"lead\"} still refuses class arguments, so the caller still learns the forbidden-argument table. That call is not in the suite; the new case uses no arguments and asserts the substring \"arguments are checked once the capability is held\".",
+          "reproduce": "python3 -B -c \"import json,subprocess,sys,tempfile,pathlib; p=pathlib.Path(tempfile.mkdtemp())/'c.json'; p.write_text(json.dumps({'version':1,'participant':'PT-7','assignment':'A-3','branch':'b','worktree':'/tmp','record':'r','capabilities':['coord_brief','coord_submit'],'issued_at':'t'})); r=subprocess.run([sys.executable,'-B','ops/conductor/tools/coordination_mcp.py','--config',str(p),'call','coord_observe', json.dumps({'role':'lead'})],capture_output=True,text=True); print(r.stderr.strip())\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 1237757,
+        "out": 35353,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e0e0b732679bbb400b9b2dd369da0f306de4558c",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: agentscient-lane lane_brief/lane_jobs/lane_changes/lane_findings/lane_record; graft_repo_map and graft_file_api; testkit.refusal-wire as the CLI-wire oracle; records 20260916T075500Z-review-grok-c7a708 and 20260916T075518Z-review-codex-c22c2d. in/ was empty. Checked all 11 accepted findings against 65967fa8 and the 05b8aebe seam at 40d340b2. Fully pinned: G#1 generation bound (generation-below-the-bound), G#2 resources/read JSON-RPC error object with data class/expected/found/needed, G#3 participant vs bind-gap classes, X#1 CORE table vs bound_participant, X#2 coord_observe generation required, X#4 initialize -32602, C1 server name coordination, C2 engine none. python3 -m unittest discover -s ops/conductor/tests -p 'test_coordination_mcp.py' Ran 31 OK at e0e0b732."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 7,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs",
+        "lane_record"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T084259Z-review-grok-62fa82/home/grok-stream/sessions/<snapshot-encoded>/b07820a4-0daa-4032-83b9-3e0ac2f30c49/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T08:53:20.776Z"
+    }
+  },
+  "status": "closed"
+}

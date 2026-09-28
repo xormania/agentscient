@@ -1,0 +1,254 @@
+{
+  "fresh_installer": {
+    "command": "WF_AGENT='GPT-6 Astra <noreply@openai.com>' python3 ops/devlane/harness/graft.py install --destination /tmp/ag-graft-installer-proof-20260910",
+    "exit": 0
+  },
+  "measured_at": "2026-09-10T05:58:32.304728+00:00",
+  "native_probe": {
+    "at": "2026-09-10T05:54:01Z",
+    "binding": {
+      "cache_sha256": "58bcb439ba8be3b0061f1258f488a9dbe962f4309b49c18bb99c7437a2f4ceb2",
+      "counts": {
+        "edges": 16933,
+        "files": 274,
+        "nodes": 6079
+      },
+      "graph_sha256": "9b871c1517d8666a23c1c34c5def2a7836ea170ecff5a264fa4ebabc69e143a2",
+      "head": "03fdc954aa95a85473723dc6e08d5c2dbd68ab01",
+      "prepared_at": "2026-09-10T05:53:59Z",
+      "schema": "graft-binding/1",
+      "source_sha256": "59aeedbd3c9cf45f5561df636d77e39476999d881bd29a6f6bb3d1306be3725e"
+    },
+    "context": "/tmp/ag-graft-final-native-20260910.context.json",
+    "pin": {
+      "graft": {
+        "lock_sha256": "ac93cbe24908d713e913ed9a8c7d1b08ef33ba34708d08129de2d992d2a8a035",
+        "package": "@nanonets/graft",
+        "revision": "3a85a2f40e283ac0c9b617d9a4bead18d73c3c70",
+        "source": "https://github.com/trailhq/Graft.git",
+        "version": "0.17.0"
+      },
+      "node": {
+        "platform": "linux-x64",
+        "sha256": "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6",
+        "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz",
+        "version": "v24.21.0"
+      },
+      "schema": "graft-pin/1"
+    },
+    "receipt_sha256": "819923df30faa3c48e903cf86b1433b133c3dee52ddcdd9819473b11e76166c9",
+    "root": "/tmp/ag-graft-integration-20260910",
+    "state": "ready"
+  },
+  "native_queries": {
+    "at": "2026-09-10T05:55:06.004704+00:00",
+    "queries": [
+      {
+        "command": [
+          "python3",
+          "ops/devlane/harness/graft.py",
+          "query",
+          "--context",
+          "/tmp/ag-graft-final-native-20260910.context.json",
+          "graft_repo_map",
+          "{\"max_dirs\": 2}"
+        ],
+        "exit": 0,
+        "output_bytes": 1808,
+        "output_sha256": "36795e38b893c9ca53f84a3534080a24f19916f5096650efa9dcf8edb303a10a",
+        "stderr": "",
+        "tool": "graft_repo_map"
+      },
+      {
+        "command": [
+          "python3",
+          "ops/devlane/harness/graft.py",
+          "query",
+          "--context",
+          "/tmp/ag-graft-final-native-20260910.context.json",
+          "graft_find_code",
+          "{\"query\": \"dispatch isolation\", \"limit\": 2}"
+        ],
+        "exit": 0,
+        "output_bytes": 3103,
+        "output_sha256": "1781f22b758f79a47cd518589a6dae6c4f36ac15591573153bd38973c24582b5",
+        "stderr": "",
+        "tool": "graft_find_code"
+      },
+      {
+        "command": [
+          "python3",
+          "ops/devlane/harness/graft.py",
+          "query",
+          "--context",
+          "/tmp/ag-graft-final-native-20260910.context.json",
+          "graft_file_api",
+          "{\"file\": \"ops/devlane/harness/graft.py\"}"
+        ],
+        "exit": 0,
+        "output_bytes": 2216,
+        "output_sha256": "14f69e5cdec2b4653e28d382efaecd19d716b55c10aab120a112243f0709a74d",
+        "stderr": "",
+        "tool": "graft_file_api"
+      },
+      {
+        "command": [
+          "python3",
+          "ops/devlane/harness/graft.py",
+          "query",
+          "--context",
+          "/tmp/ag-graft-final-native-20260910.context.json",
+          "graft_trace_calls",
+          "{\"symbol\": \"_verify_graft\", \"direction\": \"out\", \"depth\": 1}"
+        ],
+        "exit": 0,
+        "output_bytes": 528,
+        "output_sha256": "159b353313bf0162f181aa6cb25a0c2bbb7920eb87b1eab1007c74cbf71a3d1d",
+        "stderr": "",
+        "tool": "graft_trace_calls"
+      },
+      {
+        "command": [
+          "python3",
+          "ops/devlane/harness/graft.py",
+          "query",
+          "--context",
+          "/tmp/ag-graft-final-native-20260910.context.json",
+          "graft_find_all",
+          "{\"pattern\": \"_verify_graft\", \"fixed\": true, \"in\": \"ops/devlane/dispatch\"}"
+        ],
+        "exit": 0,
+        "output_bytes": 816,
+        "output_sha256": "550be5d12b1776c676b11fa88ccf7bfead985337efb96615360b8608034784b7",
+        "stderr": "",
+        "tool": "graft_find_all"
+      }
+    ],
+    "ref": "03fdc954aa95a85473723dc6e08d5c2dbd68ab01"
+  },
+  "native_worker": {
+    "at": {
+      "closed": "2026-09-10T05:48:31Z",
+      "launched": "2026-09-10T05:48:08Z"
+    },
+    "graft": {
+      "descriptor": "context/graft.json",
+      "sha256": "9206182be0bf212c3adf469cf5b4f93e0e1e69e304bb7bad49fae5f503839d75",
+      "state": "ready"
+    },
+    "model": {
+      "effort_argv": [
+        "-c",
+        "model_reasoning_effort=\"low\""
+      ],
+      "effort_requested": "low",
+      "ran": "gpt-5.6-sol",
+      "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T054759Z-review-codex-6083b8/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T01-48-09-01a089db-f871-78e2-af04-7231a43ba095.jsonl",
+      "requested": "gpt-5.6-sol"
+    },
+    "record": "20260910T054759Z-review-codex-6083b8",
+    "result": {
+      "cause": {
+        "at": "2026-09-10T05:48:30.444Z",
+        "reason": "last-event",
+        "type": "event_msg"
+      },
+      "changed_paths": [],
+      "envelope": {
+        "artifacts": {},
+        "counts": {
+          "opinions": 0,
+          "p1": 0,
+          "p2": 0,
+          "p3": 0
+        },
+        "findings": [],
+        "job": "graft-runtime-smoke",
+        "note": "Source ref 33504879c401829f2168a663989040222efb26f5: the single required Graft query exited 0 and returned nonempty navigation text.",
+        "spend": {
+          "harness": "codex",
+          "out": 379,
+          "runs": 1,
+          "total": 36782
+        },
+        "stamp": {
+          "ended": null,
+          "ref": "33504879c401829f2168a663989040222efb26f5",
+          "started": null
+        },
+        "status": "ok",
+        "verdict": "approve"
+      },
+      "head": "33504879c401829f2168a663989040222efb26f5",
+      "residual_paths": []
+    },
+    "source_ref": "33504879c401829f2168a663989040222efb26f5"
+  },
+  "permanent_install": {
+    "directory": "/home/scientdb/.local/share/agentscient/graft/3a85a2f40e28-node24.21.0",
+    "receipt_sha256": "ccb4df808465f3c2aa7225c73036bd63048efacd0dacff32c8359a28a3cbc421"
+  },
+  "process": "Owner directed manual completion on 2026-09-10 after stopping the pipeline. Implementation and documented fixture corrections were completed manually; no new independent approval is claimed.",
+  "schema": "graft-evidence/1",
+  "source_ref": "03fdc954aa95a85473723dc6e08d5c2dbd68ab01",
+  "trunk_ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+  "validation": {
+    "additional_commands": [
+      "ruff check .",
+      "python3 ops/conductor/tools/laneconf.py closure",
+      "python3 ops/conductor/tools/laneconf.py literals",
+      "git diff --check"
+    ],
+    "command": "bash ops/bin/suites.sh",
+    "skipped": 7,
+    "suites": [
+      {
+        "passed": true,
+        "suite": "devlane/dispatch",
+        "tests": 462
+      },
+      {
+        "passed": true,
+        "suite": "devlane/harness",
+        "tests": 109
+      },
+      {
+        "passed": true,
+        "suite": "devlane/task",
+        "tests": 312
+      },
+      {
+        "passed": true,
+        "suite": "devlane/telemetry",
+        "tests": 227
+      },
+      {
+        "passed": true,
+        "suite": "devlane/hooks",
+        "tests": 215
+      },
+      {
+        "passed": true,
+        "suite": "devlane/fixtures",
+        "tests": 221
+      },
+      {
+        "passed": true,
+        "suite": "devlane/workflow",
+        "tests": 48
+      },
+      {
+        "passed": true,
+        "suite": "conductor",
+        "tests": 692
+      },
+      {
+        "passed": true,
+        "suite": "pr-overview",
+        "tests": 8
+      }
+    ],
+    "total_tests": 2294,
+    "worktree": "stationary verification clone"
+  }
+}

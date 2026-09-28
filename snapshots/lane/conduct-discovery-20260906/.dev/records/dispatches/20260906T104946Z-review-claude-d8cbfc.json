@@ -1,0 +1,341 @@
+{
+  "id": "20260906T104946Z-review-claude-d8cbfc",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-discovery-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-20260906",
+    "base_sha": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:49:46Z",
+    "closed": "2026-09-06T10:57:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6",
+    "ref_sha": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "52828d2c-32e9-4620-a433-a64dff18cba9",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/52828d2c-32e9-4620-a433-a64dff18cba9.jsonl"
+  },
+  "session": {
+    "id": "52828d2c-32e9-4620-a433-a64dff18cba9",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/52828d2c-32e9-4620-a433-a64dff18cba9.jsonl",
+    "stream_sha256_at_close": "660db51e99e67fadd59030ecaed6dad17536a1032819829454ddb92133257fb4",
+    "spend": {
+      "input": 52,
+      "cached": 2613661,
+      "output": 36545,
+      "total": 2650258,
+      "source": "result.usage",
+      "messages": 26,
+      "cost_usd": 3.5894665000000003
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the supplied test producer record and the resulting tests against the accepted contract and owner input. Static review plus existing producer execution receipts is sufficient; do not invent successful execution if this read profile cannot run Python. Check complete acceptance-row mapping, behavioral discrimination and meaningful red, hermetic state/custody, no weakened existing tests, public-interface assumptions and conformance to admitted boundaries. Refute findings before reporting them; implementation is absent and must not be demanded as test approval. No source/test/contract changes, host state, network or vendor launch. Return inline REVIEW <=1200 words with exact model/ref, approve/changes, precise remaining findings and whether tests are ready to freeze for an independent GPT-6 implementer.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/in/ag-conduct-discovery-tests-record.json",
+        "sha256": "16ee10a44cf94dd090001d4573713a3f4c3fae7305dd3ebf6ea0a02a1124ce1f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/in/discovery-contract-acceptance-20260906.md",
+        "sha256": "5ed8e06ec45c4647aaad23eb0fa8ba85c91e3fa89f9c5077693ab1dc3c3dc4cd"
+      }
+    ],
+    "sha256": "19c833a7c4dd26894f8e9d24032b44a986d11a6a004bdfbb9d2eb55717989839",
+    "bytes": 1609
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:49:46Z",
+      "ended": "2026-09-06T10:57:56Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 4,
+        "p2": 5,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:99",
+          "claim": "D-A8 asserts `assertIs(home[\"locked\"], False)` for concept `mapping`, whose intended value is `four projections`. discovery-lever.md line 515 states locked is \"null for malformed/unavailable lock or non-package intended values\", and line 519 that \"Only the intended value exactly equal to symfony/workflow names a Composer package in this index\". A conforming implementation must emit null here, so this assertion rejects correct behaviour. The sibling assertion on `workflow-genus` (line 103, empty lock, intended symfony/workflow) is correct at False.",
+          "reproduce": "Static read: discovery-lever.md:511-520 versus test_discovery_v3_startup.py:99. Selector: python3 -B -m unittest discover -s ops/conductor/tests -p test_discovery_v3_startup.py -k test_d_a8_shipped_prod_startup_and_lock_absence"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_discovery_v3_snapshots.py:274",
+          "claim": "D-A47 asserts the contract-definition SHA-256 appears literally in the envelope: `assertIn(revision.encode(), canonical_bytes(first))`, repeated at line 289 for the mutated bytes. The public `Source` shape is closed as `{id,state,reason,fingerprint}` (discovery-lever.md:385-386, \"All shapes below are closed\"), and the definition revision lives only inside hashed observations. Grep of discovery-examples.md shows the only public `revision` fields are Candidate.revision and Work.revision. The value can never appear, so both assertions are unsatisfiable. Line 290 (`contract2[\"fingerprint\"] != contract[\"fingerprint\"]`) already tests the row's real charge correctly.",
+          "reproduce": "Static read: discovery-lever.md:385-386,418-429 and discovery-examples.md (3 `revision` occurrences, all Candidate body/key) versus test_discovery_v3_snapshots.py:274,289"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_discovery_v3_handoffs.py:205",
+          "claim": "D-A16 plants `new-id` as a bound relevant handoff whose bytes are never written to the tree, then asserts unconditionally that some candidate has freshness \"stale\". Per discovery-lever.md:309-310 and 333-335 a bound record absent from a complete scan is a missing-bound-record and \"Missing/unreadable bound handoff evidence ... makes selection unknown\"; line 326-327 then forces \"Incomplete handoff classification gives every returned candidate freshness unknown\". So no candidate can carry freshness stale and `assertTrue(stale, cards)` fails. This is the same fixture shape that test_d_a17 (lines 223-236) asserts yields complete=False with all counts null, so the two tests demand contradictory outcomes from the same contract clause.",
+          "reproduce": "Static read: discovery-lever.md:294-297,309-310,326-335 versus test_discovery_v3_handoffs.py:186-213 compared with test_discovery_v3_handoffs.py:215-245"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:334",
+          "claim": "D-A38b and D-A38c hard-code incompatible lane_start page capacities from structurally near-identical fixtures. Both call unpadded `plant_dispatch(rec_id)` (lines 263 and 339). D-A38b asserts 8/8/4 at offsets 0/8/16 for 20 bound relevant cards; D-A38c asserts the initial eight-card slice is dropped entirely and continuations return 5/5/5/5/1. The only structural difference is one extra dispatch Source (~130 bytes) plus shorter job ids, while the two geometries differ by three work cards (~550 bytes) against the same 8192 cap. D-A38c's row requires the fixture to be engineered so \"five work cards fit but six exceed 8192 bytes\"; nothing pads the records to achieve that, unlike D-A38 which does pad (line 194). At most one of the two can hold against a conforming implementation, and neither premise was measurable when authored because no implementation exists.",
+          "reproduce": "Static read: test_discovery_v3_startup.py:259-332 versus 334-414; card/frame arithmetic against discovery-lever.md:567-608. Selector: python3 -B -m unittest discover -s ops/conductor/tests -p test_discovery_v3_startup.py -k test_d_a38"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:222",
+          "claim": "D-A38 branches on the outcome instead of requiring it: `if work == []: ...` accepts an implementation that never drops the initial slice, and line 251 `if payload[\"state\"] == \"unavailable\":` makes the item-exceeds-cap / page-frame-exceeds-cap half optional. Line 257 then allows `START_CAP + 512` (8704 bytes), above the contract's absolute 8192 lane_start cap (discovery-lever.md:567, row D-A38 \"every lane_start <=8192\"). The row's whole charge can be satisfied by an implementation that neither drops work nor respects the cap.",
+          "reproduce": "Static read: test_discovery_v3_startup.py:222-257 versus discovery-lever.md:567-579 and acceptance row D-A38 (line 791)"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:453",
+          "claim": "D-A43's handoff half asserts nothing: `assertIn(selection[\"selection\"], (\"one\",\"none\",\"multiple\",\"unknown\"))` enumerates every legal value of the field, and the else branch `assertFalse(selection[\"complete\"] and selection[\"selection\"] == \"one\")` is vacuously true inside a branch already conditioned on selection != \"one\". The fixture plants one readable bound current docs-lineage handoff, so the row's \"relevant handoff or exact uncertainty\" outcome is determinate and should be pinned to selection one with that selected_key.",
+          "reproduce": "Static read: test_discovery_v3_startup.py:416-462 versus discovery-lever.md:319-323"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_snapshots.py:242",
+          "claim": "D-A46 never plants a failed source. It enables retained with prefix refs/heads/records/ and plants no refs; test_d_a11 (test_discovery_v3_handoffs.py:60-61) asserts that exact configuration yields retained state \"ok\". The row's charge is a deterministic fingerprint for a *failed* source repeated twice, then recovery; only the recovery half (line 254-258) is exercised, against an ok-empty baseline rather than a failure sentinel.",
+          "reproduce": "Static read: test_discovery_v3_snapshots.py:242-258 compared with test_discovery_v3_handoffs.py:40-61; discovery-lever.md:449-450"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/discovery_v3_support.py:550",
+          "claim": "D-A34's central charge is that constraint values and other JSON locations do not count as lock membership, but `constraint_only_lock()` contains no occurrence of symfony/workflow at all (only symfony/framework-bundle and a content-hash). The row requires \"then only constraints/other locations or no mention\"; only the no-mention case is planted. An implementation that scanned composer.lock for the substring symfony/workflow anywhere would still return False and pass.",
+          "reproduce": "Static read: discovery_v3_support.py:550-556 and test_discovery_v3_catalogues.py:135-155 versus discovery-lever.md:512-515 and acceptance row D-A34 (line 787)"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_config.py:359",
+          "claim": "Rows whose charge is byte identity compare parsed JSON objects instead of bytes. D-A44 compares `load_query` dicts across v2 and v3 (lines 346-360), and D-A39 compares parsed payloads across CLI, tools/call and resources/read (test_discovery_v3_snapshots.py:239-240). Key ordering, ASCII escaping and trailing-byte drift in the canonical encoder all survive these assertions, though the contract mandates one canonical encoder on every projection (discovery-lever.md:364-365, 616-617).",
+          "reproduce": "Static read: test_discovery_v3_config.py:324-360 and test_discovery_v3_snapshots.py:190-240 versus acceptance rows D-A39 (line 794) and D-A44 (line 799)"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_discovery_v3_adapter.py:116",
+          "claim": "Permission-based fixtures are void under a root test runner and depend on unspecified git behaviour. D-A28 chmods .git/refs/heads/records to 0 and requires retained reason exactly \"unreadable\"; D-A47 (test_discovery_v3_snapshots.py:279) chmods .git/objects to 0 and requires repo state exactly \"unavailable\". Neither guards on os.geteuid(), and an adapter enumerating refs may skip an unreadable subdirectory as ok-empty rather than reporting unreadable.",
+          "reproduce": "Static read: test_discovery_v3_adapter.py:113-130 and test_discovery_v3_snapshots.py:276-287"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/discovery_v3_support.py:562",
+          "claim": "The custody guard shells out to `git rev-parse HEAD` and `git diff HEAD` against the live repository root in setUp and again in tearDown for all 55 tests (110 diffs of the real tree). ops/bin/suites.sh:17-33 runs ops/conductor/tests concurrently with seven other suites in the same checkout, so any unrelated suite writing into the working tree fails these tests with \"live repository mutated\" and misattributes the cause.",
+          "reproduce": "Static read: discovery_v3_support.py:562-611 versus ops/bin/suites.sh:17-33"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_discovery_v3_catalogues.py:209",
+          "claim": "Dead and vacuous assertions should be removed before freeze: `registry = Path(\"/nonexistent-on-purpose\"); del registry` (catalogues 209-212); `before = git status; assertEqual(git status, before)` comparing a call to itself (adapter 359-360); `assertNotIn(\"path\", named.get(\"query\", \"\"))` where query is always the literal tool name (handoffs 87); `assertTrue(stems)` on a list that is non-empty by construction, leaving D-A14's \"no stem collisions\" untested (handoffs 155-156); and `assertIn(genus[\"locked\"], (False, None))` accepting either value where the contract determines False (catalogues 180).",
+          "reproduce": "Static read at each cited line"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh:17",
+          "claim": "ops/conductor/tests is a standing suite discovered with -p 'test_*.py', so the 55 intentionally-red tests are now inside the lane's single \"is it green?\" answer and it stays red until step 2 lands. The producer's receipt records this as 55 tests / 75 failures (failures exceed tests because nine subTest sites multiply outcomes) with 0 errors, which is arithmetically consistent; the consequence for the gate is not declared anywhere in the record.",
+          "reproduce": "Static read: ops/bin/suites.sh:17-33; subTest sites counted at 9 across the six new files"
+        }
+      ],
+      "artifacts": {
+        "reviewed_ref": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6 against 710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104946Z-review-claude-d8cbfc/context/diff.patch \u2014 9 files, 3407 added lines, 0 content lines removed",
+        "producer_record": "20260906T102312Z-tests-grok-2d0e2a (grok-4.6, effort high, exit 0, closed 2026-09-06T10:48:49Z); producer HEAD 981ebc9f6d6bece1deffcf796c785c0cbc67aab0 against implementation tree 5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+        "acceptance_row_mapping": "complete: 53 contract rows (D-A1..D-A49 plus D-A17b, D-A17c, D-A38b, D-A38c) map to 53 named tests; 55 test methods total = 53 rows + test_lane_mcp_and_lane_read_are_present + the second D-A41 method. Counted 10 startup, 14 handoffs, 10 config, 6 snapshots, 7 catalogues, 8 adapter.",
+        "red_proof_check": "Receipt claims Ran 55 tests, FAILED (failures=75), 0 errors. 55 matches the counted test methods; failures>tests is consistent with 9 subTest sites. Not independently re-executed.",
+        "existing_tests": "unmodified \u2014 the diff removes no content lines; test_lane_mcp.py is untouched and reused by import (_LaneMcpFixture, rpc, CONSUMER, SCHEMA, TOOL). Helper surface assumed by the new tests (invoke config=/extra_env=/cap=, query, serve, handshake, plant_config path=, plant_record raw=, load_query, assert_refusal, rpc_objects, rpc_by_id, lane_from_rpc, _plant_bytes, scratch/home/cwd/work/store/db/rollout/config_path) all verified present in test_lane_mcp.py:196-584.",
+        "hermeticity": "Fixtures use a per-test TemporaryDirectory, a synthetic git repo, planted configs and planted dispatch records; no live register, ledger, PR, network or captured AAR body is used as an oracle. Live-repo reads are confined to the mutation guard, the staged tool/contract bytes, and the D-A49 registry-file existence check.",
+        "declared_missing_interfaces": "Three, declared in discovery_v3_support.py:9-21 and echoed as the producer's two p2 findings: lane_refs.py has no argv/JSON-RPC/importable class; no config field names launch-supplied discovery-lever.md bytes or a trusted git executable digest; no seam injects adapter readings into lane_read. These are contract gaps, not test defects, and are correctly declared rather than invented.",
+        "suite_integration": "ops/bin/suites.sh:17 discovers ops/conductor/tests with -p 'test_*.py'; the new files are collected automatically and the suite is red until step 2."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2650258,
+        "out": 36545,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "52c47ffe8a73429b354d9dadfc8b1fa013d294b6",
+        "started": null,
+        "ended": null
+      },
+      "note": "Model claude-opus-5, static review only. Declared absence: I did not execute Python, unittest, git-write or any test in this profile \u2014 no execution receipt of my own exists, and every claim below is a read of the diff, the contract at ops/conductor/discovery-lever.md, discovery-examples.md, ops/bin/suites.sh and the producer record in in/ag-conduct-discovery-tests-record.json. The producer's receipt (55 tests, 75 failures, 0 errors) is internally consistent with the 55 test methods and 9 subTest sites I counted, so I accept it as evidence of meaningful red rather than import/collection red; I did not reproduce it. Implementation is absent by design and I do not treat its absence as a defect.\n\nVerdict: changes. Acceptance-row mapping is complete (53/53) and the tests are genuinely independent \u2014 implementation was not read, missing public interfaces are declared rather than invented, no existing test is weakened (the diff removes no content lines and test_lane_mcp.py is reused by import, not forked), state custody is hermetic, and the strong rows (D-A10, D-A12, D-A17, D-A17b, D-A17c, D-A18, D-A22, D-A23, D-A26, D-A32, D-A33, D-A35, D-A37, D-A38b's internals, D-A45) discriminate well. But the set is not ready to freeze for an independent GPT-6 implementer: four findings would make a conforming implementation fail.\n\nThree of those are unsatisfiable assertions \u2014 D-A8 demands locked False where the contract requires null for a non-package intended value; D-A47 demands the contract-definition digest appear in an envelope whose Source shape is closed around a fingerprint and never carries it; D-A16 demands a stale card from a fixture the contract forces into incomplete classification, contradicting its own sibling D-A17. The fourth is a pair, D-A38b and D-A38c, hard-coding page geometries (8/8/4 versus 5/5/5/5/1) that cannot both hold from unpadded records differing by one Source entry; D-A38c's row requires an engineered byte premise its fixture does not build, and D-A38 pads while these two do not. My byte arithmetic there is an estimate, not a measurement \u2014 the implementer must re-derive the frame size and the fixture must be padded to make its own premise true rather than assumed.\n\nBeyond those, five p2 items reduce discrimination without blocking: outcome-conditional branches in D-A38 plus a cap allowance of 8704 against the contract's absolute 8192; a tautological D-A43 handoff assertion; D-A46 planting an ok-empty source where the row asks for a failure; D-A34 never planting the constraint-value case its row names; and the byte-identity rows comparing parsed objects rather than bytes. Recommended freeze gate: fix the four p1 items, then re-run and re-record the red proof, since three of them currently produce red for the wrong reason and would mask real implementation defects. The p3 items (root-sensitive chmod fixtures, the concurrent live-repo custody guard, dead assertions, and the standing suite now being red) should be dispositioned but need not block."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

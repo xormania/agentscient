@@ -1,0 +1,163 @@
+{
+  "id": "20260906T031653Z-review-grok-798c5a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:16:54Z",
+    "closed": "2026-09-06T03:21:30Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5",
+    "ref_sha": "264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "44b561ba-ffee-4713-9419-91fadcce74f6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok-stream/sessions/<snapshot-encoded>/44b561ba-ffee-4713-9419-91fadcce74f6/summary.json"
+  },
+  "session": {
+    "id": "44b561ba-ffee-4713-9419-91fadcce74f6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok-stream/sessions/<snapshot-encoded>/44b561ba-ffee-4713-9419-91fadcce74f6/summary.json",
+    "stream_sha256_at_close": "567add45e9b4aca8b163cc3f2ec914784066b3cf772ba127400361e5555ecf2a",
+    "spend": {
+      "input": 563513,
+      "cached": 488192,
+      "output": 16966,
+      "total": 580479,
+      "cost_usd_ticks": 844107800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/home/grok-stream/sessions/<snapshot-encoded>/44b561ba-ffee-4713-9419-91fadcce74f6/summary.json",
+      "messages": 114
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck only the three accepted 104942 findings after GPT-6 ecf1d9, using lane-policy-final-ruling.md. Verify protected dispatch body and ladder shim with N7, complete standing-grant/admission rotation and before/after case, and note-induced digest refusal versus unchanged authority/fresh-bind case. Preserve ordinary tooling, already authorized covered work without new owner acts, all prior cases, two-file scope and unchanged coupling. D-LANES-1 is semantic evidence, not admission/grant/activation. Return <=500-word approve/changes with exact evidence and any remaining gap in these three corrections only. No broad audit, new API demand or runtime requirement. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/in/lane-policy-final-ruling.md",
+        "sha256": "978eb58c7f0a029543a93837c1ec0a933cdfcdaf5ee39b6b3c5b0a249b1d94f2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/in/20260906T025705Z-review-claude-104942.json",
+        "sha256": "590f44099784cd3f3598c3109e6274f78282b39428934817412cab6b312fc91b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031653Z-review-grok-798c5a/in/20260906T031135Z-code-codex-ecf1d9.json",
+        "sha256": "51dfa90fcbdad5ccec53e459705853dbd5812a68960b1db13c208acc32b35fc4"
+      }
+    ],
+    "sha256": "a9af4700da7392b607dfa12aabc3441a71abfc8b0a394673cd4dbaefda471855",
+    "bytes": 3053
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:16:54Z",
+      "ended": "2026-09-06T03:21:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "contract": "ops/conductor/lane-policy.md",
+        "data": "ops/lane-policy.json"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 580479,
+        "out": 16966,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5",
+        "started": null,
+        "ended": null
+      },
+      "note": "Recheck of the three accepted 104942 findings after GPT-6 ecf1d9, against lane-policy-final-ruling.md. Measured at 264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5; inputs read whole from in/. `git diff --check c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc 264b8e741e40ecf13fd71b873c3bb4ea8e41a8e5` exits 0. `python3 json.load` of ops/lane-policy.json succeeds; standing remains `proposal`. The correction commit (264b8e7 vs 95359d4) changes only ops/conductor/lane-policy.md and ops/lane-policy.json; vs 8ee0270 those two files only (31/4 lines). ops/devlane/dispatch/CONTRACT.md last changed at 8ee0270; no exact coupling conflict. D-LANES-1 is named only as semantic owner evidence (lane-policy.md:19-21), not admission, grant, or activation. File SHA-256 bce429d5f6fb43fcf09b67894f1e9ab71f734ad19cefae820b6cacd1637c6304 and e656af4242f0c635008c6654402c1f0730ed145f7739cc47bc6dc2145299c438. Ruling link `.dev/ladder-inputs/lane-policy-final-ruling.md` exists, sha256 978eb58c7f0a029543a93837c1ec0a933cdfcdaf5ee39b6b3c5b0a249b1d94f2 matching in/. Read-only: no source, tests, settings, host, DB, network, or vendor; store not read.\n\n1. Dispatch body and ladder shim. JSON:8-9 adds `ops/conductor/tools/dispatch.sh` and `ops/bin/ladder.sh` next to already-protected `ops/bin/dispatch.sh` and `ops/conductor/tools/ladder.py`. Inclusion rule (md:76-80) names the body and ladder shim and keeps the ops/bin/ and ops/devlane/hooks/ prefix ban. N7 (md:446) exercises `ops/conductor/tools/dispatch.sh` (actual lever body) and `ops/bin/ladder.sh`, plus already-protected ladder.py. Tracked: tools/dispatch.sh 326 lines (LAUNCHER_PIN, WF_AGENT); bin/dispatch.sh 6-line shim; bin/ladder.sh 5-line shim. P1 (md:435) still passes ops/bin/example.sh and ordinary hook tooling; example.sh is not protected; no prefix swallow.\n\n2. Standing-grant rotation. md:191-199 requires a fresh ratified admission listing the replacement set and an anchor admission-id update, verified with the previously trusted consumer/reader/authority; a superseded listed grant refuses lane-policy until both exist; rotation is fresh-dispatch only; already-covered jobs need no new owner act. R4 (md:453) is the before/after case: supersede listed grant refuses even with a valid per-job row; replacement admission without verified anchor update still refuses; after verified replacement, a fresh covered dispatch passes and a second covered job passes without another owner act; old bindings unchanged. P4 (md:438) still passes two jobs on the same standing record with no fresh owner act.\n\n3. Note vs digest. md:181-186: notes neither add nor remove a grant but change exact show bytes; existing bindings refuse at the next transition (lane-policy, or lane-resume on write-resume); a fresh dispatch may bind the unchanged authority's new digest without a new owner decision; never silently rewrite a bound record. R5 (md:454) states in-flight refuse, fresh bind, and unchanged old record/digest. N9 (md:448) still covers generic output-byte digest mismatch.\n\nPrior cases P1-P5, N1-N6, N8-N10, R1-R3, I1 remain; only N7 changed, R4/R5 added. No remaining gap in these three corrections."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T03:21:29.039Z"
+    }
+  },
+  "status": "closed"
+}

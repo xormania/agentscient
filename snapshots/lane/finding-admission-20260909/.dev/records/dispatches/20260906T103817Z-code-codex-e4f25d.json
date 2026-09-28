@@ -1,0 +1,379 @@
+{
+  "id": "20260906T103817Z-code-codex-e4f25d",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-discovery-code-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-code-20260906",
+    "base_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:38:17Z",
+    "closed": "2026-09-06T11:13:32Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "ref_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-38-17-01a0764c-295c-7f32-bf04-f9a9e1f670c3.jsonl"
+  },
+  "session": {
+    "id": "01a0764c-295c-7f32-bf04-f9a9e1f670c3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-38-17-01a0764c-295c-7f32-bf04-f9a9e1f670c3.jsonl",
+    "stream_sha256_at_close": "e348a4fba76bfe036c3ef2dc33d2ef25319757cbe399b93b1dd2446a428e5b1f",
+    "spend": {
+      "input": 3657966,
+      "cached": 3513344,
+      "output": 57954,
+      "total": 3715920,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-38-17-01a0764c-295c-7f32-bf04-f9a9e1f670c3.jsonl",
+      "messages": 344
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-code-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement accepted discovery/3 in discovery-lever.md and examples, enabling automatic conduct onboarding. Read owner and contract acceptance inputs. Independent tests are being authored on a separate fixed snapshot; do not read their work or write/edit tests. Own lane_read.py, new lane_refs.py, lane_mcp.py, onboard.py, onboard-lever.md and registry/lane_mcp.py.json only, under existing conductor homes. Preserve v1/v2, subprocess-free read core, exact public CLI/MCP/tool/resource parity, all D-A1-D-A49 rows, complete bounded catalogues/cursors, trusted source/profile/anchor custody and uncertainty semantics. No host settings/store/admission/network/vendor changes. Make python3 -B -m unittest discover -s ops/conductor/tests -p \"test_lane_mcp*.py\" exit 0 and run existing onboard tests; exercise new contract rows with scratch checks, not committed self-authored tests. Deliver actual discovery runtime, exact checks/results and limitations; do not claim conduct startup or live host activation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T103817Z-code-codex-e4f25d/in/discovery-contract-acceptance-20260906.md",
+        "sha256": "5ed8e06ec45c4647aaad23eb0fa8ba85c91e3fa89f9c5077693ab1dc3c3dc4cd"
+      }
+    ],
+    "sha256": "35547a718acf118867fb260d15b7d78cdeb0f08d5e810ba6e345e87f85ee5a99",
+    "bytes": 4849
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:38:17Z",
+      "ended": "2026-09-06T11:13:32Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bc2be2e9129d05fd3f5690aa15b62315ca025908",
+    "changed_paths": [
+      "ops/conductor/onboard-lever.md",
+      "ops/conductor/registry/lane_mcp.py.json",
+      "ops/conductor/tools/lane_mcp.py",
+      "ops/conductor/tools/lane_read.py",
+      "ops/conductor/tools/lane_refs.py",
+      "ops/conductor/tools/onboard.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 32,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command/001",
+          "claim": "Confirmed clean base HEAD 5f9390823f68f2013454c6cf8c39d09e6e475cb1 and located both supplied inputs; exit 0.",
+          "reproduce": "bash ../out/commands/001.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/002",
+          "claim": "Read owner, acceptance and governing documents; truncated combined output prompted focused reads; exit 0.",
+          "reproduce": "bash ../out/commands/002.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/003",
+          "claim": "Measured file lengths and read discovery contract; exit 0.",
+          "reproduce": "bash ../out/commands/003.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/004",
+          "claim": "Read founding contracts, source semantics and pagination requirements; exit 0.",
+          "reproduce": "bash ../out/commands/004.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/005",
+          "claim": "Read selection, refusals, transport and configuration baseline; exit 0.",
+          "reproduce": "bash ../out/commands/005.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/006",
+          "claim": "Read record summaries, onboard implementation and owning contracts; exit 0.",
+          "reproduce": "bash ../out/commands/006.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/007",
+          "claim": "Read remaining baseline, historical mapping, examples and check configuration; exit 0.",
+          "reproduce": "bash ../out/commands/007.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/008",
+          "claim": "Baseline named MCP suite passed all 50 tests; exit 0.",
+          "reproduce": "bash ../out/commands/008.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/009",
+          "claim": "Compiled the 30 declared concept rows; exit 0.",
+          "reproduce": "bash ../out/commands/009.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/010",
+          "claim": "Added discovery projections, onboard law entries and registry extension; exit 0.",
+          "reproduce": "bash ../out/commands/010.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/011",
+          "claim": "Applied validation corrections; lint reported one remaining import issue, subsequently fixed; exit 1.",
+          "reproduce": "bash ../out/commands/011.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/012",
+          "claim": "First discovery scratch run passed 41 checks; exit 0.",
+          "reproduce": "bash ../out/commands/012.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/013",
+          "claim": "Intermediate lint and diff checks passed; exit 0.",
+          "reproduce": "bash ../out/commands/013.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/014",
+          "claim": "Git staging failed because index.lock could not be created on the read-only filesystem; exit 128. Commit was not reached.",
+          "reproduce": "bash ../out/commands/014.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/015",
+          "claim": "Tightened CLI refusals and packed-ref bounds; lint passed; exit 0.",
+          "reproduce": "bash ../out/commands/015.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/016",
+          "claim": "Initial boundary scratch fixture failed its pagination premise; corrected outside the repository; exit 1.",
+          "reproduce": "bash ../out/commands/016.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/017",
+          "claim": "Revised scratch fixture exposed an invalid dispatch/anchor binding; corrected outside the repository; exit 1.",
+          "reproduce": "bash ../out/commands/017.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/018",
+          "claim": "Corrected boundary fixtures passed 76 checks, including 21-card continuation through offset 20; exit 0.",
+          "reproduce": "bash ../out/commands/018.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/019",
+          "claim": "Preserved malformed-body classification before presentation limits and inspected registry shapes; exit 0.",
+          "reproduce": "bash ../out/commands/019.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/020",
+          "claim": "Adversarial scratch run passed 29 checks, including races, overflow, legacy parity and both Git delta encodings; exit 0.",
+          "reproduce": "bash ../out/commands/020.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/021",
+          "claim": "Final runtime corrections, lint and all synthetic scratch scripts passed: 41 + 76 + 29 checks; exit 0.",
+          "reproduce": "bash ../out/commands/021.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/022",
+          "claim": "Confirmed historical acceptance commit exists and measured Git directory bindings; exit 0.",
+          "reproduce": "bash ../out/commands/022.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/023",
+          "claim": "D-A17c passed for dev and prod: four unbound handoffs, four unbound AARs, unknown selection and no body/provenance leakage; exit 0.",
+          "reproduce": "bash ../out/commands/023.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/024",
+          "claim": "Final named MCP suite passed all 50 tests in 7.116 seconds; exit 0.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p \"test_lane_mcp*.py\""
+        },
+        {
+          "severity": "p2",
+          "where": "command/025",
+          "claim": "Final onboard suite ran 28 tests with five failures because existing fixtures omit the two required new law files: DispatchStore.test_absent_dispatch_store_says_so, EmptyLawFile.test_empty_law_file_prints_absent, HappyPath.test_three_sections_print_in_order_and_brief_completes, MissingLaw.test_missing_law_file_prints_absent_and_counts_it, and ReadOnly.test_full_run_creates_no_store_and_writes_nothing. Exit 1; tests remain untouched.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p \"test_onboard*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "command/026",
+          "claim": "Final Ruff check passed; exit 0.",
+          "reproduce": "bash ../out/commands/026.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/027",
+          "claim": "Final diff check passed; exactly six authorized paths changed and test-file diff was empty; exit 0.",
+          "reproduce": "bash ../out/commands/027.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/028",
+          "claim": "Intermediate MCP suite passed all 50 tests; exit 0.",
+          "reproduce": "bash ../out/commands/028.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/029",
+          "claim": "Intermediate onboard suite had the same five fixture-law failures; exit 1.",
+          "reproduce": "bash ../out/commands/029.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/030",
+          "claim": "Initial lint reported 27 issues, subsequently corrected within owned files; exit 1.",
+          "reproduce": "bash ../out/commands/030.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/031",
+          "claim": "A heredoc appended the pure v3 definitions and projection; exit 0. Reproduction inspects the final diff because subsequent edits changed that initial heredoc.",
+          "reproduce": "bash ../out/commands/031.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/032",
+          "claim": "A heredoc created lane_refs.py; exit 0. Reproduction inspects the final adapter; the added-file diff itself exits 1.",
+          "reproduce": "bash ../out/commands/032.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/033",
+          "claim": "Exported the six-file patch and measured final SHA-256 manifest; exit 0.",
+          "reproduce": "bash ../out/commands/033.sh"
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/discovery-v3.patch",
+        "manifest": "../out/manifest.json",
+        "mcp_results": "../out/lane-mcp.log",
+        "onboard_results": "../out/onboard.log",
+        "lint_results": "../out/lint.log",
+        "scope_results": "../out/diff.log",
+        "command_findings": "../out/command-findings.json",
+        "command_results": "../out/command-results.json",
+        "scratch_discovery": "../out/check_discovery.py",
+        "scratch_boundaries": "../out/check_discovery_boundaries.py",
+        "scratch_adversarial": "../out/check_discovery_adversarial.py",
+        "scratch_historical": "../out/check_discovery_historical.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3715920,
+        "out": 57954,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+        "started": null,
+        "ended": "2026-09-06T11:09:33.502964+00:00"
+      },
+      "note": "Implemented discovery/3 runtime within the six authorized files. Status follows the named command, which exits 0; onboard fixture failures remain explicit. Test source files were neither read nor edited. Scratch checks do not constitute independent acceptance approval; D-A16's stale-only case was not exercised. Assumptions: detached discovery uses the trusted commit despite symbolic checkout HEAD; regular 100644/100755 blobs establish Python entrypoint presence; v3 permits 21 configured jobs for D-A38c while v1/v2 retain 20. No conduct startup, live activation, settings/store/admission/network/vendor changes. Launcher commit material is supplied because Git staging was blocked.",
+      "commit": {
+        "subject": "feat(conductor): implement bounded discovery v3 reads",
+        "body": "Implement profile-scoped discovery queries with shared descriptor-bound Git acquisition, complete bounded catalogues and cursors, trusted record selection and CLI/MCP/resource parity. Preserve v1/v2 and add the accepted onboard law references.\n\nValidation: named MCP suite 50/50; scratch checks 146 plus D-A17c in both profiles; Ruff and diff checks pass. Existing onboard suite has five fixture-law failures out of 28 tests; no test sources were read or edited. No conduct startup or live activation claim.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T11:13:31.999Z"
+    }
+  },
+  "status": "closed"
+}

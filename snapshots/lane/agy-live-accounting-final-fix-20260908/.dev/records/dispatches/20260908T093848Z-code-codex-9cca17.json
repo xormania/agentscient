@@ -1,0 +1,327 @@
+{
+  "id": "20260908T093848Z-code-codex-9cca17",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-live-accounting-final-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-live-accounting-final-fix-20260908",
+    "base_sha": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:38:49Z",
+    "closed": "2026-09-08T09:45:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+    "ref_sha": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-live-accounting-final-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-38-49-01a08062-6f3f-7c70-8e52-313c34312e3c.jsonl"
+  },
+  "session": {
+    "id": "01a08062-6f3f-7c70-8e52-313c34312e3c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-38-49-01a08062-6f3f-7c70-8e52-313c34312e3c.jsonl",
+    "stream_sha256_at_close": "401a0dfe40b9c978d766b924b2b8bc474042464ec3fedefd4f256823bb013d32",
+    "spend": {
+      "input": 999431,
+      "cached": 935296,
+      "output": 9620,
+      "total": 1009051,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-38-49-01a08062-6f3f-7c70-8e52-313c34312e3c.jsonl",
+      "messages": 150
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-live-accounting-final-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply ONLY surviving live/terminal accounting separation in supplied final ruling. Incomplete/unrecognized DONE response usage contributes no tokens, makes live output unavailable (never retain unsafe prefix), does not become a general stream mismatch or invalidate complete terminal accounting/result. A complete terminal reading may replace uncertainty; contradictory repeated counters still refuse. Keep caps/grace enforcement and all eight accepted duties unchanged. Own usage.py plus minimal focused contract if needed, no tests edits or fresh-model extension. Acceptance: telemetry test_*.py, test_agy*.py, test_launch*.py, lint/docs/diff; record exact exits and unchanged tests. Replay supplied native stdout and ruling counterexamples offline. No vendors/full floor. GPT-6 attribution/COMMIT_MSG.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/in/agy-source-last-ruling.json",
+        "sha256": "bd8dc06034ec5b793d97a3b4760159bce47f3f17b483f27b117197b0c503ff25"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/in/agy-canonical-smoke-stdout.ndjson",
+        "sha256": "5daf9ba0a10316fbd1870eb4cb4292e79abf93157a9255aba9b4af27bedd4bef"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093848Z-code-codex-9cca17/in/agy-canonical-success-stdout.ndjson",
+        "sha256": "550232785798998c615a0dde885fd27dc3d51385bddeadb58c8b3fdc04ab6dcc"
+      }
+    ],
+    "sha256": "cb23862c410c50b8b4308e522bd744dcb787d55bf85146206fd06e0462e6a4ae",
+    "bytes": 4650
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:38:49Z",
+      "ended": "2026-09-08T09:45:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e144312192c78172765dfa871a3d4763c258ce72",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/telemetry/usage.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 24,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "Exit 0: clean base tree and supplied inputs located.",
+          "reproduce": "bash ../out/reproduce/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Exit 0: supplied inputs and owning instructions read.",
+          "reproduce": "bash ../out/reproduce/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "Exit 0: final ruling read whole.",
+          "reproduce": "bash ../out/reproduce/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Exit 0: founding contracts read.",
+          "reproduce": "bash ../out/reproduce/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Exit 0: usage reader inspected.",
+          "reproduce": "bash ../out/reproduce/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Exit 1: telemetry/CONTRACT.md absent; dispatch contract inspected separately.",
+          "reproduce": "bash ../out/reproduce/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Exit 0: dispatch contract inspected.",
+          "reproduce": "bash ../out/reproduce/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Exit 1: launcher inspected; telemetry search returned no matches and stopped command chain.",
+          "reproduce": "bash ../out/reproduce/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Exit 1: accounting contract and test paths inspected; pyproject.toml absent.",
+          "reproduce": "bash ../out/reproduce/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Exit 0: lint and agy test references located.",
+          "reproduce": "bash ../out/reproduce/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Exit 0: contribution rules, CI, lint configuration and test interfaces inspected.",
+          "reproduce": "bash ../out/reproduce/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Exit 0: baseline replay reproduced invalidated terminal total and unsafe live prefix 10.",
+          "reproduce": "bash ../out/reproduce/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Exit 0: telemetry test_*.py passed, 227 tests; subprocess ResourceWarning observed.",
+          "reproduce": "bash ../out/reproduce/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Exit 0: dispatch test_agy*.py passed, 64 tests.",
+          "reproduce": "bash ../out/reproduce/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Exit 0: dispatch test_launch*.py passed, 284 tests; subprocess ResourceWarning observed.",
+          "reproduce": "bash ../out/reproduce/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Exit 0: harness test_agy*.py passed, 7 tests.",
+          "reproduce": "bash ../out/reproduce/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Exit 0: ruff check . passed.",
+          "reproduce": "bash ../out/reproduce/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Exit 0: CI inspected; diff check passed; two scoped files changed.",
+          "reproduce": "bash ../out/reproduce/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Exit 2: documentation-tool search found permission doctor; Makefile absent.",
+          "reproduce": "bash ../out/reproduce/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Exit 0: envelope handling and scoped diff inspected.",
+          "reproduce": "bash ../out/reproduce/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Exit 0: supplied native captures and 13 uncertainty variants passed offline replay; terminal recovery and contradictory-counter refusal verified.",
+          "reproduce": "bash ../out/reproduce/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Exit 0: focused docs check passed; all 148 tracked test/support files byte-identical to base.",
+          "reproduce": "bash ../out/reproduce/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "Exit 128: diff check passed; read-only .git blocked staging, so commit could not run.",
+          "reproduce": "bash ../out/reproduce/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Exit 0: final diff check, two-file scope, base SHA and input/file hashes verified.",
+          "reproduce": "bash ../out/reproduce/24.sh"
+        }
+      ],
+      "artifacts": {
+        "command_findings": "../out/command-findings.json",
+        "command_outputs": "../out/commands.json",
+        "reproduction_scripts": "../out/reproduce/",
+        "offline_replay": "../out/replay.py",
+        "commit_message": "../out/COMMIT_MSG",
+        "usage_sha256": "89c1c20444c9b23784ebfbbadfc74d727d24aea9ff686f6c8545dd7f15301f12",
+        "contract_sha256": "9b890c547149dedb2014c146c8c92b80b3adde9e3de24d4c8b9bd367e0c6c0f0"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1009051,
+        "out": 9620,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+        "started": null,
+        "ended": "2026-09-08T09:43:41Z"
+      },
+      "note": "Implemented only live/terminal separation in usage.py plus six contract lines. Interpreted incomplete usage to include missing usage and unusable step indexes. Live uncertainty clears unsafe prefixes without invalidating complete terminal accounting; contradictory repeats still refuse. Launcher caps/grace, eight accepted duties, fresh-model behavior and tests unchanged. All named acceptance checks exited 0. No vendors or full floor. Follow-up: subprocess cleanup ResourceWarnings in successful suites, left untouched. Read-only .git prevented committing; launcher fallback message provided. Findings record command observations.",
+      "commit": {
+        "subject": "telemetry: Separate agy live uncertainty from terminal accounting",
+        "body": "Incomplete or unrecognized DONE response usage clears live output without creating a stream mismatch or invalidating complete terminal accounting. Preserve contradictory-counter refusal, caps/grace, eight accepted duties and fresh-model behavior. Tests unchanged.\n\nValidation: telemetry 227, dispatch agy 64, launcher 284 and harness agy 7 tests passed. Lint, focused docs, diff and offline ruling replay exited 0. All 148 tracked test/support files match the base. Exact commands and results are retained in out/command-findings.json and out/commands.json.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T09:45:25.096Z"
+    }
+  },
+  "status": "closed"
+}

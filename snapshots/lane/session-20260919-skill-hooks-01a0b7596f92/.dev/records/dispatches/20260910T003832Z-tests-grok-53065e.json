@@ -1,0 +1,171 @@
+{
+  "id": "20260910T003832Z-tests-grok-53065e",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "8df3cbedb2d85b4016f9acc9b928b3f1a4ba40e7"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:38:32Z",
+    "closed": "2026-09-10T00:44:33Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8df3cbedb2d85b4016f9acc9b928b3f1a4ba40e7",
+    "ref_sha": "8df3cbedb2d85b4016f9acc9b928b3f1a4ba40e7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b0d3f9ff-dc13-4c31-a4af-57a875d1c420",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok-stream/sessions/<snapshot-encoded>/b0d3f9ff-dc13-4c31-a4af-57a875d1c420/summary.json"
+  },
+  "session": {
+    "id": "b0d3f9ff-dc13-4c31-a4af-57a875d1c420",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok-stream/sessions/<snapshot-encoded>/b0d3f9ff-dc13-4c31-a4af-57a875d1c420/summary.json",
+    "stream_sha256_at_close": "284b5902e5b3130fe8f450ca0c336bfbda78e0d456539967eccddb7e350deb11",
+    "spend": {
+      "input": 1356950,
+      "cached": 1209472,
+      "output": 22096,
+      "total": 1379046,
+      "cost_usd_ticks": 1754855600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/home/grok-stream/sessions/<snapshot-encoded>/b0d3f9ff-dc13-4c31-a4af-57a875d1c420/summary.json",
+      "messages": 226
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only test_monitor_git_refs.py assertions that conflict with the unchanged monitor consumer API. The old pre-adapter monitor.py here may be inspected solely for its established _event_summary and _evaluate interfaces (not any new git-refs implementation). Existing event summaries encode field=JSON(value), not bare OID; unavailable event selects state, while remote-unavailable is a freshness metric; changed compares known metric values even when reading state is unavailable. Verify these against inherited contract/tests, then assert exact OIDs/freshness on their proper events, preserve unavailable state/counts and no raw stderr/missing-ref confusion, and avoid forbidding legitimate known-local/freshness events on remote failure. No new tests, production changes or onboarding. Run original19-test command RED on oldsource, hash and commit tests only. Prior independent review incorrectly inferred event formatting; use measured existing interface.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003832Z-tests-grok-53065e/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "8ed9b62b21cfa247f0f33b28ffb9c83e501821cef02070208e9728556c878042",
+    "bytes": 3307
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:38:32Z",
+      "ended": "2026-09-10T00:44:33Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "dc2fe263cad18e5f5ea338b91e3286bd2ddb34d0",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_git_refs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_monitor_git_refs.py",
+        "red_cmd": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'",
+        "sha256": "17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881",
+        "head": "dc2fe263cad18e5f5ea338b91e3286bd2ddb34d0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1379046,
+        "out": 22096,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8df3cbedb2d85b4016f9acc9b928b3f1a4ba40e7",
+        "started": null,
+        "ended": null
+      },
+      "note": "Corrected only ops/conductor/tests/test_monitor_git_refs.py against the measured pre-adapter consumer API (_event_summary field=JSON(value); unavailable field=None yields state=<state>; _evaluate unavailable matches reading.state only; changed compares known metrics on unavailable readings). Exact freshness/OID summaries now sit on refs_changed and local_changed/remote_changed; refs_unavailable keeps state=unavailable, unavailable counts, no raw stderr, and no missing-ref confusion; remote failure no longer forbids known local/freshness events. No new tests, production, or onboarding. Command `python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'` at 8df3cbedb2d85b4016f9acc9b928b3f1a4ba40e7: Ran 19 tests in 1.549s, FAILED (failures=27), 0 errors (adapter-absent config refusal). ruff check clean; test-guard: every plant is guarded (1 file). Committed dc2fe263cad18e5f5ea338b91e3286bd2ddb34d0 tests only; file sha256 17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:44:32.743Z"
+    }
+  },
+  "status": "closed"
+}

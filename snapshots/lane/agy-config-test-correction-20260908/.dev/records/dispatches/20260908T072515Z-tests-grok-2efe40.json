@@ -1,0 +1,168 @@
+{
+  "id": "20260908T072515Z-tests-grok-2efe40",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-config-test-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-config-test-correction-20260908",
+    "base_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:25:15Z",
+    "closed": "2026-09-08T07:40:27Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "ref_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "23342edb-6e4d-432f-b85b-6651a69dde02",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok-stream/sessions/<snapshot-encoded>/23342edb-6e4d-432f-b85b-6651a69dde02/summary.json"
+  },
+  "session": {
+    "id": "23342edb-6e4d-432f-b85b-6651a69dde02",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok-stream/sessions/<snapshot-encoded>/23342edb-6e4d-432f-b85b-6651a69dde02/summary.json",
+    "stream_sha256_at_close": "5bcd4aef24c9baed3a70c1d941c4db152ad8a33c0da7fdb00122795dc1db69d8",
+    "spend": {
+      "input": 4748537,
+      "cached": 4274432,
+      "output": 50293,
+      "total": 4798830,
+      "cost_usd_ticks": 5758212800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/home/grok-stream/sessions/<snapshot-encoded>/23342edb-6e4d-432f-b85b-6651a69dde02/summary.json",
+      "messages": 331
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-config-test-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply the five supplied GPT-6 rulings only to test_laneconf.py, test_dispatch_wrapper.py and worker_conf.py under ops/conductor/tests. Preserve existing tests; no production-body reads or implementation edits. Correct legacy PATH fallback/realpath expectations, remove invented dry-run worker field, retain wrapper provenance checks via existing synthetic child-launcher seam, add only named exported-list/job-effort/local-executable cases. Reuse fixtures, no broad matrix/framework. Acceptance: python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py and same for test_dispatch_wrapper.py; meaningful reds, zero errors, existing controls pass; ruff check on three files; git diff --check. Report actual counts/exits, test hashes and exact patch. Attribute Grok 4.6 with standard trailers. No vendors, credentials or full floor. Return any genuinely undeclared seam rather than inventing one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/in/agy-config-test-adjudication.json",
+        "sha256": "3faf35e2ec2f78dad69489bfdfeba96204f05e8f2e9586d3d817266cbfde717c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072515Z-tests-grok-2efe40/in/agy-configuration-test-review.json",
+        "sha256": "31f469939df1144ef2822f694843b436d10ea4adb249ccdd6c9e29d9e7aa37ac"
+      }
+    ],
+    "sha256": "46b8e1cd2815c88eae9f6476c5827a48d62e844f9b0c1d334bcb9362b0b74b61",
+    "bytes": 3252
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:25:15Z",
+      "ended": "2026-09-08T07:40:27Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ce3b339d33433e233a5667d08b545da836e03148",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_laneconf.py",
+      "ops/conductor/tests/worker_conf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "laneconf_unittest": "python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py at ce3b339d33433e233a5667d08b545da836e03148 on 2026-09-08T07:39:15Z: exit 1, Ran 83 tests in 3.028s, FAILED (failures=33), 0 errors",
+        "wrapper_unittest": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py at ce3b339d33433e233a5667d08b545da836e03148 on 2026-09-08T07:39:15Z: exit 1, Ran 88 tests in 1.803s, FAILED (failures=22), 0 errors",
+        "ruff": "ruff check ops/conductor/tests/test_laneconf.py ops/conductor/tests/test_dispatch_wrapper.py ops/conductor/tests/worker_conf.py: All checks passed! exit 0",
+        "git_diff_check": "git diff --check and git diff --check 6d1b1a45f11484a92be84400cca18e4572f3e693 HEAD: exit 0",
+        "hashes": "ops/conductor/tests/test_laneconf.py sha256 63af29d2c4abb84caad00eacd1833e79186c0dd0846a384632401548806a0cd9; ops/conductor/tests/test_dispatch_wrapper.py sha256 3595755bd0b4202e3adbe0ff5858458ab0a750b5b0566a0d77d5a5886def056a; ops/conductor/tests/worker_conf.py sha256 2a38e486b88226a0b1c2d924fca335c10c081be2e22bae40d1e0e49dd25e81ff",
+        "commits": "75d4006d2d8bd807f550b55ecfe97b51e37f4d16 conductor: correct provisional worker PATH fallback tests (test_laneconf.py + worker_conf.py); ce3b339d33433e233a5667d08b545da836e03148 conductor: correct provisional wrapper worker provenance tests (test_dispatch_wrapper.py)",
+        "patch": "git diff 6d1b1a45f11484a92be84400cca18e4572f3e693 ce3b339d33433e233a5667d08b545da836e03148 -- ops/conductor/tests/test_dispatch_wrapper.py ops/conductor/tests/test_laneconf.py ops/conductor/tests/worker_conf.py; sha256 f3e0e9397b71629d2f5d34f5b8faade3c21234fcdbb68f1a71153f8b055e88ec; numstat 79 55 ops/conductor/tests/test_dispatch_wrapper.py, 95 6 ops/conductor/tests/test_laneconf.py, 27 8 ops/conductor/tests/worker_conf.py; git diff --stat: 3 files changed, 201 insertions(+), 69 deletions(-)"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4798830,
+        "out": 50293,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+        "started": "2026-09-08T07:25:59Z",
+        "ended": "2026-09-08T07:39:15Z"
+      },
+      "note": "Applied the five GPT-6 rulings only to ops/conductor/tests/test_laneconf.py, test_dispatch_wrapper.py and worker_conf.py. Production bodies unread and unedited. Ruling 1: grok PATH-miss now expects literal executable grok, source PATH, workers default; PATH-miss refusal moved to listed agy. Ruling 3/4: parse_worker_object absolute check is opt-in; assert_worker compares the expected string unchanged; plant_named_bins returns PATH spelling; agy PATH arms expect resolve(). Ruling 2: removed PIN_WORKER_DRY_RUN and worker_from_dry_run; argv/env pins kept; wrapper provenance uses the existing _plant_python_sentinel child-env dump (test_exported_executable_reaches_the_child_not_the_file_value is red: child sees the file EXECUTABLE_GROK, not the exported value). Worker-object shape/sources stay on the laneconf CLI. No production dry-run worker field. Ruling 5: exported WORKER_HARNESSES=agy against a conf that lists grok refuses grok (red: exit 0 not 3); EFFORT_AGY_WRAP_JOB beats EFFORT_AGY with no effort flag (red: agy still a hardcoded-harness refusal); local executable beats file and env beats local. Existing pre-provisional controls pass. Legacy grok/codex/claude dry-run pins now pass after dropping the invented worker field. A file-only EXECUTABLE_GROK-absent-from-child arm was measured green on this wrapper and was not kept, because a test that never failed proves nothing. No undeclared production seam was invented: loader result is the declared laneconf worker CLI; child observation is selected env keys via the existing python sentinel."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:40:26.716Z"
+    }
+  },
+  "status": "closed"
+}

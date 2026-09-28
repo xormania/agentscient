@@ -2,7 +2,7 @@
   "repository": "uscient/agentscient",
   "archive_branch": "legacy-records",
   "created_on": "2026-09-27",
-  "source_count": 21,
+  "source_count": 108,
   "sources": [
     {
       "branch": "lane/session-20260915-f",
@@ -171,6 +171,790 @@
       "snapshot": "snapshots/review/mcp-security-20260905",
       "unmerged_records_at_audit": true,
       "description": "Unmerged security review evidence."
+    },
+    {
+      "branch": "deprecated-work",
+      "commit": "bbd06948ae5bc207930f5c6298c47ea19d0a4d9c",
+      "tree": "394c902e6e67e1c4c41b49c407652cc018774b4f",
+      "snapshot": "snapshots/deprecated-work",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "deprecated-work: the standing orphan branch for retired material"
+    },
+    {
+      "branch": "deprecated/session-watch-20260904",
+      "commit": "0d5bcde02d5b8a6b7d949db7a823c48aa879e2bc",
+      "tree": "9f6cdd9552a0d62305e6e876214928a296af4190",
+      "snapshot": "snapshots/deprecated/session-watch-20260904",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "deprecated: the owner's session watch script and calibration buckets from 2026-09-04"
+    },
+    {
+      "branch": "lane/agy-config-final-correction-20260908",
+      "commit": "68e9200e9740e8bbe4e383b3ac1d9ca990e434f6",
+      "tree": "2d145eac2653e8324c4dbd1f8eaa0d1be2d4dd4c",
+      "snapshot": "snapshots/lane/agy-config-final-correction-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "conductor: drop added trailing newline from laneconf tests"
+    },
+    {
+      "branch": "lane/agy-config-test-adjudication-20260908",
+      "commit": "3cd7ddf2501364efbc7c20bb51371f2b23093b6a",
+      "tree": "16307d2af3261c4264f54a691406a0ef9fb4f83c",
+      "snapshot": "snapshots/lane/agy-config-test-adjudication-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T072149Z-adjudicate-codex-28745d"
+    },
+    {
+      "branch": "lane/agy-config-test-correction-20260908",
+      "commit": "af99c32b19a9c6c508a061bbda8d81a6356b70a5",
+      "tree": "80153c6aea09da388b60b98e495e3b4821cc5fba",
+      "snapshot": "snapshots/lane/agy-config-test-correction-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "conductor: correct provisional wrapper worker provenance tests"
+    },
+    {
+      "branch": "lane/agy-config-test-review-20260908",
+      "commit": "b18c123ba95697aab63eb615a23cfa600c403563",
+      "tree": "0e97c48bcadc5cc5ec9e6b7eaafd007c957cd420",
+      "snapshot": "snapshots/lane/agy-config-test-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T071157Z-review-claude-e38eb4"
+    },
+    {
+      "branch": "lane/agy-configuration-tests-20260908",
+      "commit": "f75a70c681338675c6825eafbf2e636b307ed2e6",
+      "tree": "68552d1713bcb9408e2eaf8e57c722da91b7d54a",
+      "snapshot": "snapshots/lane/agy-configuration-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "conductor: pin provisional wrapper worker selection tests"
+    },
+    {
+      "branch": "lane/agy-contract-adjudication-20260908",
+      "commit": "bd4c2b8b566c846e8619332e067b49793e8a52b5",
+      "tree": "0c69ecc59e3b0fc6dfaea8e06ac796ad63409d7e",
+      "snapshot": "snapshots/lane/agy-contract-adjudication-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T065000Z-adjudicate-grok-c2ae09"
+    },
+    {
+      "branch": "lane/agy-contract-review-20260908",
+      "commit": "8630ccf0e72a11596ed1a5cb7e2efa2f931f6d29",
+      "tree": "44d266136c00cf8ff1b91933e1dc734a2a886781",
+      "snapshot": "snapshots/lane/agy-contract-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T063559Z-review-claude-6eb510"
+    },
+    {
+      "branch": "lane/agy-dispatch-test-review-20260908",
+      "commit": "302f32b4ee4b82d1e14d2e639208a91fdf90b5ee",
+      "tree": "5d2b7463395599b9928c5a1460a908efaac32dee",
+      "snapshot": "snapshots/lane/agy-dispatch-test-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T080834Z-review-claude-c183d9"
+    },
+    {
+      "branch": "lane/agy-dispatch-tests-20260908",
+      "commit": "228d8d60d018792fde2457dc99355f0e465bdc0b",
+      "tree": "852b37a6da94efeceec9f058f486fad33a8f5d7b",
+      "snapshot": "snapshots/lane/agy-dispatch-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: pin agy dispatch tests from the measured contract"
+    },
+    {
+      "branch": "lane/agy-envelope-final-correction-20260908",
+      "commit": "9704d895b207727be3a67a56a992856a14810ef6",
+      "tree": "84a49bd6a1ab6511862df9d0359a4f892598d404",
+      "snapshot": "snapshots/lane/agy-envelope-final-correction-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: correct remaining agy envelope tests"
+    },
+    {
+      "branch": "lane/agy-envelope-test-adjudication-20260908",
+      "commit": "6d4803d5c982ca36fa56cf36ff5beb4dd7b99712",
+      "tree": "ba7dd43e54db2b530dfc3bf9a22f4756c9063594",
+      "snapshot": "snapshots/lane/agy-envelope-test-adjudication-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T071550Z-adjudicate-codex-aa8b1a"
+    },
+    {
+      "branch": "lane/agy-envelope-test-correction-20260908",
+      "commit": "2dfbd5a93b7ed0100b1fa56f78279481a78ec53c",
+      "tree": "638cf72216b2df5911b6def78e873d95a5d88b62",
+      "snapshot": "snapshots/lane/agy-envelope-test-correction-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: correct agy envelope tests per the five GPT-6 rulings"
+    },
+    {
+      "branch": "lane/agy-envelope-test-review-20260908",
+      "commit": "7a35a749b400f3621ccb7ec9fa47f50a1f1f66aa",
+      "tree": "7dc90acc849e1188b979e3f460f0543f866604ce",
+      "snapshot": "snapshots/lane/agy-envelope-test-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T070655Z-review-claude-52d622"
+    },
+    {
+      "branch": "lane/agy-envelope-tests-20260908",
+      "commit": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+      "tree": "35e82c817a45e413fa2f1a6cf96fcb85a85ec090",
+      "snapshot": "snapshots/lane/agy-envelope-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "Pin provisional agy result-transport tests"
+    },
+    {
+      "branch": "lane/agy-isolation-last-fix-20260908",
+      "commit": "8e9a5605f465301cf1592bfed994ba55a4456c3a",
+      "tree": "3419c2ceec054d0d7e35156e970c26f2dcfcaaf5",
+      "snapshot": "snapshots/lane/agy-isolation-last-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T085213Z-review-claude-812e9d"
+    },
+    {
+      "branch": "lane/agy-isolation-legacy-flags-20260908",
+      "commit": "2aeafa6ffa03f43638773e946c1610b2872dc3dd",
+      "tree": "db86bf4acd3c115cd9c33acc0e75ff8e3528e36c",
+      "snapshot": "snapshots/lane/agy-isolation-legacy-flags-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "harness: drop unmeasured agy empty isolation flags"
+    },
+    {
+      "branch": "lane/agy-isolation-legacy-tests-20260908",
+      "commit": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+      "tree": "604995272d9aa47c2ca2faadaaad3fbc01dc6be1",
+      "snapshot": "snapshots/lane/agy-isolation-legacy-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "harness: recognize agy in isolation contract tests"
+    },
+    {
+      "branch": "lane/agy-isolation-test-adjudication-20260908",
+      "commit": "b1f92327b2ee6572594ec263f0707b15d3b18666",
+      "tree": "3ed17e66c55609928c86c17bcd637c8f36a76171",
+      "snapshot": "snapshots/lane/agy-isolation-test-adjudication-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T075501Z-adjudicate-codex-c5e64d"
+    },
+    {
+      "branch": "lane/agy-isolation-test-correction-20260908",
+      "commit": "7a395726c1bb0d3d27c1004ec04582aedc3ad846",
+      "tree": "dec95fc5146748d33b1b9ceea061474f7fa2ea0f",
+      "snapshot": "snapshots/lane/agy-isolation-test-correction-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "harness: correct agy isolation tests per isolation-test rulings"
+    },
+    {
+      "branch": "lane/agy-isolation-test-review-20260908",
+      "commit": "ed984947abf6b4975937dd2d4a1179cf9863ec63",
+      "tree": "29e2139b47f670ef6387ba0737c0a95b4bb75e95",
+      "snapshot": "snapshots/lane/agy-isolation-test-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T074626Z-review-claude-087242"
+    },
+    {
+      "branch": "lane/agy-isolation-tests-20260908",
+      "commit": "e396cc0aa9a5af418e63dfbf9ab85fcddc5ea238",
+      "tree": "bfd28a0519440fec4b8d1982ab3eca429c1bbb49",
+      "snapshot": "snapshots/lane/agy-isolation-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "harness: add bounded agy isolation tests"
+    },
+    {
+      "branch": "lane/agy-lifecycle-cwd-ruling-20260908",
+      "commit": "acb8bbefcb08ffc24242cdeda343e50c54b7a13c",
+      "tree": "562f267cca4a9ffe9189bb892c3a4e50ffee088c",
+      "snapshot": "snapshots/lane/agy-lifecycle-cwd-ruling-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T085946Z-adjudicate-codex-24c834"
+    },
+    {
+      "branch": "lane/agy-lifecycle-fix-20260908",
+      "commit": "f1155d86bb93773bea3c02d53d3ef549cf97b847",
+      "tree": "e9e31aed7cabfa7b7610e27e9d0921fa84081671",
+      "snapshot": "snapshots/lane/agy-lifecycle-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: pin agy usage fixture cwd to the snapshot repo"
+    },
+    {
+      "branch": "lane/agy-lifecycle-fix-review-20260908",
+      "commit": "5fc328813d534ebfae26dde2c1d94c86afd31267",
+      "tree": "b9670427064bfa13b95bcae4d5a3cba1e0755d64",
+      "snapshot": "snapshots/lane/agy-lifecycle-fix-review-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T085020Z-review-claude-914a79"
+    },
+    {
+      "branch": "lane/agy-lifecycle-ruling-20260908",
+      "commit": "56144c06e3c1f745f7361d7e3541de4f2a2fb31b",
+      "tree": "89c9e120f9fe6d1f7a7ab38902aee1f0623da822",
+      "snapshot": "snapshots/lane/agy-lifecycle-ruling-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T082619Z-adjudicate-codex-a9f480"
+    },
+    {
+      "branch": "lane/agy-live-accounting-final-fix-20260908",
+      "commit": "51427778e399f8a8091ea90532a904d1dac8685a",
+      "tree": "c3441bb746c54f660654633890112c374c2acab0",
+      "snapshot": "snapshots/lane/agy-live-accounting-final-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "telemetry: Separate agy live uncertainty from terminal accounting"
+    },
+    {
+      "branch": "lane/agy-live-accounting-regression-20260908",
+      "commit": "d58ce338bfa5b2072fd9f832d4d0590de32a0b75",
+      "tree": "95986db7d3253675c8a6c091c175a215a38e7b46",
+      "snapshot": "snapshots/lane/agy-live-accounting-regression-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: drop E402 from live/terminal separation tests"
+    },
+    {
+      "branch": "lane/agy-live-usage-fix-20260908",
+      "commit": "8e6bb4236d652847bc7155a28a3da07b44ef5785",
+      "tree": "7124135c06da2848b0e0b07bdd4d476a5318a371",
+      "snapshot": "snapshots/lane/agy-live-usage-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(dispatch): enforce agy live output and recovery boundaries"
+    },
+    {
+      "branch": "lane/agy-live-usage-tests-20260908",
+      "commit": "3a0b2fea051895a609c69e073587cbcd344a9fd1",
+      "tree": "2cf7aaef4c37f011a9a81354df2eecf5b6a93175",
+      "snapshot": "snapshots/lane/agy-live-usage-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: pin live agy step_update output-cap"
+    },
+    {
+      "branch": "lane/agy-native-reader-fix-20260908",
+      "commit": "68a67ffae3746d8da9774fe5f8786b2a1581f4ab",
+      "tree": "02eefb3b456ac47a4d5f3016588ccc0bf84b6b8d",
+      "snapshot": "snapshots/lane/agy-native-reader-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(dispatch): accept measured agy planner transcript payload"
+    },
+    {
+      "branch": "lane/agy-native-regression-tests-20260908",
+      "commit": "de5638ff8dd16a55644db719ff7e6d4a45ee0b75",
+      "tree": "2c66bdb39c3626124e314969cf1ce653a0e6e201",
+      "snapshot": "snapshots/lane/agy-native-regression-tests-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: pin agy native transcript seam regressions"
+    },
+    {
+      "branch": "lane/agy-portable-fixture-fix-20260908",
+      "commit": "44e2135b2799a704ab212fee90c46d955ad41480",
+      "tree": "9d8fad163b9f7ba8600beecd899da6af9397221e",
+      "snapshot": "snapshots/lane/agy-portable-fixture-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fixtures: copy laneconf.py in symfony-app scratch"
+    },
+    {
+      "branch": "lane/agy-probe-selection-fix-20260908",
+      "commit": "81d36411d0767e5673b0230270b8e313a8e334fe",
+      "tree": "94e20277fe6128b91363dab6f8023afbf4e73065",
+      "snapshot": "snapshots/lane/agy-probe-selection-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(harness): probe the configured agy worker executable"
+    },
+    {
+      "branch": "lane/agy-regression-final-fix-20260908",
+      "commit": "6992ead63aa606893d8776e06d994a65de8c6f45",
+      "tree": "d5ab1e096aed58723f171927cdf223d2890855f8",
+      "snapshot": "snapshots/lane/agy-regression-final-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260908T093620Z-review-claude-a5757c"
+    },
+    {
+      "branch": "lane/agy-runtime-ruling-fix-20260908",
+      "commit": "1e1495a2a37283d2d93c4f9e006b7bc5f1c5ef94",
+      "tree": "a89db86991f3430b210ab7ca8cd26bc79aeace4a",
+      "snapshot": "snapshots/lane/agy-runtime-ruling-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(dispatch): retain agy binding and historical model evidence"
+    },
+    {
+      "branch": "lane/agy-terminal-test-fix-20260908",
+      "commit": "329e476193f19754605b4b9dac766de326fd5bea",
+      "tree": "8ff96b73c28ab926cf78c8a7cacbdf82b95e7b61",
+      "snapshot": "snapshots/lane/agy-terminal-test-fix-20260908",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: pin complete-terminal live_output to terminal tokens"
+    },
+    {
+      "branch": "lane/audit-enforcement-20260910",
+      "commit": "106defa57a3f74d3e7cb236f1edf714ba19cbd5e",
+      "tree": "37afd7128933d03dd937904f06f5fd2521dc6c34",
+      "snapshot": "snapshots/lane/audit-enforcement-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "records: retain stopped audit-recovery attempts"
+    },
+    {
+      "branch": "lane/check-tests-json",
+      "commit": "fe2e474b4e56e43df694b8469a496f33ad3f4f32",
+      "tree": "1796b9628f946cc4163c3528b8eda86ee0a7f1e0",
+      "snapshot": "snapshots/lane/check-tests-json",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "task: recognize write paths by instruction shape"
+    },
+    {
+      "branch": "lane/conduct-adapter-adjudication-20260906",
+      "commit": "f34bb3a3a7040d91e5447190a9edb83ab228a8d2",
+      "tree": "30d1a889a686a2a4319ea3db448f5366eb186fe7",
+      "snapshot": "snapshots/lane/conduct-adapter-adjudication-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T134626Z-review-grok-9781b7"
+    },
+    {
+      "branch": "lane/conduct-adapter-tests-20260906",
+      "commit": "a11a0ff2a8615e6a7ba70ace4d3868bd388a1654",
+      "tree": "7873afbf6fc12a63e724460b86b5305ec07130ac",
+      "snapshot": "snapshots/lane/conduct-adapter-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T143449Z-tests-grok-399902"
+    },
+    {
+      "branch": "lane/conduct-canonical-tests-20260906",
+      "commit": "4aea8db7eee5f0b430e5360d21a1e8964a47fce3",
+      "tree": "1b16408d31d13f098e385f10aa1b4e251bb8f3f3",
+      "snapshot": "snapshots/lane/conduct-canonical-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T144053Z-tests-grok-5609b5"
+    },
+    {
+      "branch": "lane/conduct-coupling-reconciliation-20260906",
+      "commit": "c6a82081f2282f6c654d851050c2ac5988efcd38",
+      "tree": "1b684883419aec5602174a4c23e3026ace7796b4",
+      "snapshot": "snapshots/lane/conduct-coupling-reconciliation-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T144214Z-plan-codex-3a3d35"
+    },
+    {
+      "branch": "lane/conduct-discovery-20260906",
+      "commit": "5344185082d169a3f427bcd553db48d73089f231",
+      "tree": "87294d142787b5567dc1df7df57e1d3308441c54",
+      "snapshot": "snapshots/lane/conduct-discovery-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T113102Z-plan-codex-dfa30a"
+    },
+    {
+      "branch": "lane/conduct-discovery-final-tests-20260906",
+      "commit": "e86d5052d504fd29294da9e70cadd36c1de4045a",
+      "tree": "77af9a868442b22d9811ba21e56ceb2ae0bed952",
+      "snapshot": "snapshots/lane/conduct-discovery-final-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T142225Z-review-claude-beda5d"
+    },
+    {
+      "branch": "lane/conduct-discovery-runtime-fix-20260906",
+      "commit": "0523fe40a100ba2bc1d6a1ec79ee2f9401875a9b",
+      "tree": "1daa6739484e8daaa986f2014e31379e41b7107b",
+      "snapshot": "snapshots/lane/conduct-discovery-runtime-fix-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T144012Z-code-codex-db74db"
+    },
+    {
+      "branch": "lane/conduct-first-start-adjudication-20260906",
+      "commit": "3f2302e6b7db7d96d8cc00365623d3fb36f9c590",
+      "tree": "8126896803550acb054f861fcecc84075f9ac629",
+      "snapshot": "snapshots/lane/conduct-first-start-adjudication-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T141233Z-adjudicate-grok-b63332"
+    },
+    {
+      "branch": "lane/conduct-message-tests-20260906",
+      "commit": "f6a168bb58c338bc9d0a46b4277a64c88e06125a",
+      "tree": "248d560b228d77f595e2114c09ff7b2ae61a8855",
+      "snapshot": "snapshots/lane/conduct-message-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T144052Z-tests-grok-58f1a1"
+    },
+    {
+      "branch": "lane/conduct-policy-code-20260906",
+      "commit": "0e8113adc1d1633ba4e3392c50fefd97a902fb42",
+      "tree": "8f089f20eff1e81c6cbbb3b66e836bdb1730562c",
+      "snapshot": "snapshots/lane/conduct-policy-code-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T132741Z-code-codex-b5b12f"
+    },
+    {
+      "branch": "lane/conduct-policy-code-adjudication-20260906",
+      "commit": "3d7116ff686f3391d43fd9992c4de4e9c8cc235e",
+      "tree": "90065a14cadc86c2c089f2682c305fc4fce6f16f",
+      "snapshot": "snapshots/lane/conduct-policy-code-adjudication-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T140250Z-adjudicate-claude-53800b"
+    },
+    {
+      "branch": "lane/conduct-policy-source-ruling-20260906",
+      "commit": "c945d3ffa79c3e412a1d42d771bf85db5d0d25da",
+      "tree": "7cb6c0ddadf48696e4341084b85aca215c7eb650",
+      "snapshot": "snapshots/lane/conduct-policy-source-ruling-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T141942Z-adjudicate-grok-cbd807"
+    },
+    {
+      "branch": "lane/conduct-policy-tests-20260906",
+      "commit": "4019372b3a156c6f037c0285fe4970a3f9bd372c",
+      "tree": "2349733094395706b55c3487a1a46a5d4405a1a6",
+      "snapshot": "snapshots/lane/conduct-policy-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T131717Z-review-claude-dcc427"
+    },
+    {
+      "branch": "lane/conduct-relay-contract-20260906",
+      "commit": "225c3d971e8605c3c45b0a0636d3992f7fda071a",
+      "tree": "f5ee699d37a0535207be634850b6280fcf657c22",
+      "snapshot": "snapshots/lane/conduct-relay-contract-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T133243Z-review-claude-706ce7"
+    },
+    {
+      "branch": "lane/conduct-start-adjudication-20260906",
+      "commit": "cd403779c9327bd302c4e785722f993a799b07a5",
+      "tree": "58fbc0e90354511028345313d8312be41668f101",
+      "snapshot": "snapshots/lane/conduct-start-adjudication-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T135356Z-review-grok-3ab629"
+    },
+    {
+      "branch": "lane/conduct-start-coupling-20260906",
+      "commit": "3fb6e7bb33b4f906f593cd482fcdf7fa4da8a4c4",
+      "tree": "4f74ff52ccb959e526a786edc256b4b34bf1c20a",
+      "snapshot": "snapshots/lane/conduct-start-coupling-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T140355Z-plan-codex-eccead"
+    },
+    {
+      "branch": "lane/conduct-start-tests-20260906",
+      "commit": "3084717358957f0a304eae89ca580fb3c08c12d5",
+      "tree": "92485c4a00570f2cc176e341e826e5f4c22b3e76",
+      "snapshot": "snapshots/lane/conduct-start-tests-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T141232Z-review-claude-46704f"
+    },
+    {
+      "branch": "lane/conduct-start-tests-adjudication-20260906",
+      "commit": "14ac3dba13386c06e1cf595db79e34fd0258639b",
+      "tree": "824edcf89022f7903321efb38a0a76f97c7cd149",
+      "snapshot": "snapshots/lane/conduct-start-tests-adjudication-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T142818Z-adjudicate-codex-0f1da2"
+    },
+    {
+      "branch": "lane/context-contracts",
+      "commit": "67b70f3841fc0dea11e1ab4727c0fcde392df2cc",
+      "tree": "1ec161140e21702949e7e98f4a0d2445e5f8c072",
+      "snapshot": "snapshots/lane/context-contracts",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260904T162448Z-plan-grok-d5892c"
+    },
+    {
+      "branch": "lane/dispatch-job-scratch",
+      "commit": "4ac034b4d1816ead6e3051e1d0c836a3c867fdf0",
+      "tree": "3466e6a08c39424f928f1497a39f5cb2d8c0cd69",
+      "snapshot": "snapshots/lane/dispatch-job-scratch",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "ladder: keep the scope and plan inside the worktree"
+    },
+    {
+      "branch": "lane/effort-per-role",
+      "commit": "1c065bca20a3ddb9f63a7d2d49575751a2959cb7",
+      "tree": "e351ad3dc22fe5c65f8cda9376df28c4413acd08",
+      "snapshot": "snapshots/lane/effort-per-role",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260903T222621Z-code-grok-7f3024"
+    },
+    {
+      "branch": "lane/finding-admission-20260909",
+      "commit": "5d4f71170f206606b15fa59ab8aec05a9e08e8fc",
+      "tree": "8b6599a81eb35b0cc29c194e04b822e24c8658c2",
+      "snapshot": "snapshots/lane/finding-admission-20260909",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260910T014425Z-tests-grok-46f153"
+    },
+    {
+      "branch": "lane/fixture-audit",
+      "commit": "75dfd065892200a91d36c18b8e4bcc55aa2ed4ee",
+      "tree": "a58d2ce78203c978d81f205f1e28b8f980e2bb21",
+      "snapshot": "snapshots/lane/fixture-audit",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260904T112410Z-review-grok-dcb722"
+    },
+    {
+      "branch": "lane/fixture-fix",
+      "commit": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+      "tree": "0becfac6ad206c904bb69675db1a81397bcf7800",
+      "snapshot": "snapshots/lane/fixture-fix",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260904T125539Z-review-codex-113849"
+    },
+    {
+      "branch": "lane/fixture-fix-2",
+      "commit": "d42ffb10eab9a113d43632bfd4cce21ff08244da",
+      "tree": "f10e5b88c39c14b2fed6f5ea4a16b8da42010d0e",
+      "snapshot": "snapshots/lane/fixture-fix-2",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "ladder: keep the scope and plan inside the worktree"
+    },
+    {
+      "branch": "lane/ladder-audit",
+      "commit": "69a63854e54b3dc30a8464857c4cd9a03ca03254",
+      "tree": "e1f24d9cd23ac39db079dd9f79256fe1381c0e52",
+      "snapshot": "snapshots/lane/ladder-audit",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260904T103338Z-review-grok-4f123e"
+    },
+    {
+      "branch": "lane/noguess",
+      "commit": "fae493fecbad4c9b88ae1fd250ebaca7ed3cb23f",
+      "tree": "cc30875442ebe6c9dadee0f1e3995d02cd17beac",
+      "snapshot": "snapshots/lane/noguess",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "ladder: record 20260904T164941Z-ladder-334f07"
+    },
+    {
+      "branch": "lane/onboarding-completion-20260909",
+      "commit": "1c792109f2cae83f0020065fba0f689a950446d4",
+      "tree": "78c812a21ea5518b7f20bc8c48458a83e525b027",
+      "snapshot": "snapshots/lane/onboarding-completion-20260909",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "onboarding: record failed delivery and stopped-work handoff"
+    },
+    {
+      "branch": "lane/onboarding-contract-20260910",
+      "commit": "7c2373c09a80c9a673da2e28cd2a4c12dc895294",
+      "tree": "a6e30d45cbe66ae72a844980de2461693dc63c60",
+      "snapshot": "snapshots/lane/onboarding-contract-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260910T010956Z-code-codex-cedae4"
+    },
+    {
+      "branch": "lane/onboarding-discovery-20260910",
+      "commit": "9ac5685fabeaf9b88e021bb8e4800ce855b90249",
+      "tree": "69e23040dc15fc29e0cb950a3a16db3fdb3be8b4",
+      "snapshot": "snapshots/lane/onboarding-discovery-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260910T001358Z-code-codex-6d01cf after attempt 2"
+    },
+    {
+      "branch": "lane/onboarding-discovery-tests-20260910",
+      "commit": "31fff00f03a430644b6164112d4c4774519c4446",
+      "tree": "bf4adb0ec049d746a17a38bf71572d1a4d064305",
+      "snapshot": "snapshots/lane/onboarding-discovery-tests-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "lane: recover independent discovery tests for onboarding completion"
+    },
+    {
+      "branch": "lane/onboarding-policy-20260910",
+      "commit": "ad0b6b90f7891206b0fe395ca0573fd5afdc2646",
+      "tree": "b45823cc915757fc1a6fea1e55d839c3e0f3264a",
+      "snapshot": "snapshots/lane/onboarding-policy-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260910T001531Z-code-codex-b9d9bc after attempt 2"
+    },
+    {
+      "branch": "lane/onboarding-policy-tests-20260910",
+      "commit": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+      "tree": "11a8f99421d8b5fdb8135ece3acc8e7eedcaa766",
+      "snapshot": "snapshots/lane/onboarding-policy-tests-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "lane: recover independent policy tests for onboarding completion"
+    },
+    {
+      "branch": "lane/record-wall",
+      "commit": "69e2b05d62262c681a11b277b2c7764087b25195",
+      "tree": "06e100b889c5d8b6b042b806089296538f82e258",
+      "snapshot": "snapshots/lane/record-wall",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "ladder: record 20260904T114835Z-ladder-3d3c79"
+    },
+    {
+      "branch": "lane/security-resume-binding-20260904",
+      "commit": "6d004e24a43c4add0d64473e470ec65e69771f9a",
+      "tree": "528c8f1a82995b04aab72a6285d20cb999d247ac",
+      "snapshot": "snapshots/lane/security-resume-binding-20260904",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260905T011510Z-code-codex-67a6c7"
+    },
+    {
+      "branch": "lane/session-20260916-i",
+      "commit": "27992e710b899881997371dfb3612f1913146955",
+      "tree": "542f5e3257a87a519f36bb9e2400050158879861",
+      "snapshot": "snapshots/lane/session-20260916-i",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260916T100458Z-review-codex-f1070f"
+    },
+    {
+      "branch": "lane/session-20260916-sweep",
+      "commit": "f7a93d884fb2c821d01268a8498d4435cb8168b0",
+      "tree": "755402bbe2fe17e197dbdc950c996c8d456e8e66",
+      "snapshot": "snapshots/lane/session-20260916-sweep",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "records: --for <assignment> is standing in the Dispatcher's launch shape (grant 279)"
+    },
+    {
+      "branch": "lane/session-20260919-skill-hooks-01a0b7596f92",
+      "commit": "39a13050f75a1ccae9c60f974d72f63ab4b5e8eb",
+      "tree": "f7286103a00f2fe14dbdc93af516aed282feda35",
+      "snapshot": "snapshots/lane/session-20260919-skill-hooks-01a0b7596f92",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(hooks): bind skill guidance to interactive source pins"
+    },
+    {
+      "branch": "lane/session-20260919-terra-01a0b759",
+      "commit": "60c8d80bbd3d834222c764139ca50667b4ed6986",
+      "tree": "02b26999296ed75998be18d883d70276c842d37c",
+      "snapshot": "snapshots/lane/session-20260919-terra-01a0b759",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "skills: pin managed telemetry boundary"
+    },
+    {
+      "branch": "lane/session-20260923-11-live-dispatch",
+      "commit": "0e970936d0afb8bd9792b43af126744574948a94",
+      "tree": "e221217fce77ec462219b976b2927e4961006af4",
+      "snapshot": "snapshots/lane/session-20260923-11-live-dispatch",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "records: A-541's eight dispositions, the export, and #281's probe rows at 43307f9d"
+    },
+    {
+      "branch": "lane/session-20260923-s3",
+      "commit": "397b2281a20c65d077f6cbd989530a43e066e828",
+      "tree": "f589fdcbcbd954db62d0c573188a21b1f7964a8f",
+      "snapshot": "snapshots/lane/session-20260923-s3",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "fix(envelope): an approve over a p1 finding is refused in validate (LD-147)"
+    },
+    {
+      "branch": "lane/session-budget",
+      "commit": "eb14e0af1615227a7695b5989fa00389859eb616",
+      "tree": "f75fb2e067eecd531fb29f67e4ce2a6e5568b187",
+      "snapshot": "snapshots/lane/session-budget",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "hooks: plant session-budget ceilings 500/400000/25"
+    },
+    {
+      "branch": "lane/watchdog-tests",
+      "commit": "574cebfb5166fb24e20d9f6f50fc288717b4ba1f",
+      "tree": "4d2dce717af6bea3389164e63f95cc2ce30e8d71",
+      "snapshot": "snapshots/lane/watchdog-tests",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "conductor: register the watchdog on the conventions refusal gate"
+    },
+    {
+      "branch": "lane/workflow",
+      "commit": "e354dac691b54a2620e574b8761bb5ffff67cefc",
+      "tree": "67e7ccb890969440dacaab1f283cb72c82216eb8",
+      "snapshot": "snapshots/lane/workflow",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "docs: I-007, two rulings seeded, the pointers, the lint rows"
+    },
+    {
+      "branch": "repair/audit-enforcement-manual-20260910",
+      "commit": "055e4488dda5b62e427e53ff681f6d7146b1ddc5",
+      "tree": "ccc93e0012311898392ef89857651206cfe08bf7",
+      "snapshot": "snapshots/repair/audit-enforcement-manual-20260910",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "records: capture audit enforcement repair AAR"
+    },
+    {
+      "branch": "repo/watchdog-review-20260904",
+      "commit": "2ddbe31a682b5bdf27bae138cc5a9f3e237f2a76",
+      "tree": "a1c6678ad260d94fc3c7cb44d0d34a641a5327b0",
+      "snapshot": "snapshots/repo/watchdog-review-20260904",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260904T230842Z-adjudicate-grok-04248c"
+    },
+    {
+      "branch": "review/pr73-merge-20260906",
+      "commit": "5279294ab1eb941149518658b915b720f8f78437",
+      "tree": "95439ab4c8233e00671347fb346805abf622903d",
+      "snapshot": "snapshots/review/pr73-merge-20260906",
+      "archived_on": "2026-09-28",
+      "state_at_consolidation": "Retired branch; original history retained without merging its code into dev.",
+      "description": "dispatch: record 20260906T092910Z-code-codex-c6ba4b"
     }
-  ]
+  ],
+  "updated_on": "2026-09-28"
 }

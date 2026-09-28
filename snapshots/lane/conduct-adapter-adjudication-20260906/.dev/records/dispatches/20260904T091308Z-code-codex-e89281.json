@@ -1,0 +1,313 @@
+{
+  "id": "20260904T091308Z-code-codex-e89281",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/ladder-driver",
+  "lineage": {
+    "branch": "lane/ladder-driver",
+    "base_sha": "a36c2a004bf5a276b9b9b819b9e35c4b1aed4cc7"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:13:09Z",
+    "closed": "2026-09-04T09:36:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a36c2a004bf5a276b9b9b819b9e35c4b1aed4cc7",
+    "ref_sha": "a36c2a004bf5a276b9b9b819b9e35c4b1aed4cc7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-13-09-01a06bb1-7f31-7800-8e3c-d09e495f5f61.jsonl"
+  },
+  "session": {
+    "id": "01a06bb1-7f31-7800-8e3c-d09e495f5f61",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-13-09-01a06bb1-7f31-7800-8e3c-d09e495f5f61.jsonl",
+    "stream_sha256_at_close": "b2b4e2b07fc50d430ba80f18ee9a64eb57a51a44c0a9df3ded3a11518810e5e4",
+    "spend": {
+      "input": 6460695,
+      "cached": 6276864,
+      "output": 63389,
+      "total": 6524084,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-13-09-01a06bb1-7f31-7800-8e3c-d09e495f5f61.jsonl",
+      "messages": 447
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "bash ops/bin/suites.sh && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T091308Z-code-codex-e89281/in/contract-ladder-driver-B.md",
+        "sha256": "56ae9b4ba836218aa2da37541ea2ce6d0e1ea53a4dc294d275d12acd0e4e45b4"
+      }
+    ],
+    "sha256": "669ee1304a6f0eaec6e98c383a7504ebbe37571568c0ef4d08834cf304484b36",
+    "bytes": 3885
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:13:09Z",
+      "ended": "2026-09-04T09:36:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cb3be20b2dce4dc0e561d82a07a553c8501c03d8",
+    "changed_paths": [
+      "ops/README.md",
+      "ops/bin/ladder.sh",
+      "ops/conductor/README.md",
+      "ops/conductor/tools/ladder.py",
+      "ruff.toml"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 2,
+        "p2": 0,
+        "p3": 22,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository contracts",
+          "claim": "Confirmed HEAD was a36c2a004bf5a276b9b9b819b9e35c4b1aed4cc7, the initial worktree was clean, and read docs/ plus ops/README.md.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short; rg --files docs | sort; read every listed document and ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "initial verification",
+          "claim": "The original named command exited 1 with 41 ladder-driver failures; preceding suites passed.",
+          "reproduce": "bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Repository history showed ladder.py was an intentional configuration-only placeholder and ops/bin/ladder.sh was absent.",
+          "reproduce": "git status --short; git log --oneline --decorate -8; rg -n 'laneconf|ladder\\.sh|ladder\\.py' ops/conductor ops/bin; git show HEAD -- ops/conductor/tools/ladder.py ops/bin/ladder.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/ladder-lever.md",
+          "claim": "Read the ladder, conductor, land, and related contract surfaces before implementation.",
+          "reproduce": "sed -n '1,$p' ops/conductor/README.md ops/conductor/ladder-lever.md ops/conductor/land-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py:1",
+          "claim": "Read the first acceptance-fixture section, including dispatch, wait, land, findings, and gh doubles.",
+          "reproduce": "sed -n '1,850p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py:851",
+          "claim": "Read fixture setup, scratch-worktree isolation, assertions, refusals, dry-run, and primary workflow cases.",
+          "reproduce": "sed -n '851,1700p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py:2150",
+          "claim": "The recovered-trip fixture writes an accepted tests envelope with artifacts={} but expects the ladder to reach a PR, contradicting the same suite and contract requirement that no test artifact must stop as artifacts.",
+          "reproduce": "sed -n '1701,2400p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "conductor interfaces",
+          "claim": "Read instrument conventions, lane-conf driver tests, dispatcher behavior, findings CLI surface, lane-conf API, and relevant job declarations.",
+          "reproduce": "sed -n '1,$p' ops/conductor/instrument-conventions.md; sed -n '820,940p' ops/conductor/tests/test_laneconf.py; sed -n '1,$p' ops/conductor/tools/dispatch.sh; inspect relevant findings.py, laneconf.py, and jobs.json entries"
+        },
+        {
+          "severity": "p3",
+          "where": "implementation dependencies",
+          "claim": "Read laneconf parsing, findings import/export, land behavior, Ruff policy, and existing shim patterns.",
+          "reproduce": "sed -n '105,215p' ops/conductor/tools/laneconf.py; sed -n '130,290p' ops/conductor/tools/findings.py; sed -n '1,220p' ops/conductor/tools/land.py; sed -n '1,180p' ruff.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "first static check",
+          "claim": "chmod made the new shim executable; Ruff then found one import-order issue.",
+          "reproduce": "chmod +x ops/bin/ladder.sh; ruff check .; git diff --check; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "first focused verification",
+          "claim": "Ruff fixed the import order, all lint passed, and the focused suite reduced from 41 to five failures.",
+          "reproduce": "ruff check --fix ops/conductor/tools/ladder.py; ruff check .; git diff --check; python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "repository refs",
+          "claim": "No branch or unreachable commit contained a later ladder implementation to reuse.",
+          "reproduce": "git branch --all --no-color; git log --all --oneline --decorate -- ops/conductor/tools/ladder.py ops/bin/ladder.sh; git fsck --no-reflogs --unreachable"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-ladder-driver-B.md",
+          "claim": "Located and began reading the sole dispatch input named by the brief.",
+          "reproduce": "rg --files ../in | sort; sed -n '1,$p' ../in/contract-ladder-driver-B.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-ladder-driver-B.md:140",
+          "claim": "Read the plan\u2019s configuration, stage-table, and resume requirements.",
+          "reproduce": "wc -l ../in/contract-ladder-driver-B.md; sed -n '140,360p' ../in/contract-ladder-driver-B.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-ladder-driver-B.md:361",
+          "claim": "Completed the input, including guarantees, acceptance mapping, required documentation, and skeptic findings.",
+          "reproduce": "sed -n '361,660p' ../in/contract-ladder-driver-B.md"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py:306",
+          "claim": "The stub labels every security-audit after any prior security call as security-re, while three resume tests require the refused security call and its retry both to be named security; the retry therefore evades refuse_stages=['security'].",
+          "reproduce": "git blame -L 2050,2170 -- ops/conductor/tests/test_ladder_lever.py; git log -p -3 -- ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "CONTRIB.md and lane-conf closure",
+          "claim": "Read the required PR-body template; the first closure run exposed that static closure requires direct laneconf.get reads for the four driver keys.",
+          "reproduce": "sed -n '1,$p' CONTRIB.md; rg -n 'ladder|tools/|Levers|levers' ops/README.md ops/conductor/README.md; python3 ops/conductor/tools/laneconf.py closure; python3 ops/conductor/tools/laneconf.py literals"
+        },
+        {
+          "severity": "p3",
+          "where": "post-implementation static gates",
+          "claim": "Ruff, diff whitespace, lane-conf closure, and literal checks all passed after correction.",
+          "reproduce": "ruff check .; git diff --check; python3 ops/conductor/tools/laneconf.py closure; python3 ops/conductor/tools/laneconf.py literals; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The requested commit was attempted but the sandbox refused creation of .git/index.lock because the filesystem is read-only.",
+          "reproduce": "git add ops/conductor/tools/ladder.py && git commit -m 'conductor: implement the audit ladder driver' -m 'Source: original' -m 'Co-Authored-By: GPT-5.6 Codex <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "focused ladder verification",
+          "claim": "The focused suite ran 41 tests and isolated the four contradictory resume failures.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "conductor static and compatibility gates",
+          "claim": "Ruff, diff whitespace, lane-conf closure/literals, instrument conventions, and all 37 lane-conf/convention tests passed.",
+          "reproduce": "ruff check .; git diff --check; python3 ops/conductor/tools/laneconf.py closure; python3 ops/conductor/tools/laneconf.py literals; python3 -m unittest ops.conductor.tests.test_instrument_conventions ops.conductor.tests.test_laneconf"
+        },
+        {
+          "severity": "p3",
+          "where": "final diff boundary",
+          "claim": "The final diff changes only the ladder implementation, executable shim, two documentation rows, and its file-scoped Ruff allowance; no test or suites.sh file changed.",
+          "reproduce": "git diff --stat; git diff --summary; git diff --check; git status --short; git diff --name-only -- '**/tests/**' ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "final named command",
+          "claim": "The final named command exited 1: every suite outside conductor passed, while conductor retained exactly four resume failures.",
+          "reproduce": "bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "final tree integrity",
+          "claim": "Standalone Ruff and diff checks pass; HEAD remains the requested ref, ladder.sh is executable, and out/COMMIT_MSG is present.",
+          "reproduce": "ruff check .; git diff --check; git rev-parse HEAD; git status --short; stat -c '%A %n' ops/bin/ladder.sh; sha256sum ../out/COMMIT_MSG; date --utc --iso-8601=seconds"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/ladder.py",
+        "shim": "ops/bin/ladder.sh",
+        "operator_documentation": "ops/README.md",
+        "conductor_documentation": "ops/conductor/README.md",
+        "lint_configuration": "ruff.toml",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 6524084,
+        "out": 63389,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a36c2a004bf5a276b9b9b819b9e35c4b1aed4cc7",
+        "started": null,
+        "ended": "2026-09-04T09:34:48+00:00"
+      },
+      "note": "The final status is invalid because the named command does not exit 0. Failing tests: test_ladder_lever.RefusalAndResume.test_a_second_refusal_on_resume_stops_retry_cap_at_exactly_two_calls; test_ladder_lever.RefusalAndResume.test_resume_relaunches_security_once_and_continues_to_the_pr; test_ladder_lever.RefusalAndResume.test_resume_uses_the_named_record_not_the_newest; test_ladder_lever.TripAndResume.test_resume_after_a_closed_ok_record_lands_without_a_relaunch. I followed the contract directly: I did not mutate the fixture\u2019s private plant.json to rename retry calls, invent a test command from an envelope declaring no artifacts, or edit prohibited test files. Follow-up: pre-existing ResourceWarnings report running subprocesses in dispatch/telemetry and an unclosed file in task; they were not changed. The sandbox denied git commit, so the launcher message is in out/COMMIT_MSG.",
+      "commit": {
+        "subject": "conductor: implement the audit ladder driver",
+        "body": "Run the declared workflow through the branch worktree's existing dispatch, wait, land, findings, and pull-request levers. Persist every transition, selection, custody, lineage, attribution, calibration, and stop result for named resume, and expose it through the operator shim and lane documentation.\n\nSource: original\nCo-Authored-By: GPT-5.6 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T09:36:21.322Z"
+    }
+  },
+  "status": "closed"
+}

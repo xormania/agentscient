@@ -1,0 +1,156 @@
+{
+  "id": "20260904T095518Z-code-grok-daacb1",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/ladder-driver",
+  "lineage": {
+    "branch": "lane/ladder-driver",
+    "base_sha": "23641eef251cd3572042e77c3aea829bf843b534"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:55:19Z",
+    "closed": "2026-09-04T10:09:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "23641eef251cd3572042e77c3aea829bf843b534",
+    "ref_sha": "23641eef251cd3572042e77c3aea829bf843b534",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f477c8da-6c78-435c-8e11-db41de4bb702",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok-stream/sessions/<snapshot-encoded>/f477c8da-6c78-435c-8e11-db41de4bb702/summary.json"
+  },
+  "session": {
+    "id": "f477c8da-6c78-435c-8e11-db41de4bb702",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok-stream/sessions/<snapshot-encoded>/f477c8da-6c78-435c-8e11-db41de4bb702/summary.json",
+    "stream_sha256_at_close": "74d48915afd9cce7d2cb9a77bad313da04bd90e0458c2e6238fd39e6f653e5ec",
+    "spend": {
+      "input": 3474806,
+      "cached": 3127424,
+      "output": 43937,
+      "total": 3518743,
+      "cost_usd_ticks": 4287566600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/home/grok-stream/sessions/<snapshot-encoded>/f477c8da-6c78-435c-8e11-db41de4bb702/summary.json",
+      "messages": 249
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch, unit 2 (the ladder driver), the second fix round on the tests, from the adjudication appended to the input file: all four disputed resume tests were ruled UPHELD as fixture defects, with two surgical repairs named (A: the stub's logical_name() stops calling a retry of stage 5 security-re; B: close_tripped_record() plants the same two test artifacts as a live stage-1 close); apply both exactly. Then pin the five things both sides missed as new red tests against the driver landed at this ref: M1 the retry cap is not a cap (a second refusal on resume must stop with retry-cap and no third launch), M2 the naming defect beyond stage 5, M3 retry-cap labelling only mint refusals, M4 an unexpected error escaping as a traceback instead of exit 3 on the wire, M5 the derived command filtering on the directory rather than the file. Do not edit the driver. One commit per file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095518Z-code-grok-daacb1/in/contract-ladder-driver-fix2.md",
+        "sha256": "bdc31bc6315bdd979da67d8b43a0141dc4d7b6a123dfd9a134a31731b4e7f411"
+      }
+    ],
+    "sha256": "78eb94f30979009a50840dcff32484872d4a48a53705b4e72ce9efa2e21fbd35",
+    "bytes": 3237
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:55:19Z",
+      "ended": "2026-09-04T10:09:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "14eafcc6bfc34ff3c7488d200c5d6e267fa0fd7b",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3518743,
+        "out": 43937,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "23641eef251cd3572042e77c3aea829bf843b534",
+        "started": "2026-09-04T10:02:38Z",
+        "ended": "2026-09-04T10:09:03Z"
+      },
+      "note": "Applied fixture repairs A and B in ops/conductor/tests/test_ladder_lever.py. The four disputed resume tests failed as ruled at 23641eef (security retry named security-re; closed trip envelope had artifacts {}), then passed after A and B. Implement retries now name from minted records so a code retry is not a second bucket. Pinned M1 (third resume after retry-cap still launches and opens a PR), M3 (second trip stops as reason=tripped), M4 (silent gh exits 1 with IndexError traceback), and M5 (package-layout test_relay.py dropped as artifacts; SKEPTIC.md becomes a discover -p) as red tests against the driver. M2 failed under call-based implement naming and passed after the records-based class repair. Commit 14eafcc6bfc34ff3c7488d200c5d6e267fa0fd7b; python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py at that commit: 47 collected, 5 failed, 0 errors. Driver not read and not edited. ruff check ops/conductor/tests/test_ladder_lever.py clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "phase_changed",
+      "at": "2026-09-04T10:09:24.989Z"
+    }
+  },
+  "status": "closed"
+}

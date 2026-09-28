@@ -1,0 +1,176 @@
+{
+  "id": "20260906T115721Z-plan-codex-52cd87",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-launcher-20260906",
+  "lineage": {
+    "branch": "lane/conduct-launcher-20260906",
+    "base_sha": "6468cc36bc01282bc4dc259dfe39d6368c8702f9"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T11:57:21Z",
+    "closed": "2026-09-06T12:07:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6468cc36bc01282bc4dc259dfe39d6368c8702f9",
+    "ref_sha": "6468cc36bc01282bc4dc259dfe39d6368c8702f9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-57-22-01a07694-8f59-7091-828f-622cbff9f1f2.jsonl"
+  },
+  "session": {
+    "id": "01a07694-8f59-7091-828f-622cbff9f1f2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-57-22-01a07694-8f59-7091-828f-622cbff9f1f2.jsonl",
+    "stream_sha256_at_close": "2f3894b203bdff5c436fa11441e110c2cc77264f69e90f6fbb55fe11f6ef11cb",
+    "spend": {
+      "input": 4566367,
+      "cached": 4348672,
+      "output": 12828,
+      "total": 4579195,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-57-22-01a07694-8f59-7091-828f-622cbff9f1f2.jsonl",
+      "messages": 239
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-launcher-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Resolve Codex 0.153.4 native prerequisites from the supplied feasibility/probe-path reports. This is targeted source research, not another launcher plan. Read governing instructions and local installed evidence first; then use only official OpenAI documentation or openai/codex source matching the installed build. Read-only public network research is authorized. Determine the exact hook state-key/trusted_hash derivation, supported normalizer tool-name/matcher inventory, fail-closed native hook behavior, and native filesystem/environment controls separating tool descendants from real authentication. Give exact version/source refs, algorithms or minimal supported examples, and unmeasured obligations. No model launches, parser processes that write, credential inspection, host/global config changes, bypass flags, alternate executor, admission or tracked edits. If matching source is inaccessible, identify the exact missing evidence and safe canonical parser observation needed. Inline report only; no PLAN.md.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/in/ag-conduct-harness-feasibility.json",
+        "sha256": "5286a82fafa609e873f42e3e564b945cce37579bdbcfbabecb02c7169f9c232b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/in/ag-conduct-codex-probe-path.json",
+        "sha256": "f1a9daaf1f0daa7258d3cc3e4552bcef94433ea3d333534499b7705082269f41"
+      }
+    ],
+    "sha256": "5e2e077e7119cd662c13362a828e19506149d9ea394929d9002cd762214c5a63",
+    "bytes": 3324
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T11:57:21Z",
+      "ended": "2026-09-06T12:07:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6468cc36bc01282bc4dc259dfe39d6368c8702f9",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:157-164",
+          "claim": "Native-hook feasibility blocker: the contract requires missing or malformed decisions to block execution. Codex 0.153.4 PreToolUse instead initializes should_block=false and preserves it on execution errors, malformed JSON, unsupported responses, abnormal exit and exit 2 without a reason. Its tests explicitly assert fail-open behavior. The core continues when should_block is false. Ordinary hook trust cannot repair this runtime behavior. This is a source-established incompatibility of the proposed prerequisite, not an exploit introduced by this diff.",
+          "reproduce": "Read parse_completed and its tests in [tagged PreToolUse source](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/hooks/src/events/pre_tool_use.rs), then run_pre_tool_use_hooks in [core hook runtime](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/hook_runtime.rs). Both are from release commit 3d2ee51ca2d5db578f328aa75e20aa22c0197c9a. No runtime probe was executed."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/harness-capabilities.md:189-195",
+          "claim": "Complete-interception blocker: the contract requires every effective tool surface before effects. WriteStdinHandler explicitly returns None from pre_tool_use_payload for both polling and nonempty input. An approved interactive process can therefore receive subsequent instructions without another PreToolUse decision. A matcher named write_stdin cannot close this gap. Code-mode wait also opts out, while outer code-mode exec uses a Custom payload outside the default Function hook path. These exceptions must be reflected in the capability disposition.",
+          "reproduce": "Read CoreToolRuntime implementations in [write_stdin.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/handlers/unified_exec/write_stdin.rs), [wait_handler.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/code_mode/wait_handler.rs), and [execute_handler.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/code_mode/execute_handler.rs); compare the default pre_tool_use_payload implementation in [registry.rs](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/core/src/tools/registry.rs)."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:137-140,157-159",
+          "claim": "Normalizer-information blocker: the required executable/cwd/environment identity cannot be established from the native Bash hook payload alone. ExecCommandHandler supplies only {command: args.cmd}; execution separately resolves workdir and environment_id. Hook cwd is the turn cwd. Different execution contexts can therefore produce the same hook input. The prerequisite needs independently enforced context restrictions or additional verified native evidence; interpreting hook cwd as the actual command working directory is unsound.",
+          "reproduce": "Compare pre_tool_use_payload at source lines 484-492 with handle_call's environment/workdir resolution in [exec_command.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs), and PreToolUseRequest construction at lines 182-195 in [hook_runtime.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/hook_runtime.rs)."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/context/diff.patch",
+        "feasibility": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/in/ag-conduct-harness-feasibility.json",
+        "probe_path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115721Z-plan-codex-52cd87/in/ag-conduct-codex-probe-path.json"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4579195,
+        "out": 12828,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6468cc36bc01282bc4dc259dfe39d6368c8702f9",
+        "started": "2026-09-06T11:57:35Z",
+        "ended": "2026-09-06T12:05:18Z"
+      },
+      "note": "Targeted research completed. Ordinary trust derivation is resolved from release source; native hooks alone do not satisfy the declared enforcement boundary. Findings identify prerequisite incompatibilities, not newly introduced runtime regressions. This review does not approve the unrelated discovery/task implementation.\n\nBoth supplied input files were read whole, following the governing instructions and founding documents. The supplied diff equals git diff 710dbac38c3b187eb4b3302308430c0a6dec4d76 6468cc36bc01282bc4dc259dfe39d6368c8702f9 byte-for-byte: 615713 bytes, SHA256 b135b3680307d7bda318fdbab2771edd63290445d5118bccfb6651678d386df1. git diff --check passed; final git status --short was empty.\n\nInstalled identity: readlink resolves /home/scientdb/.local/bin/codex to /home/scientdb/.codex/packages/standalone/releases/0.153.4-x86_64-unknown-linux-musl/bin/codex. codex-package.json declares version 0.153.4 and target x86_64-unknown-linux-musl. The 258659424-byte executable hashes to 56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da, matching both reports. The [official release](https://github.com/openai/codex/releases/tag/rust-v0.153.4) points to 3d2ee51ca2d5db578f328aa75e20aa22c0197c9a. All implementation references below use that commit or its rust-v0.153.4 tag, never main. Package metadata and release mapping establish version correspondence; a reproducible-build or release-asset attestation binding this executable to that source was not verified. Local binary strings corroborate the hook diagnostics, normalized-identity serialization and environment/filter fields.\n\nPersisted hook state key: key_source + ':' + snake_case_event + ':' + zero_based_group_index + ':' + zero_based_handler_index. For an ordinary hooks.json source, key_source is its absolute source-path display string; inline TOML uses its config source path. Thus the first PreToolUse handler in /opt/probe/home/hooks.json uses /opt/probe/home/hooks.json:pre_tool_use:0:0. These are configuration indices, not run IDs. See [hook_key and event labels](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/hooks/src/lib.rs). Plugin key_source is plugin_id + ':' + source_relative_path, as established by [declarations.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/hooks/src/declarations.rs).\n\nHash normalization: select the platform command; remove commandWindows; normalize PreToolUse timeout to max(supplied-or-600,1); preserve async and statusMessage; omit additionalContextLimit when absent or equal to 2500. Clone the matcher group, replace its hooks array with this single normalized handler, retain the event-effective matcher, and flatten it beside event_name using the snake_case label. Convert that identity through toml::Value, then version_for_toml. The source path, indices and executable contents are not hash inputs. Disabled, untrusted and modified ordinary hooks are omitted from executable handlers. Managed requirements have a distinct required-load-error path; that does not change runtime failure semantics. See [discovery.rs](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/hooks/src/engine/discovery.rs).\n\nversion_for_toml converts TOML values to JSON, recursively sorts object keys, preserves array order, serializes compact JSON with serde_json::to_vec, hashes those bytes with SHA256, and returns 'sha256:' followed by lowercase hexadecimal. It does not hash textual TOML or hooks.json. See [fingerprint.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/config/src/fingerprint.rs). For the ASCII example below, the source-derived canonical bytes are {\"event_name\":\"pre_tool_use\",\"hooks\":[{\"async\":false,\"command\":\"/opt/probe/gate\",\"timeout\":5,\"type\":\"command\"}],\"matcher\":\"^Bash$\"}; an in-memory Python SHA256 calculation produced sha256:533785a55754faf7ba59e6acce6a6ea1b3a4ac1527f271f73947ca2c76f6ad2b. This is a source-derived vector, not an observed native-parser result.\n\nMinimal registration shape: hooks.json = {\"hooks\":{\"PreToolUse\":[{\"matcher\":\"^Bash$\",\"hooks\":[{\"type\":\"command\",\"command\":\"/opt/probe/gate\",\"timeout\":5,\"async\":false}]}]}}. Its corresponding config.toml state table is [hooks.state.\"/opt/probe/home/hooks.json:pre_tool_use:0:0\"] with enabled=true and trusted_hash=\"sha256:533785a55754faf7ba59e6acce6a6ea1b3a4ac1527f271f73947ca2c76f6ad2b\". The [configuration types](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/config/src/hook_config.rs) establish these fields. This example creates nothing and grants no trust; actual transport paths must determine the key. Script/interpreter contents require a separate custody digest because native definition trust does not bind them.\n\nMatcher algorithm: absent, empty and '*' match all. Patterns containing only ASCII alphanumerics, underscore and pipe use exact equality against pipe-separated alternatives. Other patterns use Rust regex::Regex::is_match, so anchors are needed for whole-name regex matching. Canonical tool names and compatibility aliases are tested. Matcher-aware events are PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, SessionStart, SessionEnd, SubagentStart and SubagentStop; UserPromptSubmit, Stop and Interrupt ignore matcher. See [common.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/hooks/src/events/common.rs). A catch-all cannot intercept a path that emits no hook.\n\nSupported naming inventory: shell-like execution uses Bash; apply_patch has matcher-only Write and Edit aliases; spawn_agent has matcher-only Agent. Hook stdin retains the canonical name. See [hook_names.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/hook_names.rs). Ordinary function tools expose parsed arguments through the default registry hook path. DynamicToolHandler inherits that path. Names outside the default namespace are flattened by concatenating namespace and name; do not infer punctuation from UI labels. See [dynamic.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/handlers/dynamic.rs) and [flat_tool_name](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/mod.rs). MCP derives its name from the canonical namespace/tool, trims boundary underscores, joins with '__', and ensures the mcp__ prefix; arguments remain MCP JSON. See [mcp.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/handlers/mcp.rs). Dynamic/plugin/MCP declarations mean there is no universal finite enabled-name list to copy from source. The actual selected inventory remains unmeasured.\n\nNested code-mode calls are converted into ordinary tool calls and submitted through handle_tool_call_with_source, so they retain the selected inner handler's hook behavior, including its exceptions. See [submit_nested_tool](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/core/src/tools/code_mode/mod.rs). Hosted tools such as WebSearch lack the local function hook path according to the [official hook coverage documentation](https://learn.chatgpt.com/docs/hooks). Neither an outer matcher nor successful inner examples prove universal interception.\n\nNative output behavior: a synchronous handler can refuse using exit 0 and {\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"fixture refusal\"}}, legacy {\"decision\":\"block\",\"reason\":\"fixture refusal\"}, or exit 2 with nonempty stderr. Empty output and {} abstain. Execution errors, malformed output and unsupported decisions do not become refusals. A missing matching handler also continues. These are source conclusions, not live control results.\n\nCorrection to the supplied reports: permissionDecision='allow' is unsupported only without updatedInput. With updatedInput it is a supported rewrite; it is not blanket approval. The output parser first parses into serde_json::Value and then into the wire type, so it supplies no explicit duplicate-member rejection pass. See [output_parser.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/hooks/src/engine/output_parser.rs). PermissionRequest errors or invalid reserved fields produce no hook decision and return to ordinary approval flow; any valid deny wins over allows. This is not universal fail-closed interception. See [permission_request.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/hooks/src/events/permission_request.rs). Also, native approval_policy='never' is reported to hooks as permission_mode='bypassPermissions'; this label does not prove sandbox bypass. Native refusal formatting can echo the rejected Bash command, so a fixed hook reason alone cannot satisfy the repository's rejected-data non-persistence obligation. Both details are explicit in core hook_runtime.rs.\n\nNative filesystem controls exist separately from hooks. Named profiles accept read/write/deny entries and scoped entries, selected through default_permissions. deny removes reads and writes; more-specific paths can reopen descendants, and equal-specificity precedence is deny, write, read. See [permissions types](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/protocol/src/permissions.rs) and [profile configuration](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/config/src/permissions_toml.rs). A minimal illustrative config is:\napproval_policy = \"never\"\ndefault_permissions = \"probe\"\nallow_login_shell = false\n[permissions.probe.filesystem]\n\":root\" = \"deny\"\n\":minimal\" = \"read\"\n\"/opt/probe/workspace\" = \"read\"\n\"/opt/probe/mock-auth\" = \"deny\"\n[permissions.probe.network]\nenabled = false\nThis is supported configuration structure, not a tested complete profile or canonical-launch invocation. Exact paths must cover actual credential targets and aliases; a relocated authentication symlink is insufficient. The [permissions guide](https://learn.chatgpt.com/docs/permissions) documents these path controls and platform restrictions.\n\nOn Linux, the tagged bwrap implementation builds a restricted filesystem using an empty root plus permitted mounts, or a root read bind when broad reads are requested. It applies unreadable masks and handles symlink targets; deny globs may require bounded pre-expansion. See [bwrap.rs](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/linux-sandbox/src/bwrap.rs). Source support does not establish active enforcement on the measured Linux 6.18.33.2-microsoft-standard-WSL2 host. Authentication can remain available to the harness parent while sandboxed tool processes receive a restricted view, but this separation must be verified for every descendant class.\n\nEnvironment controls: shell_environment_policy defaults to inherit='all' and ignore_default_excludes=true. Set inherit='none' and experimental_use_profile=false, then provide only required synthetic values through set. filters supports case-insensitive include/exclude patterns; mixing it with legacy exclude/include_only in one layer is rejected. See [shell policy configuration](https://raw.githubusercontent.com/openai/codex/rust-v0.153.4/codex-rs/config/src/shell_environment_policy.rs). Runtime order is inheritance, optional default KEY/SECRET/TOKEN exclusions, custom exclusions, explicit set, include-only filtering, thread ID insertion, and unconditional restricted-variable removal. The restricted names are CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN, NODE_REPL_AUTH_TOKEN, OPENAI_FEDERATION_RULE_ID, OPENAI_IDENTITY_TOKEN_FILE and OPENAI_WORKLOAD_IDENTITY_CONTEXT. OPENAI_API_KEY is not in that unconditional list. Removing an identity-file environment variable does not deny access to its file. See [shell_environment.rs](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/protocol/src/shell_environment.rs).\n\nHooks require separate custody: Hooks::new snapshots std::env::vars_os; command hooks replay that environment, add hook-specific values and scrub the restricted names. They spawn directly, without the shell-tool sandbox policy. The Unix fallback selects SHELL or /bin/sh with -lc. Successful hooks may leave detached helpers. Thus shell_environment_policy and allow_login_shell=false cannot be assumed to constrain hook descendants. See [registry.rs](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/hooks/src/registry.rs) and [command_runner.rs](https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/hooks/src/engine/command_runner.rs). MCP server environment, network and filesystem custody likewise need their own evidence; no universal inheritance claim is justified here.\n\nUnmeasured obligations remain: installed-parser equality for the hash vector and relocated state key; effective layered configuration and trust inventory; complete enabled tool names and payloads; shell/workdir/environment constraints; native filesystem denial across direct tools, hooks, MCP and descendants; synthetic authentication canaries; secret-free retained diagnostics; launch/resume equivalence; and independent effect, prompt and cleanup observations. The canonical transport gap in the supplied probe-path report remains present: Codex _argv does not consume flags and build_home remains credentials-only. No alternate executor is proposed.\n\nMatching source was accessible through official GitHub raw/tag/blob pages despite shell DNS failure and intermittent individual fetch failures. No substitute version was used. A later safe canonical parser observation would load the same synthetic hook/config bytes in launcher-owned disposable configuration, return discovered key/currentHash/trustStatus and effective permissions, compare this vector, relocate the source to verify key change with stable hash, and mutate a normalized field to verify trust invalidation. It must use no real authentication, model turn or hook execution, and contain all parser startup writes. That observation was not run and cannot resolve the established runtime fail-open behavior.\n\nNo model launch, Codex parser process, credential inspection, session-store read, tracked edit, host/global configuration change, bypass flag, alternate executor or admission occurred. No PLAN.md was created. Write-producing suites and live probes were not run."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T12:07:52.481Z"
+    }
+  },
+  "status": "closed"
+}

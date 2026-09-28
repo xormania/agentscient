@@ -1,0 +1,253 @@
+{
+  "id": "20260915T062358Z-tests-grok-001105",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "936c8c15539928bde9d284a543bd26a50cc0509a"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:23:58Z",
+    "closed": "2026-09-15T06:46:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "936c8c15539928bde9d284a543bd26a50cc0509a",
+    "ref_sha": "936c8c15539928bde9d284a543bd26a50cc0509a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "59a0e1f8-9f19-421f-a902-50ecd995d267",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok-stream/sessions/<snapshot-encoded>/59a0e1f8-9f19-421f-a902-50ecd995d267/summary.json"
+  },
+  "session": {
+    "id": "59a0e1f8-9f19-421f-a902-50ecd995d267",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok-stream/sessions/<snapshot-encoded>/59a0e1f8-9f19-421f-a902-50ecd995d267/summary.json",
+    "stream_sha256_at_close": "849a0cf7015f517d79186a4c4195db655f38a887c9199a51cf00a52e2aa0681f",
+    "spend": {
+      "input": 4743597,
+      "cached": 4579584,
+      "output": 50625,
+      "total": 4794222,
+      "cost_usd_ticks": 9933331200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok-stream/sessions/<snapshot-encoded>/59a0e1f8-9f19-421f-a902-50ecd995d267/summary.json",
+      "messages": 338
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_onboard_lever.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "eef31e6b882855937274b61d0f9f46f92f27b56a2967c22a70acaa851740e93b",
+    "bytes": 10251,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/lane-mcp.json",
+      "sha256": "8acdd87ff44c0fd10a6ab0dd7acaf5500bb9136e2bacc1e388920e4c62ea5ae9",
+      "job_ids": [
+        "20260915T062219Z-tests-codex-276394",
+        "20260915T062218Z-tests-grok-bb00e0",
+        "20260915T062216Z-tests-codex-35b463",
+        "20260915T062215Z-tests-grok-f5586b",
+        "20260915T062037Z-tests-codex-d3b00c",
+        "20260915T062036Z-tests-grok-536015",
+        "20260915T061911Z-tests-codex-f74be2",
+        "20260915T061909Z-tests-grok-de0cdd",
+        "20260915T061908Z-tests-codex-accf69",
+        "20260915T061906Z-tests-grok-d40c5f",
+        "20260915T061629Z-tests-codex-e4e7b5",
+        "20260915T061410Z-tests-grok-504dc6",
+        "20260915T060425Z-tests-codex-6926a3",
+        "20260915T060206Z-tests-grok-e3e4e8",
+        "20260915T060205Z-tests-codex-6e5f6f",
+        "20260915T060204Z-tests-grok-291224",
+        "20260915T060201Z-tests-codex-a1e9a9",
+        "20260915T060200Z-tests-grok-cbcce7",
+        "20260915T060159Z-tests-codex-ab9812",
+        "20260915T060158Z-tests-grok-bd62c7"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:24:00Z",
+      "ended": "2026-09-15T06:46:22Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "c9d2090fd24538fbbf2a7741462ddc5dcb3ae482",
+    "changed_paths": [
+      "ops/conductor/tests/test_onboard_lever.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_onboard_lever.py",
+          "claim": "Preserved all 37 test names and count. World owns HOME and XDG; every subprocess goes through run with a timeout; gh and sibling stubs are planted through world.tools. Inverted pins produced 37 AssertionError failures (0 ERROR), then the restored pins passed 37 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_onboard_lever.py"
+        }
+      ],
+      "artifacts": {
+        "before": "Ran 37 tests in 3.859s\nOK",
+        "red": "Ran 37 tests in 4.667s\nFAILED (failures=37)",
+        "after": "Ran 37 tests in 4.407s\nOK",
+        "ruff": "All checks passed!",
+        "ratchet": "home_by_hand: 57 -> 21; the new floor\nembedded_programs: 30 -> 15; the new floor\nrun_without_timeout: 185 -> 58; the new floor\nratchet holds: home_by_hand=21, embedded_programs=15, run_without_timeout=58",
+        "family": "Ran 1131 tests in 251.272s\nFAILED (failures=1, errors=7) in modules outside this scope",
+        "red_commit": "086cf59e2b47bf74bddac511f558b0000e72a160",
+        "green_commit": "c9d2090fd24538fbbf2a7741462ddc5dcb3ae482"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4794222,
+        "out": 50625,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "936c8c15539928bde9d284a543bd26a50cc0509a",
+        "started": null,
+        "ended": "2026-09-15T06:45:30Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire\nMigrated ops/conductor/tests/test_onboard_lever.py onto the kit. Same 37 names. Before and after: python3 -m unittest discover -s ops/conductor/tests -p test_onboard_lever.py \u2192 Ran 37 tests ... OK. Red proof (086cf59): inverted pins FAILED (failures=37) 0 ERROR. Green (c9d2090): restored pins OK. ruff check ops/conductor/tests/test_onboard_lever.py clean. testkit_ratchet.py: home_by_hand: 57 -> 21; the new floor; embedded_programs: 30 -> 15; the new floor; run_without_timeout: 185 -> 58; the new floor. Kit gap: World has no spawn helper for a live pid; spawn_live and dead_pid still use Popen registered with world.own. Family suite python3 -m unittest discover -s ops/conductor/tests: Ran 1131 tests, FAILED (failures=1, errors=7) outside this module (test_lane_mcp_context, test_lane_mcp_review, test_monitor_malformed_git, test_store_guard, test_probes)."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 6,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T062358Z-tests-grok-001105/home/grok-stream/sessions/<snapshot-encoded>/59a0e1f8-9f19-421f-a902-50ecd995d267/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes, testkit.refusal-wire\nMigrated ops/conductor/tests/test_onboard_lever.py onto the kit. Same 37 names. Before and after: python3 -m unittest discover -s ops/conductor/tests -p test_onboard_lever.py \u2192 Ran 37 tests ... OK. Red proof (086cf59): inverted pins FAILED (failures=37) 0 ERROR. Green (c9d2090): restored pins OK. ruff check ops/conductor/tests/test_onboard_lever.py clean. testkit_ratchet.py: home_by_hand: 57 -> 21; the new floor; embedded_programs: 30 -> 15; the new floor; run_without_timeout: 185 -> 58; the new floor. Kit gap: World has no spawn helper for a live pid; spawn_live and dead_pid still use Popen registered with world.own. Family suite python3 -m unittest discover -s ops/conductor/tests: Ran 1131 tests, FAILED (failures=1, errors=7) outside this module (test_lane_mcp_context, test_lane_mcp_review, test_monitor_malformed_git, test_store_guard, test_probes).",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:46:20.904Z"
+    }
+  },
+  "status": "closed"
+}

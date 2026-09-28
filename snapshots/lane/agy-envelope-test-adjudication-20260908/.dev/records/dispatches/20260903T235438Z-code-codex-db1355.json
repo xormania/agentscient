@@ -1,0 +1,284 @@
+{
+  "id": "20260903T235438Z-code-codex-db1355",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/effort-per-role-2",
+  "lineage": {
+    "branch": "lane/effort-per-role-2",
+    "base_sha": "6c3fa6fa288d476ad72c4c7f39d30717e16f3771"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T23:54:38Z",
+    "closed": "2026-09-04T00:12:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6c3fa6fa288d476ad72c4c7f39d30717e16f3771",
+    "ref_sha": "6c3fa6fa288d476ad72c4c7f39d30717e16f3771",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-54-39-01a069b2-2a1b-7041-bb7c-9856e8eb53b2.jsonl"
+  },
+  "session": {
+    "id": "01a069b2-2a1b-7041-bb7c-9856e8eb53b2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-54-39-01a069b2-2a1b-7041-bb7c-9856e8eb53b2.jsonl",
+    "stream_sha256_at_close": "77bee96b7e54bf57da0abb8ad2fd3769077ef0bf931c43974a61666ea814cb1d",
+    "spend": {
+      "input": 2889408,
+      "cached": 2798848,
+      "output": 13356,
+      "total": 2902764,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-54-39-01a069b2-2a1b-7041-bb7c-9856e8eb53b2.jsonl",
+      "messages": 255
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-effort-per-role-2/ops/devlane/task/jobs.json",
+      "sha256": "8810911d64e2c91ba83f2b8889c043a58470b519b0d9a5d84a8a599cd44608ce"
+    },
+    "scope": "bash ops/bin/suites.sh",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T235438Z-code-codex-db1355/in/findings-effort-pr.md",
+        "sha256": "634d1f5d41e749d4d45188361b62340e6cbbe3cfc807b3b5292fb7f2276a43fb"
+      }
+    ],
+    "sha256": "27a8993dc149b2ab39ae49173dcbaf730aa90550e0b8c146417a8a74148d2c35",
+    "bytes": 2189
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-03T23:54:38Z",
+      "ended": "2026-09-04T00:12:34Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c5d656f1fc86bd04ed770bc23420381e0936aba8",
+    "changed_paths": [
+      "ops/conductor/pipelines.md",
+      "ops/conductor/tools/dispatch.sh",
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/dispatch/record.py",
+      "ops/devlane/task/jobs.json"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed the working tree was at 6c3fa6fa288d476ad72c4c7f39d30717e16f3771 and enumerated governing files.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && rg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops/README.md",
+          "claim": "Read the founding contracts and operating-lane instructions before changing the tree.",
+          "reproduce": "for f in docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md; do sed -n '1,99999p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline suite",
+          "claim": "The initial required run exited 1 with 11 dispatch, one task, and two conductor failures.",
+          "reproduce": "bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/AGENTS.md",
+          "claim": "Read the nested lane rules and inspected the pinned test-author commits and clean baseline status.",
+          "reproduce": "sed -n '1,99999p' ops/devlane/AGENTS.md && git log -5 --oneline --decorate && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "git history and affected sources",
+          "claim": "Measured the recent test lineage and located the production surfaces for every failure.",
+          "reproduce": "git log -12 --format='%h %s%n%b' && rg -n \"effort_argv|effort_requested|workspace-write|read-only|readonly|read role|read_role|head_equals_ref|caps|security-audit|job name|job_name|JOB_NAME|\\[\\$job|\\[\\$JOB\" ops/devlane/dispatch ops/devlane/task ops/conductor/tools ops/conductor/*.md"
+        },
+        {
+          "severity": "p3",
+          "where": "affected implementation and contracts",
+          "claim": "Inspected effort validation, launch isolation, job policy, wrapper indirection, and their documented contracts.",
+          "reproduce": "sed -n '1,130p' ops/devlane/dispatch/record.py; sed -n '140,340p' ops/devlane/dispatch/launch.py; sed -n '880,1100p' ops/devlane/dispatch/launch.py; sed -n '1180,1245p' ops/devlane/dispatch/launch.py; sed -n '1,110p' ops/devlane/task/jobs.json; sed -n '90,165p' ops/conductor/tools/dispatch.sh; sed -n '130,310p' ops/devlane/dispatch/CONTRACT.md; sed -n '1,180p' ops/conductor/pipelines.md"
+        },
+        {
+          "severity": "p3",
+          "where": "launch collection and focused tests",
+          "claim": "Located collection boundaries and read the exact new assertions for effort, dirty read snapshots, and job-name injection.",
+          "reproduce": "rg -n '^def (_collect|_close|_result|_snapshot|_harness_meta)|residual_paths|head_equals|rec\\[\"result\"\\]|envelope\\]\\[\"status\"\\]' ops/devlane/dispatch/launch.py; sed -n '1040,1105p' ops/devlane/dispatch/launch.py; sed -n '1190,1230p' ops/devlane/dispatch/launch.py; sed -n '300,410p' ops/devlane/dispatch/tests/test_record.py; sed -n '120,170p' ops/devlane/dispatch/tests/test_launch_collect.py; sed -n '420,515p' ops/devlane/dispatch/tests/test_launch_refusals.py; sed -n '700,760p' ops/conductor/tests/test_dispatch_wrapper.py; sed -n '1,170p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "policy and compatibility cases",
+          "claim": "Inspected full close behavior, catalogue policy, stale documentation, and neighboring compatibility assertions.",
+          "reproduce": "sed -n '1080,1145p' ops/devlane/dispatch/launch.py; sed -n '1200,1275p' ops/devlane/dispatch/launch.py; sed -n '1,100p' ops/devlane/task/jobs.json; sed -n '140,180p' ops/devlane/dispatch/CONTRACT.md; sed -n '205,275p' ops/devlane/dispatch/CONTRACT.md; sed -n '125,150p' ops/conductor/pipelines.md; sed -n '60,105p' ops/devlane/dispatch/tests/test_launch_isolation.py; sed -n '120,150p' ops/devlane/dispatch/tests/test_launch_job_caps.py; sed -n '60,95p' ops/devlane/task/tests/test_jobs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "read-role compatibility",
+          "claim": "Confirmed residual patches must remain preserved and committed read-role mutations retain the established read-role-head cause.",
+          "reproduce": "rg -n '^def _invalidate_envelope|def residual_entries|read role.*residual|residual.*read role|sandbox_workspace_write' ops/devlane/dispatch/tests ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md; sed -n '40,90p' ops/devlane/dispatch/tests/test_launch_harness_fixes.py; sed -n '1,90p' ops/devlane/dispatch/tests/launch_support.py; sed -n '840,885p' ops/devlane/dispatch/launch.py; sed -n '230,270p' ops/devlane/dispatch/tests/test_launch_prompt_feed_findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "initial implementation diff",
+          "claim": "The first surgical diff passed whitespace validation and touched six non-test, non-runner files.",
+          "reproduce": "git diff --check && git diff --stat && git diff -- ops/devlane/dispatch/record.py ops/devlane/dispatch/launch.py ops/devlane/task/jobs.json ops/conductor/tools/dispatch.sh ops/devlane/dispatch/CONTRACT.md ops/conductor/pipelines.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "All 16 focused dispatch regressions passed.",
+          "reproduce": "python3 -m unittest test_launch_collect.ReadRoleHeadEqualsRef test_launch_isolation.MinimalHomesHoldExactlyAuthJson.test_codex_home_is_the_job_home_holding_exactly_auth_json test_launch_job_caps.JobsJsonCarriesExactlyTheFourPolicyCaps test_launch_refusals.EffortContractDocumentsMatchTheWire test_launch_refusals.ModelIsRequiredAndEffortReachesEveryCli.test_close_reconstructs_effort_argv_from_the_requested_value test_record.EffortArgvCarriesTheDial"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests",
+          "claim": "The focused security-audit timeout policy test passed.",
+          "reproduce": "python3 -m unittest test_jobs.SecurityAuditIsInTheCatalogue.test_security_audit_declares_caps_timeout_1200"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests",
+          "claim": "Both focused job-name validation and command-substitution safety tests passed.",
+          "reproduce": "python3 -m unittest test_dispatch_wrapper.Row10JobNameMatchesCatalogueShape"
+        },
+        {
+          "severity": "p3",
+          "where": "intermediate full suite",
+          "claim": "The first complete post-edit run found three compatibility failures: Codex's encoded effort token and the established read-role-head cause.",
+          "reproduce": "bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "After preserving the exact Codex carrier and read-role cause, all 265 dispatch tests passed.",
+          "reproduce": "python3 -m unittest"
+        },
+        {
+          "severity": "p3",
+          "where": "commit requirements and final diff",
+          "claim": "Confirmed required trailer syntax, a whitespace-clean six-file diff, and no modified test or suite-runner file.",
+          "reproduce": "rg -n \"Co-Authored-By|GPT-5|Codex\" CONTRIB.md ops/devlane/hooks/commit-msg ops/devlane/workflow/checks/commit_trailers.py | head -120 && git diff --check && git status --short && git diff --name-only | rg '(^|/)tests/|^ops/bin/suites\\.sh$' || true"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The sandbox refused staging because the snapshot's .git directory is read-only, so the required launcher commit-message fallback was used.",
+          "reproduce": "git add ops/conductor/pipelines.md ops/conductor/tools/dispatch.sh ops/devlane/dispatch/CONTRACT.md ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "final suite",
+          "claim": "The required command exited 0 in the final tree; all 1,063 tests passed.",
+          "reproduce": "bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree and out/COMMIT_MSG",
+          "claim": "Final inspection found a whitespace-clean six-file implementation diff at the pinned HEAD and a commit-message fallback with SHA-256 51406528209226b09516996df567f1c34979c4b55769133048eccb86d8ba88aa.",
+          "reproduce": "git rev-parse HEAD && git status --short && git diff --check && git diff --name-only && sha256sum ../out/COMMIT_MSG && date -u +%Y-%m-%dT%H:%M:%SZ && sed -n '1,220p' ops/devlane/task/envelope.py"
+        }
+      ],
+      "artifacts": {
+        "commit_message": "out/COMMIT_MSG",
+        "launcher": "ops/devlane/dispatch/launch.py",
+        "record_validator": "ops/devlane/dispatch/record.py",
+        "job_catalogue": "ops/devlane/task/jobs.json",
+        "dispatch_wrapper": "ops/conductor/tools/dispatch.sh",
+        "contracts": "ops/devlane/dispatch/CONTRACT.md; ops/conductor/pipelines.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6c3fa6fa288d476ad72c4c7f39d30717e16f3771",
+        "started": null,
+        "ended": "2026-09-04T00:10:40Z"
+      },
+      "note": "Implemented the direct reading supported by the pinned tests and contracts: non-cache residual writes invalidate read-role envelopes, Codex read roles receive no writable-root grant, and Codex's exact model_reasoning_effort carrier remains valid. The final named command exits 0. The sandbox prevented staging or committing, so out/COMMIT_MSG is ready for the launcher. Follow-up only: the suite repeatedly emits pre-existing subprocess and unclosed-file ResourceWarning diagnostics; they did not fail the suite and were not changed.",
+      "commit": {
+        "subject": "dispatch: enforce effort and read-role policy",
+        "body": "Validate catalogue job names before shell indirection, preserve exact effort arguments through launch and close, enforce read-only Codex review sandboxes and clean read snapshots, and restore the audit timeout policy. Align the dispatch contract and conductor guidance with the implemented wire.\n\nSource: original\nCo-Authored-By: GPT-5 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T00:12:33.400Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,495 @@
+{
+  "id": "20260910T001457Z-code-codex-8b77f2",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:14:57Z",
+    "closed": "2026-09-10T00:42:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "ref_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-14-58-01a088aa-ecd7-7520-81f9-783f96ce66ec.jsonl"
+  },
+  "session": {
+    "id": "01a088aa-ecd7-7520-81f9-783f96ce66ec",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-14-58-01a088aa-ecd7-7520-81f9-783f96ce66ec.jsonl",
+    "stream_sha256_at_close": "f415ff1705e90d5adedd5ed75f7011cf12e1fe28ea481d7490cc4063c5c5a40a",
+    "spend": {
+      "input": 5149613,
+      "cached": 4979328,
+      "output": 48239,
+      "total": 5197852,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-14-58-01a088aa-ecd7-7520-81f9-783f96ce66ec.jsonl",
+      "messages": 388
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v && python3 ops/conductor/tests/test_finding_admission_ledger.py -v && python3 ops/conductor/tests/test_finding_admission_routing.py -v. Implement FINDING-ADMISSION.md under in/admission-implementation.md and the owner/TDD inputs. Tests already exist and were proven red independently. Do not write or approve tests. Complete the contract through existing owners, preserve legacy records and custody, and report any existing-test contradiction for the independent test author rather than changing tests or weakening behavior.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-implementation.md",
+        "sha256": "8b93f225f42021a3a6135b296239240a047abcee675c33a84744dfb402d7c260"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-test-acceptance.json",
+        "sha256": "3a912a8e234ae35733f973c3bf11bcf37013f3ac71b5c0cdc62d037fe22da671"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-red-corrected-quiet.json",
+        "sha256": "c20c7fb13e66098f2bfaaefa5d07368848b314031380548e3c3b3e102e7e1c2b"
+      }
+    ],
+    "sha256": "ea22ffb5b32cce7906db306b2e13b9febf474bc435cc7b091f0ad8a3c6f30ac6",
+    "bytes": 4440
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:14:57Z",
+      "ended": "2026-09-10T00:42:05Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d391c00927d69399a4a1bf682ee6d642b57ca4ba",
+    "changed_paths": [
+      "ops/conductor/findings/README.md",
+      "ops/conductor/tools/findings.py",
+      "ops/conductor/tools/ladder.py",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/task/FINDING-ADMISSION.md",
+      "ops/devlane/task/envelope.py",
+      "ops/devlane/task/jobs.json",
+      "ops/devlane/task/run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 46,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_finding_admission_ledger.py",
+          "claim": "Six final failures. Positive fixtures omit the shared validator and retained scope; PARTIAL additionally lacks independent provenance and RULING.md. The job=review case expects success outside the declared correction-source jobs. Contradictions recorded for the independent author; tests unchanged.",
+          "reproduce": "python3 ops/conductor/tests/test_finding_admission_ledger.py -v"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_finding_admission_routing.py",
+          "claim": "Three final failures: missing corrections output or keys outside the recorded batch. Empty admission also cannot supply a legacy CHANGES review's missing approval. Tests unchanged.",
+          "reproduce": "python3 ops/conductor/tests/test_finding_admission_routing.py -v"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Eleven regression failures use correction stubs without projections. test_tests_fix_is_given_skeptic_md additionally contradicts admitted-only correction inputs. Exact names are recorded in the handoff.",
+          "reproduce": "python3 ops/conductor/tests/test_ladder_lever.py -v"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#1",
+          "claim": "Measured initial tree and input inventory; HEAD matched the requested base.",
+          "reproduce": "pwd && rg --files ../in docs -g '*.md' && git status --short && git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#2",
+          "claim": "Read implementation inputs and repository contracts.",
+          "reproduce": "cat ../in/admission-implementation.md ../in/tdd-addendum.md ../in/owner-scope.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md && rg --files -g AGENTS.md -g '*FINDING*' -g '*finding*' ops"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#3",
+          "claim": "Read scoped instructions and the admission contract.",
+          "reproduce": "cat ops/devlane/AGENTS.md ops/devlane/task/FINDING-ADMISSION.md && rg --files ../in && rg --files ops/devlane/task ops/conductor/tools | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#4",
+          "claim": "Read independent red and acceptance receipts and the envelope owner.",
+          "reproduce": "cat ../in/admission-red-corrected-quiet.json ../in/admission-test-acceptance.json ops/devlane/task/envelope.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#5",
+          "claim": "Read the existing ledger implementation.",
+          "reproduce": "cat ops/conductor/tools/findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#6",
+          "claim": "Read supplied envelope tests without editing or approving them.",
+          "reproduce": "cat ops/devlane/task/tests/test_finding_admission_envelope.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#7",
+          "claim": "Re-read the ledger owner after combined output truncation.",
+          "reproduce": "cat ops/conductor/tools/findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#8",
+          "claim": "Located semantic validation and response decoding seams.",
+          "reproduce": "sed -n '455,620p' ops/devlane/task/envelope.py && rg -n 'json.loads|JSONDecoder|extract|envelope.validate' ops/devlane/task/run.py ops/devlane/dispatch/*.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#9",
+          "claim": "Read supplied ledger tests without modifying them.",
+          "reproduce": "cat ops/conductor/tests/test_finding_admission_ledger.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#10",
+          "claim": "Read supplied routing tests without modifying them.",
+          "reproduce": "cat ops/conductor/tests/test_finding_admission_routing.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#11",
+          "claim": "Inspected response extraction and current job prompts.",
+          "reproduce": "sed -n '800,940p' ops/devlane/dispatch/launch.py && sed -n '280,340p' ops/devlane/task/run.py && cat ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#12",
+          "claim": "Located ladder correction, scope, and resume seams.",
+          "reproduce": "rg -n 'findings|tests-fix|fix-tests|fix-code|scope|def .*audit|def .*review|def .*resume|adjudicat' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#13",
+          "claim": "Read ledger and independent-review contracts and the supplied classified sample.",
+          "reproduce": "cat ops/conductor/findings/README.md ops/process/cross-review.md && cat ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#14",
+          "claim": "Inspected ladder stage execution, ledger import, correction selection, and approval handling.",
+          "reproduce": "sed -n '1,200p' ops/conductor/tools/ladder.py && sed -n '740,1010p' ops/conductor/tools/ladder.py && sed -n '1130,1550p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#15",
+          "claim": "Inspected custody inputs, retained scope metadata, and remaining extraction code.",
+          "reproduce": "sed -n '998,1140p' ops/conductor/tools/ladder.py && rg -n 'scope_file|\"scope\"|\"inputs\"|inputs =|scope_path' ops/devlane/dispatch/launch.py | tail -45 && sed -n '940,1120p' ops/devlane/dispatch/launch.py && sed -n '100,175p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#16",
+          "claim": "Intermediate required-command run: envelope passed; ledger had 14 failures.",
+          "reproduce": "python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v && python3 ops/conductor/tests/test_finding_admission_ledger.py -v && python3 ops/conductor/tests/test_finding_admission_routing.py -v"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#17",
+          "claim": "Inspected retained dispatch inputs, record bindings, and legacy ledger fixtures.",
+          "reproduce": "sed -n '1395,1490p' ops/devlane/dispatch/launch.py && rg -n 'def _absolute_paths|def _portable_paths|def _copy_inputs|def _stage_inputs' ops/devlane/dispatch/launch.py && sed -n '440,465p' ops/devlane/task/envelope.py && sed -n '1,160p' ops/conductor/tests/test_findings.py && rg -n 'scope|snapshot' ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#18",
+          "claim": "Read path portability, ladder receipts, and remaining contract context.",
+          "reproduce": "sed -n '115,185p' ops/devlane/dispatch/launch.py && sed -n '435,510p' ops/conductor/tools/ladder.py && sed -n '40,100p' docs/mapping.md && cat ops/devlane/task/CONTRACT.md | head -100"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#19",
+          "claim": "Inspected existing scope dispatch arguments and record validation.",
+          "reproduce": "sed -n '545,640p' ops/conductor/tools/ladder.py && sed -n '1,110p' ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#20",
+          "claim": "Located wrapper scope handling and affected extraction regression tests.",
+          "reproduce": "rg -n 'scope_file|scope-file|--scope|--input' ops/conductor/tools/dispatch.sh | tail -30 && rg -n 'test_.*(legacy|count|finding|schema|verdict)' ops/devlane/dispatch/tests/test_launch*.py | head -35"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#21",
+          "claim": "Inspected intermediate changed paths and resume finding handling.",
+          "reproduce": "rg -n 'import hashlib|def _render|_retain_findings' ops/devlane/dispatch/launch.py && sed -n '425,470p' ops/devlane/task/envelope.py && git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#22",
+          "claim": "Inspected audit minting and existing approval requirements.",
+          "reproduce": "sed -n '640,745p' ops/conductor/tools/ladder.py && sed -n '125,180p' ops/conductor/tools/dispatch.sh && rg -n 'approval|approve|fresh|security-re' ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#23",
+          "claim": "Confirmed wrapper ref selection and ladder stage obligations.",
+          "reproduce": "sed -n '212,252p' ops/conductor/tools/dispatch.sh && cat ops/conductor/ladder-lever.md | sed -n '20,112p'"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#24",
+          "claim": "Located launcher commits and detached wrapper execution.",
+          "reproduce": "rg -n '_commit_record\\(' ops/devlane/dispatch/launch.py && sed -n '258,290p' ops/conductor/tools/dispatch.sh && rg -n 'def main|LAUNCHER_PIN|LAUNCHER=' ops/conductor/tools/dispatch.sh | head -15"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#25",
+          "claim": "Inspected closure commits and detached mint signals.",
+          "reproduce": "sed -n '2350,2378p' ops/devlane/dispatch/launch.py && sed -n '2245,2285p' ops/devlane/dispatch/launch.py && sed -n '289,335p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#26",
+          "claim": "Inspected metadata commits and searched existing disposition coverage.",
+          "reproduce": "sed -n '505,540p' ops/conductor/tools/ladder.py && rg -n 'dirty|status.*porcelain' ops/devlane/dispatch/launch.py && sed -n '425,456p' ops/devlane/task/envelope.py && rg -n 'imported|ON CONFLICT|disposition_history' ops/conductor/tests/test_findings_calibration.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#27",
+          "claim": "Confirmed legacy field-order expectations and the inherited ledger stub.",
+          "reproduce": "sed -n '520,570p' ops/devlane/task/envelope.py && sed -n '120,185p' ops/devlane/task/tests/test_envelope.py && sed -n '695,740p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#28",
+          "claim": "Ran the surgical Python job-prompt amendment. The complete executed heredoc is retained in command-findings.json finding 28.",
+          "reproduce": "python3 -c \"import json; print(json.load(open('../out/command-findings.json'))['findings'][27]['reproduce'])\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#29",
+          "claim": "Intermediate ledger run had six failures; full output retained.",
+          "reproduce": "python3 ops/conductor/tests/test_finding_admission_ledger.py -v > ../out/ledger.log 2>&1; result=$?; cat ../out/ledger.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#30",
+          "claim": "Intermediate routing run had three failures; full output retained.",
+          "reproduce": "python3 ops/conductor/tests/test_finding_admission_routing.py -v > ../out/routing.log 2>&1; result=$?; cat ../out/routing.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#31",
+          "claim": "Task regression completed successfully: 329 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -v > ../out/task-regression.log 2>&1; result=$?; tail -80 ../out/task-regression.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#32",
+          "claim": "Git staging refused because .git is read-only; commit fallback supplied.",
+          "reproduce": "git add ops/devlane/task/envelope.py ops/devlane/task/run.py ops/devlane/task/jobs.json ops/devlane/dispatch/launch.py ops/conductor/tools/findings.py ops/conductor/tools/ladder.py && git commit -m 'Implement bound finding admission through task and conductor owners' -m 'Source: original\nCo-Authored-By: GPT-6 <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#33",
+          "claim": "Dispatch envelope regression completed successfully: 58 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_envelope*.py' -v > ../out/dispatch-regression.log 2>&1; result=$?; tail -85 ../out/dispatch-regression.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#34",
+          "claim": "Isolated smoke demonstration exercised mixed admission, dispute holding, independent PARTIAL ruling, history, and source mutation refusal.",
+          "reproduce": "python3 ../out/admission-smoke.py > ../out/smoke.log 2>&1; result=$?; cat ../out/smoke.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#35",
+          "claim": "Existing findings regression completed successfully: 16 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_findings*.py' -v > ../out/findings-regression.log 2>&1; result=$?; tail -70 ../out/findings-regression.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#36",
+          "claim": "Existing ladder regression ran 66 tests with 11 failures documented for the independent author.",
+          "reproduce": "python3 ops/conductor/tests/test_ladder_lever.py -v > ../out/ladder-regression.log 2>&1; result=$?; tail -95 ../out/ladder-regression.log; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#37",
+          "claim": "Verified the historical ledger blob. The first supplied agy source path was unavailable in its cited tree, stopping the command before subsequent measurements.",
+          "reproduce": "git rev-parse d7bf77f9cbf34398961dcde3add4530d25b83fd3:ops/conductor/findings/findings.jsonl && git show d7bf77f9cbf34398961dcde3add4530d25b83fd3:ops/conductor/findings/findings.jsonl | head -2 && git rev-parse 8630ccf0e72a11596ed1a5cb7e2efa2f931f6d29:.dev/records/dispatches/20260908T063559Z-review-claude-6eb510.json 317a12035fb2b18d92a39d43b023d0326be514ee:.dev/records/dispatches/20260908T083005Z-review-codex-f022fd.json && sha256sum ops/devlane/task/tests/test_finding_admission_envelope.py ops/conductor/tests/test_finding_admission_ledger.py ops/conductor/tests/test_finding_admission_routing.py ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#38",
+          "claim": "Test hashes matched the red receipt; old sample pointers named earlier effort/security findings. The final search reported absent pyproject.toml.",
+          "reproduce": "sha256sum ops/devlane/task/tests/test_finding_admission_envelope.py ops/conductor/tests/test_finding_admission_ledger.py ops/conductor/tests/test_finding_admission_routing.py ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json && git diff --check && rg -n '20260903T232447Z-review-codex-9c696a|20260904T040646Z-review-codex-7fbe5c' ops/conductor/findings/findings.jsonl && rg -n 'ruff|lint' ops/bin/suites.sh pyproject.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#39",
+          "claim": "Python compilation passed; inspected exact ladder failures and changed-line counts.",
+          "reproduce": "python3 -m py_compile ops/devlane/task/envelope.py ops/devlane/task/run.py ops/devlane/dispatch/launch.py ops/conductor/tools/findings.py ops/conductor/tools/ladder.py && command -v ruff && rg '^FAIL:|^Ran |^FAILED' ../out/ladder-regression.log && git diff --numstat"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#40",
+          "claim": "Focused Ruff checks passed and the isolated smoke demonstration completed.",
+          "reproduce": "ruff check --select E9,F63,F7,F82 ops/devlane/task/envelope.py ops/devlane/task/run.py ops/devlane/dispatch/launch.py ops/conductor/tools/findings.py ops/conductor/tools/ladder.py && python3 ../out/admission-smoke.py > ../out/smoke.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#41",
+          "claim": "Whitespace checks passed; inspected extraction changes and ledger binding logic.",
+          "reproduce": "git diff --check && git diff -- ops/devlane/dispatch/launch.py ops/devlane/task/run.py && sed -n '1,55p' ops/conductor/findings/README.md && sed -n '320,550p' ops/conductor/tools/findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#42",
+          "claim": "Smoke results demonstrated missing-scope refusal and preservation of an imported ruling when its id is omitted.",
+          "reproduce": "python3 ../out/admission-smoke.py > ../out/smoke.log 2>&1 && python3 - <<'PY'\nimport json\nfrom pathlib import Path\nfor line in Path('../out/smoke.log').read_text().splitlines():\n    row = json.loads(line)\n    if row['argv'][0] == 'corrections':\n        print(row['argv'][-1], 'exit=' + str(row['exit']), row['stderr'] or row['stdout'])\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#43",
+          "claim": "Final required command exited 1: envelope 17 passed; ledger six failed. Shell conjunction therefore did not reach routing.",
+          "reproduce": "python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v && python3 ops/conductor/tests/test_finding_admission_ledger.py -v && python3 ops/conductor/tests/test_finding_admission_routing.py -v"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#44",
+          "claim": "Final separate routing run: one passed, three failed.",
+          "reproduce": "python3 ops/conductor/tests/test_finding_admission_routing.py -v"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#45",
+          "claim": "Final focused Ruff and whitespace checks passed.",
+          "reproduce": "ruff check --select E9,F63,F7,F82 ops/devlane/task/envelope.py ops/devlane/task/run.py ops/devlane/dispatch/launch.py ops/conductor/tools/findings.py ops/conductor/tools/ladder.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "out/command-findings.json#46",
+          "claim": "Recorded final patch SHA-256 b5da37c1f76321a261608f21cb3a4284ef68d4ff5ebd980d2b899b4fa575c19a. All supplied test/fixture hashes remained unchanged; HEAD remained the requested base.",
+          "reproduce": "git diff --binary > ../out/implementation.patch && sha256sum ../out/implementation.patch ops/devlane/task/tests/test_finding_admission_envelope.py ops/conductor/tests/test_finding_admission_ledger.py ops/conductor/tests/test_finding_admission_routing.py ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json && git status --short && git rev-parse HEAD && date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "report": "../out/IMPLEMENTATION.md",
+        "commands": "../out/command-findings.json",
+        "patch": "../out/implementation.patch",
+        "required": "../out/required-final.log",
+        "routing": "../out/routing-final.log",
+        "task_regression": "../out/task-regression.log",
+        "dispatch_regression": "../out/dispatch-regression.log",
+        "ledger_regression": "../out/findings-regression.log",
+        "ladder_regression": "../out/ladder-regression.log",
+        "smoke": "../out/smoke.log",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5197852,
+        "out": 48239,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+        "started": "2026-09-10T00:15:06.977Z",
+        "ended": "2026-09-10T00:37:13.893Z"
+      },
+      "note": "Required command exited 1. Failing ledger tests include test_partial_ruling_admits_only_the_subclaim; all six ledger and three separate routing failures are detailed in the report. Implemented admission through existing owners without changing tests or weakening bindings, independence, custody, or approval requirements. Assumption: declared contract requirements take precedence over contradictory fixtures. Full-suite and independent acceptance remain outstanding. Follow-ups include concurrent audit-ref movement and unavailable original sample evidence. Git staging was denied by the read-only filesystem; launcher commit message supplied.",
+      "commit": {
+        "subject": "Implement bound finding admission through existing owners",
+        "body": "Add evaluation validation, immutable ledger evidence and admitted-only correction routing. Preserve legacy history and require independent bound adjudication. Record unresolved independent-test contradictions; the required gate remains invalid.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:41:58.164Z"
+    }
+  },
+  "status": "closed"
+}

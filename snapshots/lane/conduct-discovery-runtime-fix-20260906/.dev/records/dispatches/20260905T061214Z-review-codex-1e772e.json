@@ -1,0 +1,181 @@
+{
+  "id": "20260905T061214Z-review-codex-1e772e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-context-20260905",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "f9b4d704c387825349d7cd5aa116cc275d3eb135"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T06:12:15Z",
+    "closed": "2026-09-05T06:14:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f9b4d704c387825349d7cd5aa116cc275d3eb135",
+    "ref_sha": "f9b4d704c387825349d7cd5aa116cc275d3eb135",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T02-12-15-01a07032-3dce-7263-917c-ac3a95f0f56d.jsonl"
+  },
+  "session": {
+    "id": "01a07032-3dce-7263-917c-ac3a95f0f56d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T02-12-15-01a07032-3dce-7263-917c-ac3a95f0f56d.jsonl",
+    "stream_sha256_at_close": "744e4448ba12d09eca99ab3ca6c9319f4af1b37d618a43083036c6e417a3d1ce",
+    "spend": {
+      "input": 1414198,
+      "cached": 1294551,
+      "output": 10273,
+      "total": 1424471,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T02-12-15-01a07032-3dce-7263-917c-ac3a95f0f56d.jsonl",
+      "messages": 157
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Act as the independent adjudicator of in/ag-mcp-plan-review.json against in/CONTRACT.md and in/PLAN.md, both preserved outputs of a timed-out read job. Rule UPHELD/PARTIAL/REJECTED per finding with measured evidence, plus anything missed that changes feasibility. Write a concise out/RULING.md; no code, tests or snapshot edits. Judge the provided artifacts against their named current counterparties; the branch diff is research and dispatch records, not the proposed implementation. One owner-requested PR; stage-by-stage dispatch/land is authorized because the ladder lacks the required adjudication pause. Root will resolve admission from the ruling without manufacturing a successful planner envelope. If running long, finish the ruling with declared limits.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/in/ag-mcp-plan-review.json",
+        "sha256": "85697efcf0a6e9ed5064fb1b6fe644a9a3d8d15054761dd70a1dd8aa305d53db"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/in/CONTRACT.md",
+        "sha256": "9fb45e543b80f9b91e960b1c3695174a204de442175f520f815082fa8c25473a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T061214Z-review-codex-1e772e/in/PLAN.md",
+        "sha256": "bcaf2f816754390fe5d71dbdea809e6b382be764ba7d38fb107f7b572a49d1c8"
+      }
+    ],
+    "sha256": "31c6dac191c8bcf38afa7de68a12c66929b8bbd46997473d716b60c643daf407",
+    "bytes": 3072
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T06:12:15Z",
+      "ended": "2026-09-05T06:14:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f9b4d704c387825349d7cd5aa116cc275d3eb135",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "C1 \u2014 CONTRACT.md \u00a75",
+          "claim": "UPHELD. The launcher rejects only truthy withheld values and does not require role read/write or a non-empty prompt. Define dispatchable as a limited registry assessment using the actual truthiness predicate, not exact launcher equivalence.",
+          "reproduce": "sed -n '1081,1116p;1175,1187p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "C2 \u2014 CONTRACT.md \u00a73",
+          "claim": "UPHELD. A valid bounded note can consume all remaining page space: measured frame 358 bytes, frame plus 1,306 control bytes exactly 8,192, and adding a fully reduced entry 8,309. Specify note removal, reserved space, or another deterministic fallback.",
+          "reproduce": "Use json.dumps(..., ensure_ascii=True, separators=(',', ':'), sort_keys=True) on the \u00a73 shapes and scan note lengths 0..2048."
+        },
+        {
+          "severity": "p2",
+          "where": "C3 \u2014 PLAN.md \u00a7\u00a7Slices/Walkthrough; CONTRACT.md \u00a78",
+          "claim": "UPHELD. The plan requires multiple branches and PRs and invokes a ladder that fixes CHANGES without adjudication, contrary to the authorized one-PR stage-by-stage route. Section 8 also conflicts with byte-identical v1 behavior by extending valid-Unicode guarantees to existing alert evidence. Use one branch and PR with adjudication pauses; scope the Unicode guarantee to new fields or version the behavior.",
+          "reproduce": "sed -n '29,106p' ../in/PLAN.md; sed -n '198,241p' ops/process/cross-review.md; sed -n '1349,1410p' ops/conductor/tools/ladder.py; sed -n '304,325p' ../in/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "Missed \u2014 CONTRACT.md \u00a7\u00a75,8",
+          "claim": "Invalid-Unicode registry keys are required to be returned as names but \u00a78 forbids surrogate emission. Python parses a \\ud800 key, it fails UTF-8 encoding and the job-name regex, while ensure_ascii re-emits it. Specify null plus invalid marking, or classify the registry unavailable.",
+          "reproduce": "Parse '{\"\\ud800\":{}}' with json.loads, encode the key as UTF-8, then serialize {'name': key} with ensure_ascii=True."
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 1424471,
+        "out": 10273,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f9b4d704c387825349d7cd5aa116cc275d3eb135",
+        "started": null,
+        "ended": "2026-09-05T06:14:22Z"
+      },
+      "note": "Adjudication completed, and the remaining slice boundaries are feasible after these corrections. RULING.md could not be created because the sandbox rejected writes to ../out as read-only."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

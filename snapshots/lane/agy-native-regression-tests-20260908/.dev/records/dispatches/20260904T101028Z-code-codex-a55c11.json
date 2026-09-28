@@ -1,0 +1,366 @@
+{
+  "id": "20260904T101028Z-code-codex-a55c11",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/ladder-driver",
+  "lineage": {
+    "branch": "lane/ladder-driver",
+    "base_sha": "cc98a28ca67abd9253913e6c239f35480c1bea5d"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:10:28Z",
+    "closed": "2026-09-04T10:19:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cc98a28ca67abd9253913e6c239f35480c1bea5d",
+    "ref_sha": "cc98a28ca67abd9253913e6c239f35480c1bea5d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-29-01a06be5-faf4-7e13-b7be-d730d11811fd.jsonl"
+  },
+  "session": {
+    "id": "01a06be5-faf4-7e13-b7be-d730d11811fd",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-29-01a06be5-faf4-7e13-b7be-d730d11811fd.jsonl",
+    "stream_sha256_at_close": "8c80253b806ff8207d63f8da469cc3a3e8a8e6dae3336f970ec175e3eca13ef5",
+    "spend": {
+      "input": 2532437,
+      "cached": 2429952,
+      "output": 15603,
+      "total": 2548040,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-29-01a06be5-faf4-7e13-b7be-d730d11811fd.jsonl",
+      "messages": 354
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "bash ops/bin/suites.sh && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101028Z-code-codex-a55c11/in/contract-ladder-driver-C.md",
+        "sha256": "5a3eb592ee85a594f19638ee78bfaed03f76202ba7138a3ff8383b2b7e3db28d"
+      }
+    ],
+    "sha256": "e8e3c4e37e143af3b06d732b500cebf808ca907aa8244bdddd1893ab239cbe15",
+    "bytes": 3885
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:10:28Z",
+      "ended": "2026-09-04T10:19:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ec10de5ea6f87de35d69cef1a8a56e00809daaa7",
+    "changed_paths": [
+      "ops/conductor/tools/ladder.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "contract-ladder-driver-C",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 34,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Listed the six founding documentation files.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Measured 608 lines of required documentation.",
+          "reproduce": "wc -l docs/*.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Read the wire, workflow, probes, concerns, and verified-couplings contracts.",
+          "reproduce": "sed -n '1,999p' docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the project dependency mapping.",
+          "reproduce": "sed -n '1,999p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Read the operating-lane instructions.",
+          "reproduce": "sed -n '1,999p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Found the single brief input.",
+          "reproduce": "rg --files ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-ladder-driver-C.md",
+          "claim": "Read lines 1 through 999 of the brief.",
+          "reproduce": "sed -n '1,999p' ../in/contract-ladder-driver-C.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-ladder-driver-C.md",
+          "claim": "Read the remainder of the brief.",
+          "reproduce": "sed -n '1000,2200p' ../in/contract-ladder-driver-C.md"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed a clean detached HEAD before editing.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed the requested starting ref cc98a28ca67abd9253913e6c239f35480c1bea5d.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "required gate",
+          "claim": "The initial gate failed five conductor ladder tests.",
+          "reproduce": "bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "ladder implementation and contract",
+          "claim": "Measured 1,405 implementation lines and 139 contract lines.",
+          "reproduce": "wc -l ops/conductor/tools/ladder.py ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/ladder-lever.md",
+          "claim": "Read the ladder lever contract.",
+          "reproduce": "sed -n '1,220p' ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Located the implementation's classes and functions.",
+          "reproduce": "rg -n '^class |^def |^    def ' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Inspected imports, wire exceptions, and configuration helpers.",
+          "reproduce": "sed -n '1,180p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Inspected driver initialization, persistence, dispatch, and minting.",
+          "reproduce": "sed -n '342,650p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Inspected result handling, resume execution, and command derivation.",
+          "reproduce": "sed -n '650,1006p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Inspected calibration, PR creation, workflow execution, and main.",
+          "reproduce": "sed -n '1007,1405p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Inspected the relevant fixture logic and new acceptance cases without editing them.",
+          "reproduce": "sed -n '250,370p;1780,1850p;2160,2225p;2300,2350p;2370,2425p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Inspected the complete retry-cap and code-stage resume assertions.",
+          "reproduce": "sed -n '2160,2250p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Located the silent-gh fixture.",
+          "reproduce": "rg -n 'plant_silent_gh|SILENT_GH|silent' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Confirmed the silent-gh fixture exits zero without emitting a URL.",
+          "reproduce": "sed -n '1090,1140p' ops/conductor/tests/test_ladder_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Located the test artifact paths used by the fixture.",
+          "reproduce": "rg -n '^TEST_|artifacts=' ops/conductor/tests/test_ladder_lever.py | head -80"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "The first post-edit whitespace check passed.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Reviewed the complete implementation diff.",
+          "reproduce": "git diff -- ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "All 47 ladder lever tests passed.",
+          "reproduce": "python3 -m unittest ops.conductor.tests.test_ladder_lever -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Targeted Ruff validation passed.",
+          "reproduce": "ruff check ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Confirmed the driver was the only modified tracked file.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Measured the repository's established Source and Co-Authored-By trailer format.",
+          "reproduce": "git log -5 --format=fuller"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The sandbox refused staging because the Git index is read-only.",
+          "reproduce": "git add -- ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "required gate",
+          "claim": "The final named command exited 0; every suite and repository-wide Ruff passed.",
+          "reproduce": "bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "final working diff",
+          "claim": "The final whitespace check passed.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree",
+          "claim": "The final tracked change remains confined to ops/conductor/tools/ladder.py.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "session",
+          "claim": "Recorded the UTC completion timestamp.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/ladder.py",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "bash ops/bin/suites.sh && ruff check ."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2548040,
+        "out": 15603,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cc98a28ca67abd9253913e6c239f35480c1bea5d",
+        "started": null,
+        "ended": "2026-09-04T10:17:21Z"
+      },
+      "note": "The named command exits 0. Git staging was refused by the read-only sandbox, so the launcher commit message is in out/COMMIT_MSG. Assumption: a discoverable artifact is a .py file whose basename starts with test, independent of directory layout. Follow-up: pre-existing ResourceWarnings for live subprocesses and an unclosed file appeared in devlane suites and were not changed.",
+      "commit": {
+        "subject": "conductor: enforce ladder retry boundaries",
+        "body": "Refuse launches once a stage reaches its two-attempt cap and label any\nsecond-attempt failure retry-cap while preserving the underlying reason.\nTreat only Python test files as discover targets regardless of layout,\nand stop cleanly when gh reports success without a pull-request URL.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T10:18:59.494Z"
+    }
+  },
+  "status": "closed"
+}

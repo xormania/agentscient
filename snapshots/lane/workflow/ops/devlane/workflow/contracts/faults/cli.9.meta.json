@@ -1,0 +1,10 @@
+{
+  "contract": "cli",
+  "fault": "cli.9.json",
+  "from": "obs/cli.json",
+  "change": "`wf init` has no `--rebuild` flag",
+  "violates": "PLAN.md §4 line 245 (with D1 lines 538-539, §6 line 364, §7 line 398)",
+  "quote": "\"`--rebuild` reconstructs the DB from the tracked export\"",
+  "reject_path": "facts\\.commands\\.[0-9]+\\.arguments\\b|--rebuild|rebuild",
+  "implied": false
+}

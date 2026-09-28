@@ -1,0 +1,10 @@
+{
+  "contract": "cli",
+  "fault": "cli.6.json",
+  "from": "obs/cli.json",
+  "change": "wf.py contains no WF_AGENT literal — the documented environment fallback for agent identity does not exist",
+  "violates": "PLAN.md §4 line 262 (with §11 line 519)",
+  "quote": "\"requires `--agent` (or `$WF_AGENT`) — receipts, attempts, and commit trailers need it\"",
+  "reject_path": "facts\\.env_literals\\b|WF_AGENT",
+  "implied": false
+}

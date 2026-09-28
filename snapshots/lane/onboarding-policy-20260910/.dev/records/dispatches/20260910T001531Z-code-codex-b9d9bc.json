@@ -1,0 +1,359 @@
+{
+  "id": "20260910T001531Z-code-codex-b9d9bc",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/onboarding-policy",
+  "lineage": {
+    "branch": "lane/onboarding-policy-20260910",
+    "base_sha": "32e77a0db5228549fa33ddb3991a8160c5093cf3"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:15:32Z",
+    "closed": "2026-09-10T00:25:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "ref_sha": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-policy-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "resume",
+      "01a088ab-7398-7533-92e5-396e66a98b05",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/out/last-message.json"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl"
+  },
+  "session": {
+    "id": "01a088ab-7398-7533-92e5-396e66a98b05",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl",
+    "stream_sha256_at_close": "e24998c07390bcbe76246c4c6c194aee0068e667608d8a2b209ef1b2a53a0679",
+    "spend": {
+      "input": 2534185,
+      "cached": 2410496,
+      "output": 29553,
+      "total": 2563738,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl",
+      "messages": 233
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-policy-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "PYTHONPATH=ops/conductor/tests python3 -m unittest test_lane_policy.ToolPresence test_lane_policy.CasesP1 test_lane_policy.CasesP2 test_lane_policy.CasesP3 test_lane_policy.CasesP4 test_lane_policy.CasesP5 test_lane_policy.CasesN1 test_lane_policy.CasesN2 test_lane_policy.CasesN3 test_lane_policy.CasesN4 test_lane_policy.CasesN5 test_lane_policy.CasesN6 test_lane_policy.CasesN7 test_lane_policy.CasesN8 test_lane_policy.CasesN9 test_lane_policy.CasesN10 test_lane_policy.CasesR1 test_lane_policy.CasesR2 test_lane_policy.CasesR3 test_lane_policy.CasesR4 test_lane_policy.CasesR5 test_lane_policy.CasesI1 test_lane_policy.ClosedDeclarations test_lane_policy.PreEffectAndLate test_lane_policy.ExactShowDigest test_lane_policy.OutputAttemptReceipts\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/in/policy-code-input.md",
+        "sha256": "e244e7d08c7c3ec81e540b5462bd91fb62e634734addfe55c6be229941227046"
+      }
+    ],
+    "sha256": "4a26f9b222b0376d5bee50ca13d99ffcdfdfa5991c136fd3bfffa82cd1402c43",
+    "bytes": 4595
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:15:32Z",
+      "ended": "2026-09-10T00:25:36Z",
+      "exit": 137,
+      "tripped": true
+    },
+    {
+      "n": 2,
+      "launched": "2026-09-10T00:51:41Z",
+      "ended": "2026-09-10T00:58:39Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "changed_paths": [],
+    "residual_paths": [
+      "?? ops/conductor/tools/lane_policy.py"
+    ],
+    "envelope": {
+      "job": "code",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 6,
+        "p3": 23,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "base tree",
+          "claim": "Started clean at the requested ref; found the input brief. Search exit 2 included absent paths.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; rg --files -g 'AGENTS.md' -g '*.md' docs ops in ../in 2>/dev/null"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts",
+          "claim": "Read the complete input brief and founding contracts; combined output was truncated.",
+          "reproduce": "cat ../in/policy-code-input.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts",
+          "claim": "Read lane instructions and policy contract; reread the truncated middle separately.",
+          "reproduce": "cat ops/README.md; cat ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "base tree",
+          "claim": "Found 3212-line frozen test file and no policy library; inspected suite runner.",
+          "reproduce": "wc -l ops/conductor/tests/test_lane_policy.py; rg --files ops/conductor/tests | rg 'policy'; ls ops/conductor/tools/lane_policy.py; cat ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md",
+          "claim": "Read authority, grants and binding requirements.",
+          "reproduce": "sed -n '155,390p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py",
+          "claim": "Read synthetic fixture setup and reader.",
+          "reproduce": "sed -n '1,620p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts",
+          "claim": "Read closed evidence transport and policy data.",
+          "reproduce": "sed -n '390,600p' ops/conductor/lane-policy.md; rg -n 'Unit1a|unit1a|OutputAttempt|LaunchDeclarations' ops/devlane/task/CONTRACT.md ops/devlane/dispatch/CONTRACT.md; cat ops/lane-policy.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py",
+          "claim": "Read declaration, binding and evidence helpers.",
+          "reproduce": "sed -n '620,1330p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py",
+          "claim": "Read positive and negative assertions.",
+          "reproduce": "sed -n '1330,2050p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts",
+          "claim": "Read owning declaration-source and output-attempt contracts.",
+          "reproduce": "sed -n '547,675p' ops/devlane/task/CONTRACT.md; sed -n '1353,1445p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py",
+          "claim": "Read custody, transition and closed-declaration cases.",
+          "reproduce": "sed -n '2050,2750p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py",
+          "claim": "Read exact-show and output-production/reuse cases.",
+          "reproduce": "sed -n '2850,3212p' ops/conductor/tests/test_lane_policy.py; rg -n 'witness|trusted_context|source|custody|required_coverage|candidate_tree' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts and history",
+          "claim": "Read output acceptance, register provenance, cache rules and attribution examples.",
+          "reproduce": "sed -n '440,550p' ops/devlane/task/CONTRACT.md; sed -n '1,160p' ops/conductor/decisions-register.md; git log -3 --format=full; rg -n 'cache|residual' ops/devlane/dispatch/CONTRACT.md | head -35"
+        },
+        {
+          "severity": "p3",
+          "where": "base contracts",
+          "claim": "Read C2 grammar and lint rules.",
+          "reproduce": "sed -n '365,440p' ops/devlane/task/CONTRACT.md; cat ruff.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "base tree",
+          "claim": "Baseline exited 1: 59 tests, 67 failure events; library absent.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -m unittest test_lane_policy.ToolPresence test_lane_policy.CasesP1 test_lane_policy.CasesP2 test_lane_policy.CasesP3 test_lane_policy.CasesP4 test_lane_policy.CasesP5 test_lane_policy.CasesN1 test_lane_policy.CasesN2 test_lane_policy.CasesN3 test_lane_policy.CasesN4 test_lane_policy.CasesN5 test_lane_policy.CasesN6 test_lane_policy.CasesN7 test_lane_policy.CasesN8 test_lane_policy.CasesN9 test_lane_policy.CasesN10 test_lane_policy.CasesR1 test_lane_policy.CasesR2 test_lane_policy.CasesR3 test_lane_policy.CasesR4 test_lane_policy.CasesR5 test_lane_policy.CasesI1 test_lane_policy.ClosedDeclarations test_lane_policy.PreEffectAndLate test_lane_policy.ExactShowDigest test_lane_policy.OutputAttemptReceipts"
+        },
+        {
+          "severity": "p2",
+          "where": "first implementation tree",
+          "claim": "Requested command exited 1: 59 tests, eight failures.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -m unittest test_lane_policy.ToolPresence test_lane_policy.CasesP1 test_lane_policy.CasesP2 test_lane_policy.CasesP3 test_lane_policy.CasesP4 test_lane_policy.CasesP5 test_lane_policy.CasesN1 test_lane_policy.CasesN2 test_lane_policy.CasesN3 test_lane_policy.CasesN4 test_lane_policy.CasesN5 test_lane_policy.CasesN6 test_lane_policy.CasesN7 test_lane_policy.CasesN8 test_lane_policy.CasesN9 test_lane_policy.CasesN10 test_lane_policy.CasesR1 test_lane_policy.CasesR2 test_lane_policy.CasesR3 test_lane_policy.CasesR4 test_lane_policy.CasesR5 test_lane_policy.CasesI1 test_lane_policy.ClosedDeclarations test_lane_policy.PreEffectAndLate test_lane_policy.ExactShowDigest test_lane_policy.OutputAttemptReceipts"
+        },
+        {
+          "severity": "p3",
+          "where": "implementation tree",
+          "claim": "Lint and whitespace checks passed.",
+          "reproduce": "ruff check ops/conductor/tools/lane_policy.py; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "implementation tree",
+          "claim": "Started full suite; environment update invalidated its session, making completion unavailable.",
+          "reproduce": "ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "After environment update, the sole new 798-line library remained; HEAD was unchanged.",
+          "reproduce": "git status --short; git rev-parse HEAD; wc -l ops/conductor/tools/lane_policy.py; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "final tree",
+          "claim": "Restarted full suite exited 1; output retained.",
+          "reproduce": "ops/bin/suites.sh > /tmp/lane-policy-suites.log 2>&1"
+        },
+        {
+          "severity": "p2",
+          "where": "frozen fixtures",
+          "claim": "Confirmed unordered P2 manifest, foreign P4 output dispatch, reused R4 per-job row and N2 stale scope-source digest. These need independent reconciliation.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 /tmp/lane-policy-diagnostics.py"
+        },
+        {
+          "severity": "p2",
+          "where": "final tree",
+          "claim": "Exact requested command exited 1: 51 of 59 tests passed; eight failed. Full output retained.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -m unittest test_lane_policy.ToolPresence test_lane_policy.CasesP1 test_lane_policy.CasesP2 test_lane_policy.CasesP3 test_lane_policy.CasesP4 test_lane_policy.CasesP5 test_lane_policy.CasesN1 test_lane_policy.CasesN2 test_lane_policy.CasesN3 test_lane_policy.CasesN4 test_lane_policy.CasesN5 test_lane_policy.CasesN6 test_lane_policy.CasesN7 test_lane_policy.CasesN8 test_lane_policy.CasesN9 test_lane_policy.CasesN10 test_lane_policy.CasesR1 test_lane_policy.CasesR2 test_lane_policy.CasesR3 test_lane_policy.CasesR4 test_lane_policy.CasesR5 test_lane_policy.CasesI1 test_lane_policy.ClosedDeclarations test_lane_policy.PreEffectAndLate test_lane_policy.ExactShowDigest test_lane_policy.OutputAttemptReceipts"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Lint/whitespace passed and frozen test file was unchanged. Library SHA256: cecc0c5ecffc861ff4fba913c65806470d617faeb1acc4f886e3cdc7077adfe5.",
+          "reproduce": "ruff check ops/conductor/tools/lane_policy.py; git diff --check; git diff --exit-code 32e77a0db5228549fa33ddb3991a8160c5093cf3 -- ops/conductor/tests/test_lane_policy.py; sha256sum ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Exit 128: read-only filesystem prevented index.lock creation, staging and commit. Fallback commit message supplied.",
+          "reproduce": "git add -- ops/conductor/tools/lane_policy.py && git -c user.name='GPT-6' -c user.email='noreply@openai.com' commit -F /tmp/lane-policy-COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Suite had not emitted output yet; only the library was untracked and HEAD remained unchanged.",
+          "reproduce": "tail -n 15 /tmp/lane-policy-suites.log; git status --short; git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "execution environment",
+          "claim": "Only this command was visible in its process namespace; separate suite process could not be inspected.",
+          "reproduce": "ps -eo pid,etime,args | rg 'suites.sh|unittest discover|lane-policy-suites'"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Measured one new file with 798 lines.",
+          "reproduce": "git diff --no-index --stat /dev/null ops/conductor/tools/lane_policy.py; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "final full-suite result",
+          "claim": "Conductor suite had 20 failure events, including the eight requested-test failures, deferred ConductorTools cases and the literal guard. HEAD remained unchanged.",
+          "reproduce": "rg -n '^== |^Ran |^FAILED|^OK$|^FAIL:|^ERROR:' /tmp/lane-policy-suites.log; git status --short; git rev-parse HEAD; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/lane_policy.py:265",
+          "claim": "Literal guard rejects the policy protocol string; its existing exact allowance covers dispatch/record.py only. This remains unresolved; no encoding or guard bypass was added.",
+          "reproduce": "sed -n '306,325p' /tmp/lane-policy-suites.log; rg -n 'lane-policy|POLICY_SCHEMA|agentscient' ops/conductor/tools/laneconf.py ops/devlane/dispatch/record.py; rg -n '^def test|library|stdlib|literal' ops/conductor/lane-policy.md"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/lane_policy.py",
+        "requested_tests": "/tmp/lane-policy-requested-tests.log",
+        "full_suite": "/tmp/lane-policy-suites.log",
+        "diagnostics": "/tmp/lane-policy-diagnostics.py",
+        "commands": "/tmp/lane-policy-command-findings.json",
+        "commit_message": "/tmp/lane-policy-COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2563738,
+        "out": 29553,
+        "runs": 2
+      },
+      "stamp": {
+        "ref": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+        "started": null,
+        "ended": "2026-09-10T00:55:21Z"
+      },
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime",
+      "commit": {
+        "subject": "lane: implement inert policy binding and transition checks",
+        "body": "Add the stdlib policy library for admitted reader custody, exact register evidence, closed declarations, grant intersections, dependency coverage, stationary transition bindings and fresh/reused output-attempt receipts. Keep tool-policy evaluation explicitly refusing and all consumers inactive.\n\nValidation: the requested 59-test command has eight failures. Full-suite acceptance also remains incomplete, including the protocol literal guard. Tests, contracts and consumers are unchanged. This is not cutover or acceptance.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/residual.patch",
+      "sha256": "b6ff2997f97c6b8682fee0687039e18706acf306274e4ded3cc30220dc9bdf35",
+      "untracked": [
+        "ops/conductor/tools/lane_policy.py"
+      ]
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:58:38.328Z"
+    }
+  },
+  "status": "closed",
+  "note": "Continue the preserved implementation after its time limit. Focused scope rerun at 2026-09-10T00:51Z ran 59 tests with eight failures. Preserve independent tests and complete bind_launch/check_transition without widening the excluded ConductorTools scope. Finish with an honest structured envelope."
+}

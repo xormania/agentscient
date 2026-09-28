@@ -1,0 +1,176 @@
+{
+  "id": "20260904T001347Z-review-codex-14f5ca",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/effort-per-role-2",
+  "lineage": {
+    "branch": "lane/effort-per-role-2",
+    "base_sha": "c6bb32d807f5a051e3a3df8e3d0a2c86759ba292"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T00:13:47Z",
+    "closed": "2026-09-04T00:21:12Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c6bb32d807f5a051e3a3df8e3d0a2c86759ba292",
+    "ref_sha": "c6bb32d807f5a051e3a3df8e3d0a2c86759ba292",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T20-13-48-01a069c3-b299-7c33-803d-bbfc672185eb.jsonl"
+  },
+  "session": {
+    "id": "01a069c3-b299-7c33-803d-bbfc672185eb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T20-13-48-01a069c3-b299-7c33-803d-bbfc672185eb.jsonl",
+    "stream_sha256_at_close": "f4f9bd6489d4c5d4e3acb96d7b5e8d8a0bf1955e2ee0e4bdc6ce2f06fe201f8c",
+    "spend": {
+      "input": 4748568,
+      "cached": 4579343,
+      "output": 27979,
+      "total": 4776547,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T20-13-48-01a069c3-b299-7c33-803d-bbfc672185eb.jsonl",
+      "messages": 370
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-effort-per-role-2/ops/devlane/task/jobs.json",
+      "sha256": "06ef9ff25759b502aa7b0f13dc997c3c4028c2c638b40aac3f4a7b2ade0198db"
+    },
+    "scope": "the fix round on lane/effort-per-role-2 since your first audit (record 20260903T232447Z-review-codex-9c696a on 03cf55c): commit 024f220 'dispatch: enforce effort and read-role policy' and the seven test commits before it. Aim at: does the job-name guard in ops/conductor/tools/dispatch.sh close the indirect-expansion path you reproduced, and does it open another; is a Codex read role now confined and a read-role snapshot change now invalidating; does the record validator compare exact effort tokens against harness.argv. Everything else in the diff was audited before.",
+    "inputs": [],
+    "sha256": "1b2c6033e1fabd6020743729ff1493464109d96e8ecb99ee74422c862ace3d65",
+    "bytes": 1811
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T00:13:47Z",
+      "ended": "2026-09-04T00:21:12Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c6bb32d807f5a051e3a3df8e3d0a2c86759ba292",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:305-311",
+          "claim": "Codex confinement is not bound on resume. Passing read-only or danger-full-access produces identical argv with no sandbox token, while the record continues to advertise its prior sandbox. The resumed process therefore relies on unchecked vendor session/default state rather than the recorded policy.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport sys\nfrom pathlib import Path\nsys.path.insert(0,'ops/devlane/dispatch')\nimport launch\nargs=('codex','M','xhigh','00000000-0000-0000-0000-000000000000',Path('/tmp/job/prompt.txt'),[])\na=launch._argv(*args,'read-only',resume=True)\nb=launch._argv(*args,'danger-full-access',resume=True)\nprint({'identical':a==b,'argv':a})\nassert a==b and '--sandbox' not in a\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:1199-1257",
+          "claim": "A resumed read job bypasses the new snapshot-integrity enforcement. _resume runs the harness and writes the record directly, never calling _settle, which is the sole location checking read-role HEAD and residual changes.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\ns=Path('ops/devlane/dispatch/launch.py').read_text()\nb=s.split('def _resume(args):',1)[1].split('def _close(args):',1)[0]\nassert '_run_attempt(' in b and '_write_record(' in b and '_settle(' not in b\nassert s.count('read-role-snapshot: snapshot must be unchanged')==1\nprint('resume bypasses sole read-role snapshot guard')\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:1120-1147",
+          "claim": "Fresh read-job integrity checks omit Git-ignored paths. A policy-only read harness can create or alter ignored local configuration or secret files such as .env.local without residual_paths becoming non-empty, so an approving envelope is not invalidated.",
+          "reproduce": "python3 - <<'PY'\nimport subprocess\nfrom pathlib import Path\ns=Path('ops/devlane/dispatch/launch.py').read_text()\nb=s.split('def _residual(snapshot):',1)[1].split('def _settle',1)[0]\nignored=subprocess.check_output(['git','check-ignore','-v','--no-index','.env.local','.claude/settings.local.json','config/secrets/prod/prod.decrypt.private.php'],text=True).splitlines()\nprint({'uses_ignored': '--ignored' in b, 'ignored': ignored})\nassert '--ignored' not in b and len(ignored)==3\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/record.py:73-85",
+          "claim": "The effort validator compares harness.argv with a self-declared subsequence, not the canonical adapter carrier. effort_argv=['xhigh'] validates when xhigh appears only as a model value, so a record can claim xhigh although no effort option reached the CLI.",
+          "reproduce": "cd ops/devlane/dispatch/tests && PYTHONDONTWRITEBYTECODE=1 python3 -c 'from test_record import _RecordCase; c=_RecordCase(\"runTest\"); r=c.built(); r[\"model\"][\"effort_requested\"]=\"xhigh\"; r[\"model\"][\"effort_argv\"]=[\"xhigh\"]; r[\"harness\"][\"argv\"]=[\"grok\",\"--model\",\"xhigh\",\"--output-format\",\"plain\"]; v=c.recmod().validate(r); print(v[\"model\"][\"effort_argv\"],v[\"harness\"][\"argv\"])'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh:5-6,98",
+          "claim": "The job-name guard closes the command-substitution path but reflects the rejected value unescaped into the one-line refusal log. A newline-bearing job name injects additional forged stderr records.",
+          "reproduce": "python3 - <<'PY'\nimport subprocess\nj='x\\nclass: forged; found trusted; needed none'\np=subprocess.run(['bash','ops/conductor/tools/dispatch.sh','--job',j,'--harness','codex','--scope-file','ops/README.md','--worktree','.','--dry-run'],capture_output=True,text=True)\nprint({'returncode':p.returncode,'stderr_lines':p.stderr.splitlines()})\nassert p.returncode==3 and len(p.stderr.splitlines())==2\nPY"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/context/diff.patch",
+        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001347Z-review-codex-14f5ca/snapshot",
+        "prior_audit": ".dev/records/dispatches/20260903T232447Z-review-codex-9c696a.json"
+      },
+      "spend": {
+        "unresolved": "usage unavailable to auditor"
+      },
+      "stamp": {
+        "ref": "c6bb32d807f5a051e3a3df8e3d0a2c86759ba292",
+        "started": null,
+        "ended": "2026-09-04T00:20:53Z"
+      },
+      "note": "Read all 3,085 diff lines (SHA-256 b29f064653a0a86ee48f50e0ec68bb0456990eac0f689df0ffe2d19c387d1dec), required contracts, lane instructions, and the prior audit; in/ was present and empty. The original indirect-expansion exploit is closed, and fresh Codex reads receive --sandbox read-only without writable roots. Secret scan was clean across 28 changed tracked files; no SQL, Twig, dependency, lockfile, fetched-action, or permission-mode changes were found beyond those reported. Live vendor execution, network behavior, and destructive containment probes were not covered. Tempdir-backed integration tests could not start in this read-only environment; the eight non-temp effort-record tests passed. The tree remained clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T00:21:12.218Z"
+    }
+  },
+  "status": "closed"
+}

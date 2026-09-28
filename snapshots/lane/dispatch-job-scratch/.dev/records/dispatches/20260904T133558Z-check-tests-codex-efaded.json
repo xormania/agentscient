@@ -1,0 +1,170 @@
+{
+  "id": "20260904T133558Z-check-tests-codex-efaded",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/dispatch-job-scratch",
+  "lineage": {
+    "branch": "lane/dispatch-job-scratch",
+    "base_sha": "ccc81880e565132375bf0ad9fee579225e264278"
+  },
+  "follows": [
+    "20260904T132749Z-tests-grok-872f3a"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:35:59Z",
+    "closed": "2026-09-04T13:41:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ccc81880e565132375bf0ad9fee579225e264278",
+    "ref_sha": "ccc81880e565132375bf0ad9fee579225e264278",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl"
+  },
+  "session": {
+    "id": "01a06ca2-219d-7243-ae1d-c86c70ed8e6f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl",
+    "stream_sha256_at_close": "43ceed4533aafd4037dc6da6ee838243bdbd66bd7a733414f7905e09d8723a19",
+    "spend": {
+      "input": 1498601,
+      "cached": 1404928,
+      "output": 15017,
+      "total": 1513618,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl",
+      "messages": 202
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-job-scratch/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR.\nD-LADDER-1 (register, standing ratified, `ops/conductor/decisions.seed.json`, decided_by owner 2026-09-04): an implement run covers at most one S bucket and an M slice is implemented in two runs the plan names; the security and adversarial audits run once per batch on the merged tree, never per slice, with one fix round and the security re-audit only; the skeptic runs once on the first tests and never on the fixed tests.\nBucket sizes (owner, 2026-09-04): S = 1\u20133 files, one implement run under 10 minutes; M = two named S buckets (run A, run B), each landed and green alone; L = split.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/in/PLAN-fixture-fix2-dispatch-job-scratch.md",
+        "sha256": "949edbb04a0b8192eff9cf8f057f32d9f10b78711440350ff1125bf47e244d10"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/in/20260904T132749Z-tests-grok-872f3a.json",
+        "sha256": "6fc540fa75f5d3a498bd0fd853d4ce68c1792e97564fb4a0c61b648de9cde9e2"
+      }
+    ],
+    "sha256": "2d06e917223e6d823475039328b2b3a98b275c98769275e0935269047080b029",
+    "bytes": 3843
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:35:59Z",
+      "ended": "2026-09-04T13:41:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ccc81880e565132375bf0ad9fee579225e264278",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_isolation.py:673",
+          "claim": "All four tests exercise only an implement/Codex/write launch. An implementation that scopes the temporary environment and directories to Codex write jobs would pass while Grok and other harness children still use host temporary paths, violating the every-harness-child contract and leaving the original residue escape unguarded.",
+          "reproduce": "python3 -c 'from pathlib import Path; p=Path(\"ops/devlane/dispatch/tests/test_launch_isolation.py\"); s=p.read_text(); b=s[s.index(\"class CodexWriteJobStaysInsideTheJobDirectory\"):]; assert b.count(\"self._launch_codex_write()\") == 4; assert \"job=\\\"implement\\\", harness=\\\"codex\\\", stage=\\\"code\\\"\" in b; assert \"harness=\\\"grok\\\"\" not in b and \"harness=\\\"claude\\\"\" not in b and \"job=\\\"plan\\\"\" not in b'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/launch_support.py:212 \u2194 ops/devlane/dispatch/tests/test_launch_isolation.py:717",
+          "claim": "The pre-spawn witness and assertions cover scratch/ but never the required <job>/scratch/git/ parent. An implementation omitting scratch/git/ passes all four tests although the contracted index and object destinations are not prepared before spawn.",
+          "reproduce": "python3 -c 'from pathlib import Path; p=Path(\"/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/in/PLAN-fixture-fix2-dispatch-job-scratch.md\").read_text(); h=Path(\"ops/devlane/dispatch/tests/launch_support.py\").read_text(); t=Path(\"ops/devlane/dispatch/tests/test_launch_isolation.py\").read_text(); b=t[t.index(\"class CodexWriteJobStaysInsideTheJobDirectory\"):]; assert \"<job>/scratch/git/\" in p; assert \"job_scratch_is_dir\" in h and \"job_scratch_git_is_dir\" not in h; assert \"scratch/git\" not in b and \"job_dir / \\\"scratch\\\" / \\\"git\\\"\" not in b'"
+        }
+      ],
+      "artifacts": {
+        "requested_report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1513618,
+        "out": 15017,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ccc81880e565132375bf0ad9fee579225e264278",
+        "started": null,
+        "ended": "2026-09-04T13:41:31Z"
+      },
+      "note": "Review completed, but SKEPTIC.md could not be created because the filesystem sandbox rejected writes under its read-only policy. The prescribed test command was also UNREACHABLE because no writable temporary directory was available."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T13:41:57.723Z"
+    }
+  },
+  "status": "closed"
+}

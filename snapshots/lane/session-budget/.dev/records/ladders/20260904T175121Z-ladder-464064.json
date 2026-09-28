@@ -1,0 +1,167 @@
+{
+  "base_sha": "c715b24aaea4bf040b2bf63021b59125474e1485",
+  "branch": "lane/session-budget",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/lane.conf",
+    "sha256": "ebba255effed06abbe88fc4cb94883240429c88775e757841eccb99969fac7b2"
+  },
+  "id": "20260904T175121Z-ladder-464064",
+  "implementation_markers": [],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/ladder-inputs/slice-session-budget.md",
+    "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/ladder-inputs/scope-session-budget.txt",
+    "sha256": "7c0694949314354b9a203e96c730906fe283dc54e51b5496b905027c5d03c269"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T175121Z-tests-grok-a0a65d",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/agentscient/.dev/wip/slice-session-budget.md",
+        "proof": {
+          "given": [
+            "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py"
+          ],
+          "withheld": []
+        },
+        "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+      },
+      "job": "author-tests",
+      "landed": [
+        "a486c25c202e8e74401ef8e72503c432698b7e2d"
+      ],
+      "landed_shas": [
+        "a486c25c202e8e74401ef8e72503c432698b7e2d"
+      ],
+      "minutes": 9.762764,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260904T175121Z-tests-grok-a0a65d",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 2,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T180930Z-check-tests-codex-bb8ddb",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/records/dispatches/20260904T175121Z-tests-grok-a0a65d.json",
+        "proof": {
+          "given": [
+            "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py",
+            "20260904T175121Z-tests-grok-a0a65d"
+          ],
+          "withheld": []
+        },
+        "sha256": "8013405c13879516fe901aceb901a67775644ad25908aac23a09e4f4551ec2f2"
+      },
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "stopped",
+      "reason": "retry-cap",
+      "record": "20260904T180930Z-check-tests-codex-bb8ddb",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "stopped",
+  "stopped": {
+    "reason": "retry-cap",
+    "record": "20260904T180930Z-check-tests-codex-bb8ddb",
+    "stage": "check-tests",
+    "verdict": null
+  },
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-session-budget"
+}

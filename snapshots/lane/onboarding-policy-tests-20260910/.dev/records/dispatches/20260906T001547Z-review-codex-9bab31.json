@@ -1,0 +1,207 @@
+{
+  "id": "20260906T001547Z-review-codex-9bab31",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "61b84cacfe0f917e134ce4ad1643541ee96a25e2"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T00:15:49Z",
+    "closed": "2026-09-06T00:29:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "61b84cacfe0f917e134ce4ad1643541ee96a25e2",
+    "ref_sha": "61b84cacfe0f917e134ce4ad1643541ee96a25e2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-15-49-01a07412-46b5-7b93-9f4b-06c62d65fdd1.jsonl"
+  },
+  "session": {
+    "id": "01a07412-46b5-7b93-9f4b-06c62d65fdd1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-15-49-01a07412-46b5-7b93-9f4b-06c62d65fdd1.jsonl",
+    "stream_sha256_at_close": "ed6432c34cf93c61882272f6e2659aa79abd28c133a90ba58a1504c261ac5a49",
+    "spend": {
+      "input": 4219944,
+      "cached": 3927040,
+      "output": 32767,
+      "total": 4252711,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T20-15-49-01a07412-46b5-7b93-9f4b-06c62d65fdd1.jsonl",
+      "messages": 339
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read-only architecture audit; owner steering in input governs. Map all current dev-lane execution systems: docs/ foundations and measured Symfony mapping; AGENTS/CONTRIB/ops README; ops/devlane, ops/bin, ops/process and relevant package services. Cover dispatch/go, harness/model abstractions, policy/hooks/guards, tasks/stages/artifacts/producers, registries, evidence/telemetry, suites/landing, CLI/API/MCP/TUI ownership. Trace entrypoint -> contract -> implementation -> state/output; distinguish active, dormant, legacy, planned. Inventory subtrees and coverage gaps. Check prior handoff for concepts missed. Explain which existing homes should own proposed conduct startup/adapters/enforcement/diagnostics, avoiding duplicate systems. No source/settings/test changes; no implementation. Return <=2500-word HOMES.md plus coverage/evidence artifact, measured refs/file lines, paths/digests in envelope; verdict only on architecture understanding, not permission to implement.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/in/conductor-lane-audit-owner.md",
+        "sha256": "e7a8c9d6f2a17f24bdc650094387c17b3f3d8f594b69fc40f4b8b75624c15212"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001547Z-review-codex-9bab31/in/conductor-start-owner-clarification.md",
+        "sha256": "25853ae7c54d457acb309f5d20a7cbba16eacb570b42a80c876d2e0a312e8a6f"
+      }
+    ],
+    "sha256": "c5c004d727e0d65f52be9812912e3a930901003e612c8c3fbb3d7a98d24250e9",
+    "bytes": 3287
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T00:15:49Z",
+      "ended": "2026-09-06T00:29:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "61b84cacfe0f917e134ce4ad1643541ee96a25e2",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 4,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/records/dispatches/20260905T235716Z-review-codex-af223c.json result.envelope.artifacts.proposed_lifecycle/proposed_canonical_discovery; docs/workflow.md:3-23",
+          "claim": "The completed lifecycle report proposes a new start lifecycle, closeout writer, session manifest and record-ref namespace without locating start/open/checkpoint/owner-close as transitions of the repository's required generic workflow. That runtime is absent, while active ladder.py already hand-codes another lifecycle. Adopting this understanding would add a duplicate lifecycle contrary to the owner audit and workflow genus.",
+          "reproduce": "jq -r '.result.envelope.artifacts.proposed_lifecycle,.result.envelope.artifacts.proposed_canonical_discovery' .dev/records/dispatches/20260905T235716Z-review-codex-af223c.json; nl -ba docs/workflow.md | sed -n '3,23p'; test ! -e ops/devlane/workflow/wf.py; nl -ba ops/conductor/ladder-lever.md | sed -n '17,61p'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:28-33; ops/devlane/dispatch/launch.py:914-1050; ops/devlane/task/run.py:1277-1320",
+          "claim": "The declared dispatch architecture is not the running architecture: the contract calls task/run.py the mechanism under launch.py, but launch.py independently snapshots, launches and supervises and has no run.py call. task/run.py and telemetry/breaker.py form a dormant parallel execution system. Until this seam is resolved, assigning conduct harness adapters to a new launcher would create a third model-execution path.",
+          "reproduce": "nl -ba ops/devlane/dispatch/CONTRACT.md | sed -n '26,36p'; rg -n 'task/run|run\\.py|from run|import run' ops/devlane/dispatch/launch.py ops/bin ops/conductor/tools; nl -ba ops/devlane/dispatch/launch.py | sed -n '914,1050p'"
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/settings.json:44-112; ops/devlane/hooks/claude/conductor-enforce.py:20-52,108-136; changed record 20260905T234846Z-review-grok-8e1450",
+          "claim": "There is no reusable active conductor-role policy across harnesses. The existing conductor-enforce guard is unarmed, names obsolete per-harness levers, and accepts commands by substring; armed hooks consume Claude-shaped payloads, while the changed Grok review measured a camelCase mismatch and no Codex hook configuration. The shared policy belongs in ops/devlane/hooks with explicit harness adapters, not inside conduct startup.",
+          "reproduce": "python3 -c \"import json; d=json.load(open('.claude/settings.json')); print('conductor-enforce' in json.dumps(d))\"; nl -ba ops/devlane/hooks/claude/conductor-enforce.py | sed -n '20,52p;108,136p'; jq '.result.envelope.findings' .dev/records/dispatches/20260905T234846Z-review-grok-8e1450.json"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/ladder-inputs/conductor-lane-audit-owner.md:11-14; prior HANDOFF-2026-09-05-codex-mcp-closeout.md:42-68,120-143,170-178; changed record 20260906T001017Z-plan-grok-be3523",
+          "claim": "No completed changed record incorporates the owner-named prior handoff. It contains material ownership facts omitted by the earlier proposals: MCP v1/v2 is a read-only implemented observation surface with failed host activation, tracked dispatch records are canonical, packet/index/precheck ideas are not contracts, and probes.py remains absent after manual probe rows. The only post-audit plan record is still launched with result null, so it cannot close this coverage gap.",
+          "reproduce": "jq '{status,result,inputs:.brief.inputs}' .dev/records/dispatches/20260906T001017Z-plan-grok-be3523.json; nl -ba /home/scientdb/projects/uscient/wt/ag-closeout-mcp-20260905/ops/conductor/handoff/HANDOFF-2026-09-05-codex-mcp-closeout.md | sed -n '42,68p;120,143p;170,178p'"
+        },
+        {
+          "severity": "p2",
+          "where": "AGENTS.md:44-83; docs/mapping.md:141-190,216-255; packages/README.md:14-15; composer.json:8-23,88-95",
+          "claim": "The completed proposals do not separate planned Symfony ownership from installed services. packages/ has only its README, src has no relevant service, only FrameworkBundle is enabled, vendor/ is absent, and the lock has no Symfony Workflow or Symfony AI Platform/Agent. The four CLI/API/MCP/TUI projections and Symfony model abstraction are binding intended homes, but none is an existing service that conduct can currently reuse.",
+          "reproduce": "git ls-tree -r --name-only 61b84cacfe0f917e134ce4ad1643541ee96a25e2 packages src config; jq -r '.packages[]|select(.name|test(\"symfony/(workflow|ai-platform|ai-agent)|api-platform\"))|.name' composer.lock; nl -ba AGENTS.md | sed -n '44,83p'"
+        },
+        {
+          "severity": "p2",
+          "where": "docs/probes.md:3-53; ops/conductor/probes-lever.md; ops/conductor/README.md:38-49",
+          "claim": "The proposed conduct <harness> test boundary has an existing contract home but no production runner. Positive, negative, unreachable and version-bound diagnostic grading belongs to docs/probes and probes-lever, then projects through existing monitor/watchdog/read-only MCP surfaces. Creating diagnostics inside the conduct command or a new result store would duplicate this unimplemented owner.",
+          "reproduce": "nl -ba docs/probes.md | sed -n '3,53p'; nl -ba ops/conductor/README.md | sed -n '38,49p'; test ! -e ops/conductor/tools/probes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md:85-110; ops/process/tdd.md:11-12; ops/conductor/mcp-tools.md:8-10; ops/bin/board.sh:1-26",
+          "claim": "Several documents/entrypoints blur planned and active state: ops/README says a wf.py read projection is present although the file is absent, process and MCP docs invoke absent workflow/MCP launcher paths, and board.sh is a legacy shell view while the conductor board contract explicitly says board.py was never built. These stale surfaces make an 'all systems' map unreliable unless labeled legacy/planned.",
+          "reproduce": "git cat-file -e 61b84cacfe0f917e134ce4ad1643541ee96a25e2:ops/devlane/workflow/wf.py; nl -ba ops/README.md | sed -n '85,110p'; nl -ba ops/conductor/README.md | sed -n '38,49p'; nl -ba ops/bin/board.sh | sed -n '1,26p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/process/pipeline.md:13-18; ops/bin/go.sh:29-45; ops/conductor/ladder-lever.md:35-61,136-139",
+          "claim": "Producer and stage policy is not stationary: pipeline assigns plan/code/reviews to one set of producers, go.sh defaults differ, and ladder assigns Codex code, omits a normal plan stage unless supplied, and cannot enforce withheld tests. A conduct lifecycle must consume one declared workflow policy rather than encode another producer table.",
+          "reproduce": "nl -ba ops/process/pipeline.md | sed -n '13,18p'; nl -ba ops/bin/go.sh | sed -n '29,45p'; nl -ba ops/conductor/ladder-lever.md | sed -n '35,61p;136,139p'"
+        }
+      ],
+      "artifacts": {
+        "HOMES.md": "# HOMES.md\n\nMeasured 2026-09-06 against 61b84cacfe0f917e134ce4ad1643541ee96a25e2, with c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc as the ancestor base. The 14-file change is research custody only: nine ladder inputs and five dispatch records; no runtime, settings, package, or test file changed. The owner audit at .dev/ladder-inputs/conductor-lane-audit-owner.md:3-14 supersedes the earlier design momentum. This verdict tests architectural understanding only and grants no permission to implement.\n\n## Governing homes\n\nThe wire is docs/wire.md:9-20 and 43-49: one refusal vocabulary and four exit classes, measured by a conformance registry. Workflow ownership is docs/workflow.md:3-23: actor, evidence, failure and gate are data consumed by one generic engine; audit, artifact and job lifecycles are instances, not hand-coded chains. State markings are append-only (25-32). Probe ownership is docs/probes.md:3-53: corpus plus runner, explicit unreachable results and close manifests. External couplings require contract, probe and verified mock (docs/verified-couplings.md:14-50).\n\nAGENTS.md:44-83 now governs over older House records: Symfony 8.1/PHP 8.4, Symfony AI Platform for model access, packages gestating under packages/, and four projections of one service. CLI and API act; MCP is read-only; TUI is a projection. docs/mapping.md:141-190 and 216-255 is a measured candidate/strangler map, not installed capability.\n\n## Execution trace and status\n\n1. Active operator path: ops/bin/go.sh:29-82 maps intent and worktree, then ops/bin/dispatch.sh:1-6 shims to ops/conductor/tools/dispatch.sh. That wrapper reads ops/lane.conf plus an optional local override, pins harness/model/effort and invokes ops/devlane/dispatch/launch.py (dispatch.sh:9-114, 193-268). Detached mode writes launcher state/logs (271-326).\n\n2. Active dispatch service: launch.py resolves branch/ref/job/role, creates a non-shared whole-repository snapshot, copies inputs, renders the prompt, builds harness isolation and wire facts, launches the CLI, supervises wall/stream caps, parses the envelope, and records attempts (launch.py:914-1050, 1053-1196). Mutable job state and raw output live outside the repository in the configured dispatch root; immutable summaries live at .dev/records/dispatches/ (dispatch/CONTRACT.md:111-135, 308-417). The job record binds prompt/input/ref/caps/harness facts.\n\n3. Contract contradiction: dispatch/CONTRACT.md:28-33 says task/run.py is the mechanism beneath launch.py, but launch.py directly snapshots, launches and supervises and contains no run.py call. task/run.py:1277-1320 is a separate callable/CLI. Static references show no active caller. It is dormant/manual, not the mechanism of the active path. telemetry/breaker.py likewise supplies the dormant runner while launch.py has its own reduced breaker loop. Harness adapters must be consolidated at this seam; conduct must not become a third launcher.\n\n4. Job and staging ownership: ops/devlane/task/jobs.json defines nine jobs, roles, templates, whole/direct modes and caps; task/envelope.py owns result validation. task/fileset.py and harness/stage.py implement withheld-file manifests/proofs, but active launch refuses non-whole snapshots. They are dormant planned freight, not current isolation. harness/isolation.py and harness/wires.py are active launch dependencies; harness/probe.py is a manual/dormant capability probe. Per-harness scripts under dispatch/levers/ are preserved legacy levers and are not the top-level path (dispatch/levers/README.md:1-35).\n\n5. Workflow and producers: ops/devlane/workflow contains contracts/data/checks/tests but no wf.py. Therefore the generic runtime required by docs/workflow.md is absent. References in ops/process/tdd.md:11-12, skill tests, ops/conductor/mcp-tools.md and ops/README.md:89-97 are stale/planned. In contrast ops/conductor/tools/ladder.py is active and hand-codes plan/tests/check/code/review/land under ladder-lever.md:17-116. Its producer sequence differs from ops/process/pipeline.md:13-18 and go.sh defaults, and it cannot prove withheld tests (ladder-lever.md:136-139). A conductor session lifecycle belongs first in the generic workflow contract/runtime, with ladder migrated or explicitly bounded; it must not be another custom stage machine.\n\n6. Policy/enforcement: .claude/settings.json:44-112 arms Claude-shaped no-subagent, matrix, boundary/test and formatting hooks; conductor-enforce.py is present but unarmed. It refers to obsolete lever names and uses substring command acceptance (conductor-enforce.py:20-52, 108-136). Grok's measured camelCase payload does not match these scripts, and Codex has no equivalent configured hook. ops/devlane/hooks is the policy/corpus home; harness-specific request/response and CLI capability translation belongs in adapter implementations behind it. ops/bin/conduct should be only a thin selector/argument-forwarding entrypoint. Host containment was expressly discarded by owner steering.\n\n7. Registries and state: task/jobs.json is the job registry. ops/conductor/registry/*.json are conformance/refusal rows, not a capability or lifecycle registry. ops/lane.conf owns tracked runtime choices. decisions.py, hand.py, skills.py, findings.py, monitor.py and ci.py own their separate local stores; findings also exports ops/conductor/findings/findings.jsonl. Dispatch job directories and tracked dispatch records remain the evidence source. Do not create a second registry or generic session database where workflow markings and these owners suffice.\n\n8. Onboard/close: onboard.py serves law/live state and the lexically newest current-checkout AAR calibration, but does not discover handoffs across refs (onboard.py:231-306). Canonical custody already exists: handoff/HANDOFF-*.md, adjacent evidence-* and probes/*.jsonl; AARs live one level up (handoff/README.md:3-19). Owner-issued handoff/AAR should invoke a close transition that writes those existing homes; crash/exit writes only an unfinished workflow marking/checkpoint. Discovery extends onboard using repository refs and validated evidence, not retained-worktree paths or a parallel manifest store unless the workflow/probe contracts first declare the missing field.\n\n9. Diagnostics and observation: docs/probes.md owns the diagnostic corpus and grading semantics. ops/conductor/probes-lever.md is contract-only and probes.py is absent (conductor/README.md:38-49). conduct <harness> test should project that runner through the same policy and adapters, with positive/negative/unreachable rows and version bindings. monitor is a writer/event queue; watchdog and lane MCP are read-only observers. Suites remain ops/bin/suites.sh:17-44; CI invokes them plus Symfony checks (.github/workflows/ci.yml:24-70). Landing belongs to land.py/land-lever.md, used by ladder.\n\n10. Projections/packages: the current acting CLI is Python/shell. lane_mcp.py/lane_read.py implement a read-only Python MCP projection; prior handoff records v1/v2 complete but host activation failed, so tree implementation is present and runtime activation unproved. No API or TUI projection exists. packages/ contains only README.md; src has Kernel and no service; config enables only FrameworkBundle. composer show could not run because vendor/ is absent. Static composer.lock has Console/DI/Process but no Workflow, Symfony AI Platform/Agent, MCP, TUI, API Platform or application bundle. These are planned Symfony homes, not reusable installed services today.\n\n## Ownership decision\n\nReuse/extend: ops/bin for the thin conduct entrypoint; ops/devlane/hooks for shared role policy and its deterministic corpus; the existing harness boundary after launch/run consolidation for CLI/hook/capability adapters; docs/workflow plus one eventual runtime for start/onboard/open/checkpoint/owner-close markings; onboard.py and canonical conductor handoff/AAR/evidence paths for discovery/publication; docs/probes and probes-lever for conduct test; monitor/watchdog/MCP for diagnostics; suites and land for gates and landing. Replace or retire explicit duplicates: dormant task/run.py versus active launch.py, legacy dispatch levers, stale board.sh, and hand-coded ladder once the generic workflow owner exists. Add genuinely missing boundaries only for the shared conductor service and its Symfony projections after contracts, dependencies, probes and mocks are measured.\n\nArchitecture verdict: changes. The committed evidence usefully captures owner steering and hook/lifecycle hypotheses, but the completed reports do not map the workflow genus, active launch/run duplication, registries, staging/telemetry, prior MCP/probe handoff, Symfony installed state or projection gaps. The final Grok plan record is still launched with no result and is not evidence.",
+        "HOMES.md.meta": "inline://HOMES.md; sha256=805b047e21f836d6e83031c253aef0b80468882b97ee69902362ce61c597c2ff; bytes=8760; words=1047",
+        "COVERAGE-EVIDENCE.json": "{\"artifact\":\"COVERAGE-EVIDENCE.json\",\"measured_at\":\"2026-09-06T00:21:45Z\",\"ref\":\"61b84cacfe0f917e134ce4ad1643541ee96a25e2\",\"base\":\"c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc\",\"method\":\"Static repository inspection and read-only commands; no session-store read, network mutation, source/settings/test edit, or runtime publication.\",\"inputs\":[{\"path\":\"../in/conductor-lane-audit-owner.md\",\"lines\":14,\"sha256\":\"e7a8c9d6f2a17f24bdc650094387c17b3f3d8f594b69fc40f4b8b75624c15212\"},{\"path\":\"../in/conductor-start-owner-clarification.md\",\"lines\":79,\"sha256\":\"25853ae7c54d457acb309f5d20a7cbba16eacb570b42a80c876d2e0a312e8a6f\"},{\"path\":\"../context/diff.patch\",\"lines\":1088,\"sha256\":\"1709aec2579f6f1cbf2c0fc3aa083c6dd36e071b8172da4358db4d7c001ed4b6\"},{\"path\":\"/home/scientdb/projects/uscient/wt/ag-closeout-mcp-20260905/ops/conductor/handoff/HANDOFF-2026-09-05-codex-mcp-closeout.md\",\"lines\":187,\"sha256\":\"0d8997dac775844a21a937c7495077dcaa942e28ba6511415225a956bb85c613\"}],\"diff\":{\"files\":14,\"insertions\":1004,\"classes\":{\"ladder-inputs\":9,\"dispatch-records\":5,\"runtime/settings/packages/tests\":0},\"diff_check\":\"clean\",\"base_is_ancestor\":true},\"trees\":[{\"path\":\"docs\",\"files\":6,\"tree_manifest_sha256\":\"1a7e074495de961ef8d3b0e3f1d48b79f67739fc30b3e9bdd5798080db678bc7\",\"coverage\":\"wire, workflow genus, probes, concerns, couplings, measured mapping\"},{\"path\":\"ops/devlane\",\"files\":407,\"tree_manifest_sha256\":\"aba7314aa3457ac57a70ade156a4edf230c2ca4b7750095f54eb13a69054c0af\",\"coverage\":\"dispatch 37; fixtures 180; harness 58; hooks 39; infra 17; task 21; telemetry 20; workflow 33; plus AGENTS/README\"},{\"path\":\"ops/bin\",\"files\":9,\"tree_manifest_sha256\":\"f4654bdeff73f76f9028175fbf6cd1edcd7ed61aae070eab67d351d958c8614e\",\"coverage\":\"go, dispatch shim, suites, gate/land/ladder shims, legacy board\"},{\"path\":\"ops/process\",\"files\":9,\"tree_manifest_sha256\":\"26f2d448fae4a2807f7f398831bb62a350bb8edbda081c365871bf3e84fbae09\",\"coverage\":\"pipeline, TDD, cross-review, naming, token rules\"},{\"path\":\"ops/conductor\",\"files\":148,\"tree_manifest_sha256\":\"cb70a966ed88331ee2700c2f56e6b8a0108c1c39115068f3088a5e7e8c090a0e\",\"coverage\":\"tools 18; tests 26; conformance registry 13; handoff 9; ideas 20; contracts 6; findings 2; lessons/concerns\"},{\"path\":\"packages\",\"files\":1,\"tree_manifest_sha256\":\"584f6319364d1f85130837078379798b26eb2afa25a8158aefc8e5674cafb36c\",\"coverage\":\"README only; no bundle/service\"},{\"path\":\"src\",\"files\":2,\"tree_manifest_sha256\":\"b387c71e29ec11418fadd1a2ede808168c4d14c7f4bba82b2cc064cfb502fe7c\",\"coverage\":\"Kernel plus Controller placeholder\"},{\"path\":\"config\",\"files\":9,\"tree_manifest_sha256\":\"29941f864a6e76660a0919a090a05962c705f59d90bfccc08b91096fac096ff8\",\"coverage\":\"FrameworkBundle only; generic App autowire\"},{\"path\":\".github/workflows\",\"files\":1,\"tree_manifest_sha256\":\"ae5ebe4180a310ae191266ee3fa927b61588ddb3711df55babed0ef11c0236ae\",\"coverage\":\"CI lane and application jobs\"}],\"status_matrix\":[{\"system\":\"dispatch/go\",\"entry\":\"ops/bin/go.sh -> ops/bin/dispatch.sh -> ops/conductor/tools/dispatch.sh -> ops/devlane/dispatch/launch.py\",\"contract\":\"ops/devlane/dispatch/CONTRACT.md\",\"implementation\":\"launch.py + isolation.py + wires.py + record.py\",\"state_output\":\"external job dir; .dev/records/dispatches\",\"status\":\"active\"},{\"system\":\"task runner\",\"entry\":\"task/run.py CLI/callable\",\"contract\":\"task/CONTRACT.md and dispatch/CONTRACT.md\",\"implementation\":\"task/run.py + fileset.py + telemetry/breaker.py\",\"state_output\":\"caller envelope/artifacts\",\"status\":\"dormant/manual; no active launch caller\"},{\"system\":\"jobs/artifacts/producers\",\"entry\":\"jobs.json via launch; ladder.py for chain\",\"contract\":\"task/CONTRACT.md; workflow.md; ladder-lever.md\",\"implementation\":\"jobs.json/envelope.py; ladder.py\",\"state_output\":\"job dir, dispatch graph, ladder record\",\"status\":\"jobs active; generic workflow absent; ladder active/custom\"},{\"system\":\"policy/hooks/guards\",\"entry\":\".claude/settings.json; optional git hook install\",\"contract\":\"hooks docs/CONTRIB\",\"implementation\":\"no-subagents.py, matrix.py, guards\",\"state_output\":\"deny/allow response and stderr evidence\",\"status\":\"Claude subset armed; conductor-enforce dormant; Codex/Grok parity absent\"},{\"system\":\"registries\",\"entry\":\"jobs.json, registry/*.json, lane.conf, decisions/hand/skills/findings tools\",\"contract\":\"task and conductor instrument contracts\",\"implementation\":\"JSON config/rows plus SQLite-owning tools\",\"state_output\":\"tracked rows/config; distinct local DBs; findings export\",\"status\":\"mixed active; registry rows are conformance, not lifecycle\"},{\"system\":\"evidence/telemetry\",\"entry\":\"launch close/brief; pulse/worth/monitor/watchdog\",\"contract\":\"dispatch contract, probes, monitor contracts\",\"implementation\":\"usage.py, pulse.py, worth.py, monitor.py, watchdog.py\",\"state_output\":\"record spend/events/alerts\",\"status\":\"usage active; reports/manual; probes runner absent\"},{\"system\":\"suites/landing\",\"entry\":\"ops/bin/suites.sh; gate.sh; land.py/ladder\",\"contract\":\"land-lever.md, instrument conventions\",\"implementation\":\"parallel suites, CI workflow, land.py\",\"state_output\":\"temp suite logs, CI store, commits/PR state\",\"status\":\"active, subject to installation/external activation\"},{\"system\":\"onboard/handoff\",\"entry\":\"onboard.py; Claude onboard skill; owner manual closeout\",\"contract\":\"onboard-lever.md; handoff/README.md; probes\",\"implementation\":\"onboard.py; tracked prose/evidence\",\"state_output\":\"AAR, handoff, evidence, probe rows\",\"status\":\"partial/manual; initial auto-onboard and cross-ref discovery absent\"},{\"system\":\"CLI/API/MCP/TUI\",\"entry\":\"shell/Python scripts; lane_mcp.py\",\"contract\":\"AGENTS four-projection ruling; lane-mcp-v2.md\",\"implementation\":\"CLI scripts and read-only Python MCP\",\"state_output\":\"wire text/envelopes/MCP results\",\"status\":\"CLI active; MCP tree-present/host unproved; API and TUI absent\"},{\"system\":\"Symfony services/model abstraction\",\"entry\":\"none\",\"contract\":\"AGENTS.md; docs/mapping.md\",\"implementation\":\"none under packages; no relevant App service\",\"state_output\":\"none\",\"status\":\"planned; installed lock lacks Workflow and Symfony AI Platform/Agent\"}],\"prior_handoff\":{\"incorporated\":[\"Read-only lane MCP v1/v2 exists in tree and must remain observation-only.\",\"Host MCP configuration was stale and a connected call failed; activation is unproved.\",\"Tracked dispatch records are canonical while actual model evidence is separate.\",\"A bounded handoff/review packet, selected artifact index, dispatch prechecks and CI evidence packet were suggestions, not contracts.\",\"Production probes.py is absent; eight rows were executed manually.\"],\"architectural_effect\":\"Conduct diagnostics belong to docs/probes plus the existing MCP/monitor observation plane; publication belongs to canonical handoff/evidence homes. Do not create another diagnostic store or writable MCP tool.\"},\"dependency_measurement\":{\"command\":\"composer show\",\"result\":\"could not measure runtime packages because vendor/ is absent; Composer reported no dependencies installed\",\"lock_static\":\"Relevant present rows: symfony/ai-mate 0.13.0, config 8.1.5, console 8.1.6, dependency-injection 8.1.5, event-dispatcher 8.1.5, process 8.1.6. No workflow, messenger, lock, scheduler, Symfony AI Platform/Agent, MCP, TUI, API Platform or project bundle row.\"},\"commands\":[\"git diff --check BASE TARGET\",\"git merge-base --is-ancestor BASE TARGET\",\"git diff --name-status BASE TARGET\",\"git ls-tree -r TARGET -- PATH | sha256sum\",\"git cat-file -e TARGET:ops/devlane/workflow/wf.py\",\"rg/git grep for launch.py callers of task/run.py\",\"jq over composer.lock, task/jobs.json and the five changed dispatch records\",\"nl -ba on cited contracts, implementations, settings, process docs and prior handoff\"],\"explicit_absences\":[\"No workflow/wf.py at target (git cat-file fatal path absence).\",\"No packages implementation beyond packages/README.md.\",\"No API or TUI projection found in inspected roots.\",\"No production probes.py or conductor board.py; declarations agree.\",\"No completed result in changed record 20260906T001017Z-plan-grok-be3523.\",\"External hook installation, MCP host activation, remote CI state and live harness behavior were not asserted from static inspection.\"]}",
+        "COVERAGE-EVIDENCE.json.meta": "inline://COVERAGE-EVIDENCE.json; sha256=fbef42f13f74db4966ea50263c63ca3ecc04a098f75cb2cf77edea484463cde4; bytes=8162"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4252711,
+        "out": 32767,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "61b84cacfe0f917e134ce4ad1643541ee96a25e2",
+        "started": null,
+        "ended": "2026-09-06T00:24:57Z"
+      },
+      "note": "Review only. Verdict concerns completeness and correctness of architecture understanding; it is not permission to write contracts, tests, settings, source, records, or implementation. Artifacts are inline because the workspace was read-only."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T00:29:00.287Z"
+    }
+  },
+  "status": "closed"
+}

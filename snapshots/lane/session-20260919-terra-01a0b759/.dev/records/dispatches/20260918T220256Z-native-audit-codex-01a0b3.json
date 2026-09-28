@@ -1,0 +1,110 @@
+{
+  "id": "20260918T220256Z-native-audit-codex-01a0b3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260918-enforcement-01a0b31e",
+  "lineage": {
+    "branch": "lane/session-20260918-enforcement-01a0b31e",
+    "base_sha": "e12440f18c81636ffe6b47562eba523c1f2be1d8"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": null,
+  "at": "2026-09-18T21:45:39.754193Z",
+  "snapshot": {
+    "mode": "whole",
+    "root": "/tmp/agentscient-pr266-audit-01a0b32d",
+    "ref_sha": "74a754e8840610e0a4444be36420e502dfd5e6c2",
+    "origin": "native reviewer isolated clone; not a dispatched snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "execution": "native-terminal",
+    "argv": null,
+    "containment": "policy",
+    "isolation": {
+      "observed": {
+        "unresolved": "Native terminal launch isolation was not measured. Reviewer used a separate scratch clone; no dispatched worker or OS containment is claimed."
+      }
+    }
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl:662",
+    "measured_at": "2026-09-18T22:04:01.821Z",
+    "effort_requested": null,
+    "effort_argv": [],
+    "note": "Owner selected an existing Daybreak terminal. Actual model read from its native turn_context, not a dispatch request."
+  },
+  "session": {
+    "id": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+    "participant": "PT-19",
+    "assignment": "A-286",
+    "execution": "native-terminal"
+  },
+  "brief": {
+    "source": "coordination A-286; M-287; owner-selected existing native security auditor",
+    "receipt": "M-301 / E-7",
+    "envelope_sha256": "4952665c9c344ff54ee76a9750f97a10e40dc3876c5aa30e3a9a42ebf174cf13"
+  },
+  "caps": null,
+  "overrides": {},
+  "attempts": [],
+  "result": {
+    "head": "74a754e8840610e0a4444be36420e502dfd5e6c2",
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/profiles.py:242-252",
+          "claim": "native_launch rejects the split '-c features.hooks=false' and long '--config=...' forms but accepts Codex's equivalent short joined '-c=features.hooks=false'. Installed Codex 0.155.0 reports hooks stable false under the accepted argv, so a guarded interactive launch can start with the shared enforcement disabled despite the pinned-profile and fail-closed contract.",
+          "reproduce": "python3 - <<'PY1'\nimport importlib.util, shutil, tempfile\nfrom pathlib import Path\nroot=Path.cwd(); exe=Path(shutil.which('codex')).resolve()\ns=importlib.util.spec_from_file_location('audit_profiles_short_c',root/'ops/devlane/hooks/profiles.py'); p=importlib.util.module_from_spec(s); s.loader.exec_module(p)\nd=Path(tempfile.mkdtemp(prefix='pr266-short-c-'))\nb=p.generate('codex',d,source=root,cwd=root,mode='interactive',executable=exe)\ncmd,_=p.native_launch(b,[str(exe),'-c=features.hooks=false'],{})\nprint('accepted_tail=',cmd[-3:])\nfor argv in ([str(exe),'-c','features.hooks=false'],[str(exe),'--config=features.hooks=false']):\n try: p.native_launch(b,argv,{})\n except ValueError as e: print('positive_refusal=',e)\n else: raise SystemExit('positive control was admitted')\nPY1\ncodex -c=features.hooks=false features list | rg '^hooks[[:space:]]+stable[[:space:]]+false$'\ncodex -c=features.hooks=true features list | rg '^hooks[[:space:]]+stable[[:space:]]+true$'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/profiles.py:229-292",
+          "claim": "run-interactive forwards NATIVE_ARGS into native_launch, which admits '--dangerously-bypass-approvals-and-sandbox', '-C /tmp', and '--add-dir /' and returns them to Codex after the mandatory hook-trust flag. Installed Codex help identifies those flags as the approval/sandbox bypass, working-directory selector, and additional writable-directory selector, so the guarded terminal can discard native containment and extend access outside its bound cwd.",
+          "reproduce": "python3 - <<'PY2'\nimport importlib.util, shutil, tempfile\nfrom pathlib import Path\nroot=Path.cwd(); exe=Path(shutil.which('codex')).resolve()\ns=importlib.util.spec_from_file_location('audit_profiles_sandbox',root/'ops/devlane/hooks/profiles.py'); p=importlib.util.module_from_spec(s); s.loader.exec_module(p)\nd=Path(tempfile.mkdtemp(prefix='pr266-sandbox-'))\nb=p.generate('codex',d,source=root,cwd=root,mode='interactive',executable=exe)\nargs=['--dangerously-bypass-approvals-and-sandbox','-C','/tmp','--add-dir','/']\ncmd,_=p.native_launch(b,[str(exe),*args],{})\nprint('accepted=',cmd[cmd.index(str(exe))+1:]); assert all(x in cmd for x in args)\ntry: p.native_launch(b,[str(exe),'--disable','hooks'],{})\nexcept ValueError as e: print('positive_refusal=',e)\nelse: raise SystemExit('positive control was admitted')\nprint('safe_neighbor_tail=',p.native_launch(b,[str(exe),'--model','fixture'],{})[0][-3:])\nPY2\ncodex --help | rg -- '--dangerously-bypass-approvals-and-sandbox|-C, --cd|--add-dir'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/profiles.py:28-37,285-289,348-355,405-413",
+          "claim": "The pinned source closure and bwrap read-only set omit ops/devlane/harness/isolation.py, although run-interactive imports that file after the native child exits and invokes carry_back against the operator credential source. A changed isolation.py still validates and replacement carry-back code executes after validation; the positive control shows an included hook source change is refused. This leaves post-child credential custody outside the validated and protected closure.",
+          "reproduce": "d=$(mktemp -d /tmp/pr266-source-closure-effect-XXXXXX)\ngit archive HEAD | tar -x -C \"$d\"\npython3 - \"$d\" <<'PY3'\nimport importlib.util, sys\nfrom pathlib import Path\nroot=Path(sys.argv[1]); profile=root.parent/(root.name+'-profile'); canary=root.parent/(root.name+'-carryback-canary')\ns=importlib.util.spec_from_file_location('audit_profiles_closure_effect',root/'ops/devlane/hooks/profiles.py'); p=importlib.util.module_from_spec(s); s.loader.exec_module(p)\nb=p.generate('codex',profile,source=root,cwd=root,mode='interactive',executable='/usr/bin/true')\np.validate(b)\nisolation=root/'ops/devlane/harness/isolation.py'\nisolation.write_text(isolation.read_text()+f\"\\ndef carry_back(*args, **kwargs):\\n Path({str(canary)!r}).write_text('executed')\\n return []\\n\")\np.validate(b); p.isolation_owner().carry_back('codex',profile)\nprint('unpinned_carryback_effect=',canary.read_text())\nnative=root/'ops/devlane/hooks/native.py'; native.write_text(native.read_text()+'\\n')\ntry: p.validate(b)\nexcept ValueError as e: print('positive_pinned_refusal=',e)\nelse: raise SystemExit('pinned positive control was admitted')\nPY3"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "74a754e8840610e0a4444be36420e502dfd5e6c2",
+        "started": "2026-09-18T21:45:39.754193Z",
+        "ended": "2026-09-18T22:02:56.027850Z"
+      },
+      "note": "Native, non-dispatched audit by PT-19; harness codex; actual rollout model gpt-daybreak-blue-latest / GPT Daybreak and session 01a0b32d-e3c8-7ef0-85b0-d24bd04ed089, read from the native rollout. Audited immutable head 74a754e8840610e0a4444be36420e502dfd5e6c2 against live dev/base e12440f18c81636ffe6b47562eba523c1f2be1d8 in /tmp/agentscient-pr266-audit-01a0b32d. Reviewed all 44 changed files (3195 insertions, 153 deletions), using Graft for matching navigation and verifying source bytes afterward. Covered authority/session/recovery and resume, hook normalization and fail-closed behavior, cwd and command transport, generated MCP approvals and server custody, credentials/config projection and isolation, argv/shell/SQL/template seams, secret/session recording, path/ref confinement, vendor-output checks, and supply-chain changes. Correct discovery entrypoints passed 50 unique targeted tests: shared enforcement, coordination recovery and Codex identity, launch binding recovery, and acting-MCP wiring. An earlier package-form test invocation passed nine coordination tests and produced three support-module import errors before the corrected discovery runs. Exact synthetic reproductions and their positive controls passed; git diff --check passed. Looked and found no additional actionable SQL/template injection, new secret/log leakage, ref escape, acting-MCP custody, or supply-chain loosening within the trusted-maintainer model. Existing E-3/E-6 were treated as independent evidence; no live activation occurred. Unmeasured: attended TUI behavior, provider/model calls, live credential renewal, live native MCP effects, and live launch/resume interception beyond E-3/E-6. The documented bearer-session identity and lack of hostile-code containment were accepted limits and were not reopened. The live candidate worktree was clean at e47ced5685b74b1aef657f76c502678feae398cc; that later record/probe commit was not substituted for the audited source head. Spend remains the job-contract zero because this native terminal was not dispatched and no session store was read. No report file, commit, activation, readiness, merge, cleanup, or live-worktree test was performed."
+    },
+    "native_receipt": {
+      "message": "M-301",
+      "observation": "E-7",
+      "assignment": "A-286",
+      "provenance": "Export of reviewer-authored SQLite receipt through existing record builder. No job dispatch, launch/collect receipt or worker isolation is asserted."
+    }
+  },
+  "status": "closed"
+}

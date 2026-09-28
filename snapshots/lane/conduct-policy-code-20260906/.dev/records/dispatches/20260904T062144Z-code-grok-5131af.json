@@ -1,0 +1,165 @@
+{
+  "id": "20260904T062144Z-code-grok-5131af",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps",
+  "lineage": {
+    "branch": "lane/fixture-apps",
+    "base_sha": "f3b0063c3eef70f2e779fad6a6c739e7fa62a17c"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:21:44Z",
+    "closed": "2026-09-04T06:44:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f3b0063c3eef70f2e779fad6a6c739e7fa62a17c",
+    "ref_sha": "f3b0063c3eef70f2e779fad6a6c739e7fa62a17c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "95efb155-f8c9-4c17-a42e-218537c50745",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok-stream/sessions/<snapshot-encoded>/95efb155-f8c9-4c17-a42e-218537c50745/summary.json"
+  },
+  "session": {
+    "id": "95efb155-f8c9-4c17-a42e-218537c50745",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok-stream/sessions/<snapshot-encoded>/95efb155-f8c9-4c17-a42e-218537c50745/summary.json",
+    "stream_sha256_at_close": "0c4ab41923ba8d8764ec769f519964e7289940ff0ed3ff722d3097fc4af89182",
+    "spend": {
+      "input": 5334721,
+      "cached": 4808192,
+      "output": 78208,
+      "total": 5412929,
+      "cost_usd_ticks": 6674883400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/home/grok-stream/sessions/<snapshot-encoded>/95efb155-f8c9-4c17-a42e-218537c50745/summary.json",
+      "messages": 332
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 1 (the lever ops/bin/fixture.sh with make, prove and grade, the shared fault-kinds list, the manifest shape), tests only: write the tests the plan names for slice 1, red at this ref, one commit per file, from the contract in the input file. Slices 2 to 5 (the apps) are later runs; do not write their tests. No implementation exists; do not write one.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T062144Z-code-grok-5131af/in/contract-fixtures-1.md",
+        "sha256": "47a5f0a7cc9fcbc29828e3b3fb8d0a7edf7106bb7036417db26c60b85583b79c"
+      }
+    ],
+    "sha256": "cd3de6dd64d45dfc68a00695ee5d88f464217520cbe663a85e1beb3775e79d6d",
+    "bytes": 2724
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:21:44Z",
+      "ended": "2026-09-04T06:44:53Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6e1d9ad28f390d3f5c0dc7563028590f37df07a0",
+    "changed_paths": [
+      "ops/conductor/tests/test_findings_calibration.py",
+      "ops/conductor/tests/test_instrument_conventions.py",
+      "ops/devlane/fixtures/tests/test_fixture_grade.py",
+      "ops/devlane/fixtures/tests/test_fixture_lever.py",
+      "ops/devlane/fixtures/tests/test_fixture_manifests.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "lever": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+        "manifests": "ops/devlane/fixtures/tests/test_fixture_manifests.py",
+        "grade": "ops/devlane/fixtures/tests/test_fixture_grade.py",
+        "calibrate": "ops/conductor/tests/test_findings_calibration.py",
+        "conventions": "ops/conductor/tests/test_instrument_conventions.py",
+        "head": "6e1d9ad28f390d3f5c0dc7563028590f37df07a0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5412929,
+        "out": 78208,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f3b0063c3eef70f2e779fad6a6c739e7fa62a17c",
+        "started": "2026-09-04T06:21:44Z",
+        "ended": "2026-09-04T06:44:03Z"
+      },
+      "note": "Slice 1 tests only, five commits on detached HEAD from f3b0063, no implementation (ops/bin/fixture.sh and FAULT-KINDS.md still absent; findings.py last commit 2b6628c). Reds measured at 6e1d9ad: test_fixture_lever.py Ran 25 FAILED (failures=25) 0 ERROR; test_fixture_manifests.py Ran 13 FAILED (failures=13) 0 ERROR; test_fixture_grade.py Ran 13 FAILED (failures=13) 0 ERROR; test_findings_calibration.py Ran 12 FAILED (failures=12) 0 ERROR; test_instrument_conventions.py Ran 3 FAILED (failures=2) \u2014 the new row is `calibration` not found in `arguments: \u2026 found calibrate`. Intended first reds: lever is_file on missing ops/bin/fixture.sh; kinds is_file on missing FAULT-KINDS.md; grade empty stdout against the no-op stub; calibrate exit 2 class arguments. Commits: eb472d7 lever, 2843109 manifests, ab39f3b grade, 3d6486c calibrate, 6e1d9ad conventions row. Slices 2\u20135 not written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T06:44:52.857Z"
+    }
+  },
+  "status": "closed"
+}

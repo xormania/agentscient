@@ -1,0 +1,206 @@
+{
+  "id": "20260908T084137Z-code-codex-3defb2",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-native-reader-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-native-reader-fix-20260908",
+    "base_sha": "408d2eff029c4b4dad12354c3d872efd9509832b"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:41:37Z",
+    "closed": "2026-09-08T08:50:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "408d2eff029c4b4dad12354c3d872efd9509832b",
+    "ref_sha": "408d2eff029c4b4dad12354c3d872efd9509832b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-native-reader-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-41-38-01a0802e-143f-72c1-bae8-dc6ce4e13be8.jsonl"
+  },
+  "session": {
+    "id": "01a0802e-143f-72c1-bae8-dc6ce4e13be8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-41-38-01a0802e-143f-72c1-bae8-dc6ce4e13be8.jsonl",
+    "stream_sha256_at_close": "ad759020b890567d4579201801d495979e363322faf4bf1142e71dd7ad0701f6",
+    "spend": {
+      "input": 2120394,
+      "cached": 2033536,
+      "output": 11665,
+      "total": 2132059,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-41-38-01a0802e-143f-72c1-bae8-dc6ce4e13be8.jsonl",
+      "messages": 225
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-native-reader-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Fix the real canonical agy smoke failure in supplied record/stdout: live supervision killed the child after 8 seconds with malformed native transcript. Investigate only that owned synthetic job native transcript under its recorded isolated brain path; no auth/settings/history or other stores. Preserve the original failed receipt. Correct existing reader/adapter semantics from actual native bytes, without weakening supervision or changing tests. Also close known parser duty: only SUCCESS certifies native completion, with explicit contract wording. Acceptance: existing agy envelope tests, all telemetry tests, launch refusal/harness fix tests, lint/docs/diff; record exact exits and unchanged test hashes. No vendor calls or full floor. Deliver bounded source fix and evidence explaining the actual wire, GPT-6 attribution/COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/in/agy-canonical-smoke-failure.json",
+        "sha256": "ecc87959ee2cfdf57b09e241e3412a4c6ac95d35dab1d456244430a267a34745"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/in/agy-canonical-smoke-stdout.ndjson",
+        "sha256": "5daf9ba0a10316fbd1870eb4cb4292e79abf93157a9255aba9b4af27bedd4bef"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084137Z-code-codex-3defb2/in/agy-discovery-live-result.json",
+        "sha256": "98bcbda5fc42ebe3e395f3d07916f3daf9a6717b0dc1924f14977d7b24819aea"
+      }
+    ],
+    "sha256": "b4c90d0ca01a5fa8c230c8aee3111a15a209963da0dd3f5fc5311f75c42cb1d7",
+    "bytes": 4694
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:41:37Z",
+      "ended": "2026-09-08T08:50:16Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "42448cd539c17ab82fb1bcfd326d3e95c767c2a8",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Exact-byte replay changed from exit 1 to exit 0. Accepts the measured planner thinking/tool_calls payload without content. Only SUCCESS certifies terminal completion. Supervision remains unchanged.",
+          "reproduce": "python3 ../out/replay_native.py"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/evidence.json",
+          "claim": "All requested checks exited 0: 34 envelope, 227 telemetry, 47 refusal and 25 harness-fix tests; lint, docs and diff checks. All 146 test-file hashes, supplied inputs and owned transcript remain unchanged. Every shell invocation is recorded with its exit and reproduce entry.",
+          "reproduce": "cat ../out/evidence.json ../out/final-validation.json ../out/command-findings.json"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py",
+          "claim": "Additional suite exited 1 with the same eight failures on the untouched supplied base and final source. Left unchanged for follow-up; failure names and outputs are recorded.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_dispatch.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMIT_MSG",
+          "claim": "Git staging exited 128 because .git is read-only; commit did not execute. Launcher fallback contains Source and GPT-6 trailers.",
+          "reproduce": "git add ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md && git commit -F ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "evidence": "../out/evidence.json",
+        "commands": "../out/command-findings.json",
+        "command_outputs": "../out/command-results.json",
+        "validation": "../out/final-validation.json",
+        "test_hashes": "../out/unchanged-hashes.json",
+        "baseline_hashes": "../out/baseline-hashes.json",
+        "patch": "../out/source.patch",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2132059,
+        "out": 11665,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "408d2eff029c4b4dad12354c3d872efd9509832b"
+      },
+      "note": "Assumption: acceptance means the named offline checks and owned-transcript replay; no literal shell command was supplied. Original failed receipt preserved. No vendor calls or full floor. Additional pre-existing failures and telemetry limitations are recorded as follow-ups.",
+      "commit": {
+        "subject": "fix(dispatch): accept measured agy planner transcript payload",
+        "body": "Accept native MODEL/PLANNER_RESPONSE thinking and tool_calls without requiring content. Require exactly SUCCESS for terminal completion and document both rules. Preserve supervision and the original failed receipt. Requested checks passed; tests unchanged.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T08:50:15.874Z"
+    }
+  },
+  "status": "closed"
+}

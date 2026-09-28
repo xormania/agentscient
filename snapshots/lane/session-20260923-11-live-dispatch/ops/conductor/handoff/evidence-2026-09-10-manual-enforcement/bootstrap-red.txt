@@ -1,0 +1,114 @@
+test_actions_are_durable_once_only_concurrent_and_failed (test_control.ControlTests.test_actions_are_durable_once_only_concurrent_and_failed) ... FAIL
+test_code_refuses_missing_prerequisites_without_effect (test_control.ControlTests.test_code_refuses_missing_prerequisites_without_effect) ... FAIL
+test_full_tdd_path_records_real_red_then_green (test_control.ControlTests.test_full_tdd_path_records_real_red_then_green) ... FAIL
+test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) ...
+  test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='same') ... FAIL
+  test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='stale') ... FAIL
+  test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='drift') ... FAIL
+test_import_error_red_fails_and_blocks_code (test_control.ControlTests.test_import_error_red_fails_and_blocks_code) ... FAIL
+test_real_timeout_survives_closed_streams_and_exhausts_budget (test_control.ControlTests.test_real_timeout_survives_closed_streams_and_exhausts_budget) ... FAIL
+test_single_seat_and_native_boundary (test_control.ControlTests.test_single_seat_and_native_boundary) ... FAIL
+
+======================================================================
+FAIL: test_actions_are_durable_once_only_concurrent_and_failed (test_control.ControlTests.test_actions_are_durable_once_only_concurrent_and_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 170, in test_actions_are_durable_once_only_concurrent_and_failed
+    self.init([slow, fail])
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_code_refuses_missing_prerequisites_without_effect (test_control.ControlTests.test_code_refuses_missing_prerequisites_without_effect)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 143, in test_code_refuses_missing_prerequisites_without_effect
+    self.init(self.tdd())
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_full_tdd_path_records_real_red_then_green (test_control.ControlTests.test_full_tdd_path_records_real_red_then_green)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 114, in test_full_tdd_path_records_real_red_then_green
+    self.init(self.tdd())
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='same')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 156, in test_identity_stale_review_and_test_drift_block_code
+    self.init(self.tdd(review, producers))
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='stale')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 156, in test_identity_stale_review_and_test_drift_block_code
+    self.init(self.tdd(review, producers))
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_identity_stale_review_and_test_drift_block_code (test_control.ControlTests.test_identity_stale_review_and_test_drift_block_code) (case='drift')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 156, in test_identity_stale_review_and_test_drift_block_code
+    self.init(self.tdd(review, producers))
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_import_error_red_fails_and_blocks_code (test_control.ControlTests.test_import_error_red_fails_and_blocks_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 133, in test_import_error_red_fails_and_blocks_code
+    self.init(acts)
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_real_timeout_survives_closed_streams_and_exhausts_budget (test_control.ControlTests.test_real_timeout_survives_closed_streams_and_exhausts_budget)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 180, in test_real_timeout_survives_closed_streams_and_exhausts_budget
+    self.init([action("hang", "check", [sys.executable, "-c", src], timeout=1),
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_single_seat_and_native_boundary (test_control.ControlTests.test_single_seat_and_native_boundary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 189, in test_single_seat_and_native_boundary
+    self.init([action("ok", "check", [sys.executable, "-c", "pass"])])
+  File "/tmp/ag-manual-repair-20260910/small-tests/test_control.py", line 87, in init
+    self.assertEqual(r.returncode, 0, r.stderr)
+AssertionError: 2 != 0 : /usr/bin/python3: can't open file '/tmp/ag-manual-enforcement-20260910/ops/conductor/tools/control.py': [Errno 2] No such file or directory
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.173s
+
+FAILED (failures=9)

@@ -1,0 +1,271 @@
+{
+  "id": "20260904T090937Z-plan-claude-587307",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/fixture-apps-3",
+  "lineage": {
+    "branch": "lane/fixture-apps-3",
+    "base_sha": "be19854a15243f1903a7c8fd9818cd581d0de79b"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:09:38Z",
+    "closed": "2026-09-04T09:26:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "be19854a15243f1903a7c8fd9818cd581d0de79b",
+    "ref_sha": "be19854a15243f1903a7c8fd9818cd581d0de79b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "47b5bf8a57ba4e9ae645d0370ca1d192addb8ad0872dab91fbca1077554831c7",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "1ce58764-72d5-4727-a89a-830347629a4d",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/1ce58764-72d5-4727-a89a-830347629a4d.jsonl"
+  },
+  "session": {
+    "id": "1ce58764-72d5-4727-a89a-830347629a4d",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/1ce58764-72d5-4727-a89a-830347629a4d.jsonl",
+    "stream_sha256_at_close": "46f528dfd94f0d97065ad30245471594c279a9bd4ebf78b9d319fa03dec6859b",
+    "spend": {
+      "input": 482,
+      "cached": 1795227,
+      "output": 77228,
+      "total": 1872937,
+      "source": "result.usage",
+      "messages": 16,
+      "cost_usd": 8.583993
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-3/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Plan slices 3, 4 and 5 of the fixture apps batch in full, from the scope and the standing plan in the input: apps/python-service, apps/symfony-app and apps/rust-crate, each the same shape as apps/python-tooling, which is built in this tree (ops/devlane/fixtures/apps/python-tooling: README with the apparatus declaration, FAULTS.json, probes, fixes, tests green as shipped, the app's own lint config) and proved by the merged lever ops/bin/fixture.sh. For each slice: the layout, every planted fault by kind from FAULT-KINDS.md with its span, probe, clean neighbour and fix, the toolchain the app needs on the box and how prove runs it, the one lane test file and why it is red at this ref, its bucket by the owner's rule (S: 1 to 3 files under 10 minutes a run; M: two implement runs), the guarantees it declares or keeps, what it depends on, and that it lands green on its own. The owner's rulings: implement per S bucket, audits once per batch after slice 5, no skeptic on fixed tests. Measure the tree; write no code.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/in/input-fixtures-plan2.md",
+        "sha256": "fd89732bfc85915d9100065886be4745692faaf5348dd86877332c2439a49c1e"
+      }
+    ],
+    "sha256": "919586fd0846a75133fbdcb363249a3fc3ff361079d26013537789442c2a2332",
+    "bytes": 1795
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:09:38Z",
+      "ended": "2026-09-04T09:26:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "be19854a15243f1903a7c8fd9818cd581d0de79b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/bin/fixture.sh:50,288-315",
+          "claim": "The probe timeout is a two-second constant and a timeout is UNREACHABLE; the standing sketches' PHPUnit probes after composer install and cargo probes after a patch (a recompile) cannot finish inside it, so slices 4 and 5 as sketched would prove nothing. The plan adds a manifest-level probe_timeout (default 2, refused outside 1..300) in slice 4 run A and has slice 5 rely on it.",
+          "reproduce": "grep -n 'PROBE_TIMEOUT' ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/jobs.json:85-88",
+          "claim": "Implement runs carry the constraint 'no network', so composer.lock and Cargo.lock cannot be resolved inside a dispatched run; the plan has the session generate the locks on the host and commit a skeleton before dispatching slices 4 and 5, named as a decision.",
+          "reproduce": "grep -n 'no network' ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh:271-273",
+          "claim": "prove --fixed preflights patches by copying the whole scratch except .git; with vendor/, target/ or .venv/ installed in the scratch the copy is large and fails on any unreadable file. The plan extends the ignore list in slice 4 run A and pins it with an unreadable planted file.",
+          "reproduce": "sed -n 271,273p ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh:118-126",
+          "claim": "The standing plan names LANE_CONF as the copy-list seam; the landed lever reads FIXTURE_COPY_LIST and uses LANE_CONF only for the lane name through laneconf. The new lane tests must set FIXTURE_COPY_LIST as the exemplar test does.",
+          "reproduce": "grep -n 'FIXTURE_COPY_LIST\\|LANE_CONF' ops/bin/fixture.sh ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T090937Z-plan-claude-587307/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1872937,
+        "out": 77228,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "be19854a15243f1903a7c8fd9818cd581d0de79b",
+        "started": "2026-09-04T09:09:37Z",
+        "ended": "2026-09-04T09:25:42Z"
+      },
+      "note": "Plan written for slices 3, 4 and 5 (python-service, symfony-app, rust-crate) at the exemplar's depth: layout, seven faults per app with span, declared sentence, clean neighbour, probe and fix, the toolchain and how prove reaches it, one lane test file per slice with its red reason, bucket M with two named implement runs each per D-LADDER-1, guarantees, dependencies, and a batch close holding the audits once and the calibration reviews. Could not look: php, composer, cargo, pip and their caches on this box (the sandbox refused the commands and paths); the plan says so and gates those proofs on the session's host runs and on declared skips in CI. No code was written; the snapshot is untouched."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

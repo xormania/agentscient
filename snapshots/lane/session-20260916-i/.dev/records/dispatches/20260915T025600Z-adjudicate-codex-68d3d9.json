@@ -1,0 +1,262 @@
+{
+  "id": "20260915T025600Z-adjudicate-codex-68d3d9",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "372b6c4cc035efeae086664c2d55689e79c9af1f"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T02:56:00Z",
+    "closed": "2026-09-15T03:04:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "372b6c4cc035efeae086664c2d55689e79c9af1f",
+    "ref_sha": "372b6c4cc035efeae086664c2d55689e79c9af1f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex-stream/sessions/2026/09/14/rollout-2026-09-14T22-56-15-01a0a2fe-60ea-7132-b82d-79038d94b5ae.jsonl"
+  },
+  "session": {
+    "id": "01a0a2fe-60ea-7132-b82d-79038d94b5ae",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex-stream/sessions/2026/09/14/rollout-2026-09-14T22-56-15-01a0a2fe-60ea-7132-b82d-79038d94b5ae.jsonl",
+    "stream_sha256_at_close": "1f7b19aa44e87500568f17efa989f63de9cc531eea3e00516aaad4b2210ae141",
+    "spend": {
+      "input": 1747402,
+      "cached": 1627904,
+      "output": 12974,
+      "total": 1760376,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex-stream/sessions/2026/09/14/rollout-2026-09-14T22-56-15-01a0a2fe-60ea-7132-b82d-79038d94b5ae.jsonl",
+      "messages": 165
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Adjudicate the Grok 4.6 adversarial review (record 20260915T023743Z-review-grok-7da077) of the test kit work of 2026-09-14, PRs #210 to #217 on dev, one producer by hand against docs/tests.md and the plan record 20260913T034513Z-plan-claude-892490. Rule UPHELD, PARTIAL or REJECTED per finding, each ruling reproduced against the tree at ref: run the named test, plant the named fault, read the named row. Then rank what a session must correct first, by the harm to a kit consumer: a fault the kit stays quiet on, a retired ladder behaviour no row reaches, a hook row a session slips past, a ratchet count that rises unseen. Name for each upheld finding the file, the smallest correction, and the reading that proves it (a test red then green, or a corpus row). Say what the reviewer missed. Rank by harm, not by count; style and taste are nonblocking and must not expand scope. Read only.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/in/record.json",
+        "sha256": "764e72870403951883f90f5a9402ecbcaaed0b807df5f3aaf4f384f22873d1a0"
+      }
+    ],
+    "sha256": "62d1947d73cd46c47403c51af41a910a104a452c4a53a3bd21501b480fbce838",
+    "bytes": 10186,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/lane-mcp.json",
+      "sha256": "6c32ff155d580dc146f7a802c088adc33553f8bcbdd317185b36c4ccb11c3f84",
+      "job_ids": [
+        "20260915T023743Z-review-grok-7da077"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "b13c8a04dd37e6004e952594be0f5b00ab9b772efe756941a3fb129f3af5ae43"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T02:56:14Z",
+      "ended": "2026-09-15T03:04:21Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "372b6c4cc035efeae086664c2d55689e79c9af1f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 7,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/testkit/world.py:264",
+          "claim": "Rank 1 \u2014 F1 UPHELD. Watching a file or directory silently accepts rewritten file contents. This undermines a consumer's assertion that its subject left declared paths unchanged. Smallest correction: capture file contents and provide content-aware directory watching for immutability assertions. Preserve the live-store adapter's explicitly declared presence/kind checks and concurrency exclusions; making that guard recursively inspect active records would exceed its contract.",
+          "reproduce": "Run kit-adjudicate.py using the command in note. Both file and nested-child rewrites report SILENT; adding a directory entry is DETECTED. The existing 30 kit tests pass, including both Watching tests. Required correction proof: content-rewrite rows must fail against this implementation and pass after correction, alongside unchanged-content and existing exclusion rows."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/testkit/command.py:54",
+          "claim": "Rank 2 \u2014 MISSED by Grok: refusal_wire certifies malformed refusals. Result.refusal strips whitespace from stdout before checking emptiness; parse_wire normalizes uppercase class tokens and accepts empty expected/found/needed fields. Consequently, consumers can receive a passing wire assertion for output that violates docs/wire.md. Smallest correction: validate the raw stdout and class token, and require the declared refusal fields before returning a parsed result.",
+          "reproduce": "kit-adjudicate.py passes whitespace stdout, an uppercase INPUT class, and empty fields through refusal_wire; all report SILENT. The existing TheWire and TheWireAssertion tests pass. Required correction proof: add these malformed outputs as fault rows that are rejected, with the canonical lowercase, empty-stdout refusal retained as a passing neighbor."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/testkit/command.py:101",
+          "claim": "Rank 3 \u2014 MISSED by Grok: timeout cleanup can wait beyond the timeout indefinitely. After killing the immediate child, run calls communicate without a timeout. A descendant retaining the output pipes keeps that call blocked. Smallest correction: terminate the owned process group and bound cleanup, so inherited pipes cannot prevent Timeout from being raised.",
+          "reproduce": "kit-adjudicate.py starts a parent with a two-second descendant inheriting its pipes and calls run(timeout=0.1). Timeout arrives after 2.020 seconds. The existing test_timeout_kills_reaps_and_names_the_argv passes because its child has no descendant. Required correction proof: the descendant case must finish within a bounded cleanup allowance and leave no owned process running; retain the existing direct-child case."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/testkit/world.py:68",
+          "claim": "Rank 4 \u2014 MISSED by Grok: World.enter loses explicitly named ambient values. It clears os.environ before calling env(), which reads ambient values from os.environ. An in-process subject therefore receives a different environment from a subprocess using the same world's env(). Smallest correction: compute the new environment before clearing the current one.",
+          "reproduce": "kit-adjudicate.py plants KIT_ADJ_AMBIENT=named-value. world.env() returns named-value, enter() removes it, and exit() restores it. Both existing ambient and enter/restore tests pass independently. Required correction proof: one row must assert the named value before and during enter and exact restoration afterward; it fails now and must pass with the ordering corrected."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_tables.py:80; ops/conductor/tests/test_ladder_lever.py:1959",
+          "claim": "Rank 5 \u2014 F2 UPHELD. Retirement lost the assertion that two test artifacts in one directory both reach the implement command. Smallest correction: add a same-directory pair to DERIVED_COMMAND_CASES, restore both filenames and the conjunction assertion in the retained end-to-end test, and include the one-command-per-directory fault in ladder_faults.py and the parity record.",
+          "reproduce": "Run ladder-adjudicate.py using the command in note. A fault that keeps only the first discover command per directory passes all four pure-table tests, all 37 refusal/stop tests, and the retained implement-scope test. The exact retired test_two_test_artifacts_become_joined_discover_invocations, extracted from acd37d0^, fails because test_beta.py is missing; the identical test passes on the clean driver. The existing sidebyside-ladder-retire-rest-c7ec3afd.json contains no such mutant."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/claude/engine.py:300",
+          "claim": "Rank 6 \u2014 F4 PARTIAL. Nested paths, import text inside a docstring, and touch followed by Write/Edit/MultiEdit bypass the live kit-import row. Grok overstates the first-ten-lines requirement: it applies to the exemption, not a real import. Existing-file grandfathering is also explicit in plan slice 16. Smallest correction: recognize descendants of tests/, distinguish actual imports from string contents, require a nonempty exemption reason, and distinguish newly created untracked modules from grandfathered files when checking subsequent writes. Grok missed that a reasonless exemption also passes.",
+          "reproduce": "kit-adjudicate.py invokes the real engine with the live boundaries registry. A direct new module is denied; nested and docstring cases, a reasonless exemption, touch, and subsequent Write/Edit/MultiEdit are allowed. A real import after line ten is correctly allowed. The existing 19 engine tests pass. Correction rows must deny the bypasses while retaining genuine imports, reasoned exemptions, and grandfathered files as passing neighbors."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/workflow/checks/testkit_ratchet.py:44",
+          "claim": "Rank 7 \u2014 F5 PARTIAL. The documented scan covers Python files under tests/ directories, but test_modules scans only immediate children. Nested fake programs can accumulate uncounted debt. The alias and timeout=None observations reproduce, but the declared census metric explicitly counts subprocess.run calls without a timeout keyword; extending that metric is not required to repair the traversal defect. Smallest correction: include descendants of tests/ within the declared roots, preserve exclusions, and remeasure the baseline with the newly exposed debt stated.",
+          "reproduce": "kit-adjudicate.py measures five timeout-free calls in tests/fakes/ladder_land.py, which test_modules omits. Against a zero baseline, a direct timeout-free call exits 1; the same call in tests/fakes/test_new.py exits 0 with a zero count. All nine existing ratchet tests pass. Correction proof: retain the direct-file row and add its nested counterpart; both must report the rise after repair."
+        }
+      ],
+      "artifacts": {
+        "kit_reproduction": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out/tmp/kit-adjudicate.py",
+        "kit_reading": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out/tmp/kit-adjudicate.log",
+        "ladder_reproduction": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out/tmp/ladder-adjudicate.py",
+        "ladder_reading": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/out/tmp/ladder-adjudicate.log"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1760376,
+        "out": 12974,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "372b6c4cc035efeae086664c2d55689e79c9af1f",
+        "started": null,
+        "ended": "2026-09-15T03:03:01Z"
+      },
+      "note": "Original rulings: F1 UPHELD; F2 UPHELD; F3 REJECTED; F4 PARTIAL; F5 PARTIAL. F3's named origin, .dev/ladder-inputs/brief-ladder-inputs-tests-20260910.md:41, explicitly states: '--input with no following path refuses arguments.' The missing/unreadable-file condition is distinct. Both `python3 -B -m unittest discover -s ops/conductor/tests -p test_ladder_refusals.py -k arguments_input_flag_bare -v` and the equivalent test_ladder_lever_inputs.py command with `-k input_flag_without_a_path` passed. Do not change the refusal class. Counts represent four actionable original findings plus three newly reproduced defects; the rejected finding is excluded. Baseline commands using unittest discover passed: ops/testkit/tests (30), ops/conductor/tests with test_ladder*.py (191), ops/devlane/hooks/tests with test_engine.py (19), and ops/devlane/workflow/tests with test_testkit_ratchet.py (9). Run either reproduction from the snapshot root with `python3 -B -c \"exec(compile(open('../out/tmp/NAME.py').read(), '../out/tmp/NAME.py', 'exec'))\"`, substituting kit-adjudicate or ladder-adjudicate for NAME. Proposed corrections were not applied; acceptance checks are explicitly prospective except the measured retired-test red/green pair. The diff against f08d56c777a593b6cd6cff9e3960cf22a96f8ef2 adds only the review record, so both refs carry identical reviewed code. Final git status was clean. Only disposable fixtures and review evidence under out/tmp were written. The supplied record and complete plan were read; no session store was read. reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; Graft repository navigation; World, run, Mutant/apply; existing ladder and engine fixtures; docs/tests.md, the plan and recorded parity evidence."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T025600Z-adjudicate-codex-68d3d9/home/codex-stream/sessions/2026/09/14/rollout-2026-09-14T22-56-15-01a0a2fe-60ea-7132-b82d-79038d94b5ae.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T03:04:20.784Z"
+    }
+  },
+  "status": "closed"
+}

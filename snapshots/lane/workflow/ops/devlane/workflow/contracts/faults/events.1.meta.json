@@ -1,0 +1,10 @@
+{
+  "contract": "events",
+  "fault": "events.1.json",
+  "from": "obs/events.json",
+  "change": "the event type `receipt.green` appears nowhere in the tree",
+  "violates": "PLAN.md §3.2 line 116 (with §3.3 lines 151-156)",
+  "quote": "\"| test receipts | `receipt.red`, `receipt.green` |\"",
+  "reject_path": "facts\\.types\\b|receipt\\.green",
+  "implied": false
+}

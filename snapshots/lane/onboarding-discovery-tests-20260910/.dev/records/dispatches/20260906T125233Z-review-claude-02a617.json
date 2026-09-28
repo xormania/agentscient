@@ -1,0 +1,290 @@
+{
+  "id": "20260906T125233Z-review-claude-02a617",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-startup-close-20260906",
+  "lineage": {
+    "branch": "lane/conduct-startup-close-20260906",
+    "base_sha": "3f84832108274403a4f2c58bc12410ae896da2c0"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T12:52:33Z",
+    "closed": "2026-09-06T12:59:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3f84832108274403a4f2c58bc12410ae896da2c0",
+    "ref_sha": "3f84832108274403a4f2c58bc12410ae896da2c0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "3a633a07-0bcc-4001-9711-fabf0204875c",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/3a633a07-0bcc-4001-9711-fabf0204875c.jsonl"
+  },
+  "session": {
+    "id": "3a633a07-0bcc-4001-9711-fabf0204875c",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/3a633a07-0bcc-4001-9711-fabf0204875c.jsonl",
+    "stream_sha256_at_close": "3cc319ce321ab9bc0164eb4d602acd6e62fcadb4c48634535730295ace333063",
+    "spend": {
+      "input": 72,
+      "cached": 2904120,
+      "output": 29790,
+      "total": 2933982,
+      "source": "result.usage",
+      "messages": 36,
+      "cost_usd": 3.080658
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-startup-close-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck only the three unit1a P3 corrections and new discovery boot cross-link in conductor-start-plan.md, dispatch/CONTRACT.md and task/CONTRACT.md. Verify conductor-config timeout provenance and complete success/late examples preserve worker enum semantics; verify pinned archive paths/hashes and original invalid record are locatable; verify prose wrapping and boot/D-A47 coupling without new v3 keys or another store/executor. Discovery correction at 48277e7 is now documentarily approved in the supplied recheck; no runtime is admitted. Confirm exact changed-file scope and checks from supplied receipts, declaring command limits without repeated bypass attempts. No edits/tests/vendor/state/settings/admission. Return approve/changes with compact dispositions; note at most 700 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/ag-conduct-startup-close.json",
+        "sha256": "81077b71b670a693c9966b0f32f36d341d347424a340ff4fd07e8c84764d4a90"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/ag-conduct-unit1a-recheck.json",
+        "sha256": "b723bd0d980646c86ea1941648d9d7a45aa9ff9bd78f57ac2a2aee7279dae57f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/ag-conduct-discovery-contract-recheck.json",
+        "sha256": "d9d996e04962299db2132b392e33c0fce4922a2dbbb67adf37b216f5d2088a0c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/document-checks.json",
+        "sha256": "d727ebe641f0a2369773445c120abaead0209a018deb4d954cfd3e986bc367fe"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/check-docs.py",
+        "sha256": "ce736ea130f7451e93abc29b8aadacfa10f44f8dfdda1d6d6a8c86aa491f5658"
+      }
+    ],
+    "sha256": "b21031bf0abe83f36f0b658ac22e07e1e18f193f5e983c5f64c052f6c34d1dd0",
+    "bytes": 1568
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:52:33Z",
+      "ended": "2026-09-06T12:59:34Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3f84832108274403a4f2c58bc12410ae896da2c0",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:788-791 against ops/devlane/task/CONTRACT.md:505-509,521-523",
+          "claim": "Conductor timeout provenance is now declared but its retention rides on a counterparty that does not name it. Declared (new): \"Retain the exact source bytes, ref and digest through the verified role source closure in LaunchDeclarations and the canonical record's declarations handle. The token alone is not provenance evidence.\" Counterparty (task-owned, unchanged by this commit apart from the wrap): \"`sources` is a sorted unique array of DeclarationSource, exactly `{component,kind,path,ref,sha256}`. component is one of `selection,scope,job,role,adapter,outputs,reservations,dependencies`\" (:505-507) and, for the conductor, \"Its role source covers admitted conductor restrictions and startup template\" (:522-523). The component enum is closed and has no caps or supervision member; neither `caps` nor `timeout` appears in that coverage sentence, and `role source closure` occurs exactly once in the three documents (the new sentence). So the retained timeout bytes must ride on the `role` component by implication. Bounded: one sentence in task/CONTRACT.md closes it. It does not reopen the closed defect \u2014 `conductor-config` is an admissible token, required, scoped to `record.role == conductor`, with the worker enum and its resolver untouched.",
+          "reproduce": "sed -n '785,792p' ops/devlane/dispatch/CONTRACT.md; sed -n '505,526p' ops/devlane/task/CONTRACT.md; grep -rn 'role source closure' ops/devlane ops/conductor"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/discovery-lever.md:181-183,217-218; ops/conductor/lane-mcp-lever.md:94-96",
+          "claim": "Landing the cross-link falsifies three sentences in two documents this commit could not touch, and the residue is nowhere declared. Practiced (landed here): conductor-start-plan.md:322-344 carries the reciprocal boot cross-link, and `git show 3f84832 --name-only` lists exactly three documents. Declared (still standing at HEAD): \"The parallel interface track owns the pending reciprocal boot cross-link in [conductor-start-plan.md](conductor-start-plan.md)\" (discovery-lever.md:181-182); \"The reciprocal startup-plan edit remains pending with the parallel interface owner named above.\" (discovery-lever.md:217-218); \"The parallel interface track owns the pending reciprocal transport link in [conductor-start-plan.md](conductor-start-plan.md).\" (lane-mcp-lever.md:94-96). Scope correctly kept those files out of this commit, but neither the plan's new text nor the producer record's note records that the counterpart owner now holds three stale statements. Documentary only; no wire, runtime or admission effect.",
+          "reproduce": "grep -rn 'reciprocal' ops/conductor --include=*.md; git show 3f84832 --name-only --format=''; sed -n '178,184p;214,219p' ops/conductor/discovery-lever.md; sed -n '92,97p' ops/conductor/lane-mcp-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:343-344",
+          "claim": "The pendency line is stale against the supplied recheck. Declared (new): \"Discovery's independent recheck is pending; this reciprocal link claims no acceptance, runtime completion or startup admission.\" Supplied evidence: in/ag-conduct-discovery-contract-recheck.json is record 20260906T124228Z-review-claude-aa0cb7, an independent recheck of the discovery correction at 48277e7, closed 2026-09-06T12:48:58Z with verdict approve (0 p1, 0 p2, 1 p3), i.e. before this commit's 2026-09-06T12:51:40Z author date. The producer could not see it \u2014 its three brief inputs do not include that record \u2014 and the error is conservative (it understates status and claims nothing), so no acceptance is overclaimed; the recheck itself confirms no runtime, test or admission acceptance. Still, the sentence states as pending something the record shows closed, and check-docs.py:104 pins the exact string, so a later corrective edit must also move that assertion.",
+          "reproduce": "sed -n '343,344p' ops/conductor/conductor-start-plan.md; jq -r '.id, .at.closed, .result.envelope.verdict, [.brief.inputs[].path]' ../in/ag-conduct-discovery-contract-recheck.json; git show -s --format=%aI 3f84832; sed -n '104p' ../in/check-docs.py"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/context/diff.patch (sha256 ac4c0ee9223e25eca4c937d8ee96314e800755bc390ddac787469d100e2a3000, byte-identical to `git diff 710dbac 3f84832`)",
+        "reviewed_refs": "3f84832108274403a4f2c58bc12410ae896da2c0 against 710dbac38c3b187eb4b3302308430c0a6dec4d76; the commit's own base is b15f6904932d134b5e42ee1c9c60708ca8ef48a7 (record commit 43a8428 intervening)",
+        "scope": "`git show 3f84832 --name-only` returns exactly ops/conductor/conductor-start-plan.md, ops/devlane/dispatch/CONTRACT.md, ops/devlane/task/CONTRACT.md (57/43/4 changed lines); `git diff --stat b15f690 3f84832 -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-policy.md` is empty; `git diff --check b15f690 3f84832 -- ops` empty",
+        "owned_doc_sha256": "conductor-start-plan.md 95fa75279951d6c395bf1de81da41598368f856ab97fee80c34072ff5ffabf9f; dispatch/CONTRACT.md abeb2fcbeab81bcc5f0990bb01dc76da8b7c78dc46358469dd49edbd2938b94b; task/CONTRACT.md cc661bbea2013343c24d56fd99e449bd0af0bc08d0f09b0da2a243c0a1f1f296 \u2014 all three equal in/document-checks.json and the producer record's artifacts block",
+        "custody_reproduced": "at commit 3ee48f0d8e9dc7f76a5ab9d6f600136338973118 (ancestor of b15f690): 01-interface-fix.patch.b64 decodes to 7055 bytes sha256 3cd7a483\u20266477; 01-COMMIT_MSG 873 bytes 30ea73a9\u20261672b; 02-unit1a.patch.b64 decodes to 37212 bytes dad3831c\u2026c919; 02-COMMIT_MSG 1065 bytes 858833ad\u20263f33; .dev/records/dispatches/20260906T111519Z-code-codex-dce07d.json 15932 bytes 80dda3ec\u202623d9 with envelope status invalid, verdict null \u2014 every figure equals the landed table and in/document-checks.json",
+        "commits_resolved": "3ee48f0d, c35ed64e7154eddbc1bea3511567032813f833f3, 42c9efee03831f4cfef5044dd3b29672456ed971 and f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc all resolve as commits and are all four ancestors of b15f690; the five archive files and the invalid record are also tracked at HEAD, the record at the same digest",
+        "receipt_reproduced": "in/document-checks.json: 7 ```json fences (1+2+4), 67 local link occurrences, 12 remote link occurrences, 4 new links (2 discovery-lever anchors + 2 pinned github.com/uscient/agentscient blob URLs) \u2014 all reproduced by grep at the moment of writing",
+        "checker_read_not_executed": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125233Z-review-claude-02a617/in/check-docs.py",
+        "producer_record": ".dev/records/dispatches/20260906T124317Z-code-codex-6c74e4.json is byte-identical to in/ag-conduct-startup-close.json (sha256 81077b71b670a693c9966b0f32f36d341d347424a340ff4fd07e8c84764d4a90)",
+        "commit_trailers": "Source: original; Co-Authored-By: gpt-6-astra <noreply@openai.com> (names the ran model); Dispatch: 20260906T124317Z-code-codex-6c74e4; launcher-commit reason stated in the body"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2933982,
+        "out": 29790,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3f84832108274403a4f2c58bc12410ae896da2c0",
+        "started": null,
+        "ended": "2026-09-06T12:58:02Z"
+      },
+      "note": "REVIEW \u2014 Claude Opus 5, exact model id claude-opus-5, read-only, measured from this snapshot and git at the moment of writing. 3f84832 against 710dbac; the change under review is bounded by its own base b15f690. Verdict approve: 0 p1, 0 p2, 3 p3, all documentary.\n\nSCOPE. context/diff.patch is byte-identical to `git diff 710dbac 3f84832` (sha256 ac4c0ee9\u20263000 both sides). The named range spans 41 added records and ladder inputs plus prior implementation commits (lane_refs.py, task output tests); per the aim those are not reopened. 3f84832 itself changes exactly the three owned documents, +97/\u22127, and touches no code: launch.py, record.py, discovery-lever.md, discovery-examples.md and lane-policy.md are byte-identical across b15f690..3f84832.\n\nDISPOSITIONS. (1) Caps token \u2014 closed, one residual (finding 1). dispatch/CONTRACT.md:785-822 makes `caps.timeout` required, finite, positive, resolved solely from admitted conductor configuration before the directory claim, `caps.timeout_source` exactly `conductor-config`, admissible only when role is conductor, with `DISPATCH_TIMEOUT`/jobs.json/900 explicitly forbidden for a conductor and \"This adds no configuration store.\" Worker semantics are preserved by construction: bytes 1-748 of dispatch/CONTRACT.md are identical to b15f690 (f554d067\u2026fc80 both sides), so the three-token worker enum at :716-721 is untouched, and launch.py:34 STAGES, launch.py:1006 `else \"job\" if job_timeout is not None else \"default\"` and record.py:137 `rec[\"role\"] in {\"read\", \"write\"}` are unchanged; enforcement of the split is assigned to the existing caps/argv frontier row (:855). Both new fences are complete four-key objects \u2014 cap-out 500000, source and timeout_source `conductor-config`, timeout 1200.0 \u2014 for the success case and the late refusal with `attempts` `[]`, and pre-claim refusal is declared to produce no caps object. (2) Custody \u2014 closed. All five archive artifacts and the original invalid record are locatable at pinned paths under commit 3ee48f0d, every decoded byte count and SHA-256 reproduced here matches the landed table, the record's envelope is `status: invalid`, `verdict: null`, and all four cited commits are ancestors of b15f690, so the earlier review's unresolvable citations are gone. (3) Fill \u2014 closed. task/CONTRACT.md is whitespace-normalised identical to b15f690 (0bc0d1c2\u2026543b both sides); the only added lines of 85 characters or more anywhere in the commit are the two JSON fence bodies, which the fill class excludes.\n\nBOOT CROSS-LINK. conductor-start-plan.md:322-344 cites two anchors that resolve to real headings (`## Trusted discovery boot transport` :147, `### Executed-byte binding gate` :185), and its claims match those sections: inherited launcher-opened read-only directory descriptor alongside `--config FILE`, separate from the inspected repo, granting only the discovery contract and lane_read/lane_mcp/lane_refs, 1 MiB per file, 4 MiB total, 10-second deadline; lane_mcp custodian checking before acquisition, anchors and fingerprints; D-A47 A/B mismatch, missing load evidence, A/A and B/B controls, receipts binding process to observed execution. No v3 key is added (`v3 adds exactly profiles, discovery` unchanged), no query argument, no second store or executor, and the descriptor's own limits (65536 bytes, nesting 32) are unmoved. The discovery correction at 48277e7 is treated as documentarily approved per the supplied recheck; nothing here admits a runtime, and the plan claims none.\n\nLIMITS, DECLARED. I did not execute in/check-docs.py and made no attempt to: this session's allowlist admits `python3 ops/*` only, its OUT would write into in/, and its line-45 assertion (`git diff --name-only b15f690` equals the three paths) is false at HEAD because 43a8428 landed the producer record in between. I read it and reproduced its measurable assertions with git, grep, sed, base64 and sha256sum instead. The 12 remote URLs were not fetched \u2014 no network \u2014 so their availability is unknown; their pinned Git paths were resolved locally. The 63 pre-existing local links were not re-walked; the 4 new ones were. No tests, no suites.sh, no vendor, no edits, and no state, settings or admission read or written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

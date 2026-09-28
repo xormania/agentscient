@@ -1,0 +1,159 @@
+{
+  "id": "20260906T112824Z-plan-codex-ef5fde",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-launcher-20260906",
+  "lineage": {
+    "branch": "lane/conduct-launcher-20260906",
+    "base_sha": "4d055e7b7afbd46267e7afc235c29101605746ef"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T11:28:24Z",
+    "closed": "2026-09-06T11:38:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4d055e7b7afbd46267e7afc235c29101605746ef",
+    "ref_sha": "4d055e7b7afbd46267e7afc235c29101605746ef",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-28-25-01a0767a-0d3f-76c0-b06d-76fd05e6a764.jsonl"
+  },
+  "session": {
+    "id": "01a0767a-0d3f-76c0-b06d-76fd05e6a764",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-28-25-01a0767a-0d3f-76c0-b06d-76fd05e6a764.jsonl",
+    "stream_sha256_at_close": "29feedee3d47b3958e8a615a467fde7cd3e980f64736fb8d47106e709c507e80",
+    "spend": {
+      "input": 3062863,
+      "cached": 2868352,
+      "output": 13679,
+      "total": 3076542,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-28-25-01a0767a-0d3f-76c0-b06d-76fd05e6a764.jsonl",
+      "messages": 209
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-launcher-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Measure launcher feasibility before adapter implementation. Read current AGENTS.md, ops/README.md, accepted startup/harness/permission/probe contracts and supplied adoption review. Investigate installed Claude/Codex/Grok executable/version/help and local non-secret documentation/code first. Determine each actual pre-tool interception or equivalent enforcement mechanism, complete tool coverage including shell and MCP, unattended refusal, configuration injection, actual MCP connection evidence and resume binding. Distinguish observed installed support from assumptions, prompt-only compliance and unavailable measurements. No model launches, network, credentials, global config changes, writes or admission. Report a compact per-harness capability matrix, exact commands/refs/versions, gaps and the smallest contract-preserving path to usable conduct. If a required mechanism is unavailable, say so now; do not prescribe a refusal-only launcher as usable. Inline report only; no PLAN.md.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "baa2a3bff64e58589941aef6930fb55e9b024b071f825722a769442f481ff3af",
+    "bytes": 3298
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T11:28:24Z",
+      "ended": "2026-09-06T11:38:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4d055e7b7afbd46267e7afc235c29101605746ef",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:157; ops/conductor/harness-capabilities.md:189",
+          "claim": "Launcher-feasibility blocker: installed Grok 1.0.13 cannot satisfy the required failure-closed decision transport through either documented file hooks or SDK hooks alone. The contract requires a 'missing, late, malformed, duplicate or mismatched response' to fail closed. Embedded file-hook documentation says timeouts, crashes and malformed output fail open. Embedded SDK diagnostics explicitly say 'malformed x.ai/hooks/run response; failing open', 'transport error (no client wired?); failing open' and 'timed out; failing open'. Catching exceptions inside a hook cannot cover failure to start or deliver that hook. A separate verified enforcement mechanism is required before implementing Grok as a usable conduct adapter. This is an installed-mechanism incompatibility, not a demonstrated exploit introduced by the diff.",
+          "reproduce": "grok --version; python3 -B -c 'from pathlib import Path; d=Path(\"/home/scientdb/.grok/downloads/grok-1.0.13-linux-x86_64\").read_bytes(); print(d[137640950:137641500].decode(\"utf-8\",\"replace\")); print(d[139547550:139549000].decode(\"utf-8\",\"replace\"))'; sed -n '157,165p' ops/conductor/permission-surface.md"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/context/diff.patch",
+        "input": "/home/scientdb/.local/state/agentscient/dispatch/20260906T112824Z-plan-codex-ef5fde/in/ag-conduct-adoption-review.json"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3076542,
+        "out": 13679,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4d055e7b7afbd46267e7afc235c29101605746ef",
+        "started": "2026-09-06T11:28:36Z",
+        "ended": "2026-09-06T11:36:21Z"
+      },
+      "note": "Feasibility verdict: no harness currently has enough measured evidence to qualify as usable conduct. Grok's hook-only route has a concrete documented incompatibility; Claude and Codex have candidate mechanisms whose complete coverage and failure behavior remain unresolved. This review completed the permitted local measurements; it does not certify the discovery implementation or runtime admission.\n\nScope and evidence\nRead the supplied adoption-review JSON whole, current instructions, founding contracts, ops/README.md, startup/harness/permission/probe contracts, C1/C2 and lane-policy requirements. Base: 710dbac38c3b187eb4b3302308430c0a6dec4d76. In-memory comparison confirmed the supplied 287916-byte patch equals git diff BASE HEAD. git diff --check exited 0. The diff adds discovery/3 implementation and launch-interface contracts; the supplied earlier review's claim that lane_refs.py is absent is superseded. Dispatch/task/harness implementation and .claude/settings.json are unchanged between these refs. Final Git status was empty.\n\nCapability matrix \u2014 help/schema/documentation observations are not behavioral passes\n\n| Harness | Pre-effect mechanism and coverage | Unattended refusal | Controlled injection | Actual MCP / resume |\n|---|---|---|---|---|\n| Claude 2.1.260 | Embedded PreToolUse contract supports tool_name/tool_input and allow/deny/ask. Built-in permission rules and host permission handling also exist. Complete coverage of Bash, PowerShell/REPL/code tools, edits, agents, plugins and MCP is unproved. Binary diagnostics include nonblocking hook failures; generic hooks cannot simply be assumed failure-closed. | --permission-mode dontAsk and print-mode --permission-prompts none are advertised; the latter denies would-prompt requests. Neither proves every operation reaches shared policy. Host callback error diagnostics exist, but callback coverage is unmeasured. | --settings, --setting-sources, --tools, --mcp-config and --strict-mcp-config exist. Managed layers still matter. --bare and --safe-mode disable hooks and must be reserved. Print mode explicitly warns that invalid settings can be silently ignored. | Connection UNREACHABLE under this scope. --resume/--session-id exist; no native proof of descriptor/policy/source binding. --system-prompt-snapshot may retain earlier prompt text on resume. |\n| Codex 0.153.4 | Native PreToolUse and PermissionRequest machinery is embedded, with input/output schemas and command/tool blocking diagnostics. Therefore 'Codex has no hooks' would be incorrect. Runtime diagnostics reject PreToolUse permissionDecision:allow/ask and legacy decision:approve despite their presence in the wire schema: do not copy Claude semantics. Coverage of shell/unified-exec, patches, code-mode nested calls, dynamic tools, agents and MCP remains unproved. | --ask-for-approval never advertises immediate failure without prompting; binary also contains an MCP approval-required/never refusal. These are distinct from universal interception. --approve-for-me is automatic review, not deterministic shared policy. | Isolated CODEX_HOME; -c, --strict-config, exec --ignore-user-config and --ignore-rules. Embedded hook configuration/trust fields and invocation-local --dangerously-bypass-hook-trust exist; effective trust/configuration still needs verification. | Connection UNREACHABLE. App-server embeds mcpServerStatus/list, mcpServer/tool/call and dynamic-tool request surfaces; their presence proves no connection. exec resume exists, with operation-specific syntax; stationary policy/configuration binding remains launcher work. |\n| Grok 1.0.13 | File PreToolUse and ACP x.ai/hooks/run gates exist. Documentation covers shell aliases and qualified server__tool MCP calls. BOTH hook transports have fail-open behavior. --tools retains always-on MCP meta-tools, so a built-in allowlist does not close MCP access. Embedded docs disagree on shell IDs, requiring actual tool inventory before normalization. | --permission-mode dontAsk, --allow/--deny and --no-subagents are advertised. Hook allow merely avoids blocking; it does not itself approve the operation. Older embedded prose contradicts dontAsk help, so behavior remains unmeasured. --always-approve supplies no conductor boundary. | GROK_HOME/HOME isolation, config hooks, compatibility controls and agent --plugin-dir are available surfaces. The latter advertises trusted per-process hooks/MCP. No owner customization was inspected. | Connection UNREACHABLE. Resume is advertised; embedded sandbox docs bind the saved profile name and reject a different name. That does not bind profile bytes, role, sources, hooks, policy or MCP identity. |\n\nContainment and output gaps\nGrok now advertises OS sandboxing, superseding any inference that this installed version has none. Its embedded sandbox guide says ordinary built-in setup failures can continue unenforced; explicit custom profiles have stricter startup refusal, with additional protected-hook-path requirements. Custom read_write entries are documented as directory grants; built-ins also retain runtime/temp writes. None establishes C2's exact leaf/scratch/transport equality. Codex exposes richer filesystem permission types as well as legacy sandbox flags, and Claude exposes sandbox controls; their exact C2 behavior remains unmeasured. Kernel measured by uname -srmo: Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 GNU/Linux. Kernel identity alone proves no active containment.\n\nMCP and resume evidence\nNo initialize/tools/list/lane_start exchange from an actual selected conductor client was available. The current tool metadata search exposed no lane_start/lane_brief endpoint. Repository lane_mcp.py implements those server-side surfaces, but server code, configuration entries and standalone queries cannot prove client attachment. The supplied lane_brief({}) Invalid params observation remains a connection/schema mismatch to diagnose, not evidence of server absence. Launch and resume each need trusted client/server transport correlation, catalogue/config/anchor checks and automatic bounded lane_start onboarding before control is handed over.\n\nExact installed identities\nCommands executed included command -v claude codex grok; readlink -f and sha256sum on /home/scientdb/.local/bin/{claude,codex,grok}; each harness --version and --help; codex exec --help; codex exec resume --help; codex debug --help; codex app-server --help; codex features --help; grok agent --help; grok agent stdio --help; grok inspect --help; grok mcp --help; grok mcp doctor --help.\nClaude: /home/scientdb/.local/share/claude/versions/2.1.260; SHA256 7a2fdc74b6836ea3d183f665b869f0ee3baebc9713cbebffe5838da4ea7bd82e.\nCodex: /home/scientdb/.codex/packages/standalone/releases/0.153.4-x86_64-unknown-linux-musl/bin/codex; SHA256 56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da.\nGrok: /home/scientdb/.grok/downloads/grok-1.0.13-linux-x86_64; version 1.0.13 (5e9a58528b76) [stable]; SHA256 edf79521581bb5e6b95abef848491a6a742e860da3e237ebe86a280d30dce4c1.\nLocal binary references, inspected using Python Path.read_bytes slices: Claude hook documentation bytes 92197400:92200800; Codex hook diagnostics 212111800:212113900 and schemas around 212121734:212124600; Grok hooks 137630341:137650700, SDK failure diagnostics 139547550:139549000, tool filtering 137722400:137724100 and sandbox documentation 137808300:137821600. These are embedded documents/schema/diagnostic strings, not executed branches.\n\nSmallest contract-preserving path\nFirst resolve one complete enforcement mechanism for the requested Codex target before building three adapters. Use its installed native hook surface as the first candidate; independently prove actual tool names, nested-call/MCP coverage, missing/crashed/timed-out/malformed gate refusal, and successful canonical delegation without prompts. If native hooks cannot provide that boundary, a separately contracted trusted host mediation path must prove complete mediation while transferring work to the existing executor. App-server/ACP availability alone does not establish it. Grok requires such an alternative or a verified runtime correction; merely moving its hook into the SDK is insufficient.\nThen complete the existing shared owners: task declarations/semantic acceptance, canonical dispatch execution and exact C2 output mechanisms, lane_policy evaluation and all acceptance transitions, followed by thin conduct startup. Explicit path checks found conduct, conduct.py, adapters.py, lane_policy.py and task/outputs.py absent; jobs.json contains zero outputs declarations. Existing probe.py measures configuration isolation, not the required conduct observation families.\nThe first usable tranche must successfully onboard, perform permitted reads/coordination, dispatch an admitted worker through the canonical service, return its accepted result, refuse forbidden operations before effects, and resume with unchanged authority plus a reverified MCP connection. A read-only shell that cannot dispatch, a prompt promising compliance, or a launcher that only refuses is not that tranche. Independent disposable live controls and verified mocks remain necessary before admission; none was run here.\n\nNo model launches, network requests, credential/store inspection, global configuration changes, edits, admission or PLAN.md creation occurred. Suites were not run because this assignment forbids writes. Codex informational commands reported failed PATH-alias creation attempts rejected by the read-only filesystem; no successful alias write was observed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T11:38:18.113Z"
+    }
+  },
+  "status": "closed"
+}

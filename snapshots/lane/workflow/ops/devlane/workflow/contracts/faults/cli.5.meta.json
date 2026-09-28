@@ -1,0 +1,12 @@
+{
+  "contract": "cli",
+  "fault": "cli.5.json",
+  "from": "obs/cli.json",
+  "change": "`wf open` cannot take `--agent`: the flag is gone from the command and from the globals",
+  "violates": "PLAN.md §4 lines 261-263 (with §5 line 289, §11 line 519)",
+  "quote": "\"**Agent contract.** Agent identity is day-one: every chain-appending verb requires `--agent` (or `$WF_AGENT`)\"",
+  "reject_path": "--agent|agent",
+  "implied": false,
+  "sites": 2,
+  "note": "Same global-or-per-command structure as `--json`. `$WF_AGENT` survives in env_literals, so a contract that accepts the env fallback for a verb that declares no flag will not fire; cli.6 attacks that side separately."
+}

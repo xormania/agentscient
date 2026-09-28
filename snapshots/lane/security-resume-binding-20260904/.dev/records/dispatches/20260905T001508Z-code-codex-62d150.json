@@ -1,0 +1,276 @@
+{
+  "id": "20260905T001508Z-code-codex-62d150",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/security-resume-binding-20260904",
+  "lineage": {
+    "branch": "lane/security-resume-binding-20260904",
+    "base_sha": "a075806f7fc813e59353f72bac66dd0bccaf55dd"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T00:15:08Z",
+    "closed": "2026-09-05T00:24:51Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a075806f7fc813e59353f72bac66dd0bccaf55dd",
+    "ref_sha": "a075806f7fc813e59353f72bac66dd0bccaf55dd",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-15-09-01a06eeb-4b46-7123-a7d7-23ca4a35cbc9.jsonl"
+  },
+  "session": {
+    "id": "01a06eeb-4b46-7123-a7d7-23ca4a35cbc9",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-15-09-01a06eeb-4b46-7123-a7d7-23ca4a35cbc9.jsonl",
+    "stream_sha256_at_close": "0ea8f05fe2a2aacacc894b73bc06aea1dbfd95f4e18fedb4ab25190504ec79fe",
+    "spend": {
+      "input": 5628218,
+      "cached": 5466496,
+      "output": 22779,
+      "total": 5650997,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-15-09-01a06eeb-4b46-7123-a7d7-23ca4a35cbc9.jsonl",
+      "messages": 361
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr57.A9JZzO/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/draft63-cache-brief.md WHOLE. Finish the already-upheld cache-shaped source residual family before final review: root proved all three top-level tool-cache exclusions still hide smuggle.py. Change only launch.py residual classification and patch preservation plus precise contract policy. NO tests. One classifier, genuine bounded cache shapes, unknown layouts surface residual, no broad exclusion losing evidence. Existing full dispatch suite and Ruff/diff; no real-store changes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001508Z-code-codex-62d150/in/draft63-cache-brief.md",
+        "sha256": "4bae6871fa46dfc12797d1ca3ecc0c822c5774dcc3d032577f9416ac419f46ea"
+      }
+    ],
+    "sha256": "f0259efd79868cece86a39c80d85bfa7f48ec36cc663c2480edced33f892fdf6",
+    "bytes": 4339
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T00:15:08Z",
+      "ended": "2026-09-05T00:24:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "adc7ab2dd6bf75d9bc5c5a2f09b8d244385976e8",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Pinned tree was clean at a075806f7fc813e59353f72bac66dd0bccaf55dd; the brief and ops overview were read whole.",
+          "reproduce": "pwd && git status --short --branch && git rev-parse HEAD && sed -n '1,240p' ../in/draft63-cache-brief.md && sed -n '1,260p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "All six governing project documents were read before implementation.",
+          "reproduce": "wc -l docs/*.md && for f in docs/*.md; do sed -n '1,9999p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/AGENTS.md",
+          "claim": "Nested dev-lane and Mate instructions were inspected before touching the lane.",
+          "reproduce": "sed -n '1,9999p' ops/devlane/AGENTS.md && sed -n '1,9999p' mate/AGENT_INSTRUCTIONS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Cache, residual, and patch references were located across implementation, contract, and tests.",
+          "reproduce": "rg -n -C 6 '_is_cache_residual|\\.ruff_cache|\\.pytest_cache|\\.mypy_cache|__pycache__|residual.patch|residual_paths' ops/devlane/dispatch"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py",
+          "claim": "The existing cache-related tests and complete dispatch contract were inspected without modification.",
+          "reproduce": "sed -n '1,9999p' ops/devlane/dispatch/CONTRACT.md && sed -n '1,9999p' ops/devlane/dispatch/tests/test_launch_harness_fixes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py:1489",
+          "claim": "History showed the broad patch exclusions and top-level cache classifier originated in the prior combined fix.",
+          "reproduce": "git blame -L 1489,1535 -- ops/devlane/dispatch/launch.py && git log -p -S'TOOL_CACHE_ROOTS' -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md --all --max-count=5"
+        },
+        {
+          "severity": "p3",
+          "where": "local tool environment",
+          "claim": "Ruff 0.16.5 was available; pytest was absent from the system Python, so that initial layout probe stopped there.",
+          "reproduce": "ruff --version && python3 -m pytest --version"
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/agentscient-cache-shapes.Y5DZMw",
+          "claim": "Measured Ruff layout contained .gitignore, CACHEDIR.TAG, and an extensionless key beneath version directory 0.16.5.",
+          "reproduce": "find /tmp/agentscient-cache-shapes.* -type f -printf '%P\\n' 2>/dev/null | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:261",
+          "claim": "The exact Collect policy insertion point and residual implementation were re-read before the surgical patch.",
+          "reproduce": "sed -n '1484,1542p' ops/devlane/dispatch/launch.py && sed -n '258,286p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Ruff, classifier probes for accepted cache artifacts and rejected smuggle/unknown layouts, and diff checking all passed.",
+          "reproduce": "ruff check ops/devlane/dispatch/launch.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree diff",
+          "claim": "Only launch.py and the precise dispatch contract policy changed.",
+          "reproduce": "git diff -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch focused test invocation",
+          "claim": "A root-level direct module invocation was invalid because launch_support was not on sys.path; this was an invocation error, not a failing test.",
+          "reproduce": "python3 -m unittest ops/devlane/dispatch/tests/test_launch_harness_fixes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "The correctly rooted focused suite passed 25 tests.",
+          "reproduce": "cd ops/devlane/dispatch/tests && python3 -m unittest test_launch_harness_fixes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "residual.patch scratch probe",
+          "claim": "Scratch verification preserved ignored source, binary changes, deletion, and both rename sides while omitting a genuine Ruff cache key.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh",
+          "claim": "The repository suite entrypoint and dispatch-suite discovery shape were inspected.",
+          "reproduce": "sed -n '1,240p' ops/bin/suites.sh && find ops/devlane/dispatch/tests -maxdepth 1 -type f -name 'test_*.py' -printf '%f\\n' | sort | wc -l"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "The first full dispatch-suite run passed all 323 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "final lint and diff gate",
+          "claim": "Repository-wide Ruff and diff checks passed; the diff remained limited to two requested files.",
+          "reproduce": "ruff check . && git diff --check && git diff --stat && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Commit creation was attempted with required trailers but refused because the sandbox mounts .git read-only.",
+          "reproduce": "git add ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md && git commit -m 'dispatch: bound cache residual exemptions'"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final combined verification passed 323 dispatch tests, repository-wide Ruff, and git diff checking. The suite also emitted a pre-existing ResourceWarning for a still-running subprocess while remaining green.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_*.py' && ruff check . && git diff --check"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/dispatch/launch.py",
+        "contract": "ops/devlane/dispatch/CONTRACT.md",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "323 dispatch tests passed; Ruff and git diff checks passed"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5650997,
+        "out": 22779,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a075806f7fc813e59353f72bac66dd0bccaf55dd"
+      },
+      "note": "Assumption: extensionless Ruff keys at the cache root remain admitted for the repository's legacy fixture, while source-suffixed and unknown deeper layouts surface as residual. Follow-up only: the dispatch suite emits a pre-existing subprocess ResourceWarning. Git commit was blocked solely by the read-only .git mount; the required fallback message is in out/COMMIT_MSG.",
+      "commit": {
+        "subject": "dispatch: bound cache residual exemptions",
+        "body": "Classify only measured Ruff, pytest, mypy, and Python bytecode cache artifacts. Build salvage patches from the same residual decisions so ignored source, binary data, deletions, and renames remain evidence.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T00:24:50.950Z"
+    }
+  },
+  "status": "closed"
+}

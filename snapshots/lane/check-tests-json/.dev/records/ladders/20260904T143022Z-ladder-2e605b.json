@@ -1,0 +1,251 @@
+{
+  "base_sha": "340badebd2deb9a5209689f414c5fdf70e60cc2c",
+  "branch": "lane/check-tests-json",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/lane.conf",
+    "sha256": "ebba255effed06abbe88fc4cb94883240429c88775e757841eccb99969fac7b2"
+  },
+  "id": "20260904T143022Z-ladder-2e605b",
+  "implementation_markers": [],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/PLAN-check-tests-json-2.md",
+    "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/scope-check-tests-json-2.md",
+    "sha256": "214b6f495e79557a7f5b0f1415b55bb71c4169b67380d7af2dfd369b743c7771"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T143022Z-tests-grok-ebbae8",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/PLAN-check-tests-json-2.md",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run."
+          ],
+          "withheld": []
+        },
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      },
+      "job": "author-tests",
+      "landed": [
+        "bb39526d0d1913dc3d29f5e788b1691014230a66",
+        "bb8a72a150428e352ed3c92a620418dbdd6f0fa8",
+        "70458b11be9023ab6f60ad28a53c35b821fccba4",
+        "e68b6b1763a33152c7b5471dd958072e7510b0fe",
+        "e7c13d533daf156765f41cc448cc818d73e64aec",
+        "e8efbef2f43845997abfb613214bf22f76a0c1bf"
+      ],
+      "landed_shas": [
+        "bb39526d0d1913dc3d29f5e788b1691014230a66",
+        "bb8a72a150428e352ed3c92a620418dbdd6f0fa8",
+        "70458b11be9023ab6f60ad28a53c35b821fccba4",
+        "e68b6b1763a33152c7b5471dd958072e7510b0fe",
+        "e7c13d533daf156765f41cc448cc818d73e64aec",
+        "e8efbef2f43845997abfb613214bf22f76a0c1bf"
+      ],
+      "minutes": 13.267969,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260904T143022Z-tests-grok-ebbae8",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T144439Z-check-tests-codex-ffaf2b",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "findings": 3,
+      "findings_file": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/check-tests-findings.json",
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/dispatches/20260904T143022Z-tests-grok-ebbae8.json",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T143022Z-tests-grok-ebbae8"
+          ],
+          "withheld": []
+        },
+        "sha256": "da6ec42c61982680171fc0eb660fa8fb6e701b0fb5cfaf6bb5a3da441056c92a"
+      },
+      "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 5.0033,
+      "name": "check-tests",
+      "outcome": "ok",
+      "record": "20260904T144439Z-check-tests-codex-ffaf2b",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T145002Z-tests-grok-87e902",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/check-tests-findings.payload.json",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T144439Z-check-tests-codex-ffaf2b"
+          ],
+          "withheld": []
+        },
+        "sha256": "e2929293b12076dadd8625bf5bd9534ff715b79b3045455b248267fccbdbdec5"
+      },
+      "job": "author-tests",
+      "landed": [
+        "bfd4f1fab29624559be2140f0dd4cc1a423a9151",
+        "82dfef5809ac36e3fae19d804397e431c09a11df",
+        "d47352951dcf48af23bd7e67d523b037606d6664"
+      ],
+      "landed_shas": [
+        "bfd4f1fab29624559be2140f0dd4cc1a423a9151",
+        "82dfef5809ac36e3fae19d804397e431c09a11df",
+        "d47352951dcf48af23bd7e67d523b037606d6664"
+      ],
+      "minutes": 13.849307,
+      "name": "tests-fix",
+      "outcome": "ok",
+      "record": "20260904T145002Z-tests-grok-87e902",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 2,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T154304Z-code-codex-5404bf",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/test-command.md",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T145002Z-tests-grok-87e902"
+          ],
+          "withheld": []
+        },
+        "sha256": "1d67fc8e5c6063c538498ae2b7bd6e81eeddffa698bb4b7e4ae05d8c79caf5a7"
+      },
+      "job": "implement",
+      "landed": [
+        "5eebd4d4d93e2d6c2e1198cff2544916994289fd"
+      ],
+      "landed_shas": [
+        "5eebd4d4d93e2d6c2e1198cff2544916994289fd"
+      ],
+      "name": "code",
+      "outcome": "stopped",
+      "reason": "retry-cap",
+      "record": "20260904T154304Z-code-codex-5404bf",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "stopped",
+  "stopped": {
+    "reason": "retry-cap",
+    "record": "20260904T154304Z-code-codex-5404bf",
+    "stage": "code",
+    "verdict": null
+  },
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-check-tests-json"
+}

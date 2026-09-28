@@ -1,0 +1,195 @@
+{
+  "facts": {
+    "literals": [
+      "): ",
+      "Co-Authored-By: ",
+      "Event: ",
+      "PLAN \u00a75's message format.\n\n    ``Source: generated: wf`` covers the serialization only. Content\n    provenance rides in the events and is re-emitted here as additional\n    Source: trailers \u2014 the export embeds owner text, external artifacts and\n    other tools' output, and the serializer is not their origin.\n    ",
+      "Source: ",
+      "Source: generated: wf",
+      "Stage: ",
+      "WO: ",
+      "``{repo-relative path: blob sha}`` for every blob in ``commit``."
+    ],
+    "subject_literals": [
+      "wf("
+    ],
+    "trailer_keys": [
+      "Co-Authored-By",
+      "Event",
+      "Source",
+      "Stage",
+      "WO"
+    ]
+  },
+  "provenance": {
+    "literals": [
+      {
+        "file": "gitio.py",
+        "fstring_template": "wf({wo_id}/{stage}): {summary}",
+        "kind": "f-string-segment",
+        "lines": "233-233",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "): ",
+        "text": "        f\"wf({wo_id}/{stage}): {summary}\",",
+        "value": "): "
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Co-Authored-By: {agent}",
+        "kind": "f-string-segment",
+        "lines": "244-244",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Co-Authored-By: ",
+        "text": "        lines.append(f\"Co-Authored-By: {agent}\")",
+        "value": "Co-Authored-By: "
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Event: {seq} {head[:8]}",
+        "kind": "f-string-segment",
+        "lines": "237-237",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Event: ",
+        "text": "        f\"Event: {seq} {head[:8]}\",",
+        "value": "Event: "
+      },
+      {
+        "file": "gitio.py",
+        "kind": "constant",
+        "lines": "225-231",
+        "rule": "\u00a75.10 string constant of gitio.py",
+        "source_literal": "PLAN \u00a75's message format.\n\n    ``Source: generated: wf`` covers the serialization only. Content\n    provenance rides in the events and is re-emitted here as additional\n    Source: trailers \u2014 the export embeds owner text, external artifacts and\n    other tools' output, and the serializer is not their origin.\n    ",
+        "text": "    \"\"\"PLAN \u00a75's message format.\n\n    ``Source: generated: wf`` covers the serialization only. Content\n    provenance rides in the events and is re-emitted here as additional\n    Source: trailers \u2014 the export embeds owner text, external artifacts and\n    other tools' output, and the serializer is not their origin.\n    \"\"\"",
+        "value": "PLAN \u00a75's message format.\n\n    ``Source: generated: wf`` covers the serialization only. Content\n    provenance rides in the events and is re-emitted here as additional\n    Source: trailers \u2014 the export embeds owner text, external artifacts and\n    other tools' output, and the serializer is not their origin.\n    "
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Source: {source}",
+        "kind": "f-string-segment",
+        "lines": "242-242",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Source: ",
+        "text": "        lines.append(f\"Source: {source}\")",
+        "value": "Source: "
+      },
+      {
+        "file": "gitio.py",
+        "kind": "constant",
+        "lines": "239-239",
+        "rule": "\u00a75.10 string constant of gitio.py",
+        "source_literal": "Source: generated: wf",
+        "text": "        \"Source: generated: wf\",",
+        "value": "Source: generated: wf"
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Stage: {stage}",
+        "kind": "f-string-segment",
+        "lines": "236-236",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Stage: ",
+        "text": "        f\"Stage: {stage}\",",
+        "value": "Stage: "
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "WO: {wo_id}",
+        "kind": "f-string-segment",
+        "lines": "235-235",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "WO: ",
+        "text": "        f\"WO: {wo_id}\",",
+        "value": "WO: "
+      },
+      {
+        "file": "gitio.py",
+        "kind": "constant",
+        "lines": "84-84",
+        "rule": "\u00a75.10 string constant of gitio.py",
+        "source_literal": "``{repo-relative path: blob sha}`` for every blob in ``commit``.",
+        "text": "    \"\"\"``{repo-relative path: blob sha}`` for every blob in ``commit``.\"\"\"",
+        "value": "``{repo-relative path: blob sha}`` for every blob in ``commit``."
+      }
+    ],
+    "readings": [
+      "f-string literal segments are part of the string-constant population (ADAPTED); every trailer in gitio.py is written as an f-string, so the unadapted reading would report only \"Source\"",
+      "docstrings are string constants and are scanned like any other",
+      "reconstructed f-string templates are in provenance (fstring_template) and deliberately not in the fact lists"
+    ],
+    "subject_literals": [
+      {
+        "file": "gitio.py",
+        "fstring_template": "wf({wo_id}/{stage}): {summary}",
+        "kind": "f-string-segment",
+        "lines": "233-233",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "wf(",
+        "text": "        f\"wf({wo_id}/{stage}): {summary}\",",
+        "value": "wf("
+      }
+    ],
+    "target": "gitio.py",
+    "trailer_keys": [
+      {
+        "file": "gitio.py",
+        "fstring_template": "Co-Authored-By: {agent}",
+        "kind": "f-string-segment",
+        "lines": "244-244",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Co-Authored-By: ",
+        "text": "        lines.append(f\"Co-Authored-By: {agent}\")",
+        "value": "Co-Authored-By"
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Event: {seq} {head[:8]}",
+        "kind": "f-string-segment",
+        "lines": "237-237",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Event: ",
+        "text": "        f\"Event: {seq} {head[:8]}\",",
+        "value": "Event"
+      },
+      {
+        "file": "gitio.py",
+        "kind": "constant",
+        "lines": "239-239",
+        "rule": "\u00a75.10 string constant of gitio.py",
+        "source_literal": "Source: generated: wf",
+        "text": "        \"Source: generated: wf\",",
+        "value": "Source"
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Source: {source}",
+        "kind": "f-string-segment",
+        "lines": "242-242",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Source: ",
+        "text": "        lines.append(f\"Source: {source}\")",
+        "value": "Source"
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "Stage: {stage}",
+        "kind": "f-string-segment",
+        "lines": "236-236",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "Stage: ",
+        "text": "        f\"Stage: {stage}\",",
+        "value": "Stage"
+      },
+      {
+        "file": "gitio.py",
+        "fstring_template": "WO: {wo_id}",
+        "kind": "f-string-segment",
+        "lines": "235-235",
+        "rule": "\u00a75.10 string constant of gitio.py, ADAPTED: an f-string literal segment",
+        "source_literal": "WO: ",
+        "text": "        f\"WO: {wo_id}\",",
+        "value": "WO"
+      }
+    ]
+  }
+}

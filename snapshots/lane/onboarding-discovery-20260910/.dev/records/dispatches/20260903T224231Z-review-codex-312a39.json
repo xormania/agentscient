@@ -1,0 +1,142 @@
+{
+  "id": "20260903T224231Z-review-codex-312a39",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "501c8c6a9f0a483a73d82c0fccdde97f9428bf6f"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T22:42:31Z",
+    "closed": "2026-09-03T22:43:55Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "501c8c6a9f0a483a73d82c0fccdde97f9428bf6f",
+    "ref_sha": "501c8c6a9f0a483a73d82c0fccdde97f9428bf6f",
+    "behind_tip": 0,
+    "root": "<job 20260903T224231Z-review-codex-312a39>/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "<job 20260903T224231Z-review-codex-312a39>/home/codex"
+      },
+      "store": "<job 20260903T224231Z-review-codex-312a39>/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "<job 20260903T224231Z-review-codex-312a39>/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"<job 20260903T224231Z-review-codex-312a39>/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "--json",
+      "-o",
+      "<job 20260903T224231Z-review-codex-312a39>/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": null,
+    "ran": "gpt-5.6-sol",
+    "read_from": "<job 20260903T224231Z-review-codex-312a39>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-42-32-01a06970-250a-7de1-babe-b78d4b7b6b16.jsonl"
+  },
+  "session": {
+    "id": "01a06970-250a-7de1-babe-b78d4b7b6b16",
+    "stream": "<job 20260903T224231Z-review-codex-312a39>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-42-32-01a06970-250a-7de1-babe-b78d4b7b6b16.jsonl",
+    "stream_sha256_at_close": "45c5d3578c668ba20642b0032b0b1c470b16b12ded559e4c23ab774a7445f7bb",
+    "spend": {
+      "input": 233251,
+      "cached": 199424,
+      "output": 3570,
+      "total": 236821,
+      "source": "<job 20260903T224231Z-review-codex-312a39>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-42-32-01a06970-250a-7de1-babe-b78d4b7b6b16.jsonl",
+      "messages": 54
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "the contract at in/contract-effort-per-role.md (the owner's scope, then the plan). The tests to judge are the five files Grok committed at this ref: ops/devlane/dispatch/tests/test_launch_refusals.py, ops/devlane/dispatch/tests/test_record.py, ops/devlane/task/tests/test_run.py, ops/devlane/task/tests/test_jobs.py, ops/conductor/tests/test_dispatch_wrapper.py; judge the tests those files gained against the plan's section 'Tests, by the harness the pipeline gives them to'. Refute by default.",
+    "inputs": [
+      {
+        "path": "<job 20260903T224231Z-review-codex-312a39>/in/contract-effort-per-role.md",
+        "sha256": "8277479335f368a7acdae63d9e8b768f6245da429da0fe8c8087563f5af6c4df"
+      }
+    ],
+    "sha256": "7ffb1b86e60b5f417680146f0579ce0e9f88a7ec88bd4b6873fc0cfb4460f033",
+    "bytes": 1479
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-03T22:42:31Z",
+      "ended": "2026-09-03T22:43:55Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "501c8c6a9f0a483a73d82c0fccdde97f9428bf6f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "total": 3,
+        "p1": 0,
+        "p2": 3,
+        "p3": 0
+      },
+      "findings": [
+        "Environment-versus-conf precedence is not genuinely tested for per-job effort.",
+        "The record tests do not reject a non-list model.effort_argv.",
+        "No in-scope test proves the required go.sh review fan-out."
+      ],
+      "artifacts": [
+        "<job 20260903T224231Z-review-codex-312a39>/out/SKEPTIC.md"
+      ],
+      "spend": null,
+      "stamp": {
+        "ref": "501c8c6a9f0a483a73d82c0fccdde97f9428bf6f"
+      },
+      "note": "schema-invalid: object does not match ENVELOPE_SCHEMA"
+    },
+    "cause": {
+      "reason": "schema-invalid"
+    }
+  },
+  "status": "closed"
+}

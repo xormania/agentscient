@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.5.json",
+  "from": "obs/schema.json",
+  "change": "the `events` table has no `prev` column",
+  "violates": "PLAN.md §3.2 line 101 (with §3.1 lines 75-76)",
+  "quote": "\"| `events` | the chain (`wo_id`, `seq`, `hash`, `prev`, `time`, `payload`, `state_sha256`) | as-is |\"",
+  "reject_path": "facts\\.tables\\.[0-9]+\\.columns\\b|prev",
+  "implied": false
+}

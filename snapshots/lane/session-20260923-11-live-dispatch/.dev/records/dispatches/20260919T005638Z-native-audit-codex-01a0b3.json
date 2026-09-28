@@ -1,0 +1,100 @@
+{
+  "id": "20260919T005638Z-native-audit-codex-01a0b3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260918-recovery-01a0b2dd",
+  "lineage": {
+    "branch": "lane/session-20260918-recovery-01a0b2dd",
+    "base_sha": "a956619574f01a1a0ede6c0d2a1ff7cf6fc7fe7a"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": null,
+  "at": "2026-09-19T00:39:45.974779Z",
+  "snapshot": {
+    "mode": "whole",
+    "root": "/tmp/agentscient-pr266-audit-01a0b32d",
+    "ref_sha": "ed2534e321e56c4ad6a262d21cf3d5a274dd3dc7",
+    "origin": "native reviewer isolated clone; not a dispatched snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "execution": "native-terminal",
+    "argv": null,
+    "containment": "policy",
+    "isolation": {
+      "observed": {
+        "unresolved": "Native terminal launch isolation was not measured; reviewer used disposable scratch. No dispatched-worker or OS containment claim."
+      }
+    }
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl:2267",
+    "measured_at": "2026-09-19T00:39:12.570Z",
+    "effort_requested": null,
+    "effort_argv": [],
+    "note": "Actual model read from the owner-selected native Daybreak turn_context. Graft estimates quoted in the reviewer note are not measured spend."
+  },
+  "session": {
+    "id": "01a0b32d-e3c8-7ef0-85b0-d24bd04ed089",
+    "participant": "PT-19",
+    "assignment": "A-434",
+    "execution": "native-terminal"
+  },
+  "brief": {
+    "source": "A-434 and M-435; bounded clarification M-447",
+    "receipt": "M-449",
+    "envelope_sha256": "b6a468c20a8eca8edb12a50072dfcc64cba689d68aab9422139fe3a7069c5644"
+  },
+  "caps": null,
+  "overrides": {},
+  "attempts": [],
+  "result": {
+    "head": "ed2534e321e56c4ad6a262d21cf3d5a274dd3dc7",
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/profiles.py:136,152 \u2014 configuration()/generate() native_settings custody",
+          "claim": "generate() writes the original unsanitized native_settings into the child-readable binding after configuration() scrubbed COORDINATION_CAPABILITY only from its deep copy. A preserved MCP definition containing a parent participant capability therefore gives the child that parent secret; an unprofiled subprocess can combine it with the parent session and regain the exact cross-participant authority replay this repair closes.",
+          "reproduce": "python3 -B - <<'CHECK'\nimport os, subprocess, sys, tempfile\nfrom pathlib import Path\nfrom ops.devlane.hooks import profiles\nrepo=Path.cwd(); tool=repo/\"ops/conductor/tools/coordination.py\"\nparent=\"a\"*64; child=\"b\"*64\nwith tempfile.TemporaryDirectory() as raw:\n root=Path(raw); home=root/\"home\"; state=root/\"state\"; native=root/\"native\"\n for path in (home,state,native): path.mkdir()\n base={**os.environ,\"HOME\":str(home),\"XDG_STATE_HOME\":str(state),\"LANE_CONF\":str(repo/\"ops/lane.conf\"),\"WF_AGENT_OVERRIDE\":\"Audit Fixture <audit@example.invalid>\"}\n def run(args,session,cap):\n  env={**base,\"CLAUDE_CODE_SESSION_ID\":session,\"COORDINATION_CAPABILITY\":cap}\n  return subprocess.run([sys.executable,\"-B\",str(tool),*args],cwd=repo,env=env,text=True,capture_output=True)\n assert run([\"bind\",\"--roles\",\"lead\"],\"parent-session\",parent).returncode==0\n assert run([\"bind\",\"--roles\",\"worker\"],\"child-session\",child).returncode==0\n binding=profiles.generate(\"codex\",root/\"profile\",source=repo,cwd=repo,mode=\"interactive\",home=native,executable=\"/usr/bin/true\",native_settings={\"mcp_servers\":{\"coordination\":{\"command\":\"python3\",\"env\":{\"COORDINATION_CAPABILITY\":parent}}}})\n stolen=profiles.read_binding(binding[\"binding\"])[\"native_settings\"][\"mcp_servers\"][\"coordination\"][\"env\"][\"COORDINATION_CAPABILITY\"]\n assert stolen==parent\n result=run([\"grant\",\"PT-2\",\"--roles\",\"lead\"],\"parent-session\",stolen)\n assert result.returncode==0,result.stderr\n assert run([\"draft\",\"control\",\"--outcome\",\"wrong credential refuses\"],\"parent-session\",child).returncode==2\nCHECK"
+        }
+      ],
+      "artifacts": {
+        "finding": "M-443",
+        "authority_effect": "M-444"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "ed2534e321e56c4ad6a262d21cf3d5a274dd3dc7",
+        "started": "2026-09-19T00:39:45.974779Z",
+        "ended": "2026-09-19T00:56:38.692450Z"
+      },
+      "note": "Native non-dispatched PT-19 audit by GPT Daybreak <noreply@openai.com>, harness codex, actual rollout model gpt-daybreak-blue-latest and native session 01a0b32d-e3c8-7ef0-85b0-d24bd04ed089 read from /home/scientdb/.codex/sessions/2026/09/18/rollout-2026-09-18T02-22-04-01a0b32d-e3c8-7ef0-85b0-d24bd04ed089.jsonl. Audited immutable ed2534e321e56c4ad6a262d21cf3d5a274dd3dc7 against merge-base/base a956619574f01a1a0ede6c0d2a1ff7cf6fc7fe7a in the existing detached scratch clone /tmp/agentscient-pr266-audit-01a0b32d. The range has 24 changed files, 491 insertions, 119 deletions, eight commits including two integration merges; no mode, dependency, fetched-action or lockfile change. Graft navigation was prepared at the exact head and its three call-graph queries were byte-verified; estimated savings 341171 tokens. Clean measured controls: CapabilityAuthentication ran 6 OK; real-core MCP selected tests ran 2 OK; hook selections ran 3, 2 and 1 OK; launcher acting-binding, bind-worker and recovery selections ran 2, 3 and 6 OK, total 26 targeted tests. Custom actual CLI/core/MCP control showed copied lead session with worker capability refused grant and draft class capability, missing capability refused rebind, configured MCP wrong/missing capability refused, correct MCP resolved PT-1, legacy-null bind refused, private installer refused outside a transaction and on duplicate digest, explicit transaction changed only capability_digest, public participant output redacted sessions, raw capabilities were absent from SQLite/config/output, and installer was absent from CORE and VERBS. Custom profile/dispatch control showed legacy profile initialization refused before offline enrollment; digest enrollment preserved the native endpoint; profile-only CLI resolved PT-2; ambient capability and aliases were replaced; second-session reuse refused; worker profile existed before bind-for, MCP resolved PT-3, resume and relocation preserved one capability, and both binding files remained mode 0600 with the raw value found only in their own binding. One P1 survived: unsanitized preserved native_settings duplicates a parent capability into the child binding and restores cross-participant replay; the actual isolated effect changed PT-2 from worker to worker,lead, while the child capability positive denial exited 2. Root separately reported that the live host configuration currently carries no such key, so no current live credential exposure is claimed. Logical no-effect comparisons exclude the pre-existing writer refresh of machines.declared_at while preserving all authority/effect rows and machine definitions. Unmeasured: PT18 full suite and corpus, real provider calls, live cutover, live candidate-store execution, release merge, settings activation and hostile same-UID OS containment. Native initiation is not dispatch: no dispatch receipt, argv, sandbox, process launch, timeout or spend reading is claimed."
+    },
+    "native_receipt": {
+      "message": "M-449",
+      "assignment": "A-434",
+      "provenance": "Exact reviewer-authored envelope exported via the existing coordination lever. Original negative finding preserved; correction is independently verified and disposed separately."
+    }
+  },
+  "status": "closed"
+}

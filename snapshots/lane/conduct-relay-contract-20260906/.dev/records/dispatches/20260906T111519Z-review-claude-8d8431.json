@@ -1,0 +1,327 @@
+{
+  "id": "20260906T111519Z-review-claude-8d8431",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-discovery-code-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-code-20260906",
+    "base_sha": "61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T11:15:19Z",
+    "closed": "2026-09-06T11:29:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4",
+    "ref_sha": "61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "8215c71b-a9ee-418c-8824-7534081df3c7",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/8215c71b-a9ee-418c-8824-7534081df3c7.jsonl"
+  },
+  "session": {
+    "id": "8215c71b-a9ee-418c-8824-7534081df3c7",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/8215c71b-a9ee-418c-8824-7534081df3c7.jsonl",
+    "stream_sha256_at_close": "d6f77d4695655ca0b0cb10c5156825741acb620b8bb07612e82221b3280c8e83",
+    "spend": {
+      "input": 102,
+      "cached": 7035577,
+      "output": 62794,
+      "total": 7098473,
+      "source": "result.usage",
+      "messages": 51,
+      "cost_usd": 6.743680499999997
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-code-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the first discovery/3 runtime against its accepted contract, current AGENTS.md and ops/README.md. Six owned files only; no tests were read or changed by the implementer. Assess contract conformance, trusted source custody, bounds/pagination, selection uncertainty, v1/v2 parity, and declared assumptions/gaps. Re-measure named MCP and onboard suites where allowed. Adjudicate the five onboard failures: contract-required fixture evolution versus regression; propose precise independent correction without editing code/tests. Do not inspect the parallel discovery-test correction branch. Preserve no-live-activation limit and distinguish scratch checks from independent acceptance. Inline report with exact refs, findings, reproducible commands and limits. No host/state/settings/network writes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/in/ag-conduct-discovery-code.json",
+        "sha256": "80e5177e08ed161e713c10d4d3bb258cdbdb380cb5c299958e768e46d272c262"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "f7ce40fb8f06300159152936eab4570e45bc8c87be2c792c5d9383fa68de88c7",
+    "bytes": 1593
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T11:15:19Z",
+      "ended": "2026-09-06T11:29:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 9,
+        "opinions": 1
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/onboard.py:32-33 against ops/conductor/tests/test_onboard_lever.py:43-55",
+          "claim": "The commit lands ops/conductor/tests red, so ops/bin/suites.sh (ops/README.md:61, the lane's single green answer; suites.sh:17 includes ops/conductor/tests) fails at this head. Adjudication: this is contract-required fixture evolution, not a runtime regression. discovery-lever.md:720-723 requires step 2 to add the discovery and startup-sequence paths to onboard's law table and implementation together; the commit does exactly that in onboard-lever.md:49-50 and onboard.py:32-33. test_onboard_lever.py:43-55 carries its own verbatim copy of the five-row contract table and plant_law (line 381-395) plants only those five, so the two new rows are printed ABSENT: HappyPath asserts len(ok_lines)==5 (line 891) and last line 'brief complete' (915); MissingLaw asserts 'brief complete, 1 absence(s)' (937); EmptyLawFile the same (955); DispatchStore.test_absent_dispatch_store_says_so asserts returncode 0 and 'brief complete' (983-984); ReadOnly asserts the same (1129-1130). No assertion in those five touches reading logic, dispatch-store handling or discovery. The stale artifact is the test's LAW copy, a counterparty whose verification is void under docs/verified-couplings.md obligation 4. Correct independent correction, not applied here: an independent test producer extends test_onboard_lever.py:43-55 to the seven rows now in onboard-lever.md:41-50 and lets plant_law plant them, leaving every assertion's arithmetic unchanged; no onboard.py or discovery change is warranted. Until that lands the branch cannot be marked ready under AGENTS.md #Ground rules.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_onboard*.py'   # and: bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/lane_refs.py:558-576",
+          "claim": "packed_refs refuses the entire packed-refs file on any ref name it cannot decode as ASCII or that fails valid_ref, in any namespace. discovery-lever.md:170-171 scopes this to the enumerated namespace: 'Unexpected enumerated names make that namespace malformed'. A single legitimate tag, remote-tracking ref or branch with a non-ASCII name, or a branch name using a character git permits but REF_RE (lane_read.py:1533) does not (for example '+' or '@'), makes every packed-refs read Unavailable('malformed'). Because ref_value (lane_refs.py:583-594) falls back to packed_refs whenever the loose ref file is absent, and anchor_head (596-610) calls ref_value for a non-null trusted ref, a repository whose HEAD branch has been packed by gc degrades the whole repo source to unavailable: acquire() then synthesizes head-reason outcomes for every fixed path (lane_refs.py:840-843), so all five law rows report unavailable, every Home is null and records_complete is false. The failure is safe (a declared unavailable, not wrong data) and is latent at this snapshot, but it makes the instrument unusable on an ordinary host repository for a reason the contract does not authorize.",
+          "reproduce": "git for-each-ref --format='%(refname)' | grep -cvE '^refs/(heads|tags|remotes|notes)/[A-Za-z0-9_-][A-Za-z0-9._/-]*$'   # measured 0 at 61f1ed4, so not firing here; plant a packed tag with a UTF-8 name, pack the HEAD branch ref, and re-run lane_start"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/registry/lane_mcp.py.json:1",
+          "claim": "The added conformance row does not exercise the refusal it is meant to prove. discovery-lever.md:719-721 asks step 2 to append 'the v3 hermetic config-refusal conformance row'. The row's argv is ['--config','/dev/null','query','lane_start','{\"profile\":\"dev\"}']; /dev/null is a character device, so _bounded_regular (lane_read.py:154-176) returns status 'unavailable' with raw None, load_config's v3 sniff at lane_read.py:227 is skipped entirely, and _load_legacy_config refuses at lane_read.py:242-248 with the pre-existing legacy line 'config: expected a regular UTF-8 config no larger than 65536 bytes; found unavailable; needed restore the config or pass --config FILE'. That is the identical template already proven by the existing '--config /dev/null check' row, on the identical code path. The declared v3 template at lane_read.py:1615-1617 ('config: expected valid versioned configuration; found invalid; needed supply the declared keys and bindings') and discovery_arguments' 'arguments'/'profile'/'cursor' templates therefore have no registry row at all, so docs/wire.md #Conformance is not discharged for any v3 refusal class. The row does establish that a discovery query refuses at config before acquisition, which is worth keeping, but it is not the v3 row.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config /dev/null query lane_start '{\"profile\":\"dev\"}'; python3 -B ops/conductor/tools/lane_mcp.py --config /dev/null check   # compare the two stderr lines; then python3 -B -m unittest ops.conductor.tests.test_instrument_conventions"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_refs.py:730-731 and 820-826",
+          "claim": "The 256-occurrence bound is enforced two incompatible ways. list_tree raises record-overflow at a 257th match inside one tree (730-731); operation() converts it to an unavailable outcome, and scan treats it as an ordinary tree failure (815-817), so acquisition continues in state ok with records_complete false. scan's own counter (820-826) raises record-overflow out of acquire, making the whole acquisition unavailable. Identical planted evidence therefore yields either an ok-but-incomplete packet or a query-wide unavailable depending only on whether the 257 occurrences sit in one tree or span HEAD and retained. discovery-lever.md:206-215 classes record occurrence overflow as aggregate overflow that 'invalidates acquisition'. The inline comment at 824-825 says the code discards 'this entire source's records' while it actually aborts the whole acquisition. D-A27's required observation admits 'declared overflow, incomplete or unavailable', so the acceptance row can pass either way, which is exactly why the divergence would go unmeasured.",
+          "reproduce": "plant 257 matching records under ops/conductor/handoff at HEAD, run lane_start; then split them across HEAD and one retained ref with retained in source_ids and run lane_start again; compare envelope state and reason"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_refs.py:273-276",
+          "claim": "A repository carrying two or more refs under refs/replace is reported as budget-exceeded rather than unsafe-path. preflight calls Files.names(self.common,'refs/replace',1); names (176-185) raises Unavailable('budget-exceeded') as soon as len(result) > limit, so the second entry trips the budget branch before the intended 'if ... raise Unavailable(\"unsafe-path\")' at 274 is reached. Exactly one replace ref gives the correct unsafe-path. budget-exceeded is also one of the two fatal reasons in observe (lane_refs.py:809-811), so the acquisition aborts with a bound-exhaustion reason for what discovery-lever.md:194-198 declares a replace/graft redirection refusal. The reason token is the whole diagnostic on this wire.",
+          "reproduce": "plant two refs under .git/refs/replace/ in a fixture repository and run lane_start; the repo source reason is budget-exceeded, not unsafe-path"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_refs.py:766-771",
+          "claim": "The contract and adapter definitions default to reads of the mutable working tree rather than launch-supplied bytes. Acquisition.__init__ computes contract_bytes from (tools_home.parent/'discovery-lever.md').read_bytes() and implementation_bytes from three tools/*.py read_bytes(), all through ordinary pathnames that follow symlinks, are unbounded in size, and sit outside the anchored descriptor discipline discovery-lever.md:140-142 requires of every component. discovery-lever.md:427-429 states this data is 'supplied by trusted boot, not record text or a repository read', and D-A47 (line 802) requires contract to remain ok when the repo read fails. Here an unreadable or absent discovery-lever.md raises OSError out of __init__, which lane_mcp.py:57-58 converts into reading state unavailable/unreadable for every query, so a repo read failure does make contract unavailable. The same path also leaks the Anchors descriptors opened at lane_refs.py:765 on each failed construction, because the object never reaches _ACQUISITIONS and close() is never called; under serve that repeats per request. The injectable contract_bytes/implementation_bytes parameters give tests the contract-correct behaviour, but the shipped default does not.",
+          "reproduce": "chmod a-r ops/conductor/discovery-lever.md in a scratch copy and run lane_start repeatedly under lane_mcp.py serve; observe unavailable/unreadable and rising descriptor count"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:1814 and 1821",
+          "claim": "The Home.evidence ['contract'] arm is unreachable, so D-A48's negative half cannot be demonstrated. FIXED_PATHS (lane_refs.py:41-45) contains every non-directory home/contract/registry/entrypoint path of CONCEPT_INDEX plus the five law paths and composer.lock, and acquire (lane_refs.py:839-850) writes acquired['files'][path] for every one of them in all three branches, including when anchor_head failed. Every CONCEPT_INDEX row's 'contract' is a file, never a trailing-slash directory, so `row['contract'] in files` is always true and consulted is always true. Every Home therefore reports evidence ['contract','repo'] unconditionally. discovery-lever.md:465-468 and D-A48 (line 803) require 'evidence exactly [\"contract\",\"repo\"] when consulted, otherwise [\"contract\"]' and plant a no-repo-consultation case; that case cannot be produced against this runtime through any public entry point.",
+          "reproduce": "inspect any lane_homes envelope: every Home carries evidence ['contract','repo']; no configuration or fixture yields ['contract']"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_mcp.py:150-156",
+          "claim": "The advertised MCP inputSchema is looser than the contract for every discovery tool. The cursor pattern '^[0-9a-f]{64}:(0|[1-9][0-9]{0,2})$' is emitted identically for all four tools, so tools/list advertises offsets 0..999 for lane_start where discovery-lever.md:542-544 bounds it to 0..20, and advertises offset 0 for lane_homes/lane_handoffs where the same lines bound them to 1..255. The schema also never expresses that snapshot is required whenever cursor is present (discovery-lever.md:606), nor that concept/key/name and cursor are mutually exclusive (line 534). discovery_arguments (lane_read.py:1728-1755) refuses all of these correctly at runtime, so no wrong data is returned; the defect is that the published contract surface a client reads does not match the one the server enforces.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config FILE serve <<< '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'   # compare the four cursor patterns against discovery-lever.md:542-544"
+        },
+        {
+          "severity": "p3",
+          "where": "git commit 61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4, message trailer block",
+          "claim": "The trailer block carries an undeclared trailer whose value is a sentence cut mid-clause. git parses three trailers: 'Source: original', 'Validation: the named lane MCP suite passes all 50 tests. Scratch discovery', 'Co-Authored-By: gpt-6-astra <noreply@openai.com>'. CONTRIB.md:22 declares only Source:, Co-Authored-By: and Reviewed-by:. The dispatch record's own commit.body (in/ag-conduct-discovery-code.json, result.envelope.commit) carries that validation prose complete and inside the body, not as a trailer, so the truncation was introduced when the launcher composed the message. AGENTS.md #Ground rules requires every factual claim to be produced by a command and stamped; a truncated trailer states a suite result with no stamp and no visible end. The 'Source:' and 'Co-Authored-By:' obligations themselves are met.",
+          "reproduce": "git show -s --format='%(trailers)' 61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_mcp.py:52-55",
+          "claim": "The acquisition coordinator caches by id(config) in an unbounded module global. _ACQUISITIONS is keyed on the address of the config dict, which is only stable because load_config happens to be called once per process; any caller that loads a second config, or lets one be collected, can collide on a reused address and reuse another descriptor's pinned Anchors, defeating the anchor-identity binding discovery-lever.md:406-408 makes part of every fingerprint. Nothing in the closed CLI or serve path triggers this today, and each acquire() does re-read the full closure as discovery-lever.md:445-446 requires, so this is a latent custody hazard rather than a live defect. The cache also never calls Acquisition.close(), which is deliberate for the pinned descriptors but leaves no shutdown path.",
+          "reproduce": "static: lane_mcp.py:52 `key = id(config)`; no eviction, no identity check on reuse"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:227-237",
+          "claim": "The v3 dispatch decision is made by a regex over raw config bytes before any parse, so an invalid v1/v2 config can be retargeted to the v3 refusal line. load_config sets v3 when the bytes match '\"version\"\\s*:\\s*3\\b|\"profiles\"\\s*:|\"discovery\"\\s*:'; a version-1 or version-2 config carrying an extra \"profiles\" or \"discovery\" key is then routed to validate_discovery_config, whose ValueError is caught at 234-236 and answered with discovery_config_refusal's v3 line instead of the legacy 'exact keys ...' line. discovery-lever.md:638 states v1/v2 keep their existing lines. Only invalid configs can reach this (both shipped examples measure 0 matches for either substring), and the refusal class stays 'config', so no valid configuration changes behaviour; the wire text does.",
+          "reproduce": "grep -c 'profiles\\|discovery' ops/conductor/lane-mcp.example.json ops/conductor/lane-mcp-v2.example.json   # 0 and 0; then add a \"profiles\" key to a copy of the v2 example and compare the refusal line before and after this commit"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py:2020-2023",
+          "claim": "A named handoff lookup re-hashes every acquired record to find the one it already identified. discovery_query scans reading['records'] and computes sha256 of each occurrence's bytes until one matches card['revision'], although _discovery_candidates (lane_read.py:1839-1845) already grouped every occurrence by that same digest and could have carried the bytes forward. With the contract's own bounds this is up to 256 occurrences of up to 1 MiB, roughly 256 MiB hashed per named request, performed in the projection after Budget has been retired at lane_refs.py:906, so it is outside the 10-second and 16 MiB acquisition ceilings discovery-lever.md:208-210 declares. Correctness is unaffected.",
+          "reproduce": "static: lane_read.py:2020-2023 iterates reading['records'] and calls hashlib.sha256 per occurrence inside the named-lookup branch"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/context/diff.patch",
+        "contract": "ops/conductor/discovery-lever.md",
+        "examples": "ops/conductor/discovery-examples.md",
+        "implementer_record": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/in/ag-conduct-discovery-code.json",
+        "adoption_review": "/home/scientdb/.local/state/agentscient/dispatch/20260906T111519Z-review-claude-8d8431/in/ag-conduct-adoption-review.json"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 7098473,
+        "out": 62794,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4",
+        "started": null,
+        "ended": "2026-09-06T11:27:28Z"
+      },
+      "note": "Scope: 61f1ed4 against 710dbac. 61f1ed4 itself touches exactly the six owned files (git show --stat); the diff.patch also carries 5f93908 and 1bf795a, which are the owner-scope record and a dispatch record, out of this review's aim. Reviewer: Opus 5 (claude-opus-5), read-only. Both in/ files read whole. No host, state, settings or network writes; nothing edited.\n\nMEASUREMENT LIMIT, declared not inferred. I could not execute either named suite: this lane refuses interpreter execution (python3 -c 'print(1)' and both unittest invocations were denied by the harness, `which python3` succeeded). Every \"50/50 passed\" and \"146 scratch checks\" claim in the implementer's record is therefore UNREACHABLE to me, neither confirmed nor refuted. All findings above are source and git-object readings. I did not inspect the parallel discovery-test branch; I read ops/conductor/tests/test_onboard_lever.py at this snapshot's own head, which is the unchanged counterparty the diff breaks, to adjudicate the five failures as the brief requires.\n\nWHAT HOLDS. The parts of the contract I could check by reading conform, and several of them are exact. The pre-transport wrapper (lane_read.py:2028-2030) reproduces discovery-lever.md:343's byte formula literally, including one '>' per LF-delimited segment equal to the marker, the mandatory LF before the end marker, and the empty-B single blank line. lane_start paging matches D-A38c precisely: all-or-nothing on the initial eight (discovery-lever.md:570 \"drop work only (all of it)\"), greedy up to eight on continuation with the final omission bytes inside each fit calculation, item-exceeds-cap when not one card fits, page-frame-exceeds-cap on an oversized mandatory frame, and the literal 'work omitted: N' / 'work next cursor: S:OFFSET' with OFFSET 0 on an initial drop. Omission order matches discovery-lever.md:588-597, and the five-row law and empty-work shape match fixture A in discovery-examples.md:68-229 byte-for-byte in structure. Validation order (arguments, profile, snapshot grammar, cursor grammar and matching snapshot, acquisition, snapshot equality, offset bounds, render) matches discovery-lever.md:629-631, and both cursor templates match line 641-642. Bounds are present and correct: 64 refs, 4096 tree entries, 1 MiB per blob, 16 MiB, 512 operations, 10 s with 2 s per operation. Selection semantics match: unbound handoff is a bindings failure, unbound AAR is not; missing-bound-record uses the binding revision with zero occurrences and null provenance; AARs never enter handoff counts; freshness is evidence-relative with no date, path or ref tie-break; provenance sorts ref-null first. Trusted source custody is intact: record ids, kinds and relevance come only from config record_bindings, filenames supply a provisional kind only, unknown-relevance cards leak neither body nor provenance, and every candidate carries trust \"untrusted-record\".\n\nV1/V2 PARITY. The version==2 to version>=2 widenings in lane_mcp (_schemas, _resources, _resource_query, resources/templates/list) and lane_read (lane_findings, lane_changes, lane_jobs) are semantically identical under v1 and v2 and are what discovery-lever.md:61-62 requires under v3. Tool counts read 4/7/11 correctly. load_config passes the same _bounded_regular result to the untouched legacy path, so v1/v2 bytes are preserved except for the invalid-config sniff in finding 11. v3 raising the job_ids cap from 20 to 21 is required by D-A38c and is declared in the implementer's note.\n\nTRUSTED SOURCE CUSTODY, held: no subprocess anywhere in lane_refs (direct loose and pack v2/v3 objects with mandatory SHA-1 verification of every object including delta results); no writes, no network, no writer-module imports; lane_read never imports lane_refs; the adapter is imported lazily only after schema validation, so check and all legacy reads open no anchor; anchors are walked component-by-component from '/' with O_NOFOLLOW|O_DIRECTORY and re-verified by device/inode at the end; alternates, http-alternates, grafts, refs/replace, include/includeIf, promisor, partialclone, objectFormat and refStorage are all rejected as data, never executed; .git is read as data and never followed as a redirection; commondir is compared to the declared anchor rather than followed. Query arguments reach no path, command or repository selector.\n\nDECLARED ASSUMPTIONS AND GAPS, assessed. Three of the implementer's four declared assumptions are sound and correctly scoped: detached discovery using the trusted commit despite a symbolic checkout HEAD (lane_refs.py:601-606 validates HEAD's form only, which discovery-lever.md:116 and 172 permit); 100644/100755 blobs as entrypoint presence (line 176-177); 21 configured jobs under v3 only. The fourth, the five-row law projection kept while onboard's table grows to seven, is genuine but under-declared: discovery-lever.md:227-228 says discovery \"reuses onboard's five law entries\", which stops being literally true the moment the same commit makes onboard's table seven rows. Freezing DISCOVERY_LAW at five is right, because discovery-lever.md:568 and fixture A both fix five rows, but the note in onboard-lever.md:152-154 asserts the divergence without a check that keeps the two tables from drifting further. The record's admission that D-A16's stale-only case was not exercised is accurate; on reading, that path looks correct (complete stays true, current is empty, selection none, stale cards remain visible), but I did not execute it. The record's D-A17c premise is corroborated: 38edb5de5410e9881332ae6cfdd8788991d96f02 exists and its tree carries exactly four HANDOFF-*.md and four AAR-*.md files.\n\nSCRATCH VERSUS ACCEPTANCE, preserved. The four scratch scripts named in the record are the implementer's own; under AGENTS.md #Ground rules (\"no producer owns two consecutive artifacts\") they are not acceptance and I have not treated them as such. The implementer correctly declined to write or edit tests, and the diff confirms no test file changed. Independent acceptance of D-A1 through D-A49 remains entirely outstanding: none of those rows is executed by either named suite, and the only mechanical evidence added by this commit is the one registry row, which finding 3 shows does not exercise a v3 refusal. The implementer also did not run ops/bin/suites.sh, so the new registry row's own wire conformance (test_instrument_conventions.py:274-303) is unmeasured on both sides.\n\nNO LIVE ACTIVATION, preserved. Nothing here starts a conductor, activates host settings, enforces harness permissions or publishes lifecycle records. installed/activated/probed are hardcoded null throughout; register, ledger and prs are fixed unavailable/unsupported-local-reading with empty evidence; the dispatch counts never probe PIDs; the startup omissions always assert no host activation, no live readiness, no role enforcement and no lifecycle publication. The commit message makes no startup or activation claim. MCP stays read-only: readOnlyHint true and destructiveHint false on every tool including the four new ones, and no writable tool was added.\n\nOPINION (1), not a defect. The concept index, action index, law table and default profile declarations are now transcribed from discovery-lever.md into lane_read.py as Python literals, and onboard's law table is transcribed a third time into onboard.py and a fourth into test_onboard_lever.py. Four copies of two tables, with the discovery and onboard copies now deliberately different lengths, is precisely the dark coupling docs/verified-couplings.md obligation 1 names: a real dependency with no gate. The contract's own answer exists (contract source revision is the SHA-256 of the launch-supplied discovery-lever.md bytes), but nothing checks that the transcription matches the document it is hashed from. A generator or a table-equality check at one of these seams would price the coupling; that belongs to the independent test producer, not to this diff.\n\nVERDICT: changes. The p1 is a landing block whose repair belongs to the test producer, not to this implementation; the two p2s are corrections inside the six owned files. Net: the runtime is a serious, largely faithful reading of a demanding contract, and its declared limits are honest."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

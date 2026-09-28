@@ -1,0 +1,160 @@
+{
+  "id": "20260906T124039Z-tests-grok-9c4cf3",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-adapter-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-adapter-tests-20260906",
+    "base_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T12:40:40Z",
+    "closed": "2026-09-06T12:57:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "ref_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dc5d6488-7f5f-4c59-81ff-b4e42b53d802",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok-stream/sessions/<snapshot-encoded>/dc5d6488-7f5f-4c59-81ff-b4e42b53d802/summary.json"
+  },
+  "session": {
+    "id": "dc5d6488-7f5f-4c59-81ff-b4e42b53d802",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok-stream/sessions/<snapshot-encoded>/dc5d6488-7f5f-4c59-81ff-b4e42b53d802/summary.json",
+    "stream_sha256_at_close": "1452207468ef9f31ae3cd7fc34023c9e7d5c1830ea57daa26945d666d8187303",
+    "spend": {
+      "input": 4551306,
+      "cached": 4177792,
+      "output": 56257,
+      "total": 4607563,
+      "cost_usd_ticks": 5394892200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/home/grok-stream/sessions/<snapshot-encoded>/dc5d6488-7f5f-4c59-81ff-b4e42b53d802/summary.json",
+      "messages": 316
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-adapter-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent tests for compile_launch and output-capability admission in harness-capabilities.md, permission-surface.md, C2 and adoption review unit 4. Own only ops/devlane/harness/tests/test_adapter_argv.py, test_output_capability.py and adapter_test_support.py. Read contracts, not implementation. Cover configurable adapters, distinct selection axes, exact safe token preservation, aliases/repetitions/indirect overrides, secret-free refusals, empty grammar, launch/resume binding, G=D and A=D leaf grants, transport/scratch separation, unsupported/unmeasured capabilities. Use verified synthetic mechanisms and faulty controls; no real harness, auth or live admission. Tests against absent implementation must fail assertions, not imports. Use declared types/seams; identify any undeclared coupling instead of inventing it. Record red counts, control discrimination, hashes and preservation checks. No source/config edits. Grok-only trailers; inline envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T124039Z-tests-grok-9c4cf3/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "062d616ea0a184fce92436aa922119ebfbaf31a4b07c636ba4a1c96b8ebc6a80",
+    "bytes": 3313
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:40:40Z",
+      "ended": "2026-09-06T12:57:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a3eacd94fd61eed66a1395aea95207ecf6d5b023",
+    "changed_paths": [
+      "ops/devlane/harness/tests/adapter_test_support.py",
+      "ops/devlane/harness/tests/test_adapter_argv.py",
+      "ops/devlane/harness/tests/test_output_capability.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "adapter_test_support": "ops/devlane/harness/tests/adapter_test_support.py",
+        "test_adapter_argv": "ops/devlane/harness/tests/test_adapter_argv.py",
+        "test_output_capability": "ops/devlane/harness/tests/test_output_capability.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4607563,
+        "out": 56257,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+        "started": "2026-09-06T12:42:34Z",
+        "ended": "2026-09-06T12:56:23Z"
+      },
+      "note": "Independent compile_launch tests on lane/conduct-adapter-tests-20260906: 522f0b147b45e2144d409054e5e3bcbe4ab0d5bc (adapter_test_support.py, test_adapter_argv.py) and a3eacd94fd61eed66a1395aea95207ecf6d5b023 (test_output_capability.py). Owned paths only. adapters.py absent; implementation not read. Base 3ee48f0d8e9dc7f76a5ab9d6f600136338973118.\n\nRed, assertion-only, 0 errors, 0 collection errors: python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_adapter_argv.py' at 522f0b1 \u2192 Ran 31 tests, 55 assertion failures (subtests included). python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_output_capability.py' at 522f0b1 \u2192 Ran 23 tests, 23 assertion failures. Combined TestSuite testsRun 54, failures 78, errors 0.\n\nHashes: grammar sha256 c890b02324a81b0a78d0f8664e016b92097bf14fb13f9444120f10de1a2b2698; empty grammar d52b0691419a699f4d1ab444723926271740acae121864febfa470e3816a17b7. File sha256 adapter_test_support.py 7adb1c9b14777f32ea42a8a61d123edf54691693cdad538deea4907ab9bda825; test_adapter_argv.py 977c7d84e7fb3b1cbab3a739fa8aaea725176fe47c4d8b78ee1b03e42c2ba625; test_output_capability.py 2816833c261c43fd83d2e63375534285d1cc94817d74b3824d186410ba348bd5.\n\nPreservation: three documentary positives including empty vector; equals form kept as one token; split form kept as two; contiguous forwarded segment; argv_sha256 is canonical JSON of the final vector; invariant hashes selection, grants, adapter, forwarded_tokens, mcp.\n\nControl discrimination: Claude/Codex/Grok fixture executables have distinct paths and sha256; each selection-axis change must change invariant_sha256; planted FAIL and chmod-then-restore verification bytes differ from the passing receipt sha256 and must refuse while the neighbour would bind; parent-directory, chmod-only, sandbox-label and clean-diff proofs refuse A=D.\n\nUndeclared coupling named, not invented: transport lists contents without a closed key schema; in-process refusal has no exception type. Tests map listed contents onto fixture keys and accept a raised or returned expected-found-needed line. Grok-only trailers."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T12:57:05.646Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,206 @@
+{
+  "id": "20260906T125719Z-code-codex-8a7821",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-canonical-contracts-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-contracts-20260906",
+    "base_sha": "3f84832108274403a4f2c58bc12410ae896da2c0"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T12:57:19Z",
+    "closed": "2026-09-06T13:09:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3f84832108274403a4f2c58bc12410ae896da2c0",
+    "ref_sha": "3f84832108274403a4f2c58bc12410ae896da2c0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-57-20-01a076cb-756d-7593-b4d0-d85688e41d60.jsonl"
+  },
+  "session": {
+    "id": "01a076cb-756d-7593-b4d0-d85688e41d60",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-57-20-01a076cb-756d-7593-b4d0-d85688e41d60.jsonl",
+    "stream_sha256_at_close": "1052a8668e65f18a3df0c008877158ee4de20dec351679c1f16351a78a78e5c7",
+    "spend": {
+      "input": 2613329,
+      "cached": 2458880,
+      "output": 18953,
+      "total": 2632282,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-57-20-01a076cb-756d-7593-b4d0-d85688e41d60.jsonl",
+      "messages": 214
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-contracts-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Resolve the four construction gaps reported by the independent C1/C2 test author. Own only ops/devlane/task/CONTRACT.md and dispatch/CONTRACT.md. Read the supplied tests and governing contracts; preserve direct verification/stub replay and one canonical execution service. Declare only necessary frontend/strict-catalogue/reservation seams with exact inputs/results and profile transport, consistent with existing CLI and trusted selection. Reject gratuitous new APIs chosen only for a test mock. Identify exactly which old vendor-engine assertions the C1 target supersedes and how their useful duties move; do not leave contradictory tests for an implementer to edit. Produce a bounded per-test correction instruction and any necessary contract changes together. No tests/runtime/catalogue/settings/state/admission edits. Check links, examples, preservation and git diff --check. Clean Source/GPT-6 trailers; inline note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/in/ag-conduct-canonical-tests.json",
+        "sha256": "6c97d6c530d60926e1a770a4b684842b36f9e16507ccba178e73a9ce0717e3c6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/in/ag-conduct-task-adoption-ruling.md",
+        "sha256": "d364c88c1bbd5f53ec12aaa26df368b905f008bd69efb47561617751f4967937"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/in/test_run.py",
+        "sha256": "3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/in/test_execution_frontend.py",
+        "sha256": "07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125719Z-code-codex-8a7821/in/test_execution_adoption.py",
+        "sha256": "951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae"
+      }
+    ],
+    "sha256": "3086d16699114b91e7c71fe19c4b7aeb003fa67535b19ecfdb757543889b3c40",
+    "bytes": 4788
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:57:19Z",
+      "ended": "2026-09-06T13:09:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eeb16185b77f86dba2b01416d2845eaffc8dd801",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/task/CONTRACT.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md; ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Only the two owned contracts changed. Links, existing examples, schemas and all 83 supplied test dispositions pass verification.",
+          "reproduce": "python3 -B ../out/check_contracts.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/supplied-run.log; ../out/supplied-frontend.log; ../out/supplied-adoption.log",
+          "claim": "Unmodified supplied suites remain red: 5/55 runner, 8/9 frontend and 10/19 adoption failures; zero errors. Existing runner and frozen C2 suites pass 45 and 99 tests respectively.",
+          "reproduce": "rg -n '^FAIL:|^ERROR:|^Ran |^FAILED' ../out/supplied-*.log"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/command-findings.json",
+          "claim": "All 29 shell invocations are recorded as findings with reproduce entries and results.",
+          "reproduce": "cat ../out/command-findings.json"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git; ../out/COMMIT_MSG",
+          "claim": "Git staging failed because .git is read-only. The launcher commit message is saved with Source: original and GPT-6 attribution.",
+          "reproduce": "git add -- ops/devlane/task/CONTRACT.md ops/devlane/dispatch/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "task_contract": "ops/devlane/task/CONTRACT.md",
+        "dispatch_contract": "ops/devlane/dispatch/CONTRACT.md",
+        "command_findings": "../out/command-findings.json",
+        "documentation_check": "../out/check_contracts.py",
+        "runner_results": "../out/supplied-run.log",
+        "frontend_results": "../out/supplied-frontend.log",
+        "adoption_results": "../out/supplied-adoption.log",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2632282,
+        "out": 18953,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3f84832108274403a4f2c58bc12410ae896da2c0"
+      },
+      "note": "Completed the bounded contract correction. Assumption: use C1's explicit task vendor-refusal branch and existing canonical launch/resume interfaces; profile travels through trusted Unit1a transport. Declared strict catalogue and reservation seams, rejected mock-selected APIs, and specified per-test replacement/preservation duties. No tests, runtime, catalogue, settings, state or admission were edited. Documentation checks pass, but no executable acceptance command followed the prompt's command clause. Status remains invalid because supplied tests still fail, including C1LoadJobsDecodesTheCatalogueStrictly.test_duplicate_members_are_refused_before_dict_collapse, FrontendResumeDelegates.test_resume_is_a_public_seam_that_transfers_the_same_id, and OutputsErrorIsTheC2RefusalFamily.test_a_handle_mismatch_is_an_outputs_error. Independent test correction and runtime implementation remain separate work. Follow-up: the existing runner suite emits an unclosed-file ResourceWarning; left untouched.",
+      "commit": {
+        "subject": "docs: resolve C1/C2 construction and test boundaries",
+        "body": "Declare canonical frontend/profile transport, strict catalogue reading and complete reservation passthrough. Specify bounded corrections for all supplied tests while preserving direct verification and stub replay.\n\nValidation: links/examples preserved; 83 supplied methods accounted for; 45 existing runner and 99 frozen C2 tests pass; git diff --check passes. Supplied tests remain red with 5/8/10 failures and zero errors. Contract-only change; no runtime completion claimed.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T13:09:21.598Z"
+    }
+  },
+  "status": "closed"
+}

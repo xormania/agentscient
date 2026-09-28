@@ -1,0 +1,202 @@
+{
+  "id": "20260906T010516Z-review-codex-dadb85",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:05:17Z",
+    "closed": "2026-09-06T01:09:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+    "ref_sha": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-05-17-01a0743f-8f42-7d62-80a1-189359b8ccd4.jsonl"
+  },
+  "session": {
+    "id": "01a0743f-8f42-7d62-80a1-189359b8ccd4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-05-17-01a0743f-8f42-7d62-80a1-189359b8ccd4.jsonl",
+    "stream_sha256_at_close": "9956248e1cc2924f55b98e646033c58166d1dd5f0aaeb7fd7993985045bf72ef",
+    "spend": {
+      "input": 714277,
+      "cached": 613448,
+      "output": 15022,
+      "total": 729299,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-05-17-01a0743f-8f42-7d62-80a1-189359b8ccd4.jsonl",
+      "messages": 134
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security-only review of Grok's completed discovery contract and plan. Owner reserves Daybreak for security; GPT-6 separately reviews functionality/architecture. Inspect authored docs and necessary owning contracts, not a whole-lane audit. Assess source trust versus authority, hostile record text, path/ref/source allowlists, fixed Git adapter and preserved no-subprocess read core, injection/option/env hazards, symlinks/special files, bounded reads/resource use, races/revision binding, cross-profile source isolation, credential access and proof of no filesystem/DB/ref/network mutation. Find exploitable ambiguity in the declared boundary, not absent future implementation. Scope is docs only: no executable tests, edits, runtime/settings/host changes or broad redesign. Return <=800-word security ruling with concrete expected/found/needed, source locations and contract-level counterexamples; report relevant limits. This is not a functional acceptance authoring job.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/discovery-contract-owner.md",
+        "sha256": "f5efc28034d5813173d37e9078a204c1e1cc0bf9d43c6c3b40f15eb3cc5d51d9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/20260906T004903Z-code-grok-30509c.json",
+        "sha256": "6579f0a16e7e7db78babaad8e86aafc68ad97422420886a7580747cdaa3423d4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/conductor-start-plan.md",
+        "sha256": "62f3579679bd14d9e972f0ec1f3b054f611011b2a1a292315199d3da9da4a58e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/discovery-lever.md",
+        "sha256": "76ee7ac8158dff14c354195acf17af987837cb0cc2ce4d57c85a2df94a3c502e"
+      }
+    ],
+    "sha256": "11061db45f02fa412557520f2f93241c088d90a22ea071342f76a4984cda51ff",
+    "bytes": 4306
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:05:17Z",
+      "ended": "2026-09-06T01:09:54Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/discovery-lever.md:49-82,98-122,287-315; ops/conductor/tools/lane_read.py:151-199",
+          "claim": "Expected all reads bound beneath one verified snapshot/worktree root. Found no root/repository identity or adapter repository input; \u201ccurrent work tree\u201d is undefined, while inherited O_NOFOLLOW protects only the final component. CWD/GIT_DIR or symlinked ancestors can redirect reads outside the job. Needed: trusted immutable root/gitdir, sanitized Git environment, fd-relative beneath-root opens rejecting symlink ancestors/special files, and tracked-file verification.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '49,82p;98,122p;287,315p'; nl -ba ops/conductor/tools/lane_read.py | sed -n '151,199p'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/discovery-lever.md:239-255; ops/conductor/onboard-lever.md:42-79",
+          "claim": "Expected each startup field to have an allowlisted local source. Found state-source composition deferred to step 2 while inheriting onboard sources that execute sibling tools and Git, call gh over the network, and inspect default home-state databases. These sources are absent from v3 configuration and the closed three-operation adapter. Needed: declare a bounded source/adapter for every field and require unavailable\u2014not environment, home, network, or subprocess fallback\u2014when absent.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '239,255p'; nl -ba ops/conductor/onboard-lever.md | sed -n '42,79p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:176-211",
+          "claim": "Expected snapshots to bind mutable ref identity and selection metadata. Found the snapshot hashes only source id and blob revision, excluding git_sha and committer_unix. Moving a ref to a different commit containing identical bytes preserves the snapshot while changing provenance or freshness, so an old cursor can accept a different selection. Needed: include git_sha and selection-relevant metadata, or an immutable adapter snapshot token.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '176,211p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:202-211,287-315,374-383",
+          "claim": "Expected profile-scoped handoff authority. Found profile is accepted but never filters candidates, and candidate cards contain no profile or lineage; all dev/prod files and refs share one selection, ranked partly by session-controlled commit time. A dev record can therefore become the prod handoff. Needed: authenticated profile/lineage metadata, exclusion of cross-profile candidates, and freshness not based on commit timestamps alone.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '202,211p;287,315p;374,383p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:41-42,374-383,582; ops/conductor/onboard-lever.md:82-90",
+          "claim": "Expected hostile record text to remain visibly untrusted. Found bodies and other source text are returned verbatim, and D-A20 treats JSON escaping as proof of no instruction promotion; escaping protects JSON syntax, not an agent from prompt directives. Existing onboard requires untrusted-data markers and corroboration. Needed: explicit trust/provenance labels, consumer-facing delimiters and a rule forbidding actions based solely on record text.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '41,42p;374,383p;580,584p'; nl -ba ops/conductor/onboard-lever.md | sed -n '82,90p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/discovery-lever.md:63-82,591",
+          "claim": "Expected deterministic bounded behavior when the namespace exceeds 64 refs. Found only \u201cat most 64\u201d with no overflow state, ordering, or acceptance row beyond the empty case. Implementations may silently omit a newer candidate or enumerate unbounded input. Needed: inspect at most 65 in stable order, return unavailable above 64, prohibit partial selection, and test overflow.",
+          "reproduce": "rg -n 'At most 64 refs|more than 64|64.*unavailable|D-A29' ops/conductor/discovery-lever.md"
+        }
+      ],
+      "artifacts": {
+        "range": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc..d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/context/diff.patch",
+        "primary_contract": "ops/conductor/discovery-lever.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 729299,
+        "out": 15022,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+        "started": null,
+        "ended": null
+      },
+      "note": "Security-only documentation review. Changed records were scanned for credential values; only credential filenames/paths were observed. No dependency, lockfile, fetched-action, SQL, or template changes were present. Closed argument grammars and explicit no-shell rule were otherwise adequate; permission/activation limits were stated honestly. No implementation exists, so runtime mutation, race, sandbox, Git-environment, filesystem, database, or network behavior could not be executed. Unrelated lane code and live stores were not audited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:09:54.294Z"
+    }
+  },
+  "status": "closed"
+}

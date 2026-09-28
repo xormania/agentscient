@@ -1,0 +1,10 @@
+{
+  "contract": "cli",
+  "fault": "cli.3.json",
+  "from": "obs/cli.json",
+  "change": "`wf verify` has no `--deep` flag",
+  "violates": "PLAN.md §4 line 258 (with §3.6 line 214, §7 line 399)",
+  "quote": "\"| `wf verify [--deep]` | recompute every hash and link; `--deep` adds receipt re-verification and commit cross-binds (§7 CI) |\"",
+  "reject_path": "facts\\.commands\\.[0-9]+\\.arguments\\b|--deep|deep",
+  "implied": false
+}

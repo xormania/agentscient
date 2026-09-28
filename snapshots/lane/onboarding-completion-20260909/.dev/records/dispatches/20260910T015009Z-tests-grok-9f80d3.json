@@ -1,0 +1,143 @@
+{
+  "id": "20260910T015009Z-tests-grok-9f80d3",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-start",
+  "lineage": {
+    "branch": "lane/onboarding-completion-20260909",
+    "base_sha": "0a212e91044ce98236d4c910ea23292547dc81dc"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:50:10Z",
+    "closed": "2026-09-10T01:53:20Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0a212e91044ce98236d4c910ea23292547dc81dc",
+    "ref_sha": "0a212e91044ce98236d4c910ea23292547dc81dc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "6ede3941-ae64-40fd-8550-02aa2c21bf74",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok-stream/sessions/<snapshot-encoded>/6ede3941-ae64-40fd-8550-02aa2c21bf74/summary.json"
+  },
+  "session": {
+    "id": "6ede3941-ae64-40fd-8550-02aa2c21bf74",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok-stream/sessions/<snapshot-encoded>/6ede3941-ae64-40fd-8550-02aa2c21bf74/summary.json",
+    "stream_sha256_at_close": "b8c237c0883e1b2ae6b1fddf20cab5525313fbef6ac9b1f26b28232c9332a699",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/home/grok-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "ops/conductor/session-start.md is the complete current contract. Author independent stdlib tests in ops/conductor/tests/test_session_start.py; do not inspect or author implementation. Test the declared public CLI and host hook boundary with synthetic hosts, and existing monitor/MCP. Prioritize real two-session isolation, lifecycle/expiry and coverage failure, scoped shutdown, track updates visible via MCP, hook data delivery, missing identity/session and worker exclusion, catalogue coverage. No model calls. Use assertions for missing behavior rather than import/collection errors. Keep tests focused on the contract; do not turn optional ideas into requirements. If an unspecified detail matters, document it rather than invent a new requirement. Save and commit a useful bounded suite promptly; do not spend the whole run planning.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/in/session-start.md",
+        "sha256": "45956e41d19e85a2419a0f757c776b6efdfa6a14d35715fa2075b38c270d87b5"
+      }
+    ],
+    "sha256": "6fb69dea9b05ac19913b8202b760b9894ba155c9e7d6621516bc6e88d0a7bd3f",
+    "bytes": 3300
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:50:10Z",
+      "ended": "2026-09-10T01:53:20Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0a212e91044ce98236d4c910ea23292547dc81dc",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "0a212e91044ce98236d4c910ea23292547dc81dc"
+      },
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited -15; cause: {\"reason\": \"harness-cli:-15\"}"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}

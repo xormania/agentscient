@@ -1,0 +1,296 @@
+{
+  "id": "20260905T011510Z-code-codex-67a6c7",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "pr63",
+  "lineage": {
+    "branch": "lane/security-resume-binding-20260904",
+    "base_sha": "0b374802a9335c0d300f568d022ad4b364406989"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T01:15:10Z",
+    "closed": "2026-09-05T01:28:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0b374802a9335c0d300f568d022ad4b364406989",
+    "ref_sha": "0b374802a9335c0d300f568d022ad4b364406989",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-15-11-01a06f22-42f8-7850-9997-1a2853fa88f5.jsonl"
+  },
+  "session": {
+    "id": "01a06f22-42f8-7850-9997-1a2853fa88f5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-15-11-01a06f22-42f8-7850-9997-1a2853fa88f5.jsonl",
+    "stream_sha256_at_close": "0d0b88b2af41235e46ca76a30c49bd383782f28f8ac8db31678019ad24704df7",
+    "spend": {
+      "input": 4575982,
+      "cached": 4365696,
+      "output": 30643,
+      "total": 4606625,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-15-11-01a06f22-42f8-7850-9997-1a2853fa88f5.jsonl",
+      "messages": 383
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr57.A9JZzO/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/draft63-frontdoor-resume.md and ops/conductor/dispatch-resume-lever.md WHOLE. Implement bounded foreground --resume front door plus pre-action identity/lineage/live-attempt guards needed by that contract. Only wrapper/launcher/precise contract; no tests, permission changes, live capabilities or nested dispatch. Existing suites and owned fake probes, compact evidence.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T011510Z-code-codex-67a6c7/in/draft63-frontdoor-resume.md",
+        "sha256": "e2f57014cab875679a14e44a498023d0501cf0319b1c0f3559228114bc81c6b2"
+      }
+    ],
+    "sha256": "e4d15f3797da3facc21a18ce194794f77e03f3ef1669ffc107a290a09dd65e99",
+    "bytes": 4227
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T01:15:10Z",
+      "ended": "2026-09-05T01:28:48Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "02d0a8656759d19752f88c24732f2eff384a0356",
+    "changed_paths": [
+      "ops/conductor/tools/dispatch.sh",
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "draft63-frontdoor-resume",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 22,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "baseline and governing inputs",
+          "claim": "Confirmed HEAD 0b374802a9335c0d300f568d022ad4b364406989 and read both named inputs and ops/README.md.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && sed -n '1,240p' ../in/draft63-frontdoor-resume.md && sed -n '1,260p' ops/conductor/dispatch-resume-lever.md && sed -n '1,260p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Enumerated documentation and found the coupling contract is named verified-couplings.md, not couplings.md.",
+          "reproduce": "rg --files docs ops/devlane/dispatch ops/conductor/tools ops/bin | sort && wc -l docs/* && sed -n '1,260p' docs/wire.md && sed -n '1,300p' docs/workflow.md && sed -n '1,260p' docs/probes.md && sed -n '1,260p' docs/concerns.md && sed -n '1,300p' docs/couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/verified-couplings.md and docs/mapping.md",
+          "claim": "Read the verified-couplings and Symfony mapping material and inspected the authorized launcher surfaces.",
+          "reproduce": "sed -n '1,320p' docs/verified-couplings.md && sed -n '1,340p' docs/mapping.md && wc -l ops/devlane/dispatch/CONTRACT.md ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py ops/bin/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch contracts and references",
+          "claim": "Measured file sizes and inspected mapping, inherited contract, and resume-related references.",
+          "reproduce": "wc -l docs/mapping.md docs/verified-couplings.md ops/devlane/dispatch/CONTRACT.md ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py && sed -n '1,280p' docs/mapping.md && sed -n '1,460p' ops/devlane/dispatch/CONTRACT.md && rg -n 'resume|attempt|pid|lineage|WF_AGENT' ops/devlane/dispatch/launch.py ops/devlane/dispatch/tests ops/conductor"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Read the inherited dispatch contract whole and located the existing resume acceptance surface.",
+          "reproduce": "sed -n '1,220p' ops/devlane/dispatch/CONTRACT.md && sed -n '221,460p' ops/devlane/dispatch/CONTRACT.md && rg -n 'dispatch.*resume|--resume|resume mode|resume.*front' ops/conductor/tests ops/devlane/dispatch/tests ops -g '*.py' -g '*.sh' -g '*.md'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py and ops/conductor/tools/dispatch.sh",
+          "claim": "Located resume mutation ordering, identity helpers, process state handling, parsers, and the complete wrapper.",
+          "reproduce": "rg -n '^def |resume|state.json|pid|record-target|lineage|identity|WF_AGENT' ops/devlane/dispatch/launch.py && sed -n '1,240p' ops/devlane/dispatch/launch.py && sed -n '1320,1800p' ops/devlane/dispatch/launch.py && sed -n '1980,2160p' ops/devlane/dispatch/launch.py && sed -n '1,380p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "launcher implementation and history",
+          "claim": "Confirmed resume previously lacked identity, lineage, and live-attempt preflight; measured commit-trailer conventions.",
+          "reproduce": "sed -n '280,330p' ops/devlane/dispatch/launch.py && sed -n '870,1168p' ops/devlane/dispatch/launch.py && sed -n '1690,1870p' ops/devlane/dispatch/launch.py && git log -5 --format='%H%n%s%n%b%n---' && git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "existing tests and record validator",
+          "claim": "Inspected the owned fake wrapper fixture, resume tests, launcher support, and record validation without modifying tests.",
+          "reproduce": "rg --files ops/conductor/tests | sort | rg 'dispatch|wrapper' && rg -n 'resume|LAUNCHER_PIN|--detach|--dry-run' ops/conductor/tests ops/devlane/dispatch/tests && sed -n '1,260p' ops/devlane/dispatch/tests/launch_support.py && sed -n '1,220p' ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "initial focused verification",
+          "claim": "Syntax and diff checks passed and 63 wrapper tests passed; the launcher test name was import-incompatible and failed before exercising code.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh && python3 -m py_compile ops/devlane/dispatch/launch.py && git diff --check && python3 -m unittest ops.conductor.tests.test_dispatch_wrapper ops.devlane.dispatch.tests.test_launch_watch"
+        },
+        {
+          "severity": "p3",
+          "where": "focused launcher verification",
+          "claim": "Using the supported discovery layout, 27 watch, 47 refusal, and 4 record-copy tests passed; exact resume argv and detach refusal probes passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_watch.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_refusals.py' && python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_record_copy.py' && WF_AGENT='GPT-5 Codex <noreply@openai.com>' ops/bin/dispatch.sh --resume 20260905T000000Z-code-codex-abcdef --reason 'owner authorized' --dry-run"
+        },
+        {
+          "severity": "p3",
+          "where": "launcher and wrapper resume probes",
+          "claim": "All 284 launch tests passed; literal reason argv, timeout exclusion, resume-mode refusals, foreground exit propagation, and identity-first refusal passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch*.py' && WF_AGENT='GPT-5.6 Sol <noreply@openai.com>' DISPATCH_TIMEOUT=42 ops/bin/dispatch.sh --resume 20260905T000000Z-code-codex-abcdef --reason 'literal;metadata' --dry-run && env -u WF_AGENT ops/devlane/dispatch/launch.py resume no-such-record"
+        },
+        {
+          "severity": "p3",
+          "where": "first lineage/live probe",
+          "claim": "The first compound probe stopped before the temporary live-state arm and produced no successful evidence.",
+          "reproduce": "WF_AGENT='GPT-5.6 Sol <noreply@openai.com>' ops/devlane/dispatch/launch.py resume <tracked-id> && python3 <temporary-live-probe>"
+        },
+        {
+          "severity": "p3",
+          "where": "live-attempt guard",
+          "claim": "A temporary owned process probe confirmed live or ambiguous state is refused and a confirmed-dead prior process is admitted.",
+          "reproduce": "(cd ops/devlane/dispatch && python3 <temporary _guard_live_attempt live/dead probe>)"
+        },
+        {
+          "severity": "p3",
+          "where": "legacy tracked record probe",
+          "claim": "An intermediate preflight returned exit 2 because a legacy tracked record stores a non-absolute placeholder snapshot root.",
+          "reproduce": "WF_AGENT='GPT-5.6 Sol <noreply@openai.com>' ops/devlane/dispatch/launch.py resume 20260903T221409Z-plan-claude-eb7717"
+        },
+        {
+          "severity": "p3",
+          "where": "record binding inspection",
+          "claim": "Confirmed runtime record binding performs full snapshot validation after path binding; preflight was narrowed to identity and lineage fields.",
+          "reproduce": "sed -n '190,282p' ops/devlane/dispatch/launch.py && sed -n '1,80p' .dev/records/dispatches/20260903T221409Z-plan-claude-eb7717.json && rg -n 'def setUp|def run_main|checkout|symbolic-ref|branch' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "wrapper and detached-lineage verification",
+          "claim": "All 63 wrapper tests passed and detached resume refused with record-target before runtime mutation.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh && python3 -m py_compile ops/devlane/dispatch/launch.py && python3 -m unittest ops.conductor.tests.test_dispatch_wrapper && WF_AGENT='GPT-5.6 Sol <noreply@openai.com>' ops/devlane/dispatch/launch.py resume <tracked-id>"
+        },
+        {
+          "severity": "p3",
+          "where": "repository-wide gate",
+          "claim": "The first complete repository gate passed every suite.",
+          "reproduce": "ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "final static and whitespace-reason checks",
+          "claim": "Shell syntax, Python compilation, Ruff, diff validation, authorized-file scope, and whitespace-only reason refusal passed.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh && python3 -m py_compile ops/devlane/dispatch/launch.py && ruff check ops/devlane/dispatch/launch.py && git diff --check && WF_AGENT='GPT-5.6 Sol <noreply@openai.com>' ops/bin/dispatch.sh --resume one --reason '   ' --dry-run"
+        },
+        {
+          "severity": "p3",
+          "where": "final repository-wide gate",
+          "claim": "The final-tree gate exited 0: 1,766 tests passed and seven declared fixture tests were skipped.",
+          "reproduce": "ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Git commit was attempted with the required trailers but the sandbox refused the read-only index lock.",
+          "reproduce": "git add -- ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py && git commit -m 'dispatch: add bounded resume front door' -m 'Source: original' -m 'Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMIT_MSG",
+          "claim": "Confirmed the fallback commit-message path was initially absent before creating it.",
+          "reproduce": "if test -e ../out/COMMIT_MSG; then sed -n '1,120p' ../out/COMMIT_MSG; else printf 'ABSENT\\n'; fi"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Confirmed only the two authorized implementation files differ, tests and the command shim are untouched, COMMIT_MSG exists, and HEAD remains the requested base.",
+          "reproduce": "git diff --check && test \"$(git diff --name-only | sort)\" = $'ops/conductor/tools/dispatch.sh\\nops/devlane/dispatch/launch.py' && git diff --quiet -- ops/bin/dispatch.sh ops/conductor/tests ops/devlane/dispatch/tests && test -s ../out/COMMIT_MSG && git rev-parse HEAD && git status --short"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/dispatch.sh; ops/devlane/dispatch/launch.py",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "ops/bin/suites.sh exited 0 in the final tree: 1766 passed, 7 skipped",
+        "base": "0b374802a9335c0d300f568d022ad4b364406989"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4606625,
+        "out": 30643,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0b374802a9335c0d300f568d022ad4b364406989",
+        "started": null,
+        "ended": "2026-09-05T01:27:14Z"
+      },
+      "note": "Implemented the bounded foreground --resume front door with exact literal argv, resume-only option refusal, dry-run isolation, foreground status propagation, identity-first authorization, exact non-protected lineage enforcement, settled/live-attempt checks, and serialized resume claims. Assumption: because the brief supplied no separate literal test command after its colon, ops/bin/suites.sh was treated as the named repository gate. Git commit was blocked by the sandbox's read-only .git; the launcher-ready message is in ../out/COMMIT_MSG. Follow-ups left untouched: suites emit pre-existing subprocess/file ResourceWarnings, and a legacy tracked record uses a snapshot-root format rejected by current binding. Per contract, no live vendor capability or strong same-UID immutability was measured.",
+      "commit": {
+        "subject": "dispatch: add bounded resume front door",
+        "body": "Route authorized foreground resumes through the dispatch wrapper with exact argv and reject launch-only controls. Guard launcher resume by identity, exact non-protected lineage, settled attempt state, and a per-record foreground claim before mutation.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T01:28:47.678Z"
+    }
+  },
+  "status": "closed"
+}

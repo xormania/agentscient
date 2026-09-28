@@ -1,0 +1,11 @@
+{
+  "contract": "meta",
+  "fault": "meta.4.json",
+  "from": "obs/meta.json",
+  "change": "meta.json is zero bytes",
+  "violates": "PLAN.md §6 line 363 (with §8 line 474)",
+  "quote": "\"The export carries a format version in `meta.json`\"",
+  "reject_path": "facts\\.bytes\\b",
+  "implied": true,
+  "note": "PLAN.md states meta.json carries a version; that a zero-byte file cannot carry one is the implication. INVENTORY's \"0 lines\" reading is exactly the ambiguity §5.4 of SPEC.md flags."
+}

@@ -1,0 +1,166 @@
+{
+  "id": "20260906T011959Z-plan-codex-976735",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "e59a52bce37dbd1fed52d358b655bae00267f71f"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:20:00Z",
+    "closed": "2026-09-06T01:30:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "ref_sha": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl"
+  },
+  "session": {
+    "id": "01a0744d-0971-7400-a44c-2fd34b9bc0b6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl",
+    "stream_sha256_at_close": "bdca7dad97afcbc3be912c83f952aab04a0d33c4f227e885be403e1e2f9ed5d8",
+    "spend": {
+      "input": 1320642,
+      "cached": 1206656,
+      "output": 15041,
+      "total": 1335683,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl",
+      "messages": 128
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Plan the single worker execution contract and migration per worker-launch-consolidation-owner.md. Read inputs fully, docs/ and ops/README.md; remeasure relevant mapping. Inventory launch.py, task/run.py and other launch-capable paths. Separate shared execution/policy from configurable adapters, capabilities and explicit model choices. Preserve unique supported behavior, isolation, supervision, resume, records and conformance. Conductor/worker surfaces differ; MCP stays read-only. Propose one owner through existing Symfony boundaries, no new Python kernel or competing registry. Produce out/PLAN.md with required plan sections, contract/refusals, caller migration, independent acceptance, exact file ownership, dependencies and a smallest green slice. Discovery proceeds independently; consolidation precedes conduct startup. Read-only snapshot: no source/tests/settings/host/DB/network changes, no real harness launches, no self-approval. Facts need commands/ref; proposals labelled. Return compact envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/in/worker-launch-consolidation-owner.md",
+        "sha256": "199c13d6fd15d1419fc4c5f0438fa0f8817543801db5bfdc7ca4ba231bff2b02"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/in/conductor-start-home-map-20260905.md",
+        "sha256": "d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/in/20260906T010702Z-review-codex-1d530c.json",
+        "sha256": "2966437a0dc304fabc5913623470aa93f3e33d5e32c03540dad292613209c742"
+      }
+    ],
+    "sha256": "f1dcab398790ba8ff16b9d4abe99d0a1c0303a687ddad25705852e2244a23aed",
+    "bytes": 4816
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:20:00Z",
+      "ended": "2026-09-06T01:30:34Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "out/PLAN.md",
+          "claim": "Required artifact could not be saved: the write was rejected by the read-only sandbox, with approval unavailable. Verified PLAN.md does not exist.",
+          "reproduce": "python3 -B -c 'from pathlib import Path; print(Path(\"../out/PLAN.md\").exists())'"
+        }
+      ],
+      "artifacts": {
+        "requested_plan": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1335683,
+        "out": 15041,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+        "started": "2026-09-06T01:20:09Z",
+        "ended": "2026-09-06T01:30:19Z"
+      },
+      "note": "Inputs and founding docs read; mapping remeasured; launch paths inventoried; draft prepared but not persisted. All 59 existing plan-prompt tests passed. Snapshot unchanged; no network, real harness launches or session-store reads. Rerun requires writable out/ with snapshot protection retained."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:30:33.429Z"
+    }
+  },
+  "status": "closed"
+}

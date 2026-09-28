@@ -1,0 +1,13 @@
+{
+  "change": "gates[0].cost is boundary and boundary_at is absent",
+  "contract": "plan",
+  "fault": "plan.12.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.gate-cost",
+  "site": [
+    "gates",
+    0,
+    "cost"
+  ],
+  "violates": "\u00a73 #Gate cost; \u00a75 N=12"
+}

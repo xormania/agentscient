@@ -1,0 +1,53 @@
+{
+  "source": {
+    "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/record.json",
+    "sha256": "db7cabb14290a1315767915383820778ebb58b94322e692ca7c23c2c61264c8d",
+    "bytes": 7453
+  },
+  "reviewed_lineage": {
+    "branch": "lane/onboarding-brief-inputs-20260910",
+    "base_sha": "10caff085759725265ed19bfd10ff561f5829f35"
+  },
+  "envelope": {
+    "job": "check-tests",
+    "status": "ok",
+    "verdict": "changes",
+    "counts": {
+      "p1": 0,
+      "p2": 2,
+      "p3": 0,
+      "opinions": 0
+    },
+    "findings": [
+      {
+        "severity": "p2",
+        "where": "ops/devlane/dispatch/tests/test_launch_input_visibility.py:318",
+        "claim": "The empty-input neighbor passes when every worker receives an invented in/guessed.md path under 'Input files:'. Its exclusions depend on one decoy and the label 'Inputs:'.",
+        "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/snapshot invented"
+      },
+      {
+        "severity": "p2",
+        "where": "ops/devlane/dispatch/tests/test_launch_input_visibility.py:335",
+        "claim": "The regex consumes newlines and rejects a valid empty 'Inputs:' line followed by an instruction. All eight job subtests fail despite receiving no invented input.",
+        "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/snapshot empty-line"
+      }
+    ],
+    "artifacts": {
+      "report": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/SKEPTIC.md",
+      "probe": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py",
+      "old_tree_red": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/old-tree-red.log"
+    },
+    "spend": {
+      "harness": "codex",
+      "total": 594275,
+      "out": 7413,
+      "runs": 1
+    },
+    "stamp": {
+      "ref": "10caff085759725265ed19bfd10ff561f5829f35",
+      "started": "2026-09-10T01:42:43Z",
+      "ended": "2026-09-10T01:46:39Z"
+    },
+    "note": "Confirmed six intended worker-prompt assertion failures against the old tree. Tests preserved; no implementation source, jobs.json, or session store inspected. Findings demonstrated through temporary prompt fault injection; no optional suggestions."
+  }
+}

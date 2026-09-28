@@ -1,0 +1,157 @@
+{
+  "id": "20260904T001439Z-code-grok-acd19b",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/token-meter",
+  "lineage": {
+    "branch": "lane/token-meter",
+    "base_sha": "e373a2dc504e53dd4f7ab3505a97914cccef59ea"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T00:14:39Z",
+    "closed": "2026-09-04T00:32:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e373a2dc504e53dd4f7ab3505a97914cccef59ea",
+    "ref_sha": "e373a2dc504e53dd4f7ab3505a97914cccef59ea",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "d4fcec65-b9f4-422a-8349-1cb665ad1d05",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": null,
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok-stream/sessions/<snapshot-encoded>/d4fcec65-b9f4-422a-8349-1cb665ad1d05/summary.json"
+  },
+  "session": {
+    "id": "d4fcec65-b9f4-422a-8349-1cb665ad1d05",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok-stream/sessions/<snapshot-encoded>/d4fcec65-b9f4-422a-8349-1cb665ad1d05/summary.json",
+    "stream_sha256_at_close": "92da9c4c7b2cd845a4bfe49c9f26f2c9b4003ce4c16025bad81b9ddc794add96",
+    "spend": {
+      "input": 8769060,
+      "cached": 8295296,
+      "output": 57011,
+      "total": 8826071,
+      "cost_usd_ticks": 10941727000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/home/grok-stream/sessions/<snapshot-encoded>/d4fcec65-b9f4-422a-8349-1cb665ad1d05/summary.json",
+      "messages": 435
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "the contract at in/contract-token-meter.md: the owner's scope, then the plan. Write exactly the tests the plan names for unit A only ('the meter sees dispatched runs'), in the files it names, each red for the reason it states; read the existing tests and contracts those files sit beside, not the implementation. Units B and C are not this run's.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T001439Z-code-grok-acd19b/in/contract-token-meter.md",
+        "sha256": "2099c3377e3c441a75ec9433a83a1ba801cfe8f9729d578aef9805a256d2e601"
+      }
+    ],
+    "sha256": "6b5ceb817001e4d7b08fa47c98c66fcd631f585e8ad269a57d03a03c7c318b66",
+    "bytes": 1010
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T00:14:39Z",
+      "ended": "2026-09-04T00:32:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7d6f92ecfc0cd29368a09a4d13b2582c30cd84b8",
+    "changed_paths": [
+      "ops/design/features/telemetry/what-did-today-cost.feature",
+      "ops/devlane/dispatch/tests/test_launch_record_copy.py",
+      "ops/devlane/fixtures/tests/test_stores_dispatch.py",
+      "ops/devlane/telemetry/tests/test_bdd_worth.py",
+      "ops/devlane/telemetry/tests/test_wiring.py",
+      "ops/devlane/telemetry/tests/test_worth_dispatches.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "fixture_shape": "ops/devlane/fixtures/tests/test_stores_dispatch.py",
+        "launch_record_copy": "ops/devlane/dispatch/tests/test_launch_record_copy.py",
+        "worth_dispatches": "ops/devlane/telemetry/tests/test_worth_dispatches.py",
+        "bdd_worth": "ops/devlane/telemetry/tests/test_bdd_worth.py",
+        "wiring": "ops/devlane/telemetry/tests/test_wiring.py",
+        "feature": "ops/design/features/telemetry/what-did-today-cost.feature"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "e373a2dc504e53dd4f7ab3505a97914cccef59ea",
+        "started": "2026-09-04T00:14:39Z",
+        "ended": "2026-09-04T00:32:08Z"
+      },
+      "note": "schema-invalid: object does not match ENVELOPE_SCHEMA"
+    },
+    "cause": {
+      "reason": "schema-invalid"
+    }
+  },
+  "status": "closed"
+}

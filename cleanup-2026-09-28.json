@@ -1,0 +1,697 @@
+{
+  "schema_version": 1,
+  "repository": "uscient/agentscient",
+  "created_at": "2026-09-28T02:38:59.535Z",
+  "keep_branches": [
+    "legacy-records",
+    "shit",
+    "master",
+    "dev"
+  ],
+  "prior_archive_commit": "d8ab25f1380c5e269f9a3cb2c3063bb7a7c714b6",
+  "dev_commit_at_audit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc",
+  "scope": "Only these exact old branch heads. Exclude any new branch, any branch whose head changes, and any branch referenced by an open pull request.",
+  "branches": [
+    {
+      "branch": "codex/work-order-branch-policy",
+      "commit": "3b246adeefd3def35fb6eaa2ed91913f9a03b86a",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "codex/work-order-delivery",
+      "commit": "d3548788cc243114713bebaaae69a846436dcf7c",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "deprecated-work",
+      "commit": "bbd06948ae5bc207930f5c6298c47ea19d0a4d9c",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/deprecated-work",
+      "tree": "394c902e6e67e1c4c41b49c407652cc018774b4f"
+    },
+    {
+      "branch": "deprecated/session-watch-20260904",
+      "commit": "0d5bcde02d5b8a6b7d949db7a823c48aa879e2bc",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/deprecated/session-watch-20260904",
+      "tree": "9f6cdd9552a0d62305e6e876214928a296af4190"
+    },
+    {
+      "branch": "job/runtime-config-review-325",
+      "commit": "20a3892b44f41c1580639846dec661cef2c98b8b",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "job/runtime-onboarding-review-327",
+      "commit": "cb4609f5f644d3e3ce28053d9c2ddcdf93c8cc27",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "job/runtime-roles-review-328",
+      "commit": "e064e9e5649e458f339c7438433474f679d660b7",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "job/runtime-telemetry-review-324",
+      "commit": "cb5aa739b9d4a952a19c97cdb5f9229cd5c7c38f",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "job/runtime-tmux-review-326",
+      "commit": "e3c06460284259522b90508152bc3de365b1347d",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "lane/agy-config-final-correction-20260908",
+      "commit": "68e9200e9740e8bbe4e383b3ac1d9ca990e434f6",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-config-final-correction-20260908",
+      "tree": "2d145eac2653e8324c4dbd1f8eaa0d1be2d4dd4c"
+    },
+    {
+      "branch": "lane/agy-config-test-adjudication-20260908",
+      "commit": "3cd7ddf2501364efbc7c20bb51371f2b23093b6a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-config-test-adjudication-20260908",
+      "tree": "16307d2af3261c4264f54a691406a0ef9fb4f83c"
+    },
+    {
+      "branch": "lane/agy-config-test-correction-20260908",
+      "commit": "af99c32b19a9c6c508a061bbda8d81a6356b70a5",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-config-test-correction-20260908",
+      "tree": "80153c6aea09da388b60b98e495e3b4821cc5fba"
+    },
+    {
+      "branch": "lane/agy-config-test-review-20260908",
+      "commit": "b18c123ba95697aab63eb615a23cfa600c403563",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-config-test-review-20260908",
+      "tree": "0e97c48bcadc5cc5ec9e6b7eaafd007c957cd420"
+    },
+    {
+      "branch": "lane/agy-configuration-tests-20260908",
+      "commit": "f75a70c681338675c6825eafbf2e636b307ed2e6",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-configuration-tests-20260908",
+      "tree": "68552d1713bcb9408e2eaf8e57c722da91b7d54a"
+    },
+    {
+      "branch": "lane/agy-contract-adjudication-20260908",
+      "commit": "bd4c2b8b566c846e8619332e067b49793e8a52b5",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-contract-adjudication-20260908",
+      "tree": "0c69ecc59e3b0fc6dfaea8e06ac796ad63409d7e"
+    },
+    {
+      "branch": "lane/agy-contract-review-20260908",
+      "commit": "8630ccf0e72a11596ed1a5cb7e2efa2f931f6d29",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-contract-review-20260908",
+      "tree": "44d266136c00cf8ff1b91933e1dc734a2a886781"
+    },
+    {
+      "branch": "lane/agy-dispatch-test-review-20260908",
+      "commit": "302f32b4ee4b82d1e14d2e639208a91fdf90b5ee",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-dispatch-test-review-20260908",
+      "tree": "5d2b7463395599b9928c5a1460a908efaac32dee"
+    },
+    {
+      "branch": "lane/agy-dispatch-tests-20260908",
+      "commit": "228d8d60d018792fde2457dc99355f0e465bdc0b",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-dispatch-tests-20260908",
+      "tree": "852b37a6da94efeceec9f058f486fad33a8f5d7b"
+    },
+    {
+      "branch": "lane/agy-envelope-final-correction-20260908",
+      "commit": "9704d895b207727be3a67a56a992856a14810ef6",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-envelope-final-correction-20260908",
+      "tree": "84a49bd6a1ab6511862df9d0359a4f892598d404"
+    },
+    {
+      "branch": "lane/agy-envelope-test-adjudication-20260908",
+      "commit": "6d4803d5c982ca36fa56cf36ff5beb4dd7b99712",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-envelope-test-adjudication-20260908",
+      "tree": "ba7dd43e54db2b530dfc3bf9a22f4756c9063594"
+    },
+    {
+      "branch": "lane/agy-envelope-test-correction-20260908",
+      "commit": "2dfbd5a93b7ed0100b1fa56f78279481a78ec53c",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-envelope-test-correction-20260908",
+      "tree": "638cf72216b2df5911b6def78e873d95a5d88b62"
+    },
+    {
+      "branch": "lane/agy-envelope-test-review-20260908",
+      "commit": "7a35a749b400f3621ccb7ec9fa47f50a1f1f66aa",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-envelope-test-review-20260908",
+      "tree": "7dc90acc849e1188b979e3f460f0543f866604ce"
+    },
+    {
+      "branch": "lane/agy-envelope-tests-20260908",
+      "commit": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-envelope-tests-20260908",
+      "tree": "35e82c817a45e413fa2f1a6cf96fcb85a85ec090"
+    },
+    {
+      "branch": "lane/agy-isolation-last-fix-20260908",
+      "commit": "8e9a5605f465301cf1592bfed994ba55a4456c3a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-last-fix-20260908",
+      "tree": "3419c2ceec054d0d7e35156e970c26f2dcfcaaf5"
+    },
+    {
+      "branch": "lane/agy-isolation-legacy-flags-20260908",
+      "commit": "2aeafa6ffa03f43638773e946c1610b2872dc3dd",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-legacy-flags-20260908",
+      "tree": "db86bf4acd3c115cd9c33acc0e75ff8e3528e36c"
+    },
+    {
+      "branch": "lane/agy-isolation-legacy-tests-20260908",
+      "commit": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-legacy-tests-20260908",
+      "tree": "604995272d9aa47c2ca2faadaaad3fbc01dc6be1"
+    },
+    {
+      "branch": "lane/agy-isolation-test-adjudication-20260908",
+      "commit": "b1f92327b2ee6572594ec263f0707b15d3b18666",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-test-adjudication-20260908",
+      "tree": "3ed17e66c55609928c86c17bcd637c8f36a76171"
+    },
+    {
+      "branch": "lane/agy-isolation-test-correction-20260908",
+      "commit": "7a395726c1bb0d3d27c1004ec04582aedc3ad846",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-test-correction-20260908",
+      "tree": "dec95fc5146748d33b1b9ceea061474f7fa2ea0f"
+    },
+    {
+      "branch": "lane/agy-isolation-test-review-20260908",
+      "commit": "ed984947abf6b4975937dd2d4a1179cf9863ec63",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-test-review-20260908",
+      "tree": "29e2139b47f670ef6387ba0737c0a95b4bb75e95"
+    },
+    {
+      "branch": "lane/agy-isolation-tests-20260908",
+      "commit": "e396cc0aa9a5af418e63dfbf9ab85fcddc5ea238",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-isolation-tests-20260908",
+      "tree": "bfd28a0519440fec4b8d1982ab3eca429c1bbb49"
+    },
+    {
+      "branch": "lane/agy-lifecycle-cwd-ruling-20260908",
+      "commit": "acb8bbefcb08ffc24242cdeda343e50c54b7a13c",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-lifecycle-cwd-ruling-20260908",
+      "tree": "562f267cca4a9ffe9189bb892c3a4e50ffee088c"
+    },
+    {
+      "branch": "lane/agy-lifecycle-fix-20260908",
+      "commit": "f1155d86bb93773bea3c02d53d3ef549cf97b847",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-lifecycle-fix-20260908",
+      "tree": "e9e31aed7cabfa7b7610e27e9d0921fa84081671"
+    },
+    {
+      "branch": "lane/agy-lifecycle-fix-review-20260908",
+      "commit": "5fc328813d534ebfae26dde2c1d94c86afd31267",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-lifecycle-fix-review-20260908",
+      "tree": "b9670427064bfa13b95bcae4d5a3cba1e0755d64"
+    },
+    {
+      "branch": "lane/agy-lifecycle-ruling-20260908",
+      "commit": "56144c06e3c1f745f7361d7e3541de4f2a2fb31b",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-lifecycle-ruling-20260908",
+      "tree": "89c9e120f9fe6d1f7a7ab38902aee1f0623da822"
+    },
+    {
+      "branch": "lane/agy-live-accounting-final-fix-20260908",
+      "commit": "51427778e399f8a8091ea90532a904d1dac8685a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-live-accounting-final-fix-20260908",
+      "tree": "c3441bb746c54f660654633890112c374c2acab0"
+    },
+    {
+      "branch": "lane/agy-live-accounting-regression-20260908",
+      "commit": "d58ce338bfa5b2072fd9f832d4d0590de32a0b75",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-live-accounting-regression-20260908",
+      "tree": "95986db7d3253675c8a6c091c175a215a38e7b46"
+    },
+    {
+      "branch": "lane/agy-live-usage-fix-20260908",
+      "commit": "8e6bb4236d652847bc7155a28a3da07b44ef5785",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-live-usage-fix-20260908",
+      "tree": "7124135c06da2848b0e0b07bdd4d476a5318a371"
+    },
+    {
+      "branch": "lane/agy-live-usage-tests-20260908",
+      "commit": "3a0b2fea051895a609c69e073587cbcd344a9fd1",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-live-usage-tests-20260908",
+      "tree": "2cf7aaef4c37f011a9a81354df2eecf5b6a93175"
+    },
+    {
+      "branch": "lane/agy-native-reader-fix-20260908",
+      "commit": "68a67ffae3746d8da9774fe5f8786b2a1581f4ab",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-native-reader-fix-20260908",
+      "tree": "02eefb3b456ac47a4d5f3016588ccc0bf84b6b8d"
+    },
+    {
+      "branch": "lane/agy-native-regression-tests-20260908",
+      "commit": "de5638ff8dd16a55644db719ff7e6d4a45ee0b75",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-native-regression-tests-20260908",
+      "tree": "2c66bdb39c3626124e314969cf1ce653a0e6e201"
+    },
+    {
+      "branch": "lane/agy-portable-fixture-fix-20260908",
+      "commit": "44e2135b2799a704ab212fee90c46d955ad41480",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-portable-fixture-fix-20260908",
+      "tree": "9d8fad163b9f7ba8600beecd899da6af9397221e"
+    },
+    {
+      "branch": "lane/agy-probe-selection-fix-20260908",
+      "commit": "81d36411d0767e5673b0230270b8e313a8e334fe",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-probe-selection-fix-20260908",
+      "tree": "94e20277fe6128b91363dab6f8023afbf4e73065"
+    },
+    {
+      "branch": "lane/agy-regression-final-fix-20260908",
+      "commit": "6992ead63aa606893d8776e06d994a65de8c6f45",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-regression-final-fix-20260908",
+      "tree": "d5ab1e096aed58723f171927cdf223d2890855f8"
+    },
+    {
+      "branch": "lane/agy-runtime-ruling-fix-20260908",
+      "commit": "1e1495a2a37283d2d93c4f9e006b7bc5f1c5ef94",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-runtime-ruling-fix-20260908",
+      "tree": "a89db86991f3430b210ab7ca8cd26bc79aeace4a"
+    },
+    {
+      "branch": "lane/agy-terminal-test-fix-20260908",
+      "commit": "329e476193f19754605b4b9dac766de326fd5bea",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/agy-terminal-test-fix-20260908",
+      "tree": "8ff96b73c28ab926cf78c8a7cacbdf82b95e7b61"
+    },
+    {
+      "branch": "lane/audit-enforcement-20260910",
+      "commit": "106defa57a3f74d3e7cb236f1edf714ba19cbd5e",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/audit-enforcement-20260910",
+      "tree": "37afd7128933d03dd937904f06f5fd2521dc6c34"
+    },
+    {
+      "branch": "lane/check-tests-json",
+      "commit": "fe2e474b4e56e43df694b8469a496f33ad3f4f32",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/check-tests-json",
+      "tree": "1796b9628f946cc4163c3528b8eda86ee0a7f1e0"
+    },
+    {
+      "branch": "lane/conduct-adapter-adjudication-20260906",
+      "commit": "f34bb3a3a7040d91e5447190a9edb83ab228a8d2",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-adapter-adjudication-20260906",
+      "tree": "30d1a889a686a2a4319ea3db448f5366eb186fe7"
+    },
+    {
+      "branch": "lane/conduct-adapter-tests-20260906",
+      "commit": "a11a0ff2a8615e6a7ba70ace4d3868bd388a1654",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-adapter-tests-20260906",
+      "tree": "7873afbf6fc12a63e724460b86b5305ec07130ac"
+    },
+    {
+      "branch": "lane/conduct-canonical-tests-20260906",
+      "commit": "4aea8db7eee5f0b430e5360d21a1e8964a47fce3",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-canonical-tests-20260906",
+      "tree": "1b16408d31d13f098e385f10aa1b4e251bb8f3f3"
+    },
+    {
+      "branch": "lane/conduct-coupling-reconciliation-20260906",
+      "commit": "c6a82081f2282f6c654d851050c2ac5988efcd38",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-coupling-reconciliation-20260906",
+      "tree": "1b684883419aec5602174a4c23e3026ace7796b4"
+    },
+    {
+      "branch": "lane/conduct-discovery-20260906",
+      "commit": "5344185082d169a3f427bcd553db48d73089f231",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-discovery-20260906",
+      "tree": "87294d142787b5567dc1df7df57e1d3308441c54"
+    },
+    {
+      "branch": "lane/conduct-discovery-final-tests-20260906",
+      "commit": "e86d5052d504fd29294da9e70cadd36c1de4045a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-discovery-final-tests-20260906",
+      "tree": "77af9a868442b22d9811ba21e56ceb2ae0bed952"
+    },
+    {
+      "branch": "lane/conduct-discovery-runtime-fix-20260906",
+      "commit": "0523fe40a100ba2bc1d6a1ec79ee2f9401875a9b",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-discovery-runtime-fix-20260906",
+      "tree": "1daa6739484e8daaa986f2014e31379e41b7107b"
+    },
+    {
+      "branch": "lane/conduct-first-start-adjudication-20260906",
+      "commit": "3f2302e6b7db7d96d8cc00365623d3fb36f9c590",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-first-start-adjudication-20260906",
+      "tree": "8126896803550acb054f861fcecc84075f9ac629"
+    },
+    {
+      "branch": "lane/conduct-message-tests-20260906",
+      "commit": "f6a168bb58c338bc9d0a46b4277a64c88e06125a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-message-tests-20260906",
+      "tree": "248d560b228d77f595e2114c09ff7b2ae61a8855"
+    },
+    {
+      "branch": "lane/conduct-policy-code-20260906",
+      "commit": "0e8113adc1d1633ba4e3392c50fefd97a902fb42",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-policy-code-20260906",
+      "tree": "8f089f20eff1e81c6cbbb3b66e836bdb1730562c"
+    },
+    {
+      "branch": "lane/conduct-policy-code-adjudication-20260906",
+      "commit": "3d7116ff686f3391d43fd9992c4de4e9c8cc235e",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-policy-code-adjudication-20260906",
+      "tree": "90065a14cadc86c2c089f2682c305fc4fce6f16f"
+    },
+    {
+      "branch": "lane/conduct-policy-source-ruling-20260906",
+      "commit": "c945d3ffa79c3e412a1d42d771bf85db5d0d25da",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-policy-source-ruling-20260906",
+      "tree": "7cb6c0ddadf48696e4341084b85aca215c7eb650"
+    },
+    {
+      "branch": "lane/conduct-policy-tests-20260906",
+      "commit": "4019372b3a156c6f037c0285fe4970a3f9bd372c",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-policy-tests-20260906",
+      "tree": "2349733094395706b55c3487a1a46a5d4405a1a6"
+    },
+    {
+      "branch": "lane/conduct-relay-contract-20260906",
+      "commit": "225c3d971e8605c3c45b0a0636d3992f7fda071a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-relay-contract-20260906",
+      "tree": "f5ee699d37a0535207be634850b6280fcf657c22"
+    },
+    {
+      "branch": "lane/conduct-start-adjudication-20260906",
+      "commit": "cd403779c9327bd302c4e785722f993a799b07a5",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-start-adjudication-20260906",
+      "tree": "58fbc0e90354511028345313d8312be41668f101"
+    },
+    {
+      "branch": "lane/conduct-start-coupling-20260906",
+      "commit": "3fb6e7bb33b4f906f593cd482fcdf7fa4da8a4c4",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-start-coupling-20260906",
+      "tree": "4f74ff52ccb959e526a786edc256b4b34bf1c20a"
+    },
+    {
+      "branch": "lane/conduct-start-tests-20260906",
+      "commit": "3084717358957f0a304eae89ca580fb3c08c12d5",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-start-tests-20260906",
+      "tree": "92485c4a00570f2cc176e341e826e5f4c22b3e76"
+    },
+    {
+      "branch": "lane/conduct-start-tests-adjudication-20260906",
+      "commit": "14ac3dba13386c06e1cf595db79e34fd0258639b",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/conduct-start-tests-adjudication-20260906",
+      "tree": "824edcf89022f7903321efb38a0a76f97c7cd149"
+    },
+    {
+      "branch": "lane/context-contracts",
+      "commit": "67b70f3841fc0dea11e1ab4727c0fcde392df2cc",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/context-contracts",
+      "tree": "1ec161140e21702949e7e98f4a0d2445e5f8c072"
+    },
+    {
+      "branch": "lane/dispatch-job-scratch",
+      "commit": "4ac034b4d1816ead6e3051e1d0c836a3c867fdf0",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/dispatch-job-scratch",
+      "tree": "3466e6a08c39424f928f1497a39f5cb2d8c0cd69"
+    },
+    {
+      "branch": "lane/effort-per-role",
+      "commit": "1c065bca20a3ddb9f63a7d2d49575751a2959cb7",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/effort-per-role",
+      "tree": "e351ad3dc22fe5c65f8cda9376df28c4413acd08"
+    },
+    {
+      "branch": "lane/finding-admission-20260909",
+      "commit": "5d4f71170f206606b15fa59ab8aec05a9e08e8fc",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/finding-admission-20260909",
+      "tree": "8b6599a81eb35b0cc29c194e04b822e24c8658c2"
+    },
+    {
+      "branch": "lane/fixture-audit",
+      "commit": "75dfd065892200a91d36c18b8e4bcc55aa2ed4ee",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/fixture-audit",
+      "tree": "a58d2ce78203c978d81f205f1e28b8f980e2bb21"
+    },
+    {
+      "branch": "lane/fixture-fix",
+      "commit": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/fixture-fix",
+      "tree": "0becfac6ad206c904bb69675db1a81397bcf7800"
+    },
+    {
+      "branch": "lane/fixture-fix-2",
+      "commit": "d42ffb10eab9a113d43632bfd4cce21ff08244da",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/fixture-fix-2",
+      "tree": "f10e5b88c39c14b2fed6f5ea4a16b8da42010d0e"
+    },
+    {
+      "branch": "lane/ladder-audit",
+      "commit": "69a63854e54b3dc30a8464857c4cd9a03ca03254",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/ladder-audit",
+      "tree": "e1f24d9cd23ac39db079dd9f79256fe1381c0e52"
+    },
+    {
+      "branch": "lane/noguess",
+      "commit": "fae493fecbad4c9b88ae1fd250ebaca7ed3cb23f",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/noguess",
+      "tree": "cc30875442ebe6c9dadee0f1e3995d02cd17beac"
+    },
+    {
+      "branch": "lane/onboarding-completion-20260909",
+      "commit": "1c792109f2cae83f0020065fba0f689a950446d4",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-completion-20260909",
+      "tree": "78c812a21ea5518b7f20bc8c48458a83e525b027"
+    },
+    {
+      "branch": "lane/onboarding-contract-20260910",
+      "commit": "7c2373c09a80c9a673da2e28cd2a4c12dc895294",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-contract-20260910",
+      "tree": "a6e30d45cbe66ae72a844980de2461693dc63c60"
+    },
+    {
+      "branch": "lane/onboarding-discovery-20260910",
+      "commit": "9ac5685fabeaf9b88e021bb8e4800ce855b90249",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-discovery-20260910",
+      "tree": "69e23040dc15fc29e0cb950a3a16db3fdb3be8b4"
+    },
+    {
+      "branch": "lane/onboarding-discovery-tests-20260910",
+      "commit": "31fff00f03a430644b6164112d4c4774519c4446",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-discovery-tests-20260910",
+      "tree": "bf4adb0ec049d746a17a38bf71572d1a4d064305"
+    },
+    {
+      "branch": "lane/onboarding-policy-20260910",
+      "commit": "ad0b6b90f7891206b0fe395ca0573fd5afdc2646",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-policy-20260910",
+      "tree": "b45823cc915757fc1a6fea1e55d839c3e0f3264a"
+    },
+    {
+      "branch": "lane/onboarding-policy-tests-20260910",
+      "commit": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/onboarding-policy-tests-20260910",
+      "tree": "11a8f99421d8b5fdb8135ece3acc8e7eedcaa766"
+    },
+    {
+      "branch": "lane/record-wall",
+      "commit": "69e2b05d62262c681a11b277b2c7764087b25195",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/record-wall",
+      "tree": "06e100b889c5d8b6b042b806089296538f82e258"
+    },
+    {
+      "branch": "lane/security-resume-binding-20260904",
+      "commit": "6d004e24a43c4add0d64473e470ec65e69771f9a",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/security-resume-binding-20260904",
+      "tree": "528c8f1a82995b04aab72a6285d20cb999d247ac"
+    },
+    {
+      "branch": "lane/session-20260916-i",
+      "commit": "27992e710b899881997371dfb3612f1913146955",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260916-i",
+      "tree": "542f5e3257a87a519f36bb9e2400050158879861"
+    },
+    {
+      "branch": "lane/session-20260916-sweep",
+      "commit": "f7a93d884fb2c821d01268a8498d4435cb8168b0",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260916-sweep",
+      "tree": "755402bbe2fe17e197dbdc950c996c8d456e8e66"
+    },
+    {
+      "branch": "lane/session-20260919-skill-hooks-01a0b7596f92",
+      "commit": "39a13050f75a1ccae9c60f974d72f63ab4b5e8eb",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260919-skill-hooks-01a0b7596f92",
+      "tree": "f7286103a00f2fe14dbdc93af516aed282feda35"
+    },
+    {
+      "branch": "lane/session-20260919-terra-01a0b759",
+      "commit": "60c8d80bbd3d834222c764139ca50667b4ed6986",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260919-terra-01a0b759",
+      "tree": "02b26999296ed75998be18d883d70276c842d37c"
+    },
+    {
+      "branch": "lane/session-20260923-11-live-dispatch",
+      "commit": "0e970936d0afb8bd9792b43af126744574948a94",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260923-11-live-dispatch",
+      "tree": "e221217fce77ec462219b976b2927e4961006af4"
+    },
+    {
+      "branch": "lane/session-20260923-s3",
+      "commit": "397b2281a20c65d077f6cbd989530a43e066e828",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-20260923-s3",
+      "tree": "f589fdcbcbd954db62d0c573188a21b1f7964a8f"
+    },
+    {
+      "branch": "lane/session-budget",
+      "commit": "eb14e0af1615227a7695b5989fa00389859eb616",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/session-budget",
+      "tree": "f75fb2e067eecd531fb29f67e4ce2a6e5568b187"
+    },
+    {
+      "branch": "lane/watchdog-tests",
+      "commit": "574cebfb5166fb24e20d9f6f50fc288717b4ba1f",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/watchdog-tests",
+      "tree": "4d2dce717af6bea3389164e63f95cc2ce30e8d71"
+    },
+    {
+      "branch": "lane/workflow",
+      "commit": "e354dac691b54a2620e574b8761bb5ffff67cefc",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/lane/workflow",
+      "tree": "67e7ccb890969440dacaab1f283cb72c82216eb8"
+    },
+    {
+      "branch": "repair/audit-enforcement-manual-20260910",
+      "commit": "055e4488dda5b62e427e53ff681f6d7146b1ddc5",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/repair/audit-enforcement-manual-20260910",
+      "tree": "ccc93e0012311898392ef89857651206cfe08bf7"
+    },
+    {
+      "branch": "repo/watchdog-review-20260904",
+      "commit": "2ddbe31a682b5bdf27bae138cc5a9f3e237f2a76",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/repo/watchdog-review-20260904",
+      "tree": "a1c6678ad260d94fc3c7cb44d0d34a641a5327b0"
+    },
+    {
+      "branch": "review/pr73-merge-20260906",
+      "commit": "5279294ab1eb941149518658b915b720f8f78437",
+      "retained_by": "legacy-records",
+      "snapshot": "snapshots/review/pr73-merge-20260906",
+      "tree": "95439ab4c8233e00671347fb346805abf622903d"
+    },
+    {
+      "branch": "work-order/runtime-config",
+      "commit": "8c90af83eacd3ba787cff92aa59dd2dae4fe4e03",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "work-order/runtime-onboarding",
+      "commit": "e900cccf71c2c69dd400ba7f382101ed708d87b7",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "work-order/runtime-roles",
+      "commit": "549518c26eb1d757e9d92d2c37b0e744b0280727",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "work-order/runtime-telemetry",
+      "commit": "58fe2ef06f0a28cf838505b255e0db08d890f3ac",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    },
+    {
+      "branch": "work-order/runtime-tmux",
+      "commit": "6916ba5aeb2e9dd5a4f3dfc71cd54ab4bb8871aa",
+      "retained_by": "dev",
+      "retained_at_commit": "bb5530dae236d0dc4ce05283674f10c0311d3ccc"
+    }
+  ]
+}

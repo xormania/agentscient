@@ -1,0 +1,164 @@
+{
+  "id": "20260906T144053Z-tests-grok-5609b5",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-canonical-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-tests-20260906",
+    "base_sha": "c9b0758c4a153467c15ba592930123e05051b0fa"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:40:53Z",
+    "closed": "2026-09-06T14:56:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c9b0758c4a153467c15ba592930123e05051b0fa",
+    "ref_sha": "c9b0758c4a153467c15ba592930123e05051b0fa",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1547f0d3-51a9-401b-bee2-7e05d251ee64",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok-stream/sessions/<snapshot-encoded>/1547f0d3-51a9-401b-bee2-7e05d251ee64/summary.json"
+  },
+  "session": {
+    "id": "1547f0d3-51a9-401b-bee2-7e05d251ee64",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok-stream/sessions/<snapshot-encoded>/1547f0d3-51a9-401b-bee2-7e05d251ee64/summary.json",
+    "stream_sha256_at_close": "69f94785b9d15dfdf70bc000111bc2b03ac12a50f9b5d0fa84f27df98e1a487a",
+    "spend": {
+      "input": 6082100,
+      "cached": 5794944,
+      "output": 53638,
+      "total": 6135738,
+      "cost_usd_ticks": 6808656400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/home/grok-stream/sessions/<snapshot-encoded>/1547f0d3-51a9-401b-bee2-7e05d251ee64/summary.json",
+      "messages": 435
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct the eight findings only in the same three canonical test files under the supplied GPT-6 third-harness ruling and original Claude report. Restore meaningful relocated duty, profile and resume assertions; isolate environment; correct guard receipts; retain all original 83 method dispositions. No implementation inspection/edit, helper edit, contract or live state. The declarations keyword remains an explicitly provisional contract gap; do not invent another API. Run each focused file and registered lint/secret/trailer checks, report exact hashes, red causes and real exit statuses. No full floor. Use Grok 4.6 source trailers; avoid colon-started prose lines in COMMIT_MSG pending the independent builder repair. Return a valid tests envelope and exact patch.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/in/ag-conduct-canonical-test-ruling.md",
+        "sha256": "363ae522dd8d51b5b51b2d30f0bfe760c21b9a9b469b8a8e5414637dbd37461b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144053Z-tests-grok-5609b5/in/record.json",
+        "sha256": "bdee6d0d1bf5f20d35482067257a6195b4d15576b6b535f9d16266639ec0aa49"
+      }
+    ],
+    "sha256": "f240f462a400fbc795e29df572d228c8af1984f30174bfe47259978b12d01109",
+    "bytes": 3114
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:40:53Z",
+      "ended": "2026-09-06T14:56:15Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c4bd92d8fa83b3cc4ddc57bdce713062bbafad66",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_execution_adoption.py",
+      "ops/devlane/task/tests/test_run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "commit_message": "../out/COMMIT_MSG",
+        "patch": "../out/test.patch",
+        "frozen_hashes": "../out/frozen.sha256",
+        "reds": "../out/reds.log"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6135738,
+        "out": 53638,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c9b0758c4a153467c15ba592930123e05051b0fa",
+        "started": "2026-09-06T14:41:43Z",
+        "ended": "2026-09-06T14:54:37Z"
+      },
+      "note": "Corrected the eight GPT-6-upheld Claude findings in the same three canonical test files only. No implementation, helper, contract or live-state reads/edits. Frontend file untouched. All original 83 method dispositions retained; one added direct/stub unknown-job control. declarations remains an explicitly provisional trusted-transport keyword awaiting the contract owner's narrow declaration; no second API invented.\n\nTree c9b0758c4a153467c15ba592930123e05051b0fa. Commits eaa94d9b86112c9e4f98ff1a415a99548a5024ab (adoption) and c4bd92d8fa83b3cc4ddc57bdce713062bbafad66 (test_run), trailers Source original and Co-Authored-By Grok 4.6 <noreply@x.ai>. Patch sha256 8d1db498582ec75c447f122898e6e0bc2f3863bd163d7df832b6b65313efa393.\n\nFile hashes at HEAD. adoption 8e5ecc9df92b37c45bf3212b6d98a86bd65a5c6570bb2174de23ab129efbf7d3; test_run 0817086649432b6162a05eda808c3242470318d38abb8179f4fca180219a5635; frontend 139b329dae456684c1e6a4f89e3b4d3bb3c541e7ac17571ffc68177e47c1062d (unchanged from aad2f42).\n\nFocused runs. python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_execution_adoption.py exit 1, Ran 60 FAILED (failures=27) 0 errors. Corrected reds: grandchild pid still alive (orphan survived); R8 spend.total 0 != 7000000 under resume --cap-out 1000 with planted 7000000/50; four ProfileSelection methods and WhenVendorModeTransfers fail on launch.main does not accept trusted_context=. Resume, sandbox and newer-sibling cases are green against current launch and each failed when its assertion was inverted then restored. python3 -B -m unittest discover -s ops/devlane/task/tests -p test_run.py exit 1, Ran 50 FAILED (failures=26) 0 errors. Original test_an_absent_job_is_invalid_with_a_note_naming_it kept; new direct/stub variant is green on note job 'no-such-job-7e1c9a3d' is absent from the registry and failed when inverted to require vendor-refusal phrases. python3 -B -m unittest discover -s ops/devlane/task/tests -p test_execution_frontend.py exit 1, Ran 9 FAILED (failures=8) 0 errors.\n\nRegistered checks. lint.py --root . on the three files exit 0, clean, ruff 0.16.5. secret_scan.py exit 0, clean, 6 signatures. commit_trailers.py --range c9b0758c4a153467c15ba592930123e05051b0fa..HEAD exit 0, 2 messages clean. vocabulary_wall.py on the three files exit 1; pass 1 prints 66 dev-lane term(s) in the design tree; pass 2 prints clean. Neighbour test_launch_refusals.py also exit 1 (41 terms). That nonzero status is pre-existing and tree-wide, not caused by this change; a final clean line alone is not a passing command. term_wall.py exit 2 could-not-look, pattern expected TERM_WALL set; found empty; needed the org variable (CI) or ops/bin/term-wall.conf (local). No full floor."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:56:13.762Z"
+    }
+  },
+  "status": "closed"
+}

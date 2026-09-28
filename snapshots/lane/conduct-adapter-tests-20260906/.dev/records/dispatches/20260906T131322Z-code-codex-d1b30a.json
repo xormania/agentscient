@@ -1,0 +1,366 @@
+{
+  "id": "20260906T131322Z-code-codex-d1b30a",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-relay-contract-20260906",
+  "lineage": {
+    "branch": "lane/conduct-relay-contract-20260906",
+    "base_sha": "f33cc744a28226821d9866bcb45044d22c9386e2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T13:13:22Z",
+    "closed": "2026-09-06T13:28:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f33cc744a28226821d9866bcb45044d22c9386e2",
+    "ref_sha": "f33cc744a28226821d9866bcb45044d22c9386e2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-13-22-01a076da-24cd-7df3-848a-7850c0e2cd48.jsonl"
+  },
+  "session": {
+    "id": "01a076da-24cd-7df3-848a-7850c0e2cd48",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-13-22-01a076da-24cd-7df3-848a-7850c0e2cd48.jsonl",
+    "stream_sha256_at_close": "c57aa8685baffcb143e817b07e39add97ef7f11176a8045eba9f18a59fa218ee",
+    "spend": {
+      "input": 3273711,
+      "cached": 3156864,
+      "output": 20247,
+      "total": 3293958,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-13-22-01a076da-24cd-7df3-848a-7850c0e2cd48.jsonl",
+      "messages": 290
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-relay-contract-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Close the construction gaps in the supplied adapter-test review and ruling after the relay declaration. Own harness-capabilities.md and dispatch/CONTRACT.md only. Freeze exact trusted transport, evidence custody, safe-token insertion and real resume identity while preserving compile_launch's signature/closed result and keeping startup's six-field adapter descriptor intact. Distinguish worker C2 capability encoding from conductor encoding without weakening shared source-isolation/output obligations. Make faulty evidence objectively distinguishable from a self-consistent candidate claim. Reconcile with the relay mechanics already declared here; no duplicate executor/store or candidate authority flags. Give bounded instructions for the independent test correction. No tests/runtime/config/state/admission edits. Run doc/link/schema/example and git diff --check. Source/GPT-6 trailers; note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/in/ag-conduct-adapter-coupling-ruling.md",
+        "sha256": "3d9035a5b0870013b2428aa7717ae541163c05f2b98b86e55964cbb51fec87fd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/in/ag-conduct-adapter-tests-review.json",
+        "sha256": "eec29c8fd91a50ed8bc686e5f47463a40ca59dc8346ee36981b96ace5cc9a5e9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/in/ag-conduct-adapter-tests.json",
+        "sha256": "b7c7d0b64345edc88b7fa00dc55e398dc811f693e8669462b35285065a02726b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131322Z-code-codex-d1b30a/in/ag-conduct-relay-contract.json",
+        "sha256": "c4fb29dd650ea3de3e8a2e933fcedfb3fed6d33ef4365bbf287be6407148790d"
+      }
+    ],
+    "sha256": "871b7fefd999dcaa652ec03f7ecf79a9baec3f035aa79e74fa425e191815a080",
+    "bytes": 4763
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:13:22Z",
+      "ended": "2026-09-06T13:28:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e38e3a1eefa7cc1f8029238893621715d42a9a62",
+    "changed_paths": [
+      "ops/conductor/harness-capabilities.md",
+      "ops/devlane/dispatch/CONTRACT.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code-codex-d1b30a",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 31,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed requested HEAD, clean initial tree and four supplied inputs. Exit 0.",
+          "reproduce": "pwd; rg --files -g 'AGENTS.md' -g '*harness-capabilities*' -g '*CONTRACT.md' -g '*check*' -g '*schema*' docs ops | head -100; ls -la ../in; git status --short; git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read supplied inputs; repeated focused reads after output truncation. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-adapter-coupling-ruling.md ../in/ag-conduct-adapter-tests-review.json ../in/ag-conduct-adapter-tests.json ../in/ag-conduct-relay-contract.json"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read adapter-test review. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-adapter-tests-review.json"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read test producer input. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-adapter-tests.json"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read relay input. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-relay-contract.json"
+        },
+        {
+          "severity": "p3",
+          "where": "founding contracts",
+          "claim": "Read contracts and lane instructions. Exit 0.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read complete test producer input separately. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-adapter-tests.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/harness-capabilities.md",
+          "claim": "Read complete adapter and relay declarations. Exit 0.",
+          "reproduce": "cat ops/conductor/harness-capabilities.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read complete relay input separately. Exit 0.",
+          "reproduce": "cat ../in/ag-conduct-relay-contract.json"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and dispatch C2",
+          "claim": "Read founding contracts and C1/C2 requirements without truncation. Exit 0.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md; sed -n '1,340p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch and startup",
+          "claim": "Read dispatch, startup descriptor and suite command; followed with focused reads. Exit 0.",
+          "reproduce": "sed -n '340,920p' ops/devlane/dispatch/CONTRACT.md; sed -n '300,470p' ops/conductor/conductor-start-plan.md; cat ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "test and checker inventory",
+          "claim": "Inspected test availability, remaining custody declarations and documentary checkers. Exit 0.",
+          "reproduce": "rg --files ops/devlane/harness/tests; sed -n '650,795p' ops/devlane/dispatch/CONTRACT.md; sed -n '900,1030p' ops/devlane/dispatch/CONTRACT.md; cat ops/devlane/workflow/checks/doc_commands.py ops/devlane/workflow/checks/doc_covers.py; rg -n 'ghost_link_errors|def.*link|witness|verification|identity' ops/conductor/probes-lever.md ops/conductor/permission-surface.md ops/devlane/workflow/checks/*.py"
+        },
+        {
+          "severity": "p3",
+          "where": "review provenance",
+          "claim": "Reviewed commit unavailable in Git; read full review note and counterpart interfaces. Compound exit 0; git cat-file failed.",
+          "reproduce": "git cat-file -e d3ea314ba00456ed65751d3f9aa0381e000a58b0^{commit}; sed -n '245,310p' ops/conductor/probes-lever.md; sed -n '90,168p' ops/conductor/permission-surface.md; sed -n '795,815p' ops/devlane/dispatch/CONTRACT.md; python3 -c 'import json; print(json.load(open(\"../in/ag-conduct-adapter-tests-review.json\"))[\"result\"][\"envelope\"][\"note\"])'"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites-first.log",
+          "claim": "First gate run exited 1; concurrent document correction triggered two repository-immutability teardown guards.",
+          "reproduce": "bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "document checks",
+          "claim": "Document-command check passed.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "document checks",
+          "claim": "Document frontmatter/covers check passed.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_covers.py ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "document diff",
+          "claim": "Inspected two-file diff; whitespace check passed.",
+          "reproduce": "git diff --check; git diff --stat; git diff -- ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/check-docs.py",
+          "claim": "Initial scratch checker exited 1 because it counted a table header as a field; corrected the checker.",
+          "reproduce": "python3 ../out/check-docs.py > ../out/doc-check.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/doc-check.json",
+          "claim": "Corrected scratch link/schema/example checker and diff check passed.",
+          "reproduce": "python3 ../out/check-docs.py > ../out/doc-check.json; cat ../out/doc-check.json; git diff --check; tail -12 ../out/suites.log"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites-stationary.log",
+          "claim": "Preserved first failure log; stationary rerun exited 0.",
+          "reproduce": "cp ../out/suites.log ../out/suites-first.log; bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "out/adapter-contract.patch",
+          "claim": "Captured patch/input hashes and inspected first-run failure names. Only owned documents changed.",
+          "reproduce": "rg -n '^FAIL:|^ERROR:|^Ran |^FAILED' ../out/suites-first.log; git diff -- ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md > ../out/adapter-contract.patch; sha256sum ../in/* ../out/adapter-contract.patch; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites-first.log",
+          "claim": "Both failures were teardown guards observing my document correction; no functional fixture failure was reported.",
+          "reproduce": "sed -n '40,73p' ../out/suites-first.log; rg -n 'test_probe_timeout_five_colours|sleep|timeout' ops/devlane/fixtures/tests/test_symfony_app_app.py | tail -18; cat ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites.log",
+          "claim": "After adding the required launch-session transport input, final unchanged gate exited 0.",
+          "reproduce": "cp ../out/suites.log ../out/suites-stationary.log; bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "final documentary verification",
+          "claim": "Document-command check exited 0.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "final documentary verification",
+          "claim": "Document frontmatter/covers check exited 0.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_covers.py ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/doc-check.json",
+          "claim": "Link/schema/example/scope checks exited 0: 44 local links/anchors, two JSON examples, three positive and nine negative grammar cases; startup unchanged.",
+          "reproduce": "python3 ../out/check-docs.py > ../out/doc-check.json"
+        },
+        {
+          "severity": "p3",
+          "where": "final documentary verification",
+          "claim": "Whitespace check exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "out/adapter-contract.patch",
+          "claim": "Captured final patch and verified Source/GPT-6 trailers. Exit 0.",
+          "reproduce": "git diff -- ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md > ../out/adapter-contract.patch; git interpret-trailers --parse ../out/COMMIT_MSG; git diff --numstat"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot Git metadata",
+          "claim": "Staging exited 128: sandbox refused creation of .git/index.lock on a read-only filesystem.",
+          "reproduce": "git add ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot Git metadata",
+          "claim": "Commit exited 128 for read-only .git/index.lock; launcher message retained.",
+          "reproduce": "git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree at f33cc744a28226821d9866bcb45044d22c9386e2 plus retained patch",
+          "claim": "Final gate passed all nine suites: 2087 tests, seven skips. Diff check clean; only two owned documents changed; final hashes recorded.",
+          "reproduce": "git diff --check; rg -n '^==|^Ran |^FAILED|^FAIL:|^ERROR:|^OK' ../out/suites.log; git status --short; sha256sum ops/conductor/harness-capabilities.md ops/devlane/dispatch/CONTRACT.md ../out/adapter-contract.patch ../out/COMMIT_MSG; cat ../out/doc-check.json; date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "diff": "out/adapter-contract.patch",
+        "document_checks": "out/doc-check.json",
+        "scratch_checker": "out/check-docs.py",
+        "suites": "out/suites.log",
+        "first_run": "out/suites-first.log",
+        "stationary_run": "out/suites-stationary.log",
+        "commit_message": "out/COMMIT_MSG",
+        "command_findings": "out/command-findings.json"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3293958,
+        "out": 20247,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f33cc744a28226821d9866bcb45044d22c9386e2",
+        "started": null,
+        "ended": "2026-09-06T13:25:59Z"
+      },
+      "note": "Changed only harness-capabilities.md and dispatch/CONTRACT.md. Froze trusted transport, independent evidence custody, digest-bound insertion, launch/session identity and relay RPC resume; declared worker C2 encoding and bounded independent test correction. Preserved compile_launch's signature/five-key result and startup's six-field conductor adapter. No tests, runtime, configuration, state or live admission changed. Assumed the prose after 'command' is the scope brief and used bash ops/bin/suites.sh as the owning gate: final exit 0, 2087 tests, seven skips. Doc/link/schema/example and git diff --check passed. Original reviewed test files and commit were unavailable here; independent correction must verify original bytes first. Initial suite failures were teardown guards observing my concurrent document edit; stationary and final reruns passed. No unrelated defect was identified. Git add/commit were refused by read-only .git/index.lock; launcher commit message is retained.",
+      "commit": {
+        "subject": "Freeze trusted adapter construction inputs",
+        "body": "Declare exact compilation transport, evidence custody, measured safe-token insertion and retained resume identity after the relay declaration. Separate worker C2 capability encoding from conduct and bound independent test corrections without changing runtime or admission.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T13:28:08.366Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,225 @@
+{
+  "id": "20260905T053939Z-review-claude-29bbe4",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-context-20260905",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "95871dfafb071432cb19f8d0e8c59abe6977840c"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T05:39:40Z",
+    "closed": "2026-09-05T05:49:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "95871dfafb071432cb19f8d0e8c59abe6977840c",
+    "ref_sha": "95871dfafb071432cb19f8d0e8c59abe6977840c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T053939Z-review-claude-29bbe4/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "107e1d0f-e811-4d01-bead-75428eaeadc2",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T053939Z-review-claude-29bbe4/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T053939Z-review-claude-29bbe4/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T053939Z-review-claude-29bbe4/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/107e1d0f-e811-4d01-bead-75428eaeadc2.jsonl"
+  },
+  "session": {
+    "id": "107e1d0f-e811-4d01-bead-75428eaeadc2",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/107e1d0f-e811-4d01-bead-75428eaeadc2.jsonl",
+    "stream_sha256_at_close": "b7281b938d3cabc9a5f3e47688236c9fc264f44212f2e09b7f6fcbffbf0a49e2",
+    "spend": {
+      "input": 514,
+      "cached": 2149922,
+      "output": 42117,
+      "total": 2192553,
+      "source": "/home/scientdb/.claude/projects/<snapshot-slug>/107e1d0f-e811-4d01-bead-75428eaeadc2.jsonl",
+      "messages": 17
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Plan the scope in ops/conductor/mcp-context-scope.md using the adjacent MCP-RESEARCH-2026-09-05.md. Read current lane-mcp-lever.md and real job registry. Deliver out/CONTRACT.md as a concise closed extension contract (exact config, query/result shapes, cursors, evidence bounds, refusals, CLI/resource parity and standard request _meta), plus out/PLAN.md with ordered small implementation buckets and independent tests. Both are read-job out artifacts, not snapshot edits. Preserve v1 compatibility, existing read-only guarantees and declared residues; avoid optional features unless required for the three reads. Prefer one focused new test file per behavior family, not a large generated fixture corpus. Scope is authorized by the owner request to research useful MCP tools and conduct the pipeline. Root will ratify the contract before tests. Do not infer a new law or implement. If something outside these questions changes feasibility, report it.\n",
+    "inputs": [],
+    "sha256": "f345f31ca917301c3770a1402372c0d1c63894fa249771b35a5e00587e693f33",
+    "bytes": 3224
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T05:39:40Z",
+      "ended": "2026-09-05T05:49:42Z",
+      "exit": 137,
+      "tripped": true
+    }
+  ],
+  "result": {
+    "head": "95871dfafb071432cb19f8d0e8c59abe6977840c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "95871dfafb071432cb19f8d0e8c59abe6977840c"
+      },
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}"
+    },
+    "cause": {
+      "reason": "timeout",
+      "note": "timeout: harness exceeded runtime"
+    }
+  },
+  "status": "closed"
+}

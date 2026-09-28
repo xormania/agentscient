@@ -1,0 +1,174 @@
+{
+  "id": "20260904T215846Z-review-grok-1f540e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "repo/grok-pr61-20260904",
+  "lineage": {
+    "branch": "repo/grok-pr61-20260904",
+    "base_sha": "9f6880360e0a3a4e40e995481bdab11ab42a924e"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-04T21:58:47Z",
+    "closed": "2026-09-04T22:07:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9f6880360e0a3a4e40e995481bdab11ab42a924e",
+    "ref_sha": "9f6880360e0a3a4e40e995481bdab11ab42a924e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "edb1464f-c560-47e7-b1ca-a6a31555d3f5",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok-stream/sessions/<snapshot-encoded>/edb1464f-c560-47e7-b1ca-a6a31555d3f5/summary.json"
+  },
+  "session": {
+    "id": "edb1464f-c560-47e7-b1ca-a6a31555d3f5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok-stream/sessions/<snapshot-encoded>/edb1464f-c560-47e7-b1ca-a6a31555d3f5/summary.json",
+    "stream_sha256_at_close": "198b203ee21b3a7cd539c286342b574c33380e54f3120b0735bfa7e355974403",
+    "spend": {
+      "input": 1001459,
+      "cached": 857472,
+      "output": 28076,
+      "total": 1029535,
+      "cost_usd_ticks": 1504782200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/home/grok-stream/sessions/<snapshot-encoded>/edb1464f-c560-47e7-b1ca-a6a31555d3f5/summary.json",
+      "messages": 180
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr61.dkQPAC/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "PR #61 implementation review at 9f6880360e0a3a4e40e995481bdab11ab42a924e vs dev c715b24aaea4bf040b2bf63021b59125474e1485. Read in/pr-61.json whole: current PR/comments plus original review records. Assess code against declared contracts; independently verify comment claims, distinguish current regressions, fixed/stale claims, pre-existing issues and spec ambiguity. Do not approve Grok-authored tests. Owner deferred testing: no test suites, new tests, vendor probes, fixes, or GitHub writes; source-reading commands are evidence, not executed behavioral reproductions. Use the required JSON envelope; include a concise per-prior-finding disposition and scoped recommendation in note. Findings need path/line, actual impact, severity justified by the owner-trusted lane model, and a source command; explicitly mark unexecuted reproduction hypotheses. No broader redesign or inferred gate approvals. If running long, return an honest bounded report.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/in/pr-61.json",
+        "sha256": "6e54bf96d01a5a84f889151bf176658d1a126cc0eeb7d4e3b76d8e01c130de92"
+      }
+    ],
+    "sha256": "0524b1a12a0ed5a457e456b4dd098b787d53574e3c5a36ff451ee803c43fdd1a",
+    "bytes": 3258
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T21:58:47Z",
+      "ended": "2026-09-04T22:07:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9f6880360e0a3a4e40e995481bdab11ab42a924e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/telemetry/worth.py:99-108",
+          "claim": "The new unreadable-transcript path attributes a parse failure only when path.parent.name equals slug = \"-\" + \"-\".join(repo.strip(\"/\").split(\"/\")), which substitutes only \"/\". The lane's documented Claude encoding replaces every \"/\" and \".\" (ops/process/cross-review.md:162; ops/devlane/dispatch/tests/launch_support.py:698-699). Publication-normalized equivalent example (not the literal measured path): worth slug keeps \".local\" as -home-operator-.local-state-... while claude_slug emits -home-operator--local-state-..., equal=False. Dot-free paths match. Dispatch snapshots under .local therefore never match, so include_unreadable skips the file instead of emitting turns/avg_context/refusals=\"unrecorded\". Slice point 2 and docs/wire.md absence discipline fail: \"could not look\" reads as \"found nothing\". Readable rows still filter by cwd (worth.py:115) and are unaffected. When the slash-only slug does match, the same block has no cwd or timestamp, so colliding paths share the id and the row is treated as a known session in every window; usage.py:94 already says cwd is the truth for a lossy slug. cmd_waste then sorts no-total rows last (worth.py:697) and truncates to --top (default 5), so even a matched unreadable row can vanish from the default listing. Not P1 under D-LAUNCHER-1 / I-010 (no job escape, no lane-integrity break); P2 because it defeats the new waste-row guarantee on ordinary dotted lane paths. Source: python3 comparison of the two slug formulas on this snapshot path, plus sed of worth.py:99-108 and launch_support.py:698-699. Unexecuted behavioral hypothesis: plant '{broken\\n' under the claude_slug directory and call claude_sessions(..., include_unreadable=True); expected sessions={}, not unrecorded.",
+          "reproduce": "python3 -c 'repo=\"/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/snapshot\"; w=\"-\"+\"-\".join(repo.strip(\"/\").split(\"/\")); c=repo.replace(\"/\",\"-\").replace(\".\",\"-\"); print(w); print(c); print(w==c)'  # source-reading only; behavioral plant unexecuted"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/telemetry/worth.py:128-168",
+          "claim": "The new session-budget fields are taken from contexts, appended for every in-window assistant usage row (worth.py:131-135) before last-wins in_window[mid] (136-139). turns=len(contexts) and avg_context=sum/len (167-168) therefore count Claude re-emissions that the same function collapses for token totals. usage.py:80-81 records the live store as 2086 usage lines over 1052 ids, so inflated turns are the normal shape, not an edge. The append also adds usage.get(..., 0) values before replacement; dict.get does not replace an explicit null, and the loop catches only ValueError (140), not TypeError. A non-int or null on an earlier emission, even if a later same-id row is valid, aborts the whole meter instead of recording the transcript unrecorded. Slice/worth.md require last-wins for Claude ids and unreadable/malformed as unrecorded, never a crash. The parenthetical \"assistant usage rows\" is ambiguous against that last-wins rule; the function already chose last-wins for the related figures. Not P1: a telemetry TypeError does not escape a job or break dispatch. P2 because both the wrong turn count and the abort fire on ordinary vendor transcripts. Source: python3 inspection of claude_sessions (contexts_append_before_mid True; except TypeError absent; {\"input_tokens\": None}.get(..., 0) is None; None+0 and \"bad\"+0 are TypeError). Unexecuted behavioral hypothesis: two in-window rows with one message id yield messages=1 and turns=2; then input_tokens=\"bad\" followed by 300 raises TypeError rather than unrecorded.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/telemetry/worth.py\").read_text(); b=s[s.index(\"def claude_sessions\"):s.index(\"\\ndef codex_sessions\")]; print(\"except_ValueError\", \"except ValueError:\" in b); print(\"except_TypeError\", \"except TypeError\" in b); print(\"append_before_mid\", b.find(\"contexts.append\") < b.find(\"if mid:\"))'  # source-reading only; behavioral plant unexecuted"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/telemetry/worth.py:82-91",
+          "claim": "New helper _tool_result_denied counts a tool_result whose stringified content contains \"hook returned a deny decision\" and does not inspect is_error or any deny/status field. The same telemetry package classifies tool_result errors via is_error (breaker.py:163). The marker string is literal in this helper, so a successful Read of worth.py itself matches. Slice says \"tool-result deny markers\"; the Grok tests plant is_error true on both the deny and the command-error and never plant a successful payload containing the marker. False refusals therefore appear on ordinary sessions that read this repo. Not P1 under D-LAUNCHER-1. P2 because the new waste field is a live token-thrift signal and the false positive is this tree's own source. Source: sed of worth.py:82-91 (no is_error) and breaker.py:163. Unexecuted behavioral hypothesis: message content [{\"type\":\"tool_result\",\"is_error\":False,\"content\": <worth.py text>}] makes _tool_result_denied return True.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/telemetry/worth.py\").read_text(); h=s[s.index(\"def _tool_result_denied\"):s.index(\"def claude_sessions\")]; print(h); print(\"is_error\" in h)'  # source-reading only; behavioral plant unexecuted"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/context/diff.patch",
+        "input": "/home/scientdb/.local/state/agentscient/dispatch/20260904T215846Z-review-grok-1f540e/in/pr-61.json"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1029535,
+        "out": 28076,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9f6880360e0a3a4e40e995481bdab11ab42a924e",
+        "started": "2026-09-04T21:58:47Z",
+        "ended": "2026-09-04T22:07:02Z"
+      },
+      "note": "Reviewed 9f68803 vs c715b24 (PR #61). Source-reading only; no test suite, no vendor probe, no GitHub write, no Grok-test approval, no gate inferred green. Contract 1 holds from source: --claude-dir has no argparse default (worth.py:784); flag else laneconf.get(\"CLAUDE_DIR\"); key mapped to conf-key (796-801); relative against Path.home() (802-803); tracked CLAUDE_DIR='.claude/projects'. Readable waste keys and JSON/plain emission match the slice for unique-id planted rows. Dispatch-record timestamp windowing (worth.py:538-548) is extra-scope and consistent with readable dispatch windowing, not a defect. Prior dispositions: (1) Claude P2 slug worth.py:102 — UPHELD P2, current; Security P1#2 is the same unreadable-attribution boundary plus collision/window, not a second P1. Encoding \".\" is required; a corrected lossy slug still cannot prove repo or time, so keep those rows as explicit unassigned gaps. (2) Security P1#1 CLAUDE_DIR HOME join — REJECTED. The contract resolves relative config against HOME; --claude-dir already took external/absolute roots on dev; this reader is not a host-containment boundary. (3) Claude P3 and Security P1#3 re-emissions — UPHELD as one P2 with (4), not two defects. \"assistant usage rows\" vs last-wins is ambiguous; live Claude stores re-emit (usage.py 2086/1052). (4) Security P1#4 TypeError — UPHELD P2, current, same loop as (3). (5) Security P2#5 output-only avg_context=0.0 — REJECTED as a finding. Spec does not settle missing-currency vs known-zero; the existing token path already defaults missing currencies to 0. (6) Security P2#6 refusals substring — UPHELD P2, current. (7) GPT-6's two P2s match (1) and (3/4)+(6). Agree path-escape reject. Agree one scoped correction, not six P1s. Independently I do not treat re-emissions or refusals as mere follow-ups: both fire on ordinary lane transcripts. (8) Grok 245c7e as quoted by GPT-6 — agree slug plus TypeError and reject path P1; I also hold re-emissions and refusals at P2. Pre-existing out of scope: usage.py/pulse.py slash-only slug prefilter (readable worth still uses cwd). Grok tests copy that slash-only _slug and do not plant re-emission, TypeError, or is_error=false plus marker; check-tests was skipped. Recommendation: keep CLAUDE_DIR resolution. On this lineage, fix unreadable attribution, last-wins and type-safe the new fields, and classify refusals with deny/error evidence. No telemetry redesign. Severity: D-LAUNCHER-1 / I-010 reserves P1 for lane function/integrity or reaching outside a job; these are meter correctness holes, not sandbox escapes. Publication correction by GPT-6 Astra (2026-09-04): only the two displayed encoded-path examples in finding 1 were replaced with an explicitly synthetic equivalent to satisfy the tree term wall. The reproduction, finding, counts and verdict are unchanged. Verbatim original: https://github.com/uscient/agentscient/pull/61#issuecomment-5547011421 and the unchanged runtime record for this dispatch."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T22:07:36.341Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,225 @@
+{
+  "id": "20260905T220642Z-code-codex-3fe449",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "named-card-cap",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "b518e3ebdcac6da33d773bd00eed7354f265a401"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T22:06:43Z",
+    "closed": "2026-09-05T22:09:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b518e3ebdcac6da33d773bd00eed7354f265a401",
+    "ref_sha": "b518e3ebdcac6da33d773bd00eed7354f265a401",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"medium\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-06-44-01a0739c-15b4-7633-aa3b-568d1cdef60e.jsonl"
+  },
+  "session": {
+    "id": "01a0739c-15b4-7633-aa3b-568d1cdef60e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-06-44-01a0739c-15b4-7633-aa3b-568d1cdef60e.jsonl",
+    "stream_sha256_at_close": "9ec36b5cea09532cdb76b67f1f81b5427757d0a05a8552713a83b8491c1985dd",
+    "spend": {
+      "input": 590141,
+      "cached": 514688,
+      "output": 5690,
+      "total": 595831,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-06-44-01a0739c-15b4-7633-aa3b-568d1cdef60e.jsonl",
+      "messages": 115
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' && ruff check ops/conductor/tools/lane_read.py\nFix only the UPHELD PR72 named job-card P2 in ops/conductor/reports/mcp-named-card-cap-ruling-2026-09-05.md. Only production file allowed: ops/conductor/tools/lane_read.py. Section 5's 64-entry cap applies to unnamed listings; named cards and missing-name results must work beyond it. Preserve source and whole-query byte bounds, prompt withholding and every other behavior. Do not edit tests, contracts or unrelated robustness. Before editing, reproduce the new single regression test and include its red command and base SHA in the commit body. Read the supplied attribution note. Then implement the narrow correction, run the command above, commit with Source and actual model Co-Authored-By trailers, and return the required envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220642Z-code-codex-3fe449/in/ag-cap-implementation-input.md",
+        "sha256": "c503ff184c71eade23061c66f9ed1ec800de70ddf1906df6a0e6856735f3894f"
+      }
+    ],
+    "sha256": "11e8270ec235c516527c8206d6893e23583288a8e58b6519552a01b428f8be62",
+    "bytes": 4707
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T22:06:43Z",
+      "ended": "2026-09-05T22:09:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "631e30a6812fd3838c6eb161721e32a9c124ae5d",
+    "changed_paths": [
+      "ops/conductor/tools/lane_read.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "job-card P2",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 10,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Confirmed a clean detached tree at the required base SHA and enumerated governing and input files.",
+          "reproduce": "pwd && git status --short --branch && git rev-parse HEAD && rg --files docs ops | sed -n '1,240p' && find ../in -maxdepth 2 -type f -print 2>/dev/null"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/*.md",
+          "claim": "Read the repository's founding contracts before working.",
+          "reproduce": "wc -l docs/*.md ops/README.md ops/conductor/README.md ops/conductor/reports/mcp-named-card-cap-ruling-2026-09-05.md ../in/ag-cap-implementation-input.md && sed -n '1,240p' docs/wire.md && sed -n '1,260p' docs/workflow.md && sed -n '1,240p' docs/probes.md && sed -n '1,240p' docs/concerns.md && sed -n '1,240p' docs/verified-couplings.md && sed -n '1,300p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops documentation and supplied input",
+          "claim": "Read the lane instructions, upheld ruling, and attribution note; confirmed the base remained clean.",
+          "reproduce": "sed -n '1,220p' ops/README.md && sed -n '1,160p' ops/conductor/README.md && sed -n '1,160p' ops/conductor/reports/mcp-named-card-cap-ruling-2026-09-05.md && sed -n '1,80p' ../in/ag-cap-implementation-input.md && git log -1 --format=fuller --decorate && git status --porcelain=v1"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/lane_read.py and lane MCP tests",
+          "claim": "Located the unconditional 64-entry check and the independently authored regression.",
+          "reproduce": "rg -n \"65|64|more than|named|missing\" ops/conductor/tests/test_lane_mcp*.py ops/conductor/tools/lane_read.py && git log --oneline --decorate -12 -- ops/conductor/tests/test_lane_mcp_context.py ops/conductor/tools/lane_read.py && sed -n '1,320p' ops/conductor/tools/lane_read.py && sed -n '1,420p' ops/conductor/tests/test_lane_mcp_context.py"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 868a4209eea509a51ed7fa1c47ce7da5aaa16bad",
+          "claim": "Verified the focused regression's provenance and exact asserted behavior.",
+          "reproduce": "sed -n '860,1130p' ops/conductor/tests/test_lane_mcp_context.py && sed -n '1030,1180p' ops/conductor/tools/lane_read.py && git show --stat --format=fuller 868a420 && git show --format=full 868a420 -- ops/conductor/tests/test_lane_mcp_context.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/lane_read.py:1134",
+          "claim": "At base b518e3ebdcac6da33d773bd00eed7354f265a401, a named card in a 65-entry registry incorrectly returned unavailable instead of ok.",
+          "reproduce": "cd ops/conductor/tests && python3 -m unittest test_lane_mcp_context.TestLaneMcpContextJobs.test_lane_jobs_named_card_at_sixty_five_entries"
+        },
+        {
+          "severity": "p3",
+          "where": "focused regression after correction",
+          "claim": "The named-card regression passed after restricting the entry cap to unnamed listings.",
+          "reproduce": "cd ops/conductor/tests && git diff --check && git diff -- ops/conductor/tools/lane_read.py && python3 -m unittest test_lane_mcp_context.TestLaneMcpContextJobs.test_lane_jobs_named_card_at_sixty_five_entries"
+        },
+        {
+          "severity": "p3",
+          "where": "required gate",
+          "claim": "The requested command passed 50 tests and Ruff.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' && ruff check ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working-tree diff",
+          "claim": "Confirmed the production change is a one-line conditional modification in the only permitted production file.",
+          "reproduce": "git status --short && git diff --check && git diff -- ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The sandbox refused git commit because the snapshot's Git metadata is read-only.",
+          "reproduce": "git add ops/conductor/tools/lane_read.py && git commit -m \"conductor: scope job cap to unnamed listings\" -m \"Finding: At base b518e3ebdcac6da33d773bd00eed7354f265a401, focused regression failed.\" -m \"Verified: required gate passed.\" -m \"Source: original\" -m \"Co-Authored-By: GPT-5 <noreply@openai.com>\" -m \"Co-Authored-By: Codex review bot (model undisclosed) <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree and out/COMMIT_MSG",
+          "claim": "Final verification passed; the source diff is one insertion and one deletion, the base ref is unchanged, and all required trailers parse.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' && ruff check ops/conductor/tools/lane_read.py && git diff --check && git status --short && git rev-parse HEAD && git diff --numstat -- ops/conductor/tools/lane_read.py && git interpret-trailers --parse < ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "production": "ops/conductor/tools/lane_read.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 595831,
+        "out": 5690,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b518e3ebdcac6da33d773bd00eed7354f265a401"
+      },
+      "note": "Implemented the ruling's direct reading: only unnamed listings enforce the 64-entry cap. Named cards and missing-name results now work beyond it while existing parsing, source/query bounds, prompt withholding, and projections remain unchanged. No unrelated issue was found. Commit creation was blocked solely by read-only Git metadata; the launcher can commit using the supplied message.",
+      "commit": {
+        "subject": "conductor: scope job cap to unnamed listings",
+        "body": "Finding: At base b518e3ebdcac6da33d773bd00eed7354f265a401, `python3 -m unittest test_lane_mcp_context.TestLaneMcpContextJobs.test_lane_jobs_named_card_at_sixty_five_entries` from ops/conductor/tests failed because the named card returned unavailable instead of ok.\n\nVerified: `python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' && ruff check ops/conductor/tools/lane_read.py` passed 50 tests and Ruff at the resulting tree.\n\nSource: original\nCo-Authored-By: GPT-5 <noreply@openai.com>\nCo-Authored-By: Codex review bot (model undisclosed) <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T22:09:30.373Z"
+    }
+  },
+  "status": "closed"
+}

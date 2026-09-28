@@ -1,0 +1,11 @@
+{
+  "facts": {
+    "json_dumps_calls": [],
+    "hashlib_algorithms": ["sha256"]
+  },
+  "provenance": {
+    "source": "PLAN.md",
+    "lines": "52,574-575",
+    "note": "PLAN.md supplies no canonical.py source-line value, so this control does not fabricate one."
+  }
+}

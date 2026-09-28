@@ -1,0 +1,185 @@
+{
+  "id": "20260906T135747Z-adjudicate-grok-71f362",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conduct-cold-ruling-b-20260906",
+  "lineage": {
+    "branch": "lane/conduct-cold-ruling-b-20260906",
+    "base_sha": "8fd333eed9130c9149cc7389ba397f0e243ad49b"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:57:47Z",
+    "closed": "2026-09-06T14:10:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8fd333eed9130c9149cc7389ba397f0e243ad49b",
+    "ref_sha": "8fd333eed9130c9149cc7389ba397f0e243ad49b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4abc601c-f480-4824-8efe-acc25d53b10b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok-stream/sessions/<snapshot-encoded>/4abc601c-f480-4824-8efe-acc25d53b10b/summary.json"
+  },
+  "session": {
+    "id": "4abc601c-f480-4824-8efe-acc25d53b10b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok-stream/sessions/<snapshot-encoded>/4abc601c-f480-4824-8efe-acc25d53b10b/summary.json",
+    "stream_sha256_at_close": "f268278d9f2f081b7f7d9146b3e9ac6d0bb194cd251a6b86f1b32a014c88b0d6",
+    "spend": {
+      "input": 1368046,
+      "cached": 1020160,
+      "output": 43340,
+      "total": 1411386,
+      "cost_usd_ticks": 2492016400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/home/grok-stream/sessions/<snapshot-encoded>/4abc601c-f480-4824-8efe-acc25d53b10b/summary.json",
+      "messages": 204
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-cold-ruling-b-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the supplied original review against this exact original snapshot. Read the report verbatim and the artifact it reviewed; do not inspect later refs, live repositories, later reviews, fixes, concessions or other dispatch state. Rule UPHELD/PARTIAL/REJECTED on every finding, grounded in commands against this snapshot, then state what the reviewer missed separately. No edits to the snapshot, tests, runtime, full floor, vendor call or authority change. Write the complete ruling to out/RULING.md and name it in artifacts; return a valid review envelope with exact SHA and bounded remedies. The adversarial-review job is used for adjudication because the documented wrapper always passes scope and therefore refuses the no-scope adjudicate job.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/in/ag-conduct-original-interface-recheck.json",
+        "sha256": "220e4de935494337140aa58261f2326a271ef40f2d31318904e8ec4d7e21e36d"
+      }
+    ],
+    "sha256": "087f53ca9a7c977b3768f11c206e6c41e22745e9386212e5a33239160a2b4dfc",
+    "bytes": 3066
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:57:47Z",
+      "ended": "2026-09-06T14:10:21Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8fd333eed9130c9149cc7389ba397f0e243ad49b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/probes-lever.md:292",
+          "claim": "UPHELD. Exit 0 still requires matching verified identities, while exit 1 names only FAIL/UNREACHABLE rows and cleanup failed|unreachable. A completed report with all-PASS rows, cleanup complete, and identity null or non-matching has no declared exit class; exit 2 is pre-act only. Remedy: add identity-null and identity-mismatch to the exit-1 clause in the same sentence as cleanup unreachable, and keep unavailable identity as unavailable evidence rather than observed failure.",
+          "reproduce": "sed -n '262p;292,300p' ops/conductor/probes-lever.md; sed -n '234,236p' ops/conductor/harness-capabilities.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-interface-checks.json:2",
+          "claim": "UPHELD. The producer receipt names base and head 8a788d5ecbd1720204fd0139f24a74394d05b6e6 and has no checked_at, while its files_sha256 match the four documents at 8fd333eed9130c9149cc7389ba397f0e243ad49b (76 insertions, 26 deletions versus 8a788d5). That violates verified-couplings obligation 4. Remedy: restamp receipt base/head to 8fd333eed9130c9149cc7389ba397f0e243ad49b and add a checked_at UTC date for those bytes.",
+          "reproduce": "sha256sum ops/conductor/conductor-start-plan.md ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; git show --stat 8fd333eed9130c9149cc7389ba397f0e243ad49b"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-interface-checks.json:11",
+          "claim": "UPHELD. Receipt safe_vectors positive=3 negative=9 are not recoverable from the hashed harness-capabilities.md named examples: two admissible vectors and seven refusing examples. Remedy: set the counts to 2 and 7, or declare the synthesis rule that produces 3 and 9.",
+          "reproduce": "sed -n '160,172p' ops/conductor/harness-capabilities.md"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 8fd333eed9130c9149cc7389ba397f0e243ad49b (message body)",
+          "claim": "UPHELD. git interpret-trailers treats Validation: as a trailer; the landed body opens with the stranded continuation '34 local links/anchors, six adapter mappings, and nine cleanup exit states.' Source and Co-Authored-By are present. Remedy: keep the Validation sentence in the body so continuation lines are not parsed as trailers.",
+          "reproduce": "git log -1 --format=%B 8fd333eed9130c9149cc7389ba397f0e243ad49b; git interpret-trailers --parse --no-divider 8fd333eed9130c9149cc7389ba397f0e243ad49b"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:90",
+          "claim": "UPHELD. conductor-start-plan.md:90 is the orphan line 'the adapter'; line 92 is 129 columns; probes-lever.md:155 and 329 are the same splice. Remedy: rewrap those three edited paragraphs to the surrounding prose fill.",
+          "reproduce": "sed -n '85,94p' ops/conductor/conductor-start-plan.md; sed -n '149,155p;328,331p' ops/conductor/probes-lever.md"
+        }
+      ],
+      "artifacts": {
+        "ruling": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-71f362/out/RULING.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1411386,
+        "out": 43340,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8fd333eed9130c9149cc7389ba397f0e243ad49b",
+        "started": null,
+        "ended": "2026-09-06T14:10:00Z"
+      },
+      "note": "ADJUDICATION \u2014 Grok 4.6, read-only. Ref 8fd333eed9130c9149cc7389ba397f0e243ad49b against 710dbac38c3b187eb4b3302308430c0a6dec4d76. Original recheck 20260906T110711Z-review-claude-e4968e: five P3 findings all UPHELD; the eight prior interface findings stay closed except original 6's identity half (finding 1). Verdict changes. Complete ruling at out/RULING.md. Missed separately: receipt cleanup_exit_matrix has no identity axis; mechanism typed string vs text with the same rule; finding 5 uniqueness claim overstated. No snapshot, test, runtime, vendor or authority edit."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:10:21.112Z"
+    }
+  },
+  "status": "closed"
+}

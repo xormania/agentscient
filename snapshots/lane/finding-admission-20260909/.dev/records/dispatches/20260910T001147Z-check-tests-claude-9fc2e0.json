@@ -1,0 +1,262 @@
+{
+  "id": "20260910T001147Z-check-tests-claude-9fc2e0",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "d52bae70d17be12b12501eb0faf86e92e11c29b9"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:11:47Z",
+    "closed": "2026-09-10T00:13:56Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d52bae70d17be12b12501eb0faf86e92e11c29b9",
+    "ref_sha": "d52bae70d17be12b12501eb0faf86e92e11c29b9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "5a668381-ed62-46f6-a9ae-b77ffd428bde",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "medium",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--effort",
+      "medium"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/5a668381-ed62-46f6-a9ae-b77ffd428bde.jsonl"
+  },
+  "session": {
+    "id": "5a668381-ed62-46f6-a9ae-b77ffd428bde",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/5a668381-ed62-46f6-a9ae-b77ffd428bde.jsonl",
+    "stream_sha256_at_close": "eef8a0ec9a712a0f8bb743f2e01990e2774edc026bf523ff7f63b7bee648032c",
+    "spend": {
+      "input": 18,
+      "cached": 354410,
+      "output": 8273,
+      "total": 362701,
+      "source": "result.usage",
+      "messages": 9,
+      "cost_usd": 0.872527
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Verify ONLY closure of the two findings in in/admission-test-review.json against correction commit d52bae7 and in/admission-test-correction.json. The previous reviewer accepted all other tests; do not start another general audit. Read the corrected ledger test diff and contract clauses, no production implementation. Confirm planted-position keys and import-class flexibility without weakening corrections refusal. Supplied red-corrected receipt proves unchanged pre-implementation failures. Return approve if these two defects are resolved, or only a concrete remaining defect from this correction. No edits.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/in/admission-test-review.json",
+        "sha256": "667199ca081dc62b38eb8871a289532d34f85004e164ee816dd7633fdee5e290"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/in/admission-test-correction.json",
+        "sha256": "16fdf21106b54274270c5ddf88e0093097ed9ca7231cbb157c6f602558a610ac"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/in/admission-red-corrected.json",
+        "sha256": "29b419fee3af9970ba8aace455e4bea2f3f5e5156c1299c9affc6c978bcd0548"
+      }
+    ],
+    "sha256": "3efac21275f68f735839cdc4df7eb4a9e2c367b0aa3a1cff41a2dae5669bf8c7",
+    "bytes": 2003
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:11:47Z",
+      "ended": "2026-09-10T00:13:55Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d52bae70d17be12b12501eb0faf86e92e11c29b9",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001147Z-check-tests-claude-9fc2e0/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 362701,
+        "out": 8273,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d52bae70d17be12b12501eb0faf86e92e11c29b9",
+        "started": null,
+        "ended": null
+      },
+      "note": "Closure-only review of the two findings in in/admission-test-review.json against correction commit d52bae7 and in/admission-test-correction.json; no general audit, no implementation read. P2 RESOLVED: test_finding_admission_ledger.py:369-373 now derives planted_keys 1-based from len(findings) per FINDING-ADMISSION.md:114 (<record>#<n>), asserting admitted [REC#1], held [REC#2,REC#3] against three positionally planted findings (_finding_from strips n) \u2014 replaces the impossible fixture-n [REC#7,REC#8]; still catches wrong-keying, misclassification, and drop/dup. P3 RESOLVED: assert_refusal gained class_name=None (176-188) keeping exit2/one-line/empty-stdout/expected-found-needed but not pinning the token; both import branches (490-504, 548-618) call it unnamed while corrections branches keep admission-evidence. Contract :58-59 names no class for import-stage duplicate-key decode; :162-169 assigns admission-evidence only to the corrections read. Import-class flexibility confirmed without weakening corrections refusal; other class-bearing assertions (identity, admission-binding, admission-incomplete) unchanged. Red-corrected receipt (head d52bae7, ledger hash e093b49d matching HEAD) confirms unchanged pre-implementation exit-1 failures; green side out of scope. No new surviving-mutant weakness introduced by the correction. Verdict approve."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

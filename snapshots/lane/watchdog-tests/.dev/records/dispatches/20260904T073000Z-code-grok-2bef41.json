@@ -1,0 +1,159 @@
+{
+  "id": "20260904T073000Z-code-grok-2bef41",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/watchdog",
+  "lineage": {
+    "branch": "lane/watchdog-tests",
+    "base_sha": "346db0789d67b126fbb67f206fcac40355b1d667"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T07:30:00Z",
+    "closed": "2026-09-04T07:46:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "346db0789d67b126fbb67f206fcac40355b1d667",
+    "ref_sha": "346db0789d67b126fbb67f206fcac40355b1d667",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "25389f5e-622e-4f2e-a268-177234014e54",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok-stream/sessions/<snapshot-encoded>/25389f5e-622e-4f2e-a268-177234014e54/summary.json"
+  },
+  "session": {
+    "id": "25389f5e-622e-4f2e-a268-177234014e54",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok-stream/sessions/<snapshot-encoded>/25389f5e-622e-4f2e-a268-177234014e54/summary.json",
+    "stream_sha256_at_close": "dddc2e58c492319007ec8caaa56e893a714977db010ecc4a8974b731e56d51db",
+    "spend": {
+      "input": 2949424,
+      "cached": 2494208,
+      "output": 58661,
+      "total": 3008085,
+      "cost_usd_ticks": 4266153400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/home/grok-stream/sessions/<snapshot-encoded>/25389f5e-622e-4f2e-a268-177234014e54/summary.json",
+      "messages": 223
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-watchdog-tests/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The session watchdog, tests only: write ops/conductor/tests/test_watchdog.py from the contract in the input file (ops/conductor/watchdog-lever.md on this ref, with the tests brief appended), red at this ref because ops/conductor/tools/watchdog.py does not exist here, and add its registry row to ops/conductor/tests/test_instrument_conventions.py. Plant stores under a temporary XDG_STATE_HOME; never touch the live store. The brief lists the fixture rows to pin. One commit per file. No implementation exists; do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T073000Z-code-grok-2bef41/in/contract-watchdog-tests.md",
+        "sha256": "baba16698eb851d8ec2fb3be24aa703780500418d590adfb34e21d7749bb2cc3"
+      }
+    ],
+    "sha256": "a7895a91117cac7bc06f0af1ab51865efe6aa511f20513b8298fa37edfb3383c",
+    "bytes": 2872
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T07:30:00Z",
+      "ended": "2026-09-04T07:46:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "47df206ca960044fbbf6a494ef71820f12d59cf4",
+    "changed_paths": [
+      "ops/conductor/tests/test_instrument_conventions.py",
+      "ops/conductor/tests/test_watchdog.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_watchdog": "ops/conductor/tests/test_watchdog.py",
+        "conventions": "ops/conductor/tests/test_instrument_conventions.py",
+        "red": "out/RED.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3008085,
+        "out": 58661,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "346db0789d67b126fbb67f206fcac40355b1d667",
+        "started": "2026-09-04T07:40:15Z",
+        "ended": "2026-09-04T07:46:26Z"
+      },
+      "note": "Wrote ops/conductor/tests/test_watchdog.py from ops/conductor/watchdog-lever.md and registered watchdog.py on the conventions refusal gate (--store /dev/null, class store). No implementation was written; ops/conductor/tools/watchdog.py is absent. Commits on lane/watchdog-tests: 836776d66565dae2747de4f4d808df7e02d07275 (tests), 47df206ca960044fbbf6a494ef71820f12d59cf4 (registry). Red at 47df206: python3 -m unittest discover -s ops/conductor/tests -p 'test_watchdog.py' -q \u2192 Ran 39 tests, FAILED (failures=44), exit 1, zero errors zero passes (copy-tool-bytes stand-in so a missing file is not every test's failure); python3 -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py' -q \u2192 Ran 3 tests, FAILED (failures=2) on watchdog.py missing / class store not on Python's missing-file stderr. Stores planted under a temporary XDG_STATE_HOME; live store untouched."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T07:46:58.101Z"
+    }
+  },
+  "status": "closed"
+}

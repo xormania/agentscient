@@ -1,0 +1,190 @@
+{
+  "id": "20260906T022239Z-code-codex-2d638a",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "2b0491203cb9b37459fb2af6ac703940051374d2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:22:40Z",
+    "closed": "2026-09-06T02:30:47Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2b0491203cb9b37459fb2af6ac703940051374d2",
+    "ref_sha": "2b0491203cb9b37459fb2af6ac703940051374d2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-22-41-01a07486-6a23-79c2-ac3f-b82d1cf3ea6b.jsonl"
+  },
+  "session": {
+    "id": "01a07486-6a23-79c2-ac3f-b82d1cf3ea6b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-22-41-01a07486-6a23-79c2-ac3f-b82d1cf3ea6b.jsonl",
+    "stream_sha256_at_close": "0bc96d25ccce9b62826bc330f8de27c28b1926daff4fe54367cc00ccda30795a",
+    "spend": {
+      "input": 1281200,
+      "cached": 1185280,
+      "output": 14541,
+      "total": 1295741,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-22-41-01a07486-6a23-79c2-ac3f-b82d1cf3ea6b.jsonl",
+      "messages": 139
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement docs-only C1-contract exactly as Grok ruling 518ab8: change only dispatch/CONTRACT.md and task/CONTRACT.md. Read ruling, owner brief and inventory. Define the target single worker execution authority and frontend roles, declared job outputs, task envelope semantics, capability evidence and independent configurable harness/model/role/profile. Clearly distinguish proposed behavior from measured current multiple paths and transport defects. Preserve truthful per-harness containment and existing fileset refusal; inline planning remains a named temporary exception. Lane policy is a consume-only coupling owned by the parallel boundary track: no duplicate policy or authority-doc edits. Dev tooling is permanent and independent of the Symfony application. No runtime/tests/settings/host/DB/network changes. Acceptance command: git diff --check; verify changed links and ownership consistency. Actual-model provenance; compact envelope. Independent review follows. No broad roadmap or added file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/20260906T021502Z-adjudicate-grok-518ab8.json",
+        "sha256": "c877984b6eac6f9d860b63788089ce9c7eb784e6d9d7990063a945e1eabf906f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/20260906T012006Z-review-codex-464dfc.json",
+        "sha256": "da32e5c31bf6cfe7a971258c8abc390587e2549e0a518a27d9570734616cabfc"
+      }
+    ],
+    "sha256": "f26c94b9726506e031521297521b0a966ca4448532ec186e15e29779d8eee01f",
+    "bytes": 4853
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:22:40Z",
+      "ended": "2026-09-06T02:30:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "45740cd27b57e4f383512838bcf4cb52fa9ad163",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/task/CONTRACT.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "git diff --check exited 0. Only the two authorized contracts changed; 13 local links/anchors passed and ownership is consistent.",
+          "reproduce": "git diff --check && git diff --name-only"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMANDS.json",
+          "claim": "All 16 shell command invocations are recorded as findings with reproduction entries.",
+          "reproduce": "cat ../out/COMMANDS.json"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Commit failed because .git is read-only. The attributed commit message is saved for the launcher.",
+          "reproduce": "git commit --only -F ../out/COMMIT_MSG -- ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "dispatch": "ops/devlane/dispatch/CONTRACT.md",
+        "task": "ops/devlane/task/CONTRACT.md",
+        "commands": "../out/COMMANDS.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1295741,
+        "out": 14541,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2b0491203cb9b37459fb2af6ac703940051374d2",
+        "started": null,
+        "ended": "2026-09-06T02:30:10Z"
+      },
+      "note": "Implemented C1 as a target contract, not runtime completion. Existing execution, output-grant, envelope, supervision and wire gaps remain follow-ups. No tests or runtime changed. Independent review follows.",
+      "commit": {
+        "subject": "docs: declare C1 worker execution authority",
+        "body": "Define target execution ownership, frontend roles, declared outputs, envelope semantics and per-harness capability evidence. Preserve measured defects, fileset refusal and the temporary inline-planning exception. Profile policy remains consume-only.\n\nValidation: git diff --check; 13 local links/anchors; two-file scope and ownership consistency.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T02:30:46.857Z"
+    }
+  },
+  "status": "closed"
+}

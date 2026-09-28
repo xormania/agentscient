@@ -1,0 +1,103 @@
+# CodeQL advanced setup bills $0 while CI_RUNNER is unset and jobs use the
+# self-hosted runners. Setting CI_RUNNER to ubuntu-latest would incur hosted
+# runner billing and is refused by the repository's $0 spend limit.
+# The bundle is pinned here until the shared pins file exists. No cache action
+# is used because CodeQL manages its tool cache on the runner.
+name: CodeQL
+
+concurrency:
+  group: codeql-${{ github.event_name }}-${{ github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      proof:
+        description: Run the local both-ways scanner proof
+        type: boolean
+        default: false
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [main]
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    name: "dev: codeql (${{ matrix.language }})"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 30
+    env:
+      PROOF: ${{ inputs.proof && '1' || '0' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, actions]
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: default-setup
+        name: Establish default-setup state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! response=$(gh api "repos/${GITHUB_REPOSITORY}/code-scanning/default-setup"); then
+            if printf '%s' "$response" | python3 -c "import json,sys; b=json.load(sys.stdin); raise SystemExit(0 if str(b.get('status'))=='403' and 'Code Security must be enabled' in str(b.get('message','')) else 1)"; then
+              echo "state=not-configured" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "UNREACHABLE: could not establish default-setup state"
+            exit 1
+          fi
+          if ! state=$(printf '%s' "$response" | python3 -c "import json,sys; print(json.load(sys.stdin)['state'])"); then
+            echo "UNREACHABLE: default-setup response had no readable state"
+            exit 1
+          fi
+          echo "state=${state}" >> "$GITHUB_OUTPUT"
+
+      - name: Materialise the proof fixture
+        if: env.PROOF == '1'
+        run: |
+          mkdir -p proof-scan
+          cp ops/devlane/workflow/tests/fixtures/codeql_proof/findable.py.fixture proof-scan/findable.py
+
+      - uses: github/codeql-action/init@v3
+        if: env.PROOF == '1' || steps.default-setup.outputs.state == 'not-configured'
+        with:
+          languages: ${{ matrix.language }}
+          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.26.4/codeql-bundle-linux64.tar.gz
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@v3
+        if: env.PROOF == '1' || steps.default-setup.outputs.state == 'not-configured'
+        with:
+          category: /language:${{ matrix.language }}
+          output: sarif-results
+          upload: never
+
+      - name: Keep SARIF as an artifact
+        if: env.PROOF == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results
+
+      - name: Evaluate SARIF
+        if: env.PROOF == '1'
+        run: python3 .github/codeql/eval_sarif.py sarif-results
+
+      - name: Remove the proof fixture
+        if: always() && env.PROOF == '1'
+        run: rm -f proof-scan/findable.py
+
+      - name: Say why nothing was analysed
+        if: env.PROOF != '1' && steps.default-setup.outputs.state != 'not-configured'
+        run: |
+          echo "codeql: SKIPPED — default setup is still configured." >> "$GITHUB_STEP_SUMMARY"
+          echo "Advanced-setup results are refused until default setup is disabled." >> "$GITHUB_STEP_SUMMARY"
+          echo "gh api -X PATCH repos/uscient/agentscient/code-scanning/default-setup -f state=not-configured"
+          exit 1

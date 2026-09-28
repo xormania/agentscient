@@ -1,0 +1,175 @@
+{
+  "id": "20260911T065548Z-review-grok-757cad",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-ladder-stop-20260911",
+  "lineage": {
+    "branch": "lane/gate-ladder-stop-20260911",
+    "base_sha": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481"
+  },
+  "follows": [
+    "20260911T065539Z-review-codex-2cc9ea"
+  ],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:55:57Z",
+    "closed": "2026-09-11T07:15:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+    "ref_sha": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "aa9a029b-995c-4880-8fea-780b041bb84c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok-stream/sessions/<snapshot-encoded>/aa9a029b-995c-4880-8fea-780b041bb84c/summary.json"
+  },
+  "session": {
+    "id": "aa9a029b-995c-4880-8fea-780b041bb84c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok-stream/sessions/<snapshot-encoded>/aa9a029b-995c-4880-8fea-780b041bb84c/summary.json",
+    "stream_sha256_at_close": "de261141bdb8f3433bc2da1ff07b0180d40cf6f6555c92f8e6a4f23b3da9f706",
+    "spend": {
+      "input": 2309726,
+      "cached": 2143744,
+      "output": 39451,
+      "total": 2349177,
+      "cost_usd_ticks": 2788921400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok-stream/sessions/<snapshot-encoded>/aa9a029b-995c-4880-8fea-780b041bb84c/summary.json",
+      "messages": 267
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/plan-ladder-stop-gate.md",
+        "sha256": "e25a3225673b983af2def10da377f56c00f92e39726a3bf917a723554443d03f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "a79958f9a58098327ee66382bda7bf3017b05f5e2993aa6c028afc3a09d3ded2",
+    "bytes": 3773,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "7f44b78795b75415beed944b367f65d0998b1203630c1f533764447653038a64"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:55:58Z",
+      "ended": "2026-09-11T07:15:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2349177,
+        "out": 39451,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+        "started": null,
+        "ended": "2026-09-11T07:15:08Z"
+      },
+      "note": "Contract items 1\u201310 against the slice-5 delta (ladder.py plus test_ladder_lever_undisposed.py). Item 9 holds: before each of fix-tests and fix-code the driver runs findings.py cited on every finding from both audit envelopes, stops with reason=undisposed naming the keys and without minting, re-checks on resume, dispatches those stages as item-1 corrections with --answers for every key, and never invokes disposition. Frozen command: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_undisposed.py \u2192 13 tests OK. launch.py on this ref still has no --answers; that is slice 4\u2019s surface, not a cited break in this delta."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T07:15:44.954Z"
+    }
+  },
+  "status": "closed"
+}

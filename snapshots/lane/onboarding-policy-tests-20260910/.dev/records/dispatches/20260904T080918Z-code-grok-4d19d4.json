@@ -1,0 +1,157 @@
+{
+  "id": "20260904T080918Z-code-grok-4d19d4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-2",
+  "lineage": {
+    "branch": "lane/fixture-apps-2",
+    "base_sha": "73ef2ac588e001875995a596d6392944ec631150"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:09:19Z",
+    "closed": "2026-09-04T08:22:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "73ef2ac588e001875995a596d6392944ec631150",
+    "ref_sha": "73ef2ac588e001875995a596d6392944ec631150",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4c8ab397-aa2f-4666-b22c-b4e0b8ca93c2",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok-stream/sessions/<snapshot-encoded>/4c8ab397-aa2f-4666-b22c-b4e0b8ca93c2/summary.json"
+  },
+  "session": {
+    "id": "4c8ab397-aa2f-4666-b22c-b4e0b8ca93c2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok-stream/sessions/<snapshot-encoded>/4c8ab397-aa2f-4666-b22c-b4e0b8ca93c2/summary.json",
+    "stream_sha256_at_close": "e06cfaedb644409edb371874f22ed7d612a1eb1d606fb593162227ab052b91b6",
+    "spend": {
+      "input": 2110294,
+      "cached": 1811328,
+      "output": 46955,
+      "total": 2157249,
+      "cost_usd_ticks": 3035054200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/home/grok-stream/sessions/<snapshot-encoded>/4c8ab397-aa2f-4666-b22c-b4e0b8ca93c2/summary.json",
+      "messages": 190
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 2 (apps/python-tooling), tests only: write ops/devlane/fixtures/tests/test_python_tooling_app.py from the contract in the input file (the scope, then the plan; the slice 2 section names the app's layout, its faults by kind, and what the lane test proves through the merged lever ops/bin/fixture.sh: make copies the app, prove is red on every planted fault and green on every clean neighbour, prove --fixed is green, the manifest sweep accepts FAULTS.json, grade scores a planted review). Red at this ref because ops/devlane/fixtures/apps/python-tooling does not exist. The app itself, its own tests and its FAULTS.json are the implementation and are not written here. One commit per file. Do not write slices 3 to 5.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T080918Z-code-grok-4d19d4/in/contract-fixtures-2.md",
+        "sha256": "8855985d2bace1ccdd236399e474afcb448dda4183c6ba29e6d5abbfb613f4c2"
+      }
+    ],
+    "sha256": "d83919e86b5fce71572994e32d0f43d727607e284f9ff6cc033b97ceb8c58101",
+    "bytes": 3090
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:09:19Z",
+      "ended": "2026-09-04T08:22:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4a2f34f7fbf1a54560100a9724a77e2d5595ce92",
+    "changed_paths": [
+      "ops/devlane/fixtures/tests/test_python_tooling_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/fixtures/tests/test_python_tooling_app.py",
+        "commit": "4a2f34f7fbf1a54560100a9724a77e2d5595ce92"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2157249,
+        "out": 46955,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "73ef2ac588e001875995a596d6392944ec631150",
+        "started": "2026-09-04T08:09:19Z",
+        "ended": "2026-09-04T08:22:22Z"
+      },
+      "note": "Wrote ops/devlane/fixtures/tests/test_python_tooling_app.py from the slice-2 contract (layout, PT-01..PT-07 kinds, make/prove/grade through merged ops/bin/fixture.sh). Did not write the app, its tests, FAULTS.json, or slices 3-5. Collected 17 tests; each method FAIL not ERROR at 4a2f34f because apps/python-tooling is absent. Existence test: FAULTS.json is_file. Make/prove/grade fail on returncode 0 or expected PT-* colours. `python3 -m unittest discover -s ops/devlane/fixtures/tests -p test_python_tooling_app.py` exits 1 (17 tests, 25 failures including subTests). Commit 4a2f34f7fbf1a54560100a9724a77e2d5595ce92 on lane/fixture-apps-2."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T08:22:46.236Z"
+    }
+  },
+  "status": "closed"
+}

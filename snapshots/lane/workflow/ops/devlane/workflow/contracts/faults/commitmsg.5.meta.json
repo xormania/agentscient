@@ -1,0 +1,10 @@
+{
+  "contract": "commitmsg",
+  "fault": "commitmsg.5.json",
+  "from": "obs/commitmsg.json",
+  "change": "the commit subject is built as `workflow(…)`, not `wf(…)`",
+  "violates": "PLAN.md §5 lines 307-308",
+  "quote": "\"wf(WO-012/red): receipt.red cargo-test\"",
+  "reject_path": "facts\\.subject_literals(\\.[0-9]+)?\\b|wf\\(",
+  "implied": false
+}

@@ -1,0 +1,272 @@
+{
+  "id": "20260915T060205Z-tests-codex-6e5f6f",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "283498184c25ab2eeb53762be850a7c80ffe863c"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:02:05Z",
+    "closed": "2026-09-15T06:15:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "ref_sha": "283498184c25ab2eeb53762be850a7c80ffe863c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-02-06-01a0a3a8-895b-7f81-b357-5eaaf4b578f7.jsonl"
+  },
+  "session": {
+    "id": "01a0a3a8-895b-7f81-b357-5eaaf4b578f7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-02-06-01a0a3a8-895b-7f81-b357-5eaaf4b578f7.jsonl",
+    "stream_sha256_at_close": "e7fae3370575f5822a105959e8a7e18ba441bf6751d3ba5a0445009e584d7f30",
+    "spend": {
+      "input": 7910313,
+      "cached": 7764224,
+      "output": 21088,
+      "total": 7931401,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-02-06-01a0a3a8-895b-7f81-b357-5eaaf4b578f7.jsonl",
+      "messages": 549
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/dispatch/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/dispatch/tests/test_launch_review_p1_findings.py, ops/devlane/dispatch/tests/test_agy_native_transcript.py, ops/devlane/dispatch/tests/test_launch_graft.py, ops/devlane/dispatch/tests/test_launch_worker_mcp.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "aebf4cb15cf883cdf6e655d41de5e1d1f039b768860778e057fd3ce87b13e9ca",
+    "bytes": 10438,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/lane-mcp.json",
+      "sha256": "fd2e2c6027d94892f3e3ab2045a1741fac07f47700947d9e906ba1cc939ce0eb",
+      "job_ids": [
+        "20260915T060204Z-tests-grok-291224",
+        "20260915T060201Z-tests-codex-a1e9a9",
+        "20260915T060200Z-tests-grok-cbcce7",
+        "20260915T060159Z-tests-codex-ab9812",
+        "20260915T060158Z-tests-grok-bd62c7",
+        "20260915T060157Z-tests-codex-7742e6",
+        "20260915T060156Z-tests-grok-823ed1",
+        "20260915T060155Z-tests-codex-aa36a0",
+        "20260915T060153Z-tests-grok-644a41",
+        "20260915T060152Z-tests-codex-97f4d6",
+        "20260915T060151Z-tests-grok-2f9365",
+        "20260915T060150Z-tests-codex-1a0148",
+        "20260915T060149Z-tests-grok-171b72",
+        "20260915T053533Z-tests-grok-79b916",
+        "20260915T053532Z-tests-codex-b7740b",
+        "20260915T053530Z-tests-grok-57f552",
+        "20260915T053529Z-tests-codex-91518a",
+        "20260915T053528Z-tests-grok-d94271",
+        "20260915T053527Z-tests-codex-e32f1e",
+        "20260915T053526Z-tests-grok-1a9c2b"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:02:06Z",
+      "ended": "2026-09-15T06:15:24Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "db8672638e28615c8963aa443b59e6afbdfb351e",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_native_transcript.py",
+      "ops/devlane/dispatch/tests/test_launch_graft.py",
+      "ops/devlane/dispatch/tests/test_launch_review_p1_findings.py",
+      "ops/devlane/dispatch/tests/test_launch_worker_mcp.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_review_p1_findings.py",
+          "claim": "Preserved both test names and count. Baseline and migrated runs passed 2 tests; the absent-subject stand-in first produced assertion failures in both methods.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_review_p1_findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_native_transcript.py",
+          "claim": "Preserved all 4 test names and count. Baseline and migrated runs passed 4 tests; the absent launch seam first produced assertion failures in every method.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_native_transcript.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_graft.py",
+          "claim": "Preserved all 12 test names and count. Baseline and migrated runs passed 12 tests; the absent-subject stand-in first failed every method through assertions (16 failures including subtests).",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_graft.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_worker_mcp.py",
+          "claim": "Preserved all 16 test names and count. Baseline and migrated runs passed 16 tests; the absent-subject stand-in first failed every method through assertions (18 failures including subtests).",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_worker_mcp.py"
+        }
+      ],
+      "artifacts": {
+        "review_p1_findings": "ops/devlane/dispatch/tests/test_launch_review_p1_findings.py",
+        "agy_native_transcript": "ops/devlane/dispatch/tests/test_agy_native_transcript.py",
+        "launch_graft": "ops/devlane/dispatch/tests/test_launch_graft.py",
+        "launch_worker_mcp": "ops/devlane/dispatch/tests/test_launch_worker_mcp.py"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 7931401,
+        "out": 21088,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "283498184c25ab2eeb53762be850a7c80ffe863c",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns each inherited fixture environment and all new plants use world.plant_text/world.plant_bytes. Explicit subprocess calls were replaced by run with timeout=60; the Graft scripted harness is planted through world.tools and invokes its nested public CLI in-process. Kit gap: Tools' argv-response data cannot express that nested CLI invocation, so the existing minimal scripted harness remains. No regression rows were added because this was a behavior-preserving migration; names and counts are unchanged. Implementation and the session store were not read. Only the four scoped modules changed. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: 2, 4, 12, and 16 tests OK.\nred: 2/2, 4/4, 12/12, and 16/16 methods failed assertions against the absent contract stand-in; subtests made the latter totals 16 and 18 failures.\nafter: 2, 4, 12, and 16 tests OK.\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 107.440s, OK.\nruff: All checks passed.\nratchet: home_by_hand 57 -> 31; embedded_programs 30 -> 22; run_without_timeout 185 -> 99; holds. Census: modules=224 on_kit=106 exempt=8 off_kit=110.\ngit diff --check passed. Persistence was attempted after every red and green proof, but Git refused .git/index.lock on the read-only filesystem; completed green work remains on disk.",
+      "commit": {
+        "subject": "tests: migrate dispatch families onto the test kit",
+        "body": "Move the four scoped dispatch test modules onto World-owned fixtures, the bounded command runner, and registry-backed fakes while preserving every test name, count, and assertion.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 23,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T060205Z-tests-codex-6e5f6f/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T02-02-06-01a0a3a8-895b-7f81-b357-5eaaf4b578f7.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns each inherited fixture environment and all new plants use world.plant_text/world.plant_bytes. Explicit subprocess calls were replaced by run with timeout=60; the Graft scripted harness is planted through world.tools and invokes its nested public CLI in-process. Kit gap: Tools' argv-response data cannot express that nested CLI invocation, so the existing minimal scripted harness remains. No regression rows were added because this was a behavior-preserving migration; names and counts are unchanged. Implementation and the session store were not read. Only the four scoped modules changed. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: 2, 4, 12, and 16 tests OK.\nred: 2/2, 4/4, 12/12, and 16/16 methods failed assertions against the absent contract stand-in; subtests made the latter totals 16 and 18 failures.\nafter: 2, 4, 12, and 16 tests OK.\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 107.440s, OK.\nruff: All checks passed.\nratchet: home_by_hand 57 -> 31; embedded_programs 30 -> 22; run_without_timeout 185 -> 99; holds. Census: modules=224 on_kit=106 exempt=8 off_kit=110.\ngit diff --check passed. Persistence was attempted after every red and green proof, but Git refused .git/index.lock on the read-only filesystem; completed green work remains on disk.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T06:15:23.420Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.3.json",
+  "from": "obs/gatekinds.json",
+  "change": "the artifact gate kind no longer declares the outcome value `denied` anywhere — the one value §3.5 pairs with an exit-0 recording",
+  "violates": "PLAN.md §3.5 lines 182-184",
+  "quote": "\"Outcomes are recorded per stage from the spec's declared set — `accepted`, `rejected`, `denied`, `aborted`, `finding`, `ratified` — as distinct values, never collapsed. **A recorded denial exits 0**\"",
+  "reject_path": "outcomes\\b|denied",
+  "implied": false,
+  "sites": 2,
+  "note": "`denied` is declared twice in the clean spec (review and ratify); removing it from one stage leaves the value declared, so one constraint (the artifact kind declares `denied`) needs both sites edited. Still one constraint under test."
+}

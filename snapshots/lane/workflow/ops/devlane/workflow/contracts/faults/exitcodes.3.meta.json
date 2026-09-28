@@ -1,0 +1,10 @@
+{
+  "contract": "exitcodes",
+  "fault": "exitcodes.3.json",
+  "from": "obs/exitcodes.json",
+  "change": "wf.py passes 4 to sys.exit",
+  "violates": "PLAN.md §4 lines 271-274",
+  "quote": "\"**Exit codes** (loopflow's, unchanged): `0` … `1` … `2` … `3` … `64` usage.\"",
+  "reject_path": "exit_literals(\\.[0-9]+)?:.*\\b4\\b",
+  "implied": false
+}

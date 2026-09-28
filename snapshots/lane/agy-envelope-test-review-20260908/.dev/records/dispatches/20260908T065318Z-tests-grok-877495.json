@@ -1,0 +1,170 @@
+{
+  "id": "20260908T065318Z-tests-grok-877495",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-envelope-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-envelope-tests-20260908",
+    "base_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T06:53:19Z",
+    "closed": "2026-09-08T07:05:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "ref_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "28632460-0a27-4ee2-88f6-84d29e645b5f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok-stream/sessions/<snapshot-encoded>/28632460-0a27-4ee2-88f6-84d29e645b5f/summary.json"
+  },
+  "session": {
+    "id": "28632460-0a27-4ee2-88f6-84d29e645b5f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok-stream/sessions/<snapshot-encoded>/28632460-0a27-4ee2-88f6-84d29e645b5f/summary.json",
+    "stream_sha256_at_close": "34efd13026d0fb208643e83a341a8fba33bfbed9cea0686612964d508c3caf85",
+    "spend": {
+      "input": 2961250,
+      "cached": 2616960,
+      "output": 40252,
+      "total": 3001502,
+      "cost_usd_ticks": 3805572400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/home/grok-stream/sessions/<snapshot-encoded>/28632460-0a27-4ee2-88f6-84d29e645b5f/summary.json",
+      "messages": 259
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-envelope-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently author agy result-transport tests only in new ops/devlane/dispatch/tests/test_agy_envelope.py, plus at most one synthetic helper beside it. Use the candidate _envelope contract and supplied primary-source wire evidence. Pin terminal result extraction from published stream-json frames, exact canonical envelope semantics, vendor failure, ambiguous/missing/malformed/truncated terminal results and unrelated intermediate JSON. Preserve legacy controls. Do not inspect implementation source, invent unmeasured native/provider/denied-action schemas, or turn a benign tool-level denial into an undeclared blanket failure. No code/contracts, live vendors, settings, role study or full floor. Contract review is pending; mark tests provisional. Acceptance commands are focused unittest discovery and registered lint for these files. Return exact patch/hash, meaningful assertion reds, zero errors and real exits. Use Grok 4.6 attribution and no colon-led COMMIT_MSG prose.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/in/agy-worker-owner.md",
+        "sha256": "8abd7ac8e69a9610dbe58f5e0f5dc7e074c818bbc4b70387e49f01fe43d4c27c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T065318Z-tests-grok-877495/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      }
+    ],
+    "sha256": "b961df6ce6e64049dc32ffe7d8628dc96f27ac81f6499f95c78fa32c15fa51c5",
+    "bytes": 3324
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T06:53:19Z",
+      "ended": "2026-09-08T07:05:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3b1de205dda2e01f5f22bd1a3e8126637f9482e8",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/agy_envelope_support.py",
+      "ops/devlane/dispatch/tests/test_agy_envelope.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_agy_envelope.py",
+        "helper": "ops/devlane/dispatch/tests/agy_envelope_support.py",
+        "head": "3b1de205dda2e01f5f22bd1a3e8126637f9482e8",
+        "base": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+        "patch_sha256": "e4a5c54a60f7985b4066dd7685e31687a813e40aa18a2b8e0cd5ac671d6bb928",
+        "patch_stat": "2 files changed, 635 insertions(+)",
+        "unittest": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' at 3b1de205dda2e01f5f22bd1a3e8126637f9482e8: Ran 21, 19 FAIL, 2 PASS, 0 ERROR, exit 1",
+        "lint": "ruff check ops/devlane/dispatch/tests/test_agy_envelope.py ops/devlane/dispatch/tests/agy_envelope_support.py at 3b1de205dda2e01f5f22bd1a3e8126637f9482e8: exit 0",
+        "diff_check": "git diff --check fc9ad2c015d47c85b405018521b57fa57e212d90 HEAD: exit 0",
+        "reds": "19 assertion FAILs, 0 ERRORs, unittest exit 1 at 3b1de20. Stream/print extraction, step_update, denied_actions, tool_info, opinion, tripped, null-verdict and commit cases fail note decoy-scan-lead != nested terminal note. Missing/ambiguous/malformed/truncated, extra-key, counts-mismatch, vendor-error, SUCCESS+response=ok and raw nine-key cases fail status ok != invalid because the leading decoy still wins. Legacy grok and omitted-harness remain PASS."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3001502,
+        "out": 40252,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+        "started": "2026-09-08T06:56:55Z",
+        "ended": "2026-09-08T07:05:03Z"
+      },
+      "note": "PROVISIONAL: contract review is pending. Implementation unread. Tests committed at 3b1de205dda2e01f5f22bd1a3e8126637f9482e8. Focused discovery is red for the agy terminal carrier; legacy extraction controls stay green."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:05:37.270Z"
+    }
+  },
+  "status": "closed"
+}

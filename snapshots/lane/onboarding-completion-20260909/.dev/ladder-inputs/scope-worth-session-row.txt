@@ -1,0 +1,1 @@
+Item 48/R6. worth.py --claude-dir has no argparse default; resolve from CLAUDE_DIR in lane conf (relative to HOME). Waste session row carries turns, avg_context, refusals; unreadable transcript is unrecorded not 0. Frozen: python3 -m unittest discover -s ops/devlane/telemetry/tests -p 'test_worth*.py'

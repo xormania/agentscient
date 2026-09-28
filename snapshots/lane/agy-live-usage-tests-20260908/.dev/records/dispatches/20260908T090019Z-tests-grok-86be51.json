@@ -1,0 +1,177 @@
+{
+  "id": "20260908T090019Z-tests-grok-86be51",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-live-usage-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-live-usage-tests-20260908",
+    "base_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:00:19Z",
+    "closed": "2026-09-08T09:16:12Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "ref_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-live-usage-tests-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "6aa83855-9057-4410-8809-421fb58e5f5f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok-stream/sessions/<snapshot-encoded>/6aa83855-9057-4410-8809-421fb58e5f5f/summary.json"
+  },
+  "session": {
+    "id": "6aa83855-9057-4410-8809-421fb58e5f5f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok-stream/sessions/<snapshot-encoded>/6aa83855-9057-4410-8809-421fb58e5f5f/summary.json",
+    "stream_sha256_at_close": "fc15fcbd1bae7f6caaaa83225b77da7a1fa6128ef3a27e3a8dfc99ef20407b93",
+    "spend": {
+      "input": 1724387,
+      "cached": 1198464,
+      "output": 32901,
+      "total": 1757288,
+      "cost_usd_ticks": 3142422800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/home/grok-stream/sessions/<snapshot-encoded>/6aa83855-9057-4410-8809-421fb58e5f5f/summary.json",
+      "messages": 208
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-live-usage-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author one small independent regression file for live agy step_update output-cap enforcement from the supplied newly measured native stdout and cold ruling. Use existing launch fixtures/interfaces and budget source, actual child witness, native init/session/cwd and DONE agent_response usage carrier. A child emitting over-budget live output must trip before any terminal result; a child with truly absent usage must still fail closed after existing grace. Two bounded cases only, synthetic values/no native prose. No invented CLI, counter aggregation, production-body reads or existing test edits. Run focused discovery, lint/diff and record actual reds/zero interface errors. No vendors/full floor. Grok-4.6 attribution only, COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/in/agy-claude-code-ruling.json",
+        "sha256": "fa6aea95e8141b24c0de79183bac73f70eea96200c0b99438d3dc14a5fd44e20"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/in/agy-canonical-smoke-stdout.ndjson",
+        "sha256": "5daf9ba0a10316fbd1870eb4cb4292e79abf93157a9255aba9b4af27bedd4bef"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090019Z-tests-grok-86be51/in/agy-canonical-success-stdout.ndjson",
+        "sha256": "550232785798998c615a0dde885fd27dc3d51385bddeadb58c8b3fdc04ab6dcc"
+      }
+    ],
+    "sha256": "b5dea2187e3f7e43002f8b0b79cf46dc098b1291adb82721469aec536186bb11",
+    "bytes": 3091
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:00:19Z",
+      "ended": "2026-09-08T09:16:12Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "31aedc69e0c9a5930ccefbf7b6a4b163bf77af8b",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_live_step_update_cap.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "file": "ops/devlane/dispatch/tests/test_agy_live_step_update_cap.py",
+        "commit": "31aedc69e0c9a5930ccefbf7b6a4b163bf77af8b",
+        "red_over_budget": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_live_step_update_cap.py' -k test_over_budget_live_step_update_trips_before_any_terminal_result at 9eaee120fa69aeafb7b76dc742a9ce5f51c6f104: FAIL 1, errors 0, 8.133s; AssertionError assertNotIn '\"event\": \"result\"' after live DONE agent_response usage.output_tokens=500001",
+        "absent_usage": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_live_step_update_cap.py' -k test_absent_usage_still_fail_closes_after_stream_grace at 9eaee120fa69aeafb7b76dc742a9ce5f51c6f104: OK 1, errors 0, 1.093s; existing fail-closed after DISPATCH_STREAM_GRACE already holds",
+        "lint": "/home/scientdb/.local/bin/ruff check ops/devlane/dispatch/tests/test_agy_live_step_update_cap.py (ruff 0.16.5): All checks passed",
+        "diff": "git diff --name-only 9eaee120fa69aeafb7b76dc742a9ce5f51c6f104 HEAD: ops/devlane/dispatch/tests/test_agy_live_step_update_cap.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1757288,
+        "out": 32901,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+        "started": "2026-09-08T09:09:44Z",
+        "ended": "2026-09-08T09:15:33Z"
+      },
+      "note": "One independent regression file, two bounded cases, existing launch fixtures/wires.budget/start-witness and native init/session/cwd plus one DONE agent_response usage carrier. No invented CLI, no counter aggregation, no launch.py body read, no existing test edits, no vendors or full floor. Over-budget live output is an honest red on assertNotIn event=result (child waited 8.133s and emitted SUCCESS). Absent usage fail-closed after grace is already green at this tree. Ruff clean. Committed 31aedc69e0c9a5930ccefbf7b6a4b163bf77af8b on lane/agy-live-usage-tests-20260908 with Grok 4.6 attribution only."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T09:16:11.263Z"
+    }
+  },
+  "status": "closed"
+}

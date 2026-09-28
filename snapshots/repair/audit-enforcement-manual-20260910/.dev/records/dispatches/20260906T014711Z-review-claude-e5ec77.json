@@ -1,0 +1,276 @@
+{
+  "id": "20260906T014711Z-review-claude-e5ec77",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "1552699e1eb0c61dec0767fa98b9213115ad0ef6"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:47:11Z",
+    "closed": "2026-09-06T01:51:30Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "1552699e1eb0c61dec0767fa98b9213115ad0ef6",
+    "ref_sha": "1552699e1eb0c61dec0767fa98b9213115ad0ef6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "f2eba998-54fc-40f4-82e3-5d294d73e7b6",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/f2eba998-54fc-40f4-82e3-5d294d73e7b6.jsonl"
+  },
+  "session": {
+    "id": "f2eba998-54fc-40f4-82e3-5d294d73e7b6",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/f2eba998-54fc-40f4-82e3-5d294d73e7b6.jsonl",
+    "stream_sha256_at_close": "f46cb2b46c072b7c1b61d644ddc2ed5b01b7b1fb19e5e87261c8b6a3d8062dce",
+    "spend": {
+      "input": 40,
+      "cached": 1529422,
+      "output": 18928,
+      "total": 1548390,
+      "source": "result.usage",
+      "messages": 20,
+      "cost_usd": 2.2193609999999997
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independent cross-harness review of the GPT-6 docs correction only, against lane-boundary-owner.md. Verify active seeds, imports, onboarding and owning contracts consistently state enduring dev/prod independence: no Symfony app dependency or prod-twin replacement mandate for dev tooling. Preserve the application's Symfony rules and shared wire/provenance. Check precedence, discoverability, historical-record treatment, actual changed links and unsupported claims. Do not count a prompt/doc change as runtime enforcement, demand guard code in this slice, or reopen unrelated defects. Necessary referenced homes only; no whole-lane audit. Return <=1000-word verdict with concrete remaining contradictions, command/ref evidence, coverage and limits. No edits, executable tests, settings/host/DB/network changes or vendor launches. Review the changed documentation, not the planner's separate proposed runtime design.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014711Z-review-claude-e5ec77/in/20260906T013707Z-code-codex-a46459.json",
+        "sha256": "0eaa10fcdbf62f00cd5a0ecb2535434eb7cb3bc0ac1d67d7b678e968992a6128"
+      }
+    ],
+    "sha256": "40c7954e4f152839f73c879dcee39a32dcdda6a2f228f97ded8a5842c9c37c6e",
+    "bytes": 1694
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:47:11Z",
+      "ended": "2026-09-06T01:51:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1552699e1eb0c61dec0767fa98b9213115ad0ef6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/MCP-RESEARCH-2026-09-05.md:126-131; README.md:344; ops/conductor/mcp-context-scope.md:3; ops/conductor/lane-mcp-lever.md:8-18",
+          "claim": "The withdrawn shared-Symfony/lane-MCP recommendation was banner-corrected in the lever contract but not at the document that carries it. MCP-RESEARCH-2026-09-05.md still reads (line 130) 'That is the candidate for the later Symfony twin, not a reason to introduce a second server during this bounded incumbent-lane change' \u2014 a prod-twin replacement frame for lane MCP, uncorrected and undated-as-superseded. It is not a historical class covered by the AGENTS.md blanket clause (it is dated the same day as the correction and is a live scoped recommendation): README.md:344 cites it as the 'research report' behind current lane reads, and ops/conductor/mcp-context-scope.md:3 instructs 'Use MCP-RESEARCH-2026-09-05.md for measured demand'. A reader arriving through either referrer never sees lane-mcp-lever.md's withdrawal.",
+          "reproduce": "sed -n '118,134p' ops/conductor/MCP-RESEARCH-2026-09-05.md; rg -n 'MCP-RESEARCH' README.md ops/conductor/mcp-context-scope.md; sed -n '4,20p' ops/conductor/lane-mcp-lever.md"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/wip/overview.md:3-8,490-497; ops/conductor/handoff/HANDOFF-2026-09-03-seat.md:5; ops/conductor/AAR-2026-09-03T15-seat.md:147; ops/README.md:112-120",
+          "claim": "A tracked document that active handoff/AAR instructions tell the next session to read first still asserts precedence over the corrected law and still states the retirement doctrine. overview.md:6-8: 'It is not law; the law is AGENTS.md and docs/. Where the two disagree, this document is the newer intent and the law has not yet been updated to match.' overview.md:490-496: the lane is 'in use as-is until each verb's agentscient twin passes the same row, which is the strangler rule ops/README.md already states', and 'It is retired verb by verb'. Two defects: the supremacy clause inverts the precedence AGENTS.md now claims (and is false \u2014 the doc is 2026-09-03, the correction 2026-09-05), and the citation to ops/README.md is now dangling, since this change removed that strangler rule (obligation 1 of docs/verified-couplings.md). AGENTS.md's blanket clause names 'handoffs', which arguably reaches it, but the supremacy sentence is read before any blanket and is not itself neutralised.",
+          "reproduce": "sed -n '1,10p;484,498p' .dev/wip/overview.md; rg -n 'wip/overview' ops/conductor/handoff/HANDOFF-2026-09-03-seat.md ops/conductor/AAR-2026-09-03T15-seat.md; git diff c06ed944 1552699e -- ops/README.md | rg -n 'strangler|twin'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/onboard-lever.md:28-31; ops/conductor/tools/onboard.py:20-30,279-284; ops/conductor/tests/test_onboard_lever.py:52",
+          "claim": "The added onboarding paragraph says precedence 'comes from AGENTS.md \u00a7Lane boundary and precedence and ops/README.md ..., reached through the existing reading list'. The reading list (onboard.py LAW, lines 20-30) is AGENTS.md, CONTRIB.md, instrument-conventions.md, stack.md, coverage-zones.md; ops/README.md is not on it, so it is reached only at a second hop via AGENTS.md \u00a7The lane. The lever also correctly disclaims changing the tool's data, but the tool still prints stack.md as 'the stack: layers, incumbents, open seats' \u2014 the incumbent frame survives in the served text, and test_onboard_lever.py:52 pins that exact string. No guard code is demanded here; the defect is the doc's overstatement of what the list reaches.",
+          "reproduce": "sed -n '24,34p' ops/conductor/onboard-lever.md; sed -n '19,31p;279,284p' ops/conductor/tools/onboard.py; sed -n '50,54p' ops/conductor/tests/test_onboard_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/ideas/I-011-the-ledger-is-a-core-service.md:14; ops/docs/README.md:14; AGENTS.md:125-129",
+          "claim": "Dangling citations left by the AGENTS.md \u00a7The lane rewrite. I-011:14 cites 'twin passes its conformance row (AGENTS.md \u00a7The lane)'; \u00a7The lane no longer contains a conformance-row/twin rule. ops/docs/README.md:14 still describes the lessons shelf as 'kept so the twins are written better'. Both are covered in substance by the AGENTS.md blanket clause (ideas, records), so this is a citation-closure defect rather than a live replacement mandate.",
+          "reproduce": "sed -n '12,16p' ops/conductor/ideas/I-011-the-ledger-is-a-core-service.md; sed -n '12,16p' ops/docs/README.md; sed -n '125,131p' AGENTS.md"
+        }
+      ],
+      "artifacts": {
+        "coverage": "Verified and clean. (1) Scope: git diff --name-only c06ed944 1552699e returns 16 Markdown docs plus 9 .dev capture/input files; no source, tests, config, settings or dependency files. git diff --check c06ed944 1552699e exits 0 with no output. (2) Owner text identity: sha256 of the committed .dev/ladder-inputs/lane-boundary-owner.md is 76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169, byte-equal to the review input and to the digest the implement record declares for its brief input, so the correction was applied against this owner text. (3) Owning home and precedence: AGENTS.md gains '## Lane boundary and precedence' before \u00a7Standing rulings, quoting both owner sentences, stating operation without kernel/container/services/vendor, 'no automatic twin, strangler, retirement or graduation', profile independent of harness/model/role, refusal with expected-found-needed on unknown or conflicting scope, and naming ops/README.md and docs/verified-couplings.md as the carrying homes. (4) Imports: CLAUDE.md's cached prefix imports AGENTS.md plus the five docs contracts, so the boundary rides in every request; CLAUDE.md's pointer paragraph names the section and covers 'imported records or resumed briefs'. (5) Links: all 17 '#lane-boundary-and-precedence' references across 12 files resolve; both targets exist as literal H2 headings in AGENTS.md and ops/README.md, and every relative path is correct from its file (../ from docs/ and ops/, ../../ from ops/conductor/ and ops/devlane/, ../../../ from ops/devlane/dispatch/ and ops/devlane/task/). (6) Prod rules preserved, not deleted: \u00a7Standing rulings keeps Symfony-whole, four projections, packages-gestate-here, and is rescoped by one added line plus 'application' qualifiers; docs/mapping.md keeps every measured row behind a scope banner and fences only the strangler proposal under '### Superseded migration proposal \u2014 historical only'; docs/workflow.md keeps the Symfony Workflow terminology while declaring the dev-lane implementation independent. (7) Shared wire/provenance intact: docs/wire.md, docs/probes.md, docs/concerns.md untouched; docs/verified-couplings.md's six obligations unchanged, with a \u00a7Lane permission boundary added under obligation 5. (8) Historical treatment: stack.md and census-package-map.md carry dated supersession banners without deleting the records; the two terminal plan records (73c888 exit -15 status invalid, 670fff status launched) are preserved as the owner input required. (9) No enforcement overclaim anywhere: AGENTS.md 'this documentation correction does not establish a live guard'; verified-couplings 'a prose reference alone is not evidence of mechanical enforcement'; ops/README.md 'These documentation rules do not claim live enforcement'; dispatch CONTRACT.md 'adds no profile field or enforcement mechanism'; task CONTRACT.md 'changes neither the job schema nor executable acceptance behavior'. (10) ops/README.md's absence-declared section now states the imports.json gap as the lane's own; ops/contracts does not exist (ls: No such file or directory), and both CONTRACT.md files do cite it (task:192, dispatch:14), so the 'named gap' claim holds.",
+        "limits": "Read-only review at 1552699e1eb0c61dec0767fa98b9213115ad0ef6 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc, using the supplied diff plus git/rg/sed on the snapshot. No edits, no executable tests, no vendor launch, no network, no settings/store/host access. Anchor resolution was checked by literal heading match and relative-path arithmetic, not by a Markdown renderer or a link checker. onboard.py was read, not executed, so the served brief text is source-derived; test_onboard_lever.py was read, not run. Scope was held to the changed files and the homes they cite or that cite them: I did not audit the whole lane, .dev/records beyond the three added, ops/archive (banner-covered by design), ops/process, .claude/ or .agents/ skills for doctrine, and I did not reopen the launch-inventory findings carried in .dev/ladder-inputs/launch-inventory-evidence.json. The planner's separate runtime design was not reviewed. Absence claims above are 'looked and found nothing' by the named commands over the tracked tree; they are not claims about untracked files or live sessions."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1548390,
+        "out": 18928,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1552699e1eb0c61dec0767fa98b9213115ad0ef6",
+        "started": null,
+        "ended": null
+      },
+      "note": "Verdict CHANGES. The correction lands its core: enduring dev/prod independence is stated at one owning home (AGENTS.md \u00a7Lane boundary and precedence), imported into the cached prefix through CLAUDE.md, and carried into ops/README.md, docs/verified-couplings.md, docs/workflow.md, the conductor and devlane seeds, and the dispatch and task contracts by 17 resolving links. Symfony rules are rescoped to the application rather than removed; shared wire, probes, concerns and provenance are untouched; historical records are banner-superseded, not rewritten; and every changed file disclaims runtime enforcement, which I did not count against it. Two contradictions remain in actively referenced homes. First, the withdrawn shared-Symfony recommendation is corrected only in ops/conductor/lane-mcp-lever.md while its actual home, MCP-RESEARCH-2026-09-05.md, still calls the Symfony MCP bundle 'the candidate for the later Symfony twin' during 'this bounded incumbent-lane change', and is cited as current demand by README.md:344 and ops/conductor/mcp-context-scope.md:3. Second, .dev/wip/overview.md, which active handoff and AAR instructions tell a session to read first, still claims precedence over AGENTS.md and docs/ where they disagree and still states verb-by-verb retirement by twins, citing a strangler rule in ops/README.md that this change removed. Two p3 citation-closure defects follow the same rewrite (I-011:14, ops/docs/README.md:14) and one doc overstatement (onboard-lever.md says precedence is reached through the reading list, but onboard.py's list does not include ops/README.md and still serves stack.md as 'layers, incumbents, open seats'). One unsupported claim rides in the committed record rather than the docs: 20260906T013707Z-code-codex-a46459.json asserts '22 added links/anchors and seed/onboarding references resolve'; I measured 17 boundary-anchor references, all resolving, and could not reconstruct the count of 22 or its basis. No self-approval: this is an independent review by a different harness and model from the producer, with no edits made."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

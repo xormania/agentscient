@@ -1,0 +1,199 @@
+{
+  "id": "20260904T155934Z-check-tests-codex-49dad2",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "f16edd24ff99cf472199f8d15ba712de478571ea"
+  },
+  "follows": [
+    "20260904T154353Z-tests-grok-ea5f39"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:59:34Z",
+    "closed": "2026-09-04T16:06:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f16edd24ff99cf472199f8d15ba712de478571ea",
+    "ref_sha": "f16edd24ff99cf472199f8d15ba712de478571ea",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T11-59-37-01a06d25-a187-7223-8978-2ddc4f519bd7.jsonl"
+  },
+  "session": {
+    "id": "01a06d25-a187-7223-8978-2ddc4f519bd7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T11-59-37-01a06d25-a187-7223-8978-2ddc4f519bd7.jsonl",
+    "stream_sha256_at_close": "b66c85cdcdffeae7da2a385f503192ca9d848554077851f823b394e305d69950",
+    "spend": {
+      "input": 1171325,
+      "cached": 1084288,
+      "output": 20156,
+      "total": 1191481,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T11-59-37-01a06d25-a187-7223-8978-2ddc4f519bd7.jsonl",
+      "messages": 202
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`\n`#ClosureIndex: close({contracts: [...#Row, ...]})`. `#Row: close({path: #NonEmpty, consumer: #NonEmpty | #DeclaredAbsent, fixture: #NonEmpty | #DeclaredAbsent})`. `closure.py check` walks `git ls-files '*.cue' 'ops/conductor/*-lever.md'`, diffs against the index, vets the index as `#ClosureIndex`, and for every closed row subprocess-checks that the fixture path exists. Cue missing: class `cue-missing`, exit 2. Cue version other than `#CueVersion`: `cue-version`. CLI stdlib only.\n### 3.2 Job-kind manifests \u2014 `manifest.cue`\nReuse `#NonEmpty`, `#Digest`, `#DeclaredAbsent`, `#HarnessName`, `#IsolationObserved` from `context.cue`. New: `#CueVersion`, `#Section`, `#HarnessFacts`, `#Custody`, `#Manifest`, `#Launchable`, `#ReadProbe`, one closed definition per kind.\n| kind | required slots | optional (max) | writes |\n|---|---|---|---|\n| `author-tests` | scope, brief, diff | plan (1), previous (1), report (1), findings (2) | snapsho\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/in/PLAN-context-contracts-2-closure-index.md",
+        "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/in/20260904T154353Z-tests-grok-ea5f39.json",
+        "sha256": "ec076ddba828c3853ae1755800549b6d88a41a894ab8e5b39f2d29d41ac58420"
+      }
+    ],
+    "sha256": "f0a989c027fe8d4ce5b236368a5422686482b09a4dea581ce412a023524dcebd",
+    "bytes": 3826
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T15:59:34Z",
+      "ended": "2026-09-04T16:06:45Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f16edd24ff99cf472199f8d15ba712de478571ea",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:380",
+          "claim": "Both missing-path plants alter only contracts[0]. An implementation that checks existence for only the first closed row would pass while violating \u201cfor every closed row.\u201d",
+          "reproduce": "rg -n 'data\\[\"contracts\"\\]\\[0\\]\\[\"(consumer|fixture)\"\\]' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:345",
+          "claim": "The suite exercises only tracked-minus-index drift. An implementation that ignores stale index rows absent from git ls-files would pass, so the bidirectional diff is unproved.",
+          "reproduce": "rg -n 'self\\.assertNotIn\\(rel, indexed\\)' ops/devlane/harness/tests/test_closure_gate.py && ! rg -n 'def test_.*(stale|surplus)|contracts.*append' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:345",
+          "claim": "Every extra contract is committed before checking. A filesystem-scanning implementation would pass yet wrongly reject an untracked .cue file, contrary to the git ls-files contract.",
+          "reproduce": "rg -n 'self\\._git\\(root, \"add\", rel\\)' ops/devlane/harness/tests/test_closure_gate.py && ! rg -n 'def test_.*untracked' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:474",
+          "claim": "Only a row-level extra field is planted. A schema with closed #Row but an open outer #ClosureIndex would pass every test and accept forbidden top-level fields.",
+          "reproduce": "rg -n 'data\\[\"contracts\"\\]\\[0\\]\\[\"notes\"\\]' ops/devlane/harness/tests/test_closure_gate.py && ! rg -n 'data\\[\"notes\"\\]|top[-_ ]level' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py",
+          "claim": "No negative row contains an empty path, consumer, fixture, or declared_absent reason. A weakened law using string instead of #NonEmpty would remain green.",
+          "reproduce": "! rg -n '\"(path|consumer|fixture)\": \"\"|\"declared_absent\": \"\"' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:423",
+          "claim": "The sole wrong-version fixture is below the required version. A minimum-version check accepting v0.18 or v1 would pass despite requiring exact #CueVersion equality.",
+          "reproduce": "rg -n 'v0\\.14\\.1' ops/devlane/harness/tests/test_closure_gate.py && ! rg -n 'v0\\.(18|19)|v1\\.' ops/devlane/harness/tests/test_closure_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_closure_gate.py:225",
+          "claim": "The test invokes the ordinary interpreter with installed site packages. An implementation importing an available third-party package could pass, so \u201cCLI stdlib only\u201d is not enforced.",
+          "reproduce": "rg -n '\\[sys\\.executable, str\\(script\\), \"check\"\\]' ops/devlane/harness/tests/test_closure_gate.py && ! rg -n '\"-S\"|\"-I\"' ops/devlane/harness/tests/test_closure_gate.py"
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1191481,
+        "out": 20156,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f16edd24ff99cf472199f8d15ba712de478571ea",
+        "started": null,
+        "ended": "2026-09-04T16:06:14Z"
+      },
+      "note": "Review completed, but the required report write was rejected by the read-only sandbox and SKEPTIC.md remains absent. The test guard passed. The named suite could not re-verify the author's red run because tempfile had no writable directory, producing 14 setup errors."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

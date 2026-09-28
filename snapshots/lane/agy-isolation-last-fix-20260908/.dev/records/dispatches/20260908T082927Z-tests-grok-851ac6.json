@@ -1,0 +1,171 @@
+{
+  "id": "20260908T082927Z-tests-grok-851ac6",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-isolation-last-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-last-fix-20260908",
+    "base_sha": "2e4583256eeb624be0c9a5468d269cd54a395bdc"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:29:28Z",
+    "closed": "2026-09-08T08:50:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+    "ref_sha": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-isolation-last-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5fe290b6-fda9-4676-95e0-a0d8e119ba32",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok-stream/sessions/<snapshot-encoded>/5fe290b6-fda9-4676-95e0-a0d8e119ba32/summary.json"
+  },
+  "session": {
+    "id": "5fe290b6-fda9-4676-95e0-a0d8e119ba32",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok-stream/sessions/<snapshot-encoded>/5fe290b6-fda9-4676-95e0-a0d8e119ba32/summary.json",
+    "stream_sha256_at_close": "5ff6689e6b526208544bd5c4952fbeaf106c4ecdd5348c2056d466be585da400",
+    "spend": {
+      "input": 3047218,
+      "cached": 2704768,
+      "output": 31176,
+      "total": 3078394,
+      "cost_usd_ticks": 3781378000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/home/grok-stream/sessions/<snapshot-encoded>/5fe290b6-fda9-4676-95e0-a0d8e119ba32/summary.json",
+      "messages": 325
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-last-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only the two actionable test corrections in supplied final cold ruling, plus its optional one-sentence doc clarification. Tests only: test_agy_isolation.py and test_isolation_contract.py. Check the existing measured.unresolved string instead of demanding a word in measured.note; restore report equality without inventing profile values. Preserve all other expectations and accepted configuration. Run both focused discoveries, registered lint and full-range whitespace; record exact exits and hashes. No production edits, vendors, new tests/matrix or full floor. Grok-4.6 attribution, COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082927Z-tests-grok-851ac6/in/agy-isolation-final-ruling.json",
+        "sha256": "45c77201110f884f6ee52785595cfbb309213e6ba4639e611c831277dbd179eb"
+      }
+    ],
+    "sha256": "12ca5a3b79d6d3122befbf6ed2e736a260c3a84f23f5f21a4308e8e9ec28b8db",
+    "bytes": 2955
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:29:28Z",
+      "ended": "2026-09-08T08:50:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e4645e7a4a15866f01b0764b865155563e645daf",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_agy_isolation.py",
+      "ops/devlane/harness/tests/test_isolation_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "agy": "ops/devlane/harness/tests/test_agy_isolation.py",
+        "contract": "ops/devlane/harness/tests/test_isolation_contract.py",
+        "agy_sha256": "2b6a51db57c71ec789acb9e84e4905f895506122415dfd29eea0b5f659fb4180",
+        "contract_sha256": "5843a26b358b6324e9c72d3780af018e37c95f6fdc5b0bf392cf8480078df742",
+        "head": "e4645e7a4a15866f01b0764b865155563e645daf",
+        "f1": "92e76bf50d359ca42245d04b1e67b4b14090ea65",
+        "f2": "e4645e7a4a15866f01b0764b865155563e645daf"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3078394,
+        "out": 31176,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+        "started": "2026-09-08T08:37:19Z",
+        "ended": "2026-09-08T08:50:12Z"
+      },
+      "note": "At 2e4583256eeb624be0c9a5468d269cd54a395bdc, test_agy_registry_declares_measured_home_isolation failed at line 129 (exit 1). After F1/F3 at 92e76bf50d359ca42245d04b1e67b4b14090ea65, python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_agy_isolation.py' Ran 7 OK exit 0. Report equality was red against in-memory JSON minus agy.probe_phrase and green on live report. After F2 at e4645e7a4a15866f01b0764b865155563e645daf, python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_isolation_contract.py' Ran 12 OK exit 0. python3 ops/devlane/workflow/checks/lint.py on both files: exit 0, clean 2 file(s), ruff 0.16.5. git diff --check 2e4583256eeb624be0c9a5468d269cd54a395bdc HEAD: exit 0. SHA256 test_agy_isolation.py 2b6a51db57c71ec789acb9e84e4905f895506122415dfd29eea0b5f659fb4180; test_isolation_contract.py 5843a26b358b6324e9c72d3780af018e37c95f6fdc5b0bf392cf8480078df742. Two files only; production untouched."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:50:45.952Z"
+    }
+  },
+  "status": "closed"
+}

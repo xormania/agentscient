@@ -1,0 +1,248 @@
+{
+  "id": "20260915T064033Z-tests-grok-71ea7f",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "a55718b746909457bdae2845aecc4b64769c7f36"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:40:33Z",
+    "closed": "2026-09-15T06:51:07Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a55718b746909457bdae2845aecc4b64769c7f36",
+    "ref_sha": "a55718b746909457bdae2845aecc4b64769c7f36",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "cd5b3a5f-6cff-40d1-93a7-19ab89e07753",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok-stream/sessions/<snapshot-encoded>/cd5b3a5f-6cff-40d1-93a7-19ab89e07753/summary.json"
+  },
+  "session": {
+    "id": "cd5b3a5f-6cff-40d1-93a7-19ab89e07753",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok-stream/sessions/<snapshot-encoded>/cd5b3a5f-6cff-40d1-93a7-19ab89e07753/summary.json",
+    "stream_sha256_at_close": "92fea35cf498e64e7e03e8c4a11e1467f779675b58b043340893c25f9811865a",
+    "spend": {
+      "input": 2097870,
+      "cached": 1974784,
+      "output": 24546,
+      "total": 2122416,
+      "cost_usd_ticks": 4694856000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok-stream/sessions/<snapshot-encoded>/cd5b3a5f-6cff-40d1-93a7-19ab89e07753/summary.json",
+      "messages": 286
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/telemetry/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/telemetry/tests/test_worth.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "ad965b97a55809d549bad118773f999bac9394a26b78a8d7fb20ad285d027864",
+    "bytes": 10260,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/lane-mcp.json",
+      "sha256": "108f7c5865cea4d0054e9a6d88b3fec18003b1f021f83d304b4e8dcaf1023d3a",
+      "job_ids": [
+        "20260915T063851Z-tests-codex-15a117",
+        "20260915T063635Z-tests-grok-6dccc6",
+        "20260915T063524Z-tests-codex-89b3cb",
+        "20260915T063523Z-tests-grok-16b6b9",
+        "20260915T063412Z-tests-codex-cde684",
+        "20260915T063154Z-tests-grok-51b8b3",
+        "20260915T063152Z-tests-codex-cede58",
+        "20260915T063151Z-tests-grok-71af00",
+        "20260915T063150Z-tests-codex-19346e",
+        "20260915T063148Z-tests-grok-313364",
+        "20260915T063147Z-tests-codex-6482a4",
+        "20260915T062927Z-tests-codex-72ebca",
+        "20260915T062926Z-tests-grok-efea87",
+        "20260915T062923Z-tests-codex-279bd2",
+        "20260915T062753Z-tests-grok-67cd94",
+        "20260915T062641Z-tests-codex-965e58",
+        "20260915T062640Z-tests-grok-dbd4c8",
+        "20260915T062423Z-tests-codex-b3c2f2",
+        "20260915T062421Z-tests-grok-51bb08",
+        "20260915T062420Z-tests-codex-99ca6e"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:40:34Z",
+      "ended": "2026-09-15T06:51:07Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "decfafbc2490ec648a7082e9b7cb454b309cda02",
+    "changed_paths": [
+      "ops/devlane/telemetry/tests/test_worth.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/telemetry/tests/test_worth.py",
+          "claim": "Preserved all 12 test names and count. World, run-with-timeout and world.plant_text replaced hand HOME, subprocess and tempfile. Each method failed its own AssertionError under a planted empty-worth pin (Ran 12 tests, failures=17 from subTests, 0 ERROR), then the restored module passed 12 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/telemetry/tests -p test_worth.py"
+        }
+      ],
+      "artifacts": {
+        "module": "ops/devlane/telemetry/tests/test_worth.py",
+        "red": "589cd4527da69092295f4b3e886a2b85f2145364",
+        "green": "decfafbc2490ec648a7082e9b7cb454b309cda02"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2122416,
+        "out": 24546,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a55718b746909457bdae2845aecc4b64769c7f36",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns HOME/XDG/TMPDIR; every git and worth subprocess uses run with timeout=60; files go through world.plant_text. Kit gap: worth.py locates conductor siblings from Path(__file__), so the module runs the tree file through run rather than staging it. WorthResult.returncode is an in-module shim so importers outside scope (test_bdd_worth.py) keep .returncode. No fake programs in this family; git is the real tool via run. No regression rows were added (behavior-preserving migration). Test-name comparison was exact 12/12. Implementation and the session store were not read. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: python3 -m unittest discover -s ops/devlane/telemetry/tests -p test_worth.py -> Ran 12 tests in 77.166s OK\nred: planted empty-worth pin -> Ran 12 tests in 0.286s FAILED (failures=17); 17 AssertionError, 0 errors; names unchanged\nafter: same command -> Ran 12 tests in 1.528s OK\nfamily: python3 -m unittest discover -s ops/devlane/telemetry/tests -> Ran 227 tests in 19.904s OK\nruff check ops/devlane/telemetry/tests/test_worth.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 14; the new floor\nembedded_programs: 30 -> 9; the new floor\nrun_without_timeout: 185 -> 20; the new floor\nratchet holds: home_by_hand=14, embedded_programs=9, run_without_timeout=20\ncensus: modules=226 on_kit=171 exempt=10 off_kit=45\nthis module 1/0/2 -> 0/0/0\ncommits 589cd45 (red) decfafb (green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nSecond producer: absent."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 6,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T064033Z-tests-grok-71ea7f/home/grok-stream/sessions/<snapshot-encoded>/cd5b3a5f-6cff-40d1-93a7-19ab89e07753/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns HOME/XDG/TMPDIR; every git and worth subprocess uses run with timeout=60; files go through world.plant_text. Kit gap: worth.py locates conductor siblings from Path(__file__), so the module runs the tree file through run rather than staging it. WorthResult.returncode is an in-module shim so importers outside scope (test_bdd_worth.py) keep .returncode. No fake programs in this family; git is the real tool via run. No regression rows were added (behavior-preserving migration). Test-name comparison was exact 12/12. Implementation and the session store were not read. Also reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.\nbefore: python3 -m unittest discover -s ops/devlane/telemetry/tests -p test_worth.py -> Ran 12 tests in 77.166s OK\nred: planted empty-worth pin -> Ran 12 tests in 0.286s FAILED (failures=17); 17 AssertionError, 0 errors; names unchanged\nafter: same command -> Ran 12 tests in 1.528s OK\nfamily: python3 -m unittest discover -s ops/devlane/telemetry/tests -> Ran 227 tests in 19.904s OK\nruff check ops/devlane/telemetry/tests/test_worth.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 14; the new floor\nembedded_programs: 30 -> 9; the new floor\nrun_without_timeout: 185 -> 20; the new floor\nratchet holds: home_by_hand=14, embedded_programs=9, run_without_timeout=20\ncensus: modules=226 on_kit=171 exempt=10 off_kit=45\nthis module 1/0/2 -> 0/0/0\ncommits 589cd45 (red) decfafb (green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nSecond producer: absent.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:51:05.763Z"
+    }
+  },
+  "status": "closed"
+}

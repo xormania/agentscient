@@ -1,0 +1,72 @@
+{
+  "facts": {
+    "bytes": 0,
+    "is_json": true,
+    "raw": {
+      "commit_identity": {
+        "email": "127287135+xormania@users.noreply.github.com",
+        "name": "xormania"
+      },
+      "format_version": 1
+    },
+    "version_keys": [
+      "format_version"
+    ]
+  },
+  "provenance": {
+    "extractor": "contracts/extract/meta.py",
+    "method": "byte read of meta.json, then json.loads of the same bytes",
+    "paths_relative_to": "ops/devlane/workflow",
+    "facts": {
+      "bytes": {
+        "file": "meta.json",
+        "lines": "1-1",
+        "text": "{\"commit_identity\":{\"email\":\"127287135+xormania@users.noreply.github.com\",\"name\":\"xormania\"},\"format_version\":1}",
+        "bytes": 112,
+        "newline_count": 0,
+        "ends_with_newline": false,
+        "physical_lines": 1,
+        "sha256_raw": "8f5c2a1db6b6420c4c4e0b22ae543946438bdd5ec37e0b8b0b1c45b4452503ee",
+        "rule": "5.4 bytes: byte length of meta.json"
+      },
+      "is_json": {
+        "file": "meta.json",
+        "lines": "1-1",
+        "text": "{\"commit_identity\":{\"email\":\"127287135+xormania@users.noreply.github.com\",\"name\":\"xormania\"},\"format_version\":1}",
+        "bytes": 112,
+        "newline_count": 0,
+        "ends_with_newline": false,
+        "physical_lines": 1,
+        "sha256_raw": "8f5c2a1db6b6420c4c4e0b22ae543946438bdd5ec37e0b8b0b1c45b4452503ee",
+        "rule": "5.4 is_json: does meta.json parse with json.loads"
+      },
+      "raw": {
+        "file": "meta.json",
+        "lines": "1-1",
+        "text": "{\"commit_identity\":{\"email\":\"127287135+xormania@users.noreply.github.com\",\"name\":\"xormania\"},\"format_version\":1}",
+        "bytes": 112,
+        "newline_count": 0,
+        "ends_with_newline": false,
+        "physical_lines": 1,
+        "sha256_raw": "8f5c2a1db6b6420c4c4e0b22ae543946438bdd5ec37e0b8b0b1c45b4452503ee",
+        "rule": "5.4 raw: the parsed JSON, or {'unresolved': 'not json'}"
+      },
+      "version_keys": {
+        "file": "meta.json",
+        "lines": "1-1",
+        "text": "{\"commit_identity\":{\"email\":\"127287135+xormania@users.noreply.github.com\",\"name\":\"xormania\"},\"format_version\":1}",
+        "bytes": 112,
+        "newline_count": 0,
+        "ends_with_newline": false,
+        "physical_lines": 1,
+        "sha256_raw": "8f5c2a1db6b6420c4c4e0b22ae543946438bdd5ec37e0b8b0b1c45b4452503ee",
+        "rule": "5.4 version_keys: top-level keys matching /version/i, sorted",
+        "top_level_keys": [
+          "commit_identity",
+          "format_version"
+        ],
+        "note": "5.4 states that [] is a real observation for this fact"
+      }
+    }
+  }
+}

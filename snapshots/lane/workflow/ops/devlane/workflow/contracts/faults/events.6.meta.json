@@ -1,0 +1,11 @@
+{
+  "contract": "events",
+  "fault": "events.6.json",
+  "from": "obs/events.json",
+  "change": "a `receipt.red` event shape is recorded whose keys omit `exit_code`",
+  "violates": "PLAN.md §3.3 lines 125-128 (with §3.3 lines 140-144)",
+  "quote": "\"Common receipt fields: stage, check name, `argv`, `cwd`, `exit_code`, `duration_ms`, `stdout_sha256`/`stderr_sha256` … `agent`, `head_sha`, `tree_dirty`\"",
+  "reject_path": "facts\\.shapes\\.[0-9]+\\.keys\\b|exit_code",
+  "implied": false,
+  "note": "The clean observation resolves no receipt shape at all — the receipt dict at wf.py:837 has a computed `type` and is recorded {\"unresolved\": …}. So this fault is an added record rather than an edited one: it is the only way to put a concrete receipt.red shape in front of the contract and find out whether the §3.3 field list is enforced or vacuous."
+}

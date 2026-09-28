@@ -1,0 +1,258 @@
+{
+  "id": "20260916T130849Z-code-grok-ed5de0",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-sweep",
+  "lineage": {
+    "branch": "lane/session-20260916-sweep",
+    "base_sha": "3c2d80127b224c43bed995237f86b981f40ce9c2"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T13:08:49Z",
+    "closed": "2026-09-16T13:21:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+    "ref_sha": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-sweep/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7b14e0d9-cb22-43a2-b7f3-596525b8aada",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok-stream/sessions/<snapshot-encoded>/7b14e0d9-cb22-43a2-b7f3-596525b8aada/summary.json"
+  },
+  "session": {
+    "id": "7b14e0d9-cb22-43a2-b7f3-596525b8aada",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok-stream/sessions/<snapshot-encoded>/7b14e0d9-cb22-43a2-b7f3-596525b8aada/summary.json",
+    "stream_sha256_at_close": "b54545d0b836bedbdb3b987e876f68cb07ea9fdb1d32ee2d0ec1bba7bda4d6bf",
+    "spend": {
+      "input": 2014998,
+      "cached": 1823232,
+      "output": 36695,
+      "total": 2051693,
+      "cost_usd_ticks": 5152081200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok-stream/sessions/<snapshot-encoded>/7b14e0d9-cb22-43a2-b7f3-596525b8aada/summary.json",
+      "messages": 280
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-sweep/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Make this exit 0 from the repository root:\n  python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_term_wall*.py'\n  python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_suites_ruff.py'\nMove that family onto World(host_path=False), planting a fake for every\ntool the subject calls. 30 rows: test_term_wall 15,\ntest_term_wall_archives 13, test_suites_ruff 2.\nTHE SUBJECT IS THE TEST FILES. This job's standing line 'do not edit the\nfiles the tests live in' is inverted here and only here: edit those files,\ndo NOT edit the implementation they exercise.\ndocs/tests.md rules 4 (hermetic by default, ambient named), 5 (subprocess\nthrough testkit run, with a timeout), 6 (fakes planted through the\nregistry, logging each call; no program in a test module).\nList and remedy: ops/conductor/handoff/\nHANDOFF-2026-09-16-hermetic-path-sweep.md on this branch. Re-measure\nfirst; its counts are from lane/session-20260916-g at e948141a.\nCommit here with Source: and Co-Authored-By: trailers. Nothing else.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/in/walkthrough.txt",
+        "sha256": "570050c545f1305810b0364217ffa70d72e7964b1a73c9dbf7db7b72f1f6a3e3"
+      }
+    ],
+    "sha256": "ffe9071bdcbfd5d28193f16589d5babcb556e0b09342535f552c97cfebc0d707",
+    "bytes": 11635,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/lane-mcp.json",
+      "sha256": "4bb7c02fb91b6e472c4bef06340bc27a1205f9ba79d18db02bf562bade19d4e9",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "f7bb6a8d59bfb902587fb861bebcb547ffcd2f81fc52aa6a197f11ed3ac7cb08"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T13:09:02Z",
+      "ended": "2026-09-16T13:21:25Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "1eeb937c6e045fd000478222dddecdfb63dd639b",
+    "changed_paths": [
+      "ops/devlane/workflow/tests/test_suites_ruff.py",
+      "ops/devlane/workflow/tests/test_term_wall.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests",
+          "claim": "Re-measure at 3c2d80127b224c43bed995237f86b981f40ce9c2 before edits: test_term_wall*.py Ran 28 tests OK (15+13), host PATH still on World.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_term_wall*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_suites_ruff.py",
+          "claim": "Re-measure at 3c2d80127b224c43bed995237f86b981f40ce9c2 before edits: test_suites_ruff.py Ran 3 tests OK (handoff listed 2 failing rows at e948141a).",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_suites_ruff.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests",
+          "claim": "Named command after the fixture change, committed tree 1eeb937c: test_term_wall*.py Ran 28 tests in 1.544s OK, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_term_wall*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_suites_ruff.py",
+          "claim": "Named command after the fixture change, committed tree 1eeb937c: test_suites_ruff.py Ran 3 tests in 0.262s OK, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_suites_ruff.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/tests/test_term_wall.py",
+          "claim": "ruff check on the two edited test modules: All checks passed.",
+          "reproduce": "ruff check ops/devlane/workflow/tests/test_term_wall.py ops/devlane/workflow/tests/test_term_wall_archives.py ops/devlane/workflow/tests/test_suites_ruff.py"
+        },
+        {
+          "severity": "p3",
+          "where": "1eeb937c6e045fd000478222dddecdfb63dd639b",
+          "claim": "Commit on lane/session-20260916-sweep; git parses Source and Co-Authored-By trailers.",
+          "reproduce": "git log -1 --format='%(trailers)'"
+        }
+      ],
+      "artifacts": {
+        "test_term_wall": "ops/devlane/workflow/tests/test_term_wall.py",
+        "test_suites_ruff": "ops/devlane/workflow/tests/test_suites_ruff.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2051693,
+        "out": 36695,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+        "started": "2026-09-16T13:08:49Z",
+        "ended": "2026-09-16T13:20:29Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nMoved test_term_wall, test_term_wall_archives and test_suites_ruff onto World(host_path=False). This tree's World still appends the host PATH and rejects the kwarg, so the fixture falls back then sets PATH to the world's bin. git and the suites.sh helpers are wrapped through the registry (a canned fake cannot implement git ls-files/log or bash); ruff is planted by spec. 15+13+3 rows. Assumption: wrap counts as planting through the registry for tools that must be real. Handoff listed 2 failing suites_ruff rows; the third absence row was already hermetic and stayed."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 3,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130849Z-code-grok-ed5de0/home/grok-stream/sessions/<snapshot-encoded>/7b14e0d9-cb22-43a2-b7f3-596525b8aada/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nMoved test_term_wall, test_term_wall_archives and test_suites_ruff onto World(host_path=False). This tree's World still appends the host PATH and rejects the kwarg, so the fixture falls back then sets PATH to the world's bin. git and the suites.sh helpers are wrapped through the registry (a canned fake cannot implement git ls-files/log or bash); ruff is planted by spec. 15+13+3 rows. Assumption: wrap counts as planting through the registry for tools that must be real. Handoff listed 2 failing suites_ruff rows; the third absence row was already hermetic and stayed.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T13:21:24.118Z"
+    }
+  },
+  "status": "closed"
+}

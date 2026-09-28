@@ -1,0 +1,113 @@
+{
+  "id": "20260903T222621Z-code-grok-7f3024",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T22:26:21Z",
+    "closed": "2026-09-04T07:12:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "ref_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "behind_tip": 0,
+    "root": "<job 20260903T222621Z-code-grok-7f3024>/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "<job 20260903T222621Z-code-grok-7f3024>/home/grok",
+        "HOME": "<job 20260903T222621Z-code-grok-7f3024>/home/grok"
+      },
+      "store": "<job 20260903T222621Z-code-grok-7f3024>/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "<job 20260903T222621Z-code-grok-7f3024>/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "eeeb37cb-613a-452d-9b63-b48f9a0e0f44",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--prompt-file",
+      "<job 20260903T222621Z-code-grok-7f3024>/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": null,
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found",
+    "effort_argv": []
+  },
+  "session": {
+    "id": "eeeb37cb-613a-452d-9b63-b48f9a0e0f44",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "1df096c550a60e625a6af8bc1c5714af6a826fda2bf3e165e50887f3f084bd98"
+    },
+    "scope": "the plan at in/PLAN.md, section 'Tests, by the harness the pipeline gives them to', written from the scope at in/scope-effort-per-role.md. Write exactly the tests that section names, in the files it names, each red for the reason it states; read the existing tests and contracts those files sit beside, not the implementation. The owner's constraint, verbatim: 'i don't want it too complicated'.",
+    "inputs": [
+      {
+        "path": "<job 20260903T222621Z-code-grok-7f3024>/in/PLAN.md",
+        "sha256": "2b27ae79d15087b6e662278054d987b76a17ae2aa025b5552a72cf1668c943ff"
+      }
+    ],
+    "sha256": "6a6cb57b63000899d07787e0383667bbf7467d9470660d2f2cd3300871999389",
+    "bytes": 1059
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": {
+    "head": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "b1203b5ae023918bb67c8b615cb08fbc03906ed9"
+      },
+      "note": "envelope-parse: no JSON object on stdout; DIED: process vanished without exit"
+    }
+  },
+  "status": "died",
+  "_envelope_cause": "envelope-parse"
+}

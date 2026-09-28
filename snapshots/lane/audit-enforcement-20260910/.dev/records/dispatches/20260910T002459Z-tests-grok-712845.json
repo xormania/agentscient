@@ -1,0 +1,170 @@
+{
+  "id": "20260910T002459Z-tests-grok-712845",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:25:00Z",
+    "closed": "2026-09-10T00:32:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "ref_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7c11b5cb-e542-4735-b75f-076804d02763",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok-stream/sessions/<snapshot-encoded>/7c11b5cb-e542-4735-b75f-076804d02763/summary.json"
+  },
+  "session": {
+    "id": "7c11b5cb-e542-4735-b75f-076804d02763",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok-stream/sessions/<snapshot-encoded>/7c11b5cb-e542-4735-b75f-076804d02763/summary.json",
+    "stream_sha256_at_close": "98ea8fbb55c0a7df22b0a3d237741f97bc701c4623d11909b39a660d8014ed13",
+    "spend": {
+      "input": 1234793,
+      "cached": 1055744,
+      "output": 23081,
+      "total": 1257874,
+      "cost_usd_ticks": 1741575200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/home/grok-stream/sessions/<snapshot-encoded>/7c11b5cb-e542-4735-b75f-076804d02763/summary.json",
+      "messages": 192
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only the concrete routing-test contradiction: test_empty_admitted_skips_tests_fix_despite_changes requires legacy CHANGES + empty admitted to advance into code, but FINDING-ADMISSION.md lines 182-191 explicitly keeps existing approval gates. Preserve proof that empty admission skips correction, but do not require approval/advancement from that verdict. Also first legacy_changes test lacks the corrections-aware stub and expects success despite unevaluated legacy evidence; preserve evidence that corrections is invoked before any repair, allow required refusal, and do not bypass provenance. Verify these against contract; do not read/edit production or other tests, invent APIs, expand cases, or relax mixed-admission/refusal expectations. Re-run original routing command against old implementation RED with no errors, record hash and rationale. Commit routing tests only with proper trailers. Ledger test correction is in another independent snapshot; do not touch that file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002459Z-tests-grok-712845/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "89d7a70aca08ff9794a76a19565728184f85f22e1992cff83413e50e4ed0f511",
+    "bytes": 3332
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:25:00Z",
+      "ended": "2026-09-10T00:32:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "846d5e28b2f6358f29a0d4535bc8efbc07329818",
+    "changed_paths": [
+      "ops/conductor/tests/test_finding_admission_routing.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_finding_admission_routing.py",
+        "commit": "846d5e28b2f6358f29a0d4535bc8efbc07329818",
+        "sha256": "9ad735c566b9c41038afb2065d8a27f29dc58efd10a84aa946473599e814eb2e"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1257874,
+        "out": 23081,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+        "started": "2026-09-10T00:25:00Z",
+        "ended": "2026-09-10T00:31:25Z"
+      },
+      "note": "Command: python3 ops/conductor/tests/test_finding_admission_routing.py -v against 8a6a51fff0925fd006aa3a3987cc4b3f969c940e. Result: 4 tests, 4 failed, 0 errors. File sha256 9ad735c566b9c41038afb2065d8a27f29dc58efd10a84aa946473599e814eb2e. Rationale: FINDING-ADMISSION.md lines 182-191 keep existing approval gates, so empty admitted skips tests-fix without requiring code advancement or rewritten approval; unevaluated legacy must invoke corrections with full --ref and --scope-sha256 before any repair and may refuse. Old driver still routes tests-fix from a raw changes verdict and never calls corrections."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:32:17.116Z"
+    }
+  },
+  "status": "closed"
+}

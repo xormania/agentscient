@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.3.json",
+  "from": "obs/schema.json",
+  "change": "a tenth table, `notes`, is declared by the migration",
+  "violates": "PLAN.md §3.2 lines 93-96",
+  "quote": "\"Nine tables. Everything else that must be recorded lives **in the chain**, not in tables\"",
+  "reject_path": "facts\\.tables\\b|notes",
+  "implied": false
+}

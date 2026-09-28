@@ -1,0 +1,157 @@
+{
+  "id": "20260904T092818Z-code-grok-294790",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-5",
+  "lineage": {
+    "branch": "lane/fixture-apps-5",
+    "base_sha": "8456e650582c2125c67258b2c4b053ccd22fc261"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:28:18Z",
+    "closed": "2026-09-04T09:43:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8456e650582c2125c67258b2c4b053ccd22fc261",
+    "ref_sha": "8456e650582c2125c67258b2c4b053ccd22fc261",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ddb3be89-e97b-4146-a8f4-3779a74d3d4d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok-stream/sessions/<snapshot-encoded>/ddb3be89-e97b-4146-a8f4-3779a74d3d4d/summary.json"
+  },
+  "session": {
+    "id": "ddb3be89-e97b-4146-a8f4-3779a74d3d4d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok-stream/sessions/<snapshot-encoded>/ddb3be89-e97b-4146-a8f4-3779a74d3d4d/summary.json",
+    "stream_sha256_at_close": "965c5d54af063876a36c1a1f2ada01aa58d8e88acc5865b9e3939887e05707a0",
+    "spend": {
+      "input": 3150161,
+      "cached": 2890112,
+      "output": 57236,
+      "total": 3207397,
+      "cost_usd_ticks": 3924569000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/home/grok-stream/sessions/<snapshot-encoded>/ddb3be89-e97b-4146-a8f4-3779a74d3d4d/summary.json",
+      "messages": 259
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-5/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 5 (apps/rust-crate), tests only: write ops/devlane/fixtures/tests/test_rust_crate_app.py from the contract in the input file (the scope, then the plan for slices 3 to 5; the slice 5 section names the app's layout, its seven faults with spans, probes, clean neighbours and fixes, the toolchain and how prove reaches it, the manifest keys, and what the lane test proves through the merged lever ops/bin/fixture.sh: make copies the app, prove is red on every planted fault and green on every clean neighbour, prove --fixed is green, the sweep accepts FAULTS.json, grade scores a planted review; plus any lever change the plan assigns to this slice, pinned on a synthetic app). Red at this ref because the app does not exist. The app, its own tests, its manifest and the lever change are the implementation and are not written here. One commit. Do not write the other slices.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092818Z-code-grok-294790/in/contract-fixtures-5.md",
+        "sha256": "1ecd0709f9ee03f4b47f59f566dd870a4be403d70e2ef6f9a6c45b27f52bdadb"
+      }
+    ],
+    "sha256": "d93d42a8a86eab35e8d11613712c732387d94cd5da894a6f29b93a42acfc1d80",
+    "bytes": 3245
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:28:18Z",
+      "ended": "2026-09-04T09:43:15Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e323c80ae822f4b9f1f2b469f1ff1e0cc6393b64",
+    "changed_paths": [
+      "ops/devlane/fixtures/tests/test_rust_crate_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+        "commit": "e323c80ae822f4b9f1f2b469f1ff1e0cc6393b64"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3207397,
+        "out": 57236,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8456e650582c2125c67258b2c4b053ccd22fc261",
+        "started": "2026-09-04T09:28:18Z",
+        "ended": "2026-09-04T09:43:04Z"
+      },
+      "note": "Wrote ops/devlane/fixtures/tests/test_rust_crate_app.py from the slice-5 contract only (layout, seven RC faults, neighbours, probes, toolchain, manifest keys, make/prove/grade through ops/bin/fixture.sh). Slice 5 assigns no lever change. Did not write the app, FAULTS.json, FAULT-KINDS.md, or other slices. Collected 35 tests; each method run alone was FAIL on its AssertionError (0 errors, 0 passes, 0 skips). Official discover at 8456e650582c2125c67258b2c4b053ccd22fc261: 35 tests, 81 assertion failures including subtests, 0 errors. Existence fails on FAULTS.json; K3 fails because FAULT-KINDS.md still names Python, PHP; make/prove/grade refuse the missing app. Committed e323c80ae822f4b9f1f2b469f1ff1e0cc6393b64 on lane/fixture-apps-5."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T09:43:15.693Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,156 @@
+{
+  "id": "20260906T123302Z-tests-grok-0c4f32",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-policy-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-tests-20260906",
+    "base_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T12:33:03Z",
+    "closed": "2026-09-06T12:49:44Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "ref_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "cb02a861-4f02-4120-a271-3ebc7cd47825",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok-stream/sessions/<snapshot-encoded>/cb02a861-4f02-4120-a271-3ebc7cd47825/summary.json"
+  },
+  "session": {
+    "id": "cb02a861-4f02-4120-a271-3ebc7cd47825",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok-stream/sessions/<snapshot-encoded>/cb02a861-4f02-4120-a271-3ebc7cd47825/summary.json",
+    "stream_sha256_at_close": "b053d3556619f16c99f36f5e49dfb2156bff4e256cbb268eebd2f7db51d43d1e",
+    "spend": {
+      "input": 3350822,
+      "cached": 3056896,
+      "output": 64786,
+      "total": 3415608,
+      "cost_usd_ticks": 4258527200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/home/grok-stream/sessions/<snapshot-encoded>/cb02a861-4f02-4120-a271-3ebc7cd47825/summary.json",
+      "messages": 303
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent tests for the inert policy library in lane-policy.md and adoption review unit 6. Own only ops/conductor/tests/test_lane_policy.py and policy-specific helpers/fixtures there. Read governing and owning contracts; never read or author implementation. Cover P1-P5, N1-N10, R1-R5 and I1: verified synthetic providers, pinned old authority/custody, exact digests, closed declarations/grant intersections, missing evidence, pre-effect/late refusal, and conductor coordination versus handwork. Preserve brief.policy and old records. Tests must run as failures, not import errors, against absent implementation, with faulty controls and measured commands/hashes. No live authority, settings, credentials, network or vendor launches. Use declared public interfaces; report any untestable coupling precisely instead of inventing it. Commit with Grok-only trailers; inline envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123302Z-tests-grok-0c4f32/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "75aba2f839a8fde6e620cd7ec6e05c203b7e2a83c01011cbb19a1bbc375c118f",
+    "bytes": 3233
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:33:03Z",
+      "ended": "2026-09-06T12:49:44Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4350a0ac41a3ef24a6eccd597532843a26a4884d",
+    "changed_paths": [
+      "ops/conductor/tests/test_lane_policy.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_lane_policy.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3415608,
+        "out": 64786,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+        "started": "2026-09-06T12:34:46Z",
+        "ended": "2026-09-06T12:49:03Z"
+      },
+      "note": "Authored ops/conductor/tests/test_lane_policy.py from lane-policy.md adoption unit 6, permission-surface.md, task/dispatch unit1a, decisions-register.md and the wire. Did not read ops/conductor/tools/lane_policy.py (absent at 3ee48f0d8e9dc7f76a5ab9d6f600136338973118). 56 methods cover P1-P5, N1-N10, R1-R5, I1 plus closed grants, exact show digest, pre-effect/late evidence, and conductor coordination versus handwork. Command python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' at 4350a0ac41a3ef24a6eccd597532843a26a4884d: Ran 56 tests, FAILED (failures=68), 0 errors, 0 passes (extra failures are subTests). Reds are assertion failures against the absent stand-in, not import or collection errors. ruff check ops/conductor/tests/test_lane_policy.py: All checks passed. Committed 4350a0ac41a3ef24a6eccd597532843a26a4884d on lane/conduct-policy-tests-20260906 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai> only). Untestable without inventing a coupling: exact trusted_context/bound_role key schema (named by contents, not a closed JSON object); dispatch exit 2 versus Abort 3 and the job-directory claim; an I1 prose classifier (the contract forbids a word ban). brief.policy's nine keys and old records are preserved; record.py was not edited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T12:49:43.137Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,191 @@
+{
+  "id": "20260905T000320Z-code-codex-c385b9",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "repo/watchdog-efficiency-20260904",
+  "lineage": {
+    "branch": "repo/watchdog-efficiency-20260904",
+    "base_sha": "5ae3f158a68b696a716f6a722cbec1697d049bbe"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T00:03:21Z",
+    "closed": "2026-09-05T00:14:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5ae3f158a68b696a716f6a722cbec1697d049bbe",
+    "ref_sha": "5ae3f158a68b696a716f6a722cbec1697d049bbe",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-03-21-01a06ee0-80be-7701-a387-a8128f4cb042.jsonl"
+  },
+  "session": {
+    "id": "01a06ee0-80be-7701-a387-a8128f4cb042",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-03-21-01a06ee0-80be-7701-a387-a8128f4cb042.jsonl",
+    "stream_sha256_at_close": "f08700c0a6654bf6000e5b57d3a76b131e5a17db183c5a8f4c2220b128edb977",
+    "spend": {
+      "input": 2740142,
+      "cached": 2612608,
+      "output": 32130,
+      "total": 2772272,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-03-21-01a06ee0-80be-7701-a387-a8128f4cb042.jsonl",
+      "messages": 265
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-watchdog-efficiency.nY5jIX/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/draft64-security-correction-brief.md WHOLE plus both named JSON reports. Correct only watchdog implementation and its narrow contract as instructed; NO test edits. Implement one combined security batch at 5ae3f158. Keep existing scanner semantics, vendor-neutral shape, cadence, and explicit unknown readings. No new vendor calls or runtime arming. Produce code artifact, concise decision summary, real checks, exact model trailer. Do not turn the command diary into findings.\n\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/in/draft64-security-correction-brief.md",
+        "sha256": "39c9453bc5942fb82f7bc65fda1f9d462b0802797e55fed222056e95d6c8ae4c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/in/draft64-grok-report.json",
+        "sha256": "328f2b3ec7013836b1406037a22bcdeaed703f4398de6ea55a6f6f4cfbeabd0c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T000320Z-code-codex-c385b9/in/draft64-daybreak-report.json",
+        "sha256": "368838aea8b4fe380e0c26971a319d0d15519f9a3e82ef149c92f7757e3e6c9c"
+      }
+    ],
+    "sha256": "dea793cb46ddfbb6aac9e7ba2caf586c65fc882228ff1ef78cb12ea56a8d3e8c",
+    "bytes": 4335
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T00:03:21Z",
+      "ended": "2026-09-05T00:14:43Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d0a3edfe7434b36d86ece0c59b8c83177c8caa0b",
+    "changed_paths": [
+      "ops/conductor/tools/watchdog.py",
+      "ops/conductor/watchdog-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Per-job inputs now use bounded, nonblocking, no-follow regular-file reads; unavailable inputs do not prevent later records or heartbeat processing.",
+          "reproduce": "Run the isolated continuation probe recorded in this session; result: isolated continuation/deadline probes: ok."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Forge observation now shares one monotonic deadline, bounds captured output, validates SHA and bucket shapes, and escapes bounded check names.",
+          "reproduce": "Run the isolated forge and subprocess-bound probes recorded in this session; results: security probes: ok; subprocess bounds: ok."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests",
+          "claim": "The final tree passes all named watchdog tests, Ruff, diff validation, and the no-test-edits boundary.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/conductor/tests -p 'test_watchdog*.py' && ruff check ops/conductor/tools/watchdog.py && git diff --check"
+        }
+      ],
+      "artifacts": {
+        "code": "ops/conductor/tools/watchdog.py",
+        "contract": "ops/conductor/watchdog-lever.md",
+        "diff_sha256": "73a290cc576fb6732b8cf9402f92cad077483a8c6702829e4975f4bc781bab52",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "60 watchdog tests passed; Ruff passed; git diff --check passed; tests unchanged"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2772272,
+        "out": 32130,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5ae3f158a68b696a716f6a722cbec1697d049bbe",
+        "started": null,
+        "ended": "2026-09-05T00:14:03Z"
+      },
+      "note": "Implemented the combined security correction without vendor calls, runtime arming, command changes, or test edits. SHA-shaped was interpreted as 40- or 64-digit hexadecimal. No unrelated follow-up was found. Git commit was refused because the snapshot index is read-only; the launcher fallback message is present.",
+      "commit": {
+        "subject": "Harden watchdog observation boundaries",
+        "body": "Source: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T00:14:42.210Z"
+    }
+  },
+  "status": "closed"
+}

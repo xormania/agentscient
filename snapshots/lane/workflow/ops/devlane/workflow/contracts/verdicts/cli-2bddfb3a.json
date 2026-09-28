@@ -1,0 +1,24 @@
+{
+  "id": "cli-2bddfb3a",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md requires --agent on chain-appending verbs and does not restrict that flag to per-command parsers.",
+  "observed": "wf.py registers --agent as a global argparse argument, which the contract rejects unless global_arguments is empty or solely --json.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "262-262",
+      "quote": "requires `--agent` (or `$WF_AGENT`) — receipts, attempts, and commit"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "650-650",
+      "quote": "if len(global_arguments) == 0 {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1287-1293",
+      "quote": "\"flags\": [\n    \"--agent\"\n  ]"
+    }
+  ],
+  "action": "amend-contract"
+}

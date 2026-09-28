@@ -1,0 +1,162 @@
+{
+  "id": "20260904T105041Z-code-grok-c426b7",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/ladder-fix",
+  "lineage": {
+    "branch": "lane/ladder-fix",
+    "base_sha": "d269d4f4838436b2b7c994ddda03c0cf40376e56"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:50:42Z",
+    "closed": "2026-09-04T11:11:57Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d269d4f4838436b2b7c994ddda03c0cf40376e56",
+    "ref_sha": "d269d4f4838436b2b7c994ddda03c0cf40376e56",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4d21d1ba-98a2-4fef-be2f-6845a2e07dc0",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok-stream/sessions/<snapshot-encoded>/4d21d1ba-98a2-4fef-be2f-6845a2e07dc0/summary.json"
+  },
+  "session": {
+    "id": "4d21d1ba-98a2-4fef-be2f-6845a2e07dc0",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok-stream/sessions/<snapshot-encoded>/4d21d1ba-98a2-4fef-be2f-6845a2e07dc0/summary.json",
+    "stream_sha256_at_close": "52b5d7e5c94e15dd0b6824b45bfb451fd83f58bbfac0c4af6a3212aaf31635a4",
+    "spend": {
+      "input": 6018697,
+      "cached": 5649024,
+      "output": 68137,
+      "total": 6086834,
+      "cost_usd_ticks": 9624910400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/home/grok-stream/sessions/<snapshot-encoded>/4d21d1ba-98a2-4fef-be2f-6845a2e07dc0/summary.json",
+      "messages": 355
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder-fix/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch's fix round, tests only: from the two audits and the session's dispositions in the input file, write red tests at this ref for every finding marked FIX (S2 to S9, S11; A2, A3, A5 to A11), one commit per file, in the files that own them (test_ladder_lever.py, test_land_lever.py, test_laneconf.py, test_launch_lane_conf.py or the launcher's tests, and a new file where none fits); each test pins the declared behaviour the finding quotes, fails on this tree for the finding's reason, and would pass on a correct fix. Verify A10 on this ref before pinning it. Do not write implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105041Z-code-grok-c426b7/in/contract-ladder-fix.md",
+        "sha256": "91bc16a624f35c723f9b28e34706c1d5060543b02f8e64d3bd2e08730d700dbd"
+      }
+    ],
+    "sha256": "0cbff4d6223d93d2ba105660f208ef748893e6a77121c8065f6fa9565a345c97",
+    "bytes": 2947
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:50:42Z",
+      "ended": "2026-09-04T11:11:57Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bb49c6873fd2a3c9bc766e4f9ed6c6873840abec",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/conductor/tests/test_land_lever.py",
+      "ops/conductor/tests/test_laneconf.py",
+      "ops/devlane/dispatch/tests/test_launch_lane_conf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py",
+        "test_land_lever": "ops/conductor/tests/test_land_lever.py",
+        "test_laneconf": "ops/conductor/tests/test_laneconf.py",
+        "test_launch_lane_conf": "ops/devlane/dispatch/tests/test_launch_lane_conf.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6086834,
+        "out": 68137,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d269d4f4838436b2b7c994ddda03c0cf40376e56",
+        "started": "2026-09-04T10:52:06Z",
+        "ended": "2026-09-04T11:11:35Z"
+      },
+      "note": "Tests only at d269d4f; no implementation. FIX findings S2\u2013S9, S11, A2, A3, A5\u2013A9, A11 pinned and proven red on their own assertions (collection/import errors were not counted as red). A10 verified on this ref before pinning: `git ls-files -- ops/lane.conf ops/conductor/tools/dispatch.conf` lists only ops/lane.conf; dispatch.conf is absent; `TrackedConfMove.test_lane_conf_is_tracked_and_dispatch_conf_is_not` is green \u2014 not pinned. Four commits, one per file, HEAD bb49c6873fd2a3c9bc766e4f9ed6c6873840abec: a6256da test_ladder_lever.py, abdc682 test_land_lever.py, 762c986 test_laneconf.py, bb49c68 test_launch_lane_conf.py."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T11:11:57.265Z"
+    }
+  },
+  "status": "closed"
+}

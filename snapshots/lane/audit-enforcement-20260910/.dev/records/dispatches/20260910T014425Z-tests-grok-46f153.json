@@ -1,0 +1,183 @@
+{
+  "id": "20260910T014425Z-tests-grok-46f153",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "7a0dc24487802cdf89da8ab7b111d1f3c9296e4b"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:44:25Z",
+    "closed": "2026-09-10T02:08:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7a0dc24487802cdf89da8ab7b111d1f3c9296e4b",
+    "ref_sha": "7a0dc24487802cdf89da8ab7b111d1f3c9296e4b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1361cd61-8b95-4230-a117-e22ee99e264f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok-stream/sessions/<snapshot-encoded>/1361cd61-8b95-4230-a117-e22ee99e264f/summary.json"
+  },
+  "session": {
+    "id": "1361cd61-8b95-4230-a117-e22ee99e264f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok-stream/sessions/<snapshot-encoded>/1361cd61-8b95-4230-a117-e22ee99e264f/summary.json",
+    "stream_sha256_at_close": "cb84946d22270e601f2174f5bc78af81b53618dad3cad12081b619d1f92cf4c4",
+    "spend": {
+      "input": 8432559,
+      "cached": 8056576,
+      "output": 77193,
+      "total": 8509752,
+      "cost_usd_ticks": 12804223200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/home/grok-stream/sessions/<snapshot-encoded>/1361cd61-8b95-4230-a117-e22ee99e264f/summary.json",
+      "messages": 500
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "5c2c493899a7d3a4228a07f74ede7357feeafa92c9c1e2180119c48dbc150f8e"
+    },
+    "scope": "Repair the concrete contradictions in the independent enforcement test batch. Read ../in/enforcement-test-repair.md. Tests only; no implementation or contract changes. Make valid bound fixtures for all success paths, mutate one prerequisite per refusal, exercise actual declared entrypoints. One complete correction batch before paid test acceptance.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/in/enforcement-test-repair.md",
+        "sha256": "1ef44c0edba90fd7eeeb2616bf18ea251d922b4e5bee1382007620002d0eb743"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014425Z-tests-grok-46f153/in/owner-enforcement-addendum.md",
+        "sha256": "0b6e768c79fb5afd3d31179f7cfe5a01257be3a545565f2c1906c55e5fc36a8c"
+      }
+    ],
+    "sha256": "82ae7f5451fa0f45b9bce7c06cffc896ebb7d9a403e788f8d29fef6a8c508a43",
+    "bytes": 4050
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:44:25Z",
+      "ended": "2026-09-10T02:08:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7875a0e9843c71e07d41090d238401f948311d15",
+    "changed_paths": [
+      "ops/conductor/tests/test_admission_enforcement_custody.py",
+      "ops/conductor/tests/test_admission_enforcement_followup.py",
+      "ops/conductor/tests/test_admission_enforcement_terminal.py",
+      "ops/devlane/dispatch/tests/admission_enforcement_support.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_declaration.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_review_slots.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_verify.py",
+      "ops/devlane/task/tests/test_admission_enforcement_validate.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "support": "ops/devlane/dispatch/tests/admission_enforcement_support.py",
+        "declaration": "ops/devlane/dispatch/tests/test_admission_enforcement_declaration.py",
+        "verify": "ops/devlane/dispatch/tests/test_admission_enforcement_verify.py",
+        "review_slots": "ops/devlane/dispatch/tests/test_admission_enforcement_review_slots.py",
+        "fixtures": "ops/devlane/dispatch/tests/test_admission_enforcement_fixtures.py",
+        "validate": "ops/devlane/task/tests/test_admission_enforcement_validate.py",
+        "custody": "ops/conductor/tests/test_admission_enforcement_custody.py",
+        "followup": "ops/conductor/tests/test_admission_enforcement_followup.py",
+        "terminal": "ops/conductor/tests/test_admission_enforcement_terminal.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 8509752,
+        "out": 77193,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7a0dc24487802cdf89da8ab7b111d1f3c9296e4b",
+        "started": "2026-09-10T01:44:25Z",
+        "ended": "2026-09-10T02:07:44Z"
+      },
+      "note": "One bound fixture now drives the nine enforcement files; original admission tests were not touched. Fixture-precondition file stayed green (15/15). Intended assertion reds were proven per file with no import/collection errors, then each file was committed. HEAD 7875a0e9843c71e07d41090d238401f948311d15."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T02:08:00.351Z"
+    }
+  },
+  "status": "closed"
+}

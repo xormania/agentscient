@@ -1,0 +1,178 @@
+{
+  "id": "20260909T233749Z-tests-grok-9df66c",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "a3ac203a88a0a67feff407f3cba8adb9a656d245"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:37:50Z",
+    "closed": "2026-09-09T23:55:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a3ac203a88a0a67feff407f3cba8adb9a656d245",
+    "ref_sha": "a3ac203a88a0a67feff407f3cba8adb9a656d245",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "cb4d8de4-3907-4adc-b20c-35d42d42edae",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok-stream/sessions/<snapshot-encoded>/cb4d8de4-3907-4adc-b20c-35d42d42edae/summary.json"
+  },
+  "session": {
+    "id": "cb4d8de4-3907-4adc-b20c-35d42d42edae",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok-stream/sessions/<snapshot-encoded>/cb4d8de4-3907-4adc-b20c-35d42d42edae/summary.json",
+    "stream_sha256_at_close": "3a7c0da6b2f2e8b4c6c972a78ce4e1cca89c93e62b22431fce014d52b3b63d14",
+    "spend": {
+      "input": 5100250,
+      "cached": 4634752,
+      "output": 55912,
+      "total": 5156162,
+      "cost_usd_ticks": 6092534800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/home/grok-stream/sessions/<snapshot-encoded>/cb4d8de4-3907-4adc-b20c-35d42d42edae/summary.json",
+      "messages": 324
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent behavioral tests for the finding-admission contract in this tree, under in/owner-scope.md. Read the declared interfaces, not production implementation. Write only tests/fixtures. Cover admitted defects versus expansion/unproven, mixed filtering, incomplete and legacy reviews, malformed evidence and actual correction routing. Independently classify a small sample from in/agy-review-sample.json; retain immutable citations and do not treat old verdicts as truth. Prove targeted tests red for the intended missing behavior, not import/fixture mistakes. Keep tests small and use existing conventions. Do not expand protocol. Report exact commands and red causes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T233749Z-tests-grok-9df66c/in/agy-review-sample.json",
+        "sha256": "8514fc2247844d4b52bd30b5d09c783b9090e1ce687e5d5872833cac755034bd"
+      }
+    ],
+    "sha256": "764fa958ffcab90a7ff8c01bf73a7dc9e54573dbe179606e9ae3ec978ad0d2e0",
+    "bytes": 3024
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:37:50Z",
+      "ended": "2026-09-09T23:55:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c8d86b857c4320de9de23fd80d3c80243df174e3",
+    "changed_paths": [
+      "ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json",
+      "ops/conductor/tests/test_finding_admission_ledger.py",
+      "ops/conductor/tests/test_finding_admission_routing.py",
+      "ops/devlane/task/tests/test_finding_admission_envelope.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "envelope-tests": "ops/devlane/task/tests/test_finding_admission_envelope.py",
+        "ledger-tests": "ops/conductor/tests/test_finding_admission_ledger.py",
+        "routing-tests": "ops/conductor/tests/test_finding_admission_routing.py",
+        "sample-classifications": "ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5156162,
+        "out": 55912,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a3ac203a88a0a67feff407f3cba8adb9a656d245",
+        "started": "2026-09-09T23:37:50Z",
+        "ended": "2026-09-09T23:54:40Z"
+      },
+      "note": "Independent tests only, against declared interfaces; implementation bodies were not read. Commits on lane/finding-admission-20260909: f6bc7a9 envelope, 71c6a27 ledger+sample, c8d86b8 routing (HEAD c8d86b857c4320de9de23fd80d3c80243df174e3). File sha256 at that HEAD: envelope 8b922c75987b6282a04ac6e77447a3f53bb8a52a5566e20c632cfef77af2ee70; ledger 56aae27d2c4de870c6501e4536fb5fd64e06fd3130514439a5688129aabb3650; routing b514e248d9d7ef40d4714685b88a98a7a56c93d6253e54a46887cedbc70a137b; sample fixture b363c5f8c12ab3756e7b71dba429fad35d016cdc79f3457de129223503d59a83. Sample labels (old verdicts unused): agy-closure demonstrated-defect; agy-fallthrough unproven; agy-unverified-flags unproven; agy-executable-identity demonstrated-defect; agy-live-output-test demonstrated test defect but job=review has no correction authority. Command python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v at a3ac203: 17 tests, 16 failed, 0 errors; green control is omitted evaluation remaining four-field; reds are build dropping evaluation, finding() TypeError on evaluation=, ENVELOPE_SCHEMA without evaluation, approve still allowed with a demonstrated-defect once evaluation is dropped. Command python3 ops/conductor/tests/test_finding_admission_ledger.py -v: 15 tests, 14 failed, 0 errors; green control is legacy four-field import; reds are corrections/dispute unknown verbs (class arguments) and export missing evaluations. Command python3 ops/conductor/tests/test_finding_admission_routing.py -v: 4 tests, 4 failed, 0 errors; reds are driver never calling corrections (only import/export), tests-fix still launched from a raw changes verdict when admitted is empty, tests-fix brief carrying the mixed check-tests envelope instead of the admitted failure, and a refused corrections read completing the ladder (exit 0) instead of an admission stop. python3 -m unittest ops.devlane.task.tests.test_finding_admission_envelope does not collect (not a package); file path is the frozen argv. Protocol was not expanded."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-09T23:55:18.117Z"
+    }
+  },
+  "status": "closed"
+}

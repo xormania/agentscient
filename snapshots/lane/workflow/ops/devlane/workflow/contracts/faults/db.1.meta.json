@@ -1,0 +1,10 @@
+{
+  "contract": "db",
+  "fault": "db.1.json",
+  "from": "obs/db.json",
+  "change": "the `artifact` row is gone from the DB's gate-kind registry, so the registry no longer matches the two tracked gate-kinds/*.json files",
+  "violates": "PLAN.md §6 lines 328-330 (with §11 line 516, §3.5 line 181)",
+  "quote": "\"Source of truth is tracked JSON under `gate-kinds/<kind>.json`; `wf init` syncs it into `gate_kinds`; `wf verify` checks DB and files agree.\"",
+  "reject_path": "facts\\.gate_kinds\\b",
+  "implied": false
+}

@@ -1,0 +1,217 @@
+{
+  "id": "20260906T041006Z-code-codex-af47b1",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "1b17f14d32ce3246001825e99abd4fab1059eaa7"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:10:06Z",
+    "closed": "2026-09-06T04:12:44Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+    "ref_sha": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-10-07-01a074e8-c567-7b63-a2d3-693896e6fdff.jsonl"
+  },
+  "session": {
+    "id": "01a074e8-c567-7b63-a2d3-693896e6fdff",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-10-07-01a074e8-c567-7b63-a2d3-693896e6fdff.jsonl",
+    "stream_sha256_at_close": "26d724b26ab65401427434629d92d9120bde6f08ff88ef047072c93b21413494",
+    "spend": {
+      "input": 495855,
+      "cached": 452224,
+      "output": 3976,
+      "total": 499831,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-10-07-01a074e8-c567-7b63-a2d3-693896e6fdff.jsonl",
+      "messages": 89
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Write only ops/conductor/lane-policy.md to declare the exact fixed-protocol allowance in policy-literal-repair-ruling.md, beside Data shape and path rules. Cite lane-mcp-lever.md's exact declaration precedent. Keep structural binding semantics, policy data, proposed standing and all other literal detection unchanged. No source/tests/guard/settings/host/DB/network edits or vendor launches. Acceptance: git diff --check plus focused wording/link consistency checks, with exact ref and one-file scope. Commit plain prose and actual-model Source/Co-Authored-By provenance. Independent guard tests and review follow; this paragraph does not activate or admit policy.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-code-codex-af47b1/in/20260906T040443Z-plan-codex-6c535b.json",
+        "sha256": "690cbc9179fe3a1b393a702b8248613f18455b4404632298b4731bc2edc3fb75"
+      }
+    ],
+    "sha256": "c87add5f000ca0e5274508bc7231b261a0014a57ea465ff3b7823c0352924d40",
+    "bytes": 4511
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:10:06Z",
+      "ended": "2026-09-06T04:12:44Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "99a31d80bff5cd4f5c9664af2535d6d85b2b96a4",
+    "changed_paths": [
+      "ops/conductor/lane-policy.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 9,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed requested HEAD and initially clean working tree; located input ruling.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && rg --files -g AGENTS.md -g '*.md' docs ops/conductor ../in | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/policy-literal-repair-ruling.md",
+          "claim": "Read the complete input ruling. Combined repository output was truncated; subsequent reads recovered the relevant documents.",
+          "reproduce": "cat ../in/policy-literal-repair-ruling.md AGENTS.md docs/*.md ops/README.md && rg --files --hidden -g AGENTS.md -g '!vendor/**' -g '!.git/**' ops && cat ops/conductor/lane-policy.md ops/conductor/lane-mcp-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/AGENTS.md",
+          "claim": "Read attempt exited 1 because ops/AGENTS.md does not exist; the chained cat did not run.",
+          "reproduce": "wc -l docs/*.md ops/README.md ops/AGENTS.md ops/conductor/lane-policy.md && cat ops/AGENTS.md ops/README.md docs/wire.md docs/workflow.md docs/probes.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Located scoped instructions and read lane instructions and founding contracts successfully.",
+          "reproduce": "rg --files --hidden -g AGENTS.md -g '!vendor/**' -g '!.git/**' ops; cat ops/README.md docs/wire.md docs/workflow.md docs/probes.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md",
+          "claim": "Read the complete policy contract before editing.",
+          "reproduce": "cat ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Read remaining founding documents and measured existing commit provenance; HEAD was detached.",
+          "reproduce": "cat docs/mapping.md docs/concerns.md && git log -3 --format=full && git branch --show-current"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:71",
+          "claim": "Focused acceptance passed: exact declaration, token/path limits, whitespace rule, MCP precedent link, unchanged original text and policy data, and one-file scope. The exact executed command is retained in the reproduction artifact.",
+          "reproduce": "bash ../out/focused-check.sh"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Commit attempt exited 128: sandbox filesystem refused index.lock creation. Commit message supplied for launcher fallback.",
+          "reproduce": "git add -- ops/conductor/lane-policy.md && git commit -m 'Declare the exact policy protocol literal allowance' -m 'Declare the token-specific POLICY_SCHEMA allowance beside the policy data shape and cite the existing MCP declaration precedent. Preserve all other literal detection, record validation, binding semantics and proposed standing. This contract clarification does not admit or activate policy.' -m 'Source: original' -m 'Co-Authored-By: GPT-6 <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot final tree",
+          "claim": "Final git diff --check exited 0. Only lane-policy.md changed; its blob is 166f2cde8631231392060101283bde893c7542f1. HEAD remains the requested ref.",
+          "reproduce": "git diff --check && git diff --name-only 1b17f14d32ce3246001825e99abd4fab1059eaa7 && git status --short && git rev-parse HEAD && git hash-object ops/conductor/lane-policy.md"
+        }
+      ],
+      "artifacts": {
+        "policy": "ops/conductor/lane-policy.md",
+        "focused_check": "../out/focused-check.sh"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 499831,
+        "out": 3976,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1b17f14d32ce3246001825e99abd4fab1059eaa7"
+      },
+      "note": "Implemented the contract-only reading of the brief. Acceptance passed; independent guard tests and review remain subsequent work. Policy is neither admitted nor activated. Findings record command evidence, including the recovered read failure and sandbox commit refusal.",
+      "commit": {
+        "subject": "Declare the exact policy protocol literal allowance",
+        "body": "Declare the token-specific POLICY_SCHEMA allowance beside the policy data shape and cite the existing MCP declaration precedent. Preserve all other literal detection, record validation, binding semantics and proposed standing. This contract clarification does not admit or activate policy.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T04:12:43.737Z"
+    }
+  },
+  "status": "closed"
+}

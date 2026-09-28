@@ -1,0 +1,156 @@
+{
+  "id": "20260904T164941Z-tests-grok-41ff0e",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/noguess",
+  "lineage": {
+    "branch": "lane/noguess",
+    "base_sha": "4dbf140588423d158a68270783032da8ae16496f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:49:42Z",
+    "closed": "2026-09-04T17:05:17Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4dbf140588423d158a68270783032da8ae16496f",
+    "ref_sha": "4dbf140588423d158a68270783032da8ae16496f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "742526c5-08e8-4136-a66a-68f60764f3a3",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok-stream/sessions/<snapshot-encoded>/742526c5-08e8-4136-a66a-68f60764f3a3/summary.json"
+  },
+  "session": {
+    "id": "742526c5-08e8-4136-a66a-68f60764f3a3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok-stream/sessions/<snapshot-encoded>/742526c5-08e8-4136-a66a-68f60764f3a3/summary.json",
+    "stream_sha256_at_close": "e66cbe233ca8a2cf6be1fdd57228839bcb987861d14e07f0d0ada7dfe3329e6b",
+    "spend": {
+      "input": 3018700,
+      "cached": 2836224,
+      "output": 50792,
+      "total": 3069492,
+      "cost_usd_ticks": 3549287200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok-stream/sessions/<snapshot-encoded>/742526c5-08e8-4136-a66a-68f60764f3a3/summary.json",
+      "messages": 289
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-noguess/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### Verb\n`python3 ops/conductor/tools/laneconf.py defaults [--paths FILE\u2026] [--strict]`\n- Scan the same source set `literals()` uses (`ops/` and `.claude/`, suffixes `.py` `.sh`, skip `tests` `fixtures` `archive` `infra`), unless `--paths` names files; `--paths` still skips those four directory names if a named file sits under them.\n- Do **not** read `DEFERRED_LITERAL_PATHS`. That list is why today's identity fallbacks are invisible to `literals()`.\n- Hits, two families:\n  1. Hardcoded lane value: a literal equal to a `lane.conf` value, or a compare/assign of `dev` / `master` / `agentscient` / `uscient/agentscient` / `../wt` / a `MODEL_*` / `EFFORT_*` / `ADDRESS_*` / `LANE_AUTHOR` / `WALL_DEFAULT` / `SCOPE_CAP` value, outside `lane.conf` itself and outside `laneconf.py`'s own token table. `NAME_KEYS` expands to every identity key including `WORKTREE_ROOT` and the address/model/effort/author/wall/scope keys. The `len >= 4` filter goes. Short `dev` is a token as `'\"dev\"'` and `\"'dev'\"` ",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/in/PLAN-noguess-s1.md",
+        "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+      }
+    ],
+    "sha256": "cfcca2aeb76e9049a9b4937ce45548abb894ed0d217ec682fc0542a40dcb71bb",
+    "bytes": 3343
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:49:42Z",
+      "ended": "2026-09-04T17:05:17Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0849e50afa7a8e4117da720008cb4169292a0b98",
+    "changed_paths": [
+      "ops/conductor/tests/test_laneconf_defaults.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_laneconf_defaults.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3069492,
+        "out": 50792,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4dbf140588423d158a68270783032da8ae16496f",
+        "started": "2026-09-04T16:49:42Z",
+        "ended": "2026-09-04T17:05:00Z"
+      },
+      "note": "Wrote ops/conductor/tests/test_laneconf_defaults.py from the defaults verb contract (both hit families, --paths skip set, --strict rejection, exception table). Named command python3 -m unittest discover -s ops/conductor/tests -p test_laneconf_defaults.py at 4dbf140588423d158a68270783032da8ae16496f: 31 tests, 46 failures (subtests included), 0 errors, 0 passed; current red is class arguments (verb absent). Committed 0849e50afa7a8e4117da720008cb4169292a0b98 on lane/noguess."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T17:05:17.216Z"
+    }
+  },
+  "status": "closed"
+}

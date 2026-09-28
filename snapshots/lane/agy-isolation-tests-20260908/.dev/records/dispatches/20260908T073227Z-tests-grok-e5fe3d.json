@@ -1,0 +1,189 @@
+{
+  "id": "20260908T073227Z-tests-grok-e5fe3d",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-isolation-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-tests-20260908",
+    "base_sha": "eb0283807747784e27fed613348b301d97bfcb46"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:32:27Z",
+    "closed": "2026-09-08T07:41:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "eb0283807747784e27fed613348b301d97bfcb46",
+    "ref_sha": "eb0283807747784e27fed613348b301d97bfcb46",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7997ed0c-df3a-42bc-9084-a61134ea4bac",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok-stream/sessions/<snapshot-encoded>/7997ed0c-df3a-42bc-9084-a61134ea4bac/summary.json"
+  },
+  "session": {
+    "id": "7997ed0c-df3a-42bc-9084-a61134ea4bac",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok-stream/sessions/<snapshot-encoded>/7997ed0c-df3a-42bc-9084-a61134ea4bac/summary.json",
+    "stream_sha256_at_close": "fa8453c2e6131b154de7dc177b322dbbc5ddceb4af147ee761ce8112057e250a",
+    "spend": {
+      "input": 2174629,
+      "cached": 1951360,
+      "output": 31631,
+      "total": 2206260,
+      "cost_usd_ticks": 2740406800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/home/grok-stream/sessions/<snapshot-encoded>/7997ed0c-df3a-42bc-9084-a61134ea4bac/summary.json",
+      "messages": 248
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently author bounded agy isolation tests in one new ops/devlane/harness/tests/test_agy_isolation.py, using public isolation module contract, existing test helpers, and supplied measured host evidence. No production function bodies. Pin public build_home/dispatch_env/isolated behavior: HOME-based isolation, measured .gemini/antigravity-cli base and brain session root, only antigravity-oauth-token copied, nested synthetic settings/history canaries excluded, fresh independent job homes, explicit missing-auth refusal and no real-HOME fallback. No secret bytes or actual credentials; synthetic fixtures only. Do not invent provider/token-store/launch adapters or write-policy measurements. Acceptance: focused unittest discovery of this file, zero errors with meaningful reds, ruff check and git diff --check, exact hashes/receipts. Keep compact; no new fixture framework, vendor inference, production edits or full floor. Grok 4.6 attribution.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T073227Z-tests-grok-e5fe3d/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "1119967e35d3faab00c6c76ca7c1fd4c5d0965e77a3aa17af4037a63ad05b1e6",
+    "bytes": 3297
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:32:27Z",
+      "ended": "2026-09-08T07:41:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ab7c8a84572add4a21f76c6bf7d8e48d76c38c65",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_agy_isolation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "in/agy-host-observation-record.json",
+          "claim": "Input SHA256 3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db, 27466 bytes.",
+          "reproduce": "python3 -c 'import hashlib,pathlib; p=pathlib.Path(\"../in/agy-host-observation-record.json\"); print(hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size)'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py",
+          "claim": "Focused discovery ran 7 tests, 7 failures, 0 errors at ab7c8a84572add4a21f76c6bf7d8e48d76c38c65. File SHA256 5dd64355566295e63b277ee68bfd125c8f4ad3bbf1b3fecc4cf681eea7fba01f, 9384 bytes.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_agy_isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py",
+          "claim": "ruff check exited 0.",
+          "reproduce": "ruff check ops/devlane/harness/tests/test_agy_isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py",
+          "claim": "git diff --check exited 0; git diff --cached --check exited 0; working tree clean.",
+          "reproduce": "git diff --check; git diff --cached --check; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "commit",
+          "claim": "Committed ab7c8a84572add4a21f76c6bf7d8e48d76c38c65 with parsed trailers Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>.",
+          "reproduce": "git log -1 --format='%H %(trailers:only)'"
+        }
+      ],
+      "artifacts": {
+        "tests": "ops/devlane/harness/tests/test_agy_isolation.py",
+        "unittest": "../out/test_agy_isolation.unittest.txt",
+        "commit": "ab7c8a84572add4a21f76c6bf7d8e48d76c38c65"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2206260,
+        "out": 31631,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "eb0283807747784e27fed613348b301d97bfcb46",
+        "started": "2026-09-08T07:35:45+00:00",
+        "ended": "2026-09-08T07:40:59.861317+00:00"
+      },
+      "note": "One new file pins public agy build_home/dispatch_env/isolated from the isolation module contract and host observation 20260908T071244Z-code-grok-220fb8: HOME isolation, .gemini/antigravity-cli base, brain session root, only antigravity-oauth-token, nested settings/history canaries excluded, independent job homes, missing-auth refusal, no real-HOME fallback. Synthetic fixtures only. No production edits. Reds: registry lacks agy; copy/independent/dispatch_env/isolated refuse unregistered; missing-auth refusal does not name antigravity-oauth-token; explicit env refusal does not name HOME."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:41:40.233Z"
+    }
+  },
+  "status": "closed"
+}

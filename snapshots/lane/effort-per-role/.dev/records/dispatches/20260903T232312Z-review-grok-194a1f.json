@@ -1,0 +1,168 @@
+{
+  "id": "20260903T232312Z-review-grok-194a1f",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T23:23:13Z",
+    "closed": "2026-09-03T23:37:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4bda9a7a-a6de-4222-8aee-bc3d942d9fe2",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json"
+  },
+  "session": {
+    "id": "4bda9a7a-a6de-4222-8aee-bc3d942d9fe2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
+    "stream_sha256_at_close": "5d3d62b3f00c933e5dc92013f21f7d4d4f1904b102c584ee2c6818063ab69b29",
+    "spend": {
+      "input": 4066197,
+      "cached": 3761024,
+      "output": 45962,
+      "total": 4112159,
+      "cost_usd_ticks": 4703271000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
+      "messages": 342
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "the change on lane/effort-per-role against dev: effort forwarded to three CLIs, per-job model and effort resolution in the dispatcher, a new security-audit job, and the review fan-out; a first work order through the loop",
+    "inputs": [],
+    "sha256": "49df46fb5a3285d3fcf706229f606b864263266587401585c8dfc441a95cf6b9",
+    "bytes": 848
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-03T23:23:13Z",
+      "ended": "2026-09-03T23:37:48Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md \u00a7Refusals `model` and \u00a7The record model fields",
+          "claim": "The dispatch contract still says `--effort` on Codex is refused because the CLI has no effort flag, and it still lists model as `{requested, effort_requested, ran, read_from}`. launch.py forwards effort to Claude, Codex, and Grok via `_effort_argv` and record.py requires `model.effort_argv`. The tests pin the new behavior; the contract they were written from now states the opposite. ops/conductor/pipelines.md still says the launcher refuses Codex effort until de72c11.",
+          "reproduce": "python3 -c \"from pathlib import Path; c=Path('ops/devlane/dispatch/CONTRACT.md').read_text(); l=Path('ops/devlane/dispatch/launch.py').read_text(); p=Path('ops/conductor/pipelines.md').read_text(); assert 'the CLI has no effort flag, so the dial is refused rather than dropped' in c; assert 'effort_argv' not in c; assert 'def _effort_argv' in l; assert 'if args.harness == \\\"codex\\\" and args.effort' not in l; assert 'the launcher refuses `--effort` on codex until' in p; print('stale-contract')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py `_close` line 1211-1212 vs record.py `validate` lines 73-78",
+          "claim": "`_close` comments that records launched before `effort_argv` joined the wire remain closable, then `setdefault`s the field to `[]`. That only validates when `effort_requested` is empty. Grok already forwarded `--effort` before this change; closing such a launched record hits `record field model.effort_argv must carry model.effort_requested` because `_write_record` always validates. Reconstructing with `_effort_argv(harness, effort_requested)` validates; `[]` does not. Resume already rewrites `effort_argv` from the requested value; close does not.",
+          "reproduce": "python3 -c \"import sys; from copy import deepcopy; sys.path.insert(0,'ops/devlane/dispatch'); import record; rec={'id':'x','lane':'dev','stage':'plan','unit':'work','lineage':{'branch':'work','base_sha':'a'*40},'follows':[],'job':'plan','role':'read','dispatched_by':'T <t@e.invalid>','at':{'launched':'2026-08-26T00:00:00Z','closed':None},'snapshot':{'mode':'whole','ref_name':'HEAD','ref_sha':'b'*40,'behind_tip':0,'root':'/tmp'},'harness':{'name':'grok','version':'1','isolation':{'mechanism':'home','observed':{'unresolved':'x'}},'sandbox':'plan','containment':'policy','argv':[]},'model':{'requested':'grok-4.6','effort_requested':'high','ran':None,'read_from':None,'note':'n'},'session':{'id':'0','stream':None,'stream_sha256_at_close':None},'brief':{'template':{'path':'j','sha256':'c'*64},'scope':'s','inputs':[],'sha256':'d'*64,'bytes':1},'caps':{'cap-out':1,'source':'wires.py'},'overrides':[],'attempts':[],'result':None,'status':'launched'}; rec['model'].setdefault('effort_argv',[]);\ntry:\n    record.validate(rec); print('shim-passed')\nexcept record.RecordError as e:\n    print(e)\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/jobs.json `security-audit` vs `adversarial-review` caps, and ops/bin/go.sh review fan-out",
+          "claim": "`go.sh review` now fires `security-audit` on Codex then `adversarial-review` on Grok. The sibling review job declares `caps.timeout` 1200; `security-audit` declares none, so it inherits the launcher default of 900s. Cross-review.md records Grok reviews exceeding 10 minutes; this branch's own implement dispatch 20260903T225629Z-code-codex-e0fe11 died on that same default (`wall at 900s from the launcher default; the job declares no cap`).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; j=json.loads(Path('ops/devlane/task/jobs.json').read_text()); print('adversarial-review', j['adversarial-review'].get('caps')); print('security-audit', j['security-audit'].get('caps'))\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/record.py `validate` lines 76-78",
+          "claim": "The new `effort_argv` rule is a substring check (`effort in token`). Conf ships both `high` (Claude) and `xhigh` (Grok/Codex). A record with `effort_requested=high` and `effort_argv=['--reasoning-effort','xhigh']` validates, so the rule does not distinguish the two values this change actually uses. Launch tests compare exact token lists; close/validate does not.",
+          "reproduce": "python3 -c \"import sys; sys.path.insert(0,'ops/devlane/dispatch'); import record; rec=record.build({'id':'20260826T000000Z-plan-grok-abc123','stage':'plan','unit':'work','lineage':{'branch':'work','base_sha':'a'*40},'job':'plan','role':'read','dispatched_by':'T <t@e.invalid>','at':{'launched':'2026-08-26T00:00:00Z','closed':None},'snapshot':{'mode':'whole','ref_name':'HEAD','ref_sha':'b'*40,'behind_tip':0,'root':'/tmp'},'harness':{'name':'grok','version':'1','isolation':{'mechanism':'home','observed':{'unresolved':'x'}},'sandbox':'plan','containment':'policy','argv':[]},'model':{'requested':'m','effort_requested':None,'effort_argv':[],'ran':None,'read_from':None,'note':'n'},'session':{'id':'0','stream':None,'stream_sha256_at_close':None},'brief':{'template':{'path':'j','sha256':'c'*64},'scope':'s','inputs':[],'sha256':'d'*64,'bytes':1},'caps':{'cap-out':1,'source':'wires.py'},'overrides':[],'attempts':[],'result':None,'status':'launched'}); rec['model']['effort_requested']='high'; rec['model']['effort_argv']=['--reasoning-effort','xhigh']; record.validate(rec); print('high-in-xhigh-accepted')\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 0,
+        "out": 0,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+        "started": "2026-09-03T23:23:13Z",
+        "ended": "2026-09-03T23:37:13Z"
+      },
+      "note": "in/ looked and was empty. Effort flags measured against the live CLIs: claude --effort (low|medium|high|xhigh|max), grok --reasoning-effort (alias --effort), codex -c model_reasoning_effort (config key present; -c values iterate as a list). Wrapper, record, refusal, jobs, and adapter-dial tests passed via unittest discover. spend.total/out unread: this Grok ACP stream only exposes params._meta.totalTokens (context; last 165536), not cumulative in/out; zeros are unread, not a measured cost."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-03T23:37:48.077Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,11 @@
+{
+  "contract": "cli",
+  "fault": "cli.1.json",
+  "from": "obs/cli.json",
+  "change": "there is no `red` command",
+  "violates": "PLAN.md §4 line 248 (with §11 line 517, §13 line 580)",
+  "quote": "\"| `wf red <wo> -- <cmd…>` | run the test command, require failure, record the red receipt + test manifest |\"",
+  "reject_path": "facts\\.commands\\b|red",
+  "implied": false,
+  "note": "The clean run is already expected to fail on `facts.commands` (17 verbs against §4's 16 — `agents` is undocumented). If the contract reports missing verbs on that same path, attribution needs the message text, not the path alone."
+}

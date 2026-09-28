@@ -1,0 +1,465 @@
+diff --git a/ops/devlane/hooks/boundaries.json b/ops/devlane/hooks/boundaries.json
+index 38551cab..424bc882 100644
+--- a/ops/devlane/hooks/boundaries.json
++++ b/ops/devlane/hooks/boundaries.json
+@@ -412,12 +412,14 @@
+    "class": "done-gate",
+    "boundary": "publish",
+    "actor": "session",
+-   "trigger": "at Stop, a reply that says done, complete, finished, landed, merged or solved and carries no deliverable.py line (done lane/..., the done verb's target refusal, or show's target line)",
++   "trigger": "at Stop, a reply that says done, complete, finished, landed, merged or solved and carries no deliverable.py line (done lane/..., the done verb's target refusal, or show's target line), or carries one whose now= stamp is older than the freshness bound",
+    "evidence": "python3 ops/conductor/tools/deliverable.py done <branch>, its line or its refusal pasted in the reply; the lock's target lines",
+    "gate": "engine",
+    "tests": [
+     "ops/devlane/hooks/tests/test_engine.py::test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading",
+-    "ops/devlane/hooks/tests/test_engine.py::test_three_blocks_per_session_then_the_fourth_passes_and_another_session_still_blocks"
++    "ops/devlane/hooks/tests/test_engine.py::test_three_blocks_per_session_then_the_fourth_passes_and_another_session_still_blocks",
++    "ops/devlane/hooks/tests/test_engine.py::test_a_reading_stamped_past_the_bound_is_blocked_naming_the_stamp_and_the_bound",
++    "ops/devlane/hooks/tests/test_engine.py::test_a_reading_stamped_within_the_bound_passes"
+    ],
+    "escape": "none",
+    "event": "Stop",
+@@ -428,7 +430,7 @@
+    },
+    "refuse": {
+     "expected": "a reply that says done to carry the lock's reading: the `done <branch>: ...` line of `python3 ops/conductor/tools/deliverable.py done <branch>`, or its `target: expected the measure to read ...` refusal, or show's `target <branch>: until ...; reading ...; met|short` line (a sha or a PR number is not that reading)",
+-    "needed": "run python3 ops/conductor/tools/deliverable.py done <branch> and paste its line, or its refusal with the reading; a branch with no target sets one first (deliverable.py add BRANCH --why '<the owner's words>' --measure CMD --until TEXT). Three blocks per session, then the stop passes with the reading logged (owner, 2026-09-15: \\\"I need confidence that my orders are being carried out\\\")"
++    "needed": "run python3 ops/conductor/tools/deliverable.py done <branch> and paste its line, or its refusal with the reading; a branch with no target sets one first (deliverable.py add BRANCH --why '<the owner's words>' --measure CMD --until TEXT). A pasted line whose now= stamp is older than the 300s bound is measured again, not pasted again; a line carrying no stamp is not judged for freshness. Three blocks per session, then the stop passes with the reading logged (owner, 2026-09-15: \\\"I need confidence that my orders are being carried out\\\")"
+    }
+   },
+   {
+@@ -451,6 +453,35 @@
+     "ops/devlane/hooks/tests/test_matrix.py::test_wall_paths_need_a_wall_grant_and_a_wall_grant_touches_only_the_wall"
+    ]
+   },
++  {
++   "class": "wall-state",
++   "boundary": "write",
++   "actor": "session",
++   "event": "PostToolUse",
++   "tools": [
++    "Bash",
++    "Write",
++    "Edit",
++    "MultiEdit"
++   ],
++   "trigger": "after the call, a wall path differing from its tracked content while the lane holds no open grant of lever class wall",
++   "evidence": "git status of the wall paths in the worktree, and the open grants in the lane's handwork store",
++   "gate": "engine",
++   "engine": true,
++   "escape": "none",
++   "when": {
++    "pred": "wall_path_dirty"
++   },
++   "refuse": {
++    "expected": "the wall changed only under a grant of lever class wall, judged by the tree after the call and not by the command text (LD-47)",
++    "needed": "declare the wall grant and own the change (python3 ops/conductor/tools/hand.py declare '<what>' '<why>' wall), or restore the path to its tracked content under one (git checkout -- <path>); a grant of class other does not lift this row, and the wall is changed only in a session whose deliverable is the wall (owner, 2026-09-12)"
++   },
++   "tests": [
++    "ops/devlane/hooks/tests/test_engine.py::test_a_wall_path_written_by_any_interpreter_is_seen_after_the_call",
++    "ops/devlane/hooks/tests/test_engine.py::test_an_open_grant_of_class_other_does_not_lift_the_row",
++    "ops/devlane/hooks/tests/test_engine.py::test_an_open_wall_grant_leaves_the_row_quiet"
++   ]
++  },
+   {
+    "class": "kit-import",
+    "boundary": "write",
+diff --git a/ops/devlane/hooks/claude/engine.py b/ops/devlane/hooks/claude/engine.py
+index b7c36d1f..3255408e 100755
+--- a/ops/devlane/hooks/claude/engine.py
++++ b/ops/devlane/hooks/claude/engine.py
+@@ -29,11 +29,13 @@ unknown predicates, unknown events. Adding a condition is adding a row.
+ """
+ 
+ import ast
++import datetime
+ import importlib.util
+ import json
+ import os
+ import re
+ import shlex
++import sqlite3
+ import subprocess
+ import sys
+ 
+@@ -285,6 +287,88 @@ def p_file_state_store(ctx):
+     return None
+ 
+ 
++# The wall is judged by the tree, not by the command text (LD-47): the
++# refusal names at most this many paths, so one stray directory cannot
++# print a page.
++WALL_SHOWN = 8
++
++
++def _wall_dirt(root):
++    """The wall paths differing from their tracked content, from git rather
++    than from the command text. An empty list is an answer; git in a
++    repository that cannot answer is could-not-look. No repository at the
++    root is no tracked content to differ from, which is not a wall write."""
++    if not os.path.exists(os.path.join(root, ".git")):
++        return []
++    # -uall: a wholly untracked directory is one porcelain line, and the
++    # file that was written is what the refusal has to name.
++    argv = ["git", "--no-optional-locks", "-C", root, "status", "--porcelain", "-uall", "--", *matrix.WALL_PATHS]
++    try:
++        proc = subprocess.run(argv, capture_output=True, text=True, timeout=20, check=False)  # noqa: S603
++    except (OSError, subprocess.TimeoutExpired) as error:
++        raise CouldNotLook(f"git could not read the wall's state in {root}: {error}") from error
++    if proc.returncode != 0:
++        raise CouldNotLook(f"git status refused in {root}: {proc.stderr.strip()[:200]}")
++    dirty = set()
++    for line in proc.stdout.splitlines():
++        if len(line) < 4:
++            continue
++        rel = line[3:]
++        if " -> " in rel:  # a rename names both halves; the new one is the write
++            rel = rel.split(" -> ", 1)[1]
++        rel = rel.strip().strip('"')
++        if matrix.is_wall(rel):
++            dirty.add(rel)
++    return sorted(dirty)
++
++
++def _open_wall_grant(ctx):
++    """The id of an open grant of lever class wall in the lane's store, else
++    None. A store that was never written is an answer (no grant was ever
++    declared); a store that cannot be read is could-not-look."""
++    if not ctx.lane:
++        return None
++    db = os.path.join(matrix.STATE_DIR, ctx.lane, "handwork.db")
++    if not os.path.exists(db):
++        return None
++    try:
++        connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
++        try:
++            found = connection.execute(
++                "SELECT id FROM handwork WHERE status = 'open' AND lever_class = 'wall' ORDER BY id DESC LIMIT 1"
++            ).fetchone()
++        finally:
++            connection.close()
++    except sqlite3.Error as error:
++        raise CouldNotLook(f"the grant store at {db} could not be read: {error}") from error
++    return found[0] if found else None
++
++
++def p_wall_path_dirty(ctx):
++    """LD-47 (2026-09-16): the wall-write row judges the command text, so it
++    refused `git checkout -- ops/devlane/task/jobs.json` under an ordinary
++    grant and did not refuse the python script that had rewritten the same
++    file with Path.write_text under that same grant a minute earlier. This
++    row reads the tree after the call: a wall path that differs from its
++    tracked content while the lane holds no open grant of lever class wall
++    is the finding, whatever interpreter wrote it.
++
++    The authority is the grant, not the command: an open wall grant leaves
++    the row quiet for the whole of a wall session, including its
++    uncommitted work, and the change lands in the ordinary way. What this
++    row does not see: one session's wall grant is authority for every
++    worktree of the lane, because a grant is declared per lane and not per
++    tree."""
++    dirty = _wall_dirt(ctx.root)
++    if not dirty:
++        return None
++    if _open_wall_grant(ctx) is not None:
++        return None
++    shown = ", ".join(dirty[:WALL_SHOWN])
++    rest = "" if len(dirty) <= WALL_SHOWN else f" and {len(dirty) - WALL_SHOWN} more"
++    return f"{shown}{rest} changed from the tracked content with no open wall grant"
++
++
+ def p_claim_without_reading(ctx):
+     for target, body in matrix.heredoc_records(ctx.text, ctx.cwd):
+         line = matrix.unmeasured_claim(body)
+@@ -428,6 +512,29 @@ LOCK_LINES = re.compile(
+ NO_LOCK_LINE = re.compile(r"^no lock\s*$", re.MULTILINE)
+ DONE_GATE_CAP = 3
+ DONE_GATE_COUNTER = "done-gate.json"
++# A pasted reading is fresh or it is not a reading of this reply. Measured
++# 2026-09-16: one 02:31Z reading went into six replies in an evening
++# because nothing had changed, and the row passed each of them on shape
++# alone. Five minutes is the bound — long enough for a reply written
++# around one measurement, short enough that a second claim measures again.
++READING_BOUND_S = 300
++READING_STAMP = re.compile(r"\bnow=(\d{4}-\d{2}-\d{2}T[\d:.]+Z)")
++
++
++def _reading_age(line, now):
++    """Seconds between a reading line's now= stamp and the Stop event, or
++    None when the line carries no stamp. A measure whose output has no
++    clock cannot be judged for freshness: that is a declared gap, filled by
++    the measure printing a stamp, and an unjudgeable line is never read as
++    a stale one."""
++    match = READING_STAMP.search(line)
++    if not match:
++        return None
++    try:
++        stamped = datetime.datetime.fromisoformat(match.group(1))
++    except ValueError:
++        return None
++    return (now - stamped).total_seconds()
+ 
+ 
+ def _done_gate_counter(ctx):
+@@ -481,14 +588,26 @@ def p_reply_claims_done(ctx):
+     back with the lock's target lines. A quoted span or a line opening
+     with > is not the writer's claim. stop_hook_active passes; after
+     DONE_GATE_CAP consecutive blocks for one session_id the stop passes
+-    and the reading is logged, never a session bricked."""
++    and the reading is logged, never a session bricked.
++
++    The line has to be a reading of this reply: one whose now= stamp is
++    older than READING_BOUND_S is sent back naming the stamp and the
++    bound, because a line pasted from an hour ago answers the question
++    the reply was asked an hour ago. A line carrying no stamp is passed
++    and said to be unjudged."""
+     if ctx.event != "Stop" or ctx.payload.get("stop_hook_active"):
+         return None
+     session = str(ctx.payload.get("session_id") or "unknown")
+     message = str(ctx.payload.get("last_assistant_message") or "")
+-    if LOCK_LINES.search(message):
+-        _done_gate_count(ctx, session, 0)
+-        return None
++    now = datetime.datetime.now(datetime.timezone.utc)
++    pasted = [line for line in message.splitlines() if LOCK_LINES.search(line)]
++    stale = []
++    for line in pasted:
++        age = _reading_age(line, now)
++        if age is None or age <= READING_BOUND_S:
++            _done_gate_count(ctx, session, 0)
++            return None
++        stale.append((age, line.strip()[:200]))
+     claim = None
+     for line in message.splitlines():
+         if line.lstrip().startswith(">"):
+@@ -513,6 +632,10 @@ def p_reply_claims_done(ctx):
+         miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
+         return None
+     _done_gate_count(ctx, session, blocks + 1)
++    if stale:
++        age, line = max(stale)
++        return (f'the reply says "{claim}" over a reading measured {int(age)}s ago, past the '
++                f'{READING_BOUND_S}s bound: "{line}"; measure again and paste the new line; {reading}')
+     return (f'the reply says "{claim}" with no deliverable.py line (run python3 ops/conductor/tools/deliverable.py '
+             f'done <branch> and paste its line, or its target refusal); {reading}')
+ 
+@@ -531,6 +654,7 @@ PREDICATES = {
+     "prune_target": p_prune_target,
+     "unittest_path_form": p_unittest_path_form,
+     "test_file_without_kit": p_test_file_without_kit,
++    "wall_path_dirty": p_wall_path_dirty,
+ }
+ 
+ 
+diff --git a/ops/devlane/hooks/claude/matrix.py b/ops/devlane/hooks/claude/matrix.py
+index 556c5697..b933be31 100755
+--- a/ops/devlane/hooks/claude/matrix.py
++++ b/ops/devlane/hooks/claude/matrix.py
+@@ -66,16 +66,24 @@ row that cannot look refuses: "could not look" is not a pass.
+                     escape (D-TESTKIT-1, 2026-09-14)
+     done-gate       at Stop, a reply that says done, complete,    last_assistant_message,
+                     finished, landed, merged or solved with no    the lock's target lines
+-                    deliverable.py line (engine row; three        (deliverable.py show)
+-                    blocks per session, then the stop passes;
+-                    owner, 2026-09-15: "I need confidence that
+-                    my orders are being carried out")
++                    deliverable.py line, or with one whose now=   (deliverable.py show),
++                    stamp is older than the freshness bound       the line's now= stamp
++                    (engine row; three blocks per session, then
++                    the stop passes; owner, 2026-09-15: "I need
++                    confidence that my orders are being carried
++                    out")
+     wall-write      a write to the CI and test machinery          the path, the grant's
+                     (.github/workflows, suites.sh, probes.py,     lever class
+                     laneconf.py, the hook registry, rows, engine
+                     and the hooks tests)
+                     without a grant of lever class wall; or a
+                     wall grant writing anything else (isolation)
++    wall-state      after the call, a wall path differing from     git status of the wall
++                    its tracked content while the lane holds no   paths, the lane's open
++                    open grant of lever class wall (engine row;   grants
++                    LD-47: the wall-write row judges the command
++                    text, so a write by an interpreter it cannot
++                    read reached the wall); no grant escape
+     pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
+                     system verifies: a ## Proof section naming   at the head, gh run list
+                     corpus rows that exist at the PR head, the
+diff --git a/ops/devlane/hooks/tests/test_engine.py b/ops/devlane/hooks/tests/test_engine.py
+index 7e3c7a50..7dcecdcb 100644
+--- a/ops/devlane/hooks/tests/test_engine.py
++++ b/ops/devlane/hooks/tests/test_engine.py
+@@ -19,7 +19,9 @@ producer is absent by the owner's word.
+ 
+ from __future__ import annotations
+ 
++import datetime
+ import json
++import sqlite3
+ import sys
+ import unittest
+ from pathlib import Path
+@@ -375,6 +377,45 @@ class TheDoneGate(_Engine):
+     def gate(self):
+         self.plant(row("done-gate", event="Stop", tools=(), when={"pred": "reply_claims_done"}))
+ 
++    def reading(self, seconds_ago, branch="lane/x"):
++        """A show line whose now= stamp is ``seconds_ago`` old."""
++        stamped = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=seconds_ago)
++        stamp = stamped.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
++        return (f"target {branch}: until off_kit=0; reading stamp head=abc1234 "
++                f"branch=dev now={stamp}; short")
++
++    def test_a_reading_stamped_within_the_bound_passes(self):
++        """The row the freshness check must not break: a line measured for
++        this reply."""
++        self.gate()
++        self.allowed(self.stop(f"The slice is done.\n{self.reading(30)}\nNext follows."))
++
++    def test_a_reading_stamped_past_the_bound_is_blocked_naming_the_stamp_and_the_bound(self):
++        """2026-09-16: one 02:31Z reading was pasted into six replies in an
++        evening because nothing had changed, and the row passed each. A
++        stamp older than the bound is not a reading of this reply."""
++        self.gate()
++        line = self.reading(3600)
++        reason = self.refusal(self.stop(f"The slice is done.\n{line}"), "done-gate", event="Stop")
++        self.assertIn("now=", reason)
++        self.assertIn("300", reason)
++
++    def test_a_fresh_line_beside_a_stale_one_passes(self):
++        self.gate()
++        self.allowed(self.stop(f"The slice is done.\n{self.reading(3600)}\n{self.reading(10)}"))
++
++    def test_a_reading_line_carrying_no_stamp_passes(self):
++        """The declared gap: a measure whose output has no clock cannot be
++        judged for freshness, and an unjudgeable line is not a stale one."""
++        self.gate()
++        self.allowed(self.stop(
++            "The slice is done.\ntarget: expected the measure to read wall-slice=on-dev; "
++            "found unlanded=2 dirty=4; needed keep going"))
++
++    def test_a_stale_line_in_a_reply_that_claims_nothing_passes(self):
++        self.gate()
++        self.allowed(self.stop(f"Still working; nothing to report yet.\n{self.reading(3600)}"))
++
+     def test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading(self):
+         self.gate()
+         reason = self.refusal(self.stop("All 21 slices landed; the plan is done."), "done-gate", event="Stop")
+@@ -441,6 +482,118 @@ class TheDoneGate(_Engine):
+         self.assertEqual(json.loads(counter.read_text())["s1"], 1, "a pass resets the session's count")
+ 
+ 
++WALL_PATH = "ops/devlane/task/jobs.json"
++NEIGHBOUR_PATH = "ops/conductor/tools/ledger.py"
++HANDWORK_DDL = """CREATE TABLE IF NOT EXISTS handwork(
++    id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
++    agent TEXT NOT NULL, action TEXT NOT NULL, why_by_hand TEXT NOT NULL,
++    missing_lever TEXT, evidence TEXT, lever_class TEXT, scope TEXT,
++    ttl_s INTEGER, status TEXT DEFAULT 'settled', settled_ts TEXT,
++    verified INTEGER, late INTEGER DEFAULT 0, settle_note TEXT)"""
++
++
++class TheWallIsSeenByTheTreeNotTheCommand(_Engine):
++    """LD-47 (2026-09-16): the wall-write row judges the command text, so it
++    refused `git checkout -- ops/devlane/task/jobs.json` under an ordinary
++    grant and did not refuse the python script that had rewritten the same
++    file with Path.write_text a minute earlier under that same grant. The
++    wall-state row reads the tree after the call instead, so the writing
++    interpreter does not matter.
++
++    Planted faults it catches: a wall file rewritten by a script whose
++    target the command text never spells; the same under an open grant of
++    class other (LD-47's own case); a new file under a wall directory; the
++    Write tool on a wall path. Clean neighbours it passes: a clean tree, a
++    non-wall file changed, and the wall changed with an open wall grant,
++    which is the authority the row asks for.
++    """
++
++    def setUp(self):
++        super().setUp()
++        self.plant(row("wall-state", event="PostToolUse",
++                       tools=("Bash", "Write", "Edit", "MultiEdit"),
++                       when={"pred": "wall_path_dirty"}))
++        self.wall = self.repo / WALL_PATH
++        self.wall.parent.mkdir(parents=True, exist_ok=True)
++        self.wall.write_text('{"jobs": {"tests": {"caps": {"turns": 150}}}}\n', encoding="utf-8")
++        self.neighbour = self.repo / NEIGHBOUR_PATH
++        self.neighbour.parent.mkdir(parents=True, exist_ok=True)
++        self.neighbour.write_text("# the ledger\n", encoding="utf-8")
++        support.git(self.repo, self.env, "add", "-A")
++        support.git(self.repo, self.env, "commit", "-q", "-m", "the wall and a neighbour")
++        self.store = self.home / ".local" / "state" / "agentscient" / "handwork.db"
++        self.assertEqual(self.dirt(), "", "INVALID: the fixture tree did not start clean")
++
++    def dirt(self):
++        return support.git(self.repo, self.env, "status", "--porcelain").stdout.strip()
++
++    def grant(self, grant_id, lever_class):
++        """One open grant of ``lever_class`` in the lane's store."""
++        self.store.parent.mkdir(parents=True, exist_ok=True)
++        with sqlite3.connect(self.store) as conn:
++            conn.execute(HANDWORK_DDL)
++            conn.execute(
++                "INSERT INTO handwork (id, ts, session, agent, action, why_by_hand, lever_class, status)"
++                " VALUES (?, '2026-09-16T00:00:00Z', 's1', 'tester', 'the slice', 'the owner said so', ?, 'open')",
++                (grant_id, lever_class))
++            conn.commit()
++            landed = conn.execute("SELECT status, lever_class FROM handwork WHERE id = ?", (grant_id,)).fetchone()
++        self.assertEqual(landed, ("open", lever_class), "INVALID: the planted grant did not land")
++
++    def by_interpreter(self, path, text):
++        """The write LD-47 met: a script file the hook never reads, run by an
++        interpreter, whose target the command text never spells. Returns the
++        command text the session would have shown the hook."""
++        script = self.tmp / "edit.py"
++        script.write_text(f"from pathlib import Path\nPath({str(path)!r}).write_text({text!r})\n", encoding="utf-8")
++        result = run([sys.executable, str(script)], cwd=self.repo, env=self.env, timeout=60)
++        self.assertEqual(result.exit, 0, result.stderr)
++        return f"python3 {script}"
++
++    def post(self, command, **kw):
++        return self.bash(command, event="PostToolUse", tool_response={"stdout": "", "stderr": ""}, **kw)
++
++    def test_a_wall_path_written_by_any_interpreter_is_seen_after_the_call(self):
++        command = self.by_interpreter(self.wall, '{"jobs": {}}\n')
++        self.assertNotIn(WALL_PATH, command, "INVALID: the fault must not spell the wall path")
++        reason = self.refusal(self.post(command), "wall-state", event="PostToolUse")
++        self.assertIn(WALL_PATH, reason)
++        self.assertIn("wall grant", reason)
++
++    def test_an_open_grant_of_class_other_does_not_lift_the_row(self):
++        """LD-47 itself: grant 248 was class other and the write landed."""
++        self.grant(248, "other")
++        command = self.by_interpreter(self.wall, '{"jobs": {}}\n')
++        reason = self.refusal(self.post(f"HAND_GRANT=248 {command}"), "wall-state", event="PostToolUse")
++        self.assertIn(WALL_PATH, reason)
++
++    def test_an_open_wall_grant_leaves_the_row_quiet(self):
++        self.grant(250, "wall")
++        command = self.by_interpreter(self.wall, '{"jobs": {}}\n')
++        self.allowed(self.post(f"HAND_GRANT=250 {command}"))
++
++    def test_a_new_file_under_a_wall_directory_is_seen(self):
++        planted = self.repo / "ops" / "devlane" / "hooks" / "tests" / "test_planted.py"
++        planted.parent.mkdir(parents=True, exist_ok=True)
++        command = self.by_interpreter(planted, "# a new module\n")
++        reason = self.refusal(self.post(command), "wall-state", event="PostToolUse")
++        self.assertIn("ops/devlane/hooks/tests/test_planted.py", reason)
++
++    def test_the_write_tool_on_a_wall_path_is_seen_the_same_way(self):
++        self.by_interpreter(self.wall, '{"jobs": {}}\n')
++        proc = self.run_event("PostToolUse", "Write", {"file_path": str(self.wall), "content": "{}"},
++                              tool_response={"success": True})
++        self.refusal(proc, "wall-state", event="PostToolUse")
++
++    def test_a_non_wall_file_changed_is_quiet(self):
++        command = self.by_interpreter(self.neighbour, "# changed by hand\n")
++        self.assertNotEqual(self.dirt(), "", "INVALID: the neighbour was not changed")
++        self.allowed(self.post(command))
++
++    def test_a_clean_tree_is_quiet(self):
++        self.allowed(self.post("git status --porcelain"))
++
++
+ class TheLiveRegistryIsEvaluable(unittest.TestCase):
+     def test_every_engine_row_names_known_predicates_and_events(self):
+         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))

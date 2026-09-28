@@ -1,0 +1,288 @@
+{
+  "id": "20260906T142055Z-review-claude-4788c2",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-message-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-message-tests-20260906",
+    "base_sha": "5c39c3197cc2eb299bc1c5ce88646d300b128a35"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T14:20:55Z",
+    "closed": "2026-09-06T14:31:55Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5c39c3197cc2eb299bc1c5ce88646d300b128a35",
+    "ref_sha": "5c39c3197cc2eb299bc1c5ce88646d300b128a35",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "b4ad1dd8-84dd-4619-893f-fc3875141337",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/b4ad1dd8-84dd-4619-893f-fc3875141337.jsonl"
+  },
+  "session": {
+    "id": "b4ad1dd8-84dd-4619-893f-fc3875141337",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/b4ad1dd8-84dd-4619-893f-fc3875141337.jsonl",
+    "stream_sha256_at_close": "2654020aa1924e9205c15753d671a0f79736e14c14ab4bcb4006799af9545e96",
+    "spend": {
+      "input": 106,
+      "cached": 4088090,
+      "output": 51865,
+      "total": 4140061,
+      "source": "result.usage",
+      "messages": 53,
+      "cost_usd": 4.2513819999999996
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-message-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review only Grok's message-preservation additions in test_launch_harness_fixes.py against existing message obligations and the supplied bounded GPT-6 triage. No implementation inspection or edits. Verify paragraph preservation versus true trailer extraction, file/envelope precedence, isolated Git parsing, arbitrary and known-key prose, and all preserved attribution/Dispatch/Reviewed-by controls. Reproduce red/green counts, exact hash and registered lint. Assess the author's P2 contract-clarification claim: identify the exact smallest declaration needed with the implementation before landing, or explain which existing obligation already governs it. Do not mandate historical rewrites or a general formatting framework. Return APPROVE/CHANGES with exact refs and concrete oracle defects; no full floor or live state/harness.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/in/ag-conduct-message-tests.json",
+        "sha256": "319cd10ae4853783ebdf33a2954fa4d07c3d75bb4d91c87b01dba0490e9c6944"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-4788c2/in/ag-conduct-message-assembly-triage.json",
+        "sha256": "ed9bbdad4883dfdc0958787c57feaab22e0fc58fc438dd042aac2f726ee56119"
+      }
+    ],
+    "sha256": "9cb27e57d5a99ec9a875994ff713186b7353fa2e2fc55bd6ffe9fd960eaa7825",
+    "bytes": 1622
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:20:55Z",
+      "ended": "2026-09-06T14:31:54Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "5c39c3197cc2eb299bc1c5ce88646d300b128a35",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py:148-176,323-329,390-415",
+          "claim": "The 19 tests in TheLauncherCommitsWithTheHarnessOwnMessage do not discriminate a paragraph-sensitive correction from a per-line correction keyed on trailer SHAPE, so they would ratify a fix that still breaks a prose paragraph around an attribution-shaped line. Declared, verbatim at 148-150: 'A colon-prefixed wrap inside a paragraph is prose: isolated git interpret-trailers --parse does not take the wrapped key as a trailer until assembly lifts the line'; commit 5c39c31's message: 'Add independent regressions ... for wrapped colon-prefixed prose that isolated git interpret-trailers does not parse as trailers.' Practiced: every fixture whose key must STAY in prose carries a non-identity value - _WRAPPED_PASS 'pass: 100 checks, 51 local links and six JSON examples. Neighbors stay.' (153), _VALIDATION (158), _ARBITRARY_KEY 'Quux: 12 remaining after filter and still prose' (163), _KNOWN_KEY_IN_PROSE 'Reviewed-by: line only when a reviewer actually read the change.' (168) - while every fixture that must MOVE is 'Key: Name <mail>'-shaped and stands alone in its paragraph (_TERMINAL_ACK at 176; the Reviewed-by pair at 393-394). The supplied triage asked for exactly the missing discriminator: 'Include a known trailer key discussed inside mixed prose to distinguish intent from spelling' (record 20260906T135357Z-plan-codex-3af76a, artifacts.independent_regressions_for_grok). With no attribution-shaped wrap, shape alone still separates every fixture, so intent is untested. Measured: a candidate that relocates any body line matching ^[A-Za-z][A-Za-z0-9-]*:\\s+.*<user@host>$ or ^(Source|Co-Authored-By):\\s+\\S, per line and regardless of paragraph, runs 19/19 green in this class while still lifting 'Reviewed-by: Grok 4.6 <noreply@x.ai>' out of the paragraph 'The reviewer asked us to add a / Reviewed-by: Grok 4.6 <noreply@x.ai> / line to the message before landing.' - a paragraph isolated git interpret-trailers --parse reads as zero trailers. Remedy: one fixture with an attribution-shaped key wrapped mid-paragraph, asserting the complete paragraph survives and the key is absent from the parsed block.",
+          "reproduce": "From the snapshot root at 5c39c31: python3 -m unittest discover -s ../context -p 'oracle_probe.py' -t ../context (review scratch, sha256 d11baafe0d38849e5d184c331bf09693d7706fb364137e98ce9d29b284f62542; substitutes a standalone candidate for the loaded builder, reads no launch.py source). Output: 'git parse, identity-shaped line inside a prose paragraph: []'; 'candidate B keeps that paragraph whole: False'; 'candidate B against the whole class: ran=19 failures=0 errors=0'."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py:299-438 (Dispatch assertions only at 307 and 437)",
+          "claim": "No control pins the launcher's Dispatch handling against producer prose, and the incumbent DELETES a producer's own Dispatch: line outright rather than relocating it - a loss no current red would catch, so a correction that turns all ten reds green can still drop it. Declared: the tests' own scope requires 'Preserve existing Source/coauthor/Dispatch/collected-message behaviors' (record 20260906T135941Z-tests-grok-ed3c2a, brief.scope) and the triage's minimal correction requires 'Apply launcher-owned Dispatch replacement only to its metadata context' (record 20260906T135357Z-plan-codex-3af76a, artifacts.minimal_correction). Practiced: the only Dispatch assertions added are self.assertIn(_DISPATCH, msg) at 307 and 437, both satisfied by the launcher's own generated line, so they hold no matter what happens to a producer's. Measured on the builder at 5c39c31, body 'The record for the earlier run is / Dispatch: 20260101T000000Z-code-codex-000000 / and the sentence continues here.' (git parses that paragraph as zero trailers) - output body is 'The record for the earlier run is / and the sentence continues here.' and the producer's Dispatch line appears nowhere in the assembled message. This is a distinct failure mode from the ten reds, all of which fail on relocation, not deletion.",
+          "reproduce": "From the snapshot root at 5c39c31: python3 -m unittest discover -s ../context -p 'dispatch_probe.py' -t ../context (review scratch, sha256 e61384b881d0c41e86cc08627145f9795536bcb54f6b902875f5df7a5129cb06). First section prints 'git parses it as a trailer: []', 'paragraph preserved: False', then the assembled message with the producer's Dispatch line absent."
+        },
+        {
+          "severity": "p3",
+          "where": "record 20260906T135941Z-tests-grok-ed3c2a envelope.findings[0], citing ops/devlane/dispatch/CONTRACT.md:208-210",
+          "claim": "The author's P2 measurement reproduces exactly but its characterization is over-broad: preservation is already obliged, twice, at sites the finding did not measure. Reproduced at 5c39c31: python3 -c \"from pathlib import Path; t=Path('ops/devlane/dispatch/CONTRACT.md').read_text(); print('paragraph' in t.lower(), 'interpret-trailers' in t)\" -> False False; grep -n 'COMMIT_MSG|trailer' ops/devlane/dispatch/CONTRACT.md -> only 208, 241, 835. But ops/devlane/task/jobs.json:84 tells the write-job producer 'the launcher commits your tree with that message and your attribution', and ops/devlane/dispatch/CONTRACT.md:757 says collect 'commits the residual with the harness's message and running-model attribution'. A message whose sentence is broken is not 'that message', so these tests judge a declared obligation, not an undeclared one. What IS undeclared is the converse - the closed list of edits the launcher may make. Smallest declaration needed alongside the implementation, one sentence beside CONTRACT.md:208-210 (or :757): the launcher commits the producer's subject and body as written, adding only its own metadata paragraph ('Committed by the launcher: ...', 'Dispatch: <id>') and a terminal trailer block ('Source: original' when absent, the producer's Source:/Co-Authored-By: lines, the running vendor's co-author replaced by the running model's), and moving only a paragraph that git interpret-trailers --parse reads whole as trailers; nothing else is moved or dropped, and a colon-prefixed line inside a prose paragraph is prose. That single sentence also closes the P2 Dispatch-deletion hole above. No historical message rewrite and no general formatting framework is implied or needed.",
+          "reproduce": "grep -n 'COMMIT_MSG\\|trailer' ops/devlane/dispatch/CONTRACT.md ; sed -n '748,760p' ops/devlane/dispatch/CONTRACT.md ; grep -o 'the launcher commits your tree with that message[^\"]\\{0,60\\}' ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py:390-415",
+          "claim": "test_standalone_reviewed_by_moves_while_wrapped_prose_stays pins the trailer block exactly (assertEqual on lines[block_start:] at 404-409) but pins the body only by assertIn (399-401) and by assertNotIn('Reviewed-by', body_text) (412), so the blank-line hole relocation leaves in the prose is unpinned. Measured at 5c39c31: body 'Why.\\n\\nReviewed-by: Grok 4.6 <noreply@x.ai>\\n\\nMore why.' assembles to '...Why.\\n\\n\\nMore why.\\n\\nCommitted by the launcher...' - three consecutive newlines. Both the incumbent and any correction keep that residue and stay green, so 'preserves complete prose paragraphs' is asserted for the paragraphs but not for the paragraph structure around a legitimate relocation.",
+          "reproduce": "python3 -m unittest discover -s ../context -p 'dispatch_probe.py' -t ../context ; second section prints repr(msg2) containing 'Why.\\n\\n\\nMore why.'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py:338-345",
+          "claim": "test_json_round_trip_preserves_wrapped_prose_paragraphs does not test this lane. Lines 340-342 assert that json.loads(json.dumps(env)) returns the same string - a property of the Python stdlib, true for any input - and lines 343-345 then repeat test_wrapped_pass_prose_stays_contiguous_and_out_of_git_trailers (299-307) verbatim against the same fixture. It never reads out/last-message.json nor exercises ops/devlane/task/envelope.py, so no transport-side wrapping regression can fail it. The supplied triage had already excluded transport as the cause - 'JSON round-trip preserves embedded newlines' (record 20260906T135357Z-plan-codex-3af76a, artifacts.cause_boundaries) - so the row buys a duplicate red rather than the boundary it names.",
+          "reproduce": "Read ops/devlane/dispatch/tests/test_launch_harness_fixes.py:338-345 against 299-307; the only assertion not already present in 299-307 is the assertEqual/assertIn pair on the stdlib round trip at 341-342."
+        }
+      ],
+      "artifacts": {
+        "review_scope": "HEAD 5c39c3197cc2eb299bc1c5ce88646d300b128a35 against 710dbac38c3b187eb4b3302308430c0a6dec4d76. Supplied context/diff.patch is byte-identical to git diff of that pair: sha256 3c1196f6849730217c7cc52d28f735359c7ee89d71c7ebbb95858aa0b05d6289, 70 changed files, 15946 insertions. Review bounded to Grok's message-preservation additions, not acceptance of the other 69 paths. Both in/ files read whole. No implementation source inspected; the builder was exercised black-box only.",
+        "change_under_review": "5c39c31 'dispatch: pin commit-message prose against trailer promotion', one path, 212 insertions and 0 deletions, three additive hunks at @@ -145,6 +145,39 @@, @@ -154,6 +187,44 @@, @@ -225,6 +296,147 @@. Trailers Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>; python3 ops/devlane/workflow/checks/commit_trailers.py --range fbae1fa..5c39c31 --json -> checked 1, problems []. Author's producing record: 20260906T135941Z-tests-grok-ed3c2a.",
+        "seal_reproduced": "git rev-parse 5c39c31:ops/devlane/dispatch/tests/test_launch_harness_fixes.py -> 3061149bb51af799144f6dfd9d15e6f0ef647371 (equals the author's seal_blob). git cat-file blob 3061149b | sha256sum -> 5b230b4ccbf354e44e0cab5413997f6a96b61d6700b1e1ef60807631c68d71d5 (equals the author's seal_sha256). git status --porcelain empty before and after this review; both review scratches live outside the snapshot, under the job's context/.",
+        "red_green_reproduced": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_harness_fixes.py' at 5c39c31 -> Ran 36 tests, FAILED (failures=10), 0 errors, 26 ok. The ten FAIL names are exactly the author's red list. Each of the ten fails on the assertIn of the complete producer paragraph, at lines 303, 313, 320, 327, 344, 362, 374, 384, 399 and 431 - measured from the tracebacks, not taken on report; the git-parse assertions that follow are therefore not yet exercised by any red. New green control test_unwrapped_pass_prose_keeps_its_neighbors passes. The class held 8 tests at c903fab and holds 19 at 5c39c31; the file held 25 and holds 36; all 8 prior class tests and all 17 other tests pass, and the zero-deletion diff makes that preservation structural.",
+        "checks_reproduced": "python3 ops/devlane/workflow/checks/lint.py --root . ops/devlane/dispatch/tests/test_launch_harness_fixes.py -> 'lint: clean - 1 file(s), ruff 0.16.5' (equals the author's registered lint string). python3 ops/devlane/workflow/checks/secret_scan.py --root . <same path> -> 'secret scan: clean - 1 tracked file(s), 6 signature(s), 0 allowlisted line(s)'.",
+        "oracle_probes": "Two review scratches under the job's context/, run from the snapshot root with python3 -m unittest discover -s ../context -p '<name>' -t ../context: oracle_probe.py sha256 d11baafe0d38849e5d184c331bf09693d7706fb364137e98ce9d29b284f62542 (candidate-B discrimination, 19/19 green); dispatch_probe.py sha256 e61384b881d0c41e86cc08627145f9795536bcb54f6b902875f5df7a5129cb06 (Dispatch-in-prose deletion, blank-line hole). Neither reads launch.py source; both call the class's own _git_parsed_trailers helper as the oracle. Git 2.43.0, Python 3.12.",
+        "what_verified_green": "Paragraph preservation is asserted as complete-substring containment of the producer paragraph in all ten reds. True trailer extraction is discriminated from prose by git interpret-trailers --parse under isolated config (helper at 190-208, cwd '/', GIT_CONFIG_NOSYSTEM/GLOBAL/SYSTEM neutralised, PATH os.defpath) - git, not a regex, is the oracle, and the producer-side precondition helper at 210-217 proves the fixture is prose before assembly. File precedence (347-365, asserts 'envelope only' and 'from envelope' both absent) and envelope fallback with an existing but empty out/ (367-375) both drive the real builder. Arbitrary-key prose (_ARBITRARY_KEY, 316-321) genuinely blocks a pass/Validation denylist fix. True terminal trailers survive with the producer-side check that _TERMINAL_ACK IS parsed at 381 (377-388). Preserved attribution controls: Source dedup and own-Source retention (242-249), second co-author kept and own-vendor co-author replaced (251-256), standalone Reviewed-by relocation with an exact trailer-block assertEqual (268-285, 390-415), Dispatch present (307, 437), collected assembly (417-438).",
+        "not_done": "No full floor, no live harness, no source or contract edit, no state or session store read, no historical message rewrite proposed. ops/bin/suites.sh:17 does include ops/devlane/dispatch/tests, so the floor is red at 5c39c31 by construction until the launch.py correction lands; that is the declared spec->red->impl order (ops/process/agentic-management.md:47), not a defect, and it was not run."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4140061,
+        "out": 51865,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5c39c3197cc2eb299bc1c5ce88646d300b128a35",
+        "started": "2026-09-06T14:20:55Z",
+        "ended": "2026-09-06T14:30:02Z"
+      },
+      "note": "CHANGES on the test additions, not on the incumbent defect, which the supplied triage already confirmed and which these tests do reproduce honestly: every count, name, hash and lint string the author registered reproduces exactly at 5c39c31, all ten reds fail on the intended assertion with zero collection or import errors, the diff deletes nothing, and the git-parse oracle is a real one. Two P2 gaps stand between these tests and the judge they are meant to be. First, no fixture carries an attribution-shaped key wrapped inside a prose paragraph, so a per-line shape rule that is not paragraph-sensitive scores 19/19 green while still breaking exactly that paragraph - measured, not argued. That is the discriminator the triage asked for by name. Second, the producer's own Dispatch: line is deleted rather than relocated, a failure mode none of the ten reds shares and none of the added assertions can see. Both are closed by two fixtures in the file the author already owns; no new API, no land-test edit. On the author's P2: the absence measurement reproduces, but ops/devlane/task/jobs.json:84 and ops/devlane/dispatch/CONTRACT.md:757 already oblige the launcher to commit the harness's own message, so preservation is declared and these tests judge a real obligation. The genuinely missing declaration is the closed list of launcher-owned additions, one sentence beside CONTRACT.md:208-210, spelled out in finding 3; it should land with the implementation and it also closes the Dispatch hole. No historical rewrite and no formatting framework is needed or recommended."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

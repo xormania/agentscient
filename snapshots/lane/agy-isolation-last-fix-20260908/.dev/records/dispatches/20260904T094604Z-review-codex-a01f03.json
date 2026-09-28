@@ -1,0 +1,197 @@
+{
+  "id": "20260904T094604Z-review-codex-a01f03",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-apps-4",
+  "lineage": {
+    "branch": "lane/fixture-apps-4",
+    "base_sha": "b2e4940de532ccc27ead1d2aafd2579c840beca7"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:46:04Z",
+    "closed": "2026-09-04T09:56:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b2e4940de532ccc27ead1d2aafd2579c840beca7",
+    "ref_sha": "b2e4940de532ccc27ead1d2aafd2579c840beca7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-46-05-01a06bcf-a3a5-7073-a26d-c2323b717b7c.jsonl"
+  },
+  "session": {
+    "id": "01a06bcf-a3a5-7073-a26d-c2323b717b7c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-46-05-01a06bcf-a3a5-7073-a26d-c2323b717b7c.jsonl",
+    "stream_sha256_at_close": "048600ac22d6b4a026b5e8de5b5d7c98e530cfc6234e17471373b6a2e73a603c",
+    "spend": {
+      "input": 2777707,
+      "cached": 2661120,
+      "output": 27239,
+      "total": 2804946,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T05-46-05-01a06bcf-a3a5-7073-a26d-c2323b717b7c.jsonl",
+      "messages": 307
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-4/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 4 (apps/symfony-app), the skeptic pass: judge the test on this ref against the contract in the input file (the fixture scope and the plan for slices 3 to 5; the slice 4 section). The test is landed on this ref, red first: ops/devlane/fixtures/tests/test_symfony_app_app.py, proving the app through the lever ops/bin/fixture.sh (make, prove red on every planted fault and green on every clean neighbour, prove --fixed green, the manifest sweep, grade) with the toolchain the plan names (composer from a warm cache, phpunit), and pinning the lever change the plan assigns to this slice (probe_timeout, the preflight ignore list) on a synthetic app. Judge whether it discriminates, whether every fault the plan assigns is pinned with its span and probe, whether the probes prove red mechanically, and whether a wrong app, a wrong FAULTS.json or an unchanged lever would pass. No implementation exists yet; do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/in/contract-fixtures-4.md",
+        "sha256": "23866d5dae71d84eb5807e41369fca3a6ace4933caacd539f0b04d94f4828a2b"
+      }
+    ],
+    "sha256": "6f9053e379608655b71ac269cdfe8a14772c192e35e05d342359e5f2dd3ba1a8",
+    "bytes": 3609
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:46:04Z",
+      "ended": "2026-09-04T09:56:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b2e4940de532ccc27ead1d2aafd2579c840beca7",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 6,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:550",
+          "claim": "The lock assertion rejects a contract-correct Composer lock: it requires every symfony/* package to use v8.1.*, including symfony/flex, although the contract requires Flex ^2 and measures v2.11.0.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -c 'import unittest; from unittest.mock import patch; import test_symfony_app_app as m; c=m.SymfonyAppLayout(\"test_composer_lock_pins_symfony_v81\"); r=unittest.TestResult(); d={\"content-hash\":\"x\",\"packages\":[{\"name\":\"symfony/flex\",\"version\":\"v2.11.0\"}]}; p=patch.object(m,\"load_json_object\",return_value=d); p.start(); c.run(r); p.stop(); print(len(r.failures),len(r.errors)); assert len(r.failures)==1 and not r.errors'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:1489",
+          "claim": "Implementation-authored manifest commands and probes are treated as the behavioral oracle. A wrong app can place dirty tokens in dead code and use source-grep probes that turn green after textual patches; no test independently exercises the seven specified fault behaviors.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_symfony_app_app.py\").read_text(); t=(\"CommandTester\",\"../outside.txt\",\"renderCount(0)\",\"FIXTURE_TOKEN\",\"LedgerException\",\"contains(3)\",\"Checksum::of\"); m=[x for x in t if x not in s]; print(m); assert len(m)==len(t)'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:521",
+          "claim": "The check assertions match command-name tokens and then accept exit zero; they do not prove composer validate, php -l, or PHPUnit ran. A no-op check with every command behind a successful `true ||` arm passes.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -c 'import subprocess; s=\"true || composer validate --strict; true || php -l src tests; true || vendor/bin/phpunit\"; assert all(x in s for x in (\"composer validate --strict\",\"php -l\",\"src\",\"tests\",\"vendor/bin/phpunit\")); p=subprocess.run([\"bash\",\"-c\",s]); print(p.returncode); assert p.returncode==0'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:60",
+          "claim": "The per-ID manifest oracle pins only kind and visibility, omitting each assigned severity, location, probe, and fix. A wrong FAULTS.json can downgrade severities or remap IDs to other shape-matching spans and probes.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_symfony_app_app.py\").read_text(); a=s.index(\"EXPECTED_KIND_VISIBLE\"); z=s.index(\"COMPOSER_REQUIRE\",a); b=s[a:z]; m=[x for x in (\"severity\",\"location\",\"probe\",\"fix\") if x not in b]; print(m); assert len(m)==4 and \"row.get(\\\"severity\\\")\" not in s and \"EXPECTED_SEVER\" not in s'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:1817",
+          "claim": "The custom timeout is tested only through `prove`, not `prove --fixed`; a lever retaining the two-second timeout for fixed probes passes. Integer/range validation is also under-pinned: valid boundaries 1/300 and invalid booleans, fractions, and negative integers are absent.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_symfony_app_app.py\").read_text(); a=s.index(\"def test_probe_timeout_five\"); z=s.index(\"def test_prove_fixed_ignores\",a); b=s[a:z]; print(\"fixed\", \"[\\\"prove\\\", \\\"--fixed\\\"\" in b, \"invalid\", \"(\\\"x\\\", 0, 301)\" in b); assert \"[\\\"prove\\\", \\\"--fixed\\\"\" not in b and \"(\\\"x\\\", 0, 301)\" in b'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:1867",
+          "claim": "The contract assigns six preflight exclusions, but the test plants only vendor, target, and .venv. A lever that still copies var, .phpunit.cache, and node_modules passes.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_symfony_app_app.py\").read_text(); b=s[s.index(\"def test_prove_fixed_ignores_vendor\"):s.index(\"if __name__ ==\",s.index(\"def test_prove_fixed_ignores_vendor\"))]; r=(\"vendor/\",\"target/\",\".venv/\",\"var/\",\".phpunit.cache/\",\"node_modules/\"); m=[x for x in r if x not in b]; print(m); assert m==[\"var/\",\".phpunit.cache/\",\"node_modules/\"]'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:376",
+          "claim": "Fix confinement examines only removed old-line numbers and never enforces one hunk. A patch can remove the fault inside its span and add a second, addition-only hunk elsewhere in the same file without detection.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -c 'from test_symfony_app_app import _patch_removed_lines; p=\"diff --git a/src/X.php b/src/X.php\\n--- a/src/X.php\\n+++ b/src/X.php\\n@@ -10 +10 @@\\n-bad\\n+good\\n@@ -100,0 +101 @@\\n+backdoor\\n\"; print(_patch_removed_lines(p)); assert _patch_removed_lines(p)=={\"src/X.php\":[10]}'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_symfony_app_app.py:1097",
+          "claim": "Every non-zero Composer install becomes a skip. A malformed or inconsistent app lock can therefore suppress the app check and all seven behavioral proofs; that is a wrong app, not an unavailable host.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_symfony_app_app.py\").read_text(); a=s.index(\"def install_or_skip\"); z=s.index(\"def test_make_symfony_app\",a); b=s[a:z]; hit=\"if proc.returncode != 0:\" in b and \"self.skipTest(\" in b[b.index(\"if proc.returncode != 0:\"):]; print(hit); assert hit'"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T094604Z-review-codex-a01f03/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2804946,
+        "out": 27239,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b2e4940de532ccc27ead1d2aafd2579c840beca7"
+      },
+      "note": "The intended missing-FAULTS.json red and the plant guard were verified. No implementation was read. The review sandbox was read-only and rejected writing SKEPTIC.md; scratch-based runtime cases were likewise unreachable, so the requested artifact path is named but was not created."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

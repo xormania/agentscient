@@ -1,0 +1,433 @@
+"""Managed skill transport; owner 2026-09-19, same framework on four harnesses.
+
+Grant 311, dev-lane hand variant: second test producer absent. Reuses World
+and run; all stores, source mutations and symlinks belong to the planted world.
+"""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import os
+import sqlite3
+import sys
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from ops.testkit import World, run
+
+SOURCE = Path(__file__).resolve().parents[1] / "tools"
+AGENT = "Managed Skill Tester <tester@example.invalid>"
+
+
+class ManagedSkills(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="managed-skills-")
+        self.addCleanup(self.world.close)
+        self.repo = self.world.cwd
+        self.tools = self.repo / "ops/conductor/tools"
+        for name in ("skills.py", "instrument.py", "laneconf.py"):
+            self.world.plant_bytes(self.tools / name, (SOURCE / name).read_bytes())
+        self.world.plant_text(self.repo / "ops/lane.conf", "LANE_NAME='skills-test'\n")
+        self.skill_root = self.repo / ".claude/skills"
+        self.body = "---\nname: sample\ndescription: A measured sample\n---\n\nRun the sample procedure.\n"
+        self.page = self.world.plant_text(self.skill_root / "sample/SKILL.md", self.body)
+        self.db = self.world.xdg_state / "skills-test/skills.db"
+
+    def call(self, *args, identity=True, extra=None):
+        env = {"CODEX_THREAD_ID": "fixture-session", **(extra or {})}
+        if identity:
+            env["WF_AGENT_OVERRIDE"] = AGENT
+        return run([sys.executable, str(self.tools / "skills.py"), *args],
+                   cwd=self.repo, env=self.world.env(env), timeout=20)
+
+    def sync(self):
+        result = self.call("sync")
+        self.assertEqual(result.exit, 0, result.stdout + result.stderr)
+
+    def events(self):
+        with sqlite3.connect(self.db) as con:
+            return con.execute("SELECT skill,event,agent,session,detail FROM skill_events ORDER BY id").fetchall()
+
+    def event_sources(self):
+        with sqlite3.connect(self.db) as con:
+            return con.execute("SELECT source_path,source_sha256 FROM skill_events ORDER BY id").fetchall()
+
+    def loaded_module(self):
+        saved = sys.modules.pop("instrument", None)
+        try:
+            spec = importlib.util.spec_from_file_location("managed_skills_subject", self.tools / "skills.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        finally:
+            sys.modules.pop("instrument", None)
+            if saved is not None:
+                sys.modules["instrument"] = saved
+
+    def stage_profile_source(self):
+        """Stage the existing profile/coordination closure, not a skills copy."""
+        source_root = Path(__file__).resolve().parents[3]
+        for directory in ("ops/conductor/tools", "ops/devlane/hooks"):
+            for source in (source_root / directory).glob("*.py"):
+                self.world.plant_bytes(self.repo / directory / source.name, source.read_bytes())
+        for relative in ("ops/devlane/hooks/boundaries.json", "ops/devlane/harness/isolation.py"):
+            source = source_root / relative
+            self.world.plant_bytes(self.repo / relative, source.read_bytes())
+
+    @staticmethod
+    def module_from(path, name):
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def rejected(self, result, kind):
+        self.assertEqual(result.exit, 2, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertTrue(result.stderr.startswith(kind + ": expected "), result.stderr)
+        self.assertEqual(len(result.stderr.splitlines()), 1, result.stderr)
+
+    def test_fresh_catalogue_and_read_do_not_create_registry(self):
+        result = self.call("catalog", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual([row["name"] for row in json.loads(result.stdout)], ["sample"])
+        result = self.call("read", "sample", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(result.stdout, self.body)
+        self.assertFalse(self.db.exists())
+
+    def test_fresh_use_registers_source_and_one_event(self):
+        result = self.call("use", "sample")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertIn(self.body, result.stdout)
+        self.assertEqual(len(self.events()), 1)
+        with sqlite3.connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT name,status,path FROM skills").fetchall(),
+                             [("sample", "active", str(self.page.parent))])
+
+    def test_fresh_use_requires_identity_before_creating_store(self):
+        self.rejected(self.call("use", "sample", identity=False), "identity")
+        self.assertFalse(self.db.exists())
+
+    def test_native_event_can_register_only_a_valid_disk_skill(self):
+        result = self.call("log-miss", "sample", "managed recovery")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][:2], ("sample", "miss"))
+        self.rejected(self.call("log-use", "unknown"), "skill")
+        self.assertEqual(len(self.events()), 1)
+
+    def test_catalogue_reads_current_source_and_never_writes_state(self):
+        self.sync()
+        before = self.db.read_bytes()
+        result = self.call("catalog", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), [{
+            "name": "sample", "description": "A measured sample", "path": str(self.page),
+            "sha256": hashlib.sha256(self.body.encode()).hexdigest(), "status": "active",
+        }])
+        self.assertEqual(self.db.read_bytes(), before)
+        self.assertEqual(self.events(), [])
+
+    def test_read_is_not_an_invocation(self):
+        self.sync()
+        result = self.call("read", "sample", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(result.stdout, self.body)
+        self.assertEqual(self.events(), [])
+
+    def test_use_records_one_attributed_redacted_invocation_and_whole_page(self):
+        self.sync()
+        result = self.call("use", "sample", "password=private sample invocation")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertIn(self.body, result.stdout)
+        self.assertIn("invoked: sample", result.stdout)
+        self.assertIn(str(self.page), result.stdout)
+        rows = self.events()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][:4], ("sample", "invoked", AGENT, "fixture-session"))
+        self.assertNotIn("private", rows[0][4])
+        self.assertIn("[redacted]", rows[0][4])
+
+    def test_invocations_persist_the_served_source_path_and_digest(self):
+        result = self.call("use", "sample")
+        self.assertEqual(result.exit, 0, result.stderr)
+        changed = self.body.replace("Run the sample procedure.", "Run the changed procedure.")
+        self.world.plant_text(self.page, changed)
+        result = self.call("use", "sample")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.event_sources(), [
+            (str(self.page), hashlib.sha256(self.body.encode()).hexdigest()),
+            (str(self.page), hashlib.sha256(changed.encode()).hexdigest()),
+        ])
+
+    def test_ordinary_cli_identity_remains_the_shared_instrument_observation(self):
+        result = self.call("use", "sample", identity=False, extra={"WF_AGENT": AGENT})
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][2], AGENT)
+
+    def test_profile_bound_identity_and_session_are_recorded_through_instrument(self):
+        self.stage_profile_source()
+        profile_agent = "Profile Skill Tester <profile@example.invalid>"
+        saved = {name: sys.modules.pop(name, None) for name in ("instrument", "machine")}
+        profile_environment = self.world.env({"XDG_STATE_HOME": str(self.world.xdg_state)})
+        try:
+            with patch.dict(os.environ, profile_environment, clear=True):
+                instrument = self.module_from(self.tools / "instrument.py", "instrument")
+                sys.modules["instrument"] = instrument
+                profiles = self.module_from(
+                    self.repo / "ops/devlane/hooks/profiles.py", "managed_skills_profiles")
+                core = self.module_from(self.tools / "coordination.py", "managed_skills_coordination")
+                with core.writer():
+                    pass
+                binding = profiles.generate(
+                    "codex", self.world.root / "profile", source=self.repo, cwd=self.repo,
+                    mode="interactive", home=self.world.home, agent=profile_agent)
+                os.environ["WF_AGENT_OVERRIDE"] = binding["authority_environment"]["WF_AGENT_OVERRIDE"]
+                profiles.initialize(binding, {"session_id": "profile-skill-session"}, instrument=instrument)
+                expected = (instrument.identity(), instrument.session())
+        finally:
+            for name in ("instrument", "machine"):
+                sys.modules.pop(name, None)
+                if saved[name] is not None:
+                    sys.modules[name] = saved[name]
+
+        result = run(
+            [sys.executable, str(self.tools / "skills.py"), "use", "sample"], cwd=self.repo,
+            env=self.world.env({**binding["authority_environment"],
+                                "AGENTSCIENT_HOOK_PROFILE": binding["binding"],
+                                "WF_AGENT": "Ambient Tester <ambient@example.invalid>"}), timeout=20)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][:4], ("sample", "invoked", *expected))
+
+    def test_oversized_telemetry_refuses_before_creating_or_writing_the_store(self):
+        result = self.call("use", "sample", "x" * (16 * 1024 + 1))
+        self.rejected(result, "detail")
+        self.assertFalse(self.db.exists())
+
+    def test_telemetry_boundary_accepts_16k_and_100k_refuses_without_an_event(self):
+        accepted = "x" * (16 * 1024)
+        result = self.call("use", "sample", accepted)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(self.events()[0][4], accepted)
+
+        before = self.events()
+        self.rejected(self.call("use", "sample", "x" * 100_000), "detail")
+        self.assertEqual(self.events(), before)
+
+    def test_busy_registry_leaves_fresh_registration_and_event_atomic(self):
+        self.sync()
+        with sqlite3.connect(self.db) as con:
+            con.execute("DELETE FROM skills WHERE name='sample'")
+            con.commit()
+        blocker = sqlite3.connect(self.db)
+        self.addCleanup(blocker.close)
+        blocker.execute("BEGIN IMMEDIATE")
+        try:
+            result = self.call("use", "sample")
+        finally:
+            blocker.rollback()
+        self.rejected(result, "registry")
+        with sqlite3.connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT name FROM skills").fetchall(), [])
+            self.assertEqual(con.execute("SELECT skill FROM skill_events").fetchall(), [])
+
+    def test_directory_and_logical_skill_name_mismatch_refuses_without_state(self):
+        mismatched = self.body.replace("name: sample", "name: different")
+        self.world.plant_text(self.page, mismatched)
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_inactive_and_unknown_skills_are_not_invocable(self):
+        self.sync()
+        for status in ("draft", "retired", "missing", "wished"):
+            with self.subTest(status=status):
+                with sqlite3.connect(self.db) as con:
+                    con.execute("UPDATE skills SET status=? WHERE name='sample'", (status,))
+                result = self.call("catalog")
+                self.assertEqual(result.exit, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout), [])
+                self.rejected(self.call("use", "sample"), "skill")
+        self.rejected(self.call("use", "unknown"), "skill")
+        self.assertEqual(self.events(), [])
+
+    def test_unsafe_or_qualified_names_refuse_without_events(self):
+        self.sync()
+        for name in ("../sample", "user:sample", "plugin:sample", "/sample", "sample\nother"):
+            with self.subTest(name=name):
+                self.rejected(self.call("use", name), "skill")
+        self.assertEqual(self.events(), [])
+
+    def test_use_without_identity_does_not_serve_page(self):
+        self.sync()
+        self.rejected(self.call("use", "sample", identity=False), "identity")
+        self.assertEqual(self.events(), [])
+
+    def test_registry_paths_cannot_redirect_canonical_source(self):
+        self.sync()
+        counterfeit = self.world.plant_text(self.world.root / "counterfeit.md", "not a skill")
+        with sqlite3.connect(self.db) as con:
+            con.execute("UPDATE skills SET path=? WHERE name='sample'", (str(counterfeit),))
+        result = self.call("read", "sample")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(result.stdout, self.body)
+
+    def test_escaped_source_refuses_and_internal_symlink_remains_supported(self):
+        self.sync()
+        self.page.unlink()
+        external = self.world.plant_text(self.world.root / "outside.md", self.body)
+        self.page.symlink_to(external)
+        self.rejected(self.call("use", "sample"), "skill-source")
+        self.page.unlink()
+        internal = self.world.plant_text(self.repo / ".agents/skills/sample/SKILL.md", self.body)
+        self.page.symlink_to(internal)
+        result = self.call("read", "sample")
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(result.stdout, self.body)
+
+    def test_confined_directory_alias_uses_the_canonical_agents_page_as_its_pin(self):
+        alias_name = "mate-sample"
+        alias_body = self.body.replace("name: sample", f"name: {alias_name}")
+        target = self.world.plant_text(
+            self.repo / ".agents/skills" / alias_name / "SKILL.md", alias_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(target.parent, target_is_directory=True)
+
+        result = self.call("catalog", identity=False)
+        self.assertEqual(result.exit, 0, result.stderr)
+        row = next(row for row in json.loads(result.stdout) if row["name"] == alias_name)
+        self.assertEqual(row, {
+            "name": alias_name,
+            "description": "A measured sample",
+            "path": str(target),
+            "sha256": hashlib.sha256(alias_body.encode()).hexdigest(),
+            "status": "active",
+        })
+
+        result = self.call("use", alias_name)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertIn(str(target), result.stdout)
+        self.assertEqual(self.event_sources(), [
+            (str(target), hashlib.sha256(alias_body.encode()).hexdigest()),
+        ])
+
+    def test_directory_alias_escape_refuses_without_creating_state(self):
+        alias_name = "mate-sample"
+        alias_body = self.body.replace("name: sample", f"name: {alias_name}")
+        external = self.world.plant_text(
+            self.world.root / "external" / alias_name / "SKILL.md", alias_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(external.parent, target_is_directory=True)
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_alias_to_a_non_skill_leaf_refuses_without_creating_state(self):
+        self.page.unlink()
+        other = self.world.plant_text(self.repo / ".agents/skills/sample/page.md", self.body)
+        self.page.symlink_to(other)
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_nonregular_page_refuses_without_opening_a_source_stream(self):
+        self.page.unlink()
+        self.page.mkdir()
+
+        self.rejected(self.call("catalog", identity=False), "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_directory_alias_retarget_keeps_the_loaded_page_receipt(self):
+        alias_name = "mate-sample"
+        first_body = self.body.replace("name: sample", f"name: {alias_name}")
+        second_body = first_body.replace("Run the sample procedure.", "Run the replacement procedure.")
+        first = self.world.plant_text(
+            self.repo / ".agents/skills" / alias_name / "SKILL.md", first_body)
+        second = self.world.plant_text(
+            self.repo / ".agents/replacements" / alias_name / "SKILL.md", second_body)
+        alias = self.skill_root / alias_name
+        alias.symlink_to(first.parent, target_is_directory=True)
+        subject = self.loaded_module()
+        subject.REPO = self.repo
+        subject.SKILLS_DIR = self.skill_root
+        subject.db_path = lambda: self.db
+        subject.identity = lambda: AGENT
+        subject.session = lambda default: "fixture-session"
+
+        page = subject.load_skill(alias_name)
+        alias.unlink()
+        alias.symlink_to(second.parent, target_is_directory=True)
+        subject._record_event("invoked", alias_name, "managed invocation", managed_page=page)
+
+        self.assertEqual(page["content"], first_body)
+        self.assertEqual(self.event_sources(), [
+            (str(first), hashlib.sha256(first_body.encode()).hexdigest()),
+        ])
+
+    def test_descriptor_reader_resists_a_resolve_then_open_symlink_swap(self):
+        subject = self.loaded_module()
+        subject.REPO = self.repo
+        subject.SKILLS_DIR = self.skill_root
+        external = self.world.plant_text(
+            self.world.root / "outside.md",
+            "---\nname: sample\ndescription: Escaped replacement\n---\n\nDo not serve this.\n",
+        )
+        real_resolve = Path.resolve
+
+        def replace_after_resolve(path, *args, **kwargs):
+            resolved = real_resolve(path, *args, **kwargs)
+            if path == self.page:
+                self.page.unlink()
+                self.page.symlink_to(external)
+            return resolved
+
+        with patch.object(subject, "_statuses", return_value={}):
+            with patch.object(Path, "resolve", new=replace_after_resolve):
+                page = subject.load_skill("sample")
+        self.assertEqual(page["content"], self.body)
+
+    def test_ancestor_swap_after_directory_check_refuses_the_external_page(self):
+        subject = self.loaded_module()
+        subject.REPO = self.repo
+        subject.SKILLS_DIR = self.skill_root
+        external = self.world.plant_text(
+            self.world.root / "external-source/sample/SKILL.md",
+            "---\nname: sample\ndescription: Hostile replacement\n---\n\nDo not serve this.\n",
+        )
+        held = self.skill_root / "sample-held"
+        real_is_dir = Path.is_dir
+
+        def replace_after_directory_check(path):
+            checked = real_is_dir(path)
+            if path == self.skill_root / "sample":
+                path.rename(held)
+                path.symlink_to(external.parent, target_is_directory=True)
+            return checked
+
+        with patch.object(subject, "_statuses", return_value={}):
+            with patch.object(Path, "is_dir", new=replace_after_directory_check):
+                with self.assertRaises(subject.Refusal) as raised:
+                    subject.managed_catalog()
+        self.assertEqual(raised.exception.kind, "skill-source")
+        self.assertFalse(self.db.exists())
+
+    def test_duplicate_name_oversize_and_malformed_metadata_refuse(self):
+        self.sync()
+        duplicate = self.world.plant_text(self.skill_root / "another/SKILL.md", self.body)
+        self.rejected(self.call("catalog"), "skill-source")
+        duplicate.unlink()
+        duplicate.parent.rmdir()
+        self.world.plant_text(self.page, "x" * (256 * 1024 + 1))
+        self.rejected(self.call("use", "sample"), "skill-source")
+        self.world.plant_text(self.page, "not frontmatter\n")
+        self.rejected(self.call("use", "sample"), "skill-source")
+        self.assertEqual(self.events(), [])
+
+    def test_corrupt_registry_is_not_empty_catalogue(self):
+        self.world.plant_bytes(self.db, b"not sqlite")
+        self.rejected(self.call("catalog", identity=False), "registry")
+
+
+if __name__ == "__main__":
+    unittest.main()

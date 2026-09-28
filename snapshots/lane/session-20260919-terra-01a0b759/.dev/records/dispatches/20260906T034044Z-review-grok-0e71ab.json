@@ -1,0 +1,168 @@
+{
+  "id": "20260906T034044Z-review-grok-0e71ab",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "9408f1eda89ef4b9f76ab73c27bf967414ffe0b6"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:40:44Z",
+    "closed": "2026-09-06T03:45:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9408f1eda89ef4b9f76ab73c27bf967414ffe0b6",
+    "ref_sha": "9408f1eda89ef4b9f76ab73c27bf967414ffe0b6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ca3ffe46-1765-41b9-a8f6-ae9a25310e1d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok-stream/sessions/<snapshot-encoded>/ca3ffe46-1765-41b9-a8f6-ae9a25310e1d/summary.json"
+  },
+  "session": {
+    "id": "ca3ffe46-1765-41b9-a8f6-ae9a25310e1d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok-stream/sessions/<snapshot-encoded>/ca3ffe46-1765-41b9-a8f6-ae9a25310e1d/summary.json",
+    "stream_sha256_at_close": "6dd73f87763e2841dd608e095a8cd4a511c1a6169f64cac21046f22a5a43d3b1",
+    "spend": {
+      "input": 763363,
+      "cached": 659584,
+      "output": 18554,
+      "total": 781917,
+      "cost_usd_ticks": 1102745800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/home/grok-stream/sessions/<snapshot-encoded>/ca3ffe46-1765-41b9-a8f6-ae9a25310e1d/summary.json",
+      "messages": 111
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Narrow independent recheck of the three C2 clarifications from launch-c2-clarity-ruling.md and Claude d157c6 after GPT-6 fc287c. Verify actual extra-grant equality and sibling/ancestor denial beyond generic capability intersection; admitted scratch versus legacy TMPDIR/transport reservations; intentional exact decoded rendered absolute-handle equality for new outputs with history/inline exception preserved. Check only the touched two-contract prose and relevant examples; no broad audit or new runtime requirements. Read-only: no edits, DB/host/settings/network writes or vendor launches. Inline REVIEW <=650 words with exact ref, commands, approve/changes and any remaining concrete contradiction. No runtime capability or activation claim. Prior Claude approval stands outside these three corrections.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/in/launch-c2-clarity-ruling.md",
+        "sha256": "766004859e1548e6f492260f4dd26de8a62101dc6e987ead52f562454d3846f0"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/in/20260906T032507Z-review-claude-d157c6.json",
+        "sha256": "a1dac65490c1090b0a69cacf52ee991cddbca2000aa78d4481f3eb7a7b1f5698"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034044Z-review-grok-0e71ab/in/20260906T033535Z-code-codex-fc287c.json",
+        "sha256": "b0fc05f826fbea14a71d1e676956aa323f4dbf633fec6cb0763ba9d92bb041e5"
+      }
+    ],
+    "sha256": "b98a3c5d458eef02484c148917b0ec303c416a8fb73f993d77d60c61b0defecb",
+    "bytes": 3115
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:40:44Z",
+      "ended": "2026-09-06T03:45:48Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9408f1eda89ef4b9f76ab73c27bf967414ffe0b6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "diff": "context/diff.patch",
+        "dispatch": "ops/devlane/dispatch/CONTRACT.md",
+        "task": "ops/devlane/task/CONTRACT.md",
+        "ruling": "in/launch-c2-clarity-ruling.md",
+        "prior_review": "in/20260906T032507Z-review-claude-d157c6.json",
+        "writer_record": "in/20260906T033535Z-code-codex-fc287c.json",
+        "clarity_commit": "4b50c0357164f07930c90ee85093ac6fea7a3fe7"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 781917,
+        "out": 18554,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9408f1eda89ef4b9f76ab73c27bf967414ffe0b6",
+        "started": "2026-09-06T03:41:32Z",
+        "ended": "2026-09-06T03:45:28Z"
+      },
+      "note": "VERDICT: APPROVE\nSTAMP: grok-4.6\nFINDINGS:\n- none\n\nApprove at 9408f1eda89ef4b9f76ab73c27bf967414ffe0b6. The three C2 clarifications land in producer commit 4b50c0357164f07930c90ee85093ac6fea7a3fe7, which touches only ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md; those files are identical at HEAD. Named range c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc..9408f1ed is the wider conductor-start window and is outside this recheck. Claude d157c6 approval at 1db532d0ad7119467a886eb85bdb5a386e99ce82 stands outside these three corrections. No runtime capability or activation claim.\n\n1. Extra-grant equality. dispatch:120-125 requires both G = D \u2229 R \u2229 P \u2229 H and A = D, where A is the actual extra worker write authority of the concrete admitted mechanism. The witness must show undeclared sibling/ancestor writes are unavailable; a generic capability set containing D does not prove A = D. The file-leaf restriction and exact scratch-subtree exception (dispatch:133-142) still refuse directory rights for a file leaf, including this job's out/, and allow directory granularity only for that exact scratch subtree. Refusal output-capability still names broader directory rights. Codex/Claude/Grok remain unresolved, unadmitted (dispatch:276-282). This refuses writable_roots=[out] / --add-dir out shapes that can satisfy G=D while A\u2260D.\n\n2. Admitted scratch versus reservations. At adoption, both contracts give declared admitted scratch ownership of its subtree and TMPDIR mapping, replacing any legacy launcher-created temporary output directory for that purpose, and state that subtree is not also a transport reservation. Genuine transport leaves remain reserved; file/scratch collisions still refuse. Native check-tests and adjudicate declare scratch path tmp; reserved leaves remain last-message.json and COMMIT_MSG; no equal or ancestor collision. The rendered check-tests example still sets TMPDIR to \"/jobs/example/out/tmp\". C1 runtime is unchanged (dispatch:99-101, 530-534).\n\n3. Handle equality. task:412-419 requires exact string equality of the decoded handle and the rendered absolute path value; a different spelling that resolves to the same file fails. This is a deliberate tightening of the plan's resolving-handle language for newly declared outputs. It does not retroactively invalidate historical records or remove the named inline planning transport exception (task:129-135, 265-267, 405-408).\n\nMeasured at 9408f1eda89ef4b9f76ab73c27bf967414ffe0b6: git rev-parse HEAD; git show --stat --format=fuller 4b50c0357164f07930c90ee85093ac6fea7a3fe7; git diff --name-only ced38064d8bdd0325a022d2369602e5b34853be2 4b50c035; git diff --check ced38064 4b50c035 -- the two contracts (exit 0); git diff 4b50c035 HEAD -- the two contracts (empty); python3 check that fenced examples are unchanged, native check-tests rendering matches the templates, and tmp does not collide with last-message.json or COMMIT_MSG. sha256sum in/launch-c2-clarity-ruling.md = 766004859e1548e6f492260f4dd26de8a62101dc6e987ead52f562454d3846f0.\n\nNo remaining concrete contradiction among the three corrections and the adjacent examples. Could not look: live containment, vendor versions, network. None is demanded for this contract-only recheck."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T03:45:47.191Z"
+    }
+  },
+  "status": "closed"
+}

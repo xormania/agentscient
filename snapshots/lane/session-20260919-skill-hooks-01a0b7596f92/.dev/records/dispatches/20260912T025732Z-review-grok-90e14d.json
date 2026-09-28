@@ -1,0 +1,166 @@
+{
+  "id": "20260912T025732Z-review-grok-90e14d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/ld23-ld24-review-20260912",
+  "lineage": {
+    "branch": "lane/ld23-ld24-review-20260912",
+    "base_sha": "a779bddf2000165990bb97e5ee7febe9a89ad1c7"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-12T02:57:32Z",
+    "closed": "2026-09-12T03:10:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a779bddf2000165990bb97e5ee7febe9a89ad1c7",
+    "ref_sha": "a779bddf2000165990bb97e5ee7febe9a89ad1c7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-ld23-ld24-review-20260912/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "d1717d8c-7e6a-475b-afda-5f7d1f0f61cb",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok-stream/sessions/<snapshot-encoded>/d1717d8c-7e6a-475b-afda-5f7d1f0f61cb/summary.json"
+  },
+  "session": {
+    "id": "d1717d8c-7e6a-475b-afda-5f7d1f0f61cb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok-stream/sessions/<snapshot-encoded>/d1717d8c-7e6a-475b-afda-5f7d1f0f61cb/summary.json",
+    "stream_sha256_at_close": "2f88d49b81224509002cf039bf17018806769866fd0c6c8d775a73a97c139ea1",
+    "spend": {
+      "input": 3421188,
+      "cached": 3229696,
+      "output": 38192,
+      "total": 3459380,
+      "cost_usd_ticks": 7571745600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/home/grok-stream/sessions/<snapshot-encoded>/d1717d8c-7e6a-475b-afda-5f7d1f0f61cb/summary.json",
+      "messages": 379
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ld23-ld24-review-20260912/ops/devlane/task/jobs.json",
+      "sha256": "b4505a8f115056c9795575b3e278bdd5a61dd8196e63a55f60e58c1c6e53afa9"
+    },
+    "scope": "One adversarial review of two hand repairs, LD-23 (ladder.py names --answers per skeptic finding on tests-fix and stops undisposed before it, commit 26077db) and LD-24 (findings.py work_order_scope resolves the supplied inputs before sweeping the shelf, commit e9ef7e1). Read in/brief-ld23-ld24-review-20260912.md WHOLE and judge against the LD-23 and LD-24 rows of ops/conductor/handoff/lane-defects.md and the tests-fix and undisposed rows of ops/conductor/ladder-lever.md. Findings are quotation pairs naming the broken implementation the repairer's test would miss, each with a reproduce command; verdict changes exactly when a finding names a real hole. Review only; write no file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T025732Z-review-grok-90e14d/in/brief-ld23-ld24-review-20260912.md",
+        "sha256": "b42ecb463bd1aa20708c0be6440c9a5c6b3ae7f1e9e4c125ff9460ef0cc85f0b"
+      }
+    ],
+    "sha256": "d19f01af23ded8752d7b652d3a4456ec296924647390fa67774128177fa27218",
+    "bytes": 3632,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "f44d13ddf7bbff1768c3dbe52c0291ead914569eb762841b48c9e7b546e42d0a"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-12T02:57:43Z",
+      "ended": "2026-09-12T03:10:53Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a779bddf2000165990bb97e5ee7febe9a89ad1c7",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3459380,
+        "out": 38192,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a779bddf2000165990bb97e5ee7febe9a89ad1c7",
+        "started": null,
+        "ended": null
+      },
+      "note": "LD-23 holds. declared (ops/conductor/handoff/lane-defects.md LD-23): the driver names one `--answers` key per skeptic finding on tests-fix and runs the ledger's `cited` read before it, stopping `undisposed` with the keys as it does before the fix stages. practiced (ops/conductor/tools/ladder.py Driver.dispatch_args tests-fix `--answers` loop; Driver.run builds skeptic_answers from the check-tests envelope, require_cited(\"tests-fix\", ...) then execute). Lever tests-fix row and undisposed stop row match. No remaining wrong input. Repairer tests: python3 -m unittest ops.conductor.tests.test_ladder_ld23_skeptic_answers \u2014 2 OK; they go red on the named defect (no `--answers`, no undisposed stop) and stay quiet on this driver. LD-24 holds. declared (LD-24): the supplied inputs resolve first, by reference or as the lone numbered `scope-*.md` among them; the shelf is swept only when they name none; two work orders and no inputs still resolve nothing, declared. practiced (ops/conductor/tools/findings.py work_order_scope: _unique_scope(supplied) and return, else shelf glob). Live-shaped bc7bad job-dir basenames resolve to .dev/ladder-inputs/scope-item31-20260911.md. Repairer tests: python3 -m unittest ops.conductor.tests.test_findings_ld24_shelf_ambiguity \u2014 5 OK; the two cases with inputs naming one of two shelf work orders are the old sweep. Observation, not a hole (scope discipline rule 4): those five tests plant the numbered file among the inputs, not a reference-only cap; current _unique_scope still resolves a lone .scope.md."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-12T03:10:52.790Z"
+    }
+  },
+  "status": "closed"
+}

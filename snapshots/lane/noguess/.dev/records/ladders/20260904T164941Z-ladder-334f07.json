@@ -1,0 +1,167 @@
+{
+  "base_sha": "75e3ced1255103a760636c9ef67a7a506956a55c",
+  "branch": "lane/noguess",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-noguess/ops/lane.conf",
+    "sha256": "ebba255effed06abbe88fc4cb94883240429c88775e757841eccb99969fac7b2"
+  },
+  "id": "20260904T164941Z-ladder-334f07",
+  "implementation_markers": [],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/ladder-inputs/PLAN-noguess-s1.md",
+    "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/ladder-inputs/scope-noguess.md",
+    "sha256": "e751350116200cc745995fc4b60812bf34e81208fa16cfb12014f66f81af37d0"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T164941Z-tests-grok-41ff0e",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/ladder-inputs/PLAN-noguess-s1.md",
+        "proof": {
+          "given": [
+            "### Verb"
+          ],
+          "withheld": []
+        },
+        "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+      },
+      "job": "author-tests",
+      "landed": [
+        "d631726a4090a1defb2489e97e4870d25ba4e1db"
+      ],
+      "landed_shas": [
+        "d631726a4090a1defb2489e97e4870d25ba4e1db"
+      ],
+      "minutes": 15.513676,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260904T164941Z-tests-grok-41ff0e",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T170521Z-check-tests-codex-db4449",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/records/dispatches/20260904T164941Z-tests-grok-41ff0e.json",
+        "proof": {
+          "given": [
+            "### Verb",
+            "20260904T164941Z-tests-grok-41ff0e"
+          ],
+          "withheld": []
+        },
+        "sha256": "ec15f951d014bb46f5780ed24bed10887d2a9eaf23ae53dd65c6b4a5ab80d6b9"
+      },
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "stopped",
+      "reason": "wall",
+      "record": "20260904T170521Z-check-tests-codex-db4449",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260904T170521Z-check-tests-codex-db4449",
+    "stage": "check-tests",
+    "verdict": null
+  },
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-noguess"
+}

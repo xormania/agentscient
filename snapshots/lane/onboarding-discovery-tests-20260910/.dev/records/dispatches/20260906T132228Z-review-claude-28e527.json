@@ -1,0 +1,308 @@
+{
+  "id": "20260906T132228Z-review-claude-28e527",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-discovery-final-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-final-tests-20260906",
+    "base_sha": "6bd91baace155582d7bac2eddcd2ac50b1e9287c"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:22:28Z",
+    "closed": "2026-09-06T13:33:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6bd91baace155582d7bac2eddcd2ac50b1e9287c",
+    "ref_sha": "6bd91baace155582d7bac2eddcd2ac50b1e9287c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "aa84a204-97ee-4238-b54e-b186bebbb093",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/aa84a204-97ee-4238-b54e-b186bebbb093.jsonl"
+  },
+  "session": {
+    "id": "aa84a204-97ee-4238-b54e-b186bebbb093",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/aa84a204-97ee-4238-b54e-b186bebbb093.jsonl",
+    "stream_sha256_at_close": "516e4d1c1a4e9c1beb187027baa388672d30f6583c12d7dbf42bdcc4baf902d3",
+    "spend": {
+      "input": 110,
+      "cached": 7886695,
+      "output": 43447,
+      "total": 7930252,
+      "source": "result.usage",
+      "messages": 55,
+      "cost_usd": 6.8447854999999995
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-final-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the final Grok discovery/3 tests against corrected contracts and the supplied rulings. Scope seven discovery_v3 files only; no implementation read/edit. Verify all 53 rows, original thirteen findings, deterministic D-A31 mutation/order controls, D-A16 stale page/global terminal, measured 8192 boundaries, raw CLI/MCP parity, D-A47 boot/executed-byte controls, D-A48 consultation and five/seven law equality. Challenge fixture-only controls, guessed boot protocols, skipped or vacuous assertions, and removal of custody guards; distinguish removing a racy global guard from losing local mutation detection. Reproduce 56-method/62-failure assertion reds and controls where permitted; missing boot CLI currently precedes downstream assertions, so assess later gates independently. Exact hashes, approve/changes and limits; note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/in/ag-conduct-discovery-final-tests.json",
+        "sha256": "5e0f3b7483a9286cf6d777c27505e9fa740fd0e9ded459184cdcafcb03e114bb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/in/ag-conduct-discovery-final-tests-ruling.md",
+        "sha256": "2c219e2c43869d528ff55c8a595cf6e126c39aa0543a8dd9ae096eb4acd6c27e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/in/ag-conduct-discovery-test-review.json",
+        "sha256": "3cfa9023d90672319ea22f7cb546502a0094effd80495403a55685235f4e7535"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132228Z-review-claude-28e527/in/ag-conduct-discovery-contract-recheck.json",
+        "sha256": "d9d996e04962299db2132b392e33c0fce4922a2dbbb67adf37b216f5d2088a0c"
+      }
+    ],
+    "sha256": "08923376617b5b6133641f0d04b7fbc7502051d179930e7c3fdbb66fcdde95da",
+    "bytes": 1644
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:22:28Z",
+      "ended": "2026-09-06T13:33:45Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6bd91baace155582d7bac2eddcd2ac50b1e9287c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_adapter.py:250-261",
+          "claim": "D-A31 never compares the exact eligible checkpoint multiset or each source's ordered trace, which discovery-lever.md:315-337 makes an explicit fixture duty (\"Fixtures compare the exact eligible event multiset and each source's ordered trace\") and which the ruling names as the point of the correction. The test asserts only that (phase, source_id) pairs are unique (line 253) and that (\"before-final-revalidation\",\"retained\") is present (line 254). For the first acquisition the eligible set is exactly {(before-final-revalidation, repo), (before-final-revalidation, retained), (before-file-postcheck, dispatch/job01)}; none of that closure is required. An implementation that omits the dispatch/job01 postcheck in the first call, or that emits an extra (before-file-postcheck, repo) pair for an ineligible source, satisfies every assertion. Only the two negative controls (disabled at 314-317, failed-before-phase at 337-343) constrain absence, and each names a single pair.",
+          "reproduce": "Static read: ops/conductor/discovery-lever.md:315-337 and row D-A31 (line 998) versus test_discovery_v3_adapter.py:250-261,278-285. Selector: python3 -m unittest discover -s ops/conductor/tests -p test_discovery_v3_adapter.py -k test_d_a31"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_adapter.py:295-300",
+          "claim": "D-A31's stationary clean neighbor is checked with a strictly weaker predicate than its own fault. The two mutation halves use assert_changed_during_read (discovery_v3_support.py:1328-1358), which walks every nested dict in the result for reason==\"changed-during-read\". The neighbor inspects only the top-level object: `if isinstance(neighbor, dict) and neighbor.get(\"state\") == \"unavailable\"` then assertNotEqual on the top-level reason, else assertIsNotNone. An implementation that stamps reason \"changed-during-read\" on every retained/dispatch Source packet while keeping the envelope state \"ok\" passes both mutation halves and the stationary control, so the fixture cannot tell a real detection from an unconditional one. The else branch degenerates to a non-null check.",
+          "reproduce": "Static read: test_discovery_v3_adapter.py:295-300 against discovery_v3_support.py:1328-1358. Selector: python3 -m unittest discover -s ops/conductor/tests -p test_discovery_v3_adapter.py -k test_d_a31"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_snapshots.py:489-503",
+          "claim": "D-A47 has no discriminating control for binding-unverified, which the ruling requires (\"executed-byte mismatch/unverified/clean controls\") and which discovery-lever.md:193-196 and the CODE table at :836-837 make a distinct refusal from binding-mismatch. The A/B case at 458-471 pins rejected_boot_line(lane_mcp.py, \"binding-mismatch\") with assertEqual. The second case runs the live tool as entry against artifact A and then asserts only assertIn(\"binding-\", unverified_line) plus the shared prefix, so it accepts binding-mismatch as well. An implementation with no binding-unverified path at all -- one that always reports mismatch, or that never detects a loader with no execution-input evidence -- passes the entire gate. Nothing anywhere in the seven files requires the token binding-unverified to be emitted; the constant is declared in discovery_v3_support.py:197-200 and never asserted.",
+          "reproduce": "grep -n 'binding-unverified' ops/conductor/tests/*.py returns only discovery_v3_support.py:197. Static read: discovery-lever.md:193-196,836-837 and row D-A47 (line 1016) versus test_discovery_v3_snapshots.py:458-503."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_discovery_v3_adapter.py:457",
+          "claim": "Vacuous assertions survive the producer's claim that \"vacuous asserts were removed\". D-A42's per-subTest custody check takes owned_surface() after the refusal at line 455 and compares it to a second reading taken immediately after (457-458), so it asserts fixture determinism, not that the refusal left custody unchanged; this is the same self-comparison shape reported at adapter:359-360 in the prior review, moved rather than removed. The correct form is used at D-A41 (409-416), where before_git/before_status are captured ahead of the acted call. Three more: test_discovery_v3_startup.py:464 assertIn(home[\"ownership\"], (\"declared\",\"unresolved\")) enumerates both legal values (discovery-lever.md:621); test_discovery_v3_handoffs.py:87 assertNotIn(\"path\", named.get(\"query\",\"\")) is carried over unchanged from the prior review and can never fail because query is the literal tool name; test_discovery_v3_handoffs.py:162 asserts filename stems are distinct when the fixture plants three distinct stems, and line 163 repeats line 152.",
+          "reproduce": "Static read at each cited line; compare test_discovery_v3_adapter.py:409-416 with 455-458."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:262-336",
+          "claim": "D-A38b's fixture premise is asserted rather than measured. Row D-A38b (discovery-lever.md:1006) conditions its 8/8/4 geometry on \"eight cards fit per page\"; the test plants twenty unpadded plant_dispatch records and hard-codes counts 8/8/4 with no headroom measurement. Its sibling D-A38c does the right thing: pad_status_for_five_card_pages (discovery_v3_support.py:1563-1611) calibrates recorded_status against an independent canonical envelope model and self-fails if no length makes five fit and six exceed 8192, and I confirmed at run time that this search succeeds (D-A38c proceeds past line 352 to line 364). The prior p1 -- that 8/8/4 and 5/5/5/5/1 could not both hold -- is resolved, because D-A38b is now governed by the declared eight-card page limit (discovery-lever.md:737-746) rather than the byte cap; my own hand-arithmetic puts D-A38b's first page near 7.6 KiB, roughly 600 bytes under 8192. That is an estimate, not a measurement, and the fixture makes none of its own.",
+          "reproduce": "Static read: discovery-lever.md:736-748 and rows D-A38b/D-A38c (lines 1006-1007) versus test_discovery_v3_startup.py:262-336 and 338-352; discovery_v3_support.py:1563-1611. Run receipt: D-A38c fails at startup.py:364, after the padding search and the tools:11 check, so the search itself passed."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/discovery_v3_support.py:699",
+          "claim": "Both declared faulty controls are constants and cannot fail. omitted_check_accepts is `any(event.phase in CHECKPOINT_PHASES ...) or bool(result)`, so assertTrue(omitted_check_accepts(events, {\"state\":\"ok\",\"data\":{}})) at test_discovery_v3_adapter.py:261 is true for the truthy literal whatever the event list holds -- the events argument is inert. digest_only_bind (support:707-710) returns sha256_hex(boot_bytes) == sha256_hex(boot_bytes), a literal tautology, so assertTrue at test_discovery_v3_snapshots.py:472-477 holds without reading either artifact. Each documents that a weaker rule would accept the fault, which is their purpose, but neither is a function of the subject or of the fixture state, so neither would notice if the real check beside it regressed.",
+          "reproduce": "Static read: discovery_v3_support.py:699-710 versus test_discovery_v3_adapter.py:261 and test_discovery_v3_snapshots.py:472-477."
+        }
+      ],
+      "artifacts": {
+        "reviewed_refs": "6bd91baace155582d7bac2eddcd2ac50b1e9287c against 710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "diff_integrity": "context/diff.patch sha256 90b23fe7e0de1da4c684fd5409777ccc08e64ee2e8d07eed4e8a846b93ccff6b is byte-identical to regenerated `git diff 710dbac 6bd91ba`",
+        "scope": "`git diff --name-only e3190d7 6bd91ba` returns the seven owned files plus .dev/records/dispatches/20260906T125042Z-tests-grok-353f15.json, which landed in a423b1c, not in the six test commits. No source, contract, settings, state, registry or admission path is touched by 2dc1662..6bd91ba.",
+        "owned_file_sha256": "support b066c01e5509b32de9b5fc992d5a6ad5e87b9474adf0b06fae8118d35d7db083; config 4b6d2ba06dc4185b4ff7548a784d7ba85050c82329f7139e8155f3ce1c317025; startup f0608a0fd136f4e31dbfb0f2e60e244d88da5a4a33bb392b69bd6147d66f88ee; catalogues 49ff0e24b5e7378ac1e60af7f5376468a23e271cea52902e73470de2ae00f2ec; handoffs cf481fdd76983a8c97fefc2ae72c4231a4cc3b668a51036a7a043aeb277bcbb3; snapshots bac7b4e8d4ad1fd18e24b9f494b1183a447f602eef40c63af98c252354bef911; adapter 3f66073d38ba1f3c23961a03054861340b7316c3d3ddbd295521462c3e655096 - all seven equal the producer record's blob_sha256 block, so the content is identical to HEAD 75aa9a4 despite the different commit shas",
+        "git_blobs_at_head": "support ccb3e5c2b2e0fc7fb551c929a08952ba9109acf3; config eea4d22858284386abb71129796fff7d6f32899c; startup faf6c8fe5e851de9630e380d894cd4b8b407cd91; catalogues 03d868619bf7045e8b597acb8669301148cdecba; handoffs f6bc9b0f0626a02c1dd859a98fa520e7c579c930; snapshots 39fe16288ea203c72e879034c413f1361fe70445; adapter f0ea20e38d14c533eba3cf96aea3b4f34a28cad9 - equal to the record's git_blobs_at_head",
+        "reproduced_red": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py' at 6bd91ba: Ran 56 tests in 9.673s, FAILED (failures=62), 0 ERROR lines - exactly the producer's combined receipt. Per-file corroboration run: startup alone Ran 11 tests, FAILED (failures=14), matching its commit message.",
+        "failure_causes": "62 AssertionError lines; 58 cite `arguments: expected check, serve, or query TOOL [JSON]; found ['--discovery-boot-fd', ...]`. The four others: (1) discovery_v3_support.py:1181 - `ops.conductor.tools.lane_refs` cannot be imported from the artifact root because lane_refs.py line 25 does `from lane_read import ...` as a top-level module; (2) D-A3 check exits 2 with the v3 config-invalid line; (3) D-A15/D-A16 lane_handoffs exits 2 with the same line; (4) D-A47 snapshots.py:296 - the missing-boot query exits 0 instead of refusing.",
+        "row_coverage": "53/53 contract row IDs (D-A1..D-A49 plus D-A17b, D-A17c, D-A38b, D-A38c) each mapped by exactly one named method, except D-A41 which has two (adapter read-core, config presence). 56 methods total = 53 + the second D-A41 + test_lane_mcp_and_lane_read_are_present + test_discovery_five_onboard_seven_law_tables_equal. No missing IDs, no extra IDs.",
+        "thirteen_findings_disposition": "All four p1s fixed: D-A8 mapping locked is null (startup:103); D-A47 no longer demands the definition digest in the envelope and instead asserts assertNotIn(rev_a, dumped) plus fingerprint inequality (snapshots:412,430); D-A16 is a 17-ID chain with a stale first page and a globally current terminal, key-ordered so the terminal lands on page 2 (handoffs:193-256); D-A38b/D-A38c are no longer mutually exclusive (see p3). Five p2s fixed: D-A38 branches removed and the cap is a strict 8192 (startup:227,254,260); D-A43 pins selection one with selected_key (startup:467-469); D-A46 plants a real failed retained source by deleting the ref commit object (snapshots:254-284); D-A34 plants the constraint canary, which raises at fixture build if symfony/workflow is absent (support:660-682); D-A39/D-A44 compare canonical and raw bytes (snapshots:228-252, config:352-365). p3s: root-compatible inaccessible plant added (support:948-972); the racy live-repo git-diff custody guard is gone; the dead `registry = Path('/nonexistent-on-purpose')` and the D-A41 git-status self-compare are gone; four vacuous assertions remain (filed p3).",
+        "custody_guards": "The removed guard was the setUp/tearDown `git rev-parse HEAD` + `git diff HEAD` against the live checkout, which raced concurrent suites under ops/bin/suites.sh - removing it is right and loses nothing, because it never observed the subject. Local mutation detection is retained where it belongs: D-A41 (adapter:409-416) snapshots owned_surface() plus repo HEAD plus `git status --porcelain` before self.start() and re-checks after, and asserts no __pycache__ or .pyc under scratch. It is lost only in D-A42 (filed p3). No test writes into the live tree; `git status --porcelain` at the snapshot root is empty after my full run.",
+        "law_tables_measured": "test_discovery_five_onboard_seven_law_tables_equal fails at startup.py:495 (self.start()), so its document assertions at 479-492 all executed and passed: extract_path_oneliner_table(discovery-lever.md) == LAW, five rows; onboard-lever.md == ONBOARD_LAW, seven rows; onboard[:5] == discovery. That equality is measured, not asserted on the producer's word.",
+        "boot_protocol_not_guessed": "--discovery-boot-fd FD is declared at discovery-lever.md:150,780,812 and lane-mcp-lever.md:73,86; BOOT_MISSING (support:174-177) matches discovery-lever.md:812 byte for byte, and all eleven BOOT_REMEDY entries (support:178-205) match the CODE/REMEDY table at discovery-lever.md:826-837 verbatim. The executed-byte witness is the fixture's own appended marker module writing to DISCOVERY_EXEC_MARKER_PATH, not an assumed internal protocol.",
+        "hermeticity_and_skips": "grep for skip, sleep, time., random and pytest.mark over all seven files returns nothing: no unearned skips, no sleeps, no wall-clock or randomness. Fixtures use a per-test TemporaryDirectory, a synthetic git repo with GIT_CONFIG_GLOBAL/SYSTEM at /dev/null and fixed author dates, planted configs, boot artifacts and dispatch records. Live-tree reads are confined to the staged contract bytes, the three boot components, the D-A49 registry file, the two law documents and the D-A47 live-entry binding case.",
+        "declared_gaps": "The producer declares ops/conductor/tests/test_onboard_lever.py still carrying a five-row LAW constant as out of scope (not edited - confirmed, that file is untouched by this range), and that ops/bin/suites.sh was not run. Both stand as declared, not inferred."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 7930252,
+        "out": 43447,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6bd91baace155582d7bac2eddcd2ac50b1e9287c",
+        "started": null,
+        "ended": null
+      },
+      "note": "Reviewer: Claude Opus 5, Claude Code harness, read profile with Python execution available. Scope: the seven discovery_v3 files at 6bd91ba against 710dbac. I did not open lane_read.py, lane_mcp.py or lane_refs.py, nor the GPT-6 test candidate at c38aa614; the only implementation bytes I saw are the four lines of lane_refs.py traceback the runner printed.\n\nVerdict: changes, on two named ruling requirements, not on anything that would reject a conforming implementation.\n\nReproduced, not accepted on the record. The combined red is exact: Ran 56 tests, FAILED (failures=62), 0 errors, and startup alone gives 11/14. The diff.patch is byte-identical to a regenerated diff, and all seven file sha256s equal the producer's declared values, so the branch content is the recorded HEAD 75aa9a4 under new commit shas. Row coverage is 53/53 with no ID missing or invented. The five/seven law-table equality is measured against the landed documents, not asserted: those comparisons run and pass before that test fails at its first query.\n\nAll thirteen original findings are answered. The four p1s are genuinely gone -- mapping locked is null, D-A47 no longer demands a digest the closed Source shape cannot carry, D-A16 is a legal 17-ID chain whose terminal key is forced to sort last so the stale page and the current terminal can coexist, and D-A38b/D-A38c no longer contradict each other. The five p2s are all fixed, and the byte-identity rows now compare bytes. The boot protocol is read out of the contract, not guessed: the missing line and all eleven rejected-code remedies match the document verbatim.\n\nWhat remains. D-A31 is the weakest of the corrected rows. The contract does not merely allow a multiset comparison, it instructs the fixture to make one; the test checks pair-uniqueness and one membership instead, so the dispatch postcheck can vanish from the first acquisition without any assertion noticing. Its stationary neighbor is checked with a shallower predicate than its fault, which lets an implementation that always reports changed-during-read on a nested packet pass both halves. And D-A47, which the ruling asked to carry mismatch, unverified and clean controls, pins mismatch and clean but never requires the token binding-unverified anywhere -- it is declared in the support constants and asserted by nothing. Those three are the basis for changes. Three p3s follow: four vacuous assertions survive the \"vacuous asserts were removed\" claim, one of them the same self-comparison shape as before, relocated; D-A38b asserts its eight-cards-fit premise where D-A38c measures its five-and-not-six premise; and both faulty controls are constants that cannot fail.\n\nLimits, declared. 58 of the 62 failures are the runtime rejecting --discovery-boot-fd as an unknown verb, which fires inside load_envelope before any row's own assertions. So this run demonstrates collection health, the absence of import errors and the absence of skips, but it exercises almost none of the discriminating power the rows claim; every judgement above about later gates is a static read of the fixtures, not an observed discrimination. The four non-boot failures are informative and I report them as read: the declared dotted import fails because lane_refs.py imports lane_read as a top-level module, so the artifact-root import the contract names cannot resolve today; D-A3 and D-A15/D-A16 hit a v3 config-invalid refusal; and D-A47's missing-boot query exits 0 rather than refusing. Which of those are runtime defects and which are fixture defects cannot be settled without reading implementation, which this profile forbids; I make no claim either way.\n\nMy D-A38b byte arithmetic is an estimate produced by hand from the canonical envelope shape, not a measurement, and I say so in the finding. I did not run ops/bin/suites.sh, launch a vendor, touch state, settings or admission, or edit anything; `git status --porcelain` is empty at the snapshot root after the full run. Files I wrote are confined to the dispatch out/ directory."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

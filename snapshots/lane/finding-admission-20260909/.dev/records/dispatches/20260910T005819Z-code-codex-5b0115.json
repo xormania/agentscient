@@ -1,0 +1,388 @@
+{
+  "id": "20260910T005819Z-code-codex-5b0115",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "46a2805d1f7075a5491a451ab4346e8f3d26192c"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:58:20Z",
+    "closed": "2026-09-10T01:10:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "46a2805d1f7075a5491a451ab4346e8f3d26192c",
+    "ref_sha": "46a2805d1f7075a5491a451ab4346e8f3d26192c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-58-21-01a088d2-a4a0-7162-8879-c779dcb74c33.jsonl"
+  },
+  "session": {
+    "id": "01a088d2-a4a0-7162-8879-c779dcb74c33",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-58-21-01a088d2-a4a0-7162-8879-c779dcb74c33.jsonl",
+    "stream_sha256_at_close": "d006fea67e9f25555fdb785aabcebab12fc0f9815a4864d83c9f5599355720c2",
+    "spend": {
+      "input": 3317728,
+      "cached": 3208960,
+      "output": 16867,
+      "total": 3334595,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-58-21-01a088d2-a4a0-7162-8879-c779dcb74c33.jsonl",
+      "messages": 279
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 in/verify_admission_commands.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-replay.md",
+        "sha256": "6afbac9e1fd11555a59dac249c736f989c826783ac611458a1c123306740f012"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-preserved-source.patch",
+        "sha256": "b5da37c1f76321a261608f21cb3a4284ef68d4ff5ebd980d2b899b4fa575c19a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/verify_admission_commands.py",
+        "sha256": "08faec68ed22fa23e43fd1dbb907f511a5645c0514d5dd8b417373c83efb1e40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-red-final.json",
+        "sha256": "b15ed750c58e0db74de26feb31704dfa885af4bfba8a13112324b8fd4cb6b7f9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-recovery-run-1.log",
+        "sha256": "19aa83b9a614714e82cd10e329aa4defa8b3e0e98fb59584bbe4714d84a63cef"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-recovery-run-2.log",
+        "sha256": "7e141f23029a30523dd8246af36e911bfd1d246b589def5f90e8c54005c52727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005819Z-code-codex-5b0115/in/admission-recovery-run-3.log",
+        "sha256": "cafdde2dc30c1cae71e05a0bcabaf0a7e75e8743a7ca915b0ae852fa92f6b00c"
+      }
+    ],
+    "sha256": "830f76e9662dcbe1757005f32aa314d04e7bbb4057b5c9eddc80df45b8555ef2",
+    "bytes": 3886
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:58:20Z",
+      "ended": "2026-09-10T01:10:16Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eaaddec3c6027c0f685587c54820528071be41fd",
+    "changed_paths": [
+      "ops/conductor/findings/README.md",
+      "ops/conductor/tools/findings.py",
+      "ops/conductor/tools/ladder.py",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/task/FINDING-ADMISSION.md",
+      "ops/devlane/task/envelope.py",
+      "ops/devlane/task/jobs.json",
+      "ops/devlane/task/run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 30,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "Confirmed requested HEAD and clean starting tree; read instructions and verifier.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Read contracts and briefs; inputs were in sibling ../in, not snapshot/in.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "Read scoped instructions, admission contract and recovery logs.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Read preserved source patch.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Inspected routing, custody obligations and preserved changes.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Read preserved ledger and ladder changes.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Read preserved dispatch and handoff changes.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Patch applicability check passed; read conductor conventions.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Applied preserved source; initial unchanged verifier exited 1.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Inspected failing requirements and suite gate.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Located skipped-outcome overwrite and missing custody/context checks.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Confirmed five remaining failures and producer fixture lacking result.head.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Git add and commit refused: snapshot/.git is read-only.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Intermediate verifier still failed routing; a teardown also detected concurrent prompt editing. Subsequent stationary-tree runs passed.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Completed evaluation and supplied-batch adjudication prompts.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Inspected intermediate failures and envelope tests; whitespace check passed.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Inspected empty-projection fixture and stop handling.",
+          "reproduce": "bash ../out/commands/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Reproduced fixture omission of source key #1 and resulting binding refusal.",
+          "reproduce": "bash ../out/commands/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Unchanged admission verifier passed all 102 tests.",
+          "reproduce": "bash ../out/commands/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Initial full suite found two input-count regressions and one lint failure; subsequently corrected.",
+          "reproduce": "bash ../out/commands/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Checked verification progress, whitespace and lint configuration.",
+          "reproduce": "bash ../out/commands/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Scoped lint identified one preserved import-order error.",
+          "reproduce": "bash ../out/commands/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "Observed completed verifier passing while full suites remained running.",
+          "reproduce": "bash ../out/commands/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Inspected all three full-suite failures before correcting them.",
+          "reproduce": "bash ../out/commands/24.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "Moved verification links outside snapshot; scoped lint and whitespace checks passed.",
+          "reproduce": "bash ../out/commands/25.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "Final-tree unchanged named verifier exited 0: 102 tests passed.",
+          "reproduce": "bash ../out/commands/26.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Final full-suite gate exited 0: 2250 tests, 7 skipped.",
+          "reproduce": "bash ../out/commands/27.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "Frozen tests and classification fixture match supplied hashes; saved patch covering eight intended files.",
+          "reproduce": "bash ../out/commands/28.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "Confirmed both verification gates, lint and whitespace checks pass; recorded final patch hash.",
+          "reproduce": "bash ../out/commands/29.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_finding_admission_routing.py:121",
+          "claim": "Follow-up: empty fixture omits source key #1. Correction is skipped while binding refusal still stops advancement; tests remain unchanged.",
+          "reproduce": "bash ../out/commands/18.sh"
+        }
+      ],
+      "artifacts": {
+        "summary": "../out/summary.md",
+        "commands": "../out/commands.json",
+        "verification": "../out/admission-final.log",
+        "suites": "../out/suites-final.log",
+        "patch": "../out/change.patch",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3334595,
+        "out": 16867,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "46a2805d1f7075a5491a451ab4346e8f3d26192c",
+        "started": null,
+        "ended": "2026-09-10T01:08:17Z"
+      },
+      "note": "Implemented and verified; tests unchanged. Assumptions: closed successful producer records may bind by matching snapshot/envelope refs when output commits are absent; scope uses explicit --input. Fixture follow-up and measurement details are in summary.md. Git is read-only; launcher commit message supplied.",
+      "commit": {
+        "subject": "devlane: complete finding admission and preserve correction custody",
+        "body": "Continue the preserved GPT-6 admission implementation. Admit bound independent partial rulings, preserve skipped corrections without granting approval, restore envelope and projection custody checks, and retain prior implementation context for fix-code. Complete review/adjudication prompts and preserve explicit dispatch input ordering.\n\nMeasured against 46a2805d1f7075a5491a451ab4346e8f3d26192c plus the working diff: the unchanged admission verifier passes 102 tests; ops/bin/suites.sh passes 2250 tests (7 skipped); scoped ruff and git diff --check pass. Frozen tests and classification fixture retain supplied hashes. Independent acceptance remains pending.\n\nSource: agentscient@d391c00927d69399a4a1bf682ee6d642b57ca4ba\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T01:10:15.711Z"
+    }
+  },
+  "status": "closed"
+}

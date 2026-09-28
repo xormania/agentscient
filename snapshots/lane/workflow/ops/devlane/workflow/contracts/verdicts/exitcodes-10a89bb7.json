@@ -1,0 +1,34 @@
+{
+  "id": "exitcodes-10a89bb7",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md's exit-code map is exactly 0, 1, 2, 3, and 64.",
+  "observed": "errors.py defines EXIT_INTERNAL with value 70.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "59-59",
+      "quote": "exit-code map (0/1/2/3/64)"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "274-274",
+      "quote": "`64` usage."
+    },
+    {
+      "artifact": "cue/exitcodes.cue",
+      "lines": "9-9",
+      "quote": "value!: 0 | 1 | 2 | 3 | 64"
+    },
+    {
+      "artifact": "obs/exitcodes.json",
+      "lines": "29-30",
+      "quote": "\"name\": \"EXIT_INTERNAL\""
+    },
+    {
+      "artifact": "obs/exitcodes.json",
+      "lines": "30-30",
+      "quote": "\"value\": 70"
+    }
+  ],
+  "action": "record-finding"
+}

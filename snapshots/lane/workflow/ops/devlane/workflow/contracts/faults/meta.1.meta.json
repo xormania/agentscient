@@ -1,0 +1,10 @@
+{
+  "contract": "meta",
+  "fault": "meta.1.json",
+  "from": "obs/meta.json",
+  "change": "meta.json carries no key matching /version/i",
+  "violates": "PLAN.md §6 line 363 (with §8 line 474)",
+  "quote": "\"The export carries a format version in `meta.json`\" / \"meta.json  # export format version\"",
+  "reject_path": "facts\\.version_keys\\b",
+  "implied": false
+}

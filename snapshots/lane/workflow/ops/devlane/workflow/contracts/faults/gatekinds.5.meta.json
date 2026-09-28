@@ -1,0 +1,11 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.5.json",
+  "from": "obs/gatekinds.json",
+  "change": "the tdd spec's version is the string \"1\" instead of the integer 1",
+  "violates": "PLAN.md §6 line 336 (with §6 lines 354-355)",
+  "quote": "\"{\\\"kind\\\": \\\"tdd\\\", \\\"version\\\": 1,\"",
+  "reject_path": "facts\\.kinds\\.[0-9]+\\.spec\\.version\\b",
+  "implied": true,
+  "note": "The integer appears only inside the §6 block PLAN.md labels \"Illustrative\" (line 333); no prose states the type."
+}

@@ -1,0 +1,170 @@
+{
+  "id": "20260908T080140Z-tests-grok-5ff874",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-isolation-test-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-test-correction-20260908",
+    "base_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:01:41Z",
+    "closed": "2026-09-08T08:10:51Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "ref_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2892c1af-d8d9-43e6-ab71-13d34d7e895b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok-stream/sessions/<snapshot-encoded>/2892c1af-d8d9-43e6-ab71-13d34d7e895b/summary.json"
+  },
+  "session": {
+    "id": "2892c1af-d8d9-43e6-ab71-13d34d7e895b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok-stream/sessions/<snapshot-encoded>/2892c1af-d8d9-43e6-ab71-13d34d7e895b/summary.json",
+    "stream_sha256_at_close": "5d6e3a8965414e89008c07d6887377b05ac7ade99ebdb3864103e8b59ddea360",
+    "spend": {
+      "input": 1273633,
+      "cached": 975232,
+      "output": 29340,
+      "total": 1302973,
+      "cost_usd_ticks": 2142778600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/home/grok-stream/sessions/<snapshot-encoded>/2892c1af-d8d9-43e6-ab71-13d34d7e895b/summary.json",
+      "messages": 176
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-test-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply supplied isolation-test rulings only to test_agy_isolation.py. F1 legacy equalities are owned by a separate worker; do not touch them. Remove/defer unmeasured HOME-only/empty-flags exclusivity while preserving measured auth/session and fresh-home/no-fallback assertions. Pin permitted probe_phrase declaration and honest discovery evidence/absence using existing metadata, without inventing fields or success. Check necessary parent directories and reject directory symlinks, keeping auth-file symlink allowed. Rename copies to links and state precreated-root scope. F5 expected red is lawful; no skips or new framework. No production bodies. Acceptance: focused discovery, zero errors and honest results; registered lint; full-range diff check for this file; exact hashes. No credentials/vendors/full floor. Grok 4.6 trailers.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/in/agy-isolation-test-ruling.json",
+        "sha256": "0d6c2a571a1c03c0371f24f05afdd336f573865cd05c401b5445ad198c709b86"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080140Z-tests-grok-5ff874/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "5ba9756be54f75914ea2809537e3dee118765f34a14fc5c45feacfbfbce84e97",
+    "bytes": 3176
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:01:41Z",
+      "ended": "2026-09-08T08:10:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "34eea9eec042150d4ccec2db204e893ce8839da7",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_agy_isolation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/harness/tests/test_agy_isolation.py",
+        "commit": "34eea9eec042150d4ccec2db204e893ce8839da7",
+        "test_sha256": "987c5ba3e34ec70bdeb415a62c3a4e919cf12501c005b70202428d9a7a6bed31",
+        "base_test_sha256": "5dd64355566295e63b277ee68bfd125c8f4ad3bbf1b3fecc4cf681eea7fba01f",
+        "ruling_sha256": "0d6c2a571a1c03c0371f24f05afdd336f573865cd05c401b5445ad198c709b86",
+        "host_record_sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db",
+        "discovery": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_agy_isolation.py' at 34eea9eec042150d4ccec2db204e893ce8839da7: Ran 7 tests in 0.004s, FAILED (failures=7), 0 errors",
+        "ruff": "ruff 0.16.5 check ops/devlane/harness/tests/test_agy_isolation.py: All checks passed",
+        "diff_check": "git diff --check 3e8713bac5b394886daae176e8a904dfe72b1dc4 HEAD -- ops/devlane/harness/tests/test_agy_isolation.py: empty, exit 0",
+        "range_paths": "git diff --name-only 3e8713bac5b394886daae176e8a904dfe72b1dc4 HEAD: ops/devlane/harness/tests/test_agy_isolation.py",
+        "legacy_untouched": "ops/devlane/harness/tests/test_isolation_contract.py git hash-object matches 3e8713b: b7d55113620157a43cb260ff9c95787e718ba67b"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1302973,
+        "out": 29340,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "started": "2026-09-08T08:07:16Z",
+        "ended": "2026-09-08T08:10:01Z"
+      },
+      "note": "Corrected only test_agy_isolation.py on lane/agy-isolation-test-correction-20260908 as 34eea9eec042150d4ccec2db204e893ce8839da7. F1 legacy equalities were not touched. F2 removed HOME-only and empty-flags exclusivity and kept measured auth/session, fresh-home, and no-fallback pins. F3 pinned probe_phrase=None and an unresolved discovery note in existing measured metadata, with no invented probe success fields. F4 compares the auth leaf plus .gemini and .gemini/antigravity-cli, rejects directory symlinks, and still allows the auth-file symlink. F6 renamed copies to links and named precreated-root scope. F5 expected red left in place: no skips and no new framework. Focused discovery at 34eea9e: 7 tests, 7 failures, 0 errors, all assertion failures because agy has no isolation entry. File SHA256 987c5ba3e34ec70bdeb415a62c3a4e919cf12501c005b70202428d9a7a6bed31; base at 3e8713b was 5dd64355566295e63b277ee68bfd125c8f4ad3bbf1b3fecc4cf681eea7fba01f. Inputs read whole: ruling 0d6c2a571a1c03c0371f24f05afdd336f573865cd05c401b5445ad198c709b86, host record 3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db. ruff 0.16.5 passed. Full-range diff check for this file exited 0. Did not read production bodies; did not run the full floor; no credentials or vendor inference. Trailers: Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:10:50.451Z"
+    }
+  },
+  "status": "closed"
+}

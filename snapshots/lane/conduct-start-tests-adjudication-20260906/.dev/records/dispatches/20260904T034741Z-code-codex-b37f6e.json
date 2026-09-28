@@ -1,0 +1,349 @@
+{
+  "id": "20260904T034741Z-code-codex-b37f6e",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "d0d668b181472c31fa0690affce6993b3ea788eb"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T03:47:41Z",
+    "closed": "2026-09-04T04:03:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d0d668b181472c31fa0690affce6993b3ea788eb",
+    "ref_sha": "d0d668b181472c31fa0690affce6993b3ea788eb",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T23-47-42-01a06a87-87da-7c83-8a4d-18b7113794af.jsonl"
+  },
+  "session": {
+    "id": "01a06a87-87da-7c83-8a4d-18b7113794af",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T23-47-42-01a06a87-87da-7c83-8a4d-18b7113794af.jsonl",
+    "stream_sha256_at_close": "98aef3551c501b3aa51e163f45aaf14e84d23e77b2fe26d0ed2dbed202a8be6b",
+    "spend": {
+      "input": 3623578,
+      "cached": 3487872,
+      "output": 39083,
+      "total": 3662661,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T23-47-42-01a06a87-87da-7c83-8a4d-18b7113794af.jsonl",
+      "messages": 400
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_*.py' && ruff check .",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/in/contract-lane-fixes-1-C.md",
+        "sha256": "b514ff5e5812469a15e52a47696502d187762dfe55b05469ba65d4500822da31"
+      }
+    ],
+    "sha256": "893bd5a0acb213440ab1bfff39138f2aa8de368bdfb87a553da75ae86d2fbe71",
+    "bytes": 3967
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T03:47:41Z",
+      "ended": "2026-09-04T04:03:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "289e232a723a8b50c709766833e43a5da747967b",
+    "changed_paths": [
+      ".claude/skills/pr-overview/SKILL.md",
+      ".claude/skills/pr-overview/pr_overview.py",
+      ".github/workflows/ci-dev-apps.yml",
+      ".github/workflows/ci-dev.yml",
+      "ops/README.md",
+      "ops/conductor/land-lever.md",
+      "ops/conductor/tools/land.py",
+      "ops/devlane/workflow/wf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "20260904T034741Z-code-codex-b37f6e",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 28,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline and governing documents",
+          "claim": "Confirmed a clean detached tree at d0d668b181472c31fa0690affce6993b3ea788eb and read the required docs and ops overview.",
+          "reproduce": "git status --short --branch && test \"$(git rev-parse HEAD)\" = d0d668b181472c31fa0690affce6993b3ea788eb && find docs -type f -print -exec sed -n '1,99999p' {} \\; && sed -n '1,99999p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline acceptance command",
+          "claim": "The initial run passed the preceding lane suites and failed four CollectedTrip land-lever tests.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_*.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": "land-lever source search",
+          "claim": "The first lookup used the obsolete land.sh path and exited nonzero, identifying the mistaken filename.",
+          "reproduce": "rg -n \"exit-status|collected|collect|trip|result\" ops/conductor/tools/land.sh ops/conductor/tests/test_land_lever.py ops/conductor -g 'CONTRACT*' -g '*.md' && sed -n '1,260p' ops/conductor/tools/land.sh && sed -n '1000,1130p' ops/conductor/tests/test_land_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor",
+          "claim": "Located the land implementation, contract, and test module.",
+          "reproduce": "rg --files ops/conductor | rg 'land'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/land.py",
+          "claim": "Read the complete land contract and implementation plus the collected-trip acceptance cases.",
+          "reproduce": "sed -n '1,99999p' ops/conductor/land-lever.md && sed -n '1,99999p' ops/conductor/tools/land.py && sed -n '930,1130p' ops/conductor/tests/test_land_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch collection implementation",
+          "claim": "Located the producer and validator for result.collected evidence.",
+          "reproduce": "rg -n '\"collected\"|collected\\b|def collect|collect_parser' ops/devlane/dispatch ops/conductor --glob '!tests/test_land_lever.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Measured the collected-result shape and verification behavior in record.py, launch.py, and the dispatch contract.",
+          "reproduce": "sed -n '70,120p' ops/devlane/dispatch/record.py && sed -n '1380,1490p' ops/devlane/dispatch/launch.py && sed -n '215,275p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_land_lever.py",
+          "claim": "Read the fixture and existing precondition-order assertions before changing land.py.",
+          "reproduce": "sed -n '1,460p' ops/conductor/tests/test_land_lever.py && sed -n '640,710p' ops/conductor/tests/test_land_lever.py && sed -n '880,940p' ops/conductor/tests/test_land_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Measured the repository's trailer and model-attribution convention from recent commits.",
+          "reproduce": "git log -5 --format='%h%n%B%n--'"
+        },
+        {
+          "severity": "p3",
+          "where": "collected-trip focused verification",
+          "claim": "All four collected-trip tests, diff checks, and focused Ruff checks passed after the land change.",
+          "reproduce": "git diff --check && python3 -m unittest ops.conductor.tests.test_land_lever.CollectedTrip && ruff check ops/conductor/tools/land.py"
+        },
+        {
+          "severity": "p3",
+          "where": "land-lever full verification",
+          "claim": "All 26 land-lever tests passed.",
+          "reproduce": "python3 -m unittest ops.conductor.tests.test_land_lever"
+        },
+        {
+          "severity": "p3",
+          "where": "second acceptance run",
+          "claim": "All 260 conductor tests passed; the command then exposed six errors and three failures in the separately named pr-overview suite.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_*.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": ".claude/skills/pr-overview",
+          "claim": "Read the local skill contract, implementation inventory, and failing test surfaces.",
+          "reproduce": "rg --files .claude/skills/pr-overview ops/devlane/workflow .github/workflows | sort && sed -n '1,99999p' .claude/skills/pr-overview/SKILL.md && for path in .claude/skills/pr-overview/*.py; do sed -n '1,99999p' \"$path\"; done && sed -n '1,430p' .claude/skills/pr-overview/tests/test_collect_rows.py && sed -n '1,380p' .claude/skills/pr-overview/tests/test_blocking.py && sed -n '1,700p' .claude/skills/pr-overview/tests/test_pr_head_expected.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git history and refs",
+          "claim": "No historical version of the missing workflow files was reachable from refs; the checkout remained detached on lane/lane-fixes ancestry.",
+          "reproduce": "git log --all --oneline -- ops/devlane/workflow/wf.py .github/workflows/ci-dev.yml .github/workflows/ci-dev-apps.yml .dev/workflow/gate-kinds && git branch --all --contains HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "pr-overview implementation",
+          "claim": "Inspected check collection, expected-context derivation, per-head archive handling, and blocking behavior.",
+          "reproduce": "rg -n '^def (buckets|collect|blocking|expected_checks|fetch_head|registry)|Unavailable|WORKFLOW_DATA|GATE_KIND_DATA' .claude/skills/pr-overview/pr_overview.py && sed -n '100,380p' .claude/skills/pr-overview/pr_overview.py && sed -n '380,760p' .claude/skills/pr-overview/pr_overview.py && sed -n '1,99999p' ops/devlane/workflow/checks/ci_contexts.py && sed -n '1,220p' .claude/skills/pr-overview/tests/test_blocking.py && sed -n '1,390p' .claude/skills/pr-overview/tests/test_collect_rows.py && sed -n '1,180p' .claude/skills/pr-overview/tests/test_pr_head_expected.py"
+        },
+        {
+          "severity": "p3",
+          "where": "pr-overview focused source",
+          "claim": "Read the exact collect/render flow, CI context parser, and blocking test expectations.",
+          "reproduce": "sed -n '470,545p' .claude/skills/pr-overview/pr_overview.py && sed -n '545,730p' .claude/skills/pr-overview/pr_overview.py && sed -n '1,260p' ops/devlane/workflow/checks/ci_contexts.py && sed -n '1,180p' .claude/skills/pr-overview/tests/test_blocking.py && sed -n '180,380p' .claude/skills/pr-overview/tests/test_blocking.py"
+        },
+        {
+          "severity": "p3",
+          "where": "CI derivation inputs",
+          "claim": "Measured the context derivation rules, gate registries, current CI workflow, and workflow plan.",
+          "reproduce": "sed -n '220,520p' ops/devlane/workflow/checks/ci_contexts.py && sed -n '1,99999p' ops/devlane/workflow/gate-kinds/artifact.json && sed -n '1,99999p' ops/devlane/workflow/gate-kinds/tdd.json && sed -n '1,260p' .github/workflows/ci.yml && sed -n '1,260p' ops/devlane/workflow/PLAN.md"
+        },
+        {
+          "severity": "p3",
+          "where": "repository records",
+          "claim": "Found the ratified CI-shape record and references to the missing dev workflow contexts, but no recoverable workflow body.",
+          "reproduce": "rg -n 'ci-dev|dev: verify|dev: contracts|dev: discover|dev: gates|ci-dev-apps|matrix.app|shard:' ops .github .claude/skills/pr-overview --glob '!**/tests/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "application layout",
+          "claim": "Measured one Symfony application shell and the incumbent devlane component directories.",
+          "reproduce": "find packages src -maxdepth 2 -type d -print | sort && find ops/devlane -mindepth 1 -maxdepth 1 -type d -print | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "failed patch audit",
+          "claim": "Confirmed the initially rejected patch had not changed the pr-overview files and measured the exact skill paragraph.",
+          "reproduce": "rg -n -C 2 'No `gh`|No .gh.|none open' .claude/skills/pr-overview/SKILL.md && git diff -- .claude/skills/pr-overview/pr_overview.py .claude/skills/pr-overview/SKILL.md"
+        },
+        {
+          "severity": "p3",
+          "where": "workflow registry contract",
+          "claim": "The narrow status-check projection is named by the skill and workflow plan.",
+          "reproduce": "rg -n -C 3 -- '--checks|ci_matrix|status --checks' ops/devlane/workflow/PLAN.md ops/devlane/workflow/contracts ops/conductor ops/docs .claude/skills/pr-overview/SKILL.md"
+        },
+        {
+          "severity": "p3",
+          "where": "focused pr-overview verification",
+          "claim": "The registry emitted 15 contexts; all 8 blocking tests, all 3 per-PR collection tests, and focused Ruff checks passed.",
+          "reproduce": "python3 ops/devlane/workflow/wf.py --json status --checks | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data[\"ci_matrix\"] and data[\"checks\"]' && python3 ops/devlane/workflow/checks/ci_contexts.py <(python3 ops/devlane/workflow/wf.py --json status --checks) && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_blocking.py' && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_collect_rows.py' && ruff check ops/devlane/workflow/wf.py .claude/skills/pr-overview/pr_overview.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working-tree scope",
+          "claim": "Diff checks passed and the intended tracked scope contained five modified and three new files.",
+          "reproduce": "git diff --check && git status --short && git diff --stat && git diff -- ops/conductor/tools/land.py .claude/skills/pr-overview/pr_overview.py ops/devlane/workflow/wf.py ops/conductor/land-lever.md ops/README.md .claude/skills/pr-overview/SKILL.md .github/workflows/ci-dev.yml .github/workflows/ci-dev-apps.yml"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The required commit could not be created because the sandbox mounted Git metadata read-only.",
+          "reproduce": "git add .claude/skills/pr-overview/SKILL.md .claude/skills/pr-overview/pr_overview.py .github/workflows/ci-dev.yml .github/workflows/ci-dev-apps.yml ops/README.md ops/conductor/land-lever.md ops/conductor/tools/land.py ops/devlane/workflow/wf.py && git diff --cached --check && git commit -m \"conductor: recover collected jobs and PR check reads\" -m \"Accept verified launcher collections when landing tripped write jobs. Keep isolated pull-request check failures as cannot-tell rows, restore the tracked check-registry projection, and provide the workflow inputs used to derive each PR head's expected contexts.\" -m \"Source: original\" -m \"Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>\""
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/pr-overview/tests/test_pr_head_expected.py:385",
+          "claim": "In a simulated committed final tree, the immutable fixture failed before subject execution because it initializes an exported tree containing .github and ops, then runs git add against .github and absent .dev; Git exits 128.",
+          "reproduce": "verification_root=$(mktemp -d /tmp/agentscient-final.XXXXXX) && mkdir \"$verification_root/repo\" && tar --exclude='./.git' -cf - . | tar -xf - -C \"$verification_root/repo\" && git init -q -b verify \"$verification_root/repo\" && git -C \"$verification_root/repo\" add -A && git -C \"$verification_root/repo\" -c user.name=Verifier -c user.email=verifier@example.invalid commit -qm 'verification tree' && cd \"$verification_root/repo\" && bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_*.py' && ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": "repository environment",
+          "claim": "The live checkout has tracked .dev records, Git resolves to /usr/bin/git, and proposed generated workflow-cache paths are not ignored.",
+          "reproduce": "if test -e .dev; then find .dev -maxdepth 3 -print; else echo '.dev absent'; fi && git check-ignore -v .dev/wf.db .dev/workflow/checks.json || true && printf '%s\\n' \"$PATH\" && command -v git"
+        },
+        {
+          "severity": "p3",
+          "where": "repository lint",
+          "claim": "Ruff passed across the requested parent tree.",
+          "reproduce": "ruff check .."
+        },
+        {
+          "severity": "p3",
+          "where": "final custody audit",
+          "claim": "The forbidden suite command and test files have no diff; the launcher commit message was written with checksum b4ea9897ad31aa3405e99fcab66d46b3faa7988576d230abbcc68dbe25b33f4c.",
+          "reproduce": "git status --short && git diff --name-only && test -z \"$(git diff --name-only -- ops/bin/suites.sh .claude/skills/pr-overview/tests)\" && sha256sum ../out/COMMIT_MSG && sed -n '1,99999p' ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "unreachable Git objects",
+          "claim": "No unreachable historical commit contained the missing wf.py or ci-dev.yml implementation.",
+          "reproduce": "for sha in $(git fsck --unreachable --no-reflogs 2>/dev/null | awk '$2 == \"commit\" {print $3}'); do if git ls-tree -r --name-only \"$sha\" | rg -q '^(ops/devlane/workflow/wf.py|\\.github/workflows/ci-dev.yml)$'; then printf '%s ' \"$sha\"; git show -s --format='%s' \"$sha\"; fi; done"
+        },
+        {
+          "severity": "p2",
+          "where": "test_pr_head_expected.CollectJudgesEachPrAgainstItsOwnHead.setUpClass",
+          "claim": "The exact final-tree command exits 1: all 1,151 lane tests and 11 preceding pr-overview tests pass, then the immutable HEAD-archive fixture cannot see the uncommitted ci-dev.yml because sandbox policy prevented the required commit. A committed-tree simulation reaches the separate .dev/ops pathspec defect above.",
+          "reproduce": "bash ops/bin/suites.sh && python3 -m unittest discover -s .claude/skills/pr-overview/tests -p 'test_*.py' && ruff check .."
+        }
+      ],
+      "artifacts": {
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T034741Z-code-codex-b37f6e/out/COMMIT_MSG",
+        "changed_files": ".claude/skills/pr-overview/SKILL.md; .claude/skills/pr-overview/pr_overview.py; .github/workflows/ci-dev.yml; .github/workflows/ci-dev-apps.yml; ops/README.md; ops/conductor/land-lever.md; ops/conductor/tools/land.py; ops/devlane/workflow/wf.py",
+        "verification": "Land tests 26/26 pass; blocking tests 8/8 pass; collection-row tests 3/3 pass; Ruff passes; exact command remains nonzero at test_pr_head_expected setup."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3662661,
+        "out": 39083,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d0d668b181472c31fa0690affce6993b3ea788eb",
+        "started": null,
+        "ended": null
+      },
+      "note": "Invalid because the named command does not exit 0. The failing test is test_pr_head_expected.CollectJudgesEachPrAgainstItsOwnHead.setUpClass. Commit creation was denied by the read-only Git sandbox, so out/COMMIT_MSG and the commit envelope are provided. Even after simulating that commit, the immutable fixture runs `git add -A -- .github .dev` in a tree exported only from `.github/workflows` and `ops/devlane/workflow`; `.dev` is absent and Git exits 128. Editing that test is forbidden. Assumption: wf.py restores only the read-only check-registry projection because the surrounding contract explicitly keeps the state-machine runtime absent. Follow-up: the passing suites repeatedly report pre-existing ResourceWarnings for live subprocesses and an unclosed file; these were not changed.",
+      "commit": {
+        "subject": "conductor: recover collected jobs and PR check reads",
+        "body": "Accept verified launcher collections when landing tripped write jobs.\nKeep isolated pull-request check failures as cannot-tell rows, restore\nthe tracked check-registry projection, and provide the workflow inputs\nused to derive each PR head's expected contexts.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T04:03:36.693Z"
+    }
+  },
+  "status": "closed"
+}

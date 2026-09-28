@@ -1,0 +1,216 @@
+{
+  "id": "20260911T020846Z-review-codex-2beea3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/receipts-20260911",
+  "lineage": {
+    "branch": "lane/receipts-20260911",
+    "base_sha": "44995b6f072d7168335f329bdb7c62f883eef703"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T02:08:47Z",
+    "closed": "2026-09-11T02:17:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "ref_sha": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-08-47-01a08e39-7f6d-7cb1-a36b-6df4cf77533a.jsonl"
+  },
+  "session": {
+    "id": "01a08e39-7f6d-7cb1-a36b-6df4cf77533a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-08-47-01a08e39-7f6d-7cb1-a36b-6df4cf77533a.jsonl",
+    "stream_sha256_at_close": "a08a2dda5ff6a051605439d543ebd49137b8a47cde2399bcefb516c9b01d7584",
+    "spend": {
+      "input": 2363433,
+      "cached": 2235047,
+      "output": 32649,
+      "total": 2396082,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-08-47-01a08e39-7f6d-7cb1-a36b-6df4cf77533a.jsonl",
+      "messages": 282
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security audit of PR 101 at this head: the receipt lever ops/devlane/harness/receipt.py, the four modules under ops/devlane/harness/receipt/ (extracted verbatim from the previous repository under an owner grant; a finding against them is a finding, not a fix), the contract ops/devlane/harness/evidence.cue, and the tests ops/devlane/harness/tests/test_receipt.py by another harness. Read in/extraction-checklist-receipts-20260911.md and in/brief-receipt-tests-20260911.md WHOLE; the checklist's nineteen items and the contract are the only requirements; the two flagged decisions (checklist items 6 and 12) are the owner's to rule, not defects. Hunt: argv or cwd escaping the repository root, receipts written outside .dev/records/receipts, a digest that does not bind the fields it names, a refusal off the wire. Each finding quotes the checklist item or contract field it violates or is marked observation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/in/extraction-checklist-receipts-20260911.md",
+        "sha256": "3126a46d3203cd3bb8828073fb01da4706e2a15d936e9b2c496c127defdd554a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T020846Z-review-codex-2beea3/in/brief-receipt-tests-20260911.md",
+        "sha256": "0b9bb9e84b80d60dbee2e48383dc2cd84090d36a2e813b485b2f4a446e766dc4"
+      }
+    ],
+    "sha256": "493dcfb083061c2cb93f0448432132cc0ffab64f55b5fad31b81cf8d5eec87e9",
+    "bytes": 4508
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T02:08:47Z",
+      "ended": "2026-09-11T02:17:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "44995b6f072d7168335f329bdb7c62f883eef703",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 5,
+        "p2": 4,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:122-137,172-180; ops/devlane/harness/evidence.cue:59-67",
+          "claim": "Checklist item 10 requires cwd to be \"relative to the repository root, never absolute.\" verify validates only field names, then executes at unchecked body[\"cwd\"]. A twelve-key receipt with cwd \"/\" ran outside the snapshot and was reported verified.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport hashlib,json,os,subprocess\nfrom pathlib import Path\nhead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()\nbody={'kind':'receipt','claim':'probe','argv':['/bin/pwd'],'cwd':'/','head_sha':hashlib.sha256(head.encode()).hexdigest(),'tree_dirty':False,'exit_code':0,'duration_ms':0,'stdout_sha256':hashlib.sha256(b'/\\n').hexdigest(),'stderr_sha256':hashlib.sha256(b'').hexdigest(),'actor':'Audit <a@b>','at':'2026-09-11T00:00:00Z'}\nfd=os.memfd_create('receipt'); os.write(fd,json.dumps(body).encode()); os.lseek(fd,0,0)\np=subprocess.run(['python3','ops/devlane/harness/receipt.py','verify',f'/proc/self/fd/{fd}'],pass_fds=(fd,),capture_output=True,text=True)\nprint(p.returncode,p.stdout,p.stderr); assert p.returncode==0 and 'verified' in p.stdout\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:85-100,113-119",
+          "claim": "Checklist item 11 requires receipts to live under .dev/records/receipts. The entire path is excluded from dirty detection and write_receipt follows a directory symlink without resolving or checking containment, allowing a receipt to be written outside the repository while stdout reports an internal path.",
+          "reproduce": "bash -eu -c 'r=$PWD; d=$(mktemp -d); git init -q \"$d/repo\"; mkdir -p \"$d/repo/.dev/records\" \"$d/out\"; printf x > \"$d/repo/a\"; printf base > \"$d/repo/.dev/records/base\"; git -C \"$d/repo\" add .; git -C \"$d/repo\" -c user.name=a -c user.email=a@b commit -qm one; ln -s \"$d/out\" \"$d/repo/.dev/records/receipts\"; (cd \"$d/repo\" && WF_AGENT=\"Audit <a@b>\" python3 \"$r/ops/devlane/harness/receipt.py\" record --claim probe -- true); find \"$d/out\" -maxdepth 1 -type f -name \"*.json\" -print -quit | grep .'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:122-137",
+          "claim": "Checklist item 11 says the filename digest makes a receipt tamper-evident, but load_receipt never recomputes the canonical digest. Modified fields are accepted under the original digest reference.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport importlib.util,json\nfrom pathlib import Path\nfrom unittest.mock import patch\nspec=importlib.util.spec_from_file_location('lever',Path('ops/devlane/harness/receipt.py').resolve()); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\noriginal='704eafbc6d925095cdaed78431740df4ee4ce791b7696bee976345bed9ebee44'\nbody=json.loads((Path('.dev/records/receipts')/(original+'.json')).read_text()); body['claim']='tampered but accepted'; raw=m.canonical.dumps(body)\ntarget=Path.cwd()/'.dev/records/receipts'/(original+'.json'); real=Path.is_file\ndef exists(p): return p==target or real(p)\ndef read(p,**k): return raw if p==target else (_ for _ in ()).throw(AssertionError(p))\nwith patch.object(Path,'is_file',exists),patch.object(Path,'read_text',read): loaded,_=m.load_receipt(Path.cwd(),original)\nactual=m.canonical.digest(loaded); print(original,actual,loaded['claim']); assert actual!=original\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt/receipts.py:115-133; ops/devlane/harness/receipt.py:161-162",
+          "claim": "The contract fields stdout_sha256 and stderr_sha256 do not bind the command's actual output bytes. text=True with errors=\"replace\" lossily normalizes output before hashing; distinct byte streams therefore produce the same recorded digest.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/devlane/harness/receipt python3 - <<'PY'\nimport sys\nfrom pathlib import Path\nimport canonical,receipts\nd=[]\nfor n in (255,254):\n _,out,_,_=receipts.run([sys.executable,'-c',f'import os; os.write(1,bytes([{n}]))'],Path.cwd())\n d.append(canonical.sha256_hex(out.encode('utf-8','replace')))\nprint(d); assert d[0]==d[1]\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:85-100,146-159; ops/devlane/harness/evidence.cue:64-67,169-172",
+          "claim": "The contract says tree_dirty records the state used and an admissible receipt requires false, but dirty_paths ignores git status's exit code. If Git cannot inspect the index, empty stdout is treated as a clean tree and an admissible-looking receipt is issued.",
+          "reproduce": "bash -eu -c 'r=$PWD; d=$(mktemp -d); git init -q \"$d/repo\"; printf x > \"$d/repo/a\"; git -C \"$d/repo\" add a; git -C \"$d/repo\" -c user.name=a -c user.email=a@b commit -qm one; printf corrupt > \"$d/repo/.git/index\"; (cd \"$d/repo\" && WF_AGENT=\"Audit <a@b>\" python3 \"$r/ops/devlane/harness/receipt.py\" record --claim probe -- true); f=$(find \"$d/repo/.dev/records/receipts\" -name \"*.json\" -print -quit); grep -q '\"tree_dirty\":false' \"$f\"'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt/receipts.py:115-131; ops/devlane/harness/receipt.py:231-233",
+          "claim": "Checklist item 5 requires one sanitized refusal line. A missing command copies raw argv into Refusal.actual, and the adapter prints it without clean(); an argv newline injects a forged wire line and any credential argument is echoed into stderr/logs.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport os,subprocess\narg='--token=FAKE-SECRET-DO-NOT-USE\\nforged: expected pass; found pass; needed none'\nenv=dict(os.environ,WF_AGENT='Audit <a@b>')\np=subprocess.run(['python3','ops/devlane/harness/receipt.py','record','--claim','probe','--','definitely-no-such-command',arg],env=env,capture_output=True,text=True)\nprint(p.stderr); assert p.returncode==2 and len(p.stderr.splitlines())==2 and 'FAKE-SECRET-DO-NOT-USE' in p.stderr\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py:201-226",
+          "claim": "Checklist item 5 requires every refusal to use the single-line expected\u2013found\u2013needed wire. argparse exits before the try block for missing required arguments and emits two usage/error lines instead.",
+          "reproduce": "python3 -c \"import subprocess; p=subprocess.run(['python3','ops/devlane/harness/receipt.py','show'],capture_output=True,text=True); print(p.returncode,p.stderr); assert p.returncode==2 and not p.stdout and len(p.stderr.splitlines())==2 and not p.stderr.startswith('arguments: expected ')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py:62-67",
+          "claim": "Checklist item 8 requires WF_AGENT in \"Name <address>\" form. The validation only looks for any '<' and a final '>', accepting empty or absent names and addresses and weakening receipt attribution.",
+          "reproduce": "WF_AGENT='<>' PYTHONDONTWRITEBYTECODE=1 python3 -c \"import runpy; n=runpy.run_path('ops/devlane/harness/receipt.py'); print(n['identity']()); assert n['identity']()=='<>'\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/evidence.cue:59-62; ops/devlane/harness/receipt.py:152-166",
+          "claim": "Observation: contract field argv is copied verbatim into receipts that checklist item 11 says are tracked. No rejection or credential-safe representation exists, so a command-line token is persisted into the repository record. No actual credential was found in this change.",
+          "reproduce": "bash -eu -c 'r=$PWD; d=$(mktemp -d); git init -q \"$d\"; printf x > \"$d/a\"; git -C \"$d\" add a; git -C \"$d\" -c user.name=a -c user.email=a@b commit -qm one; (cd \"$d\" && WF_AGENT=\"Audit <a@b>\" python3 \"$r/ops/devlane/harness/receipt.py\" record --claim probe -- python3 -c pass --token FAKE-SECRET-DO-NOT-USE); rg -l \"FAKE-SECRET-DO-NOT-USE\" \"$d/.dev/records/receipts\"'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2396082,
+        "out": 32649,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "44995b6f072d7168335f329bdb7c62f883eef703",
+        "started": null,
+        "ended": "2026-09-11T02:15:41Z"
+      },
+      "note": "Read both inputs, all governing docs, the complete target implementation/modules/tests, records, and contract. Covered argv/shell, SQL/template, credentials, path/ref containment, sandbox claims, vendor-output checks, and supply-chain changes. No SQL/template seam, actual credential signature, sandbox-record mismatch, dependency/lockfile/action change, or shell=True execution was found; the four extracted module blob IDs match the checklist. Checklist decisions 6 and 12 were not treated as defects. The two committed receipts passed CUE vet. The frozen unittest command could not execute because this read-only audit sandbox has no writable temporary directory; all 18 cases stopped in setup. Read-only, memfd, and mocked probes were used instead. Filesystem-mutating reproductions and races could not be exercised here. The session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T02:17:01.282Z"
+    }
+  },
+  "status": "closed"
+}

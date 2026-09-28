@@ -1,0 +1,171 @@
+{
+  "id": "20260904T114558Z-code-grok-db67f6",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-fix",
+  "lineage": {
+    "branch": "lane/fixture-fix",
+    "base_sha": "2c49bca175991dbb8e001d3313455f6c804e32b0"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T11:45:58Z",
+    "closed": "2026-09-04T12:07:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2c49bca175991dbb8e001d3313455f6c804e32b0",
+    "ref_sha": "2c49bca175991dbb8e001d3313455f6c804e32b0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "3c3b0f5b-fdad-4630-a265-7370938468d6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok-stream/sessions/<snapshot-encoded>/3c3b0f5b-fdad-4630-a265-7370938468d6/summary.json"
+  },
+  "session": {
+    "id": "3c3b0f5b-fdad-4630-a265-7370938468d6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok-stream/sessions/<snapshot-encoded>/3c3b0f5b-fdad-4630-a265-7370938468d6/summary.json",
+    "stream_sha256_at_close": "27e24ab88ca1d9415e9c1ed530abc1cedb44169349cf074543d1c5904f7fdc88",
+    "spend": {
+      "input": 9441753,
+      "cached": 9188224,
+      "output": 73326,
+      "total": 9515079,
+      "cost_usd_ticks": 14600171200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/home/grok-stream/sessions/<snapshot-encoded>/3c3b0f5b-fdad-4630-a265-7370938468d6/summary.json",
+      "messages": 478
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture batch's fix round, tests only: from the two audits and the session's dispositions in the input file, write red tests at this ref for every finding marked FIX (F1 to F8; G1 to G3, G5, G7 to G12, and G13 if the lever can isolate one fix per preflight copy), one commit per file, in the files that own them (the fixture lever tests, the manifest and grade tests, the calibration tests, each app's lane test) and a new file where none fits; each test pins the declared behaviour the finding quotes, fails on this tree for the finding's reason, and would pass on a correct fix. Plant stores and scratch trees under temporary directories; never touch the live store. Do not write implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114558Z-code-grok-db67f6/in/contract-fixture-fix.md",
+        "sha256": "23ce63a32e5af627d16c837d6254eaa4cd2a41d4c5be32314754fbc826ef858b"
+      }
+    ],
+    "sha256": "746cd36d0e782da8b9c791d371c8c1bdfcee235c9043802718633a481fcafd49",
+    "bytes": 3045
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T11:45:58Z",
+      "ended": "2026-09-04T12:07:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1c747766ab7421e6e6713e866ad86ed846dcb91e",
+    "changed_paths": [
+      "ops/conductor/tests/test_findings_calibration.py",
+      "ops/devlane/fixtures/tests/test_fixture_grade.py",
+      "ops/devlane/fixtures/tests/test_fixture_lever.py",
+      "ops/devlane/fixtures/tests/test_fixture_root.py",
+      "ops/devlane/fixtures/tests/test_python_service_app.py",
+      "ops/devlane/fixtures/tests/test_python_tooling_app.py",
+      "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+      "ops/devlane/fixtures/tests/test_symfony_app_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "head": "1c747766ab7421e6e6713e866ad86ed846dcb91e",
+        "test_fixture_lever.py": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+        "test_fixture_grade.py": "ops/devlane/fixtures/tests/test_fixture_grade.py",
+        "test_findings_calibration.py": "ops/conductor/tests/test_findings_calibration.py",
+        "test_fixture_root.py": "ops/devlane/fixtures/tests/test_fixture_root.py",
+        "test_python_service_app.py": "ops/devlane/fixtures/tests/test_python_service_app.py",
+        "test_rust_crate_app.py": "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+        "test_symfony_app_app.py": "ops/devlane/fixtures/tests/test_symfony_app_app.py",
+        "test_python_tooling_app.py": "ops/devlane/fixtures/tests/test_python_tooling_app.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 9515079,
+        "out": 73326,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2c49bca175991dbb8e001d3313455f6c804e32b0",
+        "started": "2026-09-04T11:46:15Z",
+        "ended": "2026-09-04T12:06:58Z"
+      },
+      "note": "Eight commits on lane/fixture-fix, one per test file, from 2c49bca. Each new or inverted test was run alone and failed on its intended assertion, not on collection. Live stores were not touched; scratch trees were under TemporaryDirectory. No implementation was written. F1 scrubbed probe env (PATH/HOME only plus locale pins). F2 make copies tracked files only when .git is not writable, or refuses. F3 export --calibration refuses identity. F4 RC-02 neighbour canonicalises the candidate. F5 grade refuses tripped, claimless, and string findings. F6 prove --fixed does not write the supplied directory. F7 hashed lock, ruff in the dev extra, --require-hashes. F8 preflight copies symlinks as symlinks. G1 gates/needs run cargo metadata --offline and exit 127. G2 repo-relative where overlaps app-relative location. G3 tracked ops/devlane/fixtures/copy-list named as FIXTURE_COPY_LIST default in ops/lane.conf; make uses that default when the env is unset. G4=F3. G5 check-tests is refused; the refusal names only the two audits. G6 deferred, not tested. G7 K9 not_planted must not claim pinned-and-locked while flex ^2 and phpunit ^13.3 remain. G8 RC-05 probe proves unreadable and corrupt arms. G9 #[test] and set -e. G10: FAULTS.json practiced already quotes the concatenated-message plant (`json_encode($_ENV)` into the log message) and README SA-04 is the clean claim, so no red remained for \u201cdeclaration matches the plant\u201d. G11 PT-01 leaves no pt01-shell-marker. G12 identity refuses Name <noreply> without @. G13 prove --fixed --fault SYN-01 applies one fix in the preflight copy (the lever already copies before apply)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T12:07:21.945Z"
+    }
+  },
+  "status": "closed"
+}

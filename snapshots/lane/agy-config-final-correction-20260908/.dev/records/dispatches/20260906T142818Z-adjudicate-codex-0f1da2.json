@@ -1,0 +1,261 @@
+{
+  "id": "20260906T142818Z-adjudicate-codex-0f1da2",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conduct-start-tests-adjudication-20260906",
+  "lineage": {
+    "branch": "lane/conduct-start-tests-adjudication-20260906",
+    "base_sha": "d3b9588e10a10ef356e87a385cfd16490b09bb92"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:28:18Z",
+    "closed": "2026-09-06T14:36:42Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d3b9588e10a10ef356e87a385cfd16490b09bb92",
+    "ref_sha": "d3b9588e10a10ef356e87a385cfd16490b09bb92",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-28-19-01a0771e-c0ce-7190-9e0d-33b97a851123.jsonl"
+  },
+  "session": {
+    "id": "01a0771e-c0ce-7190-9e0d-33b97a851123",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-28-19-01a0771e-c0ce-7190-9e0d-33b97a851123.jsonl",
+    "stream_sha256_at_close": "582065a3eeafd58eb259bf1f8aaad0dedcec47d0f3cd05ecaccefcd05e18d6ab",
+    "spend": {
+      "input": 1626673,
+      "cached": 1496064,
+      "output": 11886,
+      "total": 1638559,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-28-19-01a0771e-c0ce-7190-9e0d-33b97a851123.jsonl",
+      "messages": 143
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-start-tests-adjudication-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Third-harness adjudication of all 18 original Claude findings against the Grok startup tests at exact d3b9588e. Original artifact/report only, no later fixes or concessions. Independently reproduce bounded fixture facts where possible. Rule UPHELD/PARTIAL/REJECTED for every finding, separating impossible subprocess/FD/transport/purity oracles, undeclared fixture authority, wrong refusal/catalogue expectations and true contract gaps. Preserve common APIs and actor separation. Give exact bounded test versus contract ownership; do not invent a synthetic parent, hidden schema or positive capability. Write out/RULING.md and a valid review envelope. No edits, runtime inspection, full floor, live vendor/settings/state, or approval. Test correction will be separately produced and independently reviewed.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/in/ag-conduct-start-tests-review.json",
+        "sha256": "3848db48fec3e4556fd771a572d2929018207202267cff35ddae25c23830eed0"
+      }
+    ],
+    "sha256": "f308bd8df8863486a2d1eec90d77cf6314d440374ac62bd2e639c7a8ed4e8129",
+    "bytes": 3119
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:28:18Z",
+      "ended": "2026-09-06T14:36:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d3b9588e10a10ef356e87a385cfd16490b09bb92",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 5,
+        "p2": 8,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/conduct_test_support.py:567-664,1740-1820; test_conduct_start.py:77-90",
+          "claim": "F01 UPHELD \u2014 Test-owned impossible observation oracle. The CLI runs in a subprocess, but assertions inspect an ordinary parent-process FakeMcpClient list. No collector connects child observations to that list. Startup's observation contract requires actual client/server pipes, launcher-held process and endpoint identities, and a private supervisor observation pipe. Test correction must exercise that declared boundary and inspect retained connection evidence. Calling emit_connection in the parent, accepting JSON endpoint/epoch assertions, or adding a second client cannot discharge it. No production API change is warranted.",
+          "reproduce": "At d3b9588e, inspected _spawn/run_cli/invoke_conduct and FakeMcpClient. AST inspection found emit_connection calls only at test_conduct_start.py:652,663, both parent-side decoys. The helper initializes observations=[]; the subprocess return path never populates it."
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/conduct_test_support.py:1597-1608; ops/conductor/conductor-start-plan.md:347-375; ops/conductor/harness-capabilities.md:129-142,450-460",
+          "claim": "F02 PARTIAL \u2014 The positive transport fixture is invalid, but the proposed alternatives must not become interchangeable schemas. Its five-member object matches neither the declared Codex relay specification nor the common compilation handle. The latter includes opaque evidence and is explicitly not an alternative serialized relay object. Test ownership: withdraw positive reliance on this incomplete transport. Contract ownership: reconcile FD6's exact codex-relay/1 requirement with the loader's sources for the common compilation handle, identities and evidence. Do not choose a guessed wrapper, serialize opaque authority, invent a parent, or manufacture missing positive evidence.",
+          "reproduce": "Read slot_bytes: transport contains mechanism, executable, grammar, interception and relay; relay contains only schema. Compared with startup's FD6 row and harness-capabilities' separate common transport and eight-member relay declarations."
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_conduct_enforcement.py:475-502; ops/conductor/permission-surface.md:137-148,274,350,396-410",
+          "claim": "F03 UPHELD \u2014 Test-owned wrong boundary and oracle. command/exec is sent as an RPC frame to normalize_tool, then required to become a forbidden shell-escape Request. The contract places framing and terminal command/exec rejection at the relay; normalize_tool consumes validated DynamicToolCallParams. Correct the relay test to require the prescribed -32601 response and zero canonical invocation. The malformed dynamic-target arguments must exercise their owning refusal without requiring an invented Request representation. Preserve the common normalizer/evaluator APIs.",
+          "reproduce": "Read test lines 483-502 against permission-surface's native-input section, RPC table and explicit correction row. The test calls normalize_tool(bound, frame) and asserts REQUEST_KEYS plus shell-escape."
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_conduct_enforcement.py:683-689; ops/conductor/tests/test_conduct_start.py:77-80",
+          "claim": "F04 PARTIAL \u2014 The missing live fault is upheld; literal byte identity across independent fixtures is overstated. Each fixture has different temporary paths and filesystem identities. Nevertheless, the negative live arm creates the same fault-free Codex context and invocation as the positive arm. Its earlier interception=False context is not the live context, and no malformed intercepted payload reaches the child. Test correction must inject a real mechanism-native fault after child creation and observe Abort 3 with no tool effects, while keeping the clean neighbor. Path differences cannot legitimately select opposite outcomes.",
+          "reproduce": "Compared both methods and make_context/slot_bytes. Both live calls use make_context(mechanism=MECHANISM_CODEX) and invoke_conduct(['codex','dev']); the negative arm introduces no child-visible malformed payload."
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/conduct_test_support.py:500-526,965,1839-1863,1920-1928; test_conduct_start.py:92-128",
+          "claim": "F05 UPHELD \u2014 Test-owned contradictory cumulative purity oracle. Successful launch must retain record.json, but later prepare assertions reject that same record because the baseline remains the one captured during setUp. Empty lifetime call lists also cannot prove purity after earlier legitimate calls. Use separate fixtures or snapshots immediately before and after the operation under test, preserving existing records and comparing changes and observed calls. Do not delete legitimate evidence or weaken prepare's prohibition on effects.",
+          "reproduce": "Executed the original EffectsLog.delta and assert_no_durable_effects with an in-memory tree reading containing an earlier retained job/record.json. The assertion rejected ['job/record.json'] without any new operation. AST inspection found the only capture call at setUp line 965."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:463-479,831-854,1740-1775",
+          "claim": "F06 UPHELD \u2014 Test-owned FD delivery failure independently reproduced. Relocated destination descriptors are not reliably retained by the subprocess allowlist. Correction must preserve explicit slot positions and descriptors across exec, handle collisions safely, and verify actual access modes. The report's blanket one-line remedy is insufficient as acceptance evidence: independently measured surviving fixture handles are O_RDWR, while startup requires O_RDONLY. Seals alone do not satisfy that access-mode contract. No change to the six-slot public bootstrap boundary is authorized.",
+          "reproduce": "Executed original SealedBootstrap.open and ConductFixture._spawn without fixture setup or production loading. Slots opened at 3-8 delivered all six payloads. With six /dev/null blockers, slots opened at 9-14 and child reads of every FD 3-8 returned EBADF (errno 9). Surviving handles reported F_GETFL & O_ACCMODE = 2, not required O_RDONLY = 0."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:804-818,1626-1685; ops/conductor/conductor-start-plan.md:326-331,357-361,639-642",
+          "claim": "F07 PARTIAL \u2014 Undeclared fixture dependencies and authority switches are real; deriving every prepare input or trust decision solely from six buffers is not a valid remedy. The contract expressly permits direct in-process trusted context and requires previously held provenance outside candidate bytes. Test correction must separate instrumentation from authority, use verified owner evidence, and avoid requiring production code to know fixture-selected get keys or parent objects. Any missing consumer/binder interface belongs to its contract owner. Preserve prepare_conductor's four arguments; do not replace external custody with self-authenticating JSON.",
+          "reproduce": "Read TrustedContext.get and make_context's held mapping: dispatch, effects, mcp_client, mcp_server, candidate_origin and interception are fixture-selected entries. Compared with startup's direct-context permission and explicit rule that matching descriptors and hashes do not authenticate the caller."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_conduct_start.py:289-309; ops/conductor/lane-policy.md:217-224,685-693,773",
+          "claim": "F08 UPHELD \u2014 Test-owned wrong refusal class. The six-axis loop demands lane-policy for a profile conflict, while the policy owner explicitly assigns conflicting profile selection to lane-profile. Keep all six independent conflict controls and unchanged selection bytes; expect lane-profile for profile and the applicable binding/authority refusal for the other axes. The sibling unknown-profile case is consistent with the owner, although it is a different trigger.",
+          "reproduce": "Read the conflict dictionary and unconditional assert_prepare_refused(result, 'lane-policy'). Compared with lane-policy's selection rule, refusal table and N1."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_conduct_enforcement.py:683-685,725-729; ops/conductor/tests/conduct_test_support.py:1606; ops/conductor/harness-capabilities.md:279-287",
+          "claim": "F09 UPHELD \u2014 Both a test fault and a contract gap. interception=False is an undeclared transport flag, not removal of verified mechanism/closure evidence. The supplied owners require unavailable interception to refuse but do not settle the exact conduct capability refusal class for this condition; dispatch's evidence section also defers conduct to its owning capability/config refusal. The contract owner must declare the condition and fixed wire. The test owner must then remove required evidence at that boundary. Neither lane-policy nor lane-dependency may be selected by plausibility.",
+          "reproduce": "Read both tests, slot_bytes, harness-capabilities' interception rule, startup's owner-refusal delegation and dispatch/CONTRACT.md:367-373. The test asserts lane-policy without a condition-specific declared mapping."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:126-138,354-406,1976-1979",
+          "claim": "F10 PARTIAL \u2014 Catalogue fidelity defects are supported, but the exact five-schema count and runtime emission-order claim were not independently reproduced within the no-runtime-inspection boundary. The original claim enumerates omissions in four tools. Fixture schemas omit the declared alert defaults and discovery cursor/key/concept restrictions. Correction belongs to the verified catalogue fixture: bind the complete owner catalogue, including schemas and its actual canonical digest, without making an arbitrary fixture order a universal API rule. Preserve all eleven tools and the existing versioned behavior.",
+          "reproduce": "Compared fixture schemas with lane-mcp-lever.md:118 and discovery-lever.md's argument and cursor declarations. Fixture lane_alerts lacks defaults; lane_start/lane_homes/lane_handoffs use unrestricted string schemas for the identified constrained fields. Did not inspect lane_mcp.py or lane_read.py to repeat the original runtime-source comparison."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:485-564,1839-1863; test_conduct_enforcement.py:493,618,677-678,720-723",
+          "claim": "F11 UPHELD \u2014 Test-owned unobserved effects, with a stronger distinction than the original wording. Five effect lists have no append sites in the aimed files; they cannot prove absence of child, prompt, hook, transport or MCP activity. executor_calls is not constant: fixture reservation populates it before some tests demand absolute emptiness, creating an additional false failure. Observe the actual canonical executor and adapter callbacks, distinguish reservation from invocation, and measure per-call deltas. Replay belongs to decision consumption and canonical effect reconciliation, not repeated normalization or pure evaluation.",
+          "reproduce": "AST inspection found no append sites for prompts, children, hooks, transport_writes or mcp_calls. Executing original FakeDispatch.reserve produced [('reserve','20260906T120000Z-conduct-codex-a1b2c3')]. The compound-command and binding-mismatch tests subsequently demand executor_calls == []."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:831-854,1755-1763; ops/conductor/tests/test_conduct_start.py:537-542",
+          "claim": "F12 PARTIAL \u2014 Slot compaction is reproduced, but the cited test does not actually deliver any FDs. It calls direct prepare with fixture metadata naming a missing slot. Thus the report's account of that assertion passing through child FD priority is unsupported. Test correction has two bounded duties: preserve descriptor holes in subprocess delivery and separately exercise missing FD3 through the declared inherited bootstrap, with a valid clean neighbor and trusted origin. A tuple in a context is not proof of an absent OS descriptor.",
+          "reproduce": "Original bootstrap/spawn probe with custody omitted delivered the declarations marker at FD3, shifted subsequent payloads through FD7 and left FD8 EBADF. Independently read test lines 537-542: they call self.prepare(ctx=missing), not invoke_conduct."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/conduct_test_support.py:1594,1648; ops/conductor/tests/test_conduct_start.py:358-363; ops/conductor/conductor-start-plan.md:323-324,349,414-438",
+          "claim": "F13 PARTIAL \u2014 Reservation ownership and sequencing remain a contract clarification; equality with the reserved canonical identity is itself a valid obligation. FD5 requires a binding containing an already reserved identity, while preflight also owns in-memory reservation. The fixture reserves before prepare and exposes its dispatch object, but this cannot establish the intended producer/call sequence. Preserve DispatchID grammar, descriptor/binding equality, resume identity and zero durable reservation. The startup/dispatch/policy owners must resolve sequencing without a second allocator or invented parent; tests must not require access to FakeDispatch internals.",
+          "reproduce": "Read make_context's reserve call before TrustedContext construction and the launch-id assertion. Compared startup's sealed binding and reservation clauses. git diff --numstat 6bf5d7b d3b9588e over the four implicated contracts returned no changes."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_conduct_enforcement.py:428-450; ops/conductor/permission-surface.md:242,272,283-287",
+          "claim": "F14 REJECTED \u2014 Absence of the literal coordinate kind does not establish a missing required coordination positive. The acceptance duty names necessary coordination reads, and the explicit correction directs this case to a declared read target. The test follows that classification. A coordinate variant in the common Request type does not create an admitted effectful lever or require inventing its positive schema. Missing concrete target evidence remains unavailable under the existing blanket rule; the board fixture's validity is separately adjudicated in F17.",
+          "reproduce": "AST inspection found no coordinate string literal in the three files. Read test_coordination_read_is_allowed_without_wf_agent: it constructs kind='read'. Compared with the owner correction expressly requiring a declared read target."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_conduct_start.py:950-961; ops/conductor/conductor-start-plan.md:577-585",
+          "claim": "F15 PARTIAL \u2014 The missing behavioral input-mismatch arm is real. Its proposed immediate construction assumes a separately held comparison source that these fixtures do not adequately establish. Keep the declared closed reason set. Record this coverage gap until the trusted transport/source coupling is complete, then change otherwise-valid candidate transport bytes against independently held inputs and assert input-mismatch with no effects. Do not invent a context member or confuse malformed bootstrap, descriptor encoding failure or origin failure with this later equality check.",
+          "reproduce": "AST inspection found input-mismatch only in the support enum and the start-test enum assertion, with no occurrence in enforcement tests. Read startup's ordered reason-selection rule."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:109,137-146,396-410; ops/conductor/harness-capabilities.md:459; ops/conductor/tests/conduct_test_support.py:778-801",
+          "claim": "F16 REJECTED \u2014 The claimed missing tool-to-kind declaration is already supplied by relay.targets. Each trusted row names namespace, tool, kind and target; the relay derives the common classification from that row before normalization/evaluation. resolve_tool(kind,target) is the role's exact lookup operation, not a requirement that the model supply kind. The fixture omits those rows and live intercepted identity, which is a fixture deficiency covered by F02/F07. Preserve the common APIs; do not add enumeration, guess kinds or introduce another registry.",
+          "reproduce": "Read the exact relay.targets row and permission-surface's instruction to derive kind/target from it. Compared with fixture BoundContext, which retains only role and mechanism and supplies no trusted native target-row mapping."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/conduct_test_support.py:1367-1511; ops/conductor/permission-surface.md:112-129,271-287,459-487",
+          "claim": "F17 PARTIAL \u2014 Fixture schemas can test generic evaluator plumbing without requiring hard-coded argument keys, but these handles are not verified declarations of usable dispatch/go/ladder or board capabilities. The fixture supplies invented source claims and incomplete execution/effect evidence. Effectful delegation additionally needs canonical operation identity and reconciliation; that requirement must not be incorrectly imposed on a read merely because its effects are empty. Pure evaluate_tool tests need not traverse FD6; native relay integration must use trusted relay.targets. Target owners supply actual schemas and closure, then independent fixtures verify them. Until then, mark those real positives unavailable rather than fabricate authority.",
+          "reproduce": "Read frontend_schema, board_read_schema, target_handle and issued_role. Declaration paths and hashes are synthesized; execution points to the generic fake executable; effects is {'writes':[]}. Compared with opaque-handle evidence duties, pure-evaluator correction rows and the effectful-target reconciliation requirement."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:215-222,277; ops/conductor/tests/test_conduct_enforcement.py:601-631",
+          "claim": "F18 UPHELD \u2014 Contract-owned mismatch-response gap. Decision.binding_sha256 is required to match both Request and the held current binding, which is impossible when the negative case intentionally makes those digests differ. The test correctly avoids choosing one digest and asserts refusal; that restraint does not complete the exact Decision obligation. The common Decision owner must define the mismatch response rule, followed by an independently authored exact test. Do not add a hidden wrapper, change the common field set, silently waive equality or turn the evaluator into a replay store.",
+          "reproduce": "Read the unconditional Decision equality clause and its lane-policy counterpart. The test plants Request.binding_sha256='b'*64 unequal to role.descriptor_digest(), then checks refusal without selecting a returned digest. The implicated contracts are unchanged between 6bf5d7b and d3b9588e."
+        }
+      ],
+      "artifacts": {
+        "original_report": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/in/ag-conduct-start-tests-review.json",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142818Z-adjudicate-codex-0f1da2/context/diff.patch"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1638559,
+        "out": 11886,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d3b9588e10a10ef356e87a385cfd16490b09bb92",
+        "started": "2026-09-06T14:28:28Z",
+        "ended": "2026-09-06T14:33:59Z"
+      },
+      "note": "Substantive disposition: CHANGES; 8 UPHELD, 8 PARTIAL, 2 REJECTED. Findings preserve original order and severity; counts describe the 18-item adjudication docket, not 18 upheld defects. Delivery is invalid because the required out/RULING.md could not be written: expected a writable declared output; found a developer-enforced read-only filesystem with no escalation; needed an output-write grant for artifact delivery. No artifact was fabricated or inlined as a file handle. Reviewed only the original supplied report and exact d3b9588e material against 710dbac38c3b187eb4b3302308430c0a6dec4d76; no later fixes or concessions were consulted. The supplied 1,394,158-byte patch equals git diff of those exact refs. SHA256: input 3848db48fec3e4556fd771a572d2929018207202267cff35ddae25c23830eed0; support 467e1aa6d3fa23090fe5740ab50965547ee099470abae24afae5f78a657846e1; start 30c1f685f954999288d0925e46c6f87571ee575b13fd02677bb84d52d8e5c058; enforcement bfdac294a8bb06cd3dd1f59e96e8d1b706a3f22d2d07645b7f0e60de8e5e8b40. AST enumeration independently found 54 startup and 42 enforcement test methods. The reported 112 assertion failures were not rerun because setup writes filesystem fixtures. Both ruff check --no-cache and ruff format --check --no-cache passed for all three files. Bounded reproductions used original fixture helpers, anonymous memory descriptors and an inert FD-reading child; no production implementation was loaded or inspected. No source edits, full floor, live vendor/settings/state access, session-store access, approval or delegation occurred. Git status remained clean and out remained empty. Test correction and its independent review remain separate producer responsibilities."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T14:36:40.949Z"
+    }
+  },
+  "status": "closed"
+}

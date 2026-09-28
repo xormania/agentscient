@@ -1,0 +1,150 @@
+{
+  "id": "20260906T144012Z-code-codex-db74db",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-discovery-runtime-fix-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-runtime-fix-20260906",
+    "base_sha": "f6dce823f259acfb8cc7328375a06b0c05085a81"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:40:12Z",
+    "closed": "2026-09-06T14:47:42Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f6dce823f259acfb8cc7328375a06b0c05085a81",
+    "ref_sha": "f6dce823f259acfb8cc7328375a06b0c05085a81",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-40-13-01a07729-a555-7b41-889f-1342971099bf.jsonl"
+  },
+  "session": {
+    "id": "01a07729-a555-7b41-889f-1342971099bf",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-40-13-01a07729-a555-7b41-889f-1342971099bf.jsonl",
+    "stream_sha256_at_close": "6b1ca007fc5a61d4f7878f6239315279ed6333f831460a12f690b8bf407b5ed3",
+    "spend": {
+      "input": 1350018,
+      "cached": 1244928,
+      "output": 10307,
+      "total": 1360325,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-40-13-01a07729-a555-7b41-889f-1342971099bf.jsonl",
+      "messages": 141
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-runtime-fix-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement discovery/3 corrections against the accepted frozen Grok judge and supplied original runtime adjudication. Own only tools/lane_read.py, lane_refs.py, lane_mcp.py, onboard.py and registry/lane_mcp.py.json under ops/conductor. No test, helper, contract or other source edits. Close all adjudicated runtime findings, execute captured trusted boot bytes through the declared custodian, export the exact canonical acquire module/checkpoints, enforce bounds/custody and preserve legacy reads. Do not turn boot integrity into live capability admission. Preserve exact independent onboarding fixture and all frozen hashes. Run 56 discovery tests, existing MCP/onboard suites, registered lint, registry probes and preservation checks; report actual failures without changing their judges. Full floor is deferred to a quiescent integration window. Return exact patch, receipts and valid GPT-6 code envelope; report undeclared boundaries rather than inventing APIs.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/in/ag-conduct-discovery-adjudication.json",
+        "sha256": "426da7371abdaa6f8fa0c4fa447e57ed291569d0e11a7f82c58ada9970513f4a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/in/record.json",
+        "sha256": "1d1bfd3a323e62c20d4986a5a3d9a8bad7140f37de8bc7db2b3d3237d3f67cc4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144012Z-code-codex-db74db/in/RULING.md",
+        "sha256": "d67be33611886b9d588a61f13bd1e15c7f0018b8500da03817dceee4054d55b5"
+      }
+    ],
+    "sha256": "bc2b708c2a655592f2dd3dff207cb12f05981a0b418bd4ce88219bde7b4c305f",
+    "bytes": 4811
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:40:12Z",
+      "ended": "2026-09-06T14:47:42Z",
+      "exit": 1,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "fb7803f12594ea77d7c0ed8e720ec51998b43959",
+    "changed_paths": [
+      "ops/conductor/registry/lane_mcp.py.json",
+      "ops/conductor/tools/lane_mcp.py",
+      "ops/conductor/tools/lane_read.py",
+      "ops/conductor/tools/lane_refs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "f6dce823f259acfb8cc7328375a06b0c05085a81"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited 1"
+    },
+    "cause": {
+      "reason": "harness-cli:1"
+    }
+  },
+  "status": "closed"
+}

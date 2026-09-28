@@ -1,0 +1,200 @@
+{
+  "id": "20260904T084234Z-review-codex-d28551",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/ci-two-jobs",
+  "lineage": {
+    "branch": "lane/ci-two-jobs",
+    "base_sha": "6b72a9bc8c11ddfe68df56ee3adba16a159b6b8a"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:42:35Z",
+    "closed": "2026-09-04T08:51:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6b72a9bc8c11ddfe68df56ee3adba16a159b6b8a",
+    "ref_sha": "6b72a9bc8c11ddfe68df56ee3adba16a159b6b8a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-42-35-01a06b95-82b2-72f3-9d55-ec6b5ffc6764.jsonl"
+  },
+  "session": {
+    "id": "01a06b95-82b2-72f3-9d55-ec6b5ffc6764",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-42-35-01a06b95-82b2-72f3-9d55-ec6b5ffc6764.jsonl",
+    "stream_sha256_at_close": "9b594158ed9d566f774a8c59980db8a38c24fd0dc7efc8159d374380e27a778c",
+    "spend": {
+      "input": 2797019,
+      "cached": 2678528,
+      "output": 24406,
+      "total": 2821425,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-42-35-01a06b95-82b2-72f3-9d55-ec6b5ffc6764.jsonl",
+      "messages": 296
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ci-two-jobs/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 34 (CI as two always-on jobs, lane and app; the conf names the required checks as a list), the skeptic pass: judge the tests on this ref against the contract in the input file. The tests are landed on this ref, red first: ops/devlane/workflow/tests/test_ci_two_jobs.py and additions to test_laneconf.py, test_watch_lever.py, test_collect_rows.py and test_dispatch_wrapper.py, with every planted conf moved to CHECK_NAMES. Judge whether they discriminate (a planted third job, a planted extra name, a planted paths filter and a planted job-level if each caught; the flag winning over the conf; both names derived by the overview), whether every guarantee the contract names is pinned, and whether a wrong workflow or a wrong reader would pass. No implementation exists yet; do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/in/contract-ci-two-jobs.md",
+        "sha256": "16257c05d8635dfe1091ac86017e02bd1e2ac93f7d4173b93a4f8eb62b8d8c56"
+      }
+    ],
+    "sha256": "a5a04360fbe5c84c6ca00cd17d4370ac21aa3d4b4811143ab378e4cc3ada03ef",
+    "bytes": 3465
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:42:35Z",
+      "ended": "2026-09-04T08:51:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6b72a9bc8c11ddfe68df56ee3adba16a159b6b8a",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "test-skeptic",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 6,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/workflow/tests/test_ci_two_jobs.py:184",
+          "claim": "The contract requires pull requests and pushes into dev, but the test checks only the trigger names. A workflow targeting master passes and leaves dev without the required jobs.",
+          "reproduce": "python3 -c \"import runpy,unittest; m=runpy.run_path('ops/devlane/workflow/tests/test_ci_two_jobs.py'); C=m['CiTwoJobs']; C.load=lambda s:{'on':{'pull_request':{'branches':['master']},'merge_group':{},'push':{'branches':['master']}}}; r=unittest.TestResult(); C('test_triggers_are_pull_request_merge_group_and_push').run(r); assert r.wasSuccessful(),r.errors+r.failures\""
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/workflow/tests/test_ci_two_jobs.py:197",
+          "claim": "The lane and app step tests allow one decoy step name to satisfy every substring needle, while equal indexes pass the ordering assertion. Both jobs can run only `true` and still satisfy the tests.",
+          "reproduce": "python3 -c \"import runpy,unittest; m=runpy.run_path('ops/devlane/workflow/tests/test_ci_two_jobs.py'); C=m['CiTwoJobs']; lane='GITHUB_PATH term_wall ruff suites.sh closure literals'; app='host toolchain composer validate composer install php -l kernel phpunit mate'; C.load=lambda s:{'jobs':{'lane':{'steps':[{'name':lane,'run':'true'}]+[{'run':'true'}]*5},'app':{'steps':[{'name':app,'run':'true'}]+[{'run':'true'}]*6}}}; r=unittest.TestResult(); unittest.TestSuite([C('test_lane_steps_are_the_named_steps_in_order'),C('test_app_steps_are_the_named_steps_in_order')]).run(r); assert r.wasSuccessful(),r.errors+r.failures\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/workflow/tests/test_ci_two_jobs.py:172",
+          "claim": "The self-hosted runner assertion is a substring test, so the invalid label `not-self-hosted` passes for both jobs.",
+          "reproduce": "python3 -c \"import runpy,unittest; m=runpy.run_path('ops/devlane/workflow/tests/test_ci_two_jobs.py'); C=m['CiTwoJobs']; C.load=lambda s:{'jobs':{'lane':{'runs-on':'not-self-hosted'},'app':{'runs-on':'not-self-hosted'}}}; r=unittest.TestResult(); C('test_both_jobs_run_on_self_hosted_runners').run(r); assert r.wasSuccessful(),r.errors+r.failures\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:669",
+          "claim": "Both closure fault plants change cardinality. A broken implementation comparing only counts passes all three fixtures while accepting the same-cardinality mismatch `jobs={lane,app}` versus `CHECK_NAMES='lane ghost-job'`.",
+          "reproduce": "python3 -c \"import runpy,yaml; m=runpy.run_path('ops/conductor/tests/test_laneconf.py'); two=yaml.safe_load(m['TWO_JOB_WORKFLOW'])['jobs']; three=yaml.safe_load(m['THREE_JOB_WORKFLOW'])['jobs']; broken=lambda jobs,names: len(jobs)==len(names.split()); observed=[broken(two,'lane app'),broken(three,'lane app'),broken(two,'lane app ghost-job')]; assert observed==[True,False,False]; assert broken(two,'lane ghost-job'); print(observed)\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_watch_lever.py:715",
+          "claim": "Every present-key default case uses the production literal `lane app`, and no case gives CHECK_NAMES an environment value different from the file. A reader that checks key presence but hard-codes lane/app passes while violating conf-value reading and environment precedence.",
+          "reproduce": "python3 -c \"broken=lambda conf,flag=None: set(flag.split(',')) if flag else ({'lane','app'} if 'CHECK_NAMES' in conf else (_ for _ in ()).throw(KeyError('conf-key'))); assert broken({'CHECK_NAMES':'lane app'})=={'lane','app'}; assert broken({'CHECK_NAMES':'lane app'},'fast-lint')=={'fast-lint'}; assert broken({'CHECK_NAMES':'alpha beta'})!={'alpha','beta'}\""
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/pr-overview/tests/test_collect_rows.py:548",
+          "claim": "The sole workflow fixture and both expected results are fixed to lane/app. An overview reader hard-coded to those names passes; no renamed or third-job case proves that the names are derived from the workflow.",
+          "reproduce": "python3 -c \"import sys,runpy,yaml; sys.path.insert(0,'.claude/skills/pr-overview/tests'); m=runpy.run_path('.claude/skills/pr-overview/tests/test_collect_rows.py'); planted=yaml.safe_load(m['TWO_JOB_WORKFLOW']); broken=lambda root: frozenset({'lane','app'}); assert broken(None)==frozenset(planted['jobs']); changed=dict(planted); changed['jobs']=dict(planted['jobs'],audit={'runs-on':'self-hosted','steps':[]}); assert broken(None)!=frozenset(changed['jobs'])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1266",
+          "claim": "The dispatch export test supplies and expects the same production literal `lane app`; a wrapper that exports that literal without reading CHECK_NAMES passes.",
+          "reproduce": "sed -n '1266,1280p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1282",
+          "claim": "The legacy CHECK_NAME refusal test checks only exit 3, the key substring, and no launch. It does not pin the required single stderr line, empty stdout, or ordered expected/found/needed wire.",
+          "reproduce": "sed -n '1282,1295p' ops/conductor/tests/test_dispatch_wrapper.py"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084234Z-review-codex-d28551/out/SKEPTIC.md",
+        "report_status": "not written: the read-only sandbox rejected the write"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2821425,
+        "out": 24406,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6b72a9bc8c11ddfe68df56ee3adba16a159b6b8a",
+        "started": "2026-09-04T04:43:11-04:00",
+        "ended": "2026-09-04T04:50:28-04:00"
+      },
+      "note": "Review completed without inspecting implementation. The plant guard passed for all 12 test files, and targeted red runs used TMPDIR=/dev/shm. The paths-filter and job-level-if plants passed; the third-job, extra-name, overview, wrapper, and required reader cases were red on the preimplementation ref. SKEPTIC.md remains absent because repository and sibling output writes are blocked by the session sandbox."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

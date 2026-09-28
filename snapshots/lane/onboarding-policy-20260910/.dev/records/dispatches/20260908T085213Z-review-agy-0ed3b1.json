@@ -1,0 +1,161 @@
+{
+  "id": "20260908T085213Z-review-agy-0ed3b1",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-canonical-smoke-20260908",
+  "lineage": {
+    "branch": "lane/agy-canonical-smoke-20260908",
+    "base_sha": "ea637a3f4134d6033b35a7eed987c9d90d04e6dc"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:52:13Z",
+    "closed": "2026-09-08T08:52:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ea637a3f4134d6033b35a7eed987c9d90d04e6dc",
+    "ref_sha": "ea637a3f4134d6033b35a7eed987c9d90d04e6dc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/snapshot"
+  },
+  "harness": {
+    "name": "agy",
+    "worker": {
+      "name": "agy",
+      "executable": "/home/scientdb/.local/bin/agy",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-canonical-smoke-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy",
+        "XDG_CONFIG_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/config",
+        "XDG_CACHE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/cache",
+        "XDG_DATA_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/data",
+        "XDG_STATE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/state",
+        "XDG_RUNTIME_DIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/runtime",
+        "TMPDIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/tmp",
+        "AGY_CLI_DISABLE_AUTO_UPDATE": "true"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy/.gemini/antigravity-cli/brain",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/home/agy",
+      "auth_files": [
+        ".gemini/antigravity-cli/antigravity-oauth-token"
+      ]
+    },
+    "sandbox": "always-proceed",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/agy",
+      "--print=",
+      "--model",
+      "gemini-3.8-flash-high",
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--disable-slash-commands",
+      "--dangerously-skip-permissions",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/snapshot"
+    ]
+  },
+  "model": {
+    "requested": "gemini-3.8-flash-high",
+    "effort_requested": null,
+    "effort_argv": [],
+    "ran": "gemini-3.8-flash-high",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/raw.out",
+    "provider": {
+      "id": null,
+      "read_from": null,
+      "unresolved": "provider unavailable on measured agy stdout and transcript"
+    }
+  },
+  "session": {
+    "id": "f259ec33-df96-415c-9177-b7a78d442896",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/raw.out",
+    "stream_sha256_at_close": "550232785798998c615a0dde885fd27dc3d51385bddeadb58c8b3fdc04ab6dcc",
+    "spend": {
+      "input": 12571,
+      "cached": 24431,
+      "output": 6450,
+      "total": 19021,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-agy-0ed3b1/raw.out",
+      "messages": 1
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-canonical-smoke-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Canonical agy activation smoke only: inspect the tracked ops/lane.conf WORKER_HARNESSES declaration and report whether it includes agy. Read that file using a native file-read tool; do not inspect any other source, diff, credentials, settings, stores or network. No edits or commands. Return the required JSON envelope with job=sweep, status=ok if the file was read, verdict=approve if agy is present, counts all zero and findings empty. In artifacts include the observed declaration as a string; stamp.ref is the supplied snapshot ref. Note this is one bounded dispatch smoke, not code acceptance. Stop after this single file read and answer.",
+    "inputs": [],
+    "sha256": "5dec4a24b92fe75380e616fdde5bbe9d5d5cd27df6fc5f2dbd1ddd32645a6cdb",
+    "bytes": 3239
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:52:13Z",
+      "ended": "2026-09-08T08:52:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ea637a3f4134d6033b35a7eed987c9d90d04e6dc",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "WORKER_HARNESSES": "WORKER_HARNESSES='claude codex grok agy'"
+      },
+      "spend": {
+        "harness": "agy",
+        "total": 19021,
+        "out": 6450,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ea637a3f4134d6033b35a7eed987c9d90d04e6dc"
+      },
+      "note": "Canonical agy activation smoke: WORKER_HARNESSES in ops/lane.conf includes agy. Bounded dispatch smoke, not code acceptance."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": null,
+      "at": null
+    }
+  },
+  "status": "closed"
+}

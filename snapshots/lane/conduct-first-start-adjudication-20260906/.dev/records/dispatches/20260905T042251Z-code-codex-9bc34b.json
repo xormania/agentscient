@@ -1,0 +1,228 @@
+{
+  "id": "20260905T042251Z-code-codex-9bc34b",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "repo/lane-mcp-20260904",
+  "lineage": {
+    "branch": "repo/lane-mcp-20260904",
+    "base_sha": "ec13d767c607ad3f05064a5cc0e96880db65040b"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T04:22:51Z",
+    "closed": "2026-09-05T04:25:27Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ec13d767c607ad3f05064a5cc0e96880db65040b",
+    "ref_sha": "ec13d767c607ad3f05064a5cc0e96880db65040b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-22-53-01a06fce-1960-7e91-8d2f-35c8f23a8294.jsonl"
+  },
+  "session": {
+    "id": "01a06fce-1960-7e91-8d2f-35c8f23a8294",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-22-53-01a06fce-1960-7e91-8d2f-35c8f23a8294.jsonl",
+    "stream_sha256_at_close": "e483cd88e3d9f97421deba2327548e009530b289e5253887ac1e2ec71213bb30",
+    "spend": {
+      "input": 572665,
+      "cached": 527872,
+      "output": 6875,
+      "total": 579540,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T042251Z-code-codex-9bc34b/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-22-53-01a06fce-1960-7e91-8d2f-35c8f23a8294.jsonl",
+      "messages": 126
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-mcp.TH2iy7/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Fix only ops/conductor/tools/laneconf.py _literal_exempt for MCP fixed protocol identities. Exact line-scoped exemptions, only needle agentscient: in ops/conductor/tools/lane_read.py stripped line SCHEMA = \"agentscient.lane/v1\"; in ops/conductor/tools/lane_mcp.py stripped line \"serverInfo\": {\"name\": \"agentscient-lane\", \"version\": \"1\"},. These are declared fixed wire identities, not configured lane paths; no blanket path exception or substring bypass. No production MCP behavior changes, no tests authored or approved, no P3 fixes. Verify named command: python3 ops/conductor/tools/laneconf.py literals && python3 ops/conductor/tools/laneconf.py closure && python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py. Existing test exposed this real CI failure; do not change it. Ruff changed file. Commit Source: original and exact GPT-5.6 Sol attribution.\n",
+    "inputs": [],
+    "sha256": "09759e5f32d9f4eb5147506686452db6c9af53f23393e5dde9c520b0639858d4",
+    "bytes": 4722
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T04:22:51Z",
+      "ended": "2026-09-05T04:25:27Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6b3047d16fc0ed21feddbf64d14b6162e023d68f",
+    "changed_paths": [
+      "ops/conductor/tools/laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "laneconf-mcp-fixed-protocol-identities",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 12,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Confirmed the clean snapshot was at ec13d767c607ad3f05064a5cc0e96880db65040b and enumerated governing documents.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && rg --files docs in ../in 2>/dev/null && rg --files ops | rg '(^|/)README\\.md$'"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions",
+          "claim": "Measured 488 documentation lines, located ops README files, and found no files under ../in.",
+          "reproduce": "wc -l docs/* && find ops -name README.md -type f -print && find ../in -type f -print 2>/dev/null"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Read the governing documentation and lane README before editing.",
+          "reproduce": "awk 'FNR==1 {print \"===== \" FILENAME \" =====\"} {print}' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/laneconf.py and related surfaces",
+          "claim": "Inspected the implementation, existing tests, exact protocol-identity lines, commit attribution precedent, timestamp, and Ruff configuration references.",
+          "reproduce": "sed -n '1,260p' ops/conductor/tools/laneconf.py && sed -n '1,260p' ops/conductor/tests/test_laneconf.py && rg -n -F 'agentscient' ops/conductor/tools/lane_read.py ops/conductor/tools/lane_mcp.py && git log -5 --format='%H%n%B%n---' && date -u +%Y-%m-%dT%H:%M:%SZ && rg -n 'ruff' pyproject.toml composer.json ops .github 2>/dev/null | head -80"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/laneconf.py:362",
+          "claim": "Read the remainder of laneconf.py and located the existing literal-test coverage without modifying tests.",
+          "reproduce": "wc -l ops/conductor/tools/laneconf.py ops/conductor/tests/test_laneconf.py && sed -n '261,620p' ops/conductor/tools/laneconf.py && rg -n '_literal_exempt|MCP|agentscient|literal' ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_laneconf.py:730",
+          "claim": "Inspected the relevant existing literal tests and reconfirmed the source tree was clean.",
+          "reproduce": "sed -n '730,910p' ops/conductor/tests/test_laneconf.py && git status --short && git diff -- ops/conductor/tools/laneconf.py ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "named verification command before fix",
+          "claim": "Reproduced the CI failure: literals rejected only lane_mcp.py:140 and lane_read.py:16 for the configured agentscient needle.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py literals && python3 ops/conductor/tools/laneconf.py closure && python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/laneconf.py",
+          "claim": "Ruff passed on the changed file.",
+          "reproduce": "ruff check ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "named verification command after fix",
+          "claim": "The required command exited 0; the literal and closure checks passed and all 38 existing laneconf tests passed.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py literals && python3 ops/conductor/tools/laneconf.py closure && python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final source diff",
+          "claim": "The diff passed whitespace validation and changes only ops/conductor/tools/laneconf.py with two exact path-and-line exemptions gated by needle agentscient.",
+          "reproduce": "git diff --check && git diff -- ops/conductor/tools/laneconf.py && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Git commit was attempted but the sandbox refused creation of the read-only index lock.",
+          "reproduce": "git add ops/conductor/tools/laneconf.py && git commit -m 'conductor: exempt fixed MCP protocol identities' -m 'Source: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMIT_MSG",
+          "claim": "Confirmed only laneconf.py remains modified, HEAD remains the requested base ref, and the launcher commit message contains the required trailers.",
+          "reproduce": "git status --short && git rev-parse HEAD && sed -n '1,20p' ../out/COMMIT_MSG && date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "changed": "ops/conductor/tools/laneconf.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 579540,
+        "out": 6875,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ec13d767c607ad3f05064a5cc0e96880db65040b",
+        "started": "2026-09-05T04:23:24Z",
+        "ended": "2026-09-05T04:24:40Z"
+      },
+      "note": "Implemented only the two requested fixed-wire identity exemptions. No tests or MCP production behavior were changed. The named command exits 0 in the final source tree. The sandbox prevented committing because .git is read-only; the launcher commit message is prepared.",
+      "commit": {
+        "subject": "conductor: exempt fixed MCP protocol identities",
+        "body": "Source: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T04:25:26.486Z"
+    }
+  },
+  "status": "closed"
+}

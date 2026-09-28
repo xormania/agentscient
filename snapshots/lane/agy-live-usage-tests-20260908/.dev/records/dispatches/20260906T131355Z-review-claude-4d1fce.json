@@ -1,0 +1,289 @@
+{
+  "id": "20260906T131355Z-review-claude-4d1fce",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-canonical-contract-review-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-contract-review-20260906",
+    "base_sha": "eeb16185b77f86dba2b01416d2845eaffc8dd801"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:13:56Z",
+    "closed": "2026-09-06T13:23:20Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "eeb16185b77f86dba2b01416d2845eaffc8dd801",
+    "ref_sha": "eeb16185b77f86dba2b01416d2845eaffc8dd801",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "77c48a94-e7d5-4317-8624-3b8186815c7f",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/77c48a94-e7d5-4317-8624-3b8186815c7f.jsonl"
+  },
+  "session": {
+    "id": "77c48a94-e7d5-4317-8624-3b8186815c7f",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/77c48a94-e7d5-4317-8624-3b8186815c7f.jsonl",
+    "stream_sha256_at_close": "85a76c802e36d7339260fcb80205625ec53e8397b442530561afe9fed72f03f8",
+    "spend": {
+      "input": 128,
+      "cached": 6279162,
+      "output": 37321,
+      "total": 6316611,
+      "source": "result.usage",
+      "messages": 64,
+      "cost_usd": 5.3182405
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-contract-review-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the two-document canonical-execution correction at eeb16185b77f86dba2b01416d2845eaffc8dd801. Verify C1 permits the chosen early vendor refusal, preserves direct verify/stub replay and canonical launch/resume, and does not invent run.resume/canonical_launch. Check exact strict-catalogue/reservation seams, trusted profile transfer and all 83 per-test dispositions against the supplied original tests. Ensure no contradictory old vendor-engine oracle survives the correction instructions. Scope is task/CONTRACT.md and dispatch/CONTRACT.md; runtime remains absent and red implementation tests do not decide documentary acceptance. Inspect/reproduce the semantic document checker where permitted. No source/tests/state/settings/admission edits. Return approve/changes with exact hashes and limits; note at most 900 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/ag-conduct-canonical-coupling.json",
+        "sha256": "0ebfc71546bb6fdfb4bb4974d3b563b88f4a7ec0e0908387813fcbe12529fb9f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/ag-conduct-canonical-tests.json",
+        "sha256": "6c97d6c530d60926e1a770a4b684842b36f9e16507ccba178e73a9ce0717e3c6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/check_contracts.py",
+        "sha256": "6f5c0fa3afd8ffe238d28997b20644a732653fe5082ab5bdb5100d26a2c3d1dc"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/test_run.py",
+        "sha256": "3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/test_execution_frontend.py",
+        "sha256": "07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131355Z-review-claude-4d1fce/in/test_execution_adoption.py",
+        "sha256": "951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae"
+      }
+    ],
+    "sha256": "dfac63774449079cf4ae66b43b2509f3e125714f0585741fc5ded8acd942e53b",
+    "bytes": 1618
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:13:56Z",
+      "ended": "2026-09-06T13:23:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eeb16185b77f86dba2b01416d2845eaffc8dd801",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/CONTRACT.md:407-411 (\u00a7C2 library adoption seams)",
+          "claim": "The strict-catalogue seam changes the exception class raised inside run.run()'s own try block without declaring any task-side surfacing duty. The contract says duplicate members raise `envelope.OutputsError` and then specifies only the dispatch mapping ('Dispatch retains exact source bytes/digest and maps that exception to its existing C2 refusal'). run.py:1210-1242 calls load_jobs() inside `try:` whose handler is `except (RunError, TypeError)`; OutputsError subclasses EnvelopeError(ValueError) and is not caught, so a duplicate member in the default catalogue escapes run() and main() (run.py:1289-1326 has no handler) as a traceback instead of the invalid envelope + exit 2 the task wire and the retained MainIsACli/call_run assertions require. \u00a7Statuses (task/CONTRACT.md:145-162) does not cover library exceptions either. One sentence naming the task-side mapping (invalid envelope, note, exit 2) closes it.",
+          "reproduce": "sed -n '404,412p' ops/devlane/task/CONTRACT.md; sed -n '1210,1242p;1289,1326p' ops/devlane/task/run.py; grep -n 'class OutputsError' ops/devlane/task/envelope.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:70-83 (\u00a7C1 frontend inputs and results, Profile transport) against :40-41",
+          "claim": "The added profile paragraph makes lane-policy semantics load-bearing inside C1 while the unchanged C1 preamble twelve lines above still declares the opposite. Declared (line 40): 'C1 has no lane-policy, discovery or fileset dependency.' Practiced (lines 76-78, 82): 'Resolve agreement/one/default/absence exactly under [policy selection](../../conductor/lane-policy.md#selection-and-maintenance-grants) ... empty, unknown or conflicting values refuse lane-profile before effects', and 'an unbound caller needing profile policy refuses until trusted transport is available'. task/CONTRACT.md:800-812 then makes 'explicit profile agreement/conflict/default/absence cases' a condition of correction acceptance, so the C1 test suite must exercise the coupling C1 disclaims. The rule and the link are correct (lane-policy.md:216-226, 687; the class token exists); the surviving disclaimer is what contradicts, and this file was in scope.",
+          "reproduce": "sed -n '37,42p;68,84p' ops/devlane/dispatch/CONTRACT.md; sed -n '806,812p' ops/devlane/task/CONTRACT.md; sed -n '216,226p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:24 against :26-27",
+          "claim": "The new row lists task run in the table introduced by 'Frontends consume the same service', immediately followed by 'Frontends preserve the same effective selection, refusals and accepted result'. Under the chosen decision task run consumes nothing and returns no launch result; it refuses. The row's own text is honest, but the surrounding sentence now describes it falsely, which is the reading that pushed the supplied FrontendResultsAreLaunchs/FrontendSupervisionIsLaunchs cases toward a transfer oracle in the first place.",
+          "reproduce": "sed -n '17,27p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "commit eeb16185b77f86dba2b01416d2845eaffc8dd801 message",
+          "claim": "The message body is scrambled: paragraph two begins mid-sentence ('accounted for; 45 existing runner...') and its opening clause 'Validation: links and existing examples preserved; 83 supplied test methods' sits in the trailer block between 'Source: original' and 'Co-Authored-By:'. The trailers themselves are present and the model is named specifically (gpt-6-astra <noreply@openai.com>), but the message reads as two broken sentences and a Validation: pseudo-trailer. Assembled by the launcher (codex sandbox denied .git), so this is an assembly defect, not contract content.",
+          "reproduce": "git log -1 --format=%B eeb16185b77f86dba2b01416d2845eaffc8dd801"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "claude",
+        "total": 6316611,
+        "out": 37321,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "eeb16185b77f86dba2b01416d2845eaffc8dd801",
+        "started": null,
+        "ended": null
+      },
+      "note": "Reviewed eeb16185b77f86dba2b01416d2845eaffc8dd801 (parent 3f84832108274403a4f2c58bc12410ae896da2c0; brief base 710dbac38c3b187eb4b3302308430c0a6dec4d76). Scope held: git diff --name-only 3f84832..eeb1618 returns exactly ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md; numstat 86/0 and 206/2; git diff --check silent. The two deletions are the two replaced prose lines in task \u00a7Dispatch ownership, so no fenced json/text example or schema block was touched.\n\nAims checked, and what holds.\n\nC1 permits the early refusal. dispatch/CONTRACT.md:113 records the vendor path as manual/dormant with no production caller found, and :115 already licensed a \"later explicit tested refusal\". The supplied C1VendorModeDelegatesToCanonicalLaunch disjunction (test_run.py:1622-1632, 1657-1664) accepts status invalid with \"launch\" in the note, and the declared note \"execution: expected canonical worker execution; found task vendor mode; needed ops/devlane/dispatch/launch.py <job> --harness H --model M --ref R\" matches the worker verb line at dispatch/CONTRACT.md:464 exactly, minus optional --effort.\n\nDirect verify and stub replay are preserved with exact values: {harness:null,total:0,out:0,runs:1} for direct matches test_run.py:1703; R6/R7 plus TheJobAsksForWhatTheRunnerParses and TheDocAndTheRegistryAgree are kept whole, and load_jobs/render/direct-stub adapter data are retained.\n\nNo invented API. task/CONTRACT.md:237-238 refuses run.resume, injectable run.canonical_launch, an executor registry and any task-to-dispatch import; the frontend correction removes _SyntheticLaunch, bind_canonical_launch and selection_blob and routes resume through the existing launch.main([\"resume\", ID]) (dispatch/CONTRACT.md:52-55, matching Verbs:468).\n\nSeams are exact and pre-existing. Declared reserved= signatures match the supplied call sites positionally (test_execution_adoption.py:241, 256-258, 272-275) and match envelope.py:249/273/291 plus the existing reserved= idiom at 184/226; TRANSPORT_RESERVED already is frozenset{\"COMMIT_MSG\",\"last-message.json\"} (envelope.py:126). Reservation passthrough restates task/CONTRACT.md:592-597 (sorted unique, both leaves for every harness, unavailable analysis refuses, scratch excluded) and invents no adapter.reservations. outputs-handle moving to OutputsError is safe: it subclasses EnvelopeError and every frozen assertion in test_job_outputs_accept.py catches EnvelopeError. Profile transport uses only unit1a's declared trusted channel (dispatch/CONTRACT.md:1025-1039), the six-member TaskSelection (924-930) and lane-policy's own agreement/one/default rule and lane-profile class; it correctly keeps job/ref/lineage out of selection.\n\nAll 83 dispositions verified by hand, not by the supplied checker: 55 + 9 + 19 methods enumerated from in/test_*.py and matched one by one against the two tables and the retained lists. test_run.py: 36 methods across 17 superseded classes, 9 in four retained classes, 10 in three C1 classes. Frontend: all 9 named. Adoption: 13 retained wholesale plus 6 named. Nothing unaccounted, nothing named twice, and the R1-R15 blanket retirement is correctly narrowed (R14 whole, half of R15, pure rendering). Spot checks confirm the dispositions are factual, not decorative: R8's 7000000/50 under cap-out 1000 matches test_run.py:986-990; R12's relocation of raw.out matches the job-directory listing at dispatch/CONTRACT.md:543 and the \"nothing under snapshot/\" rule at :554.\n\nNo contradictory vendor-engine oracle survives in either contract. The remaining run.py mentions (dispatch:113, 117, 697, 709; task:196-204) are measured-baseline or dormant-path statements, not execution requirements. The three C1VendorFrontendParsesOptionalCommit cases and the vendor halves of MainIsACli, which the refusal would otherwise strand, are explicitly redirected to stub replay and direct verify rather than left for an implementer to reconcile.\n\nLimits, declared. python3 is not executable in this session (both `python3 -B ../in/check_contracts.py` and `python3 -c` were refused by permission), so I could not run the supplied semantic checker, ops/bin/suites.sh, or any suite; the 5/8/10 red counts and the 45/99 green counts in the producer's envelope are unverified here \u2014 looked and could not look, not looked and found nothing. Everything above is from reading the two contracts, the three supplied test files, envelope.py, run.py, launch.py, lane-policy.md and git metadata at this ref. I also read check_contracts.py rather than running it: its retained-class allowlist and substring matching are weaker than the per-method enumeration I did by hand, and it cannot detect either p2 above. Input hashes are as recorded in the coupling record (test_run.py 3692dcda..., frontend 07abaf47..., adoption 951e48aa...); I did not re-hash them.\n\nChanges, not approve, on the two p2s. Both are one- or two-sentence documentary fixes inside the same two owned files: name the task-side mapping for the new OutputsError, and reconcile or qualify the C1 no-lane-policy-dependency sentence now that profile resolution is mandatory in C1. The construction decision itself, the seams and the per-test corrections are sound and I would not reopen them."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

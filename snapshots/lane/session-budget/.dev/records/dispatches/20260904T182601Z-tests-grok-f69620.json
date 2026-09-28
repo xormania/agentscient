@@ -1,0 +1,156 @@
+{
+  "id": "20260904T182601Z-tests-grok-f69620",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-budget",
+  "lineage": {
+    "branch": "lane/session-budget",
+    "base_sha": "c15c81726c0ae292a6a84367ea6d0201b05d284c"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T18:26:01Z",
+    "closed": "2026-09-04T18:40:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c15c81726c0ae292a6a84367ea6d0201b05d284c",
+    "ref_sha": "c15c81726c0ae292a6a84367ea6d0201b05d284c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "691369a9-b624-472f-9ea2-14725f8c74fa",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok-stream/sessions/<snapshot-encoded>/691369a9-b624-472f-9ea2-14725f8c74fa/summary.json"
+  },
+  "session": {
+    "id": "691369a9-b624-472f-9ea2-14725f8c74fa",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok-stream/sessions/<snapshot-encoded>/691369a9-b624-472f-9ea2-14725f8c74fa/summary.json",
+    "stream_sha256_at_close": "decad70fd3745033da2e6c7052ad39a59666dee18161025efeaadb1a45a63a93",
+    "spend": {
+      "input": 2056971,
+      "cached": 1580416,
+      "output": 47148,
+      "total": 2104119,
+      "cost_usd_ticks": 3444550200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/home/grok-stream/sessions/<snapshot-encoded>/691369a9-b624-472f-9ea2-14725f8c74fa/summary.json",
+      "messages": 262
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Amend planted session-budget ceilings in test_matrix.py. 100/200000/10 would refuse this repo on turn 1 (avg context) and Fable's 25 clipped-sweep false positives (refusals). Plant 500/400000/25 from transcript c1b9ce7c (1377 turns, 448k avg, ~70 refusals). Frozen: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182601Z-tests-grok-f69620/in/slice-session-ceilings.md",
+        "sha256": "046d0c9c15cd0a4ebb32f336482862e8852766bd397e97b9446737d8fcc82b70"
+      }
+    ],
+    "sha256": "b2663722df8272d6a5b55275e5424a473b5a8441bf2abfb3093a8e6ef7f48460",
+    "bytes": 2683
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:26:01Z",
+      "ended": "2026-09-04T18:40:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bfbcab44234d4c4967ff128f163577b4fe1e943e",
+    "changed_paths": [
+      "ops/devlane/hooks/tests/test_matrix.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/hooks/tests/test_matrix.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2104119,
+        "out": 47148,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c15c81726c0ae292a6a84367ea6d0201b05d284c",
+        "started": "2026-09-04T18:26:01Z",
+        "ended": "2026-09-04T18:40:08Z"
+      },
+      "note": "Pin test_session_budget_planted_ceilings_are_the_measured_production_set proven red at 2e492d47b88e9c092f49da9ce5a3c1551a968f2c: AssertionError 100 != 500. Planted SESSION_TURNS_CEILING=500, SESSION_AVG_CONTEXT_CEILING=400000, SESSION_REFUSALS_CEILING=25 and matching LANE_CONF strings at bfbcab44234d4c4967ff128f163577b4fe1e943e; over-average plant is relative (half/quarter/quarter+1 of the ceiling). Frozen `python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py` at bfbcab44234d4c4967ff128f163577b4fe1e943e: Ran 64 tests in 6.182s, FAILED (failures=11). All 11 failures are session-budget or conf-key assert_denied with empty stdout exit 0 (row unimplemented; not this slice). Pin test passed after the plant. matrix.py not read.; head_commit mismatch"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T18:40:25.200Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "commitmsg-788dd5fa",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md requires workflow commit subjects of the form wf(WO-012/red): receipt.red cargo-test.",
+  "observed": "obs/commitmsg.json does not contain facts._has_subject_format, which the contract marks required and true.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "308-308",
+      "quote": "wf(WO-012/red): receipt.red cargo-test"
+    },
+    {
+      "artifact": "cue/commitmsg.cue",
+      "lines": "66-66",
+      "quote": "_has_subject_format!: true"
+    },
+    {
+      "artifact": "obs/commitmsg.json",
+      "lines": "17-17",
+      "quote": "no value at facts._has_subject_format"
+    }
+  ],
+  "action": "amend-contract"
+}

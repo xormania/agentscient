@@ -1,0 +1,198 @@
+{
+  "id": "20260910T042715Z-tests-grok-51e011",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/graft-integration-20260910",
+  "lineage": {
+    "branch": "lane/graft-integration-20260910",
+    "base_sha": "4011ebc170f912265968bdc54904433fba6941ca"
+  },
+  "follows": [
+    "20260910T040338Z-plan-claude-8ac50a"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T04:27:16Z",
+    "closed": "2026-09-10T04:49:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4011ebc170f912265968bdc54904433fba6941ca",
+    "ref_sha": "4011ebc170f912265968bdc54904433fba6941ca",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/tmp/ag-graft-integration-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f7d0bd73-5aac-4783-89e4-c160d5630af7",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok-stream/sessions/<snapshot-encoded>/f7d0bd73-5aac-4783-89e4-c160d5630af7/summary.json"
+  },
+  "session": {
+    "id": "f7d0bd73-5aac-4783-89e4-c160d5630af7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok-stream/sessions/<snapshot-encoded>/f7d0bd73-5aac-4783-89e4-c160d5630af7/summary.json",
+    "stream_sha256_at_close": "3728f31d5a3eb5e8a46e089b3cb34e2bdb21c49c70ddbc56e8243d03393d3213",
+    "spend": {
+      "input": 7855431,
+      "cached": 7633280,
+      "output": 79132,
+      "total": 7934563,
+      "cost_usd_ticks": 10097537600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T042715Z-tests-grok-51e011/home/grok-stream/sessions/<snapshot-encoded>/f7d0bd73-5aac-4783-89e4-c160d5630af7/summary.json",
+      "messages": 491
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-graft-integration-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "ops/devlane/harness/graft/CONTRACT.md is the PR-1 boundary; pin.json is its immutable data. Author independent tests plus a verified fake Node/bridge provider for install/config/query/freshness/worktree and worker-custody behavior. Do not read or edit implementation, including the unavailable bootstrap. Use existing harness and dispatch test shelves; exercise real CLI/public boundaries and canonical launch through synthetic harnesses. Prove positive, absent and near-miss cases, disabled legacy byte-stability, test-role withholding, explicit worker queries, corrupt provider/context and resume/brief checks. Keep tests compact and discriminating; ordinary suites must need neither Node nor network. Reds must be behavior assertions reached through the bootstrap, never import/collection/ENOENT failures. Record exact red commands and causes. Commit tests/fakes only, with trailers, and name test paths in artifacts. Do not create installer or bridge implementation. No unrelated test edits.\n",
+    "inputs": [],
+    "sha256": "8ea0a4c6de938813532233a6b56d55e1f1c1ecf9657c166636df7147525c4125",
+    "bytes": 3339
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T04:27:16Z",
+      "ended": "2026-09-10T04:49:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6535aa74d8f5a2b275c84c2e39e93ff84a5d62bc",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_graft.py",
+      "ops/devlane/harness/tests/fakes/graft_bridge.py",
+      "ops/devlane/harness/tests/graft_support.py",
+      "ops/devlane/harness/tests/test_graft_bridge_fake.py",
+      "ops/devlane/harness/tests/test_graft_config.py",
+      "ops/devlane/harness/tests/test_graft_install.py",
+      "ops/devlane/harness/tests/test_graft_query.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_graft_config.py",
+          "claim": "14 collected, 0 errors, 12 failed assertions through python3 ops/devlane/harness/graft.py. Bootstrap status prints {\"state\":\"unavailable\",\"reason\":\"contract bootstrap\"} instead of disabled/ready or graft-config; configuration() returns None for an enabled absolute install; write verbs refuse graft-provider rather than identity. Two disabled configuration() cases already return None.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_graft_config.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_graft_install.py",
+          "claim": "9 collected, 0 errors, 8 failed assertions. Relative/nonempty install and partial prepare refuse graft-provider instead of arguments/graft-install; wrong pin/digest/partial/symlink status is byte-identical to the matching receipt (both bootstrap unavailable).",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_graft_install.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_graft_query.py",
+          "claim": "30 collected, 0 errors, 28 failed assertions. prepare exits 2 with graft-provider instead of writing graft-context/1 and binding.json; prepare_worker returns None rather than withheld/ready; truncated/wrong-type/ok:false modes never create the fake transcript. Disabled prepare_worker/worker_note already return None/\"\".",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_graft_query.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_graft.py",
+          "claim": "12 collected, 0 errors, 13 failed assertions (subtests included). Enabled launches omit brief.graft and the query invocation; resume/brief --check do not refuse missing/foreign/tampered descriptors. Disabled launch and legacy resume without brief.graft stay byte-stable; a withheld child does not write graft-query.witness.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_graft.py'"
+        }
+      ],
+      "artifacts": {
+        "fake": "ops/devlane/harness/tests/fakes/graft_bridge.py",
+        "fake_tests": "ops/devlane/harness/tests/test_graft_bridge_fake.py",
+        "support": "ops/devlane/harness/tests/graft_support.py",
+        "config_tests": "ops/devlane/harness/tests/test_graft_config.py",
+        "install_tests": "ops/devlane/harness/tests/test_graft_install.py",
+        "query_tests": "ops/devlane/harness/tests/test_graft_query.py",
+        "launch_tests": "ops/devlane/dispatch/tests/test_launch_graft.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 7934563,
+        "out": 79132,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4011ebc170f912265968bdc54904433fba6941ca",
+        "started": "2026-09-10T04:36:50Z",
+        "ended": "2026-09-10T04:49:07Z"
+      },
+      "note": "in/ was empty (record.json inputs []). Tests and the verified fake only; no installer or bridge.mjs. Fake protocol suite 15/15 green at 3f92e79 (apparatus, not the adapter). Product reds reached graft.py CLI/public seams as assertion failures, not import/collection/ENOENT. Commits on lane/graft-integration-20260910: 3f92e79 8e9be3c e2bca24 c2b84d1 6a6437c 6535aa7, head 6535aa74d8f5a2b275c84c2e39e93ff84a5d62bc, trailers Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T04:49:45.124Z"
+    }
+  },
+  "status": "closed"
+}

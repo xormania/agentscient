@@ -1,0 +1,207 @@
+{
+  "id": "20260904T133139Z-code-grok-a24911",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "ee6b9b34f933543770d27e606038917caf5a74ba"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:31:40Z",
+    "closed": "2026-09-04T13:49:57Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ee6b9b34f933543770d27e606038917caf5a74ba",
+    "ref_sha": "ee6b9b34f933543770d27e606038917caf5a74ba",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "8b5b6e5f-e228-459d-98d5-bf23da0e2f54",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok-stream/sessions/<snapshot-encoded>/8b5b6e5f-e228-459d-98d5-bf23da0e2f54/summary.json"
+  },
+  "session": {
+    "id": "8b5b6e5f-e228-459d-98d5-bf23da0e2f54",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok-stream/sessions/<snapshot-encoded>/8b5b6e5f-e228-459d-98d5-bf23da0e2f54/summary.json",
+    "stream_sha256_at_close": "e51409d467875f32ba9ff1fdd9c9fcad6cd9c5647164971a2fef65aeb38d6599",
+    "spend": {
+      "input": 6693942,
+      "cached": 6411520,
+      "output": 61690,
+      "total": 6755632,
+      "cost_usd_ticks": 7039264800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/home/grok-stream/sessions/<snapshot-encoded>/8b5b6e5f-e228-459d-98d5-bf23da0e2f54/summary.json",
+      "messages": 383
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Fix round of the item 31 batch (lane/check-tests-json), tests half: from the two audits' findings in the first input file (security audit, adversarial review), write or amend red tests in the bucket's test files (ops/devlane/task/tests/test_check_tests_json.py, ops/devlane/task/tests/test_jobs.py, ops/conductor/tests/test_ladder_lever.py) that pin each finding: the driver validates the check-tests envelope's verdict, counts and findings shape before writing the findings file and moves to tests-fix only on verdict changes; the findings file path is resolved against the worktree and stays inside the ladder input directory (a symlink or ../ refuses); the read-role prompt test rejects any write path, not a blacklist. Prove each red; commit each file; no implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/in/input-check-tests-json-audits.md",
+        "sha256": "33d7810cfae545cc9d107e4e23dfcf19604ed839bcfbcb13c43a9699fbf6cc72"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133139Z-code-grok-a24911/in/input-check-tests-json-impl.md",
+        "sha256": "2194ab337e0ac4ced9282c87deed6411cfdf92dcfedf6b950b52eb9bfe88f499"
+      }
+    ],
+    "sha256": "97eedbee3575a65fd38f8f8c18e85acbd4769b7e68dd9e852ef2f102b1dd2e0b",
+    "bytes": 3119
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:31:40Z",
+      "ended": "2026-09-04T13:49:57Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e319594b1904c11910ca75156b13e3669ed8363b",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/devlane/task/tests/test_check_tests_json.py",
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 4,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_findings_none_does_not_move_to_tests_fix",
+          "claim": "Declared: the driver validates the check-tests envelope before writing the findings file. Practiced: findings=None with status=ok and verdict=changes still dispatches tests-fix.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_findings_none_does_not_move_to_tests_fix"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_counts_that_disagree_with_findings_do_not_move_to_tests_fix",
+          "claim": "Declared: counts must tally findings. Practiced: a zero tally beside a p2 finding still moves to tests-fix.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_counts_that_disagree_with_findings_do_not_move_to_tests_fix"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_approve_with_findings_does_not_skip_to_implement",
+          "claim": "Declared: tests-fix only on verdict changes; an approve envelope that still carries findings must not skip to implement. Practiced: code is dispatched.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_approve_with_findings_does_not_skip_to_implement"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_resume_refuses_a_findings_file_outside_the_worktree",
+          "claim": "Declared: the findings file path is resolved against the worktree and stays inside the ladder input directory. Practiced: a mutated host path is accepted and resume closes ok.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_resume_refuses_a_findings_file_outside_the_worktree"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_a_finding_missing_its_shape_does_not_move_to_tests_fix",
+          "claim": "Declared: findings are quotation-pair objects with reproduce. Practiced: a finding with only severity and where still becomes the tests-fix spec.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_a_finding_missing_its_shape_does_not_move_to_tests_fix"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_resume_refuses_a_findings_file_dotdot_escape",
+          "claim": "Declared: a ../ findings path refuses. Practiced: resume returncode 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_resume_refuses_a_findings_file_dotdot_escape"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py \u00a7test_a_relative_findings_file_is_resolved_against_the_worktree",
+          "claim": "Declared: a relative findings path resolves against the worktree. Practiced: --input is the cwd-relative decoy.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k test_a_relative_findings_file_is_resolved_against_the_worktree"
+        }
+      ],
+      "artifacts": {
+        "test_check_tests_json": "ops/devlane/task/tests/test_check_tests_json.py",
+        "test_jobs": "ops/devlane/task/tests/test_jobs.py",
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6755632,
+        "out": 61690,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ee6b9b34f933543770d27e606038917caf5a74ba",
+        "started": "2026-09-04T13:31:40Z",
+        "ended": "2026-09-04T13:49:18Z"
+      },
+      "note": "Three commits on lane/check-tests-json: 4cd1796 test_check_tests_json.py (write-path by shape plus stdout/empty-artifacts; live prompt is the lock), eb2aa34 test_jobs.py (check-tests role=read, same shape teeth), e319594 test_ladder_lever.py (envelope validation and findings-path containment). Ladder reds fail on their routing/containment assertions, not import. No implementation edited. CONTRACT.md {inputs} P3 was outside the named pin list."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:49:57.541Z"
+    }
+  },
+  "status": "closed"
+}

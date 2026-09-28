@@ -1,0 +1,57 @@
+{
+  "code_sha256": {
+    "ops/conductor/tools/lane_mcp.py": "456be876746fac5484a8dafb1ea56ad69a23547ec9a8583ddda244f82088192b",
+    "ops/conductor/tools/lane_read.py": "d686ba83d83905b01c8ee1dbaece4d38a8c235ca113cb8ef83c3345f0f332445"
+  },
+  "existing_brief_payload_bytes": 1560,
+  "head_at_measurement": "572a901a503e71ea3b255a8292e30515d5096529",
+  "limits": [
+    "Fixed tasks and raw-source baselines, not a comparison with an optimal shell filter.",
+    "Response sizes include configured source path lengths; MCP response includes text and structuredContent.",
+    "Tool catalogue overhead and argument bytes are separate; initialization, newline delimiters and host context policy are excluded.",
+    "No billed-token or universal-savings claim; connected-host configuration was not changed."
+  ],
+  "measured_at": "2026-09-05T07:34:15.888372+00:00",
+  "measurements": [
+    {
+      "answer_matches_source": true,
+      "argument_bytes": 45,
+      "canonical_payload_bytes": 1732,
+      "mcp_response_bytes": 3678,
+      "raw_source_bytes": 7010,
+      "tool": "lane_findings"
+    },
+    {
+      "answer_matches_source": true,
+      "argument_bytes": 132,
+      "canonical_payload_bytes": 445,
+      "mcp_response_bytes": 1042,
+      "raw_source_bytes": 13087,
+      "tool": "lane_changes"
+    },
+    {
+      "answer_matches_source": true,
+      "argument_bytes": 21,
+      "canonical_payload_bytes": 578,
+      "mcp_response_bytes": 1334,
+      "raw_source_bytes": 13043,
+      "tool": "lane_jobs"
+    }
+  ],
+  "registry_sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec",
+  "source_records": [
+    {
+      "bytes": 7010,
+      "id": "20260905T022311Z-review-codex-1a849a",
+      "sha256": "e991a980943d1f3543407c77eb1fb0b2bf7bb1d165e4098fa33369bafd33e80c"
+    },
+    {
+      "bytes": 6077,
+      "id": "20260905T024911Z-review-codex-1af0d3",
+      "sha256": "5e5c073b95895bba25fb2b01852ef68c30ddc9fb364d9408e3cef1e9fd97e79c"
+    }
+  ],
+  "tools_list_v1_bytes": 1131,
+  "tools_list_v2_bytes": 1966,
+  "transport": "standalone stdio, protocol 2025-06-18, request _meta included"
+}

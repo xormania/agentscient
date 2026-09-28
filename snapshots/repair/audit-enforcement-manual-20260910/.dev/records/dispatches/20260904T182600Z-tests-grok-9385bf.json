@@ -1,0 +1,157 @@
+{
+  "id": "20260904T182600Z-tests-grok-9385bf",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dispatch-agent",
+  "lineage": {
+    "branch": "lane/dispatch-agent",
+    "base_sha": "936d70b47ce7111f8b3b82dffdd189083a8bd3b5"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T18:26:00Z",
+    "closed": "2026-09-04T18:35:13Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "936d70b47ce7111f8b3b82dffdd189083a8bd3b5",
+    "ref_sha": "936d70b47ce7111f8b3b82dffdd189083a8bd3b5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "3d5bea94-9313-46e8-80fc-601b69a0914a",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok-stream/sessions/<snapshot-encoded>/3d5bea94-9313-46e8-80fc-601b69a0914a/summary.json"
+  },
+  "session": {
+    "id": "3d5bea94-9313-46e8-80fc-601b69a0914a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok-stream/sessions/<snapshot-encoded>/3d5bea94-9313-46e8-80fc-601b69a0914a/summary.json",
+    "stream_sha256_at_close": "e3c01838c3c0f51febb5bdef73ddb929793cc9492dc9eafb9a464a1da48a46ec",
+    "spend": {
+      "input": 1467752,
+      "cached": 1280512,
+      "output": 32261,
+      "total": 1500013,
+      "cost_usd_ticks": 2054113400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/home/grok-stream/sessions/<snapshot-encoded>/3d5bea94-9313-46e8-80fc-601b69a0914a/summary.json",
+      "messages": 247
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-agent/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "dispatch.sh stamps WF_AGENT_DEFAULT even when WF_AGENT is exported. Identity is --agent if passed, else WF_AGENT if set in Name <address> form, else WF_AGENT_DEFAULT. Frozen: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182600Z-tests-grok-9385bf/in/slice-dispatch-agent.md",
+        "sha256": "7c8e1d25557aeaac17986d3f6ea561c948738f4ca800bf24119e3ae6c328dc9e"
+      }
+    ],
+    "sha256": "b17ed39e2d4a81ae803878c871b4a713ed8fd053e65b95a861e25a1b88ae1163",
+    "bytes": 2598
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:26:00Z",
+      "ended": "2026-09-04T18:35:13Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cd729c1c1facdc85017709e1755ffc65b524fb6d",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "commit": "cd729c1c1facdc85017709e1755ffc65b524fb6d"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1500013,
+        "out": 32261,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "936d70b47ce7111f8b3b82dffdd189083a8bd3b5",
+        "started": "2026-09-04T18:30:27Z",
+        "ended": "2026-09-04T18:34:52Z"
+      },
+      "note": "Implementation unread. Added RowAgentIdentity in ops/conductor/tests/test_dispatch_wrapper.py. Proven red one-by-one against 936d70b47ce7111f8b3b82dffdd189083a8bd3b5: exported Name <address> WF_AGENT is overwritten by conf default on dry-run env and on the foreground launcher env; missing WF_AGENT_DEFAULT is conf-key refusal exit 3; local-conf WF_AGENT_DEFAULT wins over exported Grok. Already held at that ref, not a new red: --agent beats exported WF_AGENT; malformed WF_AGENT falls through to conf default. Frozen python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py at 936d70b47ce7111f8b3b82dffdd189083a8bd3b5: 63 tests, 4 failures. Committed cd729c1c1facdc85017709e1755ffc65b524fb6d on lane/dispatch-agent. ruff check of the test file passed.; head_commit mismatch"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T18:35:12.798Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,260 @@
+{
+  "id": "20260910T010906Z-code-codex-dfe438",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "9399f228a71d2a245a14cb06bcf4a8c123142ae6"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:09:07Z",
+    "closed": "2026-09-10T01:18:29Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+    "ref_sha": "9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-09-07-01a088dc-8170-70a0-b2bf-dbddf1935a08.jsonl"
+  },
+  "session": {
+    "id": "01a088dc-8170-70a0-b2bf-dbddf1935a08",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-09-07-01a088dc-8170-70a0-b2bf-dbddf1935a08.jsonl",
+    "stream_sha256_at_close": "797c6c9c835befedc6b665710cdeca64818021fae8fa141c350c648fbd714e1d",
+    "spend": {
+      "input": 1738087,
+      "cached": 1643136,
+      "output": 16215,
+      "total": 1754302,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-09-07-01a088dc-8170-70a0-b2bf-dbddf1935a08.jsonl",
+      "messages": 157
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/enforcement-contract-brief.md",
+        "sha256": "eafe7d3084cae2b2a5ae75e554ccb533771ba9f598eb54d5e19241f3dc116cbc"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/owner-enforcement-addendum.md",
+        "sha256": "0b6e768c79fb5afd3d31179f7cfe5a01257be3a545565f2c1906c55e5fc36a8c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      }
+    ],
+    "sha256": "d63025e2e476808fa28e7e29b8f87f61770db7f4058e5a5fdd6f751575f02aa1",
+    "bytes": 3863
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:09:07Z",
+      "ended": "2026-09-10T01:18:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a5c4f8ce0a2ead06341e6eb959974ba25487deab",
+    "changed_paths": [
+      "ops/conductor/AAR-2026-09-09-review-churn.md",
+      "ops/conductor/findings/README.md",
+      "ops/conductor/ladder-lever.md",
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/task/CONTRACT.md",
+      "ops/devlane/task/FINDING-ADMISSION.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 13,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot@9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+          "claim": "Confirmed the requested baseline, clean initial working tree, repository instructions and three supplied input files.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; rg --files -g AGENTS.md -g 'docs/**' -g 'in/**'; ls -la ../in; cat AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ../in/",
+          "claim": "Read founding contracts and supplied briefs. The supplied deliverable is documentation only; runtime implementation and tests are later work. Display output was partly truncated.",
+          "reproduce": "cat docs/*.md ../in/*.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/",
+          "claim": "Read lane instructions and located relevant admission and churn documents. Initial git diff --check exited 0.",
+          "reproduce": "cat ops/README.md ops/devlane/AGENTS.md ops/devlane/task/FINDING-ADMISSION.md; rg -n 'finding.admission|fixture|prevention|churn' ops/conductor ops/process ops/devlane/task ops/devlane/dispatch ops/bin -g '*.md'; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "admission contract, AAR and ladder contract",
+          "claim": "Read the existing admission interface, measured churn history and ladder limits.",
+          "reproduce": "cat ops/devlane/task/FINDING-ADMISSION.md ops/conductor/AAR-2026-09-09-review-churn.md ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch/task/ledger source inspection",
+          "claim": "Inspected existing owners. Output was truncated; two guessed search paths were absent, producing exit 2. Correct paths were located in the next command.",
+          "reproduce": "cat ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md ops/conductor/findings/README.md ops/process/cross-review.md ops/process/tdd.md; sed -n '274,292p' docs/mapping.md; rg -n 'def |add_argument|test_cmd|test_command|subprocess|preflight|validate|fixture|receipt' ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/devlane/task/runner.py ops/conductor/tools/dispatch.sh ops/conductor/tools/ladder.py ops/conductor/tools/findings.py ops/devlane/hooks/test-guard*"
+        },
+        {
+          "severity": "p3",
+          "where": "canonical dispatch and verification seams",
+          "claim": "Located task/run.py and the Claude test guard; inspected launcher preflight, retained inputs, collection verification and ladder command derivation.",
+          "reproduce": "rg -n '^##|finding.admission|fixture|acceptance|collect|task.run' ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md; rg --files ops/devlane/task ops/devlane/hooks | rg 'run|guard'; cat ops/conductor/findings/README.md ops/conductor/tools/dispatch.sh; sed -n '1304,1531p' ops/devlane/dispatch/launch.py; sed -n '2168,2266p' ops/devlane/dispatch/launch.py; sed -n '1091,1121p' ops/conductor/tools/ladder.py; sed -n '274,292p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "existing interface and attribution records",
+          "claim": "Inspected targeted task, dispatch, guard and review rules and confirmed the baseline commit's GPT-6 attribution format.",
+          "reproduce": "sed -n '1,175p' ops/devlane/task/CONTRACT.md; sed -n '714,768p' ops/devlane/dispatch/CONTRACT.md; sed -n '1029,1070p' ops/devlane/dispatch/CONTRACT.md; sed -n '1,115p' ops/devlane/hooks/claude/test-guard.py; sed -n '150,218p' ops/conductor/tools/dispatch.sh; sed -n '1,105p' ops/process/cross-review.md; git log -1 --format=full; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "intermediate documentation edits",
+          "claim": "After rejected patch attempts, confirmed only the initial amendment was present. The search for unapplied replacement text exited 1.",
+          "reproduce": "git diff --stat; rg -n 'requested followup closure|Standing at recording|mandatory prevention amendment' ops/devlane/task/FINDING-ADMISSION.md ops/conductor/AAR-2026-09-09-review-churn.md ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "six amended documentation files",
+          "claim": "Reviewed the amendment and owning-document changes; the intermediate whitespace check passed.",
+          "reproduce": "git diff --check; git diff --stat; git diff -- ops/conductor/AAR-2026-09-09-review-churn.md ops/conductor/findings/README.md ops/conductor/ladder-lever.md ops/devlane/task/CONTRACT.md ops/devlane/dispatch/CONTRACT.md; sed -n '240,515p' ops/devlane/task/FINDING-ADMISSION.md"
+        },
+        {
+          "severity": "p3",
+          "where": "documentation validation",
+          "claim": "Scratch validation passed: six Markdown files changed, amendment links resolve, and historical AAR evidence remains byte-identical.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nimport re\nimport subprocess\nbase = '9399f228a71d2a245a14cb06bcf4a8c123142ae6'\npaths = subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines()\nassert len(paths) == 6\nfor name in paths:\n    assert name.endswith('.md') and '/tests/' not in name\n    p = Path(name)\n    for target in re.findall(r'\\]\\(([^)]+)\\)', p.read_text()):\n        if '#mandatory-prevention-amendment' in target:\n            file, anchor = target.split('#')\n            linked = p.parent / file\n            assert linked.is_file(), target\n            assert '## Mandatory prevention amendment' in linked.read_text(), target\nname = 'ops/conductor/AAR-2026-09-09-review-churn.md'\nold = subprocess.check_output(['git', 'show', base + ':' + name], text=True)\nnew = Path(name).read_text()\ndef evidence(text):\n    return text.split('## Measured evidence\\n', 1)[1].split('\\n## ', 1)[0]\nassert evidence(old) == evidence(new)\nprint('PASS: six documentation files only; amendment links resolve; historical AAR evidence unchanged; base=' + base)\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Staging exited 128 because the sandbox's read-only filesystem prevented creation of index.lock.",
+          "reproduce": "git add -- ops/devlane/task/FINDING-ADMISSION.md ops/devlane/task/CONTRACT.md ops/devlane/dispatch/CONTRACT.md ops/conductor/findings/README.md ops/conductor/ladder-lever.md ops/conductor/AAR-2026-09-09-review-churn.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Commit attempt exited 128 for the same read-only index.lock restriction. The attributed message is retained in out/COMMIT_MSG.",
+          "reproduce": "git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree against 9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+          "claim": "Final git diff --check exited 0. Only six documentation files changed; source and tests remain unchanged.",
+          "reproduce": "git status --short; git diff --numstat; git rev-parse HEAD; date -u +%Y-%m-%dT%H:%M:%SZ; git diff --check"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/devlane/task/FINDING-ADMISSION.md",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1754302,
+        "out": 16215,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+        "started": null,
+        "ended": "2026-09-10T01:17:01Z"
+      },
+      "note": "Assumed the supplied docs-only brief defines the requested change. Declared fixture execution evidence, immutable criteria, manual/ladder review eligibility, followup closure and terminal enforcement. Independent tests and runtime implementation remain follow-up deliverables. git diff --check passes; sandbox prevented committing.",
+      "commit": {
+        "subject": "docs: declare mandatory finding-admission enforcement",
+        "body": "Specify immutable work-order criteria, launcher-executed fixture evidence,\nmanual and ladder review eligibility, bound followup closure, and the draft-dev\nterminal path. Add a bounded independent acceptance matrix and reconcile the\nowning contracts and AAR with the owner's mandatory prevention requirement.\n\nThis is the supplied docs-only contract deliverable. Runtime enforcement and\nindependent RED-to-GREEN acceptance remain pending; source and tests are unchanged.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T01:18:28.217Z"
+    }
+  },
+  "status": "closed"
+}

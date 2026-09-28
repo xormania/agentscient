@@ -1,0 +1,313 @@
+{
+  "id": "20260908T082720Z-code-grok-dd5294",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-discovery-live-20260908",
+  "lineage": {
+    "branch": "lane/agy-discovery-live-20260908",
+    "base_sha": "2e4583256eeb624be0c9a5468d269cd54a395bdc"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:27:22Z",
+    "closed": "2026-09-08T08:38:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+    "ref_sha": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-discovery-live-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c8bb38ac-b4bb-4b1b-b60a-57b89d5a1158",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok-stream/sessions/<snapshot-encoded>/c8bb38ac-b4bb-4b1b-b60a-57b89d5a1158/summary.json"
+  },
+  "session": {
+    "id": "c8bb38ac-b4bb-4b1b-b60a-57b89d5a1158",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok-stream/sessions/<snapshot-encoded>/c8bb38ac-b4bb-4b1b-b60a-57b89d5a1158/summary.json",
+    "stream_sha256_at_close": "cf79f2ebe83a8b5c3706b26089f3a7e3437392257e2dd410f76af81d7ffb946c",
+    "spend": {
+      "input": 2181376,
+      "cached": 1928320,
+      "output": 40455,
+      "total": 2221831,
+      "cost_usd_ticks": 2912103400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/home/grok-stream/sessions/<snapshot-encoded>/c8bb38ac-b4bb-4b1b-b60a-57b89d5a1158/summary.json",
+      "messages": 190
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-discovery-live-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Execute the bounded two-control discovery recipe in supplied GPT-6 report using installed agy 1.1.27 and explicit gemini-3.8-flash-high. Follow prior successful host observation authentication handling; never expose secrets or read settings/history. Write synthetic observer and sanitized receipts only under out; no tracked source/test edits. Use current public isolation profile for isolated arm, synthetic parent HOME/XDG/TMPDIR and instruction canaries; both controls must initialize and answer. Record exact overrides, native cwd and markers, success/failure and unresolved settings/MCP limits. Failed initialization is INVALID, never CLEAN. Policy containment only. No new framework or role study. Acceptance: execute observer, validate its JSON receipt and cleanup auth, record command exits inline; COMMIT_MSG fallback if required.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/in/agy-discovery-recipe.json",
+        "sha256": "1d2d20fdd0290cd6de24508488f5c399e42032beda1be5e3d7c3b8870b21c888"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/in/agy-permissions-observation-record.json",
+        "sha256": "ecc2fdc761cf937c4b4c7191184b00cc065dced81be680e0f5d2df30c2f98990"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/in/agy-isolation-test-ruling.json",
+        "sha256": "0d6c2a571a1c03c0371f24f05afdd336f573865cd05c401b5445ad198c709b86"
+      }
+    ],
+    "sha256": "fc73dbe7536289675b779441ceb20204680e83f05c86fcabb4cd82b5c5ca266c",
+    "bytes": 4685
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:27:22Z",
+      "ended": "2026-09-08T08:38:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c915a5df105e5d60459c0f0d6e83a56a0df95fea",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 21,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "pwd; git rev-parse HEAD; git status --short exited 0.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "python3 -c 'import hashlib,pathlib; root=pathlib.Path(\"../in\");\nfor p in sorted(root.iterdir()):\n print(p.name, hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size)' exited 0.",
+          "reproduce": "python3 -c 'import hashlib,pathlib; root=pathlib.Path(\"../in\");\nfor p in sorted(root.iterdir()):\n print(p.name, hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size)'"
+        },
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "python3 ../out/observe_agy_discovery.py prepare exited 0.",
+          "reproduce": "python3 ../out/observe_agy_discovery.py prepare"
+        },
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "python3 ../out/observe_agy_discovery.py visible exited 0.",
+          "reproduce": "python3 ../out/observe_agy_discovery.py visible"
+        },
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "python3 ../out/observe_agy_discovery.py isolated exited 0.",
+          "reproduce": "python3 ../out/observe_agy_discovery.py isolated"
+        },
+        {
+          "severity": "p3",
+          "where": "bootstrap_commands",
+          "claim": "python3 ../out/observe_agy_discovery.py finish exited 0.",
+          "reproduce": "python3 ../out/observe_agy_discovery.py finish"
+        },
+        {
+          "severity": "p3",
+          "where": "git-init",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-init.stdout and git-init.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git init"
+        },
+        {
+          "severity": "p3",
+          "where": "git-add",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-add.stdout and git-add.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git add GEMINI.md"
+        },
+        {
+          "severity": "p3",
+          "where": "git-commit-fixture",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-commit-fixture.stdout and git-commit-fixture.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git -c user.name=agy-fixture -c user.email=agy-fixture@invalid commit -m 'plant project GEMINI.md canary'"
+        },
+        {
+          "severity": "p3",
+          "where": "git-rev-parse-fixture",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-rev-parse-fixture.stdout and git-rev-parse-fixture.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "version-before",
+          "claim": "Command exited 0; sanitized stdout/stderr in version-before.stdout and version-before.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp /home/scientdb/.local/bin/agy --version"
+        },
+        {
+          "severity": "p3",
+          "where": "help",
+          "claim": "Command exited 0; sanitized stdout/stderr in help.stdout and help.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp /home/scientdb/.local/bin/agy --help"
+        },
+        {
+          "severity": "p3",
+          "where": "visible",
+          "claim": "Command exited 0; sanitized stdout/stderr in visible.stdout and visible.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp /home/scientdb/.local/bin/agy --print= --input-format stream-json --output-format stream-json --print-timeout 3m --disable-slash-commands --model gemini-3.8-flash-high --dangerously-skip-permissions --add-dir /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture < /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/visible.stdin"
+        },
+        {
+          "severity": "p3",
+          "where": "isolated",
+          "claim": "Command exited 0; sanitized stdout/stderr in isolated.stdout and isolated.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home/tmp /home/scientdb/.local/bin/agy --print= --input-format stream-json --output-format stream-json --print-timeout 3m --disable-slash-commands --model gemini-3.8-flash-high --dangerously-skip-permissions --add-dir /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture < /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/isolated.stdin"
+        },
+        {
+          "severity": "p3",
+          "where": "version-after",
+          "claim": "Command exited 0; sanitized stdout/stderr in version-after.stdout and version-after.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb AGY_CLI_DISABLE_AUTO_UPDATE=true XDG_CONFIG_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-config XDG_CACHE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-cache XDG_DATA_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-data XDG_STATE_HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-state XDG_RUNTIME_DIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/xdg-runtime TMPDIR=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-visible-home/tmp /home/scientdb/.local/bin/agy --version"
+        },
+        {
+          "severity": "p3",
+          "where": "commit",
+          "claim": "Command exited 0; sanitized stdout/stderr in commit.stdout and commit.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/git-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git -c 'user.name=Grok 4.6' -c user.email=noreply@x.ai commit --allow-empty -F /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "git-diff",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-diff.stdout and git-diff.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/git-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git diff --exit-code"
+        },
+        {
+          "severity": "p3",
+          "where": "git-diff-cached",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-diff-cached.stdout and git-diff-cached.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/git-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git diff --cached --exit-code"
+        },
+        {
+          "severity": "p3",
+          "where": "git-status",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-status.stdout and git-status.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/git-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git status --porcelain=v1 --untracked-files=all"
+        },
+        {
+          "severity": "p3",
+          "where": "git-head",
+          "claim": "Command exited 0; sanitized stdout/stderr in git-head.stdout and git-head.stderr.",
+          "reproduce": "cd /home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/snapshot && env -i HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/git-home PATH=/usr/bin:/bin LANG=C.UTF-8 TERM=dumb GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_TERMINAL_PROMPT=0 git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "evidence_validation",
+          "claim": "Evidence integrity checks exited 0; discovery observation acceptance exit 0.",
+          "reproduce": "python3 ../out/validate_agy_discovery.py"
+        }
+      ],
+      "artifacts": {
+        "evidence": "../out/agy-discovery-observation.json",
+        "command_findings": "../out/command-findings.json",
+        "observation_script": "../out/observe_agy_discovery.py",
+        "evidence_validation": "../out/validate_agy_discovery.py",
+        "visible_stdout": "../out/visible.stdout",
+        "visible_stdin": "../out/visible.stdin",
+        "isolated_stdout": "../out/isolated.stdout",
+        "isolated_stdin": "../out/isolated.stdin",
+        "commit_message": "../out/COMMIT_MSG",
+        "empty_commit": "c915a5df105e5d60459c0f0d6e83a56a0df95fea",
+        "update_setting": "AGY_CLI_DISABLE_AUTO_UPDATE=true",
+        "discovery_verdict": "CLEAN",
+        "containment": "policy",
+        "exact_overrides": "HOME=/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-isolated-home",
+        "native_cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082720Z-code-grok-dd5294/out/agy-git-fixture",
+        "binary_sha256": "93eb2118b778a4005700b54cdd7e08b896fbe665d5ff338e38e9e53da9a091ea",
+        "agy_version": "1.1.27"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2221831,
+        "out": 40455,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2e4583256eeb624be0c9a5468d269cd54a395bdc",
+        "started": "2026-09-08T08:35:07.588948+00:00",
+        "ended": "2026-09-08T08:36:00.388877+00:00"
+      },
+      "note": "Assumption: the named command is this bounded two-control discovery observation, not a repository test. Visible arm initialized and answered with both markers (init.cwd matched subprocess cwd P; permission_mode=always-proceed; no tools). Isolated arm used isolation.isolated() overrides {HOME: I} merged as dispatch does, then the combined candidate that also redirected XDG_* and TMPDIR inside I; it initialized and answered with the project marker and without the global marker. Discovery verdict CLEAN is bounded to that combined HOME/XDG/TMPDIR combination. isolated() itself overrides HOME only; after that merge, parent XDG still pointed at H. Failed initialization did not occur; the grader records it as INVALID, never CLEAN. Containment is policy; no OS protection claimed. Marker values were absent from stdin. Copied 0600 auth leaf only, never printed, then removed; operator auth left in place; named settings receipts unchanged. No tracked source or test edits. Empty commit c915a5df105e5d60459c0f0d6e83a56a0df95fea. Unresolved: settings.json and MCP config discovery/exclusion, HOME-only sufficiency, P/AGENTS.md, and skill suppression under --disable-slash-commands. Follow-up: HOME-only (HOME=I while inherited XDG still points at H) remains unmeasured."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:38:17.615Z"
+    }
+  },
+  "status": "closed"
+}

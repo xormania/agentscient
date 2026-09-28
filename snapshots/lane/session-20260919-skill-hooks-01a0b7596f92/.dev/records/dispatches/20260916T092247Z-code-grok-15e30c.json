@@ -1,0 +1,157 @@
+{
+  "id": "20260916T092247Z-code-grok-15e30c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-g",
+  "lineage": {
+    "branch": "lane/session-20260916-g",
+    "base_sha": "46639344d5623c36a96ed27436952db3786f8084"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Opus 5 (1M context) <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T09:22:47Z",
+    "closed": "2026-09-16T09:47:05Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "46639344d5623c36a96ed27436952db3786f8084",
+    "ref_sha": "46639344d5623c36a96ed27436952db3786f8084",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "56b3a52c-7ba6-46d4-a0e0-3eaac22b1628",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "56b3a52c-7ba6-46d4-a0e0-3eaac22b1628",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Contract, not yet implemented. ops/testkit World shadows the host CLIs whose accidental use is a false green. world.py exports SHADOWED, a tuple: gh, grok, claude, codex, curl, wget, ssh, scp, docker, nc. Its shadow directory sits on PATH after the case's bin, before the host PATH. Pin, in ops/testkit/tests: (1) for every name in SHADOWED, that name with nothing planted, run with env=world.env(), refuses on the docs/wire.md wire: exit 2, stdout empty, exactly one stderr line, class token unplanted, then expected, found, needed; (2) a plant wins over the shadow: world.tools.plant('gh', stdout='X'), gh gives exit 0 and X; (3) a host tool not in SHADOWED still runs: git gives exit 0; (4) World(ambient=('PATH',)) still raises PlantFailed, PATH stays the world's own; (5) clean neighbour: on a fresh World (world.bin/'gh').exists() is false, since the stub lives in the shadow directory and not the case's bin, so a fixture proving its own plant still holds. Regression origin: LD-72, PR #241 comment 4023387510.",
+    "inputs": [],
+    "sha256": "00099e63c6f818dab8c1a17ad8374f3188f294c8d62252923f9679f8044d9b85",
+    "bytes": 11165,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/lane-mcp.json",
+      "sha256": "23bc80274eac4209c7c8af72a5c1c7afb64f2fbd281edef498c6724f5e8ce134",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T092247Z-code-grok-15e30c/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": {
+    "head": "46639344d5623c36a96ed27436952db3786f8084",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "46639344d5623c36a96ed27436952db3786f8084"
+      },
+      "note": "envelope-parse: no JSON object on stdout; DIED: process vanished without exit"
+    }
+  },
+  "status": "died"
+}

@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"duplicate id","violates":"unique id","reject_path":"registry.duplicate-id","site":["capabilities",1,"id"]}

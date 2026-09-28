@@ -1,0 +1,401 @@
+{
+  "facts": {
+    "launch_imports": [],
+    "server_imports": [
+      "canonical",
+      "cas",
+      "chain",
+      "errors",
+      "gatekinds",
+      "mcp_launch",
+      "query",
+      "store"
+    ],
+    "uri_literals": [
+      "wf://",
+      "wf://agents",
+      "wf://checks",
+      "wf://next",
+      "wf://status"
+    ],
+    "verb_literals": [
+      "log",
+      "status"
+    ]
+  },
+  "provenance": {
+    "launch_all_imports": [
+      {
+        "level": 0,
+        "line": 21,
+        "module": "__future__",
+        "statement": "from __future__ import annotations"
+      },
+      {
+        "line": 23,
+        "module": "argparse",
+        "statement": "import argparse"
+      },
+      {
+        "line": 24,
+        "module": "sqlite3",
+        "statement": "import sqlite3"
+      },
+      {
+        "line": 25,
+        "module": "os",
+        "statement": "import os"
+      },
+      {
+        "line": 26,
+        "module": "subprocess",
+        "statement": "import subprocess"
+      },
+      {
+        "line": 27,
+        "module": "sys",
+        "statement": "import sys"
+      },
+      {
+        "level": 0,
+        "line": 28,
+        "module": "pathlib",
+        "statement": "from pathlib import Path"
+      },
+      {
+        "line": 56,
+        "module": "json",
+        "statement": "import json as _json"
+      },
+      {
+        "line": 182,
+        "module": "fcntl",
+        "statement": "import fcntl"
+      }
+    ],
+    "launch_imports": [],
+    "readings": [
+      "the module name is recorded, not the alias: `import chain as chainmod` contributes \"chain\"",
+      "imports written inside a function body are counted and flagged scope: \"function\"",
+      "an empty import list is a resolved answer evidenced by all_imports, not a default"
+    ],
+    "server_all_imports": [
+      {
+        "level": 0,
+        "line": 33,
+        "module": "__future__",
+        "statement": "from __future__ import annotations"
+      },
+      {
+        "line": 35,
+        "module": "argparse",
+        "statement": "import argparse"
+      },
+      {
+        "line": 36,
+        "module": "json",
+        "statement": "import json"
+      },
+      {
+        "line": 37,
+        "module": "sys",
+        "statement": "import sys"
+      },
+      {
+        "level": 0,
+        "line": 38,
+        "module": "pathlib",
+        "statement": "from pathlib import Path"
+      },
+      {
+        "line": 42,
+        "module": "canonical",
+        "statement": "import canonical"
+      },
+      {
+        "line": 43,
+        "module": "chain",
+        "statement": "import chain as chainmod"
+      },
+      {
+        "line": 44,
+        "module": "gatekinds",
+        "statement": "import gatekinds"
+      },
+      {
+        "line": 45,
+        "module": "query",
+        "statement": "import query"
+      },
+      {
+        "level": 0,
+        "line": 46,
+        "module": "cas",
+        "statement": "from cas import Cas"
+      },
+      {
+        "level": 0,
+        "line": 47,
+        "module": "errors",
+        "statement": "from errors import EXIT_REFUSED, WfError"
+      },
+      {
+        "level": 0,
+        "line": 48,
+        "module": "mcp_launch",
+        "statement": "from mcp_launch import classify_cache"
+      },
+      {
+        "level": 0,
+        "line": 49,
+        "module": "store",
+        "statement": "from store import Store"
+      }
+    ],
+    "server_imports": [
+      {
+        "alias": null,
+        "file": "mcp_server.py",
+        "lines": "42-42",
+        "module": "canonical",
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "import canonical  # noqa: E402"
+      },
+      {
+        "file": "mcp_server.py",
+        "lines": "46-46",
+        "module": "cas",
+        "names": [
+          "Cas"
+        ],
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "from cas import Cas  # noqa: E402"
+      },
+      {
+        "alias": "chainmod",
+        "file": "mcp_server.py",
+        "lines": "43-43",
+        "module": "chain",
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "import chain as chainmod  # noqa: E402"
+      },
+      {
+        "file": "mcp_server.py",
+        "lines": "47-47",
+        "module": "errors",
+        "names": [
+          "EXIT_REFUSED",
+          "WfError"
+        ],
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "from errors import EXIT_REFUSED, WfError  # noqa: E402"
+      },
+      {
+        "alias": null,
+        "file": "mcp_server.py",
+        "lines": "44-44",
+        "module": "gatekinds",
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "import gatekinds  # noqa: E402"
+      },
+      {
+        "file": "mcp_server.py",
+        "lines": "48-48",
+        "module": "mcp_launch",
+        "names": [
+          "classify_cache"
+        ],
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "from mcp_launch import classify_cache  # noqa: E402"
+      },
+      {
+        "alias": null,
+        "file": "mcp_server.py",
+        "lines": "45-45",
+        "module": "query",
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "import query  # noqa: E402"
+      },
+      {
+        "file": "mcp_server.py",
+        "lines": "49-49",
+        "module": "store",
+        "names": [
+          "Store"
+        ],
+        "rule": "\u00a75.11 local import \u2014 <name>.py exists beside the module",
+        "scope": "module",
+        "text": "from store import Store  # noqa: E402"
+      }
+    ],
+    "targets": [
+      "mcp_launch.py",
+      "mcp_server.py"
+    ],
+    "uri_literals": [
+      {
+        "file": "mcp_server.py",
+        "kind": "f-string-segment",
+        "lines": "190-190",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "                \"uri\": f\"wf://{kind}/{wo}\", \"name\": f\"{kind} {wo}\",",
+        "value": "wf://"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "198-198",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "    if not isinstance(uri, str) or not uri.startswith(\"wf://\"):",
+        "value": "wf://"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "200-200",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "    path = uri[len(\"wf://\"):]",
+        "value": "wf://"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "177-177",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "        {\"uri\": \"wf://agents\", \"name\": \"agents\",",
+        "value": "wf://agents"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "180-180",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "        {\"uri\": \"wf://checks\", \"name\": \"checks\",",
+        "value": "wf://checks"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "174-174",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "        {\"uri\": \"wf://next\", \"name\": \"next\",",
+        "value": "wf://next"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "171-171",
+        "rule": "\u00a75.11 string constant matching /^[a-z]+:\\/\\//",
+        "text": "        {\"uri\": \"wf://status\", \"name\": \"status\",",
+        "value": "wf://status"
+      }
+    ],
+    "verb_literals": [
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "188-188",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "                           (\"log\", \"the chain\")):",
+        "value": "log"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "226-226",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "    if head == \"log\":",
+        "value": "log"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "174-174",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        {\"uri\": \"wf://next\", \"name\": \"next\",",
+        "value": "next"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "187-187",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        for kind, note in ((\"status\", \"full detail\"), (\"next\", \"what advances it\"),",
+        "value": "next"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "209-209",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        if head == \"next\":",
+        "value": "next"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "224-224",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "    if head == \"next\":",
+        "value": "next"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "171-171",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        {\"uri\": \"wf://status\", \"name\": \"status\",",
+        "value": "status"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "187-187",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        for kind, note in ((\"status\", \"full detail\"), (\"next\", \"what advances it\"),",
+        "value": "status"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "207-207",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "        if head == \"status\":",
+        "value": "status"
+      },
+      {
+        "file": "mcp_server.py",
+        "kind": "constant",
+        "lines": "222-222",
+        "rule": "\u00a75.11 string constant equal to a \u00a74 verb name (fixed list, not derived from code)",
+        "text": "    if head == \"status\":",
+        "value": "status"
+      }
+    ],
+    "verbs_considered": [
+      "init",
+      "open",
+      "claim",
+      "release",
+      "red",
+      "green",
+      "check",
+      "outcome",
+      "marker",
+      "advance",
+      "next",
+      "status",
+      "log",
+      "commit",
+      "verify",
+      "export"
+    ]
+  }
+}

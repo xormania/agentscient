@@ -1,0 +1,173 @@
+{
+  "id": "20260908T093849Z-tests-grok-cdda3d",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-live-accounting-regression-20260908",
+  "lineage": {
+    "branch": "lane/agy-live-accounting-regression-20260908",
+    "base_sha": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:38:49Z",
+    "closed": "2026-09-08T09:42:15Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+    "ref_sha": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-live-accounting-regression-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "cce62a61-921a-477d-a77a-260e3283d67d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "low",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--reasoning-effort",
+      "low"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok-stream/sessions/<snapshot-encoded>/cce62a61-921a-477d-a77a-260e3283d67d/summary.json"
+  },
+  "session": {
+    "id": "cce62a61-921a-477d-a77a-260e3283d67d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok-stream/sessions/<snapshot-encoded>/cce62a61-921a-477d-a77a-260e3283d67d/summary.json",
+    "stream_sha256_at_close": "2eb6f500b01ad9179f5c2efd3049cb1fc80ada9cce7bc13501087c9595bf0d9d",
+    "spend": {
+      "input": 1383641,
+      "cached": 1241600,
+      "output": 11196,
+      "total": 1394837,
+      "cost_usd_ticks": 1652498600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/home/grok-stream/sessions/<snapshot-encoded>/cce62a61-921a-477d-a77a-260e3283d67d/summary.json",
+      "messages": 193
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-live-accounting-regression-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author one small independent regression file for the two live/terminal separation guarantees in supplied final ruling, using existing reader/stream interfaces and synthetic native frames. A valid prefix followed by incomplete DONE response usage makes live_output unavailable without a general supervision mismatch; adding a complete valid terminal restores terminal output/total and preserves envelope acceptance. Retain a bounded contradictory-repeat refusal control if needed, no shape matrix. No implementation-body reads, existing tests edits or new CLI. Run focused tests/lint/diff and record exact reds vs errors. No vendors/full floor. Grok-4.6 coauthor only, COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/in/agy-source-last-ruling.json",
+        "sha256": "bd8dc06034ec5b793d97a3b4760159bce47f3f17b483f27b117197b0c503ff25"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093849Z-tests-grok-cdda3d/in/agy-canonical-success-stdout.ndjson",
+        "sha256": "550232785798998c615a0dde885fd27dc3d51385bddeadb58c8b3fdc04ab6dcc"
+      }
+    ],
+    "sha256": "7611db5cbd2b823b9eb57b43170bc8e355580376f046d48797c8f263a16c2e00",
+    "bytes": 3031
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:38:49Z",
+      "ended": "2026-09-08T09:42:15Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ce4eae980ffd2471aedbb17b8b7e8e3bc343bdc1",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_file": "ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py",
+        "reds": "python3 -m unittest test_agy_live_terminal_separation -v at 6b117ecc then again at ce4eae9: 2 tests, 2 failures, 0 errors. incomplete: AssertionError live_output 10 is not None (issues include malformed step output usage). complete terminal: AssertionError tokens.total None != 19021 (output 6450 present, incomplete True, live_output 6450).",
+        "contradictory_control": "test_contradictory_repeat_step_output_usage_is_refused already OK at 6b117ecc (ValueError/issues path holds); omitted so no never-red test.",
+        "lint": "/home/scientdb/.local/bin/ruff check ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py at ce4eae9: All checks passed. python3 -m py_compile: PY_COMPILE_OK. python3 -m ruff is absent.",
+        "diff": "git status at ce4eae980ffd2471aedbb17b8b7e8e3bc343bdc1: branch lane/agy-live-terminal-separation-tests, clean, one new test file. Commits 650ba2406b8dfe8a933287ea244715383859e191 then ce4eae9.",
+        "base": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1394837,
+        "out": 11196,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6b117ecc14e44f35c7c80a5a2f8b765b383943c8",
+        "started": null,
+        "ended": "2026-09-08T09:42:02Z"
+      },
+      "note": "Authored one independent regression file from the supplied final ruling and native success stdout. No implementation-body reads, no existing-test edits, no new CLI, no vendors, no full floor. Inputs in/agy-source-last-ruling.json and in/agy-canonical-success-stdout.ndjson were read whole. Two intended assertion reds proven per test; contradictory-repeat already green so not restated. Committed at 650ba24 then lint fix ce4eae9 (Grok-4.6 coauthor). Started is null: no clock reading was taken at job start."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T09:42:14.190Z"
+    }
+  },
+  "status": "closed"
+}

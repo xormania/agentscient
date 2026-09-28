@@ -1,0 +1,52 @@
+{
+  "baseline_head": "c91d47a3ce165e620b6f03405d8f055e36b6a8e7",
+  "corpus": {
+    "artifacts": {
+      "bytes": 54603095,
+      "files": 877
+    },
+    "records": {
+      "bytes": 2817715,
+      "files": 247
+    },
+    "tracked": {
+      "bytes": 3373583,
+      "files": 323
+    }
+  },
+  "implementation_p3_entries": 1698,
+  "jobs": {
+    "adjudicate": 2,
+    "adversarial-review": 31,
+    "author-tests": 67,
+    "check-tests": 22,
+    "implement": 75,
+    "plan": 13,
+    "security-audit": 34,
+    "sweep": 3
+  },
+  "limits": [
+    "Full byte and structured scan, targeted semantic reading; repeated prompts are not independent incidents.",
+    "Local artifact digests identify the research run, not portable data files shipped by this PR.",
+    "Counts include recorded observations and command diaries, not verified defect totals.",
+    "No provider billing reconciliation or unrelated home/session/credential scan."
+  ],
+  "local_scan_artifact_sha256": {
+    "ag-mcp-corpus-analysis.json": "53a5de2f241ea006ea565f532259b20d53a231b04eb68de3d154dc4b36e80849",
+    "ag-mcp-corpus-inventory.json": "3a5574e1c47b76384bb24298ed99978442e5ef09bb0531e143d266417efa7ab6",
+    "ag-mcp-report-readings.json": "076c45dff08236c0a6e793f8c38b5bf0a45e2dc83f13155e64c0cc13d102e37e"
+  },
+  "markdown_reports": {
+    "bytes": 718361,
+    "files": 43
+  },
+  "measured_at": "2026-09-05T05:38:58.144332+00:00",
+  "missing_worktrees": [],
+  "recorded_statuses": {
+    "closed": 244,
+    "died": 3
+  },
+  "retained_unique_reports": 11,
+  "structured_findings": 2226,
+  "unread_selected_files": []
+}

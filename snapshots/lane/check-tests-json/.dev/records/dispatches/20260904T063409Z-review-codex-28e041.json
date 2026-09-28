@@ -1,0 +1,211 @@
+{
+  "id": "20260904T063409Z-review-codex-28e041",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-conf",
+  "lineage": {
+    "branch": "lane/lane-conf",
+    "base_sha": "0c1fa7cfaf7ef16197c9d6d8a3810c1d91f02017"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:34:09Z",
+    "closed": "2026-09-04T06:44:50Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0c1fa7cfaf7ef16197c9d6d8a3810c1d91f02017",
+    "ref_sha": "0c1fa7cfaf7ef16197c9d6d8a3810c1d91f02017",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-34-10-01a06b1f-f05e-7d10-9231-b43f5bbd9797.jsonl"
+  },
+  "session": {
+    "id": "01a06b1f-f05e-7d10-9231-b43f5bbd9797",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-34-10-01a06b1f-f05e-7d10-9231-b43f5bbd9797.jsonl",
+    "stream_sha256_at_close": "a44275b26b482bf2430e2a3cd3b9e6c6cdb3346318d33f9119986073f703b217",
+    "spend": {
+      "input": 3263567,
+      "cached": 3096320,
+      "output": 26275,
+      "total": 3289842,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-34-10-01a06b1f-f05e-7d10-9231-b43f5bbd9797.jsonl",
+      "messages": 290
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-conf/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch, unit 1 (the lane conf), the skeptic pass: judge the tests on this ref against the contract in the input file (the conf scope and the plan's unit 1). The tests are landed on this ref, red first: ops/conductor/tests/test_laneconf.py, ops/devlane/dispatch/tests/test_launch_lane_conf.py, and additions to test_dispatch_wrapper.py, test_instrument_conventions.py and test_land_lever.py. Judge whether they discriminate (oracle from the code under test, stub-only proofs, substring assertions), whether every guarantee the plan names for unit 1 is pinned, and whether any test would pass against a wrong implementation. No implementation exists yet; do not write one. One rule joined the contract after these tests were written: the author of every landed commit is the conf's LANE_AUTHOR, land.py re-authors a worker's commit to it and keeps the message and its Co-Authored-By trailer verbatim. No test on this ref pins it; report that gap as a finding with the test it needs, so the fix round writes it.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/in/contract-laneconf.md",
+        "sha256": "71cc56f88ac08745c42415a5d5bbb1d15afa1e226a8547dcba413058dd13bd8d"
+      }
+    ],
+    "sha256": "09d01d98b72b02ec9f3d50eb810ceb98bc6c0186a7cc68c00b909102a5eeea01",
+    "bytes": 3675
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:34:09Z",
+      "ended": "2026-09-04T06:44:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0c1fa7cfaf7ef16197c9d6d8a3810c1d91f02017",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "ladder-batch-unit-1-lane-conf-skeptic",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 8,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_land_lever.py:575; ops/conductor/tests/test_laneconf.py:49",
+          "claim": "LANE_AUTHOR is absent, and HappyPath asserts the obsolete opposite behavior: the worker remains author. Add LANE_AUTHOR to conf fixtures and required keys; land a distinctly authored commit containing Source and Co-Authored-By trailers; assert the landed author equals LANE_AUTHOR and raw message bytes are unchanged. Also test an already-correct author and missing-LANE_AUTHOR/LANE_NAME conf-key refusals before any pick.",
+          "reproduce": "(! rg -n 'LANE_AUTHOR|Co-Authored-By' ops/conductor/tests/test_laneconf.py ops/conductor/tests/test_land_lever.py) && sed -n '575,600p' ops/conductor/tests/test_land_lever.py"
+        },
+        {
+          "severity": "p1",
+          "where": "unit-1 consumer suites",
+          "claim": "Only laneconf, dispatch-wrapper, launcher, and land tests exercise LANE_CONF. The other named state-root, repository-slug, and branch readers are not tested with non-default values. A reader reconstructing a default, such as \"agent\" + \"scient\", evades literals and passes existing default-based tests. Add non-default-conf behavioral cases for every named consumer.",
+          "reproduce": "rg -l 'LANE_CONF' ops/conductor/tests ops/devlane/dispatch/tests .claude/skills/pr-overview/tests --glob 'test_*.py' | sort"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:681",
+          "claim": "Model and effort resolution is exercised only for Grok. A wrapper that routes Codex and both Claude job classes through Grok keys passes. Add a table covering Grok, Codex, Claude-read, and Claude-plan with harness, job, environment, and flag precedence.",
+          "reproduce": "rg -n 'def test_.*(codex|claude)|harness=\"(codex|claude)\"|MODEL_CODEX|MODEL_CLAUDE|EFFORT_CODEX|EFFORT_CLAUDE' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:373; ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "The exact KEY='literal' grammar, no-expansion rule, and stdlib-only Python reader are not discriminated. A parser accepting double-quoted, unquoted, or export assignments\u2014or shelling out to Bash\u2014passes. Bash has no malicious-conf test, so command substitution could execute before refusal. Add invalid-form cases through both readers with a side-effect witness, plus a get invocation whose PATH contains no Bash.",
+          "reproduce": "sed -n '373,389p' ops/conductor/tests/test_laneconf.py; rg -n 'lane\\.conf.*(double|export|command substitution)|conf.*syntax' ops/conductor/tests/test_dispatch_wrapper.py || true"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:333; ops/conductor/tests/test_dispatch_wrapper.py:1168",
+          "claim": "Environment and local-file precedence are tested separately, never together, and the Bash reader tests only forbidden LANE_NAME. An implementation where local conf overwrites the environment, or whose Bash guard ignores TRUNK_BRANCH, RELEASE_BRANCH, REPO_SLUG, and CHECK_NAME, passes. Add a three-layer precedence case and loop all five forbidden keys through the wrapper.",
+          "reproduce": "sed -n '333,370p' ops/conductor/tests/test_laneconf.py; sed -n '1168,1202p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:480",
+          "claim": "The closure fault corpus contains only the Python spelling get(\"GHOST_KEY\"). A scanner limited to that regex passes while missing Bash variable reads and direct environment reads. Add recognizable undeclared reads in shell and Python environment-access forms, with clean neighbors and assertions naming each key and file.",
+          "reproduce": "sed -n '480,499p' ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:534",
+          "claim": "Every generic literals fault uses ops/bin/spread.sh line 1, without a clean neighbor. The corpus also omits configured scratch values, the release branch, and the check name. A path/line stub or scanner hard-coded to the five legacy strings passes. Prove benign content passes, then plant configured and legacy values across representative Python and shell paths and assert the reported token, file, and line.",
+          "reproduce": "sed -n '534,561p' ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_lane_conf.py:144",
+          "claim": "RELEASE_BRANCH is planted but never exercised, and only WALL_DEFAULT is omitted. A launcher ignoring the release branch and silently defaulting missing SCOPE_CAP, LANE_NAME, TRUNK_BRANCH, or RELEASE_BRANCH passes. Add a relx record-target case and an omission matrix over all five launcher keys, proving conf-key, file, no mint, and no child.",
+          "reproduce": "sed -n '144,195p' ops/devlane/dispatch/tests/test_launch_lane_conf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/launch_support.py:1060; ops/conductor/tests/test_dispatch_wrapper.py:1095",
+          "claim": "The refusal oracle does not enforce the contracted wire. Launcher tests require \u201csatisfy\u201d instead of \u201cneeded\u201d; the wrapper scope-cap row checks only exit 3 and substring 11. Incorrect or unrelated refusals can pass. Use one helper requiring the class token, expected/found/needed in order, one stderr line, and empty stdout.",
+          "reproduce": "sed -n '1060,1086p' ops/devlane/dispatch/tests/launch_support.py; sed -n '1095,1118p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py; ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "No test proves dispatch.conf was moved rather than copied, lane.local.conf is gitignored, or DISPATCH_CONF retired. Retaining both tracked files and accepting both environment variables passes. Add git ls-files/git check-ignore assertions and an old-environment decoy that must not affect dispatch.",
+          "reproduce": "rg -n 'REAL_CONF|DISPATCH_CONF|git check-ignore|lane\\.local\\.conf' ops/conductor/tests/test_laneconf.py ops/conductor/tests/test_dispatch_wrapper.py"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T063409Z-review-codex-28e041/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3289842,
+        "out": 26275,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0c1fa7cfaf7ef16197c9d6d8a3810c1d91f02017",
+        "started": "2026-09-04T02:34:24-04:00",
+        "ended": "2026-09-04T02:44:09-04:00"
+      },
+      "note": "Review completed and scoped reds were run with TMPDIR=/dev/shm; the plant guard passed. The required report remains absent because the read-only sandbox rejected writing SKEPTIC.md. No implementation source was read or written."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

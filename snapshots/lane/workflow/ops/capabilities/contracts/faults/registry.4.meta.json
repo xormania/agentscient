@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"unknown dep","violates":"dependency resolution","reject_path":"registry.unknown-dep","site":["capabilities",1,"deps"]}

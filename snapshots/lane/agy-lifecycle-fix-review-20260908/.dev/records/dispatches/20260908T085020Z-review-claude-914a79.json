@@ -1,0 +1,292 @@
+{
+  "id": "20260908T085020Z-review-claude-914a79",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-lifecycle-fix-review-20260908",
+  "lineage": {
+    "branch": "lane/agy-lifecycle-fix-review-20260908",
+    "base_sha": "18af30b32047265e86d6a486e1bfea2e06b54a64"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:50:20Z",
+    "closed": "2026-09-08T08:58:39Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "ref_sha": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-review-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "67e8a481-1394-4f2e-866b-e6dc2c68eb86",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/67e8a481-1394-4f2e-866b-e6dc2c68eb86.jsonl"
+  },
+  "session": {
+    "id": "67e8a481-1394-4f2e-866b-e6dc2c68eb86",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/67e8a481-1394-4f2e-866b-e6dc2c68eb86.jsonl",
+    "stream_sha256_at_close": "7c7ba2baebf8b16b2af977d7b254d4d78026cb9f8586df70c6a448a2cb4e30d1",
+    "spend": {
+      "input": 102,
+      "cached": 5212238,
+      "output": 32551,
+      "total": 5244891,
+      "source": "result.usage",
+      "messages": 51,
+      "cost_usd": 4.5612975
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-review-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Final acceptance of only corrected test_agy_dispatch.py and agy_dispatch_support.py against supplied nine-finding cold ruling and original evidence. Preserve rejected F5/F11 and 24-case scope; no matrices or implementation-shaped tests. Confirm signatures, witness/PID, native usage/cwd, proper resume metadata and exception handling repairs. Run focused discovery/lint/whitespace. Diagnose remaining three usage assertions only enough to distinguish fixture contradiction from source defect using declared interfaces; no production-body review. Return acceptance verdict and any actual residual defects inline. No edits, vendors, stores or full floor.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/in/agy-lifecycle-fix-producer.json",
+        "sha256": "3cfa469776f8e66ce0d1e02b03ce26ff6da11f56f909533a2e7028221a4c32f7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/in/agy-lifecycle-ruling.json",
+        "sha256": "1aca6d7548a37c5567926acedafde3e68380c11c74759fe08081b7016e01dc37"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085020Z-review-claude-914a79/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "ad629e1d7399c9cfc87bbe45a7fbfed2f12001b381b26728c7e06dfec09be4c0",
+    "bytes": 1429
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:50:20Z",
+      "ended": "2026-09-08T08:58:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:547-571 (_spend_from), 604 (resume_raw)",
+          "claim": "The three remaining reds are a fixture contradiction, not lawful tests-first red and not a source defect. _spend_from plants rec['snapshot']['root'] = str(self.repo) via agy.spend_record(conversation_id, snapshot_root=self.repo) while leaving agy.framed_stdout at its default cwd='/synthetic'; the same helper's new cwd= parameter is used correctly at line 311 but not here. launch._spend for agy calls usage.agy_sessions(job_dir, rec['snapshot']['root']) (launch.py:1655-1657) and agy_sessions drops every row whose init.cwd differs from that repo (usage.py:143-146), so the single planted capture is filtered out and _spend returns {'unresolved': 'UNREACHABLE: session ... not in the store (0 sessions read)'} \u2014 verbatim the producer's recorded failure text, whose '0 sessions read' can only arise from that filter, since raw.out is present and agy_read swallows per-line errors. The producer's stated cause is therefore wrong: the stdout accounting already exists at this head (usage.py:38-132 agy_read reads result.usage off raw.out, excludes thinking/cache from total, and resets `terminal` at each init so the concatenated fresh+resume capture yields the resumed cumulative 295 with no duplicate-result issue). Smallest repair, tests-only: pass cwd=str(self.repo) to agy.framed_stdout inside _spend_from and to the resume_raw frame at line 604, so init.cwd agrees with the snapshot root the same fixture declares. With that one change the declared numbers hold: 120 fresh, 120 CANCELED, 295 resumed, and 295 != 415 != 120.",
+          "reproduce": "sed -n '547,571p;604p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '186,196p;261,279p' ops/devlane/dispatch/tests/agy_dispatch_support.py; sed -n '134,146p' ops/devlane/telemetry/usage.py; sed -n '1653,1681p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "18af30b commit message body, lines 6-7; mirrored in the producer envelope artifacts.true_failures and note",
+          "claim": "Declared-against-practiced mismatch in the change's own record. The commit body states 'Three assertion reds remain until stdout usage accounting exists' and the envelope repeats 'contracted carrier is result.usage on raw.out, totals 120/295 not 415'. At this head the stdout usage accounting does exist: usage.py:134 agy_sessions is documented 'Captured job roots (raw.out) ... Native brain transcripts do not carry usage/model/provider', and launch.py:1653-1657 routes agy _spend to it. The reds are caused by the fixture's own cwd/snapshot-root disagreement, so the recorded attribution names a missing runtime that is present and would let a reader accept three false reds as contracted absence. The producer's note 'launch.py was not read as the test oracle' explains but does not license the claim: absence of the accounting was asserted, not looked for.",
+          "reproduce": "git log -1 --format=%B 18af30b; sed -n '134,140p' ops/devlane/telemetry/usage.py; sed -n '1653,1658p' ops/devlane/dispatch/launch.py"
+        }
+      ],
+      "artifacts": {
+        "scope": "Reviewed only ops/devlane/dispatch/tests/test_agy_dispatch.py and ops/devlane/dispatch/tests/agy_dispatch_support.py at 18af30b32047265e86d6a486e1bfea2e06b54a64. git diff --name-only 408d2eff029c4b4dad12354c3d872efd9509832b 18af30b names exactly those two files; no production file changed. Working tree clean (git status --porcelain=v1 --untracked-files=all empty); ../out empty at close.",
+        "hashes": "sha256 test_agy_dispatch.py=37944907cfec4dfc6d01024ad7e960cd9cf0fc59e1f4e466e257c3fb23675d09; agy_dispatch_support.py=5e77228ce52329daa8fe2dfd9f321a319c59ef54128854cdefbe9b24fb356308. Both match the producer's recorded hashes exactly, so its 21 ok / 3 FAIL run is evidence at matching content.",
+        "inputs": "Read all three ../in files whole: agy-lifecycle-ruling.json (id 20260908T082619Z-adjudicate-codex-a9f480), agy-lifecycle-fix-producer.json (id 20260908T083444Z-tests-grok-0fd56a), agy-host-observation-record.json (id 20260908T071244Z-code-grok-220fb8).",
+        "F1": "UPHELD-repaired. Both live cases dropped --cap-out and now read the existing budget through the fixture loader: ls.load_path(self, ls.WIRES_PATH, ...) then wires.budget('read') (wires.py:117-120 returns CAP_OUT), with over = budget + 1 driving AGY_FAKE_OUTPUT. Early-stop assertions (done marker absent, elapsed < 4) kept. No production CLI option added.",
+        "F2": "PARTIAL-repaired. call_spend is now call_seam(launch._spend, rec, stream, job_dir), matching launch.py:1633 def _spend(rec, stream, job_dir). New spend_record() supplies harness.name and session.id (plus snapshot.root, which _spend dereferences at launch.py:1657, and optional spend/attempts). Alternate-signature retry removed. raw.out remains the carrier; 120/295 preserved; nothing planted into transcript.jsonl. The residual p2 above is the one thing left in this finding's area.",
+        "F3": "UPHELD-repaired. step_update.usage deleted from LIVE_CHILD; result.usage carrier and AGY_FAKE_OMIT_USAGE switch kept; emit-flush-then-sleep supervision shape unchanged.",
+        "F4": "UPHELD-repaired. test_an_agy_read_job_is_not_the_write_role_refusal now requires self.start_witness.is_file() or self.witness.is_file() before evaluating the refusal text, so a blanket refusal fails without demanding envelope acceptance.",
+        "F5": "REJECTION PRESERVED. --print= (PRINT_EQUALS) and the single user NDJSON stdin turn survive untouched; test_prompt_travels_as_one_user_ndjson_on_stdin unchanged by this diff.",
+        "F6": "PARTIAL-repaired. Same conversation record retained; first spend carried as rec.session.spend; attempts n=1/n=2 in order with state.json naming attempt 2; expected 295 kept, 415 excluded; new assertNotEqual(total, first_total) pins replacement of the prior spend. No lifecycle matrix. Blocked only by the cwd contradiction reported above. Checked and ruled out as a separate defect: concatenating both captures into one raw.out is NOT a duplicate-terminal-result violation, because usage.py:80 resets `terminal = False` at each init, so agy_read ends on the resumed cumulative tokens with empty issues.",
+        "F7": "PARTIAL-repaired. _stream now unpacked as exactly four elements and mismatch inspected in both halves: matching init.cwd = str(snap.resolve()) with permission_mode always-proceed must give a falsy mismatch; the same scenario then rewrites raw.out with cwd=/not-this-snapshot and requires a non-empty mismatch string. Transcript rows still carry no cwd/ref (asserted). No concurrency/relocation/malformed-stream matrices added. Named-conversation duty survives via stream_id == CONVERSATION_ID; the dropped assertIn(CONVERSATION_ID, path_s) was compelled, not a weakening \u2014 launch.py:672 returns raw.out as the agy path by design ('stdout carries native init.model/cwd and usage; brain lacks them'), and the foreign-session and Claude-fallback exclusions are still asserted.",
+        "F8": "PARTIAL-repaired. call_seam keeps the explicit absent-callable guard returning None, removed all TypeError-driven signature retries, and now re-raises as AssertionError carrying exception type, message and __cause__. The test asserts callable(_harness_meta), unpacks the five elements (launch.py:382 def _harness_meta(name, role, job_dir, env)), and asserts containment == 'policy' and data['store'] directly. No invented dict return; no provider identity in metadata.",
+        "F9": "UPHELD-repaired. LIVE_CHILD writes the established start-witness JSON (pid, pgid, argv, cwd, exe) to an install-time @@START_WITNESS@@ path substituted in install_live_child, the same substitution _TempLaunch._install_cli uses at launch_support.py:988 for _FAKE_CLI (whose witness shape is launch_support.py:195-214). The PID assertion is now unconditional after the cap trip; teardown kill path (launch_support.py:939-945) and the done-marker assertion are preserved.",
+        "F10": "UPHELD-repaired. The planted record now carries the fixture-selected agy worker name and executable, model.requested, and measured HOME isolation (mechanism/env/home/store/auth_files); both live home/agy and archived home/agy-stream brain dirs and transcripts are proven absent; the refusal is asserted with assert_refusal(ident='resume-store'), which pins the class token by regex (launch_support.py:1075-1079); no child started, record bytes unchanged, attempt count unchanged, exit and TRIPPED.md markers unchanged. unsupported-capability no longer accepted as a substitute.",
+        "F11": "REJECTION PRESERVED. All six _argv/_effort_argv private-seam cases and the stdin witness test survive; no conversion to black-box tests.",
+        "scope_checks": "24 test methods across 9 Agy* classes at head; 24 at 408d2ef; git diff filtered to '^[-+].*def test_' is empty, so no case was added, removed or renamed. _AgyLaunch and ls._TempLaunch define no test_ methods, so collection is 24. No matrices, no implementation-shaped expansion. The one arguably-inert plant is state.json in the resume-usage case, which _spend does not read; harmless and consistent with the ruling's 'current attempt identified'.",
+        "verification": "ruff 0.16.5: `ruff check --no-cache ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py` -> All checks passed. `git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 -- <both files>` -> exit 0, no output. `grep -cP '[ \\t]+$|\\t'` -> 0 for both files. Commit trailers present on both commits: Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>.",
+        "execution_limit": "DECLARED ABSENCE, not inferred: the bounded recheck's unittest discovery could not be run. This sandbox permits `python3 --version` but refuses `python3 -B -m unittest ...` and `python3 -c ...` (each returned 'This command requires approval'); no test assertion or loader run executed here. Case count and loader-error freedom were therefore established statically (method and class enumeration, import graph read whole), and the three reds were diagnosed by reading the declared interfaces \u2014 launch.py:1633/1653-1657, usage.py:38-146, CONTRACT.md:92 \u2014 not by execution. The producer's 24 collected / 21 ok / 3 FAIL / 0 ERROR is historical evidence at file hashes I verified match the tree.",
+        "diagnosis_boundary": "Production bodies were opened only far enough to separate fixture contradiction from source defect, as the brief allows: _spend's agy branch and dispatch (launch.py:1633-1690), _agy_stream's return contract (launch.py:624-676), agy_read/agy_sessions (usage.py:38-152), and the four seam def lines. No production defect was found and none is asserted; no production file was edited, no vendor called, no store read, no full floor run."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 5244891,
+        "out": 32551,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+        "started": "2026-09-08T08:50:20Z",
+        "ended": "2026-09-08T08:57:16Z"
+      },
+      "note": "Not final acceptance. All nine actionable cold-ruling findings are addressed and both rejections (F5, F11) are honoured; the 24-case scope is byte-for-byte intact, production is untouched, lint and whitespace are clean, and the commit trailers are present. What blocks acceptance is one residual defect the ruling did not anticipate: the three surviving reds are not lawful tests-first red. AgyTerminalUsage's _spend_from declares snapshot.root = str(self.repo) while leaving the synthetic stdout at init.cwd='/synthetic', and usage.agy_sessions filters on exactly that pair, so the capture is discarded before any assertion runs \u2014 the producer's recorded 'session not in the store (0 sessions read)' is that filter's signature. The stdout usage accounting the commit body says is missing is already present at this head. One keyword in two places (cwd=str(self.repo) in _spend_from and in resume_raw) should turn all three green at their declared 120/120/295, and the commit body's attribution should be corrected with them. I could not execute the bounded recheck: this sandbox refuses arbitrary python, so discovery and the three reds were established by reading declared interfaces, not by running them; that limit is stated rather than papered over."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

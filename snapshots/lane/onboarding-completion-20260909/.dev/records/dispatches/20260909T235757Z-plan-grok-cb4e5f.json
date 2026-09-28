@@ -1,0 +1,191 @@
+{
+  "id": "20260909T235757Z-plan-grok-cb4e5f",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/onboarding-completion",
+  "lineage": {
+    "branch": "lane/onboarding-completion-20260909",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:57:57Z",
+    "closed": "2026-09-10T00:12:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "af7be482-b459-4a46-ace2-054b8673fc2c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok-stream/sessions/<snapshot-encoded>/af7be482-b459-4a46-ace2-054b8673fc2c/summary.json"
+  },
+  "session": {
+    "id": "af7be482-b459-4a46-ace2-054b8673fc2c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok-stream/sessions/<snapshot-encoded>/af7be482-b459-4a46-ace2-054b8673fc2c/summary.json",
+    "stream_sha256_at_close": "8b86b49927fb8ddd5400dffe1d6d1d0aa7c42826498b7e9b19d0902a6f010db7",
+    "spend": {
+      "input": 5315549,
+      "cached": 4901248,
+      "output": 47155,
+      "total": 5362704,
+      "cost_usd_ticks": 7466508800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok-stream/sessions/<snapshot-encoded>/af7be482-b459-4a46-ace2-054b8673fc2c/summary.json",
+      "messages": 424
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Deliver deterministic, fast fresh-session onboarding through implementation and live activation. Read in/onboarding-request.md and in/owner-clarification.md. Reconcile existing conduct/discovery/policy/monitor contracts and actual runtime; extend their owners. Cover complete tool/feature/MCP discovery, session and worktree binding, authoritative compact instructions, concurrency-safe monitoring and delivery proof, durable admission and revalidation. Git/GitHub synchronization is concurrent work to integrate. Produce an executable dependency-ordered completion plan, independent contract/test/implementation/review stages, exact file interfaces and acceptance commands, bounded first packet and fresh-client evidence. Scope missing prerequisites honestly; reuse existing behavior. Name the smallest complete operational path and subsequent required adapter verification without claiming unsupported enforcement. Do not settle for a documentation deliverable. No source edits.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/in/onboarding-request.md",
+        "sha256": "2b2878ff11f6ad360b66e03a131e5bd6602030fc4b2f24cdfc18bdf708665620"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/in/owner-clarification.md",
+        "sha256": "0d51b0ce49b26595e81912709574d98081e500e2d4a90fb034245a5eaa02a4a2"
+      }
+    ],
+    "sha256": "5890ab6e9867da744007b03c488ca9caae17161f12654e395be32e2597db6eb8",
+    "bytes": 4781
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:57:57Z",
+      "ended": "2026-09-10T00:12:54Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "PLAN.md \u00a715 F1 / in/onboarding-request.md concurrent branches",
+          "claim": "Live branches lane/dev-freshness-20260909 and lane/finding-admission-20260909 were not measured (snapshot-only). File clash on onboard/monitor/findings remains possible; the plan encodes a stop-and-rebase refusal, not proof those branches are idle.",
+          "reproduce": "test ! -d /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot/.git/refs/heads; git -C /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot branch -a | rg 'dev-freshness-20260909|finding-admission-20260909' || true"
+        },
+        {
+          "severity": "p3",
+          "where": "PLAN.md \u00a715 F2",
+          "claim": "Full test_monitor.py and test_lane_mcp*.py were not rerun at write time; only presence/identity samples and all 30 onboard tests (OK) were.",
+          "reproduce": "python3 -m unittest discover -s /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot/ops/conductor/tests -p 'test_onboard_lever.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "PLAN.md \u00a715 F3 / isolated Grok home",
+          "claim": "Owner-measured attached lane MCP (v2, seven tools, old records/rollout) and host monitor saved config could not be looked at from this isolated HOME.",
+          "reproduce": "rg -n mcpServers /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok/config.toml /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot/.mcp.json"
+        },
+        {
+          "severity": "p3",
+          "where": "PLAN.md \u00a715 F4 / planner isolated HOME",
+          "claim": "Measuring hand.py report and monitor.py run created isolated handwork.db and monitor/monitor.db; snapshot git stayed clean.",
+          "reproduce": "find /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/home/grok/.local/state -type f -print; git -C /home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/snapshot status --porcelain=v1"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235757Z-plan-grok-cb4e5f/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5362704,
+        "out": 47155,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+        "started": "2026-09-09T23:57:57Z",
+        "ended": "2026-09-10T00:12:01Z"
+      },
+      "note": "PLAN.md is an executable smallest path (onboard packet + discovery/3 runtime + hermetic fresh-client) plus subsequent policy/conduct/adapter tracks without claiming enforcement. Snapshot not edited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:12:53.498Z"
+    }
+  },
+  "status": "closed"
+}

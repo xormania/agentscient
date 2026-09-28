@@ -1,0 +1,307 @@
+{
+  "id": "20260906T125232Z-review-claude-8c16f4",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-policy-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-tests-20260906",
+    "base_sha": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T12:52:33Z",
+    "closed": "2026-09-06T13:00:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b",
+    "ref_sha": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "863d9b7a-8615-47ef-a660-f480be9bef5f",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/863d9b7a-8615-47ef-a660-f480be9bef5f.jsonl"
+  },
+  "session": {
+    "id": "863d9b7a-8615-47ef-a660-f480be9bef5f",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/863d9b7a-8615-47ef-a660-f480be9bef5f.jsonl",
+    "stream_sha256_at_close": "9748dceac5da131938826da3d801c52e7a266ef6db25f7c632eff1e3e1a19a02",
+    "spend": {
+      "input": 72,
+      "cached": 4161384,
+      "output": 34751,
+      "total": 4196207,
+      "source": "result.usage",
+      "messages": 36,
+      "cost_usd": 4.366141
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review the independent Grok policy tests against lane-policy.md, permission-surface.md and unit1a declarations. Scope only test_lane_policy.py and its declared synthetic counterparts; no implementation exists or is accepted. Check all P/N/R/I row obligations, discriminating positive/faulty controls, exact digests, trusted custody versus forged matching data, closure/grants and pre-effect versus late boundaries. Verify the 56-method red receipt and lint where permitted. Classify the reported opaque trusted-context/bound-role schemas and external dispatch effects honestly: identify any actual invented API or construction-blocking gap, without demanding undeclared JSON closure. Do not edit tests/source or weaken an oracle. Return approve/changes, exact hashes, residual duties and measured limits; note at most 900 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/in/ag-conduct-policy-tests.json",
+        "sha256": "3976b6972734d5cd77e91df1e6c079f81a8c9a4047853f72e0a4dd5769f1115c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "1b172446a5cea08fe3333f27ed468dce2579b2d23a011496bcba2bcd0cae53f0",
+    "bytes": 1606
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:52:33Z",
+      "ended": "2026-09-06T13:00:15Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 3,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_lane_policy.py:1034,1084,1993",
+          "claim": "The suite never builds a completed OutputAttempt: output_attempt() is called with its defaults at every site (lines 1084, 1506, 1547, 1567, 1589, 2282), so candidate_evidence.outputs is always {dispatch,attempt:null,files:[]}. Fourteen methods then assert outcome=pass at settle/collect-before/collect-after/land/ladder with that value. lane-policy.md:636-638 states the opposite: 'A launch pass with null OutputAttempt.attempt certifies preflight only, not a completed deliverable. Settlement success requires a real completed attempt and all declared files, so a launch receipt cannot stand in for terminal evidence.' This is an inverted oracle, not a coverage gap: a conforming implementation fails these tests, and an implementation written to pass them certifies exactly the substitution the contract forbids.",
+          "reproduce": "test_r1_stationary_binding_revalidates_on_every_transition (line 1981) loops TRANSITIONS and asserts assert_policy_result(..., outcome='pass') at line 1993 for transition='land' and 'ladder' while evidence()['outputs'] is {'dispatch': '20260906T120000Z-tests-grok-lp0001', 'attempt': None, 'files': []}. Same shape at lines 1146, 1167, 1183, 1229, 1277, 1299, 1327, 1360, 1521, 1763, 2156, 2219, 2240, 2290."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py:2434-2445",
+          "claim": "ConductorTools._role_and_request sets Request.binding_sha256 to policy['grants_sha256']. permission-surface.md:106-107 requires binding_sha256 to equal the held conductor descriptor digest, and lane-policy.md:476 fixes that as descriptor.policy_binding_sha256, the canonical digest of the whole closed ConductorBinding. grants_sha256 is an inner member of ConductorBinding.policy, a different value. The test has every input needed to derive the correct digest and instead invents one, so all four ConductorTools methods encode a value a conforming evaluator must reject.",
+          "reproduce": "test_evaluate_tool_allows_canonical_delegation_and_coordination_reads (line 2465) asserts outcome='allow'; an evaluator that compares request.binding_sha256 against the canonical ConductorBinding digest held in bound_role returns outcome='refuse' with refusal.found='binding-mismatch', failing the assertion at line 2472. Same for lines 2487, 2518, 2528."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py:2362-2365",
+          "claim": "test_conductor_binding_has_null_job_empty_grants_and_null_maintenance guards its ConductorBinding assertions behind 'if set(CONDUCTOR_BINDING_KEYS) <= set(body)'. A guard that skips instead of failing is not an oracle: if the implementation returns any handle that is not a ConductorBinding, the closure check silently passes. lane-policy.md:463-464 declares ConductorBinding closed with all ten keys required, yet declarations_sha256 and custody_sha256 are never asserted anywhere in the suite (they appear only as tuple entries at lines 127-128), and policy_binding_sha256 is never derived at all.",
+          "reproduce": "Return from bind_launch a mapping {'policy': <9-key PolicyBinding>} with no 'stage', 'dispatch', 'declarations_sha256' or 'custody_sha256'. extract_policy (line 918) takes the 'policy' branch, lines 2355-2361 pass, and the if at line 2362 is false, so lines 2363-2365 never run. The test reports green against a binding that violates the closed shape."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py:1034",
+          "claim": "The C2 file receipt {artifact,path,sha256,bytes,production,reuse,evidence} (dispatch/CONTRACT.md:970-978) is entirely uncovered: grep -c 'production' over the file returns 0, and output_attempt is never called with files. lane-policy.md:669-670 names 'output production/reuse across attempts' as a required unit1a construction case, and the dispatch contract requires fresh production to be discriminated from verified reuse against a strictly earlier attempt and a digest-backed prior receipt. Nothing in the suite distinguishes fresh bytes from a stale leftover.",
+          "reproduce": "grep -c 'production' ops/conductor/tests/test_lane_policy.py returns 0; grep -n 'output_attempt' returns only the definition at 1034 and six default-argument call sites. No test constructs files=[{...,'production':'reuse','reuse':{'attempt':1,'receipt':...}}], so an implementation that accepts a reuse receipt naming a foreign dispatch or a future attempt passes the whole suite."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2545-2549",
+          "claim": "The 'not reserialized JSON' control in ExactShowDigest is degenerate. _show_bytes (lines 518-524) builds body with json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=True) and appends one newline, so the reserialized value computed at line 2545 with identical arguments is byte-identical to stdout[:-1]. assertNotEqual(reserialized, stdout) at 2546 and assertNotEqual(digest, _sha256(stdout.rstrip)) at 2549 therefore test the same single fact, the trailing newline. lane-policy.md:159-161 names two distinct hazards; the reserialization hazard is never exercised because the planted stdout is already canonical.",
+          "reproduce": "In the test process, _sha256(json.dumps(json.loads(stdout), sort_keys=True, separators=(',',':')).encode()) == _sha256(stdout[:-1]). An implementation that reserializes stdout canonically and hashes that still passes both assertions whenever real decisions.py stdout is canonical, which the fixture guarantees."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2457-2463",
+          "claim": "_decision asserts only schema, outcome membership and a 64-hex binding_sha256. permission-surface.md:148-149 requires 'The id/binding must match Request and the held current binding', and Decision is declared closed at exactly five keys. Neither is asserted: id equality is never checked, and the key set is never required, in contrast to the strict sorted-key check applied to PolicyResult at line 953. Three of the eight fixed Reason codes (malformed-request, unknown-tool, binding-mismatch) never appear in the file.",
+          "reproduce": "Return {'schema':'conductor-decision/1','id':'unrelated','binding_sha256':'0'*64,'outcome':'allow','refusal':None,'extra':1} from evaluate_tool. _decision passes, and test_evaluate_tool_allows_canonical_delegation_and_coordination_reads passes, despite a mismatched id and an unknown key."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2511-2519",
+          "claim": "test_evaluate_tool_substring_naming_a_lever_is_not_an_allowed_request sends kind='coordinate', target='board', arguments={'command': ...} and demands refusal.found == 'shell-escape' exactly. permission-surface.md:122-123 requires arguments to be verified against that target's closed verb schema before evaluation; a board coordinate schema carries no 'command' key, so the fitting fixed code is malformed-request. The contract's shell-escape rule (lines 137-142) governs a shell-wrapper normalization, not a schema-invalid coordinate request. The oracle over-specifies one of several contract-conforming outcomes.",
+          "reproduce": "An evaluator that validates arguments against the board schema first refuses with refusal.found='malformed-request', failing assertEqual at line 2519 while conforming to permission-surface.md."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:343-358",
+          "claim": "tearDown restores the LANE_* environment inside the try block, after the live-store equality assertion. If that assertion fails, the restore loop at lines 352-356 never runs and the mutated environment leaks into every later test in the process; only the tmpdir cleanup is in finally. test_n2 (lines 1436-1438) deliberately sets LANE_POLICY_PATH, LANE_CONF and LANE_NAME and depends on that restore. Separately, LIVE_STORE at line 64 hardcodes the lane segment 'agentscient' where lane-policy.md:116 derives the store lane from the pinned ops/lane.conf, so the guard can watch the wrong file under a different LANE_NAME.",
+          "reproduce": "Make the live-store assertion at line 345 fail during test_n2 (for example by any process touching ~/.local/state/agentscient/decisions.db mid-run). os.environ retains LANE_POLICY_PATH pointing at the tmpdir fixture, which is then deleted by the finally, and every subsequent case runs with a dangling override the suite believes it stripped."
+        }
+      ],
+      "artifacts": {
+        "reviewed_head": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b",
+        "base": "710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125232Z-review-claude-8c16f4/context/diff.patch",
+        "tests_sha256": "6960ae824bfa36439617ef759d3fa81454fd1141a45328cd8959e55dbf8efece  ops/conductor/tests/test_lane_policy.py",
+        "lane_policy_json_sha256": "e656af4242f0c635008c6654402c1f0730ed145f7739cc47bc6dc2145299c438  ops/lane-policy.json",
+        "lane_policy_md_sha256": "8f7a82b7170b9c992ccc2444493f66e9ecfd6794fdf19d52bbef22b73060d12e  ops/conductor/lane-policy.md",
+        "permission_surface_md_sha256": "f5daf3395c1c1c74de3c20ef4b97264f3a2240324c08da6b29c525d6eb9dddb1  ops/conductor/permission-surface.md",
+        "implementation": "ops/conductor/tools/lane_policy.py ABSENT at reviewed head (ls: No such file or directory)",
+        "method_count": "56 (grep -c '    def test_'; independently confirmed by per-class tally over 26 classes)"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4196207,
+        "out": 34751,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "128d22faa13f910ba06f4a941a4dd5210ec1ea0b",
+        "started": "2026-09-06T12:52:32Z",
+        "ended": "2026-09-06T12:58:44Z"
+      },
+      "note": "Verdict: changes. Scope held to ops/conductor/tests/test_lane_policy.py and its inline synthetic fixtures; the other 54 paths in the 710dbac..128d22f diff were not reviewed. The tests dispatch record lists that file as its sole changed path, and ops/conductor/tools/lane_policy.py is absent at the reviewed head, so no implementation exists or was accepted.\n\nMeasured limits, stated as could-not-look rather than clean. Process execution beyond simple read commands is refused in this lane: python3, git and every redirected or compound form were blocked. I therefore could not reproduce the record's red receipt (Ran 56 tests, FAILED failures=68, 0 errors) nor run ruff. What I did measure: 56 test methods by grep and by an independent per-class tally over the 26 classes, which matches the claimed 56; the library file is absent, so load_library returns _AbsentLibrary and the two ToolPresence methods are the declared reds; every other case calls through a stand-in returning None, so absence yields assertion failures, not import or collection errors. The failures>tests arithmetic is consistent with subTest expansion as the record says. The lint and run claims stand unverified by me.\n\nWhat holds. Shapes are read off the contracts, not invented: LaunchDeclarations' eight keys, TaskSelection, LaunchSelection (including the contract's own fixture-model example), DeclarationSource's five keys and component vocabulary, OutputAttempt, ArtifactManifest and DependencyEvidence, PolicyBinding's nine keys, ConductorBinding's ten, PolicyResult's nine, and the six grant keys with outputs.repository empty all match. The check-tests walkthrough is reproduced exactly, deriving outputs SKEPTIC.md and tmp with maintenance []. Digests are measured from planted bytes in-test, not transcribed. Protected-path coverage is right against ops/lane-policy.json: N7 exercises all seven gate paths, and R3's demand that a dev write of lane_policy.py refuse lane-write is correct because that path is in protected_authority_paths, while P5's decisions.py and seed edits correctly pass as unprotected artifacts. Refusal-class ordering (authority, selection, grant, dependency, artifact; lane-resume first on resume) is respected throughout. Custody hygiene is real: the tracked policy is asserted byte-unchanged in P3, the live decisions store is snapshotted and asserted unmutated, worker HOME is never authority, and pre-effect cases assert an empty job root.\n\nThe three reported untestable items are classified honestly, and I confirm each. The trusted_context and bound_role key names are genuinely undeclared \u2014 the contracts name contents, not a closed JSON object \u2014 and the docstring says so rather than pretending closure; that is the right call, and I am not demanding undeclared JSON closure. Exit 2 versus Abort 3, the job-directory claim, and land/ladder record mutation are dispatch- and lever-owned and correctly left out of a library surface. The I1 prose classifier is forbidden by lane-policy.md:51, and pinning I1 to dependency and authority-promotion refusals plus unchanged historical bytes is the right substitute.\n\nThe defects are elsewhere, and one is severe. The suite never constructs a completed attempt: OutputAttempt is {attempt:null, files:[]} at all six call sites, yet fourteen methods assert pass at settle, collect-before, collect-after, land and ladder with it. lane-policy.md:636-638 says exactly the reverse. That is not a gap but an inverted oracle, and it is the finding I would fix first. Three P2s follow: the ConductorTools Request carries grants_sha256 where the contract fixes the ConductorBinding canonical digest, an invented value the test had the inputs to compute correctly; the ConductorBinding closure check hides behind an if that skips rather than fails, so declarations_sha256 and custody_sha256 are asserted nowhere; and the C2 file receipt with its fresh-versus-reuse discrimination is wholly absent though both the contract and the authoring brief name it.\n\nResidual duties for whoever fixes this. Rebuild terminal-transition evidence on a registered attempt with real file receipts, and add the negative cases for foreign-dispatch, future-attempt and stale-digest reuse. Derive policy_binding_sha256 canonically and use it as Request.binding_sha256. Make the ConductorBinding key check unconditional. Add the three unused Reason codes and Decision id equality. Give ExactShowDigest a non-canonical planted stdout so the reserialization arm can fail. PolicyResult.checked_at is in the required key set but its UTC format is never validated. Move the environment restore into finally. None of these can be closed by me: this is a read-role review and I did not edit tests or source, weaken any oracle, or run anything the lane refused."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

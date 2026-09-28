@@ -1,0 +1,10 @@
+{
+  "contract": "layout",
+  "fault": "layout.4.json",
+  "from": "obs/layout.json",
+  "change": "canonical.py is not in the tree",
+  "violates": "PLAN.md §13 lines 565-566 (with §13 lines 574-575)",
+  "quote": "\"stdlib-only modules: `canonical.py` (canonical JSON + digests), `store.py`\"",
+  "reject_path": "facts\\.files\\b|canonical\\.py",
+  "implied": false
+}

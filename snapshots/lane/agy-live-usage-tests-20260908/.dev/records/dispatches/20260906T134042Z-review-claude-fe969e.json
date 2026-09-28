@@ -1,0 +1,289 @@
+{
+  "id": "20260906T134042Z-review-claude-fe969e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-canonical-correction-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-correction-20260906",
+    "base_sha": "77419abfa2b5c893364f0c7992333338c3623971"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:40:43Z",
+    "closed": "2026-09-06T13:51:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "77419abfa2b5c893364f0c7992333338c3623971",
+    "ref_sha": "77419abfa2b5c893364f0c7992333338c3623971",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "a4a2628e-05b2-4288-a721-f9cfbdf52d28",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/a4a2628e-05b2-4288-a721-f9cfbdf52d28.jsonl"
+  },
+  "session": {
+    "id": "a4a2628e-05b2-4288-a721-f9cfbdf52d28",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/a4a2628e-05b2-4288-a721-f9cfbdf52d28.jsonl",
+    "stream_sha256_at_close": "96b2cdad6aab769b3efe26064b83ec2e2b364db4a6d498bc92474f5198be4e3f",
+    "spend": {
+      "input": 94,
+      "cached": 4714506,
+      "output": 45215,
+      "total": 4759815,
+      "source": "result.usage",
+      "messages": 47,
+      "cost_usd": 4.655484499999998
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-correction-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review the corrected two-document canonical candidate against original 3f848321: task/CONTRACT.md and dispatch/CONTRACT.md only. No edits. Verify every Grok adjudicated finding, task-side OutputsError surfacing, precise policy dependency/frontends prose, four named profile-selection cases, caps/supervision source coverage, preserved early vendor refusal/direct/stub paths and all 83 original dispositions. Check original INVALID producer and garbled historical commit remain honestly preserved, with no retroactive runtime acceptance. Measure focused documentary links/examples/scope and inspect exact final diff; do not treat future-red tests as a documentation failure or run full floor during active dispatch. Return APPROVE/CHANGES, exact SHA, per-finding closure and bounded residual obligations. This reviews the composite corrected artifact, not only the last small patch.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in/ag-conduct-canonical-correction.json",
+        "sha256": "c88c5b2b077ab5d388e6119b4063993079495776ed4b3b8e755f3553ba360b43"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in/ag-conduct-canonical-adjudication.json",
+        "sha256": "0aff5a13703d6e2cd999683b83e01b0abf957f612e166a2b3f06d85e41a4ef38"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in/ag-conduct-canonical-coupling-review.json",
+        "sha256": "f81b3a9e64168a9d0ead19325ac7c9ebe95afe3ad8345a3e3838a9a4c8272c1e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in/ag-conduct-canonical-coupling.json",
+        "sha256": "0ebfc71546bb6fdfb4bb4974d3b563b88f4a7ec0e0908387813fcbe12529fb9f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134042Z-review-claude-fe969e/in/ag-conduct-startup-close-review.json",
+        "sha256": "516ece14a8fed08dc0c6e8fc94052ea01c808fdceeebd0cb96314c9ad0131126"
+      }
+    ],
+    "sha256": "8f5759248a566424cebb7a375705e55a42117460dfef40534bfdd2e6ef4b4cc1",
+    "bytes": 1659
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:40:43Z",
+      "ended": "2026-09-06T13:51:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "77419abfa2b5c893364f0c7992333338c3623971",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "commit 77419abfa2b5c893364f0c7992333338c3623971 message (body paragraph 2 and trailer block)",
+          "claim": "The commit under review reproduces the exact assembly defect it declares historical. Declared, in its own body: \"Preserve that record and the historical eeb16185 commit: its split Validation: sentence and misplaced pseudo-trailer are a historical formatting defect, not amended here.\" Practiced, in the same message: paragraph two reads \"Focused documentary checks against 4f50219bace69f6a4ab6e57b6d01d3479bfb83f2 / disposition instructions, exact seams, early refusal and direct/stub behavior / remain intact.\" - a broken sentence whose missing clause, \"pass: 100 checks, 51 local links and six JSON examples. The original 83\", sits in the trailer block between \"Source: original\" and \"Co-Authored-By: gpt-6-astra <noreply@openai.com>\". git log --format='%(trailers:only)' parses that displaced line as a trailer, exactly as it parses \"Validation: ...\" on eeb16185; the house form at 3f84832, b15f690 and 83706c9 is a clean two-line block with Dispatch: in its own paragraph. The producer's supplied COMMIT_MSG (record 20260906T133341Z-code-codex-2b5149, commit.body) is well formed and the codex sandbox denied .git, so this is launcher message assembly, not producer text; the same builder has now displaced exactly one line into the same slot on two consecutive docs commits. Raised above the p3 both earlier reviewers gave the identical defect on eeb16185 because that SHA was unamendable history while this one is the live candidate, the correction brief required \"ordinary commit prose without a Validation heading\", and the mangled sentence is the commit's only stamped measurement. Remedy, bounded: fix the launcher's message builder and re-assemble this candidate's message from the producer's body; do not amend eeb16185. No contract text changes.",
+          "reproduce": "git log -1 --format=%B 77419abfa2b5c893364f0c7992333338c3623971; git log -1 --format='%(trailers:only)' 77419abfa2b5c893364f0c7992333338c3623971; git log -1 --format='%(trailers:only)' 3f84832108274403a4f2c58bc12410ae896da2c0; jq -r '.result.envelope.commit.body' .dev/records/dispatches/20260906T133341Z-code-codex-2b5149.json"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/ against commit 77419ab message and .dev/records/dispatches/20260906T132506Z-review-grok-c3b646.json (note)",
+          "claim": "The composite's provenance chain has two holes in the repository, one of them asserted closed by the commit body. Declared: \"This is a corrected composite candidate from retained eeb16185, not retroactive acceptance of its INVALID producer. Preserve that record\". Practiced: 20260906T125719Z-code-codex-8a7821 - the producer of eeb16185, which contributes 86/206 of the composite's added lines and whose envelope status is invalid - has no file in .dev/records/dispatches (282 files), no match under grep -rl '8a7821' .dev ops, and was never tracked in any commit on any ref. The same is true of 20260906T131355Z-review-claude-4d1fce, the CHANGES review the adjudication rules on; the adjudication record this range does land cites it by id in its note, so that citation is dangling under verified-couplings obligation 1 (\"dangling citations are both findings\"). The record content itself is honest where it exists: in/ag-conduct-canonical-coupling.json (sha256 0ebfc715...) carries status invalid, verdict null, head eeb16185, and the two landed records are semantically identical to their in/ copies (jq -S diff empty), so nothing was rewritten - what is missing is the landing. At HEAD the INVALID status of the composite's principal producer is unverifiable from the repository, which is the exact claim the brief asks be honestly preserved. The gap is systemic rather than this producer's doing (124228Z-aa0cb7 and 125233Z-02a617 are also unlanded), and record landing is launcher/conductor work outside the two owned files. Remedy, bounded: land the two records, or declare their absence and location in the ladder record, before this composite is proposed; drop or correct \"Preserve that record\" if it is not going to be landed.",
+          "reproduce": "ls .dev/records/dispatches | grep -E '8a7821|4d1fce'; grep -rl '8a7821' .dev ops; git log --all --oneline --name-only -- '.dev/records/dispatches/*8a7821*' '.dev/records/dispatches/*4d1fce*'; grep -o '20260906T131355Z-review-claude-4d1fce' .dev/records/dispatches/20260906T132506Z-review-grok-c3b646.json; jq -r '.result.envelope.status, .result.head' ../in/ag-conduct-canonical-coupling.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:61 against :27-30 and ops/devlane/task/CONTRACT.md:221-230",
+          "claim": "The consuming-versus-refusing split is applied to the two intro sentences Grok's remedy named and to nothing else, leaving one instance of the same overclaim inside the section the correction extends. Declared (:61, unchanged): \"Frontends retain launch's exit and stderr refusal detail, stdout record acknowledgement `record: <id>`, and canonical record as their result source.\" Practiced (task:221-230, and row :25 of the frontend table): task run returns its own semantic invalid envelope before snapshot, render, adapter lookup, process creation or store access, prints it and exits 2, and never invokes launch, so it retains no launch exit, no stderr refusal detail, no `record: <id>` and no canonical record. Two paragraphs above, :27-28 now correctly scopes the identical promise to \"Consuming frontends\"; :71 preserves \"task CLI 0/1/2/64\" ownership only by implication and two sentences later. Remedy: one word - \"Consuming frontends retain launch's exit...\" at :61. No other document change follows.",
+          "reproduce": "sed -n '17,30p;61,72p' ops/devlane/dispatch/CONTRACT.md; sed -n '215,243p' ops/devlane/task/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "reviewed_refs": "77419abfa2b5c893364f0c7992333338c3623971 against 710dbac38c3b187eb4b3302308430c0a6dec4d76; composite measured against the original 3f84832108274403a4f2c58bc12410ae896da2c0; retained candidate eeb16185b77f86dba2b01416d2845eaffc8dd801 is an ancestor of HEAD (git merge-base --is-ancestor: yes)",
+        "diff_identity": "context/diff.patch sha256 2fa70c93d672f888204f3813fca994863ecdc11963899ed0c3a319c754bffe1a, byte-identical to `git diff 710dbac 77419ab` (same sha256 on the pipe)",
+        "scope": "`git show 77419ab --name-only` is exactly ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md; `git diff --numstat 3f84832 77419ab` on those two files is 95/5 and 226/3 (the range's other two paths are the record files landed by 4f50219 and 6c30f07); `git diff --check 3f84832 77419ab` silent; incremental `eeb1618..77419ab` is 9/5 and 20/1",
+        "owned_doc_sha256": "ops/devlane/task/CONTRACT.md f12a2b694bae1c43361f57961c527cd857648f53ef23cfdb724fa59f362520cf; ops/devlane/dispatch/CONTRACT.md 76f67bf6947531c03a973cf6760a2b615f69d6923004f493ec99771e03b76286",
+        "documentary_counts_reproduced": "51 local (non-http) markdown links and six ```json fences (task 4, dispatch 2) across the two files, matching the producer record's \"51 local links and six JSON examples\"; all 14 distinct relative file targets exist and all 26 anchor citations resolve to real headings, including the new ../dispatch/CONTRACT.md#c1-frontend-inputs-and-results (dispatch:48) and ../../conductor/lane-policy.md#selection-and-maintenance-grants (lane-policy:216)",
+        "deletions_enumerated": "the composite's 8 deleted lines are exactly the 3 replaced dispatch prose sentences (:17, :27-28, :43-44), the 1 replaced task role-source line (:619) and the 2 task \u00a7Dispatch ownership lines replaced at eeb1618; no line inside the disposition tables (task:737-801) or the C1 refusal/direct/stub block (task:215-243) is deleted or altered",
+        "outputs_error_facts": "envelope.py:118 class EnvelopeError(ValueError), :122 class OutputsError(EnvelopeError); run.py:1212 `load_jobs() if jobs is None else jobs` inside the try opened at :1210, :1236 `except (RunError, TypeError)`; main() :1289-1326 calls only run() and returns 2 for any non-approve/changes verdict - the gap the new task:413-416 sentence names is real and the sentence covers every CLI path (render's :180 load_jobs is the direct library call the sentence leaves raising)",
+        "record_identity": "jq -S diff empty between in/ag-conduct-canonical-adjudication.json and .dev/records/dispatches/20260906T132506Z-review-grok-c3b646.json, and between in/ag-conduct-canonical-correction.json and .dev/records/dispatches/20260906T133341Z-code-codex-2b5149.json (raw sha256 differ only by key order and whitespace)",
+        "not_run": "ops/bin/suites.sh, the supplied test suites and the producer's ../out/check_docs.py were not run: the checker is not in the repository and the floor is not run during an active dispatch, per the aim"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4759815,
+        "out": 45215,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "77419abfa2b5c893364f0c7992333338c3623971",
+        "started": null,
+        "ended": "2026-09-06T13:50:05Z"
+      },
+      "note": "REVIEW - Claude Opus 5 (claude-opus-5), read-only, every figure measured from this snapshot and git at the moment of writing. CHANGES: 0 p1, 2 p2, 1 p3. Both p2s are outside the two contract documents; the documents themselves need one optional word.\n\nCLOSURE, per adjudicated finding. F1 (p2, task OutputsError surfacing) CLOSED. task/CONTRACT.md:413-416 adds exactly the sentence the remedy asked for: run() maps OutputsError from default load_jobs() to the semantic invalid envelope with null verdict and an outputs-schema note carrying expected, found and needed; main() prints it and exits 2 without a traceback; direct library calls keep raising. It is placed at the C2 library seams, conforms to docs/wire.md, uses an existing token (outputs-schema appears at task:409, :433, :444, :775, dispatch:385, envelope.py:167), preserves C1LoadJobs (task:775), and does not collide with task:228's malformed/unknown diagnosis or with RunError at :407. Verified against the runtime it describes: main() reaches load_jobs only through run(), so the CLI is fully covered. F2 (p2, C1 dependency prose) CLOSED. dispatch:43-45 now reads \"C1 adds no lane-policy implementation, discovery or fileset dependency; its profile transport below consumes the policy owner's selection rule\" - the exact form of the pre-existing :172, with the consume kept. No contradicting claim survives (grep 'lane-policy' returns 12 lines, none of them a disclaimer). F3 (p3, frontends) PARTLY CLOSED - see the p3 above; :17-18 and :27-30 are correctly split into consuming frontends and the refusing task projection, and the \"no alternate execution or envelope engines\" overclaim is now scoped with task's ownership of its invalid envelope and direct/stub behavior stated. F4 (p3, eeb16185 message) CLOSED as to eeb16185: that SHA is unamended, an ancestor of HEAD, and the defect is named in the successor's body - but the successor repeats it (p2 above). F5 (missed, p3, four profile cases) CLOSED. task:790-801 adds four named ProfileSelection methods in the dispatch adoption home, declared as supplementing rather than replacing the 83, each citing dispatch's profile transport. Checked against the policy owner rather than the citation alone: agreement/one, conflict/empty/unknown/malformed refusing lane-profile without default fallback, and absence-to-configured-default all restate lane-policy.md:220-224; the fourth case (absence with no configured default refuses lane-profile before effects) is the policy owner's N1 row at lane-policy.md:773 with default_profile optional at :60 and :69. No case invents policy the consume-only track disclaims.\n\nCLEANUP-REVIEW ASK. Closed. task:619-622 now has the conductor role source covering \"admitted conductor restrictions, startup template, caps and supervision configuration (including timeout and its source), retaining exact source bytes, ref and digest through the existing `role` component\". The DeclarationSource component enum at :605 is unchanged - no caps or supervision member was added - and the sentence now answers dispatch:878-880's \"verified role source closure\", which previously occurred once with no counterparty.\n\nPRESERVATION. The early vendor refusal (task:217-230, including the exact execution note and spend {harness:null,total:0,out:0,runs:0}), direct verify and stub replay (:232-243), the declared seams and the 83 disposition instructions are byte-identical to the artifact the prior reviewer verified by hand: the incremental patch is a pure insertion at task:410 and :787, one replaced line at :619, and three replaced dispatch sentences. Nothing is deleted from the tables. No retroactive acceptance: neither document claims a suite pass, runtime landing or capability admission, and task:835-837's disclaimer stands. The still-red supplied suites are not treated as a documentation failure here.\n\nLIMITS, DECLARED. I did not re-enumerate the 83 dispositions against test_run.py, test_execution_frontend.py and test_execution_adoption.py - those files were not supplied to this session, so my 83 claim is transitive on the prior hand enumeration plus zero deletions in the tables, not an independent recount; for the same reason I could not check whether the four new ProfileSelection names collide with an existing class in the adoption home. The producer's check_docs.py lives in another dispatch's out/ and is not in the repository, so \"100 checks\" is unverified - I reproduced its other two figures (51 local links, six JSON examples) independently. No suites, no ops/bin/suites.sh, no vendor, no edits, no state, settings or admission read or written; out/ is empty.\n\nRESIDUAL OBLIGATIONS, bounded. (1) Re-assemble this commit's message and fix the launcher builder that has now displaced a line into the trailer block twice. (2) Land 20260906T125719Z-code-codex-8a7821 and 20260906T131355Z-review-claude-4d1fce, or declare their absence and where they are held. (3) One word at dispatch:61. (4) Still open and honestly declared by the producer's finding 4, outside the two-file scope and confirmed stale at HEAD: discovery-lever.md:181 and :217, lane-mcp-lever.md:95, conductor-start-plan.md:343."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

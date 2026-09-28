@@ -1,0 +1,146 @@
+{
+  "id": "20260909T232304Z-code-codex-eae1ea",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "d7bf77f9cbf34398961dcde3add4530d25b83fd3"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:23:05Z",
+    "closed": "2026-09-09T23:25:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+    "ref_sha": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "df41c2ba-8565-4348-a2f5-2c6fa2ee2950",
+    "stream": null,
+    "stream_sha256_at_close": null,
+    "spend": {
+      "unresolved": "UNREACHABLE: no session stream discovered",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/home/codex-stream",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/home/codex"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check. Author ONLY the finding-admission contract and concise implementation handoff under the owner scope in in/owner-scope.md. Reconcile existing owning contracts/process docs; no source, prompts, tests or unrelated policy edits. Declare exact minimal interfaces, legacy handling and verified coupling boundaries for independent tests. Do not invent a new framework. Scope is owner-set, you supply the design. Commit docs with Source: original and your actual model attribution. Keep the handoff within the contract instead of a disposable plan. Run git diff --check and link checks.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232304Z-code-codex-eae1ea/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      }
+    ],
+    "sha256": "49d596d7542808a12f73f9b979de6d894b1de49f7ab4540e2bfc27b8ddeb485a",
+    "bytes": 4443
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:23:05Z",
+      "ended": "2026-09-09T23:25:06Z",
+      "exit": 137,
+      "tripped": true
+    }
+  ],
+  "result": {
+    "head": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "d7bf77f9cbf34398961dcde3add4530d25b83fd3"
+      },
+      "note": "no-last-message: no structured envelope; unsupervised: no session stream within grace"
+    },
+    "cause": {
+      "reason": "unsupervised",
+      "note": "unsupervised: no session stream within grace"
+    }
+  },
+  "status": "closed"
+}

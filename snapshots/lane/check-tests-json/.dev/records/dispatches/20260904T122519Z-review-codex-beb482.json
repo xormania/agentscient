@@ -1,0 +1,179 @@
+{
+  "id": "20260904T122519Z-review-codex-beb482",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "a83cb896cfee86a2319f03a18099cf6a99fe81e2"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T12:25:19Z",
+    "closed": "2026-09-04T12:31:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a83cb896cfee86a2319f03a18099cf6a99fe81e2",
+    "ref_sha": "a83cb896cfee86a2319f03a18099cf6a99fe81e2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-25-20-01a06c61-703b-7df2-9135-21b78297d2a3.jsonl"
+  },
+  "session": {
+    "id": "01a06c61-703b-7df2-9135-21b78297d2a3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-25-20-01a06c61-703b-7df2-9135-21b78297d2a3.jsonl",
+    "stream_sha256_at_close": "2f8084d04490a4ff9d47e3f99d868ab0e7553f87b665511231be2c544e8ba2d1",
+    "spend": {
+      "input": 875771,
+      "cached": 793088,
+      "output": 18775,
+      "total": 894546,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-25-20-01a06c61-703b-7df2-9135-21b78297d2a3.jsonl",
+      "messages": 152
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 31 (the skeptic's report is its envelope, not a file), the skeptic pass: judge the tests on this ref against the contract in the input file. The tests are landed on this ref, red first, in ops/devlane/task/tests and ops/conductor/tests/test_ladder_lever.py. Judge whether they discriminate (the prompt pinned by its words, the driver's stage machine on a planted check-tests envelope closed ok with findings and no artifacts, the findings file the driver writes and names in the ladder record and passes to tests-fix), whether every guarantee the contract names is pinned, and whether a wrong prompt or a wrong driver would pass. No implementation exists yet; do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/in/contract-check-tests-json.md",
+        "sha256": "a8a2e31c817d7de9227618db516f245108418b780092aeb8fe232d57167d63fa"
+      }
+    ],
+    "sha256": "b7bf4bda39ca0dab772c6f78f79f7a1cb86de9d417fdecff66dfb7469f1d286c",
+    "bytes": 3357
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T12:25:19Z",
+      "ended": "2026-09-04T12:31:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a83cb896cfee86a2319f03a18099cf6a99fe81e2",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/task/tests/test_check_tests_json.py:34",
+          "claim": "Declared: \u201cThe check-tests job's deliverable is the JSON envelope on stdout; the prompt asks for no file and names no path in artifacts.\u201d Practiced: assertions only forbid `SKEPTIC.md`, `{out}`, and `out/`. A wrong prompt requiring `/tmp/REPORT.txt` in artifacts and prose on stderr passes all four tests; envelope/stdout, quotation-pair, reproduce-command, and empty-artifacts requirements are not positively pinned.",
+          "reproduce": "PYTHONPATH=ops/devlane/task/tests python3 -c 'import json,unittest,test_check_tests_json as t; Wrong=type(\"Wrong\",(),{\"is_file\":lambda self:True,\"read_text\":lambda self,encoding=None:json.dumps({\"check-tests\":{\"prompt\":\"Write REPORT.txt under /tmp and name /tmp/REPORT.txt in artifacts; return prose.\",\"deliverable\":\"a plaintext report on stderr\"}})}); t.JOBS_PATH=Wrong(); s=unittest.TestSuite(); [s.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(c)) for c in (t.CheckTestsPromptCarriesNoFilePath,t.CheckTestsDeliverableCarriesNoFilePath)]; r=unittest.TextTestRunner().run(s); raise SystemExit(not r.wasSuccessful())'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever.py:1485,2749,3071",
+          "claim": "Declared: \u201cfindings reach tests-fix as an input\u201d and \u201cThe driver's ladder record names the findings file it wrote.\u201d Practiced: both tests accept any non-dispatch file containing one claim substring. They do not prove driver creation, compare the complete serialized findings, or require the tests-fix input path to equal the record-named path. A driver can name one pre-existing decoy, pass another, and drop severity, location, and reproduce command.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -c 'import test_ladder_lever as t; c=t._LadderFixture(); c.repo=t.REPO; c.wt=t.REPO; c.dispatch_record_paths=lambda:set(); p=t.REPO/\"ops/conductor/tests/test_ladder_lever.py\"; assert p in c.driver_written_findings_files({\"unrelated\":str(p)},t.CHECK_TESTS_FINDING_CLAIM); argv=[\"--input\",str(p)]; assert t.CHECK_TESTS_FINDING_CLAIM in c.existing_file_for(c.flag_values(argv,\"--input\")[0]).read_text()'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py:422",
+          "claim": "Declared: \u201ca planted check-tests envelope with findings and no artifacts is accepted as ok.\u201d Practiced: the plant contains one P2 finding while reporting `counts.p2` as zero. This malformed envelope cannot prove the promised valid-envelope transition; a driver that ignores count consistency passes, while a validating driver can fail.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -c 'import test_ladder_lever as t; assert t.CHECK_TESTS_FINDING[\"severity\"]==\"p2\"; assert \"\\\"counts\\\": {\\\"p1\\\": 0, \\\"p2\\\": 0, \\\"p3\\\": 0, \\\"opinions\\\": 0}\" in t.DISPATCH_PY'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/tests/test_jobs.py:36; ops/devlane/task/tests/test_check_tests_json.py:18",
+          "claim": "Declared: \u201cThe job wire is unchanged for every other job.\u201d Practiced: the new tests inspect only `check-tests`; existing catalogue tests pin selected author/security tokens and the common spend clause, not unchanged entries. Another job's role, snapshot, deliverable, constraints, or other prompt text can change while the suite remains green.",
+          "reproduce": "PYTHONPATH=ops/devlane/task/tests python3 -c 'import json,unittest,test_jobs as t; spend=t.SPEND_TO_THE_LAUNCHER; env=t.ENVELOPE_CLAUSE; jobs={\"author-tests\":{\"adapter\":\"harness\",\"prompt\":env+\" \"+spend},\"security-audit\":{\"adapter\":\"harness\",\"role\":\"read\",\"snapshot\":\"whole\",\"caps\":{\"timeout\":1200},\"prompt\":\"{ref} {base} {diff} {scope} \"+env+\" \"+spend},\"adversarial-review\":{\"adapter\":\"harness\",\"role\":\"write\",\"snapshot\":\"delta\",\"caps\":{\"timeout\":1200},\"deliverable\":\"CHANGED OTHER JOB WIRE\",\"constraints\":[],\"prompt\":spend}}; Wrong=type(\"Wrong\",(),{\"is_file\":lambda self:True,\"read_text\":lambda self,encoding=None:json.dumps(jobs)}); t.JOBS_PATH=Wrong(); r=unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromModule(t)); raise SystemExit(not r.wasSuccessful())'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py:3098",
+          "claim": "Declared: \u201cladder-lever.md says\u201d tests-fix takes findings rather than `SKEPTIC.md`. Practiced: only table lines containing literal backticked `tests-fix` are examined. Contradictory prose elsewhere in the same contract can still require `SKEPTIC.md` while both tests pass.",
+          "reproduce": "PYTHONPATH=ops/conductor/tests python3 -c 'import unittest,test_ladder_lever as t; Wrong=type(\"Wrong\",(),{\"__truediv__\":lambda self,part:self,\"is_file\":lambda self:True,\"read_text\":lambda self,encoding=None:\"| `tests-fix` | findings file |\\nElsewhere tests-fix receives `SKEPTIC.md`.\\n\"}); t.REPO=Wrong(); s=unittest.defaultTestLoader.loadTestsFromTestCase(t.TestsFixContractText); r=unittest.TextTestRunner().run(s); raise SystemExit(not r.wasSuccessful())'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 894546,
+        "out": 18775,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a83cb896cfee86a2319f03a18099cf6a99fe81e2",
+        "started": null,
+        "ended": "2026-09-04T12:30:40Z"
+      },
+      "note": "The read-only sandbox rejected writing /home/scientdb/.local/state/agentscient/dispatch/20260904T122519Z-review-codex-beb482/out/SKEPTIC.md, and the file remains absent. Catalogue and documentation reds failed on their intended assertions. Driver fixture execution was unreachable because no writable temporary directory exists; commit a83cb896 records its prior intended reds. The test guard reported every plant guarded."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

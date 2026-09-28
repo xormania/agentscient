@@ -1,0 +1,157 @@
+{
+  "id": "20260904T175121Z-tests-grok-a0a65d",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-budget",
+  "lineage": {
+    "branch": "lane/session-budget",
+    "base_sha": "472b45e305691d43b7b0ab087fbea360cd17f614"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T17:51:22Z",
+    "closed": "2026-09-04T18:01:07Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "472b45e305691d43b7b0ab087fbea360cd17f614",
+    "ref_sha": "472b45e305691d43b7b0ab087fbea360cd17f614",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dec59861-96af-4371-b8ed-1cb7697dac4f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok-stream/sessions/<snapshot-encoded>/dec59861-96af-4371-b8ed-1cb7697dac4f/summary.json"
+  },
+  "session": {
+    "id": "dec59861-96af-4371-b8ed-1cb7697dac4f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok-stream/sessions/<snapshot-encoded>/dec59861-96af-4371-b8ed-1cb7697dac4f/summary.json",
+    "stream_sha256_at_close": "98268271e1a6de3b2ec133ab8a3e286e46456937d925ed74a4f904365e849f86",
+    "spend": {
+      "input": 1935539,
+      "cached": 1758336,
+      "output": 36752,
+      "total": 1972291,
+      "cost_usd_ticks": 2471946200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok-stream/sessions/<snapshot-encoded>/dec59861-96af-4371-b8ed-1cb7697dac4f/summary.json",
+      "messages": 222
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/in/slice-session-budget.md",
+        "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+      }
+    ],
+    "sha256": "b9c84e970558f93c6e32de6f894823cf4b616efe06c1f8375c4d5f471aa0c234",
+    "bytes": 2765
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T17:51:22Z",
+      "ended": "2026-09-04T18:01:07Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c561caa709f6c0aa4ce71a09f9b09ef6e8fed239",
+    "changed_paths": [
+      "ops/devlane/hooks/tests/test_matrix.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/hooks/tests/test_matrix.py",
+        "commit": "c561caa709f6c0aa4ce71a09f9b09ef6e8fed239"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1972291,
+        "out": 36752,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "472b45e305691d43b7b0ab087fbea360cd17f614",
+        "started": "2026-09-04T17:51:22Z",
+        "ended": "2026-09-04T18:00:55Z"
+      },
+      "note": "Wrote 10 test_session_budget_* methods named in plan 20260904T172250Z-plan-grok-2c8a8f, plus a payload helper that plants an under-ceiling transcript_path on existing Bash/Write payloads. Did not read matrix.py. Nine deny methods were each run alone at 472b45e305691d43b7b0ab087fbea360cd17f614 and failed on assert_denied with empty stdout (0 errors, not collection). test_session_budget_allows_under_all_three_ceilings is green at this ref. Frozen command python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py: 63 tests, 11 failures (missing-key has 3 subTests), 0 errors. Committed c561caa709f6c0aa4ce71a09f9b09ef6e8fed239."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T18:01:06.627Z"
+    }
+  },
+  "status": "closed"
+}

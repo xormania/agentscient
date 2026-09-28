@@ -1,0 +1,295 @@
+{
+  "id": "20260910T222935Z-plan-claude-69ad8e",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/scope-gate-20260910",
+  "lineage": {
+    "branch": "lane/scope-gate-20260910",
+    "base_sha": "bdf33f32442f60bfa1dd8da6c80a19117d01d427"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-10T22:29:36Z",
+    "closed": "2026-09-10T22:45:51Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "bdf33f32442f60bfa1dd8da6c80a19117d01d427",
+    "ref_sha": "bdf33f32442f60bfa1dd8da6c80a19117d01d427",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "e09313c1-cf0d-4e41-a797-0ef166e43c9a",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/e09313c1-cf0d-4e41-a797-0ef166e43c9a.jsonl"
+  },
+  "session": {
+    "id": "e09313c1-cf0d-4e41-a797-0ef166e43c9a",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/e09313c1-cf0d-4e41-a797-0ef166e43c9a.jsonl",
+    "stream_sha256_at_close": "57e365999f5b2ef1f53f9d6997cd0e8e591cad3552ae0367ea40d6fca2dfe062",
+    "spend": {
+      "input": 450,
+      "cached": 2478383,
+      "output": 75205,
+      "total": 2554038,
+      "source": "result.usage",
+      "messages": 15,
+      "cost_usd": 10.051499
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. Read in/scope-gate-20260910.md and in/scope-discipline.md WHOLE; the numbered Contract items there are the requirements and nothing else is. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "6fab8e10e36781137c4ab3c5179524cfe3bb88e582b218828a85ad6b306b977a",
+    "bytes": 3009
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T22:29:36Z",
+      "ended": "2026-09-10T22:45:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bdf33f32442f60bfa1dd8da6c80a19117d01d427",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:33,2509-2511",
+          "claim": "Every launcher refusal exits 3 with a `launch.py: refusal:` prefix, off the founding wire; contract item 3 demands exit 2 and a bare line. The plan puts only the new `correction` refusal on the wire (dedicated except path) and declares the divergence in the CONTRACT.md refusal table; reconciling the rest is outside this work order.",
+          "reproduce": "grep -n 'REFUSAL = \\|launch.py: refusal' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:1375-1380,894-921",
+          "claim": "The driver hands one derived test command to every code bucket and stops when a landed path is outside the bucket, so an M slice whose second bucket has red tests of its own cannot pass its first implement stage. The scope declared M as two S buckets; the plan declines M and declares five S slices, each its own ladder run and PR.",
+          "reproduce": "sed -n '1375,1380p;894,921p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_instrument_conventions.py:232",
+          "claim": "The conformance gate pins findings.py to exactly two registry rows and admits only tools under ops/conductor/tools/, so the gate can be neither a findings.py verb nor a launch.py row; the plan makes it a new instrument ops/conductor/tools/correction.py with its own registry file (item 10).",
+          "reproduce": "sed -n '200p;232p;256p' ops/conductor/tests/test_instrument_conventions.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/record.py:133-134; launch.py _write_record callers",
+          "claim": "validate requires every FIELDS entry and re-runs on loaded records at settle, resume, collect and close; a required `answers` field would break closing every record minted before it. The plan tolerates absence and declares it in CONTRACT.md as a dated fact.",
+          "reproduce": "grep -n '_write_record(' ops/devlane/dispatch/launch.py; sed -n '131,135p' ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh (--follows handling) and ladder.py:584,1011-1014",
+          "claim": "dispatch.sh keeps one --follows (last wins) and the driver passes only the adversarial id for fix stages while handing audit record JSON as inputs, so fix-code is not a correction by item 1's mechanical shape today; the plan makes --follows repeatable and has the driver pass both audit ids plus --answers per key.",
+          "reproduce": "grep -n 'follows' ops/conductor/tools/dispatch.sh ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out/PLAN.md \u00a75 A11-A13, A15, A19",
+          "claim": "Not measured in this job: the runner host toolchain, network absence, the isolated home contents (sandbox refused the probes) and the 532 open rows (store not to be read); these rest on ci.yml, CONTRACT.md and the scope. The snapshot git directory measured writable, not read-only as the brief says.",
+          "reproduce": "test -w .git && echo writable; cat .github/workflows/ci.yml"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260910T222935Z-plan-claude-69ad8e/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2554038,
+        "out": 75205,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "bdf33f32442f60bfa1dd8da6c80a19117d01d427",
+        "started": "2026-09-10T22:29:35Z",
+        "ended": null
+      },
+      "note": "Plan written for the uncited-correction gate: five S slices in order gate-contracts, ledger-gate, dispatcher-answers, launcher-mint, ladder-stop, each its own PR. Design fixed as data: --answers KEY field; correction.py instrument registered in ops/conductor/registry; citation grammar `contract item N of PATH` in findings.py with a `cited` verb; gate refusal class `correction` at exit 2 before mint; record field `answers`; driver stop reason `undisposed`. Walkthrough traces slice 1's ladder and the gate's first firing. Interim declared: until ladder-stop lands, a fix round is hand-dispatched through dispatch.sh with --answers. Snapshot unchanged."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

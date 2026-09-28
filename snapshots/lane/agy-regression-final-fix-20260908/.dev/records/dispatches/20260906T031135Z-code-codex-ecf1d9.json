@@ -1,0 +1,238 @@
+{
+  "id": "20260906T031135Z-code-codex-ecf1d9",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "b661a380e530eec06f895bb9a18ef9006b58eb15"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:11:35Z",
+    "closed": "2026-09-06T03:14:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b661a380e530eec06f895bb9a18ef9006b58eb15",
+    "ref_sha": "b661a380e530eec06f895bb9a18ef9006b58eb15",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-11-36-01a074b3-333e-7560-a2fc-8e0a44cf3cf8.jsonl"
+  },
+  "session": {
+    "id": "01a074b3-333e-7560-a2fc-8e0a44cf3cf8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-11-36-01a074b3-333e-7560-a2fc-8e0a44cf3cf8.jsonl",
+    "stream_sha256_at_close": "afd5e31cc6ddf0c022d838ec54567bd96ae1edb7407d52ca1c64870f422d0e78",
+    "spend": {
+      "input": 539814,
+      "cached": 484224,
+      "output": 5545,
+      "total": 545359,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-11-36-01a074b3-333e-7560-a2fc-8e0a44cf3cf8.jsonl",
+      "messages": 89
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply the three accepted findings from Claude 104942 using lane-policy-final-ruling.md. Only lane-policy.md and ops/lane-policy.json: protect the actual dispatch body and ladder shim, define admission/standing-grant rotation with its case, and state note-induced digest mismatch versus unchanged authority with fresh-bind case. Preserve ordinary tooling, no repeated owner acts for covered jobs, and all prior contract decisions. D-LANES-1 is semantic owner evidence, not runtime admission. Acceptance command: git diff --check; strict JSON and changed cases/links also pass. No source/tests/settings/host/DB/network edits, activation, new architecture or history rewrite. Plain commit prose and actual-model provenance. Narrow independent recheck follows.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/in/lane-policy-final-ruling.md",
+        "sha256": "978eb58c7f0a029543a93837c1ec0a933cdfcdaf5ee39b6b3c5b0a249b1d94f2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T031135Z-code-codex-ecf1d9/in/20260906T025705Z-review-claude-104942.json",
+        "sha256": "590f44099784cd3f3598c3109e6274f78282b39428934817412cab6b312fc91b"
+      }
+    ],
+    "sha256": "38a25413458bbd19f29036fafae35db546429f21058a8f05a83e7a21608d0432",
+    "bytes": 4603
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:11:35Z",
+      "ended": "2026-09-06T03:14:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "680714dd8d6bd5c50d611b4ca32c64715c696f9f",
+    "changed_paths": [
+      "ops/conductor/lane-policy.md",
+      "ops/lane-policy.json"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 12,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed the requested base and initially clean tree.",
+          "reproduce": "pwd; rg --files -g AGENTS.md -g '*.md' docs ../in | sort; git status --short; git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions and supplied ruling",
+          "claim": "Read the founding contracts, lane instructions and final ruling; located the supplied review.",
+          "reproduce": "cat ../in/lane-policy-final-ruling.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md; cat AGENTS.md ops/README.md; rg --files -g AGENTS.md -g '*lane-policy*' -g '*104942*' . ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "supplied Claude review and policy",
+          "claim": "Inspected the three accepted findings and existing policy contract/data.",
+          "reproduce": "cat ../in/20260906T025705Z-review-claude-104942.json; cat ops/conductor/lane-policy.md ops/lane-policy.json"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md and policy authority",
+          "claim": "Read the application mapping and existing policy authority rules.",
+          "reproduce": "cat docs/mapping.md; sed -n '1,220p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "policy acceptance and review",
+          "claim": "Read the acceptance cases, lifecycle obligations and review conclusion.",
+          "reproduce": "sed -n '221,470p' ops/conductor/lane-policy.md; sed -n '355,470p' ../in/20260906T025705Z-review-claude-104942.json"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch and ladder entrypoints",
+          "claim": "Confirmed the dispatch body and ladder shim are tracked; inspected their routing and existing provenance.",
+          "reproduce": "sed -n '1,220p' ops/conductor/lane-policy.md; tail -n 12 ../in/20260906T025705Z-review-claude-104942.json; cat ops/bin/dispatch.sh ops/bin/ladder.sh; rg -n 'lane.policy|D-LANES-1|D-SYM-1' ops/devlane/dispatch/CONTRACT.md ops/conductor/decisions*; git ls-files ops/conductor/tools/dispatch.sh ops/bin/ladder.sh; git log -3 --format='%h %s%n%b'"
+        },
+        {
+          "severity": "p3",
+          "where": "existing dispatch coupling",
+          "claim": "The existing coupling remains consistent with the bounded corrections; no coupling edit was needed.",
+          "reproduce": "sed -n '410,455p' ops/devlane/dispatch/CONTRACT.md; sed -n '214,230p' ops/conductor/lane-policy.md; cat .dev/ladder-inputs/lane-policy-final-ruling.md"
+        },
+        {
+          "severity": "p3",
+          "where": "two-file policy delta",
+          "claim": "Inspected the complete change: exact path protection, rotation rule, note/digest distinction, and N7/R4/R5 cases.",
+          "reproduce": "git diff --check; git diff --stat; git diff -- ops/conductor/lane-policy.md ops/lane-policy.json"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/check_policy.py",
+          "claim": "Scratch static verification exited 0: strict JSON, exact additions, unchanged prior cases, changed cases/link and two-file scope passed.",
+          "reproduce": "python3 ../out/check_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Commit preparation failed because the sandbox makes .git read-only. The attributed message is available for the launcher.",
+          "reproduce": "git add -- ops/conductor/lane-policy.md ops/lane-policy.json && git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "The named acceptance command exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree and output artifacts",
+          "claim": "Confirmed only the two authorized repository files changed. Final policy SHA-256 values are bce429d5f6fb43fcf09b67894f1e9ab71f734ad19cefae820b6cacd1637c6304 and e656af4242f0c635008c6654402c1f0730ed145f7739cc47bc6dc2145299c438.",
+          "reproduce": "git status --short; git rev-parse HEAD; sha256sum ops/conductor/lane-policy.md ops/lane-policy.json ../out/check_policy.py ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/conductor/lane-policy.md",
+        "data": "ops/lane-policy.json",
+        "static_check": "../out/check_policy.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 545359,
+        "out": 5545,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b661a380e530eec06f895bb9a18ef9006b58eb15"
+      },
+      "note": "Implemented all three accepted findings as inert contract/data corrections. Ordinary tooling and prior cases remain intact; covered jobs require no repeated owner act. D-LANES-1 is semantic evidence only. Findings record command observations, not outstanding defects. Acceptance passed; independent narrow recheck follows. Sandbox prevented committing, so the launcher must use out/COMMIT_MSG.",
+      "commit": {
+        "subject": "Complete the three accepted lane policy corrections",
+        "body": "Protect the dispatch body and ladder shim while preserving ordinary tooling\naccess. Define standing grant rotation through a fresh ratified admission and\nan anchor update verified by the previously trusted consumer and reader.\n\nDistinguish note-induced digest mismatch from unchanged grant authority, with\nfresh dispatch binding and no repeated owner decision for covered work. Add\nthe rotation and fresh binding cases and retain D-LANES-1 as semantic evidence.\n\ngit diff --check, strict JSON, changed static cases and the ruling link pass.\nOnly the policy contract and data change. Independent narrow recheck follows.\n\nSource: original\nSource: owner 2026-09-05\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T03:14:57.815Z"
+    }
+  },
+  "status": "closed"
+}

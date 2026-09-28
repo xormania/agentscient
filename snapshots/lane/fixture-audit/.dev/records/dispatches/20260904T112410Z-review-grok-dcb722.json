@@ -1,0 +1,231 @@
+{
+  "id": "20260904T112410Z-review-grok-dcb722",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-audit",
+  "lineage": {
+    "branch": "lane/fixture-audit",
+    "base_sha": "b090783157ab0b861782a0fab99f31621042d514"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T11:24:10Z",
+    "closed": "2026-09-04T11:44:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b090783157ab0b861782a0fab99f31621042d514",
+    "ref_sha": "b090783157ab0b861782a0fab99f31621042d514",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "fa196634-15c6-4853-bf37-ff2e551e9075",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok-stream/sessions/<snapshot-encoded>/fa196634-15c6-4853-bf37-ff2e551e9075/summary.json"
+  },
+  "session": {
+    "id": "fa196634-15c6-4853-bf37-ff2e551e9075",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok-stream/sessions/<snapshot-encoded>/fa196634-15c6-4853-bf37-ff2e551e9075/summary.json",
+    "stream_sha256_at_close": "a97115f179c1cab53885dd44a9adad4030b30717e9af3b497052cfcc1eadd2bf",
+    "spend": {
+      "input": 6789045,
+      "cached": 5527808,
+      "output": 151786,
+      "total": 6940831,
+      "cost_usd_ticks": 14348922760,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/home/grok-stream/sessions/<snapshot-encoded>/fa196634-15c6-4853-bf37-ff2e551e9075/summary.json",
+      "messages": 545
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-audit/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Adversarial review of the fixture batch (the lever, the fault kinds, five fixture apps, findings.py calibrate), merged on dev at 2c49bca; the change under review is the diff from 9af6680 restricted to the batch's files named in the input file, with the scope, the plans and the session's review notes. Judge the batch against the scope's \"what makes them good\" and the plans' acceptance: whether each planted fault is where its manifest says and its probe proves it by behaviour, whether every clean neighbour is clean, whether prove --fixed proves the fix and only the fix, what the lane tests let through, what a reviewer's catch rate on these apps would actually measure, and what the first real audit through the lever will hit. Findings as quotation pairs with file and line, priority P1 to P3; opinions marked as such.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112410Z-review-grok-dcb722/in/contract-fixture-batch-audit.md",
+        "sha256": "8a13dec19b2595d2472cbec89a44f69cedbdacfa1798c3b9c2ef29fe22bdca3c"
+      }
+    ],
+    "sha256": "ac7869b8d934b24ab882a1602eb86c9fd80b7150fc52b4ebad3ef3270a2f4726",
+    "bytes": 3132
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T11:24:10Z",
+      "ended": "2026-09-04T11:44:53Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b090783157ab0b861782a0fab99f31621042d514",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 8,
+        "p3": 3,
+        "opinions": 1
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/apps/rust-crate/probes/rc01.sh:2-4",
+          "claim": "Declared: `command -v cargo >/dev/null || exit 127` so a missing toolchain is UNREACHABLE. Practiced: `/home/scientdb/.cargo/bin/cargo` is a rustup shim, `command -v cargo` succeeds, then `cargo test`/`cargo run --example` exit 1 with `rustup could not choose a version of cargo to run`; `fixture.sh` probe() treats only 126/127/signals as UNREACHABLE, so RC-01..RC-06 colour RED and `prove` exits 0 (`red=7 unreachable=0`) without compiling or running the planted code. The same shape is in rc02.sh..rc06.sh. Manifest `toolchain.ready` is `cargo metadata --offline`, which these probes never run.",
+          "reproduce": "command -v cargo; cargo --version; cd ops/devlane/fixtures/apps/rust-crate && sh -x probes/rc01.sh; echo rc01_exit=$?; python3 ops/bin/fixture.sh prove ops/devlane/fixtures/apps/rust-crate"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/bin/fixture.sh:407-408",
+          "claim": "Declared: grade classifies by `path:start-end` span overlap with each fault's app-relative `location`. Practiced: `overlap` requires `left[0] == right[0]` with no prefix strip. A finding at `ops/devlane/fixtures/apps/python-tooling/tool/cli.py:17` (this batch-audit tree) does not overlap manifest `tool/cli.py` lines 17-17, so it is unmatched and every fault is missed. `tool/cli.py:17` would catch PT-01. The first `grade` of this ladder audit against the manifests therefore writes caught/faults=0 even when the reviewer pointed at the planted line.",
+          "reproduce": "python3 -c \"import re; SPAN=re.compile(r'^(?:(?P<path>[^:]+):)?(?P<start>\\\\d+)(?:-(?P<end>\\\\d+))?$');\\nraw='ops/devlane/fixtures/apps/python-tooling/tool/cli.py:17'; m=SPAN.fullmatch(raw); loc=('tool/cli.py',17,17); got=(m.group('path'),int(m.group('start')),int(m.group('end') or m.group('start'))); print(got, got[0]==loc[0])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/bin/fixture.sh:118-126",
+          "claim": "Declared acceptance: `fixture.sh make python-tooling` (and the other apps) produces a scratch the suites can run. Practiced: make refuses `conf: expected FIXTURE_COPY_LIST naming a readable copy list; found unset` and the tree has no tracked copy-list file (laneconf.py only names the env key; the nine-path list lives only in the lane tests). The first real make for a calibration review hits that refusal.",
+          "reproduce": "WF_AGENT='Grok 4.6 <noreply@x.ai>' ops/bin/fixture.sh make python-tooling /tmp/fixture-make-probe; echo exit=$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/findings.py:228-244",
+          "claim": "Declared: writing verbs require `WF_AGENT` in Name <address> form. Practiced: `do_export` never calls `identity()`, and `export --calibration` writes `ops/conductor/findings/calibration.jsonl` into the invoking repository; `test_findings_calibration.py` pins that write with `agent=None`. A read-looking verb mutates the tree.",
+          "reproduce": "python3 -c \"import pathlib; p=pathlib.Path('ops/conductor/tools/findings.py').read_text().splitlines(); print(p[227]); print(p[240:243]); print('identity' in ''.join(p[227:248]))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/bin/fixture.sh:443-445",
+          "claim": "Declared in the refusal: `expected a security-audit or adversarial-review record`. Practiced: `review_jobs = {\"check-tests\", \"security-audit\", \"adversarial-review\"}` and `test_check_tests_is_a_review_job` requires exit 0, so a skeptic envelope can be written into the calibration table as catch rates against fixture manifests.",
+          "reproduce": "python3 -c \"import pathlib; t=pathlib.Path('ops/bin/fixture.sh').read_text(); i=t.index('review_jobs'); print(t[i:i+420])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/python-tooling/README.md:9-21",
+          "claim": "Declared: catch rates measure whether a reviewer finds planted faults and passes clean neighbours. Practiced: every app README labels the plants (`PT-01:` \u2026 `PT-07:` and the same on PS/SA/RC); the lane tests' copy list starts with `ops/devlane/fixtures/apps/FAULT-KINDS.md`, so a made scratch ships the taxonomy; adjacent twins are named `run_helper`/`run_helper_safely`, `record_path`/`checked_record_path`, `write_failure_log`/`write_safe_log`; `grade` never reads `visible_to`, so audit-only and test-only rows share one caught/faults ratio. A security-audit catch rate on these apps measures following the answer key and emitting an app-relative `path:line`, not unprompted detection on a target.",
+          "reproduce": "sed -n '9,21p' ops/devlane/fixtures/apps/python-tooling/README.md; sed -n '83,93p' ops/devlane/fixtures/tests/test_python_tooling_app.py; python3 -c \"import pathlib; t=pathlib.Path('ops/bin/fixture.sh').read_text(); print('visible_to' in t[427:533])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/symfony-app/FAULTS.json:9-11",
+          "claim": "Declared: `\"K9\": \"K9 is absent because the Symfony dependencies are pinned and locked.\"` Practiced in `composer.json`: `\"symfony/flex\": \"^2\"` and `\"phpunit/phpunit\": \"^13.3\"` (and phpunit-bridge is `8.1.*` only). The first security audit of this app will flag those ranges; grade will class them unmatched; the not_planted reason is false.",
+          "reproduce": "python3 -c \"import json,pathlib; d=json.loads(pathlib.Path('ops/devlane/fixtures/apps/symfony-app/FAULTS.json').read_text()); print(d['not_planted']); c=json.loads(pathlib.Path('ops/devlane/fixtures/apps/symfony-app/composer.json').read_text()); print(c['require']['symfony/flex'], c['require-dev']['phpunit/phpunit'])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/rust-crate/src/store.rs:75-80",
+          "claim": "Declared (README RC-05): `An unreadable or corrupt store is reported as an error, never served as empty.` Practiced: only the IO arm is `Err(_) => Ok(Vec::new())`; a corrupt line takes `Ok(body)` and `parse_record` already returns `Err(StoreError::Invalid)`. The probe `probes/rc05.rs` creates a directory and asserts `!read_records(&path).is_ok()`, so it proves the IO swallow, not corrupt content. The quotation pair overclaims.",
+          "reproduce": "sed -n '74,90p' ops/devlane/fixtures/apps/rust-crate/src/store.rs; cat ops/devlane/fixtures/apps/rust-crate/probes/rc05.rs; sed -n '21p' ops/devlane/fixtures/apps/rust-crate/README.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/rust-crate/probes/rc01.sh:3-4",
+          "claim": "Declared (Cargo.toml `[[test]]` name `rc01`, path `probes/rc01.rs`, `harness = true`; plan: `cargo test --offline --locked --test rcNN`). Practiced: `probes/rc01.rs` is `fn main` with no `#[test]`; the sh has no `set -e`, so `cargo test --test rc01` status is discarded and colour is `cargo run --example rc01` via `examples/rc01.rs` (`include!(\"../probes/rc01.rs\")`). Prove does not run the test target the manifest shape names. Same for rc02..rc06.",
+          "reproduce": "printf '%s\\n' '--- sh ---' && cat ops/devlane/fixtures/apps/rust-crate/probes/rc01.sh && printf '%s\\n' '--- probe ---' && head -5 ops/devlane/fixtures/apps/rust-crate/probes/rc01.rs && printf '%s\\n' '--- example ---' && cat ops/devlane/fixtures/apps/rust-crate/examples/rc01.rs && python3 -c \"import tomllib,pathlib; t=tomllib.loads(pathlib.Path('ops/devlane/fixtures/apps/rust-crate/Cargo.toml').read_text()); print(t.get('test', t))\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/apps/symfony-app/probes/RecordingLogger.php:11-14",
+          "claim": "Declared (plan): SA-04 logs `['environment' => getenv()]` as logger context. Practiced: `RecordingLogger::log` appends only `(string) $message` and drops `$context`. The landed plant concatenates `json_encode($_ENV)` into the message, so Sa04Test still sees `fixture-secret` in `$_ENV`; a context-array K4 would be GREEN while planted.",
+          "reproduce": "sed -n '11,14p' ops/devlane/fixtures/apps/symfony-app/probes/RecordingLogger.php; sed -n '28,31p' ops/devlane/fixtures/apps/symfony-app/src/Service/Ledger.php; sed -n '13,18p' ops/devlane/fixtures/apps/symfony-app/probes/Sa04Test.php"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/apps/python-tooling/probes/pt01.py:5-8",
+          "claim": "Declared: probes prove the plant and leave the fixture tree as they found it. Practiced: `marker = Path(\"pt01-shell-marker\")` then `run_helper(f\"literal; touch {marker}\")` with no final unlink; `prove` on the app left an untracked `pt01-shell-marker` in the app root (removed after observation).",
+          "reproduce": "python3 -c \"from pathlib import Path; print(Path('ops/devlane/fixtures/apps/python-tooling/probes/pt01.py').read_text())\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh:49-49",
+          "claim": "Declared: both the lever and `findings.py calibrate` require `WF_AGENT` as Name <address>. Practiced: fixture.sh `IDENTITY` is `^(.+?) <([^<>\\s]+)>$` (no `@`); findings.py is `^[^<>]+ <[^<>@\\s]+@[^<>@\\s]+>$`. `grade` can accept `Name <noreply>` then abort at calibrate (exit 3).",
+          "reproduce": "python3 -c \"import pathlib,re; print([ln for ln in pathlib.Path('ops/bin/fixture.sh').read_text().splitlines() if 'IDENTITY' in ln][0]); print([ln for ln in pathlib.Path('ops/conductor/tools/findings.py').read_text().splitlines() if 'IDENTITY' in ln][0])\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh:352-353",
+          "claim": "Opinion: `prove --fixed` is classified as a read and applies every patch with no identity (`if fixed: patch_fixture(...)`), then requires every probe GREEN together. It does not prove the fix and only the fix; that isolation is only in the app lane tests. Those tests passed for python-tooling and python-service (each own probe GREEN, others RED). The lever itself still has no such check.",
+          "reproduce": null
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 6940831,
+        "out": 151786,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b090783157ab0b861782a0fab99f31621042d514",
+        "started": "2026-09-04T11:24:10Z",
+        "ended": "2026-09-04T11:43:42Z"
+      },
+      "note": "Python-tooling and python-service: every FAULTS.json quote is verbatim at its span; neighbours do not overlap locations; all seven probes RED planted; each fix alone GREEN for that probe and RED for the others; all seven GREEN after every patch; python-tooling unittest still OK after all fixes. SA-07 and RC-07 RED as greps. SA-01 without vendor exits 127 (UNREACHABLE). Could not run SA-01..SA-06: vendor absent, `COMPOSER_DISABLE_NETWORK=1 composer install` failed (cold cache in this home). Could not compile rust-crate: rustup shim on PATH, no default toolchain; clippy --all-targets colour therefore not measured. Grade of a record with model.ran=null refuses `incomplete envelope` before calibrate. prove --fixed on rust/php not re-run here."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T11:44:52.740Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"remove deps","violates":"required field","reject_path":"registry.absent-key","site":["capabilities",0,"deps"],"omitted_keys":[]}

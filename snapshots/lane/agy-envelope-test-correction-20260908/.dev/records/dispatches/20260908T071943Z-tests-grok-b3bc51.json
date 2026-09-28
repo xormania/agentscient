@@ -1,0 +1,172 @@
+{
+  "id": "20260908T071943Z-tests-grok-b3bc51",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-envelope-test-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-envelope-test-correction-20260908",
+    "base_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:19:43Z",
+    "closed": "2026-09-08T07:32:50Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "ref_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f83a94a8-d1b1-4ef7-8c35-08aab13fdeb6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok-stream/sessions/<snapshot-encoded>/f83a94a8-d1b1-4ef7-8c35-08aab13fdeb6/summary.json"
+  },
+  "session": {
+    "id": "f83a94a8-d1b1-4ef7-8c35-08aab13fdeb6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok-stream/sessions/<snapshot-encoded>/f83a94a8-d1b1-4ef7-8c35-08aab13fdeb6/summary.json",
+    "stream_sha256_at_close": "e17f1694e023bb52ffc8a655d754d7e12b887ca5c33f79a55b16518e6e7db578",
+    "spend": {
+      "input": 2457320,
+      "cached": 2305536,
+      "output": 46500,
+      "total": 2503820,
+      "cost_usd_ticks": 2950071200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/home/grok-stream/sessions/<snapshot-encoded>/f83a94a8-d1b1-4ef7-8c35-08aab13fdeb6/summary.json",
+      "messages": 218
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-envelope-test-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only test_agy_envelope.py and agy_envelope_support.py under ops/devlane/dispatch/tests, applying the supplied five GPT-6 rulings minimally. No production/parser source reads or edits. Keep existing cases; replace mixed bare-JSON success with stream rejection, test missing required vendor status without inventing enums, loosen undeclared cause vocabulary, remove tuple coercion, and use bounded decoy-free reject variants with valid controls. Avoid duplicating large fixtures. Vendor status-only failure coverage remains explicitly unresolved pending measured enum. Acceptance: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py, zero collection/errors with honest red assertions, ruff check on both files, git diff --check. Preserve original receipts, report actual counts/exits and hash exact tests. Standard trailers name Grok 4.6. No vendor calls, credentials or full floor.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/in/agy-envelope-test-adjudication.json",
+        "sha256": "83313ba29315dd0eb01b75f4f3919c19fb9a9627362cfb2f28916d33dc30182a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/in/agy-envelope-test-review.json",
+        "sha256": "eaa2a028ac24224d14133edbb50fa2932d06d9161575b5643fa2c6019cdc2961"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071943Z-tests-grok-b3bc51/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      }
+    ],
+    "sha256": "95924e9c8893a501f0f6f35a76e23b2968bbb96ad4b48d26255732e17afa5b2c",
+    "bytes": 3263
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:19:43Z",
+      "ended": "2026-09-08T07:32:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "5f8819fa7944792fbced7ad269bc28665a019f68",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/agy_envelope_support.py",
+      "ops/devlane/dispatch/tests/test_agy_envelope.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "original_receipts": "Preserved from the supplied Claude cf729ae review, not re-run as a substitute: python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' at cf729ae7c1c2d1fcc08ef6c936b558c435641228 recorded Ran 21, 19 FAIL, 2 PASS, 0 ERROR, exit 1; legacy neighbors test_launch_envelope*.py Ran 58 OK exit 0; ruff check on both files at ruff 0.16.5 exit 0.",
+        "unittest": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py at 5f8819fa7944792fbced7ad269bc28665a019f68: Ran 32, 30 FAIL, 2 PASS, 0 ERROR, exit 1. Zero collection/import errors. The 2 PASS are the legacy omitted-harness and grok controls. All 30 failures are AssertionError. New/changed cases were also run one-at-a-time via discover -k (1 ran, 1 FAIL, exit 1 each).",
+        "lint": "ruff check ops/devlane/dispatch/tests/test_agy_envelope.py ops/devlane/dispatch/tests/agy_envelope_support.py at 5f8819fa7944792fbced7ad269bc28665a019f68, ruff 0.16.5 under tracked ruff.toml: All checks passed, exit 0.",
+        "diff_check": "git diff --check at 5f8819fa7944792fbced7ad269bc28665a019f68: no output, exit 0. git status --porcelain empty.",
+        "files": "ops/devlane/dispatch/tests/test_agy_envelope.py SHA256=0aa36d7cd000c7b5a91f519a24b17def1f8e93825f69a360e1d37d6ba88fb91d; ops/devlane/dispatch/tests/agy_envelope_support.py SHA256=d3bb7333ad761666f87a4d56ddba6cc73af8abfd7cc7dae7ec0419872a477e64.",
+        "commits": "c160647ed2548b9e42728508519f2bc118bff18c agy_envelope_support.py; 5f8819fa7944792fbced7ad269bc28665a019f68 test_agy_envelope.py. Both carry Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>; git interpret-trailers --parse exit 0.",
+        "head": "5f8819fa7944792fbced7ad269bc28665a019f68 on detached HEAD from assigned tree cf729ae7c1c2d1fcc08ef6c936b558c435641228.",
+        "limits": "Did not read launch.py or other parser implementation. No vendor calls, credentials, session-store reads, or full floor. Onboard measured three absences (decision store, handwork store, dispatch dir). skills.py log-use refused: no skill onboard/tdd/dev-lane in the isolated registry (looked; sync was not run)."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2503820,
+        "out": 46500,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+        "started": "2026-09-08T07:19:43Z",
+        "ended": "2026-09-08T07:32:14Z"
+      },
+      "note": "Five GPT-6 rulings applied on the two named test files only. Mixed bare-JSON success is now stream rejection; missing required vendor status is planted without invented enums; truncated/malformed cause tokens were dropped; parse() returns a dict with no tuple unwrap; decoy-free reject variants sit beside valid terminal controls. Vendor status-only failure coverage remains explicitly unresolved pending a measured enum."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:32:49.648Z"
+    }
+  },
+  "status": "closed"
+}

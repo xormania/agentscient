@@ -1,0 +1,7 @@
+# Policy record implementation remains pending
+
+GPT-6 implementation `20260906T035757Z-code-codex-e647ab` is present on the private working branch at `612a8c7c6e094dcaded39e4e3adabb2a0008ff54` for correction and independent review. This is not accepted delivery: all 96 focused tests pass, but `bash ops/bin/suites.sh` exits one on `test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree`, rejecting the contract-required schema literal at record.py lines 70 and 71. The canonical envelope explicitly states that gate failure. Tests remain unchanged.
+
+The independent implementation reviewer should assess the record behavior and the two accepted direct probes now, recording the known gate failure separately. A bounded GPT-6 planning dispatch will identify the existing exact protocol-literal allowance mechanism and the independent test coverage needed for its correction. The published lane-mcp-lever.md precedent permits exact declaration lines only and forbids directory exemptions and name encoding. It is not a blanket exception for another module.
+
+No full-suite success, runtime activation or completed code acceptance is claimed until the guard correction and independent checks pass. Neither worker may weaken the guard, obscure the protocol identifier or alter frozen tests merely to obtain green. The next correction remains subject to the existing contract and independent review.

@@ -1,0 +1,230 @@
+{
+  "id": "20260906T033535Z-code-codex-fc287c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "ced38064d8bdd0325a022d2369602e5b34853be2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:35:35Z",
+    "closed": "2026-09-06T03:38:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ced38064d8bdd0325a022d2369602e5b34853be2",
+    "ref_sha": "ced38064d8bdd0325a022d2369602e5b34853be2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-35-36-01a074c9-2d26-7d83-ad75-362ac6a8b8cb.jsonl"
+  },
+  "session": {
+    "id": "01a074c9-2d26-7d83-ad75-362ac6a8b8cb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-35-36-01a074c9-2d26-7d83-ad75-362ac6a8b8cb.jsonl",
+    "stream_sha256_at_close": "9a7417053ac4094669f7f59d6fe04089e724385fe05ca630a8eadd44a41b07d5",
+    "spend": {
+      "input": 538260,
+      "cached": 480256,
+      "output": 5595,
+      "total": 543855,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-35-36-01a074c9-2d26-7d83-ad75-362ac6a8b8cb.jsonl",
+      "messages": 88
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only the three accepted clarity findings in launch-c2-clarity-ruling.md to ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md. Preserve Claude d157c6 approval's tested semantics and contract-only boundary. Make actual extra-grant equality explicit beyond capability intersection, distinguish admitted scratch from transport reservations, and declare intentional exact rendered absolute-handle equality without retroactive record rejection. No runtime/code/tests/jobs/prompts/settings/host/DB/network/vendor changes or activation. Acceptance: git diff --check and focused touched-prose/example consistency checks; report exact commands, ref and two-file scope. Commit plain prose with Source and actual-model Co-Authored-By trailers; no wrapped trailer-shaped prose. Independent narrow recheck follows.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/in/launch-c2-clarity-ruling.md",
+        "sha256": "766004859e1548e6f492260f4dd26de8a62101dc6e987ead52f562454d3846f0"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/in/20260906T032507Z-review-claude-d157c6.json",
+        "sha256": "a1dac65490c1090b0a69cacf52ee991cddbca2000aa78d4481f3eb7a7b1f5698"
+      }
+    ],
+    "sha256": "b257832ea0387bd9258fef3fe1c40894b948d2c5cf4e5dcb64d0734577a3f784",
+    "bytes": 4669
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:35:35Z",
+      "ended": "2026-09-06T03:38:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2c50c779a27b6b139d35d55491fea69f4f1de2c3",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/task/CONTRACT.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 11,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed the requested base ref and initially clean tree; located the supplied ruling.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && rg --files -g AGENTS.md -g 'launch-c2-clarity-ruling.md' -g '*.md' docs ../in | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/launch-c2-clarity-ruling.md",
+          "claim": "Read the complete ruling. Combined repository-document output was truncated and followed by focused reads.",
+          "reproduce": "cat ../in/launch-c2-clarity-ruling.md docs/*.md ops/README.md && rg --files -g AGENTS.md -g '*CONTRACT*' ops/devlane/dispatch ops/devlane/task && cat ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and applicable AGENTS.md",
+          "claim": "Read founding contracts, lane instructions and applicable producer boundaries.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md ops/README.md && for p in AGENTS.md ops/AGENTS.md ops/devlane/AGENTS.md ops/devlane/dispatch/AGENTS.md ops/devlane/task/AGENTS.md; do if [ -f \"$p\" ]; then cat \"$p\"; fi; done"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Inspected admission, grant intersection and transport prose; truncated output was supplemented below.",
+          "reproduce": "cat ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the mapping; no dependency-version claims or changes were needed.",
+          "reproduce": "cat docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Read adoption dependencies and the preserved runtime baseline.",
+          "reproduce": "sed -n '300,760p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md",
+          "claim": "Read the complete task contract, contribution conventions and recent provenance trailers.",
+          "reproduce": "cat ops/devlane/task/CONTRACT.md && cat CONTRIB.md && git log -3 --format=full"
+        },
+        {
+          "severity": "p3",
+          "where": "two-contract working diff",
+          "claim": "Whitespace acceptance passed; inspected all changes and adjacent refusal prose.",
+          "reproduce": "git diff --check && git diff --stat && git diff -- ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md && sed -n '288,307p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "two-contract working diff",
+          "claim": "Focused checks passed: exactly two changed contracts, unchanged fenced examples and runtime baseline, consistent native rendering and transport/file/scratch separation.",
+          "reproduce": "python3 - <<'PY'\nimport json, re, subprocess\nfrom pathlib import Path\nbase = 'ced38064d8bdd0325a022d2369602e5b34853be2'\npaths = ['ops/devlane/dispatch/CONTRACT.md', 'ops/devlane/task/CONTRACT.md']\nassert subprocess.check_output(['git', 'diff', '--name-only', base], text=True).splitlines() == paths\nfor path in paths:\n    old = subprocess.check_output(['git', 'show', f'{base}:{path}'], text=True)\n    new = Path(path).read_text()\n    assert re.findall(r'```[^\\n]*\\n.*?```', old, re.S) == re.findall(r'```[^\\n]*\\n.*?```', new, re.S)\n    if '/dispatch/' in path:\n        assert old.split('### Attempt admission and custody', 1)[1] == new.split('### Attempt admission and custody', 1)[1]\n    else:\n        assert old.split('### C2 standing and declaration schema', 1)[0] == new.split('### C2 standing and declaration schema', 1)[0]\ntask = Path(paths[1]).read_text()\nnative = json.loads(re.findall(r'```json\\n(.*?)```', task, re.S)[2])\nrendered = 'Declared job outputs:\\n'\nfor entry in native['check-tests']:\n    p = json.dumps('/jobs/example/out/' + entry['path'])\n    if entry['kind'] == 'file':\n        rendered += f'Required file: {p}. Write a non-empty document; set artifacts[{json.dumps(entry[\"artifact\"])}] to {p}.\\n'\n    else:\n        rendered += f'Scratch subtree: {p}. Temporary work only; no artifact is required; TMPDIR is {p}.\\n'\nassert rendered in task\nfor entries in native.values():\n    names = [e['path'] for e in entries] + ['last-message.json', 'COMMIT_MSG']\n    assert len(names) == len(set(names))\n    assert not any(a.startswith(b + '/') for a in names for b in names if a != b)\nprint(f'PASS at {base} plus working diff: exactly two contracts; unchanged fenced examples and runtime baseline; native rendering and transport/file/scratch separation consistent.')\nPY\n git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Commit attempt exited 128 because the sandbox makes Git metadata read-only. Saved the same message for launcher commitment.",
+          "reproduce": "git commit --only -m 'contracts: Clarify exact output grants and handles' -m 'Apply the three accepted findings in launch-c2-clarity-ruling.md. Require actual extra authority to equal the declaration, distinguish admitted scratch from transport reservations, and declare intentional exact rendered absolute-handle equality for newly declared outputs while preserving historical records and the narrow inline exception.' -m 'Verified the findings by reading both contracts at ced38064d8bdd0325a022d2369602e5b34853be2 with cat ops/devlane/dispatch/CONTRACT.md and cat ops/devlane/task/CONTRACT.md. Acceptance: git diff --check and focused prose/example consistency checks. Only the dispatch and task contracts change; runtime adoption remains independent work.' -m 'Source: original\nCo-Authored-By: GPT-6 <noreply@openai.com>' -- ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final acceptance exited 0. Confirmed only the two authorized contracts changed; exported the patch and verified the fallback commit message.",
+          "reproduce": "git diff --check && git diff ced38064d8bdd0325a022d2369602e5b34853be2 --check && git rev-parse HEAD && git status --short && git diff --stat && git diff -- ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md > ../out/clarity.patch && cat ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/out/clarity.patch",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033535Z-code-codex-fc287c/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 543855,
+        "out": 5595,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ced38064d8bdd0325a022d2369602e5b34853be2"
+      },
+      "note": "Applied only the three accepted clarifications. Exact equality compares the decoded handle with the rendered absolute path value. Historical records, the narrow inline exception and runtime semantics remain preserved. No runtime activation or code/test changes. Findings record commands, not outstanding defects. Independent narrow recheck remains pending; launcher must commit because sandbox Git writes were refused.",
+      "commit": {
+        "subject": "contracts: Clarify exact output grants and handles",
+        "body": "Apply the three accepted findings in launch-c2-clarity-ruling.md. Require actual extra authority to equal the declaration, distinguish admitted scratch from transport reservations, and declare intentional exact rendered absolute-handle equality for newly declared outputs while preserving historical records and the narrow inline exception.\n\nVerified the findings by reading both contracts at ced38064d8bdd0325a022d2369602e5b34853be2 with cat ops/devlane/dispatch/CONTRACT.md and cat ops/devlane/task/CONTRACT.md. Acceptance: git diff --check and focused prose/example consistency checks. Only the dispatch and task contracts change; runtime adoption remains independent work.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T03:38:57.740Z"
+    }
+  },
+  "status": "closed"
+}

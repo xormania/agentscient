@@ -1,0 +1,1 @@
+Item 50 P2 only (23ee3d#3). write_path.py still enumerates verbs; Produce REVIEW in the repository is not a write path. Frozen: python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py

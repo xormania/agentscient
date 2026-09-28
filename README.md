@@ -1,12 +1,16 @@
 # Legacy records
 
-This branch consolidates 21 records, review, closeout, and recovery branches from Agentscient. Use [dev](https://github.com/uscient/agentscient/tree/dev) for current development.
+This branch consolidates 108 retired source branches from Agentscient: the original 21 records, review, closeout, and recovery branches plus 87 older development and review branches. Use [dev](https://github.com/uscient/agentscient/tree/dev) for current development.
 
 Each source is retained as an exact Git tree under `snapshots/<source-branch>/`. Full source trees keep records, evidence, saved patches, and their associated files together. Paths inside each snapshot retain their original structure. Separate snapshots preserve differing versions without overwriting them.
 
-All source commits are parents of the archive merge, so their complete histories remain reachable after their source branch names are deleted. This is an archival consolidation; the snapshots are not combined into one runnable application.
+All source commits are parents of archive consolidation commits, so their complete histories remain reachable after their source branch names are deleted. This is an archival consolidation; the snapshots are not combined into one runnable application.
 
-## Records index
+## Retired development branches
+
+The [retired branch index](retired-branches-2026-09-28.md) lists 87 additional source snapshots and their original commit IDs. The [cleanup manifest](cleanup-2026-09-28.json) also records 12 completed branches whose history is already retained in `dev`. Only exact recorded heads are eligible for deletion; active work and new branches are excluded.
+
+## Original records index
 
 The 13 branches marked **unmerged records** had only record/evidence changes relative to their merge base with `dev`. The other eight were already merged and were retained for their record or recovery material; some also contain earlier source changes.
 

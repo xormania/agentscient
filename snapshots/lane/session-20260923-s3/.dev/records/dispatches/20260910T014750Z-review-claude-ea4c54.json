@@ -1,0 +1,258 @@
+{
+  "id": "20260910T014750Z-review-claude-ea4c54",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/collect-recovery-20260910",
+  "lineage": {
+    "branch": "lane/collect-recovery-20260910",
+    "base_sha": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:47:51Z",
+    "closed": "2026-09-10T01:51:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "ref_sha": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "a78c7d69-a3aa-4766-8c1f-84bb34a06a4f",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/a78c7d69-a3aa-4766-8c1f-84bb34a06a4f.jsonl"
+  },
+  "session": {
+    "id": "a78c7d69-a3aa-4766-8c1f-84bb34a06a4f",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/a78c7d69-a3aa-4766-8c1f-84bb34a06a4f.jsonl",
+    "stream_sha256_at_close": "73c40ab5d6c826b0fb5fc07b568ccdebc04fe5c512714882e94b0a5f8159742b",
+    "spend": {
+      "input": 32,
+      "cached": 1351603,
+      "output": 14237,
+      "total": 1365872,
+      "source": "result.usage",
+      "messages": 16,
+      "cost_usd": 1.9611670000000003
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Final independent acceptance of only two implemented process repairs at955e0a9 (current HEAD differs only by retained review record): collect committed failed write results; normalize canonical transient launcher logs in test guard. Read ../in/process-code-acceptance.md. Find demonstrated reachable contract violations only; no scope expansion or fresh test inventory.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/in/process-code-acceptance.md",
+        "sha256": "7ffeb9fcd176bd86e3f4e9ffd5585c924dfe45a891f81086b20d41a195100035"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/in/process-repairs-suites.json",
+        "sha256": "a4b903bf37120e825d374fb3ff424a5f15c1b87ce63b437acb8c5d81c9115077"
+      }
+    ],
+    "sha256": "abbc8cb1f82305c28d3816820cc0ddd63e1e08fa6e0d5f1db48c245033bc4458",
+    "bytes": 2171
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:47:51Z",
+      "ended": "2026-09-10T01:51:44Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "20260910T014750Z-review-claude-ea4c54",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "SKEPTIC.md": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014750Z-review-claude-ea4c54/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1365872,
+        "out": 14237,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+        "started": null,
+        "ended": null
+      },
+      "note": "Security audit of the two process repairs (launch.py _collect committed-recovery arm + CONTRACT.md extension; test_onboard_lever.py _without_new_job_dirs launcher-log normalization + teardown), plus the two independent test files and four dispatch records added between 20f9bca and b3f792d. Zero reachable security contract violations found; verdict approve. Categories exercised and clean: (1) injection \u2014 verify runs bash -c on the operator-supplied, required --verify arg (launch.py:2244,2437), not record/vendor data; no new SQL/template seam; git revs passed positionally with -- as pre-existing. (2) secrets \u2014 4 new records carry zero credential-shaped strings (grep -rcEi=0); verify env is HOME+PATH only via _child_env, ambient operator vars stripped. (3) path/ref escape \u2014 committed arm enforces descends-from-ref_sha, object existence, HEAD==result.head, HEAD!=base, measured delta==recorded changed_paths, empty residual, rechecked after verify; published ref idempotent to head _settle already published at close (launch.py:1952). (4) sandbox flags \u2014 no flag changes in diff. (5) vendor trust \u2014 arm's purpose is that exit 0 is not proof; operator verify + full tree/lineage recheck gate publication, original evidence immutable on both outcomes. (6) supply-chain \u2014 no pins/lockfiles/actions touched. Test-guard regex \\.launcher\\.[A-Za-z0-9]{6}\\Z with fullmatch is narrow; all near-miss/ordinary/removed/missing-store cases still fail. Execution at b3f792d: store_guard 24 OK, committed_recovery 24 OK (48 green). Not covered: full suites.sh not re-run (in/process-repairs-suites.json records exit 0, 2262 passed/6 skipped at 955e0a9, head_after b3f792d); dynamic verify-string behavior out of scope as trusted operator input (D-LAUNCHER-1); lane-policy/review/land enforcement is a declared pending gap, a visible observation not a regression, so not a finding."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

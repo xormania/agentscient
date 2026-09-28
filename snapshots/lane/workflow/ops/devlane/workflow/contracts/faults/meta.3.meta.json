@@ -1,0 +1,10 @@
+{
+  "contract": "meta",
+  "fault": "meta.3.json",
+  "from": "obs/meta.json",
+  "change": "meta.json's content is unresolved — the format version cannot be read out of it",
+  "violates": "PLAN.md §6 line 363",
+  "quote": "\"The export carries a format version in `meta.json`\"",
+  "reject_path": "facts\\.raw\\b|unresolved",
+  "implied": false
+}

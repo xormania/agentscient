@@ -1,0 +1,10 @@
+{
+  "contract": "layout",
+  "fault": "layout.7.json",
+  "from": "obs/layout.json",
+  "change": "meta.json is not in the tree",
+  "violates": "PLAN.md §8 line 474 (with §6 line 363)",
+  "quote": "\"  meta.json            # export format version\"",
+  "reject_path": "facts\\.files\\b|meta\\.json",
+  "implied": false
+}

@@ -1,0 +1,301 @@
+{
+  "id": "20260906T142055Z-review-claude-18baf3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-canonical-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-tests-20260906",
+    "base_sha": "aad2f42da0e856ad833e685214b56b77320bbce6"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T14:20:55Z",
+    "closed": "2026-09-06T14:32:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "aad2f42da0e856ad833e685214b56b77320bbce6",
+    "ref_sha": "aad2f42da0e856ad833e685214b56b77320bbce6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "eed69f64-fb87-42e1-abbb-46f4960da1c7",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/eed69f64-fb87-42e1-abbb-46f4960da1c7.jsonl"
+  },
+  "session": {
+    "id": "eed69f64-fb87-42e1-abbb-46f4960da1c7",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/eed69f64-fb87-42e1-abbb-46f4960da1c7.jsonl",
+    "stream_sha256_at_close": "2e93abbf7f009010e98aec5e043551866f6e8dc14de17fe3105dd7aeb6d6d0d8",
+    "spend": {
+      "input": 166,
+      "cached": 9634410,
+      "output": 44114,
+      "total": 9678690,
+      "source": "result.usage",
+      "messages": 83,
+      "cost_usd": 7.661123499999997
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the corrected three-file Grok canonical execution judge against the adjudicated contract source. No runtime inspection or edits. Verify all 83 original dispositions, vendor early refusal before effects, preserved direct/stub cases, strict whole-catalogue decode, task OutputsError surfacing, four profile-selection cases and canonical trip/resume/result custody. Reject invented APIs or profile CLI seams and silent test deletion. Reproduce 49/26, 9/8, 60/27 test/failure counts with zero errors, exact hashes, registered lint and local guards. Test source is provisional, not an implementation pass. Return APPROVE/CHANGES with exact SHA, meaningful positive/negative controls and bounded remaining couplings. No full floor, vendor, live state, settings or catalogue activation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/in/ag-conduct-canonical-tests-fix.json",
+        "sha256": "f5d2b5cb8c95ffe6f0617a7736166c826af3b4530da9db04c4cbc48aab6d7adb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/in/ag-conduct-canonical-correction.json",
+        "sha256": "c88c5b2b077ab5d388e6119b4063993079495776ed4b3b8e755f3553ba360b43"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T142055Z-review-claude-18baf3/in/ag-conduct-canonical-adjudication.json",
+        "sha256": "0aff5a13703d6e2cd999683b83e01b0abf957f612e166a2b3f06d85e41a4ef38"
+      }
+    ],
+    "sha256": "c5b5c66c0bb43319bcfc969d409c50b89d425a7a176a8cbae19f3c9d8fdfca3d",
+    "bytes": 1578
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:20:55Z",
+      "ended": "2026-09-06T14:32:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "aad2f42da0e856ad833e685214b56b77320bbce6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:1200-1213, 1140-1143, 1039-1056, 1111-1115",
+          "claim": "Relocated duties keep their method names but assert nothing that exercises them, so five cases are green against any implementation. test_the_group_dies_even_when_the_parent_was_already_reaped puts its whole body under `if self.grandchild.is_file():`; the pid file is written only when TASK_LAUNCH_GRANDCHILD is set (launch_support.py:106,241-246), and _TempLaunch.setUp pops it (launch_support.py:897) while the test never sets it, so zero assertions run. test_the_stream_that_names_the_snapshot_is_chosen_over_a_newer_sibling asserts `spend.total != 999` and nothing anywhere plants a 999 stream (the only other 999 in the tree is inside an unrelated id literal at :813). test_a_read_role_receives_the_read_sandbox asserts only `assertTrue(argv)`; test_builtin_write_values_are_not_the_read_only_ones asserts only `rec.status == 'closed'` \u2014 neither compares a read value to a write value. test_a_cache_heavy_total_does_not_trip_when_output_is_under_cap_out never builds R8's named fixture (7000000 total / 50 output under cap-out 1000) and just calls launch_ok. CONTRACT.md \u00a7C1/C2 independent test correction forbids deleting coverage (task/CONTRACT.md:732) and names the R8 numbers and the R10 newer-sibling control explicitly (task/CONTRACT.md:746,748).",
+          "reproduce": "sed -n '1197,1213p;1137,1143p;1028,1057p;1108,1115p' ops/devlane/dispatch/tests/test_execution_adoption.py; grep -n '999\\|TASK_LAUNCH_GRANDCHILD' ops/devlane/dispatch/tests/test_execution_adoption.py ops/devlane/dispatch/tests/launch_support.py; sed -n '746p;748p' ops/devlane/task/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:881-911",
+          "claim": "The required agreement case does not enforce its own rule. task/CONTRACT.md:798 requires 'either input alone selects that same id, without consulting a default', and lane-policy.md:222 says 'With one, use that one'. In test_explicit_and_structured_profiles_agree the explicit-only sub-case (:885-895) and the structured-only sub-case (:901-911) are both wrapped in `if code == 0:`. An implementation that resolves agreement correctly but refuses either input alone \u2014 the exact defect the case exists to catch \u2014 leaves code != 0 and skips every assertion, so the test passes. Only the first sub-case asserts `code == 0`. Remedy: assert code == 0 unconditionally on all three sub-cases and assert the resolved profile is PROFILE_DEV, not PROFILE_PROD, in each.",
+          "reproduce": "sed -n '862,912p' ops/devlane/dispatch/tests/test_execution_adoption.py; sed -n '798p' ops/devlane/task/CONTRACT.md; sed -n '220,224p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:780-802",
+          "claim": "The resume case is red for an unnamed requirement while three named ones go unchecked. task/CONTRACT.md:778 directs: 'verify exact record id, cwd, session, original selection, appended attempt and prior-evidence preservation on refusal.' The test asserts the id and the attempt count only. Line 786 evaluates `rec.get('session') if isinstance(...) else {}` and discards the value \u2014 cwd, session and original selection are never compared. The sole failing assertion is :802 `assertIn(job_id, out + err)`, an id echo on resume stdout that the correction never names; measured, resume already preserves id, harness and appends an attempt (exit 0, empty stdout/stderr). The implementer is therefore pointed at output formatting instead of the custody the instruction asked for.",
+          "reproduce": "sed -n '777,802p' ops/devlane/dispatch/tests/test_execution_adoption.py; sed -n '778p' ops/devlane/task/CONTRACT.md; python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_execution_adoption.py -k FrontendResumeDelegates"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:813,820",
+          "claim": "task/CONTRACT.md:778 orders 'Remove run.resume and meaningless absence-of-one-random-id assertion.' run.resume is gone, but the random-id assertion is retained verbatim at :813 as `assertNotIn(\"20260906T010101Z-review-codex-999999\", after.get(\"id\"))`. Line 820 `assertTrue(prior)` is likewise tautological \u2014 `prior = json.dumps(rec)` is always a non-empty string. Both are directed removals that did not happen.",
+          "reproduce": "sed -n '804,821p' ops/devlane/dispatch/tests/test_execution_adoption.py; sed -n '778p' ops/devlane/task/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:969",
+          "claim": "test_absent_selections_without_default_refuse sets os.environ['WF_LANE'] = 'dev' and never restores it. WF_LANE is absent from _TempLaunch's saved-and-restored env list (launch_support.py:763-793), so the value leaks for the rest of the interpreter and is snapshotted by every later fake-CLI invocation, which reads WF_LANE into its env_shot (launch_support.py:135-142). Ordering-dependent contamination in a suite whose whole point is that nothing is inferred from record.lane or environment.",
+          "reproduce": "sed -n '964,981p' ops/devlane/dispatch/tests/test_execution_adoption.py; grep -n 'WF_LANE' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260906T134802Z-tests-grok-604058.json envelope.note",
+          "claim": "The record states 'vocabulary_wall.py on the three files \u2014 clean.' That does not reproduce at aad2f42: the check exits 1 on pass 1 with '65 dev-lane term(s) in the design tree' across all three files, and prints 'clean' only on its second pass. The condition is pre-existing and tree-wide \u2014 an untouched neighbour (test_launch_refusals.py) and the default no-argument scan also exit 1 \u2014 so it is not caused by this change, but the guard reading in the record is wrong as written. Lint (ruff 0.16.5), secret_scan, commit_trailers and the term_wall 'could not look' declaration all reproduce exactly.",
+          "reproduce": "python3 ops/devlane/workflow/checks/vocabulary_wall.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_execution_frontend.py ops/devlane/dispatch/tests/test_execution_adoption.py; echo $?; python3 ops/devlane/workflow/checks/vocabulary_wall.py ops/devlane/dispatch/tests/test_launch_refusals.py; echo $?"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py:164-187",
+          "claim": "run_trusted fails the test unless launch.main's signature carries both trusted_context= and declarations=. `trusted_context` is contract-named (dispatch/CONTRACT.md:80); `declarations` is not \u2014 the contract fixes the seam as 'the existing launch.main(argv=None) -> int' (dispatch/CONTRACT.md:50) and describes transport only as 'direct in-process arguments or an inherited read-only descriptor' (dispatch/CONTRACT.md:1029-1032). Five cases (four ProfileSelection, WhenVendorModeTransfersExplicitSelectionIsIdentical) plus test_native_plan_declaration_is_rendered_into_the_brief bind the implementer to that exact keyword. The author declared this as an open gap in the record and made it fail on assertion rather than TypeError, so it is visible and bounded, but it is a test-chosen API name and should be pinned in the contract before the implementation pass.",
+          "reproduce": "sed -n '164,209p' ops/devlane/dispatch/tests/test_execution_adoption.py; sed -n '50p;80p' ops/devlane/dispatch/CONTRACT.md; sed -n '1029,1032p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py:1081-1088",
+          "claim": "test_an_absent_job_is_invalid_with_a_note_naming_it cannot separate the two diagnoses the new refusal branch creates. It calls call_run(name) with the default harness codex and asserts only status invalid plus the job name in the note. task/CONTRACT.md:228 requires 'Malformed local inputs and unknown jobs retain their own invalid diagnosis', but the execution refusal note also contains the job name (assert_vendor_refusal, :512), so an implementation that returns the vendor refusal for an unknown job passes. This method was ordered retained unchanged (task/CONTRACT.md:752), so it is an inherited gap the new C1 branch exposes rather than an authoring error; a harness=direct or stub variant would pin the ordering.",
+          "reproduce": "sed -n '1077,1104p' ops/devlane/task/tests/test_run.py; sed -n '486,515p' ops/devlane/task/tests/test_run.py; sed -n '228p;752p' ops/devlane/task/CONTRACT.md"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "claude",
+        "total": 9678690,
+        "out": 44114,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "aad2f42da0e856ad833e685214b56b77320bbce6",
+        "started": null,
+        "ended": null
+      },
+      "note": "Read-only review of aad2f42da0e856ad833e685214b56b77320bbce6 against 710dbac38c3b187eb4b3302308430c0a6dec4d76, focused on the three-file correction (b2eb570 test_run.py, 37c14d5 test_execution_frontend.py, aad2f42 test_execution_adoption.py) over base 667460095fc1df1af051328e65a4272a16c8f95c. No edits, no vendor launch, no live store, no settings or catalogue activation, no full floor.\n\nReproduced. git diff --name-only 6674600 aad2f42 is exactly the three test files plus .dev/records/dispatches/20260906T134802Z-tests-grok-604058.json \u2014 no runtime, contracts or frozen tests touched. Original hashes at 6674600 verified by git show | sha256sum: test_run 3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43, frontend 07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f, adoption 951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae \u2014 the same three values the contract states at task/CONTRACT.md:723-725. Resealed hashes at HEAD match the record: 875cbd22cc8147d3864a77d390fc9140775dd9ff669797f0ba9bb6bf244429c2, 139b329dae456684c1e6a4f89e3b4d3bb3c541e7ac17571ffc68177e47c1062d, 40cfb3bd811222a5a8ff3e047b9f2047224d96d412d645c4a3507f40920e333b. Counts reproduce exactly: test_run Ran 49 FAILED (failures=26); test_execution_frontend Ran 9 FAILED (failures=8); test_execution_adoption Ran 60 FAILED (failures=27). Zero errors in all three (no errors= term in any summary line). lint.py --root . on the three files: clean, ruff 0.16.5. secret_scan.py: clean, 6 signatures. commit_trailers.py over the full range: 79 messages, clean; the three commits carry Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. term_wall.py reproduces its declared could-not-look: exit 2, \"pattern: expected TERM_WALL set; found empty; needed the org variable (CI) or ops/bin/term-wall.conf (local)\", and ops/bin/term-wall.conf is absent.\n\nNo silent test deletion. All 83 original unique method names survive: 9 names disappear from their old files (the dial, live-adapter and process-group cases) and all 9 reappear in the adoption home; 92 unique names across 118 method occurrences now. _SyntheticLaunch, bind_canonical_launch and selection_blob are gone from all three files (0 occurrences). No invented run seam: hasattr(run,\"resume\") and hasattr(run,\"canonical_launch\") are asserted False in both task files, and vendor_mode_does_not_import_dispatch_or_harness scans dir(run) for dispatch/harness modules. No profile CLI seam: argv_has_profile_flag is used only as a negative assertion, and launch_support.argv_for takes no profile.\n\nVerified as satisfied. Vendor early refusal before effects \u2014 assert_vendor_refusal (test_run.py:486-527) pins the exact wire from task/CONTRACT.md:225 (execution: expected canonical worker execution; found task vendor mode; needed ops/devlane/dispatch/launch.py, plus job, --harness, --model, --ref), null verdict, empty findings/artifacts, zero counts, spend {harness:null,total:0,out:0,runs:0}, caller ref stamped, no Popen, no FILESET.md. Direct/stub preserved \u2014 DirectDelegatesToVerify, StubReplaysWithoutLaunching, TheJobAsksForWhatTheRunnerParses and TheDocAndTheRegistryAgree bodies are untouched by the diff, as directed at task/CONTRACT.md:761-765. Strict whole-catalogue decode \u2014 C1LoadJobsDecodesTheCatalogueStrictly carries the raw-byte duplicate plus the three ordered subcases (duplicate job name, unselected job, path escaped-equivalent key) and keeps the re-encode negative control, which passes. Task OutputsError surfacing \u2014 run_maps_default_load_jobs_outputs_error_to_invalid_envelope and main_maps_..._to_exit_two both drive default load_jobs via run.JOBS_PATH under harness=direct, so they cannot be satisfied by the vendor refusal, and both re-assert that a direct load_jobs call still raises; this matches the sentence the correction added at task/CONTRACT.md:413-416. Four profile cases exist as named ProfileSelection methods; lane-profile is a declared class (lane-policy.md:687) and exit 2 pre-effect matches dispatch/CONTRACT.md:71. R14 and the R15 direct-verify rework are genuine passing positive controls, as is the frontend file's single green direct-verify control.\n\nReason for CHANGES. Three p2 defects in the deliverable itself: a group of relocated cases that keep their names but assert nothing that could fail (orphan termination, newer-sibling stream, two role-sandbox cases, the R8 cap-out fixture); the agreement profile case whose two \"either input alone\" sub-cases are guarded by if code == 0 and so pass against the implementation they exist to reject; and the resume case that is red on an unnamed stdout id echo while cwd, session and original selection \u2014 three duties the correction names \u2014 are never asserted, with the session lookup computed and discarded. Five p3s follow. All four profile cases currently stop at the launch.main signature check, so none of their bodies has ever executed; the vacuity in the agreement case will only surface once the transport exists.\n\nBounded remaining couplings, declared not resolved. launch.main's declarations= keyword is chosen by the tests, not by the contract. The lane-policy default_profile data shape is consumed from a policy document the tests construct locally; no policy implementation is imported or required. Contracts remain under review and are not frozen, so this is a provisional test source, not an implementation pass: nothing here certifies that the 27 adoption and 26 run reds are all intended behavioural reds rather than fixture reds, only that they are failures and not errors."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

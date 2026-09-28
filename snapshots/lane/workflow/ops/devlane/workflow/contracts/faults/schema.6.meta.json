@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.6.json",
+  "from": "obs/schema.json",
+  "change": "the `attempts` table has no `agent` column",
+  "violates": "PLAN.md §2 line 56 (with §3.2 line 107)",
+  "quote": "\"`attempts` (append-only; `record_kind`, `exhaustiveness`, before/after bindings, output tails + hashes) | **as-is + `agent` column**\"",
+  "reject_path": "facts\\.tables\\.[0-9]+\\.columns\\b|agent",
+  "implied": false
+}

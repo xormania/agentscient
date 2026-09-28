@@ -1,0 +1,6 @@
+{
+  "id":"goodcap","layer":0,"module":"goodcap.py",
+  "iface":[{"name":"Reader","members":["read"]},{"name":"Writer","members":["write"]},{"name":"NotInModule","members":["ping"]}],
+  "deps":[],"tags":["read","migrates"],"stores":["state"],"serves":["good.resource"],
+  "refusals":[{"name":"goodcap.denied","class":"denial","remedy":"supply an accepted value"}]
+}

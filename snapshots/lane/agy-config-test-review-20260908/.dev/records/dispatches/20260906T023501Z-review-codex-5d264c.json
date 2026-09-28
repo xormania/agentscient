@@ -1,0 +1,160 @@
+{
+  "id": "20260906T023501Z-review-codex-5d264c",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "0095b97edee1c1d5605d7aca61b554ee15114aea"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:35:01Z",
+    "closed": "2026-09-06T02:37:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "ref_sha": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-35-02-01a07491-b97f-7a00-878c-aa8352ccbe48.jsonl"
+  },
+  "session": {
+    "id": "01a07491-b97f-7a00-878c-aa8352ccbe48",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-35-02-01a07491-b97f-7a00-878c-aa8352ccbe48.jsonl",
+    "stream_sha256_at_close": "01eb557333680c346e7826e0a452cd29e237e7a32f4bc69060e653447fc4da7b",
+    "spend": {
+      "input": 1378391,
+      "cached": 1250544,
+      "output": 8837,
+      "total": 1387228,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-35-02-01a07491-b97f-7a00-878c-aa8352ccbe48.jsonl",
+      "messages": 140
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security recheck only of Grok 2d0f7a's adjudicated Daybreak-1/2 remainders in the latest discovery docs. Verify trusted launch-supplied config is explicitly an assumption, query args cannot choose config/role/root, and claims do not imply host isolation or a worker server. Verify untrusted record bodies are delimited and collision-escaped before CLI/MCP tool/resource/structuredContent emission, with an exact byte/newline recipe and acceptance assertion on literal transport output; original content digests/lengths remain truthful. Labels must not claim semantic prompt-injection immunity; preserve independent corroboration. Recheck bounds/parity only as affected. The ruling rejected adding a host wrapper or worker implementation in this slice; no runtime code expected or live claim. Return concise approve/changes with reproduced security gaps only. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/in/discovery-contract-owner.md",
+        "sha256": "1d815b62cc5dd8e9d516e14f29455b0699744ff8d5baa87095b7b2575eafe901"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/in/20260906T021446Z-adjudicate-grok-2d0f7a.json",
+        "sha256": "0722ae3af72121380f5e81a05a8db7acf167a57f4e40ab2e5523f009bde52ad6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/in/20260906T022414Z-code-codex-18fe5c.json",
+        "sha256": "f6630d900c9d2df6f96799e4df4391f304cf974185c90fcbf074554b2062bc03"
+      }
+    ],
+    "sha256": "2e0d552e861e758147f5dc4cb6dea4885361d0ef3c9d15a8866d91694f33a337",
+    "bytes": 4269
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:35:01Z",
+      "ended": "2026-09-06T02:37:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "range": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc..0095b97edee1c1d5605d7aca61b554ee15114aea",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023501Z-review-codex-5d264c/context/diff.patch",
+        "diff_sha256": "0462e736cf6bf9fc545dd1db30767469e6af01435c306f0e90e70fc022e45843",
+        "primary_contract": "ops/conductor/discovery-lever.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1387228,
+        "out": 8837,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0095b97edee1c1d5605d7aca61b554ee15114aea"
+      },
+      "note": "Daybreak-1/2 recheck passed. Config custody is explicitly an unproved launch assumption; query/resource schemas reject config, audience, role, repository and path overrides without claiming host isolation or a worker server. Untrusted bodies are projection-wrapped before every CLI/MCP surface using an exact collision-escaped byte recipe; acceptance covers literal transport, original digest/length, independent corroboration and no semantic-immunity claim. Bounds include wrapper encoding. No secret, injection, path/ref, permission, vendor-trust or supply-chain regression was reproduced. Runtime launch custody, sandbox enforcement and actual v3 output were not exercised because v3 is absent and launches, mutations and network access were prohibited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T02:37:00.252Z"
+    }
+  },
+  "status": "closed"
+}

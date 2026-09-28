@@ -1,0 +1,298 @@
+{
+  "id": "20260906T134140Z-review-claude-5a1f3a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-start-coupling-20260906",
+  "lineage": {
+    "branch": "lane/conduct-start-coupling-20260906",
+    "base_sha": "6bf5d7bacd9fef8fdad965ed60556602805af911"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:41:40Z",
+    "closed": "2026-09-06T13:51:05Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "ref_sha": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "9045ee23-c129-4d81-90a1-c0623eb33017",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/9045ee23-c129-4d81-90a1-c0623eb33017.jsonl"
+  },
+  "session": {
+    "id": "9045ee23-c129-4d81-90a1-c0623eb33017",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/9045ee23-c129-4d81-90a1-c0623eb33017.jsonl",
+    "stream_sha256_at_close": "f000e0003048e07fc522206202d78ec8175259a4cee39d28eecaee774416744f",
+    "spend": {
+      "input": 82,
+      "cached": 5140968,
+      "output": 41755,
+      "total": 5182805,
+      "source": "result.usage",
+      "messages": 41,
+      "cost_usd": 5.0769135
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-start-coupling-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review startup coupling candidate in conductor-start-plan.md and permission-surface.md against supplied original Grok startup report and retained test inputs. No edits. Verify all six gaps have exact usable couplings: inherited CLI bootstrap, prepare return, native-request normalization per mechanism, config wire, actual-client observation, bound-role/tool schemas; preserve pure preflight versus post-child MCP checks. Assess composition with the merged adapter transport/custody contract. Also resolve the supplied approved policy test review's three P3 interface obligations: positive coordinate/MCP-read schemas, uniform closed arguments, and binding-mismatch Request-versus-held refusal binding. Measure focused documentary links/examples/scope; no full floor, runtime admission or test acceptance. Return APPROVE/CHANGES with exact SHA, concrete contradictions, per-gap closure and precise independent-test correction boundary.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/in/ag-conduct-start-coupling.json",
+        "sha256": "f4ce13d9d96535aa89cfc5ea8749bb683ba831bf2e14af9cca18f861fbe9b7cb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/in/ag-conduct-start-tests.json",
+        "sha256": "43f28adc3660c2fb5e79c4843c93bd3fc78fbe7294681808a05cbc9cbd864bff"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/in/ag-conduct-policy-tests-recheck.json",
+        "sha256": "55a30882e0ce67db77fae8d2a71c04066450969f9efbd62a2b348cf37a0fe23d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/in/ag-conduct-adapter-coupling.json",
+        "sha256": "e4a38a71d8335c6e19c1b3c39f4308e93c81ee934456c65b0edb81b5b51b675c"
+      }
+    ],
+    "sha256": "4152996c7903f6ff8ae1bad31072a049ffdc59335f3802c240a0aff0cc770bd4",
+    "bytes": 1713
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:41:40Z",
+      "ended": "2026-09-06T13:51:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/conductor-start-plan.md:351,323-324,415,438",
+          "claim": "The frozen bootstrap names two different actors as producer of the canonical DispatchID, so gap 1 is not an exactly usable coupling. Slot 5 is 'policy's exact ConductorBinding for the in-memory reserved canonical id', sealed by the admitted parent before ops/bin/conduct runs (line 333,337); ConductorBinding's dispatch member is 'the reserved id' (lane-policy.md:464,469-470). The same document assigns that reservation to the preflight: line 323-324 lists 'in-memory identity reservation' among the only four acts preflight performs; line 415 orders 'reserve the canonical dispatch identity in memory on launch (reuse it on resume)' inside the preflight sequence that ends 'then let the canonical dispatch/harness owner prepare transport and invoke the child'; line 438 says 'launch reserves a fresh id through the canonical dispatch owner before admission'. lane-policy.md:631 independently makes ConductorBinding a value policy derives from startup-supplied inputs ('Startup supplies LaunchSelection... Policy derives... ConductorBinding'), not a pre-sealed bootstrap input. Exactly one actor can mint the id; the contract names both and settles neither.",
+          "reproduce": "An independent fixture seals binding.json at FD 5 with dispatch=D1 and prepare_conductor reserves a fresh id D2 per line 415/438: descriptor.launch_id (D2) then differs from ConductorBinding.dispatch (D1), which descriptor.policy_binding_sha256 hashes (line 456), and line 442 'Refuse a mismatched record/descriptor binding before effects' fires on every clean positive. Conversely a prepare that adopts D1 from FD 5 performs no reservation at all, contradicting line 323-324 and 415. Measured: git show 8324aa38:ops/conductor/lane-policy.md and ops/conductor/conductor-start-plan.md at 6bf5d7b, lines cited."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:217,277",
+          "claim": "The approved policy-test review's third P3 interface obligation (binding-mismatch Request-versus-held refusal binding) is entirely unaddressed. That review cited permission-surface.md:148, 'The id/binding must match Request and the held current binding', as a requirement no Decision can satisfy in exactly the binding-mismatch case. Measured: at the increment's base 8324aa38 the sentence is at line 148; at 6bf5d7b it is line 217, byte-identical, inside a file the increment otherwise revised by +99 lines (sha256 eeccf74d043b3ea3ffd25828891edb66df3853f0f022f75d811453071dd344b8 -> f77611d6d186a372e504cb4d4f690ba972619bf95dda4983fd9e6f0c5634404c). The new enforcement-correction row at line 277 then instructs the independent owner to 'Assert the exact fixed binding-mismatch/malformed-request Decision' while the contract still does not say which digest Decision.binding_sha256 carries when Request and held binding differ.",
+          "reproduce": "git show 8324aa389a467417380683e6cd135efdd818acfa:ops/conductor/permission-surface.md > prev; rg -n 'id/binding must match' prev  -> 148; rg -n 'id/binding must match' ops/conductor/permission-surface.md -> 217; the two lines are identical. Consequence: an evaluator that refuses binding-mismatch and returns the held current binding digest, and one that echoes the forged Request digest, both satisfy line 217 under different readings, so the row-277 correction cannot be written as an exact assertion and the test owner must guess the same branch the earlier suite guessed."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:352",
+          "claim": "The FD 6 slot's shape is ambiguous against the merged adapter contract. The slot table says 'held harness transport for the selected mechanism; Codex uses exactly codex-relay/1', but harness-capabilities.md:452-454 declares codex-relay/1 to be the nested transport.relay member and states 'This nested relay specification is not an alternative top-level compile transport'; the full trusted compilation transport is the eight-member handle at harness-capabilities.md:131-142. FD 6 is the only slot that could carry it, and it is the only source for members prepare needs: configuration.mcp supplies descriptor.mcp's three digests (harness-capabilities.md:136 vs conductor-start-plan.md:460), manifest.adapter supplies the six-field adapter object, launch_session supplies launch_id, and evidence is declared an opaque non-JSON handle (harness-capabilities.md:139,145) with no stated representation in a sealed JSON buffer.",
+          "reproduce": "A fixture builder reading conductor-start-plan.md:352 literally serializes only {schema,processes,endpoint,configuration,rpc,targets,deadlines,resume} into FD 6; compile_launch (harness-capabilities.md:87) then has no executable, configuration, manifest, canonical_paths, evidence or launch_session, and prepare cannot compute descriptor.mcp.catalogue_sha256 for the pure-preflight check the correction row at conductor-start-plan.md:669 requires ('Pure prepare checks the exact held catalogue digest and zero client calls')."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:242,183,283-287",
+          "claim": "The approved policy-test review's first P3 obligation is only half closed. mcp-read is now constructible: line 184 binds its arguments to 'exactly its existing query schema or resource URI' and the eleven v3 lane_mcp tool schemas are named as exact owner schemas (conductor-start-plan.md:648, measured 11 tools in ops/conductor/tools/lane_mcp.py). coordinate is not: line 183 defers to 'the lever owner's closed verb schema', no coordination lever declares a normalized argument schema in this tree, the only correction row named for coordination (line 272) is written against a read target rather than kind='coordinate', and lines 283-287 forbid fabricating a positive target. Yet line 242 keeps 'necessary coordination reads work' as a binding acceptance duty and conductor-start-plan.md:610 keeps 'positive coordination/delegation' among required independent startup cases. The unavailability is stated only as a general rule, never as a specific declaration that the coordinate-kind positive is unavailable today, so the duty and the prohibition contradict each other.",
+          "reproduce": "rg -n 'coordinat' ops/conductor/permission-surface.md returns 6 lines: 183 (schema deferred to an owner), 242 (acceptance duty retained), 272 (correction row uses a read target), 247, 485, 187. No row anywhere constructs a kind='coordinate' allow, so an evaluator refusing every coordinate request still satisfies every correction instruction while violating line 242 \u2014 the same hole the earlier suite had."
+        }
+      ],
+      "artifacts": {
+        "reviewed_head": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+        "base": "710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134140Z-review-claude-5a1f3a/context/diff.patch",
+        "commit_scope": "git diff --stat 710dbac 6bf5d7b \u2014 72 files changed, 17557 insertions(+), 80 deletions(-); aimed files ops/conductor/conductor-start-plan.md +466 and ops/conductor/permission-surface.md +452",
+        "startup_increment_scope": "git diff --stat 8324aa389a467417380683e6cd135efdd818acfa 6bf5d7b -- conductor-start-plan.md permission-surface.md \u2014 2 files, 305 insertions(+), 3 deletions(-); the 3 deletions are the vague prepare-return sentence and the vague conduct-config sentence replaced by exact declarations",
+        "conductor_start_plan_sha256": "7b79701f29983783f8c04a9938d22548f1242177cadf064dfc7d7a2770aad9ee  ops/conductor/conductor-start-plan.md (724 lines)",
+        "permission_surface_sha256": "f77611d6d186a372e504cb4d4f690ba972619bf95dda4983fd9e6f0c5634404c  ops/conductor/permission-surface.md (524 lines)",
+        "permission_surface_sha256_at_increment_base": "eeccf74d043b3ea3ffd25828891edb66df3853f0f022f75d811453071dd344b8 at 8324aa389a467417380683e6cd135efdd818acfa",
+        "harness_capabilities_sha256": "bb4595545d2bb0db964f354079c559f8c47a6664e03892f8014320f398641728  ops/conductor/harness-capabilities.md (566 lines)",
+        "dispatch_contract_sha256": "463bfaf9d7ee2b3d082dd9e218647d5215a13d75bc64308fd4e9280bf8f3bed1  ops/devlane/dispatch/CONTRACT.md (1221 lines)",
+        "links": "23 anchored local links in the two aimed documents resolve against the measured heading sets of harness-capabilities.md, lane-policy.md, discovery-lever.md, probes-lever.md, devlane/dispatch/CONTRACT.md, devlane/task/CONTRACT.md and the two files themselves; 8 file-only local links (6 under ops/conductor/reports/, 2 devlane CONTRACT.md, 1 devlane/dispatch/launch.py) all exist. 0 broken.",
+        "json_examples": "6 fenced JSON examples across the aimed documents and harness-capabilities.md parse under jq; top-level key sets are [options,schema], the argv vector, [class,expected,found,needed], [id,method,params], [id,result], [effort,harness,job_role,model,profile,role] \u2014 each equals its declared closed key set",
+        "doc_checkers": "python3 ops/devlane/workflow/checks/doc_commands.py \u2014 'doc-commands: clean \u2014 4 document(s) scanned'; python3 ops/devlane/workflow/checks/doc_covers.py \u2014 'doc-covers: clean \u2014 4 doc(s), 0 covers: path(s)'",
+        "wire_conformance": "conduct-config (conductor-start-plan.md:577-578), conduct-mcp (592-593) and conduct-argv (harness-capabilities.md:270-272) each render one line as class: expected \u2026; found \u2026; needed \u2026, with no semicolon inside a fixed field value",
+        "measured_absences": "ops/conductor/tests/test_conduct_start.py, test_conduct_enforcement.py, conduct_test_support.py and test_lane_policy.py are untracked at 6bf5d7b (git ls-files empty), so cited method names and line numbers in the correction tables could not be checked against their bytes; 7c819cf4385c12d6970c059ade9c1e0dc720f668 does not resolve in this snapshot (git cat-file exit 128), so the policy-test review's contract measurements were re-checked against 8324aa38, which does resolve; remote links were not fetched",
+        "cross_checks_that_hold": "lane_mcp.py exposes exactly 11 lane_* tools, matching 'eleven v3 tools'; ops/conductor/tools/lane_read.py contains 0 occurrences of subprocess, matching conductor-start-plan.md:259; harness-capabilities.md:341-349 maps all six descriptor adapter fields to capability identity fields including executable_sha256 -> harness.executable.sha256; compile_launch's five-key result and three-key binding agree with conductor-start-plan.md:318; the relay control socketpair is declared reciprocally at harness-capabilities.md:476 and permission-surface.md:436-440"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 5182805,
+        "out": 41755,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+        "started": "2026-09-06T13:41:40Z",
+        "ended": "2026-09-06T13:49:34Z"
+      },
+      "note": "Verdict: changes, at 6bf5d7bacd9fef8fdad965ed60556602805af911 against 710dbac38c3b187eb4b3302308430c0a6dec4d76. Read-only: nothing in the snapshot was edited; scratch files were written to out/ only. Scope measured, not assumed \u2014 the assembly commit touches 72 files, but the aimed candidate is the increment 8324aa38..6bf5d7b over conductor-start-plan.md and permission-surface.md (+305/-3), composed against harness-capabilities.md and devlane/dispatch/CONTRACT.md from the merged adapter contract.\n\nPer-gap closure against the six findings in test-author record 20260906T125326Z-tests-grok-23e1d6.\n\nGap 1, inherited CLI bootstrap (was P2): named but not exactly usable. FD 3 through FD 8, six sealed anonymous read-only buffers, close-on-exec, 1 MiB per slot and 4 MiB total under a 10-second deadline, with an explicit statement that FD type, mode, UID, contents and matching hashes do not authenticate a caller. Two defects remain. The DispatchID has no determined producer (P2-1): slot 5 seals a ConductorBinding whose dispatch member is the reserved id, while lines 323-324, 415 and 438 put the reservation inside the preflight and lane-policy.md:631 makes ConductorBinding a policy derivation from startup-supplied inputs. The FD 6 transport slot's shape is ambiguous (P3-1): \"Codex uses exactly codex-relay/1\" reads against harness-capabilities.md:454, which says that nested specification is not the top-level compile transport, and FD 6 is the only slot that can carry the eight-member handle prepare needs.\n\nGap 2, prepare return (P3): closed. Exactly the mapping {descriptor,compiled_launch}; no tuple, list, compiled alias, extra key or wrapper; failure is one refusal string with no trailing newline. The vague predecessor sentence is one of the three deletions in the increment.\n\nGap 3, native request per mechanism (P3): closed. No common native_request shape; the admitted mechanism selects one pinned schema and transport before parsing; Codex is exactly the six DynamicToolCallParams members; any other mechanism's owner must retain a complete closed native schema or the capability is unavailable. PIN_NATIVE_REQUEST is rejected with its reason stated \u2014 every authority-bearing field is caller selected.\n\nGap 4, conduct-config wire (P3): closed. The exact line is fixed, REASON is a closed five-token enum, the check order is stated and only the first applicable code is emitted, nothing is echoed, and once transport is valid other failures keep their owner's refusal rather than being relabelled.\n\nGap 5, actual-client observation (P3): closed, and the strongest part of the candidate. A launcher-created anonymous pipe with its write end in the server and its read end in the canonical supervisor, {seq,request,response} lines, exactly initialize, tools/list and tools/call lane_start in that order, matching request/response ids, 1048576-byte queue, 10-second deadline, epoch binding, and explicit failure on duplicate, reordered, truncated, wrong-connection or stale-epoch evidence. It names the arbitrary in-process FakeMcpClient as insufficient, which is the exact stand-in the tests used.\n\nGap 6, bound-role and tool schemas (P3): closed by declaring the interface opaque rather than JSON. bound_role exposes four read operations; the target handle exposes validate_arguments plus five immutable views; missing closure is an unavailable target, not an object-only validator.\n\nPure preflight versus post-child MCP is preserved throughout: preflight is restricted to trusted reads, validation, in-memory identity reservation and deterministic compilation; actual-client checks occur after child creation and are therefore late, exit 2 before the first launch mutation and Abort 3 from the canonical directory claim onward. The correction rows keep the two owners separate case by case.\n\nComposition with the merged adapter transport/custody contract holds except for P3-1. compile_launch's five-key result and three-key binding agree; all six descriptor adapter fields have an explicit byte-for-byte mapping to capability identity, with executable_sha256 at its harness-owned location; the config digest recipe excludes itself consistently in both documents; the relay-to-launch socketpair and its control frames are declared reciprocally; Codex resume argv equality is permitted in both documents without forcing an artificial flag.\n\nThe three approved policy-test obligations. Positive coordinate and MCP-read schemas: half closed (P3-2). mcp-read now has a named schema source in the eleven v3 catalogue schemas; coordinate does not, no correction row builds a kind=coordinate allow, and the acceptance duty at permission-surface.md:242 and conductor-start-plan.md:610 is left standing beside a rule forbidding a fabricated positive, without declaring that specific positive unavailable. Uniform closed arguments: closed. Arguments are verified against the target's closed schema before evaluation on every kind, an object-only validator is refused, and invented read keys are named and rejected \u2014 the asymmetry the review found is gone. Binding-mismatch Request-versus-held: not addressed (P2-2). The flagged sentence is byte-identical at the increment's base and at HEAD in a file the increment otherwise revised.\n\nIndependent-test correction boundary: precise and correctly bounded. Both tables name the test-author record and the ref the tests were read at, state that no test, runtime, settings, state or admission is changed or approved, route native-tool and decision-consumption corrections to permission-surface and bootstrap, compilation, connection and timing to the startup plan, and repeatedly move an assertion to its correct owner rather than weakening it. Two limits are worth stating: the four corrected test files are untracked at 6bf5d7b, so cited method names could not be checked against their bytes, and correction acceptance is explicitly deferred to independent counterpart tests at one ref, which this document's own checks cannot supply.\n\nFocused documentary measurement: 23 anchored local links and 8 file-only links in the aimed documents all resolve; 6 JSON examples parse and match their declared closed key sets; the tree's doc_commands.py and doc_covers.py are clean on all four documents; the three refusal lines conform to the wire with no semicolon inside a fixed field. Two incidental claims check out \u2014 11 lane_* tools in lane_mcp.py, and 0 occurrences of subprocess in lane_read.py. No full floor, runtime admission or test acceptance was attempted or is implied by this review."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,230 @@
+{
+  "id": "20260904T000335Z-plan-claude-28b1a2",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/token-meter",
+  "lineage": {
+    "branch": "lane/token-meter",
+    "base_sha": "7c85f1cb224af9a2f4fd39983949a7e4b7e384e5"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T00:03:36Z",
+    "closed": "2026-09-04T00:12:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7c85f1cb224af9a2f4fd39983949a7e4b7e384e5",
+    "ref_sha": "7c85f1cb224af9a2f4fd39983949a7e4b7e384e5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "2d9c1d17-32d8-4cf9-bb87-cb9870243cfc",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "--model",
+      "claude-fable-5-1",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": null,
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/2d9c1d17-32d8-4cf9-bb87-cb9870243cfc.jsonl"
+  },
+  "session": {
+    "id": "2d9c1d17-32d8-4cf9-bb87-cb9870243cfc",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/2d9c1d17-32d8-4cf9-bb87-cb9870243cfc.jsonl",
+    "stream_sha256_at_close": "74a8af3b8dc32f0f32884c11f011ad8d44d9f16fa6091552de6baaff3ee6d131",
+    "spend": {
+      "input": 872,
+      "cached": 2324127,
+      "output": 42051,
+      "total": 2367050,
+      "source": "result.usage",
+      "messages": 13,
+      "cost_usd": 7.423242500000001
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "stop the token bleeding in the lane's machinery: the meter (worth.py, usage.py) does not see dispatched runs, Grok's cost ticks have an unverified scale, and every read job stages and reads the whole tree. The scope is the input file in/scope-token-meter.md: the owner's words verbatim, measured facts, boundaries, measurable acceptance. Read it whole. Plan how; the fileset mechanism and the meter already exist, use them; the owner's words: 'first, let's stop the token bleeding'.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/in/scope-token-meter.md",
+        "sha256": "72052ef7f2a0a364f1a47d367c8b4e6c15674ee1d449f7ec7814d67a6c1d250c"
+      }
+    ],
+    "sha256": "f2285e37f95ae665fe2849285dd9fa3935c5c0f94f72c8bdcf85ed492baf9287",
+    "bytes": 1108
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T00:03:36Z",
+      "ended": "2026-09-04T00:12:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7c85f1cb224af9a2f4fd39983949a7e4b7e384e5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/jobs.json \u00a7author-tests, \u00a7check-tests",
+          "claim": "The author-tests prompt demands each test be proven red against the implementation and the check-tests prompt forbids reading it while the skeptic card invites planting a mutant in it; both conflict with ops/process/pipeline.md row 3 and ops/process/roles/test-author.md, and fileset mode makes the conflict concrete because the withheld implementation is absent. The plan puts rulings D-C1 and D-C2 to the owner.",
+          "reproduce": "grep -n 'Prove each test red\\|Do not read any implementation' ops/devlane/task/jobs.json; grep -n 'proving them red is the caller' ops/process/roles/test-author.md; grep -n 'the implementation (it does not exist yet)' ops/process/pipeline.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py \u00a7_parser, \u00a7_run_attempt",
+          "claim": "resume accepts --prompt-file and never reads it; _run_attempt(resume=True) always feeds prompt.txt. This is the seam scope fact 5 needs and is not wired.",
+          "reproduce": "grep -n 'prompt-file\\|prompt_file' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md \u00a7The job directory",
+          "claim": "The listing names breaker.log, which the launcher never writes, and home/codex and home/grok, while the launcher moves the streams to home/codex-stream and home/grok-stream at close.",
+          "reproduce": "grep -c 'breaker.log' ops/devlane/dispatch/launch.py; grep -n 'stream\"' ops/devlane/dispatch/launch.py | head -5; grep -n 'breaker.log\\|home/codex\\|home/grok' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/mcp-tools.md 2026-08-30 02:30Z; ops/process/worth.md \u00a7opening",
+          "claim": "The 1e9 ticks-per-USD hypothesis with 'verify with a second record' was recorded on 2026-08-30 and never followed; worth.md still declares the scale unverified. The four runs in the scope give ticks per input token of 1076, 1112, 1155 and 1069, a near-constant ratio consistent with a per-run figure.",
+          "reproduce": "grep -n 'USD\u00d71e9' ops/conductor/mcp-tools.md; grep -n 'unverified' ops/process/worth.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/jobs.json (catalogue keys)",
+          "claim": "security-audit, named by the scope as a read job, is not a catalogue job; the catalogue's whole-tree read jobs are adversarial-review, sweep, plan, check-tests and adjudicate, and the security audit ran as sweep (go.sh intent sweep).",
+          "reproduce": "python3 -c \"import json; print(sorted(json.load(open('ops/devlane/task/jobs.json'))))\"; grep -n 'sweep' ops/bin/go.sh | head -3"
+        },
+        {
+          "severity": "p3",
+          "where": "dev at 7c85f1c, .dev/records/dispatches",
+          "claim": "No .dev/ path is tracked on dev at this ref, so a meter reading the tracked record store from a dev checkout finds no dispatch; records live only on lineage branches. The plan has the launcher leave record.json beside the job so the store is readable from any checkout.",
+          "reproduce": "find . -path ./.git -prune -o -path './.dev/*' -print | wc -l; grep -n 'records/dispatches' ops/devlane/dispatch/launch.py"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T000335Z-plan-claude-28b1a2/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "unresolved": "no counter readable from inside the harness; the launcher fills session.spend from the result wrapper"
+      },
+      "stamp": {
+        "ref": "7c85f1cb224af9a2f4fd39983949a7e4b7e384e5",
+        "started": "2026-09-04T00:03:35Z",
+        "ended": "2026-09-04T00:12:33Z"
+      },
+      "note": "Plan in three units, landed in order: A the meter reads the dispatch store (launcher leaves record.json beside the job; worth.py gains --dispatch-dir, a dispatches block in report and dispatch rows in waste, keyed by record id and job, spend from session.spend only, absence declared); B Grok's tick scale verified by the session against Grok's documentation plus one controlled dispatch and a resume, then one constant in usage.py with its source, ticks and reading printed until then; C fileset mode minted by the launcher from the catalogue's given/withheld plus --include/--withhold, through fileset.snapshot and stage.prove both ways, no .git, collect for read and write roles, plan/author-tests/check-tests/adversarial-review declared, sweep and the rest stay whole. Two owner rulings named (withhold the implementation from author-tests and check-tests). Snapshot untouched; git status clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

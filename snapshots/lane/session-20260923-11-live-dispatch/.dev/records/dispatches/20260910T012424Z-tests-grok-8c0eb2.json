@@ -1,0 +1,171 @@
+{
+  "id": "20260910T012424Z-tests-grok-8c0eb2",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/collect-recovery-20260910",
+  "lineage": {
+    "branch": "lane/collect-recovery-20260910",
+    "base_sha": "d234519fb8e4f9ba5b5348e188e5c7d1613ca183"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:24:24Z",
+    "closed": "2026-09-10T01:35:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d234519fb8e4f9ba5b5348e188e5c7d1613ca183",
+    "ref_sha": "d234519fb8e4f9ba5b5348e188e5c7d1613ca183",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "0dc1ce90-d19f-4903-bf41-45e6c3ff093f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok-stream/sessions/<snapshot-encoded>/0dc1ce90-d19f-4903-bf41-45e6c3ff093f/summary.json"
+  },
+  "session": {
+    "id": "0dc1ce90-d19f-4903-bf41-45e6c3ff093f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok-stream/sessions/<snapshot-encoded>/0dc1ce90-d19f-4903-bf41-45e6c3ff093f/summary.json",
+    "stream_sha256_at_close": "650f0e4d66ee739d096abedc64e3cffb89640efab6b42991de1c259b4514b154",
+    "spend": {
+      "input": 1794938,
+      "cached": 1628288,
+      "output": 35380,
+      "total": 1830318,
+      "cost_usd_ticks": 2311530800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/home/grok-stream/sessions/<snapshot-encoded>/0dc1ce90-d19f-4903-bf41-45e6c3ff093f/summary.json",
+      "messages": 217
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-collect-recovery-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent focused tests for CONTRACT.md Preserved committed recovery. Read ../in/collect-tests-brief.md. Tests only. Verify fixtures first, prove assertion RED per file and retain command/hash evidence.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012424Z-tests-grok-8c0eb2/in/collect-tests-brief.md",
+        "sha256": "34fedd91aec8f0931c9d8d2d2ad05383236a85c520f3779e8e682768e375c6b9"
+      }
+    ],
+    "sha256": "98ca11e9695ee93794b3124d98907a0f3d44eb7726c6dcc0c049a81233a2ef3f",
+    "bytes": 2555
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:24:24Z",
+      "ended": "2026-09-10T01:35:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2300c40a0f8304e55059bf933c9e5fb7d240aca8",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py",
+        "command": "python3 -m unittest test_launch_collect_committed_recovery -v",
+        "cwd": "ops/devlane/dispatch/tests",
+        "sha256": "f69dec3ad8f121f5d51b8ff60561e26882d3d1550064b7db7ec086154a447105",
+        "git_blob": "4ca985d84811b24a7b96d47588d1bf0b23a7f463",
+        "commit": "2300c40a0f8304e55059bf933c9e5fb7d240aca8",
+        "baseline": "d234519fb8e4f9ba5b5348e188e5c7d1613ca183",
+        "unittest": "Ran 24 tests in 4.822s FAILED (failures=8) at 2300c40a0f8304e55059bf933c9e5fb7d240aca8"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1830318,
+        "out": 35380,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d234519fb8e4f9ba5b5348e188e5c7d1613ca183",
+        "started": null,
+        "ended": null
+      },
+      "note": "One file ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py sha256 f69dec3ad8f121f5d51b8ff60561e26882d3d1550064b7db7ec086154a447105 committed 2300c40a0f8304e55059bf933c9e5fb7d240aca8. Command: cd ops/devlane/dispatch/tests && python3 -m unittest test_launch_collect_committed_recovery -v measured at 2300c40: Ran 24 tests in 4.822s, FAILED (failures=8), 0 errors, 0 collection failures. Fixture (proven before collect): closed write implement/grok, TASK_LAUNCH_COMMIT=worker.py, TASK_LAUNCH_STATUS=invalid|tripped, TASK_LAUNCH_EXIT=0, snapshot HEAD equals result.head, strict descendant of snapshot.ref_sha, measured git diff --name-only ref_sha head == recorded changed_paths == [worker.py], residual_paths empty, porcelain empty, refs/dispatch/<id> at that head, envelope.status invalid|tripped, attempts[-1].exit=0 tripped=False, collected absent. Current collect refuses collect-state (expected failed/tripped attempt and residual paths; found exit=0 tripped=False residual=0) and leaves record/ref/head unchanged. Honest RED (8), intended assertion not import: reuses preserved source commit on invalid envelope; same on tripped envelope; preserves attempt/envelope/cause on success; failing verify names verify:; verify timeout names verify:; off-lineage-head names off-lineage-head:; verify mutates HEAD; verify mutates source. GREEN controls (16) on baseline: successful envelope, read role, running/unclosed, missing envelope, already collected, different descendant, unavailable object, stale changed_paths, base head, netzero revert, empty commit, neither residue nor delta, residue arm trip, residue after successful resume, second collection, preserve attempt/envelope/cause on refusal. Lane-policy/review/land row not tested (pending separate enforcement). launch.py was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T01:35:03.159Z"
+    }
+  },
+  "status": "closed"
+}

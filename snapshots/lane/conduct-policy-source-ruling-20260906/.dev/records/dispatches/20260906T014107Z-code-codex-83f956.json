@@ -1,0 +1,334 @@
+{
+  "id": "20260906T014107Z-code-codex-83f956",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "d3d1b30abfceb908f2e1f5733e1cd3147ffd54e2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:41:07Z",
+    "closed": "2026-09-06T01:50:35Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d3d1b30abfceb908f2e1f5733e1cd3147ffd54e2",
+    "ref_sha": "d3d1b30abfceb908f2e1f5733e1cd3147ffd54e2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-41-08-01a07460-61d4-7ce2-b796-fb91b93da517.jsonl"
+  },
+  "session": {
+    "id": "01a07460-61d4-7ce2-b796-fb91b93da517",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-41-08-01a07460-61d4-7ce2-b796-fb91b93da517.jsonl",
+    "stream_sha256_at_close": "803a979a312d06222bfe61fa8c30a3ae03847e0db10b32d8826b6410417ae863",
+    "spend": {
+      "input": 1800648,
+      "cached": 1515520,
+      "output": 15054,
+      "total": 1815702,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-41-08-01a07460-61d4-7ce2-b796-fb91b93da517.jsonl",
+      "messages": 174
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Docs-only recovery per discovery-draft-recovery.md and latest discovery-contract-owner.md. Apply supplied discovery-correction-draft.patch, a preserved draft from invalid record 2a2af6; then reconcile owner changes. Dev tooling is independent: no Symfony app dependency or eventual prod replacement. Consolidation runs in parallel and precedes conduct, not discovery. Separate conductor/worker MCP and writes remain proposals; current read-only contract stands. Preserve detailed corrected schemas/examples; no broad redesign or repeated audit. Acceptance command: git diff --check. Verify changed links/affected examples; report current evidence separately from the prior dated report. Only conductor Markdown changes; no executable tests/source/settings/dependencies/DB/host/record edits or remote work. Commit actual-model attribution and supplied draft provenance. Return compact envelope with checks and remaining gaps; independent review follows.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/in/discovery-draft-recovery.md",
+        "sha256": "ad58411410890550ec5487f367b873ff9b25c577f017a1618c65ba53a7887053"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/in/discovery-contract-owner.md",
+        "sha256": "1d815b62cc5dd8e9d516e14f29455b0699744ff8d5baa87095b7b2575eafe901"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/in/discovery-correction-draft.patch",
+        "sha256": "97d8242bc720a1bcd4cafd05358ce6b9645f8c4ae5cb25586214aeb8ffb5cb42"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T014107Z-code-codex-83f956/in/20260906T011424Z-code-codex-2a2af6.json",
+        "sha256": "84ca13782403c2240ef61c47ec187499725220eb69b63391e3d6840b7bbb8567"
+      }
+    ],
+    "sha256": "a4940a77284958c0190e7e857b5be84c6ecf756d573dab7b16d27ef2b159c21b",
+    "bytes": 4799
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:41:07Z",
+      "ended": "2026-09-06T01:50:35Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "20e3611a5375373bc6faf91770b4c949239ed208",
+    "changed_paths": [
+      "ops/conductor/README.md",
+      "ops/conductor/conductor-start-plan.md",
+      "ops/conductor/discovery-examples.md",
+      "ops/conductor/discovery-lever.md",
+      "ops/conductor/handoff/README.md",
+      "ops/conductor/lane-mcp-lever.md",
+      "ops/conductor/onboard-lever.md",
+      "ops/conductor/reports/discovery-contract-correction-20260906.md",
+      "ops/conductor/reports/discovery-reconciliation-20260906.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 24,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command/01",
+          "claim": "Base and input inventory completed.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/02",
+          "claim": "Inputs read; truncated patch subsequently read in chunks.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/03",
+          "claim": "Founding and lane instructions read; mapping subsequently reread.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/04",
+          "claim": "Input lengths and patch opening inspected.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/05",
+          "claim": "Patch continuation read; truncated portion subsequently reread.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/06",
+          "claim": "Concern and mapping documents read.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/07",
+          "claim": "Patch continuation reread.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/08",
+          "claim": "Remaining contract patch inspected.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/09",
+          "claim": "Patch completed; conventions and ruling read.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/10",
+          "claim": "Patch applicability passed; affected documents inspected.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/11",
+          "claim": "Supplied prior record and GPT-6 attribution read.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/12",
+          "claim": "Supplied draft applied cleanly.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/13",
+          "claim": "Recovered documents, historical evidence and base attribution inspected.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/14",
+          "claim": "Bounded file, AST and lock readings completed; no runtime verification.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/15",
+          "claim": "Inspected after atomic patch context failure; corrected patch subsequently applied.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/16",
+          "claim": "Cleared 13 dev replacement targets and refreshed literal example sizes.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/17",
+          "claim": "Intermediate check found the reconciliation-note link before that document existed; resolved.",
+          "reproduce": "bash ../out/commands/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/18",
+          "claim": "Completed-document checks passed: 63 local links, eight examples, 46 acceptance rows.",
+          "reproduce": "bash ../out/commands/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/19",
+          "claim": "Whitespace, plan/MCP diff and affected examples inspected.",
+          "reproduce": "bash ../out/commands/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/20",
+          "claim": "Final documentation checks passed across nine Markdown files; historical report preserved byte-for-byte.",
+          "reproduce": "bash ../out/commands/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/21",
+          "claim": "Acceptance command exited 0 before commit attempt.",
+          "reproduce": "bash ../out/commands/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/22",
+          "claim": "Commit attempt blocked at staging: .git/index.lock is read-only. Launcher message saved.",
+          "reproduce": "bash ../out/commands/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/23",
+          "claim": "Final-tree git diff --check exited 0.",
+          "reproduce": "bash ../out/commands/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/24",
+          "claim": "HEAD remains the supplied base; nine conductor Markdown paths changed.",
+          "reproduce": "bash ../out/commands/24.sh"
+        }
+      ],
+      "artifacts": {
+        "plan": "ops/conductor/conductor-start-plan.md",
+        "contract": "ops/conductor/discovery-lever.md",
+        "examples": "ops/conductor/discovery-examples.md",
+        "historical_report": "ops/conductor/reports/discovery-contract-correction-20260906.md",
+        "current_evidence": "ops/conductor/reports/discovery-reconciliation-20260906.md",
+        "conductor_index": "ops/conductor/README.md",
+        "custody": "ops/conductor/handoff/README.md",
+        "mcp": "ops/conductor/lane-mcp-lever.md",
+        "onboard": "ops/conductor/onboard-lever.md",
+        "checks": "../out/checks.txt",
+        "commands": "../out/commands.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1815702,
+        "out": 15054,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d3d1b30abfceb908f2e1f5733e1cd3147ffd54e2",
+        "ended": "2026-09-06T01:49:32Z"
+      },
+      "note": "Recovered and reconciled the draft. Assumption: retain its detailed read contract and change only owner-scope conflicts. Independent dev tooling, consolidation before conduct, and proposal-only MCP changes are explicit. Independent review, consolidation admission, enforcement and runtime implementation remain pending; older seeds are left to the enforcement track. No remote work or executable service tests. P3 entries record commands, not outstanding defects. No commit created because staging was sandbox-blocked.",
+      "commit": {
+        "subject": "conductor: recover discovery draft and reconcile independent lanes",
+        "body": "Recover the supplied eight-document draft and preserve its dated producer\nreport. Reconcile independent dev tooling, parallel consolidation before\nconduct, and proposed MCP surfaces while retaining the read-only contract.\nPreserve detailed schemas/examples and add separate current evidence.\n\nAdapted draft: record 20260906T011424Z-code-codex-2a2af6, GPT-6\n(gpt-6-astra), originally based on 3682a8c58e304e7025036f1b3ec4edb63424832e.\nRecovery base: d3d1b30abfceb908f2e1f5733e1cd3147ffd54e2.\nChecks: git diff --check; 63 local links/fragments; eight JSON examples;\n46 non-executable acceptance rows. No runtime verification or self-approval.\n\nSource: original\nSource: uscient/agentscient@9b828d1d3c7fed652b23ed98ef0c0cadd67eef4c\nSource: owner 2026-09-05\nSource: xormania/loopstrap@ca5ab8d363f8822ac5406f5e0bf5c94288102f1a\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:50:34.425Z"
+    }
+  },
+  "status": "closed"
+}

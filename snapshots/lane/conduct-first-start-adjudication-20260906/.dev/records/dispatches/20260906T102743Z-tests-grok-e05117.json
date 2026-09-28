@@ -1,0 +1,211 @@
+{
+  "id": "20260906T102743Z-tests-grok-e05117",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-task-outputs-20260906",
+  "lineage": {
+    "branch": "lane/conduct-task-outputs-20260906",
+    "base_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:27:43Z",
+    "closed": "2026-09-06T10:44:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "ref_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "fb099fd9-d038-455e-8fee-84cadcf979af",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok-stream/sessions/<snapshot-encoded>/fb099fd9-d038-455e-8fee-84cadcf979af/summary.json"
+  },
+  "session": {
+    "id": "fb099fd9-d038-455e-8fee-84cadcf979af",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok-stream/sessions/<snapshot-encoded>/fb099fd9-d038-455e-8fee-84cadcf979af/summary.json",
+    "stream_sha256_at_close": "cf62ea8e7fd44f3e0e338c93eb141a92e261308d1aad3b78af1af3dba37df209",
+    "spend": {
+      "input": 4025700,
+      "cached": 3877632,
+      "output": 56897,
+      "total": 4082597,
+      "cost_usd_ticks": 4379767800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/home/grok-stream/sessions/<snapshot-encoded>/fb099fd9-d038-455e-8fee-84cadcf979af/summary.json",
+      "messages": 299
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-task-outputs-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent tests for the task-owned C2 outputs declaration, rendering and semantic envelope validation in accepted ops/devlane/task/CONTRACT.md and dispatch CONTRACT.md. Read owner and worker-launch acceptance inputs. This bounded prerequisite fixes declared output meaning before launcher grant adoption; do not cover executor consolidation, host grants or new conduct mechanics yet. Derive tests from accepted public interfaces and fixtures; exact file/scratch authority, decoded absolute handles, transport separation, historical records and narrow inline exception must hold. Hermetic unittest tests under ops/devlane/task/tests; test/fixture edits only, no implementation/contracts/settings/catalogue edits. Prove intended red on this ref, distinguish setup/import failures, preserve existing tests. Report missing public seams explicitly, exact command, coverage rows and frozen paths/hashes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102743Z-tests-grok-e05117/in/worker-launch-contract-acceptance-20260906.md",
+        "sha256": "736637b6215772732d8d59029d917dc5c37700e7f6b0c8b136704e2aa8269888"
+      }
+    ],
+    "sha256": "069b5eb0d91bd16f643ea1aa9696a51b7134146ca4c4fe9e205da643d717bc65",
+    "bytes": 3250
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:27:43Z",
+      "ended": "2026-09-06T10:44:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "472f253ec76b26be2f7e180a15c5adb6ab7c1446",
+    "changed_paths": [
+      "ops/devlane/task/tests/fixtures/job_outputs/duplicate-path-member.json",
+      "ops/devlane/task/tests/outputs_support.py",
+      "ops/devlane/task/tests/test_job_outputs.py",
+      "ops/devlane/task/tests/test_job_outputs_accept.py",
+      "ops/devlane/task/tests/test_job_outputs_render.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 7,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.OUTPUTS_SCHEMA (standalone C2 outputs JSON Schema: array, uniqueItems, file/scratch oneOf).",
+          "reproduce": "python3 -c \"import sys; sys.path.insert(0,'ops/devlane/task/tests'); import support; e=support.load('envelope'); print(hasattr(e,'OUTPUTS_SCHEMA'))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.TRANSPORT_RESERVED; default reserved leaves must be COMMIT_MSG and last-message.json, and scratch tmp must not be reserved transport.",
+          "reproduce": "python3 -c \"import sys; sys.path.insert(0,'ops/devlane/task/tests'); import support; e=support.load('envelope'); print(getattr(e,'TRANSPORT_RESERVED',None))\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.validate_outputs; omission must be [], explicit null refuses, grammar/overlaps/duplicate JSON members/transport collisions refuse, and the function must not take a job name.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.outputs_from_job; a missing outputs key is [], explicit null refuses, and prompt prose must not authorize writes.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.render_declared_outputs; check-tests at /jobs/example/out must render the contract example byte-for-byte with JSON string substitutions.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs_render.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "Missing public seam envelope.append_declared_outputs; strip trailing CR/LF from the native prompt, then append two LFs and the Declared job outputs section.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs_render.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py public API",
+          "claim": "envelope.validate does not accept outputs=, out_root= or inline_planning_exception=; newly declared file handles must equal the decoded rendered absolute path exactly. Historical validate() without those parameters still holds.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs_accept.py'"
+        }
+      ],
+      "artifacts": {
+        "declaration": "ops/devlane/task/tests/test_job_outputs.py",
+        "render": "ops/devlane/task/tests/test_job_outputs_render.py",
+        "accept": "ops/devlane/task/tests/test_job_outputs_accept.py",
+        "helper": "ops/devlane/task/tests/outputs_support.py",
+        "fixture": "ops/devlane/task/tests/fixtures/job_outputs/duplicate-path-member.json"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4082597,
+        "out": 56897,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+        "started": "2026-09-06T10:36:25Z",
+        "ended": "2026-09-06T10:43:14Z"
+      },
+      "note": "Authored hermetic C2 task-owned tests from accepted task/dispatch CONTRACT.md plus owner and worker-launch acceptance inputs. Did not read implementation sources; did not edit jobs.json, contracts, settings or catalogue. Did not cover executor consolidation, host grants or new conduct mechanics.\n\nExact combined command at HEAD 472f253ec76b26be2f7e180a15c5adb6ab7c1446: python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs*.py' \u2192 Ran 94, FAILED (failures=86), 0 errors, 0 import/collection failures. Per-file: test_job_outputs.py Ran 55 FAILED (failures=55); test_job_outputs_render.py Ran 18 FAILED (failures=18); test_job_outputs_accept.py Ran 21 FAILED (failures=13) with 8 preservation passes. Existing task tests excluding those three files: Ran 213, OK, 0 failures, 0 errors (same count as on the job ref before these files).\n\nCoverage rows (id | result | assertion class): declaration 55 FAIL missing OUTPUTS_SCHEMA/validate_outputs/outputs_from_job/TRANSPORT_RESERVED; render 18 FAIL missing render_declared_outputs/append_declared_outputs or empty-string no-op; accept 13 FAIL missing validate(outputs=, out_root=, inline_planning_exception=) or OutputsError not raised; accept 8 OK historical validate() without outputs= and inlined-prose refusal / exception not generalized. Reds are AssertionError/assertRaises, not ImportError.\n\nFrozen paths/sha256 at 472f253ec76b26be2f7e180a15c5adb6ab7c1446: b65c47721c9aaa93979c43626e35821f95d6a668bde43a221de42e9572066385 ops/devlane/task/tests/outputs_support.py; 4b77ef93659008cb1837db6c2b221315e35523100cde9a5a7b0a773d625a8bea ops/devlane/task/tests/test_job_outputs.py; 05539ef0ad1454356c6cedea38f9f3adbe711754d95ccabd610ab951ad4f9812 ops/devlane/task/tests/test_job_outputs_render.py; 697192bb62f399890de6b6806504d846b89147bbc085b1753cfb42472c4af1dc ops/devlane/task/tests/test_job_outputs_accept.py; 6786a9779e6fee7a78dab404c8dbe05351be83c9936ee457bd7a193aac572b88 ops/devlane/task/tests/fixtures/job_outputs/duplicate-path-member.json. Commits on lane/conduct-task-outputs-20260906: d7295b1a826504888102fe168dcd788cc0b1d642, e1c5a22c27a151e2f5ca9542b9e13a5b68ec6e1d, 472f253ec76b26be2f7e180a15c5adb6ab7c1446. Optional envelope.OutputsError is not required; tests accept EnvelopeError."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T10:44:40.365Z"
+    }
+  },
+  "status": "closed"
+}

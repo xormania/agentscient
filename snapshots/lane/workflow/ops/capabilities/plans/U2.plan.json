@@ -1,0 +1,308 @@
+{
+  "decisions": [],
+  "deliverables": [
+    {
+      "interface": {
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a73.2",
+        "fields": [
+          "capabilities"
+        ],
+        "name": "#Registry"
+      },
+      "path": "ops/capabilities/contracts/capabilities.cue"
+    },
+    {
+      "interface": {
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a73.3",
+        "fields": [
+          "capability.json",
+          "CONTRACT.md",
+          "contract.cue",
+          "module",
+          "tests/",
+          "faults/",
+          "guide.md"
+        ],
+        "name": "#Anatomy"
+      },
+      "path": "ops/capabilities/contracts/capability.cue"
+    },
+    {
+      "interface": {
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a73.1",
+        "fields": [
+          "name",
+          "class",
+          "remedy"
+        ],
+        "name": "#Refusal"
+      },
+      "path": "ops/capabilities/contracts/outcome.cue"
+    },
+    {
+      "interface": {
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a76.1",
+        "fields": [
+          "registry.json",
+          "registry.empty.json",
+          "anatomy/goodcap"
+        ],
+        "name": "U2 positive controls"
+      },
+      "path": "ops/capabilities/contracts/examples/"
+    },
+    {
+      "interface": {
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a76.2",
+        "fields": [
+          "from",
+          "change",
+          "violates",
+          "reject_path"
+        ],
+        "name": "U2 fault corpus"
+      },
+      "path": "ops/capabilities/contracts/faults/"
+    },
+    {
+      "interface": {
+        "argv": [
+          "python3",
+          "ops/capabilities/checks/registry_vet.py",
+          "vet",
+          "<registry.json>"
+        ],
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a75.1",
+        "name": "registry-vet",
+        "output": "stderr on refusal"
+      },
+      "path": "ops/capabilities/checks/registry_vet.py"
+    },
+    {
+      "interface": {
+        "argv": [
+          "python3",
+          "ops/capabilities/checks/anatomy.py",
+          "vet",
+          "<capability-directory>"
+        ],
+        "declared_at": "ops/docs/scratch/agentscient-u2-plan.md \u00a75.2",
+        "name": "anatomy",
+        "output": "stderr on refusal"
+      },
+      "path": "ops/capabilities/checks/anatomy.py"
+    },
+    {
+      "interface": {
+        "declared_absent": "data export consumed by the container and checked by registry-vet"
+      },
+      "path": "ops/capabilities/capabilities.json"
+    },
+    {
+      "interface": {
+        "declared_absent": "registration data for the declared registry-vet interface"
+      },
+      "path": "ops/devlane/workflow/gate-kinds/artifact.json registry-vet"
+    },
+    {
+      "interface": {
+        "declared_absent": "registration data for the declared anatomy interface"
+      },
+      "path": "ops/devlane/workflow/gate-kinds/artifact.json anatomy"
+    }
+  ],
+  "denied": [
+    "editing the independently authored tests",
+    "using the framework tooling while building it"
+  ],
+  "discharge": {
+    "decisions_to": "ops/docs/DECISIONS.md",
+    "design_to": "framework contract documentation",
+    "lessons_to": "ops/docs/mini-app-lessons.md"
+  },
+  "economics": {
+    "write": {
+      "minutes": 60,
+      "tag": "measured"
+    }
+  },
+  "gates": [
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/registry_vet.py",
+        "vet",
+        "ops/capabilities/capabilities.json"
+      ],
+      "cost": "cheap",
+      "fires_on": "registry contract or currency defects",
+      "name": "registry-vet",
+      "quiet_on": "canonical current export"
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/anatomy.py",
+        "vet"
+      ],
+      "cost": "cheap",
+      "fires_on": "capability anatomy defects",
+      "name": "anatomy",
+      "quiet_on": "closed valid capability directories or an honest empty scan"
+    }
+  ],
+  "id": "agentscient/U2",
+  "open": [],
+  "parent": {
+    "bound_to": "sidecar",
+    "id": "agentscient",
+    "sha256": "5db2de97e6e2be1ceb001d01c8bb055ae870feb54be60fbbecdf8ee46c4fd75a",
+    "unit": "U2"
+  },
+  "premises": [
+    {
+      "source": "ops/capabilities/agentscient.plan.json",
+      "tag": "read",
+      "text": "Plans are prose documents with closed sidecars and child plans are digest-bound projections of parent units."
+    }
+  ],
+  "ref": "23a954e7fc5a0dae669c61bb6fafcb69ceb9e04f",
+  "refusals": [
+    "registry.*",
+    "anatomy.*"
+  ],
+  "scope": {
+    "dated": "2026-08-31",
+    "owner_words": "I want to get the mini-apps redone into a framework - it makes sense - i like symfony, its a good example | don't constrain it too much - this is a big task | you bring up something important - plans (contracts) at every level | these contracts and their economics are important | yes - but framework first | 2026-08-31: launch U2",
+    "source": "owner 2026-08-29 and 2026-08-31; ops/docs/scratch/agentscient-u2-plan.md"
+  },
+  "settled": [
+    {
+      "dated": "2026-08-29",
+      "id": "framework-before-surface",
+      "ruled_by": "owner",
+      "where": "owner 2026-08-29: frame work first"
+    },
+    {
+      "dated": "2026-08-27",
+      "id": "wf-renamed-ledger",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a70"
+    },
+    {
+      "dated": "2026-08-27",
+      "id": "capability-is-the-word",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a70"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "launcher-pinned",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a70"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "beside-fixture-cutover",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a78"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "plans-at-every-level",
+      "ruled_by": "owner",
+      "where": "owner 2026-08-29: plans (contracts) at every level"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "stdlib-only",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a72.4"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "cue-doctrine-positive-negative-raw",
+      "ruled_by": "owner",
+      "where": "framework plan \u00a73"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "tests-by-non-implementer-then-skeptic",
+      "ruled_by": "owner",
+      "where": "ops/process/pipeline.md"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-plan-cue",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-language",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-storage",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-set",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-context-custody",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-size",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-order",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-anatomy",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-fixture-repo",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-hooks-listeners",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-launcher-after",
+      "ruled_by": "owner",
+      "where": "root plan decision"
+    },
+    {
+      "dated": "2026-08-31",
+      "id": "D-new-2",
+      "ruled_by": "owner",
+      "where": "ops/docs/scratch/agentscient-u2-ratification.md"
+    }
+  ],
+  "units": []
+}

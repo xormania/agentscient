@@ -1,0 +1,152 @@
+{
+  "id": "20260905T040741Z-code-grok-f1fe2a",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/mcp-final-tests-20260905",
+  "lineage": {
+    "branch": "lane/mcp-final-tests-20260905",
+    "base_sha": "6d9b0df81975d0cdb1d63c168031c188597b2c09"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T04:07:42Z",
+    "closed": "2026-09-05T04:17:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6d9b0df81975d0cdb1d63c168031c188597b2c09",
+    "ref_sha": "6d9b0df81975d0cdb1d63c168031c188597b2c09",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "422d8500-b959-4e23-b647-b5706cdba9cf",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok-stream/sessions/<snapshot-encoded>/422d8500-b959-4e23-b647-b5706cdba9cf/summary.json"
+  },
+  "session": {
+    "id": "422d8500-b959-4e23-b647-b5706cdba9cf",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok-stream/sessions/<snapshot-encoded>/422d8500-b959-4e23-b647-b5706cdba9cf/summary.json",
+    "stream_sha256_at_close": "e991599d0e7b3201d8530d5cb57af1418ecfdf8d9415578ff0795c33642e8a42",
+    "spend": {
+      "input": 2270284,
+      "cached": 2168320,
+      "output": 33383,
+      "total": 2303667,
+      "cost_usd_ticks": 2530256200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-f1fe2a/home/grok-stream/sessions/<snapshot-encoded>/422d8500-b959-4e23-b647-b5706cdba9cf/summary.json",
+      "messages": 239
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finishMcpTestsTree.37fR3v/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author only 3 focused regressions in new ops/conductor/tests/test_lane_mcp_review.py against lane-mcp-lever.md, without reading implementation: alert subject257-1024 allowed and invalid lookahead doesn't hide valid prefix; deep record JSON unavailable and serve later ping survives; deep alert evidence/usage row doesn't terminate server (parameterize if useful). Reuse existing test_lane_mcp.py helpers/fixtures, no new framework, max200 lines target. Prove relevant baseline red and report exact assertions. No production edits, network, real stores, broad suites, P3s. Commit Source: original and exact Grok 4.6 attribution. Root judges oracle.\n",
+    "inputs": [],
+    "sha256": "472db48270e71ddd2faf54c45b05305843551111f0b068a2370f3051df87d913",
+    "bytes": 2991
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T04:07:42Z",
+      "ended": "2026-09-05T04:17:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f6d1cd158dd4ed42a07339adcf36d7634b06662f",
+    "changed_paths": [
+      "ops/conductor/tests/test_lane_mcp_review.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/conductor/tests/test_lane_mcp_review.py",
+        "commit": "f6d1cd158dd4ed42a07339adcf36d7634b06662f"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2303667,
+        "out": 33383,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6d9b0df81975d0cdb1d63c168031c188597b2c09",
+        "started": "2026-09-05T04:13:05Z",
+        "ended": "2026-09-05T04:17:17Z"
+      },
+      "note": "in/ looked and was empty (record.brief.inputs []). Implementation files were not opened. Wrote ops/conductor/tests/test_lane_mcp_review.py (200 lines, ruff check clean) reusing test_lane_mcp._LaneMcpFixture; collected 3 methods. Each method was run alone from ops/conductor/tests against 6d9b0df81975d0cdb1d63c168031c188597b2c09; all FAIL not ERROR. 1) test_alert_subject_257_to_1024_allowed_and_invalid_lookahead_keeps_prefix: assertEqual(payload[\"state\"], \"ok\") found 'unavailable' (events=[], more=False, next_after=0, reason='monitor database is unreadable or corrupt'). 2) test_deep_record_json_unavailable_and_later_ping_survives: assertEqual(served.returncode, 0) found 1; stderr RecursionError from json.loads of 20000-deep record JSON; ping id 3 not reached. 3) test_deep_alert_evidence_or_usage_row_does_not_terminate_server: both subTests (alerts, usage) assertEqual(served.returncode, 0) found 1; stderr RecursionError from json.loads of 20000-deep evidence/usage JSON. Committed f6d1cd158dd4ed42a07339adcf36d7634b06662f on lane/mcp-final-tests-20260905. Source: original. Co-Authored-By: Grok 4.6 <noreply@x.ai>. Root judges oracle."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T04:17:37.865Z"
+    }
+  },
+  "status": "closed"
+}

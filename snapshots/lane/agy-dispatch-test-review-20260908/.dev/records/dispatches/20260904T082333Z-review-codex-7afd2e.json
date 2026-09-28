@@ -1,0 +1,182 @@
+{
+  "id": "20260904T082333Z-review-codex-7afd2e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-apps-2",
+  "lineage": {
+    "branch": "lane/fixture-apps-2",
+    "base_sha": "8af39b5ea7302234e54378c4115ee72b39481a2a"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:23:33Z",
+    "closed": "2026-09-04T08:28:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8af39b5ea7302234e54378c4115ee72b39481a2a",
+    "ref_sha": "8af39b5ea7302234e54378c4115ee72b39481a2a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-23-34-01a06b84-1a5b-79e0-af1c-db66bb05c6fa.jsonl"
+  },
+  "session": {
+    "id": "01a06b84-1a5b-79e0-af1c-db66bb05c6fa",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-23-34-01a06b84-1a5b-79e0-af1c-db66bb05c6fa.jsonl",
+    "stream_sha256_at_close": "19e90e92c14275e25a990f9fde64b7f0c0b6e81fd452902cb0ec39d1d8ebe215",
+    "spend": {
+      "input": 849398,
+      "cached": 771712,
+      "output": 13655,
+      "total": 863053,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-23-34-01a06b84-1a5b-79e0-af1c-db66bb05c6fa.jsonl",
+      "messages": 144
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 2 (apps/python-tooling), the skeptic pass: judge the tests on this ref against the contract in the input file (the fixture scope and the plan; the slice 2 section). The test is landed on this ref, red first: ops/devlane/fixtures/tests/test_python_tooling_app.py, proving the app through the merged lever ops/bin/fixture.sh (make, prove red on every planted fault and green on every clean neighbour, prove --fixed green, the manifest sweep, grade). Judge whether it discriminates, whether every fault kind the plan assigns to this app is pinned, whether the probes prove red mechanically, and whether a wrong app or a wrong FAULTS.json would pass. No implementation exists yet; do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/in/contract-fixtures-2.md",
+        "sha256": "8855985d2bace1ccdd236399e474afcb448dda4183c6ba29e6d5abbfb613f4c2"
+      }
+    ],
+    "sha256": "c36c265638deefc149d43b6b4e05cc0b656c692744c37f9971705db41bfcf7bf",
+    "bytes": 3383
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:23:33Z",
+      "ended": "2026-09-04T08:28:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8af39b5ea7302234e54378c4115ee72b39481a2a",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "test-skeptic",
+      "status": "invalid",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:607-651",
+          "claim": "Only aggregate fresh and fixed prove runs are exercised. No manifest probe or fix is tested independently or constrained to its declared fault. An app containing none of K1/K2/K3/K4/K5/K6/K8, with seven always-red probes and fixes that merely rewrite those probes green, would pass; labels are pinned but fault behavior is not.",
+          "reproduce": "rg -n 'prove\",|git apply|\\[\"fix\"\\]|get\\(\"fix\"\\)|\\[\"probe\"\\]|get\\(\"probe\"\\)' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:809-912",
+          "claim": "Grade and clean-neighbour findings are generated from the same FAULTS.json spans being judged. A wrong manifest can designate arbitrary valid locations or a behaviorally faulty neighbour as clean, and the expected grade follows that declaration; no independent clean-neighbour behavior is exercised.",
+          "reproduce": "rg -n 'first.get\\(\"location\"|first.get\\(\"neighbour\"|row.get\\(\"neighbour\"' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:368-380;655-679",
+          "claim": "The app check is accepted when its text merely contains \u201cunittest\u201d and \u201cruff\u201d and exits zero. A manifest using `true # unittest ruff` with an empty tests directory would pass without running either required check.",
+          "reproduce": "nl -ba ops/devlane/fixtures/tests/test_python_tooling_app.py | sed -n '368,380p;655,679p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:424-427;578-605",
+          "claim": "The make proof supplies a copy list containing only FAULT-KINDS.md and never runs suites.sh or dispatch.sh --dry-run in the scratch. A copy configuration omitting the lane would pass, so the required portability acceptance is untested.",
+          "reproduce": "rg -n 'COPY_REL|suites\\.sh|dispatch\\.sh|dry-run' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:283-308",
+          "claim": "The apparatus assertion searches README.md concatenated with FAULTS.json, although the contract requires README.md itself to carry the declaration. A README omitting it passes when the manifest contains the word.",
+          "reproduce": "nl -ba ops/devlane/fixtures/tests/test_python_tooling_app.py | sed -n '283,308p'"
+        }
+      ],
+      "artifacts": {
+        "report_target": "/home/scientdb/.local/state/agentscient/dispatch/20260904T082333Z-review-codex-7afd2e/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 863053,
+        "out": 13655,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8af39b5ea7302234e54378c4115ee72b39481a2a",
+        "started": null,
+        "ended": "2026-09-04T04:28:08-04:00"
+      },
+      "note": "Review completed. The targeted red-first test failed on the intended missing-FAULTS.json assertion, and test-guard passed. The report target remains absent because the read-only sandbox rejected the requested write."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T08:28:35.637Z"
+    }
+  },
+  "status": "closed"
+}

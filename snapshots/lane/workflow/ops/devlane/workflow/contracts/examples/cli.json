@@ -1,0 +1,163 @@
+{
+  "facts": {
+    "commands": [
+      {
+        "name": "advance",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--to"]},
+          {"flags": ["--reason"]},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "check",
+        "arguments": [
+          {"positional": "wo"},
+          {"positional": "check-name"},
+          {"positional": "cmd"},
+          {"flags": ["--verify-only"]},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--allow-dirty"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "claim",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--agent"]},
+          {"flags": ["--ttl"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "commit",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "export",
+        "arguments": [
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "green",
+        "arguments": [
+          {"positional": "wo"},
+          {"positional": "cmd"},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--allow-dirty"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "init",
+        "arguments": [
+          {"flags": ["--rebuild"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "log",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--attempts"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "marker",
+        "arguments": [
+          {"positional": "wo"},
+          {"positional": "open|close", "choices": ["open", "close"]},
+          {"positional": "id"},
+          {"flags": ["--note"]},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "next",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--json"]}
+        ],
+        "next_json_keys": ["advances", "claim", "kind", "missing", "satisfied", "stage", "wo"]
+      },
+      {
+        "name": "open",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--kind"]},
+          {"flags": ["--objective"]},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "outcome",
+        "arguments": [
+          {"positional": "wo"},
+          {"positional": "value"},
+          {"flags": ["--by"]},
+          {"flags": ["--note"]},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "red",
+        "arguments": [
+          {"positional": "wo"},
+          {"positional": "cmd"},
+          {"flags": ["--agent"]},
+          {"flags": ["--source"]},
+          {"flags": ["--no-commit"]},
+          {"flags": ["--allow-dirty"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "release",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--agent"]},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "status",
+        "arguments": [
+          {"positional": "wo"},
+          {"flags": ["--json"]}
+        ]
+      },
+      {
+        "name": "verify",
+        "arguments": [
+          {"flags": ["--deep"]},
+          {"flags": ["--json"]}
+        ]
+      }
+    ],
+    "env_literals": ["WF_AGENT"]
+  },
+  "provenance": {}
+}

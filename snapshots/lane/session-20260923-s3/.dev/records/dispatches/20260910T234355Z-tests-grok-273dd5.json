@@ -1,0 +1,170 @@
+{
+  "id": "20260910T234355Z-tests-grok-273dd5",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repair/ladder-inputs-tests-20260910",
+  "lineage": {
+    "branch": "repair/ladder-inputs-tests-20260910",
+    "base_sha": "e3aa902866cc922fd0dc82a18821b9ce2b6b79b6"
+  },
+  "follows": [
+    "20260910T233710Z-review-codex-cd4bef"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-10T23:43:56Z",
+    "closed": "2026-09-10T23:58:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e3aa902866cc922fd0dc82a18821b9ce2b6b79b6",
+    "ref_sha": "e3aa902866cc922fd0dc82a18821b9ce2b6b79b6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-ladder-inputs-tests-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f2b729d8-8366-4da0-9714-dd643f4b968e",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok-stream/sessions/<snapshot-encoded>/f2b729d8-8366-4da0-9714-dd643f4b968e/summary.json"
+  },
+  "session": {
+    "id": "f2b729d8-8366-4da0-9714-dd643f4b968e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok-stream/sessions/<snapshot-encoded>/f2b729d8-8366-4da0-9714-dd643f4b968e/summary.json",
+    "stream_sha256_at_close": "7a676b25eed6f5c026cc59bf2b277b33ab2504bbc1dade812a5636d9ddefefef",
+    "spend": {
+      "input": 3056517,
+      "cached": 2616320,
+      "output": 45070,
+      "total": 3101587,
+      "cost_usd_ticks": 4180255800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/home/grok-stream/sessions/<snapshot-encoded>/f2b729d8-8366-4da0-9714-dd643f4b968e/summary.json",
+      "messages": 259
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder-inputs-tests-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct exactly two tests in ops/conductor/tests/test_ladder_lever_inputs.py per the third-harness ruling: read in/brief-ladder-inputs-tests-fix-20260910.md WHOLE; the two REJECTED assumptions there are the only things to change. Leave every other test byte-identical, including the three the ruling UPHELD, which stay red until the implementation fix lands. Do not read or edit the implementation. Commit and list the file in artifacts.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/in/brief-ladder-inputs-tests-fix-20260910.md",
+        "sha256": "c1bc76a83d92195efb2580aec44c42c40bbbdbe69ac6fa0c546546291cdba7fb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234355Z-tests-grok-273dd5/in/brief-ladder-inputs-tests-20260910.md",
+        "sha256": "cc24409f7ab9c93dac66ab9070f3f6e9c2578c14947feeaed40d0322bf080210"
+      }
+    ],
+    "sha256": "2da92846f44e93a671fe193b97d156318709bab3d736cfd9b3acb67e5c103141",
+    "bytes": 3048
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:43:56Z",
+      "ended": "2026-09-10T23:58:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3e3c7e3f64c868148484008122ec38d4f364a544",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_inputs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever_inputs.py": "ops/conductor/tests/test_ladder_lever_inputs.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3101587,
+        "out": 45070,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e3aa902866cc922fd0dc82a18821b9ce2b6b79b6",
+        "started": "2026-09-10T23:45:03Z",
+        "ended": "2026-09-10T23:58:06Z"
+      },
+      "note": "Corrected only test_dry_run_argv_carries_input_after_the_plan and test_resume_refuses_when_input_bytes_changed in ops/conductor/tests/test_ladder_lever_inputs.py. Commit 3e3c7e3f64c868148484008122ec38d4f364a544. Frozen command `python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_inputs.py` at that sha: Ran 13 tests in 3.606s, FAILED (failures=3), 0 errors. The two corrected tests pass. The three UPHELD tests remain FAIL: test_input_flag_without_a_path_refuses_arguments, test_missing_input_refuses_input, test_unreadable_input_refuses_input. ops/conductor/tools/ladder.py was not read or edited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T23:58:22.882Z"
+    }
+  },
+  "status": "closed"
+}

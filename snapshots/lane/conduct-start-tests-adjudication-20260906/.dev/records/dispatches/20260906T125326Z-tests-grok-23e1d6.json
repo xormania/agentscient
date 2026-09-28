@@ -1,0 +1,211 @@
+{
+  "id": "20260906T125326Z-tests-grok-23e1d6",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-start-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-start-tests-20260906",
+    "base_sha": "83706c91ccb3488d74334a150aded6ba55700cc2"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T12:53:26Z",
+    "closed": "2026-09-06T13:16:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "83706c91ccb3488d74334a150aded6ba55700cc2",
+    "ref_sha": "83706c91ccb3488d74334a150aded6ba55700cc2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "9e51fa55-5c7e-4b62-b144-d9460e5d838b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok-stream/sessions/<snapshot-encoded>/9e51fa55-5c7e-4b62-b144-d9460e5d838b/summary.json"
+  },
+  "session": {
+    "id": "9e51fa55-5c7e-4b62-b144-d9460e5d838b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok-stream/sessions/<snapshot-encoded>/9e51fa55-5c7e-4b62-b144-d9460e5d838b/summary.json",
+    "stream_sha256_at_close": "0a3cb38e975ca37062f5f8b07f5397c7206db8fc320841cf270a4a7cfb4a0b9f",
+    "spend": {
+      "input": 6058476,
+      "cached": 5735680,
+      "output": 80648,
+      "total": 6139124,
+      "cost_usd_ticks": 8135496200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/home/grok-stream/sessions/<snapshot-encoded>/9e51fa55-5c7e-4b62-b144-d9460e5d838b/summary.json",
+      "messages": 387
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-start-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent startup tests for conduct and prepare_conductor using conductor-start-plan.md, permission-surface.md, harness-capabilities.md and the supplied approved interfaces. Own only ops/conductor/tests/test_conduct_start.py, test_conduct_enforcement.py and conduct_test_support.py. Cover CLI forms, configurable harness/model/role/profile, exact admitted tokens and fixed refusals, full descriptor validation, untrusted matching digests, actual-client MCP versus separate server checks, partial valid onboarding without path hints, canonical delegation, forbidden handwork and launch/resume binding before effects. Use verified synthetic counterparties and faulty controls; no real harness, credentials or live admission. Do not read/write implementation or invent missing protocols. Collect assertion reds against absent source and report any genuinely undeclared boundary. Record hashes/commands/coverage. Grok-only trailers; inline envelope note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/in/ag-conduct-unit1a-recheck.json",
+        "sha256": "b723bd0d980646c86ea1941648d9d7a45aa9ff9bd78f57ac2a2aee7279dae57f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125326Z-tests-grok-23e1d6/in/ag-conduct-startup-close.json",
+        "sha256": "81077b71b670a693c9966b0f32f36d341d347424a340ff4fd07e8c84764d4a90"
+      }
+    ],
+    "sha256": "79dd7f312cffed8767a5bf98cda248cde624856ca61b30d425b5019517fa6720",
+    "bytes": 3322
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:53:26Z",
+      "ended": "2026-09-06T13:16:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e520bb654b271cfa2cab23031d5dc77d800fdfc7",
+    "changed_paths": [
+      "ops/conductor/tests/conduct_test_support.py",
+      "ops/conductor/tests/test_conduct_enforcement.py",
+      "ops/conductor/tests/test_conduct_start.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/conductor-start-plan.md:315-321",
+          "claim": "prepare_conductor takes trusted_context as a direct in-process argument or inherited read-only descriptor, never a caller path, environment variable, model tool argument or MCP parameter, but the CLI inheritance channel for that descriptor is unnamed. Tests therefore prove composition in-process and only use subprocess CLI for argv grammar and pre-effect refusals.",
+          "reproduce": "sed -n '78,95p;315,321p;432,440p' ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:315-317",
+          "claim": "prepare_conductor returns the descriptor and the adapter's compiled launch, but the packaging (2-tuple versus a closed mapping and the compiled-launch key name) is unnamed. Tests accept a 2-tuple or a mapping with keys descriptor and compiled_launch, recorded as PIN_PREPARE_RETURN.",
+          "reproduce": "sed -n '315,317p;359,370p' ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:87-108",
+          "claim": "normalize_tool consumes a native_request whose closed schema is not declared; only surfaces (edit/apply_patch, Git, shell, vendor, in-session agent) are named. Tests use PIN_NATIVE_REQUEST {surface,argv,cwd,environment,executable}.",
+          "reproduce": "sed -n '87,144p' ops/conductor/permission-surface.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:432-439",
+          "claim": "conduct-config is named for malformed or untrusted descriptor transport with secret-free fixed reasons and a doctor remedy, but unlike conduct-argv and conduct-mcp it has no exact expected/found/needed template. Tests assert the wire, class token and doctor in needed.",
+          "reproduce": "sed -n '183,189p' ops/conductor/harness-capabilities.md; sed -n '432,439p' ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:399-418",
+          "claim": "Startup must verify initialize, tools/list and tools/call lane_start from the actual client after child creation; a separate CLI query is not proof. How those client bytes are observed (server-side log, intercepted stdio, or another handle) is unnamed. Tests attach a FakeMcpClient to the in-process context.",
+          "reproduce": "sed -n '399,418p;443-448p' ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:89-120",
+          "claim": "evaluate_tool's bound_role is a verified handle to the descriptor, policy binding and admitted tool declarations, and delegate/read arguments are the target owner's validated structured request, without closed JSON shapes here. Tests pin a mapping with descriptor_sha256, binding and tools, and delegate arguments {job:author-tests}.",
+          "reproduce": "sed -n '87,120p;145-156p' ops/conductor/permission-surface.md"
+        }
+      ],
+      "artifacts": {
+        "test_conduct_start": "ops/conductor/tests/test_conduct_start.py",
+        "test_conduct_enforcement": "ops/conductor/tests/test_conduct_enforcement.py",
+        "conduct_test_support": "ops/conductor/tests/conduct_test_support.py",
+        "start_red": "../out/conduct-start-red.txt",
+        "enforcement_red": "../out/conduct-enforcement-red.txt",
+        "combined_red": "../out/conduct-combined-red.txt",
+        "hashes": "../out/hashes.txt",
+        "commands": "../out/commands.txt",
+        "head": "e520bb654b271cfa2cab23031d5dc77d800fdfc7"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6139124,
+        "out": 80648,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "83706c91ccb3488d74334a150aded6ba55700cc2",
+        "started": "2026-09-06T13:01:20Z",
+        "ended": "2026-09-06T13:15:11Z"
+      },
+      "note": "Authored independent startup tests for prepare_conductor and the conduct CLI from conductor-start-plan.md, permission-surface.md and harness-capabilities.md (sha256 a7260e7b, f5daf339, 9e735a24 measured at 83706c91ccb3488d74334a150aded6ba55700cc2). Owned only ops/conductor/tests/test_conduct_start.py, test_conduct_enforcement.py and conduct_test_support.py. Implementation unread and still absent: ops/conductor/tools/conduct.py, ops/bin/conduct, ops/conductor/tools/lane_policy.py and ops/devlane/harness/adapters.py.\n\nCovered CLI forms including optional --; configurable harness, model, effort, role, job_role and profile; exact admitted grammar tokens and fixed conduct-argv refusals; full descriptor validation; untrusted matching digests; actual-client MCP versus a separate server query; partial valid onboarding without path hints; canonical dispatch, go and ladder delegation; forbidden handwork before effects; launch and resume binding before directory, attempt or child mutations. Counterparties are verified synthetics. No real harness, credentials or live admission.\n\nReds are assertion failures against absent source, not collection errors. python3 -B -m unittest discover -s ops/conductor/tests -p 'test_conduct_start.py' at 83706c91: 51 tests, 57 failures, 0 errors, 0 passes. python3 -B -m unittest discover -s ops/conductor/tests -p 'test_conduct_enforcement.py' at 526a05ad7798bf6929f4a53812b3f0a120f48a89: 42 tests, 49 failures, 0 errors, 0 passes. Combined -p 'test_conduct_*.py' at e520bb654b271cfa2cab23031d5dc77d800fdfc7: 93 tests, 106 failures. ruff check on the three files: All checks passed. python3 -m coverage: could not look (No module named coverage). Commits 526a05a and e520bb6 carry Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. File sha256 at HEAD: support c657db3b, start cff9440e, enforcement 68324dc3.\n\nTests pin unnamed packaging rather than inventing protocols. Undeclared boundaries are in findings."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T13:16:30.591Z"
+    }
+  },
+  "status": "closed"
+}

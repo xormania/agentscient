@@ -1,0 +1,271 @@
+{
+  "id": "20260906T025705Z-review-claude-104942",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "8ee027091d7c9139a63bde326a01e4f440378026"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:57:07Z",
+    "closed": "2026-09-06T03:03:33Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8ee027091d7c9139a63bde326a01e4f440378026",
+    "ref_sha": "8ee027091d7c9139a63bde326a01e4f440378026",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "82d0d427-5939-4c51-b75a-fb89aeb0db3a",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/82d0d427-5939-4c51-b75a-fb89aeb0db3a.jsonl"
+  },
+  "session": {
+    "id": "82d0d427-5939-4c51-b75a-fb89aeb0db3a",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/82d0d427-5939-4c51-b75a-fb89aeb0db3a.jsonl",
+    "stream_sha256_at_close": "e5d824d228af46f6c15f69ac2965a35ba636f54fb3c936c04186ba44c092e865",
+    "spend": {
+      "input": 64,
+      "cached": 2505293,
+      "output": 28674,
+      "total": 2534031,
+      "source": "result.usage",
+      "messages": 32,
+      "cost_usd": 2.875285
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck GPT-6 81192a's bounded contract correction against Grok 8cdf11 and lane-policy-correction-owner.md. Verify exact gate protection preserves ordinary tooling, additive reads and maintenance boolean, existing-register admission/grant encoding and byte hashing, trusted reader/runtime binding, standing versus per-job authorization with no repeat owner act for covered work, singleton standing and false-output case. Test missing/conflicting/revoked/mismatched evidence and candidate reader/config/seed substitution at the specification level. Keep bootstrap/legacy/resume/collect/land/ladder and honest containment consistent. State independent-test readiness or exact remaining interface/fixture gaps; no broad audit or future runtime demanded. Return <=1000-word approve/changes with material evidence and minimal corrections. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/in/lane-policy-correction-owner.md",
+        "sha256": "309736fefeb33bf91418f3c6084795de8182873c61b311afff0d28ca084b9ccf"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/in/20260906T023832Z-adjudicate-grok-8cdf11.json",
+        "sha256": "f5f451b1125af8b966c14b1c7ac06477a238490cfa2b8c8f90998c3156040c68"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025705Z-review-claude-104942/in/20260906T024620Z-code-codex-81192a.json",
+        "sha256": "f3de17c62c766f6cd4c6351890cb3549b8dcc07b445b164a805110487d316401"
+      }
+    ],
+    "sha256": "915c38991c928f9ebbe9404ebd1e515c6f1f28f664a833976cc11d4d803a2b9a",
+    "bytes": 1689
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:57:07Z",
+      "ended": "2026-09-06T03:03:32Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8ee027091d7c9139a63bde326a01e4f440378026",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/lane-policy.json:8; ops/conductor/lane-policy.md:71-76,425; ops/bin/dispatch.sh:6; ops/bin/ladder.sh:5",
+          "claim": "Declared inclusion rule versus practiced set. Declared (lane-policy.md:71-73): \"The protected set includes every exclusive dispatch lever and suite/conformance gate entrypoint named here as exact paths: `ops/bin/dispatch.sh`, `ops/bin/go.sh`, `ops/bin/suites.sh` and `ops/conductor/tools/laneconf.py`.\" Practiced (ops/bin/dispatch.sh:2-6): \"dispatch.sh \u2014 the lever's front door. The wrapper itself lives with the instruments at ops/conductor/tools/dispatch.sh ... exec bash ...\". The protected path is a six-line shim; the 326-line lever body `ops/conductor/tools/dispatch.sh` \u2014 which resolves `LAUNCHER_PIN` (line 107) and sets `WF_AGENT` for the launcher (line 245) \u2014 is tracked, sits inside `dev`'s only write root `ops/`, and is absent from `protected_authority_paths`, with `dev.authority_maintenance: false`. A routine `dev` job therefore rewrites the exclusive dispatch lever with no maintenance evidence, while N7 (:425) still passes because it exercises only the shim address. Same asymmetry the other way at `ops/bin/ladder.sh:5`, an unprotected shim onto the protected `ops/conductor/tools/ladder.py`. This is the F1 gap Grok 8cdf11 named, closed at the address and open at the body. Minimal correction: add `\"ops/conductor/tools/dispatch.sh\"` and `\"ops/bin/ladder.sh\"` to `protected_authority_paths`, and extend N7 to name the body path; or, if the four-path list is to stay verbatim, narrow :71-73 to claim only the named addresses and declare the shim/body gap explicitly rather than \"every exclusive dispatch lever\". `ops/bin/go.sh` and `ops/bin/suites.sh` are real bodies and need no change.",
+          "reproduce": "git ls-files ops/conductor/tools/dispatch.sh; grep -n 'conductor/tools/dispatch.sh' ops/lane-policy.json; cat ops/bin/dispatch.sh ops/bin/ladder.sh; grep -n 'LAUNCHER_PIN\\|WF_AGENT' ops/conductor/tools/dispatch.sh; sed -n '71,76p;425p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:119-121,165,173-178,417,427",
+          "claim": "Admission and standing-grant rotation is unspecified, so the fixture cannot be written. :119-121 binds the custody anchor to the \"current admission id\"; :165 freezes `standing_grants` as \"the complete standing-grant set for this admission\" inside immutable ratify-time evidence; :173 routes revocation through the existing supersede transition; :177-178 says a listed row that is missing or invalid \"is not an empty set that licenses a per-job fallback\", and :171-172 refuses `lane-policy` on missing rows. Together: adding or revoking any standing grant requires a fresh ratified admission, and until it exists a single superseded listed row refuses all protected maintenance. That is fail-closed and probably intended, but no rule states how the anchor's \"current admission id\" is updated or who checks the replacement, and no P/N row prescribes either outcome (P4:417 exercises one standing record across two jobs; N9:427 covers superseded rows only as forged/invalid evidence). Minimal correction: one sentence that a changed standing-grant set requires a fresh ratified admission plus an anchor update verified by the previously trusted reader, and one case row pairing revoked-standing-row -> `lane-policy` with a post-rotation pass.",
+          "reproduce": "sed -n '119,121p;165p;171,178p;417p;427p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:139-141,174,427",
+          "claim": "Declared: \"Notes do not grant or revoke authority\" (:174). Practiced in the same contract: \"Re-read live at every acceptance transition; an event note changes this digest too\" (:139), with N9 (:427) refusing `lane-policy` on a \"changed output byte digest (including changed events/newline)\". `decisions.py note` requires only `WF_AGENT` identity and host store access (decisions.py:330-334, main:406) \u2014 no owner principal \u2014 so a note on a bound admission or grant row voids every already-bound dispatch at its next transition, which is withdrawal of acceptance in effect even though the grant is unchanged. :140 bounds the blast radius (a fresh dispatch rebinds the new digest without a new owner act), but the reader must assemble that from three separated sentences and no case row states it. Minimal correction: reword :174 to \"notes confer and remove no grant; a note does change the bound digest, so bound dispatches must rebind\", and add the bounded consequence to N9 or R2 so the test author knows in-flight refuses and fresh binds.",
+          "reproduce": "sed -n '139,141p;174p;427p' ops/conductor/lane-policy.md; sed -n '330,334p;403,418p' ops/conductor/tools/decisions.py"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "claude",
+        "total": 2534031,
+        "out": 28674,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8ee027091d7c9139a63bde326a01e4f440378026",
+        "started": null,
+        "ended": "2026-09-06T03:02:42Z"
+      },
+      "note": "Recheck of GPT-6 81192a's bounded correction (three files: ops/conductor/lane-policy.md, ops/lane-policy.json, ops/devlane/dispatch/CONTRACT.md) against Grok 8cdf11 and lane-policy-correction-owner.md. Inputs read whole from in/. Measured at 8ee0270 in the snapshot; `git diff --check c06ed944 8ee0270` exits 0. Read-only: no source, tests, settings, host, DB or network changes; no host decision store read; no register standing changed; no vendor launch; suites not run.\n\nRuling coverage, each verified in the text. F1 four exact paths added (lane-policy.json:8-9), inclusion rule with the explicit `ops/bin/`/`ops/devlane/hooks/` prefix ban (:71-76), P1 keeps `ops/bin/example.sh` and ordinary hook tooling passing (:414), N7 added (:425) \u2014 closed at the named addresses, open at the dispatch lever body (p2 above). F2 `shared_read_roots` is additive and never narrows, with `src/`/`packages/` named as the :42-44 inspection grant, and P1 adds the `src/Example.php` read (:66-69,414). F3 `authority_maintenance: false` refuses every protected write even with a valid record, restated at :31, :192-195 and :238-239, with the N7 `ops/README.md` negative case. F4 uses only the existing register: host store `Path.home()/.local/state/<LANE_NAME>/decisions.db`, owner HOME not worker HOME, seed as birth export, `handwork.db` excluded, `decisions.py show <id>`, ratified row with `home`/`decided_by`/`superseded_by: null`, digest over exact `show` stdout, and no new column, verb, flag or store (:90-178). F5 splits standing from per-job (:163-167,197-213): standing carries `paths`/`purpose` and no job or lineage, applies across jobs, its receipt is conductor-derived and not a fresh owner act; per-job is confined to paths outside the standing union. F6 singleton `proposal` with N8. F7 P3 extended to refuse a present valid declared `out/` write.\n\nChecked against the actual tool. `show` prints `json.dumps({\"decision\":..., \"events\":...}, sort_keys=True)` with a trailing newline (decisions.py:264), so \":135-138\" is accurate. The `ratified` event carries agent = recorded_by and detail = evidence (decide:278-283), matching :146-148. The `<principal>: <JSON>` form is compatible with `principal()`'s `^\\\\s*([^:\\\\n]+?)\\\\s*:` (decisions.py:188-196). `laneconf.get` reads `os.environ` first (laneconf.py:196-197) and honours `lane.local.conf`, so the reader obligations at :112-116 are necessary, not decorative. All four newly protected paths are tracked. Adversarial cases hold at the specification level: missing (:102,171-172), conflicting deciding events (:148-149), revoked/superseded (:143-144,173-174), mismatched ref/digest/principal/reader (:171), and candidate reader/config/seed or worker-HOME substitution (:107-116,127-131,P5,N9).\n\nBootstrap, legacy, resume, collect, land, ladder and honest containment stay consistent: :354-371 now names the reader/runtime anchor and the record-once-without-a-new-decision rule, :384-391 keeps old records readable but unlandable with no backfill, the transition table (:294-300) and R1-R3 are unchanged, and containment remains detection-at-acceptance with host custody stated as an assumption (:132-133,346-352). The CONTRACT.md coupling paragraph tracks the same three corrections and adds nothing else.\n\nIndependent-test readiness. Ready to author now: P1, P2, P3 including the declared-output refusal, P5, N1-N8, N10, R1-R3, I1, and the P4/N9 evidence checks, using a synthetic host register built by `decisions.py add`/`ratify` under a fixture HOME plus a fixture policy blob. Remaining gaps before a complete P4/N9 fixture: the rotation rule and case in p3 finding two (the author cannot decide what a second admission or a revoked standing row should do), the note-versus-digest outcome in p3 finding three, and the p2 path list, which decides whether N7 asserts the shim or the lever body. Those three are the exact interfaces still missing; nothing else in this contract requires another investigation, and no future runtime is demanded to close them."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

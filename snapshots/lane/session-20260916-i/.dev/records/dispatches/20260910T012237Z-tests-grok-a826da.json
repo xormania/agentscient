@@ -1,0 +1,170 @@
+{
+  "id": "20260910T012237Z-tests-grok-a826da",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "cde9b93fd02462807f642d3f9675ca15b8552d0e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:22:38Z",
+    "closed": "2026-09-10T01:33:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cde9b93fd02462807f642d3f9675ca15b8552d0e",
+    "ref_sha": "cde9b93fd02462807f642d3f9675ca15b8552d0e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2e923324-8b4c-4cdb-a55c-397cd01bd40c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok-stream/sessions/<snapshot-encoded>/2e923324-8b4c-4cdb-a55c-397cd01bd40c/summary.json"
+  },
+  "session": {
+    "id": "2e923324-8b4c-4cdb-a55c-397cd01bd40c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok-stream/sessions/<snapshot-encoded>/2e923324-8b4c-4cdb-a55c-397cd01bd40c/summary.json",
+    "stream_sha256_at_close": "f3b8fee6ab1229db68a7beff599b1b6cc513bcc72852f07453db5fdc5a638441",
+    "spend": {
+      "input": 2256970,
+      "cached": 2077440,
+      "output": 35235,
+      "total": 2292205,
+      "cost_usd_ticks": 2735623000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/home/grok-stream/sessions/<snapshot-encoded>/2e923324-8b4c-4cdb-a55c-397cd01bd40c/summary.json",
+      "messages": 260
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Add independent regression tests for only the admitted malformed Git metadata observation failure. Read ../in/monitor-malformed-test-brief.md and ../in/monitor-malformed-reproduction.json. Tests only, prove fixture preconditions and assertion RED, preserve existing frozen tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/in/monitor-malformed-test-brief.md",
+        "sha256": "f13e5fac55b462f9ee7796acc5de78f185d659cbac66a48f71ac36be7955b941"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012237Z-tests-grok-a826da/in/monitor-malformed-reproduction.json",
+        "sha256": "ab8c5a73f382b6ef3b4105ea50541c194a344fb3a9e423783d3242a4ff5e1155"
+      }
+    ],
+    "sha256": "ed62036987b242e7e601ac50d9580891554e3da4e2216d65eb7bd2dcba213908",
+    "bytes": 2623
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:22:38Z",
+      "ended": "2026-09-10T01:33:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b56497035110a950289db55dcafc0a1b7651e16d",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_malformed_git.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_monitor_malformed_git.py",
+        "sha256": "dbb5ff14388529eef52a97c91c10259d37e9f3f39f171ff16db831a9e07f00fa",
+        "commit": "b56497035110a950289db55dcafc0a1b7651e16d"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2292205,
+        "out": 35235,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cde9b93fd02462807f642d3f9675ca15b8552d0e",
+        "started": "2026-09-10T01:25:43Z",
+        "ended": "2026-09-10T01:32:35Z"
+      },
+      "note": "Command: python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_malformed_git.py' (exit 1 at cde9b93; 3 tests collected, 0 errors, 5 assertion failures). SHA256 dbb5ff14388529eef52a97c91c10259d37e9f3f39f171ff16db831a9e07f00fa. Commit b56497035110a950289db55dcafc0a1b7651e16d. Frozen ops/conductor/tests/test_monitor_git_refs.py 19/19 OK, sha256 17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881. Fixture check() of the malformed registry is green before run --once. Matrix: disabled malformed + healthy sibling RED (want exit 0, sibling observed, no Git query of malformed; got exit 2 empty stdout 'state: expected inspectable Git source storage for state separation; found unavailable Git storage path; needed restore the source metadata before writing monitor state'); enabled malformed + healthy sibling RED (want local-unavailable and sibling; same exit 2); healthy/worktree/common-dir overlap with malformed sibling RED (want disjoint-source state refusal; same metadata refusal). Unreadable gitdir-pointer writes are not required; that contrast runs after the enabled case is green."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T01:32:58.420Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,273 @@
+{
+  "id": "20260906T123029Z-review-claude-553ba6",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-onboard-independent-20260906",
+  "lineage": {
+    "branch": "lane/conduct-onboard-independent-20260906",
+    "base_sha": "679cfe516138c82e2512424356a8c4cd141ece74"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T12:30:29Z",
+    "closed": "2026-09-06T12:41:33Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "679cfe516138c82e2512424356a8c4cd141ece74",
+    "ref_sha": "679cfe516138c82e2512424356a8c4cd141ece74",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "c9351bdd-e894-4a7d-bb4c-188f5c96c43f",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/c9351bdd-e894-4a7d-bb4c-188f5c96c43f.jsonl"
+  },
+  "session": {
+    "id": "c9351bdd-e894-4a7d-bb4c-188f5c96c43f",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/c9351bdd-e894-4a7d-bb4c-188f5c96c43f.jsonl",
+    "stream_sha256_at_close": "e583eaeb4c9bf68a4afb9cbf591ca3056e6462e53f398e462bdf2cd2b5c50fd1",
+    "spend": {
+      "input": 124,
+      "cached": 4088009,
+      "output": 40129,
+      "total": 4128262,
+      "source": "result.usage",
+      "messages": 62,
+      "cost_usd": 3.8664454999999993
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-onboard-independent-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the one-file onboard fixture correction against onboard-lever.md, discovery-lever.md and the supplied producer/review records. Verify seven exact ordered law rows, the new contract equality gate, honest red-to-green evidence and preservation of absence/exit/read-only assertions. Distinguish onboard's seven rows from discovery's fixed five-row projection. Run all onboard and preserved MCP tests where allowed; never edit source/tests. Confirm scope and hashes, including the happy-path count change and all other assertion preservation. Return exact ref, approve/changes, measured commands/results and limits in the inline envelope. No runtime or discovery/3 acceptance is implied by this test-only review; no host/state/settings/admission changes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/in/ag-conduct-onboard-independent.json",
+        "sha256": "daa645b463ac6391ffde45ec3c33693729df66f264881f63bec9138d71605122"
+      }
+    ],
+    "sha256": "a8b646900db35add1234bf85b2f0e6fa28756cfa15676f5869ca3cd257e5e447",
+    "bytes": 1549
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:30:29Z",
+      "ended": "2026-09-06T12:41:32Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "679cfe516138c82e2512424356a8c4cd141ece74",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 2
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_onboard_lever.py:1035,1039-1050,1067,1096,1243 (introduced by 679cfe516138c82e2512424356a8c4cd141ece74)",
+          "claim": "The red receipt covers only two of the seven assertion sites. The red-state commit e1ad4d478922b1511b15bc1434c95e5e171f2231 (blob sha256 d02c5f1b6730b2c045be987cca9f95ffd0cf6ccbcbd3b470da53efe8ac9a6b81, matching the producer record's red_commit file hash) contains only ExactLawTable and the strengthened HappyPath. Five further assertion sites -- MissingLaw.test_missing_law_file_prints_absent_and_counts_it (+assert_exact_law_table), the wholly new MissingLaw.test_missing_discovery_lever_counts_one_absence_in_table_order, EmptyLawFile, DispatchStore and ReadOnly -- were introduced in the green commit 679cfe5 alongside the LAW correction, so no recorded run ever showed them failing. The recorded red argv was also narrowed to two classes rather than the whole intended set, against ops/process/tdd.md:35-38. The producer record does not overclaim (its note names exactly the two classes it ran), so the evidence is honest but incomplete; no assertion is wrong and all pass now.",
+          "reproduce": "git diff e1ad4d4 679cfe5 -- ops/conductor/tests/test_onboard_lever.py  # the five sites appear as '+' in the green commit; record note's red run is `python3 -m unittest ops.conductor.tests.test_onboard_lever.ExactLawTable ops.conductor.tests.test_onboard_lever.HappyPath -v` only"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_onboard_lever.py:870-874 and 968",
+          "claim": "The rotation guard is a tautology, not a check. assert_exact_law_table asserts found != expected[1:]+expected[:1] only after assertEqual(found, expected) has already passed; since the seven law rows are pairwise distinct, expected can never equal its own rotation, so the assertion cannot fail for any tool output. The same tautology is repeated inline in ExactLawTable at line 968. The real order pin is the assertEqual(found, expected) above it; the message 'order pin would accept a rotation of the same rows' overstates what the line contributes. Note 679cfe5 also moved this assertion out of the following for-loop, which changes nothing about its outcome.",
+          "reproduce": "Given found == expected and len(set(expected)) > 1, `found != list(expected[1:]) + expected[:1]` is necessarily true; no tool behaviour can make it fire."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_onboard_lever.py:1039-1050",
+          "claim": "Absence coverage for the two newly declared rows is asymmetric. A dedicated absence case was added for ops/conductor/discovery-lever.md but none for ops/conductor/conductor-start-plan.md, the other row added to the table; the exact-table gate pins conductor-start-plan.md only in the OK direction. No case pins a multi-absence count line (`brief complete, 2 absence(s)`), which is precisely the behaviour the pre-correction baseline exhibited; grep -n 'absence(s)' over the file finds only three assertions, all `1 absence(s)`.",
+          "reproduce": "grep -n \"absence(s)\" ops/conductor/tests/test_onboard_lever.py  -> 1036, 1049, 1068, all '1 absence(s)'; no test omits two law files."
+        }
+      ],
+      "artifacts": {
+        "reviewed_ref": "679cfe516138c82e2512424356a8c4cd141ece74",
+        "base_ref": "710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "commits_in_scope": "e1ad4d478922b1511b15bc1434c95e5e171f2231 (red state), 679cfe516138c82e2512424356a8c4cd141ece74 (green state)",
+        "file": "ops/conductor/tests/test_onboard_lever.py",
+        "file_sha256_at_679cfe5": "fcff7f21b13431d4c3eed7bb64d9c9a77115003d2922ddb91da09be625c071f9",
+        "file_sha256_at_e1ad4d4": "d02c5f1b6730b2c045be987cca9f95ffd0cf6ccbcbd3b470da53efe8ac9a6b81",
+        "producer_record": "in/ag-conduct-onboard-independent.json (20260906T121039Z-tests-grok-6781c3)",
+        "diff_supplied": "context/diff.patch (11 files, 710dbac..679cfe5; only 1 file belongs to the two commits under review)",
+        "scratch": "out/_verify/ -- extracted baseline (28d408e) and red (e1ad4d4) copies of the test file and onboard.py, plus an unused cmp_law.py; kept, not pruned (lane hook matrix:prune refused rm -r)"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4128262,
+        "out": 40129,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "679cfe516138c82e2512424356a8c4cd141ece74",
+        "started": "2026-09-06T12:30:29Z",
+        "ended": "2026-09-06T12:40:13Z"
+      },
+      "note": "Reviewed 679cfe516138c82e2512424356a8c4cd141ece74 against 710dbac38c3b187eb4b3302308430c0a6dec4d76 in /home/scientdb/.local/state/agentscient/dispatch/20260906T123029Z-review-claude-553ba6/snapshot (git status --porcelain empty at start and at end; no file edited).\\n\\nSCOPE. `git log --oneline 710dbac..679cfe5 -- ops/conductor/tests/test_onboard_lever.py` -> e1ad4d4, 679cfe5 only. `git log --oneline 710dbac..679cfe5 -- ops/conductor/onboard-lever.md ops/conductor/tools/onboard.py ops/conductor/tools/lane_read.py ops/conductor/discovery-lever.md` -> 61f1ed4 only. `git show --stat` on each of the two commits: e1ad4d4 1 file 105+/3-, 679cfe5 1 file 29+/16-, both ops/conductor/tests/test_onboard_lever.py. The supplied context/diff.patch spans 11 files across 710dbac..679cfe5 (5f93908, 1bf795a, 61f1ed4, 28d408e, de79c02 as well); ten of those files are prior landed work and are not accepted here. Test-only review: no runtime, no discovery/3 acceptance, no host/state/settings/admission change is implied or present.\\n\\nHASHES. Landed file sha256 fcff7f21b13431d4c3eed7bb64d9c9a77115003d2922ddb91da09be625c071f9 (sha256sum) == the producer record's artifacts.sha256 for green_commit bdc7d757. Extracted e1ad4d4 blob sha256 d02c5f1b6730b2c045be987cca9f95ffd0cf6ccbcbd3b470da53efe8ac9a6b81 == the record's red_commit 9def6d86 file hash. So the two landed commits reproduce the producer's red and green file states byte for byte. The producer's own commits 9def6d8677f54f1bb333e596bf3cad2c15532b14 and bdc7d75727bf15351333adef88c8315138ff54af are not objects in this snapshot (`git cat-file -t` -> could not get object info); the correspondence is established by file hash, not by commit.\\n\\nSEVEN ROWS, EXACT AND ORDERED. onboard-lever.md:44-50, ops/conductor/tools/onboard.py:20-34 and the fixture LAW at test_onboard_lever.py:44-64 carry the same seven (path, one-liner) pairs in the same order, read line by line: AGENTS.md | the operating contract; CONTRIB.md | naming, PR bodies, fix commits, the review wire; ops/conductor/instrument-conventions.md | the lane's base contract: wire, identity, exits; ops/conductor/stack.md | the stack: layers, incumbents, open seats; ops/conductor/coverage-zones.md | what gates what; ops/conductor/discovery-lever.md | profile discovery, source custody, and uncertainty; ops/conductor/conductor-start-plan.md | the conductor startup sequence and admission boundaries. Comparison was by reading all three files, not by a script: `python3 -c` and running a script file were both denied by the sandbox.\\n\\nTHE NEW GATE. assert_exact_law_table (lines 852-884) slices the printed law body between the `== law` and `== state` headings, pins the body to exactly seven lines, compares the list to the expected OK/ABSENT lines positionally, and then re-checks each row's `EM one-liner` suffix. onboard.py:281-286 emits exactly one line per row with no blank or extra lines, so law_body_lines is a faithful slice. The gate is genuinely discriminating: a dropped row changes the length, a reordered row breaks the list equality, a one-liner drift breaks both the equality and the suffix check. Its one weakness is that it pins tool-against-fixture; the fixture LAW is a hand transcription and nothing mechanically diffs onboard.py against onboard-lever.md (opinion 1, below).\\n\\nHAPPY-PATH COUNT AND ASSERTION PRESERVATION. HappyPath line 989: `len(ok_lines)` 5 -> 7. The whole change removes exactly three lines, all in HappyPath: the old `assertEqual(len(ok_lines), 5, stdout)` and the two-line `for path, one_liner in LAW: assertIn(ok_line(...), stdout)` membership loop. Both are strictly subsumed -- assert_exact_law_table asserts each OK line at its declared position, which implies membership. No other assertion was deleted or weakened. Absence assertions preserved and strengthened: MissingLaw 1035/1048 and EmptyLawFile 1067 keep `assertIn(absent_line(...))`, `assertNotIn(ok_line(...))`, `brief complete, 1 absence(s)` and exit 1, and add the exact table with the ABSENT row in place. Exit assertions preserved: returncode 1 at 1037/1050/1069, returncode 0 at 1095/1242 and in ExactLawTable at 971. Read-only assertions preserved: ReadOnly still asserts the three headings, `brief complete`, exit 0, `assertFalse(self.store.exists())` and the tearDown live-store/HEAD/`git diff HEAD` pins at 273-296.\\n\\nONBOARD SEVEN vs DISCOVERY FIVE. They are distinct constants in distinct files. onboard.py LAW is seven; DISCOVERY_LAW at ops/conductor/tools/lane_read.py:1527-1533 is the fixed five-row compact projection, unchanged by this change (lane_read.py was last touched by 61f1ed4). onboard-lever.md:152-154 states the distinction explicitly. discovery-lever.md:228 still reads \\\"Discovery reuses onboard's five law entries\\\", which is now a wording tension with onboard's seven; it is in a file this change does not touch and onboard-lever.md:154 reconciles it, so it is recorded, not charged.\\n\\nINDEPENDENT PRODUCERS AND TRAILERS. Implementation 61f1ed4 carries `Co-Authored-By: gpt-6-astra <noreply@openai.com>`; both test commits carry `Source: original` and `Co-Authored-By: Grok 4.6 <noreply@x.ai>`. Different producers for implementation and tests, as AGENTS.md requires. 61f1ed4's own message declared the red it left behind (\\\"28 tests with five failures because its fixtures omit the two required new law files\\\"), which the record and this change match.\\n\\nMEASURED RUNS, all in the snapshot at 679cfe5:\\n- `python3 -m unittest ops.conductor.tests.test_onboard_lever -v` -> Ran 30 tests in 3.567s, OK. The two added tests are ExactLawTable.test_law_prints_exactly_the_seven_declared_rows_in_table_order and MissingLaw.test_missing_discovery_lever_counts_one_absence_in_table_order (28 -> 30, matching the record).\\n- `python3 -m unittest ops.conductor.tests.test_lane_mcp ops.conductor.tests.test_lane_mcp_context ops.conductor.tests.test_lane_mcp_review` -> Ran 50 tests in 7.849s, OK.\\n- `python3 -m unittest discover -s ops/conductor/tests -p 'test_*.py'` -> Ran 638 tests in 81.708s, OK (the whole suite containing the changed file).\\n- `ruff check ops/conductor/tests/test_onboard_lever.py` -> All checks passed!\\n- `python3 -m unittest discover -s <out/_verify/base>/ops/conductor/tests -p test_onboard_lever.py` collected 28 tests from the 28d408e copy, confirming the record's baseline count; the run itself could not measure the five baseline failures (see limits).\\n\\nOPINIONS (2, not charged as findings):\\n1. The fixture's LAW is a hand transcription of onboard-lever.md and the gate therefore pins tool-against-fixture, not contract-against-tool: a fixture updated to match a wrong tool would stay green. I verified by hand that contract, tool and fixture agree exactly today. This matches the file's declared design (docstring lines 3-5: contracts only, the tool is not read), so it is a design note rather than a defect; a contract-derived assertion would close it.\\n2. Out of this review's acceptance scope: DISCOVERY_LAW (lane_read.py:1527-1533) has no landed automated gate. `grep -rln \\\"coverage-zones\\\" ops/ --include=*.py --include=*.json --include=*.sh` returns only onboard.py, test_onboard_lever.py and lane_read.py, and `grep -rln \\\"law\\\" ops/conductor/tests/` returns only test_onboard_lever.py -- the 50 MCP tests do not reference the law projection at all. \\\"Discovery's five-row projection untouched\\\" is true by inspection but unguarded. It landed in 61f1ed4 and is not accepted here.\\n\\nLIMITS (declared, not inferred):\\n- The baseline (28d408e) and red (e1ad4d4) runs could not be reproduced. The fixture requires its REPO (parents[3] of the test file) to be a git work tree; the sandbox denied `git init` in every form tried, `git -C`, `git archive -o` and `mkdir` outside the four allowed directories, and the brief forbids writing the historical file into the snapshot. The 28-test collection count was measured; the five baseline failures and the two red failures were not. Both reds are nevertheless forced by construction -- plant_law (line 390) iterates the fixture LAW, so at the five-row state it plants five files while the tool prints seven rows, giving 5 OK + 2 ABSENT: HappyPath's ok_lines is 5, not 7, and assert_exact_law_table's list comparison differs on discovery-lever.md and conductor-start-plan.md. That is exactly the failure detail the producer record states, and e1ad4d4's blob hash matches the record's red commit.\\n- `ops/bin/suites.sh` was not run: the sandbox denied it in both forms tried. The conductor suite that contains the changed file ran whole and is green; the devlane and pr-overview suites are untouched by a conductor test file, so they were not measured here -- that is \\\"did not look\\\", not \\\"looked and found nothing\\\".\\n- out/_verify/ scratch could not be removed: the lane hook matrix:prune refused `rm -r` (\\\"expected data kept (never prune)\\\"). It is left in place and declared in artifacts.\\n\\nVERDICT: approve. The correction is real, meaningful and green; the three findings are p3 process-and-coverage items that do not block the change."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "ai-title",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

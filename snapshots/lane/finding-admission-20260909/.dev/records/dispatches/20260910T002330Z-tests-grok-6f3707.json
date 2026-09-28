@@ -1,0 +1,168 @@
+{
+  "id": "20260910T002330Z-tests-grok-6f3707",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:23:31Z",
+    "closed": "2026-09-10T00:31:59Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "ref_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c8fe3268-9844-4794-b36f-0ce6a046d429",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok-stream/sessions/<snapshot-encoded>/c8fe3268-9844-4794-b36f-0ce6a046d429/summary.json"
+  },
+  "session": {
+    "id": "c8fe3268-9844-4794-b36f-0ce6a046d429",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok-stream/sessions/<snapshot-encoded>/c8fe3268-9844-4794-b36f-0ce6a046d429/summary.json",
+    "stream_sha256_at_close": "bae9c13a0c715154cbc3d3b59f1a64d6db753ac6fc25b222d8901e95d1cb4eb4",
+    "spend": {
+      "input": 2031682,
+      "cached": 1558400,
+      "output": 28177,
+      "total": 2059859,
+      "cost_usd_ticks": 3221204200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/home/grok-stream/sessions/<snapshot-encoded>/c8fe3268-9844-4794-b36f-0ce6a046d429/summary.json",
+      "messages": 252
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently evaluate and correct ONLY concrete fixture contradictions in test_finding_admission_ledger.py: plant_record retains no exact owner-scope input bytes although successful corrections require them; PARTIAL fixture uses grok for both reviewer and adjudicator and lacks artifact-producer/input/report provenance, contradicting FINDING-ADMISSION.md lines 194-218. Supply valid synthetic retained inputs/identities/report via the existing dispatch record format for positive cases. Preserve negative cases and expectations; no weakening contract, production reads/edits, new test inventory, or unrelated refactor. Use contract and existing dispatch format, not new implementation. Re-run all three original admission test commands against this pre-implementation branch, record assertion-only RED plus hashes, commit tests only with trailers. If another contradiction prevents a valid positive fixture, report exact evidence rather than guessing. Only tests you wrote may change.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002330Z-tests-grok-6f3707/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "dc79506813ff8ff1f8f35d13a488188fbe0b53ef5f6532373f22404744b538c1",
+    "bytes": 3330
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:23:31Z",
+      "ended": "2026-09-10T00:31:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "27a0bab07f8f2ee6a1ec6d2ee78b548a514753d4",
+    "changed_paths": [
+      "ops/conductor/tests/test_finding_admission_ledger.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ledger-tests": "ops/conductor/tests/test_finding_admission_ledger.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2059859,
+        "out": 28177,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+        "started": "2026-09-10T00:28:21Z",
+        "ended": "2026-09-10T00:31:16Z"
+      },
+      "note": "Corrected only concrete fixture contradictions in ops/conductor/tests/test_finding_admission_ledger.py. plant_record now retains exact owner-scope bytes at HOME/.local/state/agentscient/dispatch/<id>/in/owner-scope.md with brief.inputs path+sha256 in the existing dispatch record layout. PARTIAL uses reviewer claude/claude-opus-4-6, artifact-producer implement record 20260908T060000Z-code-codex-a1fc01 (codex/gpt-5.4), adjudicator grok/grok-4.6, plus retained producer records, original-report.md, supplied-keys.txt, and out/RULING.md (`## REC#1 \u2014 PARTIAL`). Negative cases and expectations unchanged; no new tests. Commit 27a0bab07f8f2ee6a1ec6d2ee78b548a514753d4 on lane/finding-admission-20260909. Pre-implementation RED at 8a6a51fff0925fd006aa3a3987cc4b3f969c940e (assertion-only, 0 errors): python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v -> 17 tests, 16 failed (evaluation dropped / TypeError mapped to fail; omitted-evaluation control ok), sha256 8b922c75987b6282a04ac6e77447a3f53bb8a52a5566e20c632cfef77af2ee70 unchanged; python3 ops/conductor/tests/test_finding_admission_ledger.py -v -> 15 tests, 14 failed (corrections/dispute class arguments; export missing evaluations; legacy four-field import ok; PARTIAL fixture assertions land then unknown-verb red), sha256 before e093b49d47cbd44f0305093edbb990b699271173b44609ef03a9d6373c0b00a2 after 6d0879d587f3309e85b475601b94ca8e7cdc96c8b35e4587b0c0bb82bace29b8; python3 ops/conductor/tests/test_finding_admission_routing.py -v -> 4 tests, 4 failed (driver never calls corrections; tests-fix still launched from raw changes), sha256 b514e248d9d7ef40d4714685b88a98a7a56c93d6253e54a46887cedbc70a137b unchanged. Sample fixture sha256 b363c5f8c12ab3756e7b71dba429fad35d016cdc79f3457de129223503d59a83. Implementation not read; green side not reachable."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:31:58.095Z"
+    }
+  },
+  "status": "closed"
+}

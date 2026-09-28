@@ -1,0 +1,201 @@
+{
+  "id": "20260904T112402Z-review-codex-97fb8a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-audit",
+  "lineage": {
+    "branch": "lane/fixture-audit",
+    "base_sha": "b090783157ab0b861782a0fab99f31621042d514"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T11:24:03Z",
+    "closed": "2026-09-04T11:32:29Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b090783157ab0b861782a0fab99f31621042d514",
+    "ref_sha": "b090783157ab0b861782a0fab99f31621042d514",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T07-24-03-01a06c29-564a-7393-b723-055a0b273106.jsonl"
+  },
+  "session": {
+    "id": "01a06c29-564a-7393-b723-055a0b273106",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T07-24-03-01a06c29-564a-7393-b723-055a0b273106.jsonl",
+    "stream_sha256_at_close": "d4e4d223f70c9279a5d1de008906361a345344b309cb327be8caf35a4c6ad8a7",
+    "spend": {
+      "input": 5206634,
+      "cached": 4994171,
+      "output": 32946,
+      "total": 5239580,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T07-24-03-01a06c29-564a-7393-b723-055a0b273106.jsonl",
+      "messages": 351
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-audit/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Security audit of the fixture batch (the lever, the fault kinds, five fixture apps, findings.py calibrate), merged on dev at 2c49bca; the change under audit is the diff from 9af6680 restricted to the batch's files named in the input file, with the scope, the plans and the session's review notes. Aim at: what the lever copies, runs and writes (make's copy roots and the manifest's paths, prove's probe commands and the patched preflight copy, the toolchain install and ready commands, grade's inputs), and whether a manifest, a probe, a patch or a copy list can make it reach outside its scratch or the job; the apps only as apparatus whose planted faults are declared. Findings as quotation pairs with file and line; P1 under the trust model in the input.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/in/contract-fixture-batch-audit.md",
+        "sha256": "8a13dec19b2595d2472cbec89a44f69cedbdacfa1798c3b9c2ef29fe22bdca3c"
+      }
+    ],
+    "sha256": "34dc0722ee1c8591ea169c11e0e972ddca7af699da4941763165180c70139539",
+    "bytes": 4090
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T11:24:03Z",
+      "ended": "2026-09-04T11:32:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b090783157ab0b861782a0fab99f31621042d514",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 5,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "docs/probes.md:23 \u2194 ops/bin/fixture.sh:305 \u2194 ops/devlane/fixtures/tests/test_fixture_lever.py:106",
+          "claim": "Declared: \u201cRow commands are restricted to an allowlisted read set\u201d so read-only is enforced. Practiced: probe() copies the complete ambient environment and executes manifest text with shell=True; the test probe writes `printenv` to a file, while shipped K4 subjects dump the environment. Trusted fixture runs therefore expose host credentials to write-capable probes with no scratch containment.",
+          "reproduce": "python3 -c 'from pathlib import Path; p=Path(\"ops/bin/fixture.sh\").read_text(); t=Path(\"ops/devlane/fixtures/tests/test_fixture_lever.py\").read_text(); pt=Path(\"ops/devlane/fixtures/apps/python-tooling/tool/cli.py\").read_text(); rc=Path(\"ops/devlane/fixtures/apps/rust-crate/src/audit.rs\").read_text(); assert \"env = os.environ.copy()\" in p and \"shell=True\" in p and \"printenv > probes/env-dump.txt\" in t and \"dict(os.environ)\" in pt and \"std::env::vars()\" in rc'"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/contract-fixture-batch-audit.md:357 \u2194 ops/bin/fixture.sh:142 \u2194 ops/bin/fixture.sh:148",
+          "claim": "Declared: the app comes from the tracked tree, \u201cso an untracked or ignored file never rides.\u201d Practiced: whenever `.git` is not writable, make unions every file found by app_root.rglob into app_files. That condition holds in this audit snapshot, allowing ordinary untracked vendor trees, local configuration, or credentials to be copied and committed by the fixture.",
+          "reproduce": "python3 -c 'import os; from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); assert not os.access(\".git\", os.W_OK); assert \"if not os.access(ROOT / \\\".git\\\", os.W_OK):\" in s and \"for path in app_root.rglob(\\\"*\\\")\" in s'"
+        },
+        {
+          "severity": "p1",
+          "where": "docs/wire.md:29 \u2194 ops/conductor/tools/findings.py:228 \u2194 ops/conductor/tools/findings.py:241 \u2194 ops/conductor/tests/test_findings_calibration.py:181",
+          "claim": "Declared: \u201cWriting verbs require an agent identity.\u201d Practiced: export --calibration writes the tracked calibration.jsonl without calling identity(), and its test explicitly invokes the writer with agent=None. A nominal read/export can therefore dirty the repository without attribution.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/conductor/tools/findings.py\").read_text(); b=s[s.index(\"def do_export(\"):s.index(\"def do_summary(\")]; t=Path(\"ops/conductor/tests/test_findings_calibration.py\").read_text(); assert \"destination.write_text\" in b and \"identity()\" not in b and \"return self.invoke([\\\"export\\\", \\\"--calibration\\\"], agent=None)\" in t'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/apps/rust-crate/FAULTS.json:62 \u2194 ops/devlane/fixtures/apps/rust-crate/src/store.rs:50",
+          "claim": "Declared clean neighbour: it \u201cnormalizes the path and proves it starts with the canonical root.\u201d Practiced: only the root is canonicalized; the candidate receives lexical normalization followed by starts_with. An existing symlink beneath the root can therefore redirect reads or writes outside it while the lexical candidate still passes.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/apps/rust-crate/src/store.rs\").read_text(); b=s[s.index(\"pub fn checked_record_path\"):s.index(\"fn normalize\")]; assert \"root.canonicalize()?\" in b and \"normalize(&base.join(name))\" in b and \"candidate.starts_with(base)\" in b and \"candidate.canonicalize()\" not in b'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/task/envelope.py:253 \u2194 ops/bin/fixture.sh:464 \u2194 ops/bin/fixture.sh:482",
+          "claim": "Declared: parsed envelopes are revalidated, including status, counts, and the exact severity/where/claim/reproduce finding shape. Practiced: grade accepts any JSON path having a review job and findings list, never validates record or envelope status/schema, and replaces malformed or missing claims with fallback text. A fabricated, tripped, or malformed record can consequently earn catches and overwrite calibration rows.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def grade(\"):s.index(\"if not ARGS:\")]; assert \"finding = {\\\"claim\\\": str(finding)}\" in b and \"or \\\"unnamed finding\\\"\" in b and \"envelope.validate\" not in b and \"payload.get(\\\"status\\\")\" not in b'"
+        },
+        {
+          "severity": "p2",
+          "where": "docs/wire.md:29 \u2194 ../in/contract-fixture-batch-audit.md:366 \u2194 ops/bin/fixture.sh:299 \u2194 ops/devlane/fixtures/tests/test_fixture_lever.py:987",
+          "claim": "Declared: prove --fixed is a read, while writing verbs require identity. Practiced: its test requires success \u201cwithout identity,\u201d and patch_fixture runs git apply against the supplied directory. The command therefore performs unattributed worktree mutations.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def prove(\"):s.index(\"def spans(\")]; assert \"if fixed:\\n        patch_fixture(directory, manifest)\" in b and \"identity()\" not in b and \"git\\\", \\\"apply\\\", str(patch)\" in s'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/python-service/README.md:5 \u2194 ops/devlane/fixtures/apps/python-service/requirements.lock:1 \u2194 ops/devlane/fixtures/apps/python-service/FAULTS.json:3",
+          "claim": "Declared: install a \u201cpinned toolchain.\u201d Practiced: pip installs unhashed packages from an enabled index, and the three-line lock omits ruff even though the check executes ambient `ruff`. Neither downloaded bytes nor every executed tool is pinned to the fixture.",
+          "reproduce": "python3 -c 'import json; from pathlib import Path; d=json.loads(Path(\"ops/devlane/fixtures/apps/python-service/FAULTS.json\").read_text()); install=d[\"toolchain\"][\"install\"]; lock=Path(\"ops/devlane/fixtures/apps/python-service/requirements.lock\").read_text().lower(); check=d[\"check\"]; assert \"--require-hashes\" not in install and \"--no-index\" not in install and \"ruff check .\" in check and \"ruff==\" not in lock'"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixture-batch-audit.md:359 \u2194 ops/bin/fixture.sh:101 \u2194 ops/bin/fixture.sh:282",
+          "claim": "Declared: nothing outside the copy list enters the fixture. Practiced: make preserves tracked symlinks, while the fixed-proof preflight uses copytree's default symlink dereferencing. A hostile fixture symlink to an external file would make prove --fixed read that file into its trial tree; this requires a hostile branch and is P3 under the ruled trust model.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); c=s[s.index(\"def copy_file(\"):s.index(\"def inside(\")]; p=s[s.index(\"def patch_fixture(\"):s.index(\"def probe(\")]; assert \"follow_symlinks=False\" in c and \"shutil.copytree(\" in p and \"symlinks=True\" not in p'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260904T112402Z-review-codex-97fb8a/context/diff.patch",
+        "input": "../in/contract-fixture-batch-audit.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5239580,
+        "out": 32946,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b090783157ab0b861782a0fab99f31621042d514",
+        "started": null,
+        "ended": "2026-09-04T11:30:42Z"
+      },
+      "note": "Covered scoped manifests, probes, fixes, copy roots, lever verbs, calibration SQL/export, install/ready/check commands, locks, ruff exclusion, and README claims. SQL is parameterized, no scoped template seam was found, and all 28 patch headers are app-relative. Dynamic make/prove/install/apply execution was unavailable because both the audit tree and /tmp are read-only; those paths were inspected statically."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T11:32:29.092Z"
+    }
+  },
+  "status": "closed"
+}

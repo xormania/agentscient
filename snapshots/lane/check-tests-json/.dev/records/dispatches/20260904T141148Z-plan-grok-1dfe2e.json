@@ -1,0 +1,154 @@
+{
+  "id": "20260904T141148Z-plan-grok-1dfe2e",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "188394d0fc87904079adbf72f3e6143f91982fca"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T14:11:49Z",
+    "closed": "2026-09-04T14:29:34Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "188394d0fc87904079adbf72f3e6143f91982fca",
+    "ref_sha": "188394d0fc87904079adbf72f3e6143f91982fca",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "56c082ec-b7f7-4d67-aa6d-ae2b9a5d1126",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok-stream/sessions/<snapshot-encoded>/56c082ec-b7f7-4d67-aa6d-ae2b9a5d1126/summary.json"
+  },
+  "session": {
+    "id": "56c082ec-b7f7-4d67-aa6d-ae2b9a5d1126",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok-stream/sessions/<snapshot-encoded>/56c082ec-b7f7-4d67-aa6d-ae2b9a5d1126/summary.json",
+    "stream_sha256_at_close": "adb0729db6f0e711d19487c1f7e8e65e1db90e44825db02ea9d3f0b2196cfd9b",
+    "spend": {
+      "input": 3655959,
+      "cached": 3394560,
+      "output": 54909,
+      "total": 3710868,
+      "cost_usd_ticks": 4334204400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/home/grok-stream/sessions/<snapshot-encoded>/56c082ec-b7f7-4d67-aa6d-ae2b9a5d1126/summary.json",
+      "messages": 350
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Plan the item 31 batch's second slice: the five findings of the security re-audit (record 20260904T140242Z-review-codex-69d0fb) in the input file, verbatim, on the tree of lane/check-tests-json. Rules, buckets, walkthrough and the driver's machine-line grammar are in the input; one slice per plan file (the driver refuses a plan holding more than one slice), so if the findings need two slices write the second slice's machine lines under a separate heading `## Machine lines, slice 2`. Output the plan only; no code, no tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/in/input-check-tests-json-2-plan.md",
+        "sha256": "9792718ca3c0fd16ae49be84579a7e480b1816dac85339bae21b91ff31b5a632"
+      }
+    ],
+    "sha256": "d353bde2142c68b23e5df80f1853e3b356e75b0c32e6e0438c756af7a2c3e326",
+    "bytes": 2832
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T14:11:49Z",
+      "ended": "2026-09-04T14:29:34Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "188394d0fc87904079adbf72f3e6143f91982fca",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T141148Z-plan-grok-1dfe2e/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3710868,
+        "out": 54909,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "188394d0fc87904079adbf72f3e6143f91982fca",
+        "started": "2026-09-04T14:11:49Z",
+        "ended": "2026-09-04T14:27:50Z"
+      },
+      "note": "One S slice, three files. M rejected: the driver feeds one test command to every code stage, so two S buckets cannot go green alone."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T14:29:33.909Z"
+    }
+  },
+  "status": "closed"
+}

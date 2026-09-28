@@ -1,0 +1,168 @@
+{
+  "id": "20260904T043235Z-code-grok-b190ca",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "76eb55d43aedd2fe202df7417920e81033857338"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T04:32:35Z",
+    "closed": "2026-09-04T04:47:35Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "76eb55d43aedd2fe202df7417920e81033857338",
+    "ref_sha": "76eb55d43aedd2fe202df7417920e81033857338",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a3731f59-6d9f-42f4-b8a1-39db2b0da0c6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok-stream/sessions/<snapshot-encoded>/a3731f59-6d9f-42f4-b8a1-39db2b0da0c6/summary.json"
+  },
+  "session": {
+    "id": "a3731f59-6d9f-42f4-b8a1-39db2b0da0c6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok-stream/sessions/<snapshot-encoded>/a3731f59-6d9f-42f4-b8a1-39db2b0da0c6/summary.json",
+    "stream_sha256_at_close": "f2a42a317868ba74caf1eb9b90e843af41dd24e63ccaa87128b91b955605ff1f",
+    "spend": {
+      "input": 6085952,
+      "cached": 5752064,
+      "output": 51804,
+      "total": 6137756,
+      "cost_usd_ticks": 6552874400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/home/grok-stream/sessions/<snapshot-encoded>/a3731f59-6d9f-42f4-b8a1-39db2b0da0c6/summary.json",
+      "messages": 402
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "Lane fix batch 1, the audit fix round, tests only: the security audit and the adversarial audit judged the implemented tree and their findings are appended to the input file after the contract. Pin every fixable finding as a red test at this ref (security 2, 3, 4, 5; adversarial 1, 2, 3, 4, 5; the two opinions at your judgement, saying which you left and why), one commit per file, in the suite that owns the code. Security finding 1 is a ruling for the owner, not a test. Do not change implementation code.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T043235Z-code-grok-b190ca/in/contract-lane-fixes-1-auditfix.md",
+        "sha256": "f49ee595044239507790ea1f7cf3e33d17a33cb58b20814e242709cf419f0eb2"
+      }
+    ],
+    "sha256": "5ef22d2fb3e15ded732b9e88bd93b867519ba5a2adfdcfd25186f9d3c27abc59",
+    "bytes": 2852
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T04:32:35Z",
+      "ended": "2026-09-04T04:47:35Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "23f90916eb7187607023019bce3947a286abbf4c",
+    "changed_paths": [
+      ".claude/skills/pr-overview/tests/test_collect_rows.py",
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_land_lever.py",
+      "ops/conductor/tests/test_suites_pr_overview.py",
+      "ops/devlane/dispatch/tests/test_launch_collect.py",
+      "ops/devlane/dispatch/tests/test_launch_isolation.py",
+      "ops/devlane/dispatch/tests/test_record.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "isolation": "ops/devlane/dispatch/tests/test_launch_isolation.py",
+        "collect": "ops/devlane/dispatch/tests/test_launch_collect.py",
+        "record": "ops/devlane/dispatch/tests/test_record.py",
+        "land": "ops/conductor/tests/test_land_lever.py",
+        "wrapper": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "overview": ".claude/skills/pr-overview/tests/test_collect_rows.py",
+        "suites": "ops/conductor/tests/test_suites_pr_overview.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6137756,
+        "out": 51804,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "76eb55d43aedd2fe202df7417920e81033857338",
+        "started": "2026-09-04T04:38:34Z",
+        "ended": "2026-09-04T04:47:11Z"
+      },
+      "note": "Seven commits on detached HEAD 23f90916eb7187607023019bce3947a286abbf4c; trailers clean; ruff clean on the touched tests. Did not read implementation. Security 1 was not pinned (owner ruling on LAUNCHER_PIN as supply-chain lock). Pinned and proven red at 76eb55d: S2 php-star and Bash(bash ops/bin/*) still reach --allowedTools; S3 collect verify saw AUDIT_SENTINEL (exit 3, stderr tail leaked); S4 collect of an orphan snapshot HEAD is git non-fast-forward exit 2, not off-lineage-head; S5 record.validate accepts verify.exit False and land prints LANDED n=1; A1 collect-state after a successful resume of a tripped write (exit=0 tripped=False residual=1); A3 dry-run JSON has no detach and no exec; A4 review_pages graphql failure is board-wide exit 2, and suites.sh omits .claude/skills/pr-overview/tests; A5 envelope-status needed is still adjudicate by hand. A2 sibling launch.py mode 100755 already holds: the new pin passed, it is the missing regression test not a current failure. Opinion 6 pinned as collect --timeout (unrecognized arguments: --timeout 8) because the live proof collect --verify 'bash ops/bin/suites.sh' cannot finish under the wall that already killed implement. Opinion 7 left: ruff.toml extend-exclude ../home is snapshot-cwd lint config, not a blocked-session defect, and no behavioral suite owns it."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T04:47:35.640Z"
+    }
+  },
+  "status": "closed"
+}

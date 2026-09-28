@@ -1,0 +1,243 @@
+{
+  "id": "20260905T014626Z-code-codex-4a5aad",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/mcp",
+  "lineage": {
+    "branch": "repo/lane-mcp-20260904",
+    "base_sha": "cb04f80840addb3e273dcd3f79ba6da29442ae84"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T01:46:26Z",
+    "closed": "2026-09-05T02:03:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
+    "ref_sha": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl"
+  },
+  "session": {
+    "id": "01a06f3e-e29b-7580-9600-eaa8e48f7211",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
+    "stream_sha256_at_close": "af34ab11076423ef812fe4cc178b5808bc2accc5a70018f3920ab2084b9d91f0",
+    "spend": {
+      "input": 1630994,
+      "cached": 1468416,
+      "output": 31615,
+      "total": 1662609,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
+      "messages": 211
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-mcp.TH2iy7/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement ops/conductor/lane-mcp-lever.md exactly, production only. Read in/mcp-implementation-brief.md whole. Named command: python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check . Do not author/read tests. Commit production, example config and registry only; no broad suites or speculative extras.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/in/mcp-implementation-brief.md",
+        "sha256": "5e78c4fc2e0504dbd3e8f1c2b930f9694afba3c591cde052a8ddd70cf64c4b48"
+      }
+    ],
+    "sha256": "3cde58e6605215201630bdf3434cbd705de9f7bc261da164ccfbb1660748450f",
+    "bytes": 4186
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T01:46:26Z",
+      "ended": "2026-09-05T02:03:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "61dbd0182cf5623f59c8e104cd50d0b8fb47bc69",
+    "changed_paths": [
+      "ops/conductor/lane-mcp.example.json",
+      "ops/conductor/registry/lane_mcp.py.json",
+      "ops/conductor/tools/lane_mcp.py",
+      "ops/conductor/tools/lane_read.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "lane-mcp",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 13,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Confirmed the snapshot started clean at cb04f80840addb3e273dcd3f79ba6da29442ae84; the requested input resides at ../in.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && rg --files docs ops/conductor in | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "governing documentation",
+          "claim": "Read the project docs, lane README, complete implementation contract, and complete one-line implementation brief.",
+          "reproduce": "wc -l docs/*.md ops/README.md ops/conductor/lane-mcp-lever.md ../in/mcp-implementation-brief.md && sed -n '1,240p' ops/README.md && for f in docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/conductor/lane-mcp-lever.md ../in/mcp-implementation-brief.md; do echo \"FILE $f\"; sed -n '1,9999p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "lane production contracts",
+          "claim": "Inspected the remaining mapping, conductor conventions, monitor contract, production monitor/tool patterns, examples, and registries.",
+          "reproduce": "sed -n '121,320p' docs/mapping.md; for f in ops/conductor/README.md ops/conductor/instrument-conventions.md ops/conductor/monitor-lever.md ops/conductor/mcp-tools.md; do echo \"FILE $f\"; sed -n '1,9999p' \"$f\"; done; echo 'PRODUCTION FILES'; for f in ops/conductor/tools/monitor.py ops/conductor/tools/onboard.py ops/conductor/tools/watch.py ops/conductor/registry/monitor.py.json ops/conductor/registry/onboard.py.json ops/conductor/registry/watch.py.json ops/conductor/monitor.example.json; do echo \"FILE $f\"; sed -n '1,9999p' \"$f\"; done; echo 'TREE'; rg --files ops/conductor/tools ops/conductor/registry | rg -v '(^|/)tests?/' | sort; echo 'IGNORE CONFIG'; rg -n \"lane-mcp|mcp\" .gitignore .ruff.toml pyproject.toml ruff.toml 2>/dev/null || true"
+        },
+        {
+          "severity": "p3",
+          "where": "monitor counterparties",
+          "claim": "Measured the existing event table, digest projection, dispatch record reading, token-count semantics, registry conventions, and commit trailer form.",
+          "reproduce": "rg -n \"CREATE TABLE|events|event_msg|token_count|input_tokens|cached|context_window|def (observe_codex|digest|open_|connect|read_)|delivery|observed_at|evidence\" ops/conductor/tools/monitor.py ops/conductor/monitor-lever.md; sed -n '1,240p' ops/conductor/tools/monitor.py; sed -n '240,520p' ops/conductor/tools/monitor.py; sed -n '520,900p' ops/conductor/tools/monitor.py; sed -n '1,260p' ops/conductor/monitor-lever.md; for f in ops/conductor/registry/*.json; do printf '%s ' \"$f\"; sed -n '1p' \"$f\"; done; git log -5 --format='%H%n%B%n---'"
+        },
+        {
+          "severity": "p3",
+          "where": "initial focused verification",
+          "claim": "The ordinary check, null-source brief, and focused Ruff check passed; the exact named command initially exposed its required literal trailing dot and was corrected.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check .; named=$?; python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check; check=$?; python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json query lane_brief; brief=$?; if command -v ruff >/dev/null 2>&1; then ruff check ops/conductor/tools/lane_read.py ops/conductor/tools/lane_mcp.py; lint=$?; else lint=127; fi; printf 'named=%s check=%s brief=%s lint=%s\\n' \"$named\" \"$check\" \"$brief\" \"$lint\""
+        },
+        {
+          "severity": "p3",
+          "where": "named command and record shape",
+          "claim": "Confirmed the corrected named command exits 0 and measured the production dispatch model representation.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check .; code=$?; rg -n \"journal_mode|def _connect|record\\[.model.|\\\"model\\\"\" ops/conductor/tools/monitor.py ops/devlane/dispatch ops/devlane/task --glob '!**/tests/**' --glob '*.py' --glob '*.json' --glob '*.md'; printf 'exit=%s\\n' \"$code\""
+        },
+        {
+          "severity": "p3",
+          "where": "production source shapes",
+          "claim": "Confirmed monitor read-only connection behavior and dispatch model selection semantics from production code.",
+          "reproduce": "sed -n '760,815p' ops/conductor/tools/monitor.py; sed -n '88,125p' ops/devlane/dispatch/record.py; sed -n '1200,1245p' ops/devlane/dispatch/launch.py; sed -n '1260,1285p' ops/devlane/dispatch/launch.py; git diff --stat && git diff -- ops/conductor/lane-mcp.example.json ops/conductor/registry/lane_mcp.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "synthetic protocol and source probes",
+          "claim": "Focused scratch probes passed for record, alerts, usage, brief, source immutability, MCP initialization, notifications, parse-error recovery, ping, tool calls, resource reads, and the named command.",
+          "reproduce": "python3 -B .lane_mcp_probe.py; probe=$?; printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"1\"}}}' '{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}' '{bad' '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\",\"params\":{}}' '{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"lane_brief\",\"arguments\":{}}}' '{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"resources/read\",\"params\":{\"uri\":\"lane://brief\"}}' | python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json serve; server=$?; python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check .; named=$?; printf 'probe=%s server=%s named=%s\\n' \"$probe\" \"$server\" \"$named\""
+        },
+        {
+          "severity": "p3",
+          "where": "production boundary",
+          "claim": "Confirmed the new modules contain no subprocess, network, schema-creation, or dynamic execution surface; only read-only SQLite query mode is present.",
+          "reproduce": "git ls-files -s ops/conductor/tools/monitor.py ops/conductor/tools/onboard.py; stat -c '%a %n' ops/conductor/tools/lane_mcp.py ops/conductor/tools/lane_read.py; rg -n \"subprocess|socket|urllib.request|CREATE TABLE|ATTACH|PRAGMA\" ops/conductor/tools/lane_read.py ops/conductor/tools/lane_mcp.py; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "final focused checks",
+          "claim": "The exact named command exited 0, the registered config refusal exited 2, focused Ruff passed, and git reported no whitespace errors.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check .; named=$?; python3 -B ops/conductor/tools/lane_mcp.py --config /dev/null check; refusal=$?; ruff check ops/conductor/tools/lane_read.py ops/conductor/tools/lane_mcp.py; lint=$?; git diff --check; whitespace=$?; printf 'named=%s refusal=%s lint=%s whitespace=%s\\n' \"$named\" \"$refusal\" \"$lint\" \"$whitespace\""
+        },
+        {
+          "severity": "p3",
+          "where": "change scope",
+          "claim": "Confirmed only the four requested production, example-config, and registry files are present as changes.",
+          "reproduce": "git status --short; git diff --name-only; git diff --stat; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "commit attempt",
+          "claim": "Git staging was refused because the snapshot .git directory is read-only; the launcher must commit using the supplied commit object.",
+          "reproduce": "git add ops/conductor/tools/lane_read.py ops/conductor/tools/lane_mcp.py ops/conductor/lane-mcp.example.json ops/conductor/registry/lane_mcp.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "At 2026-09-05T02:01:57Z, the final tree remained based on cb04f80840addb3e273dcd3f79ba6da29442ae84 with exactly four untracked requested artifacts, and the named command exited 0.",
+          "reproduce": "python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check .; code=$?; git rev-parse HEAD; git status --short; date -u +%Y-%m-%dT%H:%M:%SZ; printf 'named_exit=%s\\n' \"$code\""
+        }
+      ],
+      "artifacts": {
+        "production": "ops/conductor/tools/lane_read.py, ops/conductor/tools/lane_mcp.py",
+        "config": "ops/conductor/lane-mcp.example.json",
+        "registry": "ops/conductor/registry/lane_mcp.py.json"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1662609,
+        "out": 31615,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
+        "started": null,
+        "ended": "2026-09-05T02:01:57Z"
+      },
+      "note": "Implemented the committed lane MCP contract without permanent tests or broad suites. Assumption: the named command's trailing `.` is a literal checkout selector, so check accepts exactly that optional literal and no arbitrary path. Git commit creation was unavailable because .git is read-only; no unrelated follow-up was found.",
+      "commit": {
+        "subject": "conductor: implement bounded lane MCP read plane",
+        "body": "Implement bounded read-only record, alerts, usage, and brief projections over CLI, resources, and newline-delimited MCP stdio. Add the null-source example configuration and refusal registry entry.\n\nSource: original\nCo-Authored-By: GPT-6 Astra <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T02:03:23.439Z"
+    }
+  },
+  "status": "closed"
+}

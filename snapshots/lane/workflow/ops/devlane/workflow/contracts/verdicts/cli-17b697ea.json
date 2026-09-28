@@ -1,0 +1,34 @@
+{
+  "id": "cli-17b697ea",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md requires --agent on every chain-appending verb and --json on every command, and it does not say --agent cannot be a global flag.",
+  "observed": "The first global argument is --agent, which conflicts with a contract that allows only a single global flag --json.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "262-262",
+      "quote": "requires `--agent` (or `$WF_AGENT`) — receipts, attempts, and commit"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "265-265",
+      "quote": "`--json` output mode"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "22-22",
+      "quote": "flags: [\"--json\"]"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "601-601",
+      "quote": "global_arguments!: [] | [#GlobalJsonArgument]"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1293-1293",
+      "quote": "\"--agent\""
+    }
+  ],
+  "action": "amend-contract"
+}

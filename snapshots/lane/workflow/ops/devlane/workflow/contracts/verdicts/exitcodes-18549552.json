@@ -1,0 +1,34 @@
+{
+  "id": "exitcodes-18549552",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md's exit-code map is exactly 0, 1, 2, 3, and 64.",
+  "observed": "The extracted all_codes list is [0, 1, 2, 3, 64, 70], six values rather than five.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "59-59",
+      "quote": "exit-code map (0/1/2/3/64)"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "271-274",
+      "quote": "**Exit codes** (loopflow's, unchanged): `0` ok — including a recorded denial;"
+    },
+    {
+      "artifact": "cue/exitcodes.cue",
+      "lines": "24-24",
+      "quote": "all_codes!: [0, 1, 2, 3, 64]"
+    },
+    {
+      "artifact": "obs/exitcodes.json",
+      "lines": "17-26",
+      "quote": "incompatible list lengths (5 and 6)"
+    },
+    {
+      "artifact": "obs/exitcodes.json",
+      "lines": "24-24",
+      "quote": "70"
+    }
+  ],
+  "action": "record-finding"
+}

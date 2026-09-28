@@ -1,0 +1,492 @@
+{
+  "id": "20260904T105610Z-code-codex-107f6f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-5",
+  "lineage": {
+    "branch": "lane/fixture-apps-5",
+    "base_sha": "7a9767ecd178e3d13d4107bf7f9f085ed7b86ac4"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:56:10Z",
+    "closed": "2026-09-04T11:17:50Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7a9767ecd178e3d13d4107bf7f9f085ed7b86ac4",
+    "ref_sha": "7a9767ecd178e3d13d4107bf7f9f085ed7b86ac4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-56-11-01a06c0f-d36d-7142-87f8-d2bcdbb532db.jsonl"
+  },
+  "session": {
+    "id": "01a06c0f-d36d-7142-87f8-d2bcdbb532db",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-56-11-01a06c0f-d36d-7142-87f8-d2bcdbb532db.jsonl",
+    "stream_sha256_at_close": "0e2dfcb6275aeb185a7278720a031f262e89c6396ec5221d35321e21491024fe",
+    "spend": {
+      "input": 8904265,
+      "cached": 8724864,
+      "output": 50337,
+      "total": 8954602,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-56-11-01a06c0f-d36d-7142-87f8-d2bcdbb532db.jsonl",
+      "messages": 569
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-5/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T105610Z-code-codex-107f6f/in/contract-fixtures-5-A.md",
+        "sha256": "ec184bb6f0c8f2b909333ab93389d3c802391788ce22989abe3d5490cdae96f4"
+      }
+    ],
+    "sha256": "9f2fa314348226b3c276bddd552828666d87111ef7ea8963c569c2c6b7f2bc82",
+    "bytes": 3979
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:56:10Z",
+      "ended": "2026-09-04T11:17:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "17e2bcc946ebfe6f53e88e93945fc916dd4d1b3a",
+    "changed_paths": [
+      "ops/devlane/fixtures/apps/FAULT-KINDS.md",
+      "ops/devlane/fixtures/apps/rust-crate/Cargo.toml",
+      "ops/devlane/fixtures/apps/rust-crate/FAULTS.json",
+      "ops/devlane/fixtures/apps/rust-crate/README.md",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc01.rs",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc02.rs",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc03.rs",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc04.rs",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc05.rs",
+      "ops/devlane/fixtures/apps/rust-crate/examples/rc06.rs",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc01.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc02.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc03.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc04.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc05.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc06.patch",
+      "ops/devlane/fixtures/apps/rust-crate/fixes/rc07.patch",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc01.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc01.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc02.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc02.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc03.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc03.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc04.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc04.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc05.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc05.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc06.rs",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc06.sh",
+      "ops/devlane/fixtures/apps/rust-crate/probes/rc07.sh",
+      "ops/devlane/fixtures/apps/rust-crate/src/audit.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/interval.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/lib.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/main.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/render.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/shell.rs",
+      "ops/devlane/fixtures/apps/rust-crate/src/store.rs",
+      "ops/devlane/fixtures/apps/rust-crate/tests/interval.rs",
+      "ops/devlane/fixtures/apps/rust-crate/tests/render.rs",
+      "ops/devlane/fixtures/apps/rust-crate/tests/store.rs",
+      "ops/devlane/fixtures/apps/symfony-app/composer.json",
+      "ops/devlane/fixtures/apps/symfony-app/composer.lock"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 47,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "initial tree inspection",
+          "claim": "Confirmed the snapshot began at 7a9767ecd178e3d13d4107bf7f9f085ed7b86ac4 and located the repository instructions and input.",
+          "reproduce": "git status --short --branch && git rev-parse HEAD && rg --files docs ops -g 'README.md' -g '*.md' -g 'AGENTS.md' | sort && find ../in -maxdepth 1 -type f -print 2>/dev/null | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "repository contracts",
+          "claim": "Read the root concern, probe, coupling, wire, and workflow contracts.",
+          "reproduce": "cat docs/concerns.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "repository mapping",
+          "claim": "Read the Symfony package mapping.",
+          "reproduce": "cat docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "lane instructions",
+          "claim": "Read the operating-lane README and nested AGENTS.md.",
+          "reproduce": "cat ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input",
+          "claim": "Measured the task input at 852 lines.",
+          "reproduce": "wc -l ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input lines 1-300",
+          "claim": "Read the first input segment.",
+          "reproduce": "sed -n '1,300p' ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input lines 301-600",
+          "claim": "Read the middle input segment.",
+          "reproduce": "sed -n '301,600p' ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input lines 601-900",
+          "claim": "Read the final input segment.",
+          "reproduce": "sed -n '601,900p' ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input lines 301-450",
+          "claim": "Re-read the first previously truncated middle segment.",
+          "reproduce": "sed -n '301,450p' ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "task input lines 451-600",
+          "claim": "Re-read the second previously truncated middle segment.",
+          "reproduce": "sed -n '451,600p' ../in/contract-fixtures-5-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline acceptance",
+          "claim": "The initial named command failed in the fixture suite because the Rust fixture was incomplete.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "Rust skeleton and test contract",
+          "claim": "Inspected the tracked Rust skeleton, test constants, and initial files.",
+          "reproduce": "git ls-files ops/devlane/fixtures/apps/rust-crate ops/devlane/fixtures/apps/FAULT-KINDS.md ops/devlane/fixtures/tests/test_rust_crate_app.py && sed -n '1,280p' ops/devlane/fixtures/tests/test_rust_crate_app.py && for f in ops/devlane/fixtures/apps/rust-crate/.gitignore ops/devlane/fixtures/apps/rust-crate/Cargo.toml ops/devlane/fixtures/apps/rust-crate/Cargo.lock ops/devlane/fixtures/apps/rust-crate/rustfmt.toml ops/devlane/fixtures/apps/rust-crate/src/lib.rs ops/devlane/fixtures/apps/rust-crate/src/main.rs; do printf '\\nFILE %s\\n' \"$f\"; sed -n '1,260p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture tests",
+          "claim": "Enumerated all Rust fixture test cases.",
+          "reproduce": "rg -n '^class |^    def test_' ops/devlane/fixtures/tests/test_rust_crate_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture assertions",
+          "claim": "Read the helpers, layout assertions, and manifest assertions.",
+          "reproduce": "sed -n '280,650p' ops/devlane/fixtures/tests/test_rust_crate_app.py && sed -n '653,1332p' ops/devlane/fixtures/tests/test_rust_crate_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture mechanics",
+          "claim": "Read the repository-freeze, make/prove, and grade mechanics.",
+          "reproduce": "sed -n '1333,1856p' ops/devlane/fixtures/tests/test_rust_crate_app.py && sed -n '1857,2523p' ops/devlane/fixtures/tests/test_rust_crate_app.py && sed -n '2524,2780p' ops/devlane/fixtures/tests/test_rust_crate_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture proof cases",
+          "claim": "Read the exact red/green and isolated-fix proof assertions.",
+          "reproduce": "sed -n '1850,2355p' ops/devlane/fixtures/tests/test_rust_crate_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "fixture exemplars and manifest validator",
+          "claim": "Read the shared validator and neighboring Python fixture shapes.",
+          "reproduce": "sed -n '1,430p' ops/devlane/fixtures/tests/test_fixture_manifests.py && sed -n '1,260p' ops/devlane/fixtures/apps/python-tooling/FAULTS.json && sed -n '1,220p' ops/devlane/fixtures/apps/python-tooling/README.md && sed -n '1,120p' ops/devlane/fixtures/apps/python-tooling/fixes/pt01.patch && sed -n '1,120p' ops/devlane/fixtures/apps/python-tooling/probes/pt01.py && sed -n '1,80p' ops/devlane/fixtures/apps/FAULT-KINDS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "first Rust implementation",
+          "claim": "Checked whitespace, status, and source line locations after the initial implementation.",
+          "reproduce": "git diff --check && git status --short && nl -ba ops/devlane/fixtures/apps/rust-crate/README.md ops/devlane/fixtures/apps/rust-crate/Cargo.toml ops/devlane/fixtures/apps/rust-crate/src/shell.rs ops/devlane/fixtures/apps/rust-crate/src/store.rs ops/devlane/fixtures/apps/rust-crate/src/render.rs ops/devlane/fixtures/apps/rust-crate/src/audit.rs ops/devlane/fixtures/apps/rust-crate/src/interval.rs"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust formatting",
+          "claim": "The first Rust check identified two rustfmt changes in main.rs.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo fmt --check && CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo clippy --offline --all-targets -- -D warnings && CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo test --offline --locked"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust formatting",
+          "claim": "Applied rustfmt mechanically.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo fmt"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust crate",
+          "claim": "The formatted crate passed Clippy and its integration tests offline.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo clippy --offline --all-targets -- -D warnings && CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo test --offline --locked"
+        },
+        {
+          "severity": "p3",
+          "where": "manifest spans",
+          "claim": "Measured the exact declaration, fault, and neighbor line locations.",
+          "reproduce": "rg -n 'RC-0[1-7]:|anyhow =|hex =|pub fn run_helper|Command::new\\(\"sh\"\\)|pub fn run_helper_safely|Command::new\\(\"printf\"\\)|pub fn record_path|root\\.join\\(name\\)|pub fn checked_record_path|starts_with\\(base\\)|pub fn read_records|Err\\(_\\) => Ok\\(Vec::new\\(\\)\\)|pub fn write_records|fs::write\\(path, body\\)\\?|pub fn render_count|let n = count\\.unwrap_or\\(0\\)|pub fn render_label|match label|pub fn write_failure_log|environment=|pub fn write_safe_log|\\[REDACTED\\]|pub const fn contains|self\\.start <= v|pub fn values|self\\.start\\.\\.self\\.end' ops/devlane/fixtures/apps/rust-crate/README.md ops/devlane/fixtures/apps/rust-crate/Cargo.toml ops/devlane/fixtures/apps/rust-crate/src"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture contract",
+          "claim": "The first focused run exposed the pre-existing README flag-regex problem.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture contract",
+          "claim": "The focused suite passed structurally with six Cargo-dependent cases explicitly skipped when rustup was unreachable.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -v -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture runtime",
+          "claim": "Enabling the host rustup toolchain exposed three behavioral-proof defects in the first iteration.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -v -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "Rust example runner iteration",
+          "claim": "The crate passed its checks while revealing duplicate-target Cargo warnings, which were subsequently removed.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo fmt --check && CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo clippy --offline --all-targets -- -D warnings && CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo test --offline --locked"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture runtime iteration",
+          "claim": "A shared external Cargo target still allowed stale example binaries to color fresh probes green.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "RC-01 probe",
+          "claim": "Direct execution proved RC-01 red and showed the required cargo-test target itself ran zero tests before the behavioral example failed.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin sh probes/rc01.sh; printf 'rc=%s\\n' \"$?\""
+        },
+        {
+          "severity": "p3",
+          "where": "fixture lever",
+          "claim": "Inspected manifest loading, patch preflight, and probe exit classification.",
+          "reproduce": "sed -n '240,360p' ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fresh-target runtime iteration",
+          "claim": "A fresh shared target confirmed the green-probe issue was target reuse rather than an old directory.",
+          "reproduce": "test ! -e /tmp/agentscient-rust-crate-contract-target-fresh && CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target-fresh PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "Rust timestamp-forcing iteration",
+          "claim": "Touching probe sources did not reliably prevent shared-target artifact reuse.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target-fresh PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "Rust fixture full contract",
+          "claim": "After isolating behavioral probe artifacts beneath each scratch, all 41 Rust fixture tests passed with Cargo enabled.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target-fresh PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "first full acceptance rerun",
+          "claim": "The completed Rust fixture passed, but the named command then failed on the pre-existing read-only Composer-cache behavior.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "Symfony fixture cache boundary",
+          "claim": "Inspected the hard-failing Composer install path and existing fixture configuration.",
+          "reproduce": "sed -n '1280,1385p' ops/devlane/fixtures/tests/test_symfony_app_app.py && sed -n '1810,1885p' ops/devlane/fixtures/tests/test_symfony_app_app.py && sed -n '1,220p' ops/devlane/fixtures/apps/symfony-app/composer.json && sed -n '1,180p' ops/devlane/fixtures/apps/symfony-app/FAULTS.json"
+        },
+        {
+          "severity": "p3",
+          "where": "Composer environment",
+          "claim": "Confirmed root PHPUnit was absent while Composer metadata cache files were present.",
+          "reproduce": "test -x vendor/bin/phpunit; printf 'root_phpunit=%s\\n' \"$?\"; find /home/scientdb/.cache/composer -maxdepth 3 -type f 2>/dev/null | sed -n '1,80p'; find vendor -maxdepth 2 -type d 2>/dev/null | sed -n '1,80p'"
+        },
+        {
+          "severity": "p3",
+          "where": "Composer archive cache",
+          "claim": "Measured 85 cached package archives, including the pinned Symfony packages.",
+          "reproduce": "find /home/scientdb/.cache/composer/files -type f 2>/dev/null | wc -l && find /home/scientdb/.cache/composer/files/symfony -type f 2>/dev/null | sed -n '1,40p'"
+        },
+        {
+          "severity": "p3",
+          "where": "Symfony fixture lock",
+          "claim": "Composer refreshed the lock metadata after enabling read-only cache use without changing dependency versions.",
+          "reproduce": "COMPOSER_DISABLE_NETWORK=1 composer update --lock --no-install --no-interaction --no-progress"
+        },
+        {
+          "severity": "p3",
+          "where": "Symfony fixture contract",
+          "claim": "All 33 Symfony fixture tests passed using the warm read-only cache.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_symfony_app_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "change and provenance audit",
+          "claim": "Checked the diff, status, size, and neighboring commit-trailer conventions.",
+          "reproduce": "git diff --check && git status --short && git diff --stat && git log -5 --format='%H%n%B%n--END--'"
+        },
+        {
+          "severity": "p3",
+          "where": "model-trailer lookup",
+          "claim": "The first NUL-delimited trailer lookup was treated as binary by rg.",
+          "reproduce": "git log --all --format='%H%x00%B%x00' | rg -m 5 -o 'Co-Authored-By: [^\\x00]*Codex[^\\x00]*|Co-Authored-By: Codex[^\\x00]*'"
+        },
+        {
+          "severity": "p3",
+          "where": "model-trailer lookup",
+          "claim": "Measured the repository\u2019s OpenAI trailer convention as GPT-5.6 Sol <noreply@openai.com>.",
+          "reproduce": "git log --all --format='%B' | rg -m 10 '^Co-Authored-By:.*(Codex|GPT|OpenAI)'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The sandbox refused Git index creation, so no commit could be made.",
+          "reproduce": "git add ops/devlane/fixtures/apps/FAULT-KINDS.md ops/devlane/fixtures/apps/rust-crate && git diff --cached --check && git commit -m \"fixtures: add the Rust calibration crate\" -m \"Build the Rust target-profile fixture with its library and wire-speaking binary, green integration tests, seven planted faults, behavioural probes, isolated fixes, and calibration manifest.\" -m \"Source: original\" -m \"Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "final acceptance",
+          "claim": "The exact named command exited 0; 23 Python-tooling tests, all lane suites, and Ruff passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "final Rust crate",
+          "claim": "The final Rust crate passed rustfmt, Clippy, integration tests, and doc tests offline.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-final-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo fmt --check && CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-final-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo clippy --offline --all-targets -- -D warnings && CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-final-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin cargo test --offline --locked"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree audit",
+          "claim": "The final diff was whitespace-clean, fixture test files were untouched, HEAD remained at the requested ref, and the audit ended at 2026-09-04T11:14:52Z.",
+          "reproduce": "git diff --check && test -z \"$(git diff --name-only -- ops/devlane/fixtures/tests)\" && git status --short && git rev-parse HEAD && date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_rust_crate_app.py:817",
+          "claim": "Follow-up: the existing contract marks RC-01 through RC-06 Cargo test targets test=false while requiring cargo test --test rcNN to execute them; Cargo runs zero tests. The fixture therefore executes the same behavioral bodies through isolated examples after retaining the required target command.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo RUSTUP_HOME=/home/scientdb/.rustup CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin sh probes/rc01.sh; printf 'rc=%s\\n' \"$?\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_rust_crate_app.py:955",
+          "claim": "Follow-up: the existing patterns \\b--offline\\b and \\b--locked\\b cannot naturally match hyphen-led flags because a word boundary cannot occur between whitespace/backtick and a hyphen. Compatibility labels were required in the README.",
+          "reproduce": "CARGO_HOME=/home/scientdb/.cargo CARGO_TARGET_DIR=/tmp/agentscient-rust-crate-contract-target PATH=/home/scientdb/.cargo/bin:/usr/bin:/bin python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_rust_crate_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane dispatch/task/telemetry suites",
+          "claim": "Follow-up: the green full suite still emits ResourceWarning messages for live subprocesses and an unclosed file descriptor; this change did not alter those unrelated tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        }
+      ],
+      "artifacts": {
+        "rust_crate": "ops/devlane/fixtures/apps/rust-crate",
+        "fault_taxonomy": "ops/devlane/fixtures/apps/FAULT-KINDS.md",
+        "composer_cache_mode": "ops/devlane/fixtures/apps/symfony-app/composer.json",
+        "composer_lock": "ops/devlane/fixtures/apps/symfony-app/composer.lock"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 8954602,
+        "out": 50337,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7a9767ecd178e3d13d4107bf7f9f085ed7b86ac4",
+        "started": null,
+        "ended": "2026-09-04T11:14:52Z"
+      },
+      "note": "Assumption: the explicit terminal condition requiring the full unchanged command to exit 0 controls over the input's run-A-only staging language, because suites.sh includes the complete Rust fixture contract. The complete seven-fault fixture was therefore implemented. Git commit was attempted but the read-only .git sandbox refused index.lock; the launcher should commit using the supplied message.",
+      "commit": {
+        "subject": "fixtures: complete the Rust calibration crate",
+        "body": "Build the Rust target-profile fixture with its library and wire-speaking binary, green integration tests, seven planted faults, behavioral probes, isolated fixes, and calibration manifest. Permit the existing Symfony fixture to consume the warm Composer cache in read-only sandboxes so the unchanged lane suite remains reproducible.\n\nSource: original\nSource: generated: composer update --lock\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T11:17:49.331Z"
+    }
+  },
+  "status": "closed"
+}

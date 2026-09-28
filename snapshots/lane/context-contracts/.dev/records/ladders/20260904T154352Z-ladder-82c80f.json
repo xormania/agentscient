@@ -1,0 +1,167 @@
+{
+  "base_sha": "02d68bd924a6b164b94ff2b1eafcded1ae392ebc",
+  "branch": "lane/context-contracts",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/lane.conf",
+    "sha256": "ebba255effed06abbe88fc4cb94883240429c88775e757841eccb99969fac7b2"
+  },
+  "id": "20260904T154352Z-ladder-82c80f",
+  "implementation_markers": [],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/ladder-inputs/PLAN-context-contracts-2-closure-index.md",
+    "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/ladder-inputs/scope-context-contracts-2.md",
+    "sha256": "7b3ed2fb7ee3c4318d1e2b0dcd2ac4b217a33d732de0e5193556862f733f1462"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T154353Z-tests-grok-ea5f39",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/ladder-inputs/PLAN-context-contracts-2-closure-index.md",
+        "proof": {
+          "given": [
+            "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`"
+          ],
+          "withheld": []
+        },
+        "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+      },
+      "job": "author-tests",
+      "landed": [
+        "b0ad9f1c5ad0c9a5a30b42f04daff77c2273b1e8"
+      ],
+      "landed_shas": [
+        "b0ad9f1c5ad0c9a5a30b42f04daff77c2273b1e8"
+      ],
+      "minutes": 14.596227,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260904T154353Z-tests-grok-ea5f39",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260904T155934Z-check-tests-codex-49dad2",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/records/dispatches/20260904T154353Z-tests-grok-ea5f39.json",
+        "proof": {
+          "given": [
+            "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`",
+            "20260904T154353Z-tests-grok-ea5f39"
+          ],
+          "withheld": []
+        },
+        "sha256": "ec076ddba828c3853ae1755800549b6d88a41a894ab8e5b39f2d29d41ac58420"
+      },
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "stopped",
+      "reason": "wall",
+      "record": "20260904T155934Z-check-tests-codex-49dad2",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260904T155934Z-check-tests-codex-49dad2",
+    "stage": "check-tests",
+    "verdict": null
+  },
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-context-contracts"
+}

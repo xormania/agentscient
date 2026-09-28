@@ -1,0 +1,12 @@
+{
+  "contract": "vocab",
+  "fault": "vocab.2.json",
+  "from": "obs/vocab.json",
+  "change": "the reserved term `packet` is nowhere in the vocabulary wall's literals — the check spells it `envelope`",
+  "violates": "PLAN.md §10 lines 501-503 (with §2 line 62)",
+  "quote": "\"Dev-lane terms — *work order, gate, stage, receipt, red, green, frozen set, chain, claim, marker, packet, wf* — exist only under `.dev/`\"",
+  "reject_path": "facts\\.(joined|literals)\\b|packet",
+  "implied": false,
+  "sites": 3,
+  "note": "Three literals carry the term (docstring, \"packet\", \"packets\"); see vocab.1 on why a single deletion cannot fire."
+}

@@ -1,0 +1,141 @@
+{
+  "kind": "verification-receipt",
+  "scope": "git-refs monitor adapter; onboarding and activation owned separately",
+  "repository": "uscient/agentscient",
+  "red": {
+    "head": "eaee643ce8575c340b63cc1a3dba73e47cb3dab1",
+    "measured_at": "2026-09-10T00:44:59.843163+00:00",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "ops/conductor/tests",
+      "-p",
+      "test_monitor_git_refs.py"
+    ],
+    "exit": 1,
+    "tests": 19,
+    "assertion_failures": 27,
+    "errors": 0,
+    "cause": "git-refs adapter not registered"
+  },
+  "green": {
+    "head": "12a83cb9898c7169a8a406dbcaad22ee2da62664",
+    "measured_at": "2026-09-10T00:56:27.991480+00:00",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "ops/conductor/tests",
+      "-p",
+      "test_monitor_git_refs.py"
+    ],
+    "exit": 0,
+    "tests": 19
+  },
+  "identical_test_sha256": {
+    "ops/conductor/tests/test_monitor_git_refs.py": "17f80c90f0d7dde171f2956d320e26cf391a64f9b8be1cb48390470cf5c5a881"
+  },
+  "independent_test_acceptance": "20260910T004501Z-check-tests-claude-8051ef",
+  "implementation": "20260910T005159Z-code-codex-801b22",
+  "preserved_failed_implementation": "20260910T002932Z-code-codex-4d6fb6",
+  "full_suites": {
+    "command": [
+      "ops/bin/suites.sh"
+    ],
+    "head": "12a83cb9898c7169a8a406dbcaad22ee2da62664",
+    "head_after": "12a83cb9898c7169a8a406dbcaad22ee2da62664",
+    "started": "2026-09-10T00:56:26.645795+00:00",
+    "ended": "2026-09-10T00:57:57.490218+00:00",
+    "exit": 0
+  },
+  "suite_results": [
+    {
+      "suite": "devlane/dispatch",
+      "tests": 450,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/harness",
+      "tests": 41,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/task",
+      "tests": 312,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/telemetry",
+      "tests": 227,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/hooks",
+      "tests": 215,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/fixtures",
+      "tests": 221,
+      "skipped": 6,
+      "result": "OK"
+    },
+    {
+      "suite": "devlane/workflow",
+      "tests": 48,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "conductor",
+      "tests": 711,
+      "skipped": 0,
+      "result": "OK"
+    },
+    {
+      "suite": "pr-overview",
+      "tests": 8,
+      "skipped": 0,
+      "result": "OK"
+    }
+  ],
+  "live_probe": {
+    "source_sha256": "424b9f6d239da66e1437f5d522f71f54f4a56d04d77096be1c1fd884ca38ab17",
+    "elapsed_s": 0.5013971070293337,
+    "remote": "origin",
+    "readings": [
+      {
+        "subject": "refs/heads/dev",
+        "state": "ok",
+        "metrics": {
+          "local_oid": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+          "remote_oid": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+          "freshness": "equal"
+        },
+        "observed_at": "2026-09-10T00:40:43.695732Z",
+        "reason": null
+      },
+      {
+        "subject": "refs/heads/master",
+        "state": "ok",
+        "metrics": {
+          "local_oid": "fc839a5f85f192acbea5efa6cc366efb7a7b5a42",
+          "remote_oid": "fc839a5f85f192acbea5efa6cc366efb7a7b5a42",
+          "freshness": "equal"
+        },
+        "observed_at": "2026-09-10T00:40:43.695732Z",
+        "reason": null
+      }
+    ]
+  }
+}

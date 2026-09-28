@@ -1,0 +1,11 @@
+{
+  "facts": {
+    "constants": [],
+    "exit_literals": [0, 1, 2, 3, 64],
+    "all_codes": [0, 1, 2, 3, 64]
+  },
+  "provenance": {
+    "source": "PLAN.md",
+    "lines": "59,271-274"
+  }
+}

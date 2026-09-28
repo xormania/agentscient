@@ -1,0 +1,340 @@
+{
+  "id": "20260904T161948Z-code-codex-55d472",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/matrix-hook",
+  "lineage": {
+    "branch": "lane/matrix-tests",
+    "base_sha": "77290bfaa2395353fa7ed44dff690258e9dded53"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:19:48Z",
+    "closed": "2026-09-04T16:26:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "77290bfaa2395353fa7ed44dff690258e9dded53",
+    "ref_sha": "77290bfaa2395353fa7ed44dff690258e9dded53",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-19-49-01a06d38-1df8-7fc3-9c55-171bda937a9c.jsonl"
+  },
+  "session": {
+    "id": "01a06d38-1df8-7fc3-9c55-171bda937a9c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-19-49-01a06d38-1df8-7fc3-9c55-171bda937a9c.jsonl",
+    "stream_sha256_at_close": "4b07eb8f8bdc398a8c9f4a6556ceae1bf284c29eb741e2b0415f8f35901acac4",
+    "spend": {
+      "input": 2070985,
+      "cached": 1994368,
+      "output": 12211,
+      "total": 2083196,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T12-19-49-01a06d38-1df8-7fc3-9c55-171bda937a9c.jsonl",
+      "messages": 259
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-matrix-tests/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/in/input-matrix-guards.md",
+        "sha256": "71ddad4bab6541512e79abd5d3005d76a8c2ff7bcd20e5d7d1430e2c4fd491fe"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/in/contract-matrix-hook.md",
+        "sha256": "a381a29a372ceb8922a7823ed114dc856a041bc975624eda401ad287809ee6af"
+      }
+    ],
+    "sha256": "5ed8cec1622c4a3e0903ed1f31c42cbdf265fb13eb4b88df4725474de4c30f1d",
+    "bytes": 4073
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:19:48Z",
+      "ended": "2026-09-04T16:26:57Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e5d3ed424906d11c46083f8a6f1579518d796bc1",
+    "changed_paths": [
+      "ops/devlane/hooks/claude/matrix.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 29,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Initial worktree was clean and detached.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Initial HEAD matched the requested tree 77290bfaa2395353fa7ed44dff690258e9dded53.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops",
+          "claim": "Enumerated the governing documentation and lane files.",
+          "reproduce": "rg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops",
+          "claim": "Read the project contracts, lane overview, and scoped agent instructions.",
+          "reproduce": "tail -n +1 docs/*.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "required verification",
+          "claim": "Baseline exited 1 with three laneconf failures involving matrix.py.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix configuration",
+          "claim": "Inspected the tracked lane configuration, implementation, and targeted tests.",
+          "reproduce": "tail -n +1 ops/lane.conf ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "laneconf implementation",
+          "claim": "Inspected the closure and literal-check implementation and registry entry.",
+          "reproduce": "tail -n +1 ops/conductor/tools/laneconf.py ops/conductor/registry/laneconf.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix.py",
+          "claim": "Inspected lines 1 through 260.",
+          "reproduce": "sed -n '1,260p' ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix.py",
+          "claim": "Inspected lines 261 through 620.",
+          "reproduce": "sed -n '261,620p' ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix and laneconf tests",
+          "claim": "Located the hard-coded defaults and the docstring token interpreted as VAR.",
+          "reproduce": "rg -n \"VAR|lane_conf|SCOPE_CAP_DEFAULT|TRUNK_DEFAULT|LANE_DEFAULT|WORKTREE_ROOT|LANE_NAME|TRUNK_BRANCH|SCOPE_CAP\" ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/tests/test_matrix.py ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_laneconf.py",
+          "claim": "Inspected the driver-key closure expectations.",
+          "reproduce": "sed -n '940,1055p' ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Inspected recent lineage around the requested tree.",
+          "reproduce": "git log --oneline --decorate -12"
+        },
+        {
+          "severity": "p3",
+          "where": "HEAD",
+          "claim": "Confirmed the requested tree's latest commit changed only matrix.py.",
+          "reproduce": "git show --stat --oneline --decorate HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "HEAD matrix change",
+          "claim": "Inspected the originating matrix implementation diff.",
+          "reproduce": "git show --format=fuller --no-ext-diff --unified=80 HEAD -- ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_matrix.py",
+          "claim": "The targeted matrix suite passed all 53 tests before the closure fix.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "test_matrix.py",
+          "claim": "Inspected the matrix fixture configuration and setup.",
+          "reproduce": "sed -n '1,330p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_matrix.py",
+          "claim": "Confirmed the targeted tests do not exercise missing lane configuration.",
+          "reproduce": "rg -n \"lane.conf|config|LANE_NAME|TRUNK_BRANCH|WORKTREE_ROOT|SCOPE_CAP\" ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_laneconf.py",
+          "claim": "After the edit, all 38 laneconf tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "required verification",
+          "claim": "The first post-edit chained run passed its first two suites and entered the full hook suite.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "process state",
+          "claim": "No lingering unittest process remained after the first polling session.",
+          "reproduce": "pgrep -af 'python3 -m unittest'"
+        },
+        {
+          "severity": "p3",
+          "where": "required verification",
+          "claim": "Final chained verification exited 0: 38 laneconf tests, 53 matrix tests, and 212 hook tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "No whitespace errors were present.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "The change is limited to one implementation file with four insertions and six deletions.",
+          "reproduce": "git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix.py",
+          "claim": "Reviewed the final implementation diff.",
+          "reproduce": "git diff -- ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git index",
+          "claim": "Staging was refused because the snapshot .git filesystem is read-only.",
+          "reproduce": "git add ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "out",
+          "claim": "Confirmed the writable launcher output directory before writing COMMIT_MSG.",
+          "reproduce": "ls -la /home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/out"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Final snapshot status contains only the intended matrix.py modification.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "out/COMMIT_MSG",
+          "claim": "Verified the fallback commit message and required trailers.",
+          "reproduce": "sed -n '1,120p' /home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "stamp",
+          "claim": "Recorded the UTC completion time.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/hooks/claude/matrix.py",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T161948Z-code-codex-55d472/out/COMMIT_MSG",
+        "verification": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_*.py'"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2083196,
+        "out": 12211,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "77290bfaa2395353fa7ed44dff690258e9dded53",
+        "started": null,
+        "ended": "2026-09-04T16:25:46Z"
+      },
+      "note": "Assumption: LANE_NAME and TRUNK_BRANCH are required tracked configuration and must not retain hard-coded fallbacks. The exact required command exits 0. No test files were edited. Git commit was unavailable because .git is read-only; the launcher-ready message is in out/COMMIT_MSG. No unrelated follow-up was found.",
+      "commit": {
+        "subject": "hooks: consume lane identity from configuration",
+        "body": "Remove the matrix hook's hard-coded trunk and lane fallbacks so its configuration reads close over the tracked lane declarations. Reword the shell-expansion docstring so it does not masquerade as an environment read.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T16:26:57.158Z"
+    }
+  },
+  "status": "closed"
+}

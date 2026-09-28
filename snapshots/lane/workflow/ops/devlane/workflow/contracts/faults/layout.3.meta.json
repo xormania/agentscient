@@ -1,0 +1,11 @@
+{
+  "contract": "layout",
+  "fault": "layout.3.json",
+  "from": "obs/layout.json",
+  "change": "wf.db is present in the tree but no .gitignore line names it",
+  "violates": "PLAN.md D1 lines 538-539 (with §8 line 478)",
+  "quote": "\"**D1 — tracking policy: export-committed.** JSONL export in git; `wf.db` gitignored, rebuilt by `wf init --rebuild`\" / \"  wf.db                # gitignored: rebuilt via `wf init --rebuild`\"",
+  "reject_path": "facts\\.gitignore\\b|wf\\.db",
+  "implied": false,
+  "note": "Only the exact `ops/devlane/workflow/wf.db` line is removed; the sidecar lines for -wal/-shm/-journal/.lock/.rebuild* stay, since those ignore different files. A contract that only asks for some line *containing* \"wf.db\" will not fire — that reading is too weak for D1 and the sidecar is the brief for saying so."
+}

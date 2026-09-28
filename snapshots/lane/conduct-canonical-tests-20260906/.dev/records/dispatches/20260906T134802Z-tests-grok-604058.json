@@ -1,0 +1,194 @@
+{
+  "id": "20260906T134802Z-tests-grok-604058",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-canonical-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-tests-20260906",
+    "base_sha": "667460095fc1df1af051328e65a4272a16c8f95c"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:48:03Z",
+    "closed": "2026-09-06T14:12:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "667460095fc1df1af051328e65a4272a16c8f95c",
+    "ref_sha": "667460095fc1df1af051328e65a4272a16c8f95c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f8b60433-3024-4607-a0fc-67343f7613e6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok-stream/sessions/<snapshot-encoded>/f8b60433-3024-4607-a0fc-67343f7613e6/summary.json"
+  },
+  "session": {
+    "id": "f8b60433-3024-4607-a0fc-67343f7613e6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok-stream/sessions/<snapshot-encoded>/f8b60433-3024-4607-a0fc-67343f7613e6/summary.json",
+    "stream_sha256_at_close": "d0e255880f2a67a060c422aa1bc3e70effb0d297caa4ea78b066db2986c2ce0d",
+    "spend": {
+      "input": 8590747,
+      "cached": 8359040,
+      "output": 83158,
+      "total": 8673905,
+      "cost_usd_ticks": 11123892200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/home/grok-stream/sessions/<snapshot-encoded>/f8b60433-3024-4607-a0fc-67343f7613e6/summary.json",
+      "messages": 439
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only task/tests/test_run.py, task/tests/test_execution_frontend.py and dispatch/tests/test_execution_adoption.py from original Grok 4784cd45, using the merged canonical contract candidate and supplied adjudication/correction. Preserve all 83 dispositions; add named profile agreement/conflict/default/absence cases and strict-catalogue task invalid-envelope/exit mapping. Remove invented run.resume/canonical_launch and profile CLI oracles; preserve direct/stub behavior and test existing canonical supervision. No runtime, contracts or other frozen tests edited or inspected. Contracts remain under review: report gaps without inventing seams; this candidate is not frozen until both reviews pass. Verify original hashes first; run focused suites for assertion-red/zero errors plus lint and custody guards; reseal all three files. No full floor or live store/harness. Return valid Grok test envelope and exact receipts.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/in/ag-conduct-canonical-tests.json",
+        "sha256": "6c97d6c530d60926e1a770a4b684842b36f9e16507ccba178e73a9ce0717e3c6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/in/ag-conduct-canonical-correction.json",
+        "sha256": "c88c5b2b077ab5d388e6119b4063993079495776ed4b3b8e755f3553ba360b43"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134802Z-tests-grok-604058/in/ag-conduct-canonical-adjudication.json",
+        "sha256": "0aff5a13703d6e2cd999683b83e01b0abf957f612e166a2b3f06d85e41a4ef38"
+      }
+    ],
+    "sha256": "cac80baa05ce6d997efc36ccf74d5c1a27937cbdffff769861c129bc9cbd0e4e",
+    "bytes": 3272
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:48:03Z",
+      "ended": "2026-09-06T14:12:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eb873f26f1f062634bafb654d2e81d4a4297bef0",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_execution_adoption.py",
+      "ops/devlane/task/tests/test_execution_frontend.py",
+      "ops/devlane/task/tests/test_run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py; ops/devlane/task/tests/test_execution_frontend.py; ops/devlane/dispatch/tests/test_execution_adoption.py",
+          "claim": "Original Grok 4784cd45 hashes verified before edit: test_run.py 3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43; test_execution_frontend.py 07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f; test_execution_adoption.py 951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae. Those matched HEAD at 667460095fc1df1af051328e65a4272a16c8f95c. Resealed after correction: 875cbd22cc8147d3864a77d390fc9140775dd9ff669797f0ba9bb6bf244429c2; 139b329dae456684c1e6a4f89e3b4d3bb3c541e7ac17571ffc68177e47c1062d; 40cfb3bd811222a5a8ff3e047b9f2047224d96d412d645c4a3507f40920e333b.",
+          "reproduce": "sha256sum ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_execution_frontend.py ops/devlane/dispatch/tests/test_execution_adoption.py; git show 4784cd45:ops/devlane/task/tests/test_run.py | sha256sum"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md; ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Contracts remain under review and are not frozen. Tests consume named unit1a in-process trusted_context=/declarations= and policy default_profile from the lane-policy data shape. No run.resume, injectable run.canonical_launch, --profile CLI flag, adapter.reservations or policy bind_launch was invented. If launch.main lacks those kwargs the cases fail on assertion, not TypeError.",
+          "reproduce": "rg -n 'bind_canonical_launch|hasattr\\(run, \"resume\"\\)|argv_has_profile_flag|trusted_context=' ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_execution_frontend.py ops/devlane/dispatch/tests/test_execution_adoption.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py; ops/devlane/dispatch/tests/test_execution_adoption.py",
+          "claim": "All 83 original dispositions kept as named methods, rewritten or relocated. Task vendor mode pins the exact execution refusal before snapshot/prompt/child/store. Direct/stub stay local. Strict-catalogue load_jobs raises OutputsError/outputs-schema; run()/main() map that to invalid envelope exit 2. Four ProfileSelection cases cover agreement, conflict, configured default and absence without default. Canonical trip/refusal/resume/result go through launch.main.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'; python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_execution_adoption.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/checks/term_wall.py",
+          "claim": "Term wall could not look: TERM_WALL unset and ops/bin/term-wall.conf absent, exit 2. Vocabulary wall and secret scan on the three owned files were clean. Trailer check on 667460095fc1df1af051328e65a4272a16c8f95c..HEAD: 3 messages, clean.",
+          "reproduce": "python3 ops/devlane/workflow/checks/term_wall.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_execution_frontend.py ops/devlane/dispatch/tests/test_execution_adoption.py; python3 ops/devlane/workflow/checks/commit_trailers.py --range 667460095fc1df1af051328e65a4272a16c8f95c..HEAD"
+        }
+      ],
+      "artifacts": {
+        "test_run": "ops/devlane/task/tests/test_run.py",
+        "test_execution_frontend": "ops/devlane/task/tests/test_execution_frontend.py",
+        "test_execution_adoption": "ops/devlane/dispatch/tests/test_execution_adoption.py",
+        "head": "eb873f26f1f062634bafb654d2e81d4a4297bef0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 8673905,
+        "out": 83158,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "667460095fc1df1af051328e65a4272a16c8f95c",
+        "started": "2026-09-06T13:49:02Z",
+        "ended": "2026-09-06T14:11:13Z"
+      },
+      "note": "Author-tests correction of original Grok 4784cd45 against tree 667460095fc1df1af051328e65a4272a16c8f95c. Implementation was not read. Runtime, contracts and other frozen tests were not edited. Catalogue not activated. No live store or harness. Trailers on all three commits: Source: original / Co-Authored-By: Grok 4.6 <noreply@x.ai>. git diff --name-status 6674600..HEAD is M test_run.py, M test_execution_frontend.py, M test_execution_adoption.py. Working tree clean at eb873f26f1f062634bafb654d2e81d4a4297bef0.\n\nCommits: d0f727d1f46bb6c36f0bec7db9995962bf0ba166 test_run.py; 3ce1f4058fc5a6e91508e3ae7afa43b0730a42f3 test_execution_frontend.py; eb873f26f1f062634bafb654d2e81d4a4297bef0 test_execution_adoption.py.\n\nReds measured, failures vs errors distinguished. python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_run.py' at 6674600 after correction \u2014 Ran 49, FAILED (failures=26), 0 errors. Direct/stub, R14, R15 invalid/usage, render, job-parse, registry and collapsed-reencode controls pass. python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_execution_frontend.py' at d0f727d \u2014 Ran 9, FAILED (failures=8), 0 errors. Direct-verify control passes. python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_execution_adoption.py' at 3ce1f40 \u2014 Ran 60, FAILED (failures=27), 0 errors.\n\nLint: python3 ops/devlane/workflow/checks/lint.py --root . on the three files \u2014 clean, ruff 0.16.5. commit_trailers.py --range 6674600..HEAD \u2014 checked 3, clean. secret_scan.py on the three files \u2014 clean. vocabulary_wall.py on the three files \u2014 clean. term_wall.py \u2014 could not look (TERM_WALL empty). No full floor."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:12:25.047Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,182 @@
+{
+  "id": "20260906T123030Z-plan-codex-0fdfa5",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-launcher-20260906",
+  "lineage": {
+    "branch": "lane/conduct-launcher-20260906",
+    "base_sha": "615b36d5d602cf42426f7e37f1d44cd747e0bf8e"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T12:30:31Z",
+    "closed": "2026-09-06T12:43:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "615b36d5d602cf42426f7e37f1d44cd747e0bf8e",
+    "ref_sha": "615b36d5d602cf42426f7e37f1d44cd747e0bf8e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e89d-7e83-8638-b1fceacbece4.jsonl"
+  },
+  "session": {
+    "id": "01a076b2-e89d-7e83-8638-b1fceacbece4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e89d-7e83-8638-b1fceacbece4.jsonl",
+    "stream_sha256_at_close": "5dc9f19ddb2d0ddcba0c0ce12c5deab980f841d4ea1e36c6d0d4a94274733ef6",
+    "spend": {
+      "input": 5943685,
+      "cached": 5724288,
+      "output": 15968,
+      "total": 5959653,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e89d-7e83-8638-b1fceacbece4.jsonl",
+      "messages": 329
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-launcher-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Resolve one concrete route for unattended conduct codex after Daybreak's stock-hook rejection. Read supplied records, current contracts and local evidence; consult only official version-matched OpenAI source as needed. Determine whether Codex 0.153.4 app-server plus native remote TUI can enforce a host-owned allowlisted conductor capability through the existing dispatcher, deny raw effects, and answer all requests without human approval. Verify approval ownership, disconnect/malformed/timeout behavior, stdin and every effectful built-in, auth separation, native UI connection, and supported capability transport. Do not propose another unbounded plan. Return a minimal executable architecture with exact source evidence, outstanding empirical checks and bounded changes; if impossible, identify the smallest necessary vendor change and why. No code/model launch, credentials/settings/state writes, alternate executor, writable production MCP or hook bypass. Inline envelope only, note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-external-security.json",
+        "sha256": "d033dc113e69168c4a59d19b49ea89ded53ee960f9a81cb80c49094f7ee69ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-codex-native-prereqs.json",
+        "sha256": "c72c935e34e1c3a399e69caf793d5ecc8f18ee711759f3bdd53f020f6fbcbaf3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-codex-probe-path.json",
+        "sha256": "f1a9daaf1f0daa7258d3cc3e4552bcef94433ea3d333534499b7705082269f41"
+      }
+    ],
+    "sha256": "594fb15f8fa0e4e96d80c286e6edce22c90994aded19e032fb8b7683023f8a48",
+    "bytes": 3317
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:30:31Z",
+      "ended": "2026-09-06T12:43:10Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "615b36d5d602cf42426f7e37f1d44cd747e0bf8e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:165",
+          "claim": "Stock app-server cannot satisfy 'Unknown/rejected native data never enters records'. Codex records model tool-call input before invoking the handler or contacting the host. A host refusal cannot undo that recording. This is a prerequisite incompatibility, not an introduced runtime regression.",
+          "reproduce": "Read [stream_events_utils.rs:299\u2013324](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/stream_events_utils.rs#L299): tracing and record_completed_response_item precede handle_tool_call. [dynamic.rs:199\u2013247](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/tools/handlers/dynamic.rs#L199) also includes arguments in started and completed items."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/permission-surface.md:157",
+          "claim": "A host client connected alongside the native TUI does not exclusively own approvals. Requests fan out to subscribed connections, pending requests can be replayed, and responses consume callbacks by request ID without a responding-connection identity. The host must be the sole upstream client.",
+          "reproduce": "Inspect [outgoing_message.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/src/outgoing_message.rs#L295), especially send_request_to_connections, replay_requests_to_connection_for_thread and notify_client_response; compare [message_processor.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/src/message_processor.rs), process_response."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/harness-capabilities.md:189",
+          "claim": "Command/file approvals are not universal interception. Even with write_stdin_approval enabled, unchanged sandbox authority without strict auto-review permits nonempty stdin without review. Admitting interactive shell execution would therefore violate complete deterministic mediation.",
+          "reproduce": "Read [stdin_approval.rs:180\u2013240](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/unified_exec/stdin_approval.rs#L180): disabled feature, empty polling, non-TTY interrupt, and unchanged default authority have explicit no-review paths. No runtime probe was executed."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/context/diff.patch",
+        "native_prerequisites": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-codex-native-prereqs.json",
+        "probe_path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-codex-probe-path.json",
+        "security_review": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-plan-codex-0fdfa5/in/ag-conduct-external-security.json",
+        "source": "https://github.com/openai/codex/tree/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5959653,
+        "out": 15968,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "615b36d5d602cf42426f7e37f1d44cd747e0bf8e",
+        "started": "2026-09-06T12:30:44Z",
+        "ended": "2026-09-06T12:41:16Z"
+      },
+      "note": "Decision: one concrete effect-enforcement route exists, but stock 0.153.4 cannot meet the full current recording contract. Select a sole-client capability relay; retain the stock-hook rejection. Admission requires the narrow vendor correction below and bounded empirical verification.\n\nEvidence: all three supplied inputs were read whole. The supplied patch equals git diff BASE HEAD: 652716 bytes, SHA256 e4683c2aca7452d00ffafd092ad90ec417bbf3b6a9b6bef0e147664164ca50bd. Diff checking passed; working tree remained clean. Installed package metadata identifies 0.153.4, x86_64-unknown-linux-musl; executable SHA256 is 56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da. Official tag resolution returned 3d2ee51ca2d5db578f328aa75e20aa22c0197c9a. Reproducible-build correspondence remains unverified. This focused review does not approve unrelated discovery/task changes.\n\nArchitecture: existing launch.py supervises Codex app-server over private stdio and owns its configuration, authentication transport, lifetime and records. A harness-owned relay is its sole protocol client and exposes a private Unix WebSocket endpoint for native `codex --remote unix:///ABS/conduct.sock`. The TUI connects exclusively to that relay. It forwards admitted conversation/display operations, seals launch/resume/turn settings, and rejects direct execution, filesystem writes, configuration/authentication mutation, arbitrary thread creation and unknown RPCs. It consumes every server request itself; approvals never reach the TUI. Native Unix remote connection is implemented in [tui/src/lib.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/tui/src/lib.rs), parse_remote_addr/connect_remote_app_server. This relay is transport and policy composition, not another worker executor.\n\nInitialize with experimentalApi=true. Host-owned thread/start supplies environments=[], selectedCapabilityRoots=[] and a closed dynamicTools declaration for conductor operations. Those APIs are experimental, requiring exact pinning and probes. `item/tool/call` carries threadId, turnId, callId, namespace, tool and arguments; reply with contentItems and success. The host binds these to its descriptor, strictly validates the target schema, calls normalize_tool/evaluate_tool, and invokes only the pinned canonical dispatch.sh frontend or existing admitted read/coordination lever. Never accept shell text or executable paths as capabilities. Preserve canonical dispatch identity across uncertain delivery; reconcile records instead of blindly retrying. Transport is documented in the [tagged app-server README](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/README.md#dynamic-tool-calls-experimental).\n\nRaw-effect closure: environments=[] removes exec_command/write_stdin, apply_patch, view_image and request_permissions registration. Seal every later environment override and admit only previously bound resumes with no retained terminals. Set agents.enabled=false and multi_agent_v2=false; multi_agent=false alone is insufficient because model metadata can select the backend. Disable apps/plugins/install suggestions, browser/computer/image generation, web search, memories, goals, token-budget/history-note tools and unnecessary environment discovery. Empty capability roots plus orchestrator.skills.enabled=false remove skill-tool sources. Keep only the pinned read-only lane MCP catalogue and admitted utility tools. Code mode can be selected by model metadata despite feature defaults; if present, its nested calls must resolve through this same restricted registry. Force attempted forbidden names during verification rather than counting omitted advertisements as passing negatives. Registration evidence: [spec_plan.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/src/tools/spec_plan.rs#L1074), [configuration schema](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/core/config.schema.json), and [extension installation](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/src/extensions.rs#L75). Preserve ordinary required-hook trust; no bypass mechanism is needed.\n\nRequests: compile approvalPolicy=never, approvalsReviewer=user, restrictive filesystem/network permissions and no command allow rules. Defensively answer command/file approvals with decline, permissions with an empty grant, user-input requests with empty answers, and MCP elicitation with decline. Answer clock requests from host time. Use existing server-owned authentication; unexpected external-token refresh or unsupported attestation receives a fixed protocol error and, where required, session abort. Never fabricate credentials or attestation. Unknown methods receive errors. The complete request inventory is [protocol/common.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server-protocol/src/protocol/common.rs).\n\nFailure behavior: typed malformed approval responses deny; malformed dynamic responses return success=false. Pending approval/dynamic receivers have no general deadline, and disconnect does not automatically deny every pending request. The relay therefore owns finite deadlines, strict frame decoding, duplicate/replay rejection and terminal replies; launcher supervision handles relay death. No capability executes without a current matching decision. External-auth refresh separately times out after 10 seconds; attestation after 100 milliseconds. See [dynamic_tools.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/src/dynamic_tools.rs), [response handling](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/app-server/src/bespoke_event_handling.rs), external_auth.rs and attestation.rs.\n\nCredential boundary: authentication remains available only to trusted server plumbing. Relay targets and read schemas exclude credential paths; MCP/helpers receive closed credentialless environments and separately verified containment. Shell environment filtering alone does not contain hooks or MCP. Synthetic credential canaries must verify files, aliases, environment and descendant access.\n\nSmallest necessary vendor correction: add a protected tool-recording mode that withholds raw call payloads from persistence, tracing, analytics and lifecycle records until host validation, recording fixed refusal metadata for rejected/unknown calls. Cover stream_events_utils.rs and dynamic-call lifecycle emission; preserve raw arguments privately where strict decoding requires them. A relay cannot repair earlier vendor recording, and ephemeral sessions do not establish durable native resume.\n\nBounded repository changes: declare this transport in existing startup/permission/capability/dispatch contracts; implement relay mechanics under harness and supervision/configuration transport under launch/isolation/record. Complete the currently absent evaluator coupling. Independent verification must cover positive canonical delegation and actual lane_start, forced direct/nested built-ins, competing/replayed responses, malformed/disconnected/timed-out requests, credential and rejected-input canaries, resume drift, complete effect observation and cleanup. No launches, edits, credential inspection or session-store reads occurred."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T12:43:09.759Z"
+    }
+  },
+  "status": "closed"
+}

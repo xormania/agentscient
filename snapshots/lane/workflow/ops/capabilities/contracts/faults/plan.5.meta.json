@@ -1,0 +1,13 @@
+{
+  "change": "gates[0] omits quiet_on",
+  "contract": "plan",
+  "fault": "plan.5.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.gate-half",
+  "site": [
+    "gates",
+    0,
+    "quiet_on"
+  ],
+  "violates": "\u00a73 #Gate; \u00a75 N=5"
+}

@@ -1,0 +1,152 @@
+{
+  "id": "20260905T071425Z-code-grok-d8ea5f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-context-20260905",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "0c40056e6c85e67e827c4c4b38b4bd4e5e0f00b5"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T07:14:26Z",
+    "closed": "2026-09-05T07:21:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0c40056e6c85e67e827c4c4b38b4bd4e5e0f00b5",
+    "ref_sha": "0c40056e6c85e67e827c4c4b38b4bd4e5e0f00b5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f455b4f7-a5a6-442b-8640-561c2f1e9dbf",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok-stream/sessions/<snapshot-encoded>/f455b4f7-a5a6-442b-8640-561c2f1e9dbf/summary.json"
+  },
+  "session": {
+    "id": "f455b4f7-a5a6-442b-8640-561c2f1e9dbf",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok-stream/sessions/<snapshot-encoded>/f455b4f7-a5a6-442b-8640-561c2f1e9dbf/summary.json",
+    "stream_sha256_at_close": "e5ea5ec734efcbe992445a46c2fc0c817f26c460f42c125771d15bbc060d9849",
+    "spend": {
+      "input": 1307815,
+      "cached": 1126144,
+      "output": 23562,
+      "total": 1331377,
+      "cost_usd_ticks": 1815236200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T071425Z-code-grok-d8ea5f/home/grok-stream/sessions/<snapshot-encoded>/f455b4f7-a5a6-442b-8640-561c2f1e9dbf/summary.json",
+      "messages": 175
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Fix only N1 from ops/conductor/reports/mcp-note-fixture-ruling-2026-09-05.json in the note-removal fixture of ops/conductor/tests/test_lane_mcp_context.py, around lines 1450-1545. The original w/c/r entry fits while the reduced entry is larger. Use within-cap finding text that actually needs reduction, and guard the whole and intermediate forms so the fixture proves it reaches note removal. Standard JSON encoder only; do not read implementation. This is a narrow correction to the existing test-fix result, not another full oracle review. Preserve all other tests and contracts. Prove the fixture inequalities independently of absent v2; run the relevant test and lint, record its current red cause, and commit with model-specific trailers. No production edits.\n",
+    "inputs": [],
+    "sha256": "810dd43d6f16e1c7fe8377dded5943b812ea0dd63f51e35b1f8794af4cf6adfd",
+    "bytes": 3109
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T07:14:26Z",
+      "ended": "2026-09-05T07:21:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e741370611aea9dc0de540f3e460533eb5a1c3cb",
+    "changed_paths": [
+      "ops/conductor/tests/test_lane_mcp_context.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/conductor/tests/test_lane_mcp_context.py",
+        "commit": "e741370611aea9dc0de540f3e460533eb5a1c3cb"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1331377,
+        "out": 23562,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0c40056e6c85e67e827c4c4b38b4bd4e5e0f00b5",
+        "started": "2026-09-05T07:14:53Z",
+        "ended": "2026-09-05T07:21:01Z"
+      },
+      "note": "N1 fixture corrected: within-cap ascii where/claim/reproduce; whole and intermediate forms with the note exceed 8192; reduced without note and frame-plus-note fit. in/ was empty (looked). Relevant test red after those inequalities at load_query: AssertionError 2 != 0, v1 exact-keys refusal naming job_registry unknown (v2 absent). ruff passed; test-guard: every plant is guarded. Commit e741370. No production edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T07:21:08.322Z"
+    }
+  },
+  "status": "closed"
+}

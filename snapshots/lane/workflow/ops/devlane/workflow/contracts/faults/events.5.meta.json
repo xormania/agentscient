@@ -1,0 +1,10 @@
+{
+  "contract": "events",
+  "fault": "events.5.json",
+  "from": "obs/events.json",
+  "change": "the opening event built at wf.py:400 carries no `spec_sha256` key",
+  "violates": "PLAN.md §6 lines 354-356",
+  "quote": "\"a work order pins `(kind, version, spec_sha256)` at `open` — digest recorded in the chain's opening event, spec document in the CAS.\"",
+  "reject_path": "facts\\.shapes\\.[0-9]+\\.keys\\b|spec_sha256",
+  "implied": false
+}

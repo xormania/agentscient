@@ -1,0 +1,160 @@
+{
+  "id": "20260904T114835Z-tests-grok-dde0c3",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/record-wall",
+  "lineage": {
+    "branch": "lane/record-wall",
+    "base_sha": "006fb883e0a9d9402b57f566c2d28bda3ee7b047"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T11:48:36Z",
+    "closed": "2026-09-04T12:05:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "006fb883e0a9d9402b57f566c2d28bda3ee7b047",
+    "ref_sha": "006fb883e0a9d9402b57f566c2d28bda3ee7b047",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "0424d709-6ec6-4314-a0fc-115c0b73b3f3",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok-stream/sessions/<snapshot-encoded>/0424d709-6ec6-4314-a0fc-115c0b73b3f3/summary.json"
+  },
+  "session": {
+    "id": "0424d709-6ec6-4314-a0fc-115c0b73b3f3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok-stream/sessions/<snapshot-encoded>/0424d709-6ec6-4314-a0fc-115c0b73b3f3/summary.json",
+    "stream_sha256_at_close": "882ddb72f81c1cd3e8ca90f4711e517c697f8ad3c4f8995a6000bb9a552c9ff7",
+    "spend": {
+      "input": 4335514,
+      "cached": 4088192,
+      "output": 52732,
+      "total": 4388246,
+      "cost_usd_ticks": 4853724400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/home/grok-stream/sessions/<snapshot-encoded>/0424d709-6ec6-4314-a0fc-115c0b73b3f3/summary.json",
+      "messages": 335
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-record-wall/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 36, S: the record copy written at mint carries the resolved wall. launch.py resolves caps.timeout and caps.timeout_source before the harness starts but writes them into the record only at close, so a running record's job-directory copy has no wall and every reader guesses (the watchdog fell back to the job catalogue and printed wall 30 against a true 60). Wanted: the copy at mint carries caps.timeout and caps.timeout_source in the closed record's shape, under DISPATCH_TIMEOUT, the conf default and --timeout; the watchdog's catalogue fallback stays only for records that predate the field. One S bucket: ops/devlane/dispatch/launch.py and ops/conductor/tools/watchdog.py with their tests. No new refusal; every suite green; ruff clean. The plan file carries the measurements, the wants and the acceptance in full.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T114835Z-tests-grok-dde0c3/in/plan-record-wall.md",
+        "sha256": "173228995a468372b722e3a3e5e15148f38e8c6a6775d8299a3839d3147635d1"
+      }
+    ],
+    "sha256": "1c68683f60dae0d35ef24faf2a0a04ec4f95027bd78d958dac56ce583b4135b8",
+    "bytes": 3177
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T11:48:36Z",
+      "ended": "2026-09-04T12:04:59Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e297b9a83468ccb483b37fde9e519565c39e5f92",
+    "changed_paths": [
+      "ops/conductor/tests/test_watchdog.py",
+      "ops/devlane/dispatch/tests/test_launch_record_wall_at_mint.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "launch_tests": "ops/devlane/dispatch/tests/test_launch_record_wall_at_mint.py",
+        "watchdog_tests": "ops/conductor/tests/test_watchdog.py",
+        "launch_commit": "65862c6372fcdb88118cac5f0149a6b2f12104d1",
+        "watchdog_commit": "e297b9a83468ccb483b37fde9e519565c39e5f92"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4388246,
+        "out": 52732,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "006fb883e0a9d9402b57f566c2d28bda3ee7b047",
+        "started": "2026-09-04T11:48:36Z",
+        "ended": "2026-09-04T12:04:45Z"
+      },
+      "note": "Tests from the record-wall plan (item 36) and CONTRACT.md \u00a7caps.timeout / watchdog-lever.md. launch.py and watchdog.py were not read. Four launch mint-copy methods were red at 006fb883e0a9d9402b57f566c2d28bda3ee7b047: job-directory record.json caps were {cap-out, source} with no timeout while the harness ran (DISPATCH_TIMEOUT, WALL_DEFAULT, --timeout as DISPATCH_TIMEOUT env delta, and the job cap). Committed 65862c6372fcdb88118cac5f0149a6b2f12104d1. Three watchdog incident methods pin 20 min / wall 60 not 30, long wall 60 at 45 min, and catalogue fallback only when the field is absent; they were already green at 65862c6 because watchdog already prefers the record field. Committed e297b9a83468ccb483b37fde9e519565c39e5f92. ruff check clean on both files."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T12:04:59.665Z"
+    }
+  },
+  "status": "closed"
+}

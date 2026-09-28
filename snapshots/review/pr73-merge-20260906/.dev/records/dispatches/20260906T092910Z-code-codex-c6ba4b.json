@@ -1,0 +1,328 @@
+{
+  "id": "20260906T092910Z-code-codex-c6ba4b",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "review/pr73-merge-20260906",
+  "lineage": {
+    "branch": "review/pr73-merge-20260906",
+    "base_sha": "5b0f809cfd6a90f587d1239890ee02d92db353e2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T09:29:10Z",
+    "closed": "2026-09-06T09:35:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5b0f809cfd6a90f587d1239890ee02d92db353e2",
+    "ref_sha": "5b0f809cfd6a90f587d1239890ee02d92db353e2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T05-29-11-01a0760c-e357-7ae2-8dca-f16e7966b746.jsonl"
+  },
+  "session": {
+    "id": "01a0760c-e357-7ae2-8dca-f16e7966b746",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T05-29-11-01a0760c-e357-7ae2-8dca-f16e7966b746.jsonl",
+    "stream_sha256_at_close": "e856340e109d8441910168937c57432184107b02a2b46cc06eac332b80e141c1",
+    "spend": {
+      "input": 1191201,
+      "cached": 1117184,
+      "output": 9228,
+      "total": 1200429,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T05-29-11-01a0760c-e357-7ae2-8dca-f16e7966b746.jsonl",
+      "messages": 150
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-pr73-merge-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Resolve only the two merge-conflicted documents ops/conductor/lane-mcp-lever.md and ops/conductor/mcp-context-scope.md in this private generated merge snapshot. Read owner-integration.md, existing contracts and the two parents. Preserve PR73 discovery/startup additions and PR74 permanent dev independence, with no new capability or activation. Inspect automatically merged shared contracts for material integration loss; report rather than expand scope. No test, source, policy JSON, host/settings/DB/network changes. Prove all conflict markers removed, tests/policy/code unchanged, and run bash ops/bin/suites.sh, ruff check ., laneconf literals/closure and git diff --check. Report exact two-file diff, final tree/blobs and commands/results. Commit with actual-model provenance. Conductor will transplant only those two resolved blobs into the real merge; do not merge/push or invoke another harness. Existing deferred observations stay separate. No new planning cycle.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/in/owner-integration.md",
+        "sha256": "c1656818c66c06d9e294943279c3b7e2fba10f08e91e23a69c318079850c340f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/in/discovery-contract-acceptance-20260906.md",
+        "sha256": "5ed8e06ec45c4647aaad23eb0fa8ba85c91e3fa89f9c5077693ab1dc3c3dc4cd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/in/worker-launch-contract-acceptance-20260906.md",
+        "sha256": "736637b6215772732d8d59029d917dc5c37700e7f6b0c8b136704e2aa8269888"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T092910Z-code-codex-c6ba4b/in/policy-record-validation-acceptance-20260906.md",
+        "sha256": "afcbe9ac143e282601c99919596f2c3ecd54226885c5e154d06a9aa5f2840184"
+      }
+    ],
+    "sha256": "cba137c674dd9c7fc89b97550551e9e4fa6f174dab90addf89602e2f19146c1e",
+    "bytes": 4819
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T09:29:10Z",
+      "ended": "2026-09-06T09:35:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c3eb69b4dbe94d8cc685434704190a1ce8023a9f",
+    "changed_paths": [
+      "ops/conductor/lane-mcp-lever.md",
+      "ops/conductor/mcp-context-scope.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 24,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command-01",
+          "claim": "Exit 0: located inputs and guard paths.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-02",
+          "claim": "Exit 0: read all four supplied inputs whole.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-03",
+          "claim": "Exit 0: confirmed snapshot HEAD, parents, initial clean status and governing instructions.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-04",
+          "claim": "Exit 0: read founding contracts.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-05",
+          "claim": "Exit 0: inspected conflicts, common base and branch changes.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-06",
+          "claim": "Exit 0: read suite entrypoint and located applicable guards.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-07",
+          "claim": "Exit 0: read both conflicted documents without truncation.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-08",
+          "claim": "Exit 0: inspected parents/shared diffs; truncated output was followed by narrower inspection.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-09",
+          "claim": "Exit 0: compared parent documents and read startup/convention boundaries.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-10",
+          "claim": "Exit 0: inspected discovery, compatibility and inert policy contracts.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-11",
+          "claim": "Exit 0: all 41 changed text blocks from both parents survive across four automatically merged shared documents; no material integration loss found.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-12",
+          "claim": "Exit 0: resolved only the two authorized documents, preserving both branches' contributions.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-13",
+          "claim": "Exit 0: ruff check . passed.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-14",
+          "claim": "Exit 0: laneconf literals passed with its existing infra skip.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-15",
+          "claim": "Exit 0: diff check passed; exactly two files, one insertion and nine deletions.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-16",
+          "claim": "Exit 0: laneconf closure passed.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-17",
+          "claim": "Exit 0: bash ops/bin/suites.sh; nine suites OK, 1,986 tests collected, seven fixture skips. Existing ResourceWarnings remain.",
+          "reproduce": "bash ../out/commands/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-18",
+          "claim": "Exit 1: initial scratch scan encountered a directory symlink; corrected in command-19.",
+          "reproduce": "bash ../out/commands/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-19",
+          "claim": "Exit 0: zero conflict markers across 1,089 tracked paths; only the two documents changed. Tests, policy, code and command unchanged. Saved exact patch and commit message.",
+          "reproduce": "bash ../out/commands/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-20",
+          "claim": "Exit 0: intermediate log inspection and whitespace check.",
+          "reproduce": "bash ../out/commands/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-21",
+          "claim": "Exit 128: staging refused because .git is read-only; commit did not run. COMMIT_MSG fallback saved.",
+          "reproduce": "bash ../out/commands/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-22",
+          "claim": "Exit 0: measured final tree using alternate Git storage under out/; candidate index matches worktree.",
+          "reproduce": "bash ../out/commands/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-23",
+          "claim": "Exit 0: rechecked shared integration and measured passing suite summaries and existing warnings.",
+          "reproduce": "bash ../out/commands/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command-24",
+          "claim": "Exit 0: final candidate blobs unchanged after testing; nine suites passing and diff check clean.",
+          "reproduce": "bash ../out/commands/24.sh"
+        }
+      ],
+      "artifacts": {
+        "diff": "../out/resolution.patch",
+        "candidate": "../out/candidate.json",
+        "tree": "5807c00e54484d591b5cc25b8b63d97547b26a21",
+        "lane_mcp_blob": "1c5145190995fbabd6dc3ca16e1bc3dd88861465",
+        "context_scope_blob": "03f6ff4144318c80da667aa5282a9b6430acbee2",
+        "lane_mcp_document": "../out/lane-mcp-lever.md",
+        "context_scope_document": "../out/mcp-context-scope.md",
+        "suite_log": "../out/suites.log",
+        "command_log": "../out/command-log.json",
+        "command_findings": "../out/command-findings.json",
+        "integration_report": "../out/integration-report.md",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1200429,
+        "out": 9228,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5b0f809cfd6a90f587d1239890ee02d92db353e2",
+        "started": null,
+        "ended": "2026-09-06T09:33:04Z"
+      },
+      "note": "Interpreted the named executable acceptance command as bash ops/bin/suites.sh; it exited 0 in the final candidate. Only the two conflicted documents changed. PR73 discovery/startup and PR74 permanent dev independence preserved; no activation or material shared-contract integration loss found. Deferred observations remain separate in the report. P3 counts represent command findings, not defects. No merge, push or other harness invocation. Commit blocked by read-only .git; provenance message supplied for launcher.",
+      "commit": {
+        "subject": "docs: reconcile MCP discovery and permanent dev independence",
+        "body": "Resolve only the two conflicted MCP documents in the private generated\nmerge snapshot. Preserve PR73 discovery/startup links and PR74 permanent\ndev independence while retaining the existing read-only boundary.\nNo capability or runtime activation is introduced.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T09:35:00.387Z"
+    }
+  },
+  "status": "closed"
+}

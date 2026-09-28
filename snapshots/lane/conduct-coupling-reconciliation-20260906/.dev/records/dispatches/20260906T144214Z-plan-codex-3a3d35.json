@@ -1,0 +1,179 @@
+{
+  "id": "20260906T144214Z-plan-codex-3a3d35",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-coupling-reconciliation-20260906",
+  "lineage": {
+    "branch": "lane/conduct-coupling-reconciliation-20260906",
+    "base_sha": "eb910cf6fa6a58ffbde7454a6f51812a98165a5e"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:42:14Z",
+    "closed": "2026-09-06T14:47:28Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "eb910cf6fa6a58ffbde7454a6f51812a98165a5e",
+    "ref_sha": "eb910cf6fa6a58ffbde7454a6f51812a98165a5e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-42-15-01a0772b-8292-72f2-a300-faf448b23098.jsonl"
+  },
+  "session": {
+    "id": "01a0772b-8292-72f2-a300-faf448b23098",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-42-15-01a0772b-8292-72f2-a300-faf448b23098.jsonl",
+    "stream_sha256_at_close": "ea80f2a254d7562d9029ccc5ada5e2f3780c186247bb3c172c9e07451def7f3d",
+    "spend": {
+      "input": 3748300,
+      "cached": 3532544,
+      "output": 5509,
+      "total": 3753809,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T10-42-15-01a0772b-8292-72f2-a300-faf448b23098.jsonl",
+      "messages": 209
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-coupling-reconciliation-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Produce the final bounded contract-correction plan using the supplied brief, original rulings and current composed contracts. Choose exact minimal couplings, declare ownership and identify current closure of historical findings. Preserve public interfaces and dev-lane independence. Do not bless invented fixture authority or add another executor/store. Read-only; no files or tests, live admission, source implementation inspection, vendor launch or full floor. Return the concrete plan inline in envelope artifacts; do not claim or require an output file. This plan feeds a separately dispatched GPT-6 contract author after the message-builder repair. State precise unresolved evidence rather than guessing.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-coupling-plan-brief.md",
+        "sha256": "7ecb3d35d2a848d34882f270eef2837fd5157673d3aef33ae8ebb5f07699e487"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-start-test-delivery-ruling.md",
+        "sha256": "bd29921b7c93a95753b2442c01f020dab159b6c2d3cc0d95685d339ec77b5fd5"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-policyCouplingPlan.json",
+        "sha256": "42e24e523d07170d691ee909c1a222d4024526875e12b90c38d3d678ab74256c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-policySourceRuling.json",
+        "sha256": "63be895256bdeb3cde8a9e8e956f324898cc66ec6d9185021f73aac66ae8181f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-startTestsAdjudication.json",
+        "sha256": "fe4c21888e9b19424c27eb288d7317391946dd25bb58c8296b4c2926aea79c25"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-firstStartAdjudication.json",
+        "sha256": "9436904a078cc81398cf3a7a17bd551fc69fa30991d4efb41c8a0dc0cee43d04"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-startAdjudication.json",
+        "sha256": "8ebf31aebbde8a7508c0c2a4ac497c5514e72cbce5cc95906ca95f40f17df1a6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-adapterAdjudication.json",
+        "sha256": "ee9c7777c44b05c52b4a2ae74c1a8de1129fcc82985af5dcb2f0658f5ab06191"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-coldRulingA.json",
+        "sha256": "3a704d019ff542015dfe38bb305f6439b235255a550d694b4b745daf75ed9bf6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-coldRulingB.json",
+        "sha256": "9a564fb4b2f975c5b4d9c6c33b017a1db96c84d2ea9e5315266e91f696937f3a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-coldRulingC.json",
+        "sha256": "7e77567ad71e354d20d7ff91abe653c50b68551dd1f0ce16a1af8ba5ef8571fb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144214Z-plan-codex-3a3d35/in/ag-conduct-input-coldRulingD.json",
+        "sha256": "17fb8dcb830d2537a8866a8ace5b5b0fcbfc64050bd3a80063a67475fcf9c2ba"
+      }
+    ],
+    "sha256": "5a960e0638be87aeefdad00524c586d91fb5748866d2f3b8deb9c09e97380296",
+    "bytes": 3016
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:42:14Z",
+      "ended": "2026-09-06T14:47:27Z",
+      "exit": 1,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eb910cf6fa6a58ffbde7454a6f51812a98165a5e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "eb910cf6fa6a58ffbde7454a6f51812a98165a5e"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited 1"
+    },
+    "cause": {
+      "reason": "harness-cli:1"
+    }
+  },
+  "status": "closed"
+}

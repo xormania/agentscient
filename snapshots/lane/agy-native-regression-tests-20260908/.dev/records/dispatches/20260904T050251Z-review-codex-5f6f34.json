@@ -1,0 +1,179 @@
+{
+  "id": "20260904T050251Z-review-codex-5f6f34",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T05:02:51Z",
+    "closed": "2026-09-04T05:10:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5",
+    "ref_sha": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T01-02-52-01a06acc-5874-7832-b544-111e35eaaab6.jsonl"
+  },
+  "session": {
+    "id": "01a06acc-5874-7832-b544-111e35eaaab6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T01-02-52-01a06acc-5874-7832-b544-111e35eaaab6.jsonl",
+    "stream_sha256_at_close": "0f6861cac5ee2a20a5764c6f43bc669a78b3ccdf359fb7766fd509e98a49bf22",
+    "spend": {
+      "input": 7624165,
+      "cached": 7400715,
+      "output": 34966,
+      "total": 7659131,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T01-02-52-01a06acc-5874-7832-b544-111e35eaaab6.jsonl",
+      "messages": 440
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "Security re-audit of lane fix batch 1 after its fix round: the branch lane/lane-fixes against dev (origin/dev at 77f7c1a); the contract, your first audit's five findings and the adversarial audit's findings are in the input file. The trust model, ruled by the owner (D-LAUNCHER-1): the repository is private, every branch is the owner's or a session's, workers are the lane's own harnesses writing inside snapshots; a finding that needs an outside contributor or a hostile pull request is P3 under that ruling, not P1. Aim first at whether findings 2 to 5 are closed on this tree (finding 1 is ruled and reported, not fixed), then at anything the fix round introduced on the same seams that would break the lane's function or integrity within that model. Findings as quotation pairs with file and line.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/in/contract-lane-fixes-1-auditfix.md",
+        "sha256": "f49ee595044239507790ea1f7cf3e33d17a33cb58b20814e242709cf419f0eb2"
+      }
+    ],
+    "sha256": "b2eb0c6d3e08c0e5e1891e4eef5804d22f86ffe8ede15d5af2442b8c664f1276",
+    "bytes": 3720
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T05:02:51Z",
+      "ended": "2026-09-04T05:10:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:170,174-180 \u2194 ops/devlane/dispatch/launch.py:223-225,263-290,311-316,371-375 \u2194 .claude/settings.json:11-15",
+          "claim": "Declared: Claude's read sandbox is `plan`, and rules admitting \u201cworker-editable scripts\u201d are dropped. Practiced: Claude uses `acceptEdits`; `Bash(sh ops/devlane/hooks/install.sh*)` and `Bash(bin/console *)` survive filtering, while the fixed floor also allows `Bash(python3 ops/*)`. A worker can edit snapshot code and execute it with the operator's UID and HOME. Prior finding 2 remains open.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'from pathlib import Path; import inspect,launch; meta,allow,deny=launch._project_permissions(Path(\".\")); argv=launch._argv(\"claude\",\"m\",None,\"s\",Path(\"/job/prompt.txt\"),[],\"acceptEdits\",project_allow=allow,project_deny=deny); survivors=(\"Bash(sh ops/devlane/hooks/install.sh*)\",\"Bash(bin/console *)\"); assert all(x in allow and x in argv for x in survivors); assert \"Bash(python3 ops/*)\" in launch.CLAUDE_TOOL_RULES; assert \"\\\"claude\\\": \\\"acceptEdits\\\"\" in inspect.getsource(launch._harness_meta); print(\"editable snapshot executables allowed under acceptEdits\")'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:256-265 \u2194 ops/devlane/dispatch/launch.py:1039-1053,1453-1480",
+          "claim": "Declared: collect verification runs \u201cwith an isolated home and no ambient operator variables.\u201d Practiced: it is bare `bash -c` with no OS sandbox, followed by a snapshot `git commit` using `dict(os.environ)` without disabling local hooks. A worker-modified verification target can read or modify paths outside the job and install a Git hook that receives ambient credentials. Prior finding 3 remains open.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'import inspect,os,subprocess,launch; s=inspect.getsource(launch._collect); c=inspect.getsource(launch._commit_for_harness); g=inspect.getsource(launch._git); e=launch._child_env({\"HOME\":\"/nonexistent\",\"PATH\":os.environ.get(\"PATH\",os.defpath)},{},\"audit\"); assert subprocess.run([\"bash\",\"-c\",\"test -r /etc/passwd\"],env=e,check=False).returncode==0; assert \"[\\\"bash\\\", \\\"-c\\\", args.verify]\" in s and \"--sandbox\" not in s; assert \"owner_env = dict(os.environ)\" in c and \"_git(snapshot, \\\"commit\\\"\" in c and \"core.hooksPath\" not in c+g and \"--no-verify\" not in c+g; print(\"verify can escape cwd and the following commit runs snapshot hooks with ambient env\")'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:248-250,260-263 \u2194 ops/devlane/dispatch/launch.py:1445-1448,1460-1484",
+          "claim": "Declared: collect verifies that HEAD descends from `ref_sha` before advancing `refs/dispatch/<id>`. Practiced: the sole ancestry check occurs before the worker-controlled verifier; commit and ref fetch follow without rechecking. Verification can move HEAD off-lineage and have unrelated commits offered to land. Prior finding 4 remains open through a TOCTOU gap.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'import inspect,launch; s=inspect.getsource(launch._collect); ancestry=s.index(\"\\\"merge-base\\\", \\\"--is-ancestor\\\"\"); verify=s.index(\"subprocess.run\"); commit=s.index(\"_commit_for_harness\"); fetch=s.index(\"refs/dispatch/\"); assert ancestry < verify < commit < fetch and s.count(\"\\\"merge-base\\\", \\\"--is-ancestor\\\"\")==1; print(\"only ancestry check is before verifier; commit and ref fetch follow\")'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:174-180 \u2194 ops/devlane/dispatch/launch.py:293-316,339-375",
+          "claim": "Declared: malformed project permissions are unresolved and unsafe rules are filtered. Practiced: validation requires only a string, then splats it into Claude's variadic argv. A project permission `--dangerously-skip-permissions` terminates the tool list and becomes a real Claude option. This requires a hostile branch, so D-LAUNCHER-1 makes it P3.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'from pathlib import Path; import launch; token=\"--dangerously-skip-permissions\"; argv=launch._argv(\"claude\",\"m\",None,\"00000000-0000-4000-8000-000000000000\",Path(\"/job/prompt.txt\"),[],\"acceptEdits\",project_allow=(token,)); assert token in argv and argv.index(\"--allowedTools\") < argv.index(token) < argv.index(\"--disallowedTools\"); print(\"project string becomes argv option:\", token)' && env -u ANTHROPIC_API_KEY HOME=/nonexistent CLAUDE_CONFIG_DIR=/nonexistent claude --allowedTools --dangerously-skip-permissions --permission-mode INVALID --print </dev/null 2>&1 | rg -q \"argument 'INVALID' is invalid\""
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/context/diff.patch",
+        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260904T050251Z-review-codex-5f6f34/snapshot",
+        "base": "77f7c1a425401705417cc2a11db3f03b59a89a9e",
+        "head": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 7659131,
+        "out": 34966,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9524f198c7fa6ad2fa938a20fe7abc9f999207b5",
+        "started": "2026-09-04T05:03:23Z",
+        "ended": "2026-09-04T05:10:22Z"
+      },
+      "note": "Finding 1 was owner-ruled and not re-raised. Prior finding 5 is closed: both record and land require an exact JSON integer zero. The adversarial recovery findings 1-6 have their requested fixes; opinion 7 remains unchanged and is not a security finding. SQL uses parameters; no changed dependency pins, lockfiles, fetched actions, or known credential-pattern matches were found. End-to-end mutation and network-egress exploits could not be exercised in the read-only, network-restricted audit; non-mutating reproductions were used. The worktree remained clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T05:10:37.745Z"
+    }
+  },
+  "status": "closed"
+}

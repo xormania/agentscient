@@ -1,0 +1,10 @@
+{
+  "contract": "meta",
+  "fault": "meta.2.json",
+  "from": "obs/meta.json",
+  "change": "meta.json does not parse as JSON",
+  "violates": "PLAN.md §6 lines 363-364 (with §8 lines 458-462, D1 line 538)",
+  "quote": "\"The export carries a format version in `meta.json`; `--rebuild` applies all migrations, then imports.\"",
+  "reject_path": "facts\\.is_json\\b",
+  "implied": false
+}

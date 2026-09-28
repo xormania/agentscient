@@ -1,0 +1,12 @@
+{
+  "contract": "commitmsg",
+  "fault": "commitmsg.1.json",
+  "from": "obs/commitmsg.json",
+  "change": "gitio.py emits no `Co-Authored-By` trailer",
+  "violates": "PLAN.md §5 line 314 (with §5 lines 317-319, D7 lines 549-550)",
+  "quote": "\"Co-Authored-By: <agent from the active claim/session>\"",
+  "reject_path": "facts\\.trailer_keys\\b|Co-Authored-By",
+  "implied": false,
+  "sites": 2,
+  "note": "One change — the trailer is gone from gitio.py — recorded in the two facts that see it: `trailer_keys` (the derived key list) and `literals` (the constant it was derived from). Leaving the literal behind would make the observation self-contradicting and would let a literals-based contract pass."
+}

@@ -1,0 +1,153 @@
+{
+  "id": "20260905T220422Z-check-tests-codex-b852fb",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "named-card-cap",
+  "lineage": {
+    "branch": "lane/conductor-context-20260905",
+    "base_sha": "868a4209eea509a51ed7fa1c47ce7da5aaa16bad"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T22:04:23Z",
+    "closed": "2026-09-05T22:05:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "868a4209eea509a51ed7fa1c47ce7da5aaa16bad",
+    "ref_sha": "868a4209eea509a51ed7fa1c47ce7da5aaa16bad",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/out\"]",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-04-24-01a07399-f2a9-7a93-b6de-648ae685a7b5.jsonl"
+  },
+  "session": {
+    "id": "01a07399-f2a9-7a93-b6de-648ae685a7b5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-04-24-01a07399-f2a9-7a93-b6de-648ae685a7b5.jsonl",
+    "stream_sha256_at_close": "567b9eabed8f7a3653acd9dec0b1b7b220571cb8fab8a64eb7ff254ef7fcc323",
+    "spend": {
+      "input": 403292,
+      "cached": 357651,
+      "output": 5494,
+      "total": 408786,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T18-04-24-01a07399-f2a9-7a93-b6de-648ae685a7b5.jsonl",
+      "messages": 94
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-context-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review only the newly added test in the supplied diff at 868a420 against ops/conductor/lane-mcp-v2.md section 5 and the UPHELD ruling ops/conductor/reports/mcp-named-card-cap-ruling-2026-09-05.md. Read relevant test helpers if needed, never implementation. This is one bounded P2 regression: a readable 65-entry registry must permit a named card, keep unnamed listing unavailable, and distinguish a missing name. Verify CLI, tools/call and resources/read agree and prompts remain withheld. The author recorded the new test red before implementation. Name broken implementations each assertion catches. Do not broaden to unrelated encoding, nesting or optional robustness. Write the required SKEPTIC.md and return the prescribed envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/in/ag-cap-skeptic-input.diff",
+        "sha256": "56b19835991c1fc69479a246b145732483d1308d6bf91620c7fea0cbe6fc4a47"
+      }
+    ],
+    "sha256": "c57ece1f9feac66b3d3f4f8996026c62138c182f9c8320ee9f255b999566345d",
+    "bytes": 3409
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T22:04:23Z",
+      "ended": "2026-09-05T22:05:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "868a4209eea509a51ed7fa1c47ce7da5aaa16bad",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "ag-cap-skeptic",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260905T220422Z-check-tests-codex-b852fb/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 408786,
+        "out": 5494,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "868a4209eea509a51ed7fa1c47ce7da5aaa16bad",
+        "started": null,
+        "ended": "2026-09-05T22:05:51Z"
+      },
+      "note": null
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T22:05:57.276Z"
+    }
+  },
+  "status": "closed"
+}

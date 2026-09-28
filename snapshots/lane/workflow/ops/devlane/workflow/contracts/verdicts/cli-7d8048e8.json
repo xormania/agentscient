@@ -1,0 +1,24 @@
+{
+  "id": "cli-7d8048e8",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md's command table and agent/git-flag text never mention a --root option.",
+  "observed": "wf.py registers --root as a global argparse argument.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "243-259",
+      "quote": "| `wf init` | create/upgrade the DB: apply pending migrations, sync gate-kind registry from tracked JSON; `--rebuild` reconstructs the DB from the tracked export |"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "253-253",
+      "quote": "`--to <stage> --reason` re-enters an earlier stage (§3.3)"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1317-1324",
+      "quote": "\"flags\": [\n    \"--root\"\n  ]"
+    }
+  ],
+  "action": "record-finding"
+}

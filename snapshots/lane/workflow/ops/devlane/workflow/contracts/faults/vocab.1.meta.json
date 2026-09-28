@@ -1,0 +1,12 @@
+{
+  "contract": "vocab",
+  "fault": "vocab.1.json",
+  "from": "obs/vocab.json",
+  "change": "the reserved term `frozen set` is nowhere in the vocabulary wall's literals — the check spells it `sealed set`",
+  "violates": "PLAN.md §10 lines 501-503 (with §3.3 lines 146-150)",
+  "quote": "\"Dev-lane terms — *work order, gate, stage, receipt, red, green, frozen set, chain, claim, marker, packet, wf* — exist only under `.dev/`… Cheap enforcement once `check` exists: a registered check greps the design tree for the reserved terms.\"",
+  "reject_path": "facts\\.(joined|literals)\\b|frozen set",
+  "implied": false,
+  "sites": 2,
+  "note": "Every one of the twelve terms is carried by at least two literals (the module docstring lists all twelve, and each term has its own pattern literal), so no single-element deletion can make a substring rule fire. One constraint is under test: does the check still cover `frozen set`. `joined` is recomputed from `literals` so the observation stays self-consistent and the fault fires whichever of the two the contract reads."
+}

@@ -1,0 +1,200 @@
+{
+  "id": "20260908T075501Z-adjudicate-codex-c5e64d",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/agy-isolation-test-adjudication-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-test-adjudication-20260908",
+    "base_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:55:02Z",
+    "closed": "2026-09-08T07:58:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "ref_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-55-02-01a08003-6ac7-7bc1-9057-69399b54259d.jsonl"
+  },
+  "session": {
+    "id": "01a08003-6ac7-7bc1-9057-69399b54259d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-55-02-01a08003-6ac7-7bc1-9057-69399b54259d.jsonl",
+    "stream_sha256_at_close": "fc1fed20c0a817649eadbc1120313ebc414991be542dba99432aaa971e6efc84",
+    "spend": {
+      "input": 618212,
+      "cached": 546176,
+      "output": 5581,
+      "total": 623793,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-55-02-01a08003-6ac7-7bc1-9057-69399b54259d.jsonl",
+      "messages": 88
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-test-adjudication-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the six original Claude isolation-test findings at 3e8713b. Original source/report and original host evidence only; no later code or fixes. You produced neither tests nor findings. Rule UPHELD/PARTIAL/REJECTED with smallest correction. Distinguish exact-three collision, measured auth/session paths, declared unresolved discovery, and unmeasured HOME-only environment claims. Tests are intentionally preceding implementation; assess that within pipeline law. Preserve directory-boundary checks without adding admission frameworks or broad matrices. Do not read production bodies; reviewer cites some despite its scope, so identify any unsupported basis. No edits, credentials, inference or full floor. Return inline rulings and actual blocking measurement duties.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/in/agy-isolation-test-review.json",
+        "sha256": "1534e3a4f1b67896e263cce1c4da5d838345e6c8516a05cd4a7f710fd91cc89b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075501Z-adjudicate-codex-c5e64d/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "232dfe8ab0261bed936facfec52293035fea7a01376c7b40e28b4b91c9faf9ee",
+    "bytes": 3086
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:55:02Z",
+      "ended": "2026-09-08T07:58:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:64; ops/devlane/harness/tests/test_isolation_contract.py:79,280",
+          "claim": "F1 UPHELD. The new assertion requires agy membership while both existing equalities require exactly claude, codex and grok. This is an incompatible expectation, separate from ordinary tests-before-implementation red. Smallest correction: an independent test producer reconciles both equalities with the agy extension while retaining exact checks of the three legacy entries and report fidelity. The implementer need not and must not own that test correction. No registry admission framework is required.",
+          "reproduce": "At 3e8713b, AST extraction of EXPECTED_HARNESSES yielded exactly ['claude', 'codex', 'grok']; comparing that literal with the same dictionary plus agy returned false. Read test_agy_isolation.py:64 and test_isolation_contract.py:79,280; no production import or body inspection was used."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:68,125-128,190,204-205",
+          "claim": "F2 PARTIAL. The exclusive HOME override and empty-isolation-flags pins exceed the supplied measurement. The successful host prompt/resume used redirected HOME, XDG variables and TMPDIR, plus --disable-slash-commands. That establishes neither HOME-only sufficiency nor the necessity of every supplied variable; transport flags also do not determine dispatch_flags. The auth leaf and brain session path are supported by the original host record. Discovery remains explicitly unresolved in the contract, so reject the broader suggestion that these unit tests alone certify complete discovery isolation. Smallest correction: retain the measured paths, fresh-home behavior and explicit-env refusal assertions; remove or defer unsupported exclusivity pins and state the discovery limitation. The review's isolation.py:164-167 production-data citation is outside scope and supplies no agy measurement.",
+          "reproduce": "Compare the original host record's successful synthetic-flash-38 and resume-explicit-id commands and envelope.note with the cited assertions, isolation.py public module contract:59-83, and dispatch/CONTRACT.md:106-115. No HOME-only discovery-canary result was found in the supplied host record."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:63-78",
+          "claim": "F3 PARTIAL. The test does not require a probe_phrase declaration or distinguish dated auth/session observation from unresolved discovery evidence. However, the contract allows probe_phrase=None and describes also_env as additional names 'if needed'; it does not justify inventing either a canary result or mandatory extra environment variables. Smallest correction: pin the permitted probe_phrase declaration and an explicit discovery evidence/unresolved statement in existing metadata. Pin also_env values only when measured. Do not demand a successful live discovery probe merely to accept an honestly bounded tests-first artifact.",
+          "reproduce": "Read the complete registry test against isolation.py public module contract:59-65 and docs/wire.md absence discipline. The assertions check measured.on/version but contain no probe_phrase or discovery-evidence assertion."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:31-38,97-105",
+          "claim": "F4 UPHELD. The contract requires recursive leaves and necessary parent directories, but _file_leaves discards directory names. An extra empty directory is invisible to its equality. Smallest correction: compare the auth leaf plus precisely its necessary parent directories, and explicitly reject directory symlinks while allowing the declared auth-file symlink. Preserve the existing synthetic neighboring-file checks. The current walker already rejects a whole-parent-directory substitution indirectly; the supported gap is incomplete structural verification, not proof that every directory-link substitution passes. No broad matrix is needed.",
+          "reproduce": "Executed only the original _file_leaves helper in memory with synthetic os.walk rows containing the auth leaf and an extra empty .gemini/antigravity-cli/skills directory. It returned exactly ['.gemini/antigravity-cli/antigravity-oauth-token']. No filesystem fixtures or production bodies were used."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh:17; commit 3e8713bac5b394886daae176e8a904dfe72b1dc4",
+          "claim": "F5 REJECTED. Pipeline law explicitly says 'Tests come before code', and the commit explicitly records 'Focused discovery is 7 failures, 0 errors at this tree.' Expected red at this stage is not an acceptance defect requiring implementation, skipped discovery or a special admission mechanism. The exact-three collision remains independently actionable under F1. Smallest correction: withdraw this finding; an additional tests-first label is optional clarification. The original reviewer did not run the full floor, and neither did this adjudication.",
+          "reproduce": "git show -s --format=fuller 3e8713bac5b394886daae176e8a904dfe72b1dc4; read ops/process/pipeline.md stages 3-5 and its 'Tests come before code' paragraph. The original review reports focused discovery only."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:80,140-158",
+          "claim": "F6 PARTIAL. 'copies' conflicts with the test's explicit symlink assertion and the public module contract's linking promise. Rename it to 'links'. The missing-auth test proves that a pre-created root remains empty; name that exact scope if clarification is desired. Reject the claimed absent-root runtime behavior as an admissible basis: the reviewer cites production statements at isolation.py:272,276-280 despite its no-production-bodies scope. Those statements were not inspected here. No new root-removal promise or additional implementation duty follows from this finding.",
+          "reproduce": "Read test_agy_isolation.py:80,101 and :140-158, plus isolation.py public module contract:36-41. The fixture explicitly creates root before calling build_home; no absent-root behavior was measured."
+        }
+      ],
+      "artifacts": {
+        "review_input": "in/agy-isolation-test-review.json; SHA256 1534e3a4f1b67896e263cce1c4da5d838345e6c8516a05cd4a7f710fd91cc89b; read whole",
+        "host_input": "in/agy-host-observation-record.json; SHA256 3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db; read whole",
+        "source": "test_agy_isolation.py matches 3e8713bac5b394886daae176e8a904dfe72b1dc4; SHA256 5dd64355566295e63b277ee68bfd125c8f4ad3bbf1b3fecc4cf681eea7fba01f",
+        "comparison": "3432b5cb8b9e171ecc981efa8409d299a85ec4c0..3e8713bac5b394886daae176e8a904dfe72b1dc4; supplied diff read selectively within scope; isolation.py amendment is module documentation",
+        "ruling_totals": "UPHELD=2; PARTIAL=3; REJECTED=1",
+        "original_execution_evidence": "Original Claude report: new file 7 tests, 7 failures, 0 errors; legacy isolation contract 12 tests, OK; ruff 0.16.5 passed. These execution results were not rerun here.",
+        "test_acceptance_duties": "Independent test producer corrects the contradictory registry expectations, unsupported exclusivity assertions and bounded metadata/directory checks. Independent checking then records focused new and legacy discovery plus registered lint at the corrected ref. Expected implementation red must be distinguished from setup errors and contradictory expectations.",
+        "blocking_measurement_duty": "Before claiming operational discovery isolation, measure the proposed exact environment/flags through the existing bounded probe path. Visible and isolated synthetic canary controls must both initialize and answer, demonstrating visibility then exclusion; cover inherited HOME/XDG and applicable native project discovery. A failed initialization is INVALID, never CLEAN. Stamp binary hash/version, platform, UTC time, adapter/probe/mock revisions and evidence handle. HOME-only sufficiency specifically remains unmeasured. This blocks the unsupported isolation claim and dependent real launch, not independent tests-first work.",
+        "evidence_limits": "Original host record supports agy 1.1.27, the exact .gemini/antigravity-cli/antigravity-oauth-token leaf and .gemini/antigravity-cli/brain session root under its combined redirected environment. The separately referenced producer report and raw host artifacts were not supplied in this job's in/; they were not retrieved. No later fixes, production bodies, credentials, session store, vendor inference or full floor were accessed."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 623793,
+        "out": 5581,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "started": "2026-09-08T07:55:11Z",
+        "ended": "2026-09-08T07:57:08Z"
+      },
+      "note": "Counts enumerate the six original findings by their supplied severity, not six upheld defects. CHANGES concerns the bounded test corrections above; intentionally preceding implementation is lawful. This adjudicator produced neither the original tests nor findings. No files were edited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:58:45.861Z"
+    }
+  },
+  "status": "closed"
+}

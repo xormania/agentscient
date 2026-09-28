@@ -1,0 +1,195 @@
+{
+  "id": "20260904T041722Z-review-grok-54e979",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "3ec08d1ac7a6c1ee2c434f32e024359e76d78578"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T04:17:22Z",
+    "closed": "2026-09-04T04:31:16Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3ec08d1ac7a6c1ee2c434f32e024359e76d78578",
+    "ref_sha": "3ec08d1ac7a6c1ee2c434f32e024359e76d78578",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "770c053e-889c-465b-a3f3-06b3d8f36e3f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok-stream/sessions/<snapshot-encoded>/770c053e-889c-465b-a3f3-06b3d8f36e3f/summary.json"
+  },
+  "session": {
+    "id": "770c053e-889c-465b-a3f3-06b3d8f36e3f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok-stream/sessions/<snapshot-encoded>/770c053e-889c-465b-a3f3-06b3d8f36e3f/summary.json",
+    "stream_sha256_at_close": "41b2bdae91a9baf1ac731ecb2f334fe44a2194dc147e634ce4566c2ddf3c505e",
+    "spend": {
+      "input": 3218929,
+      "cached": 2818944,
+      "output": 43873,
+      "total": 3262802,
+      "cost_usd_ticks": 5753493600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/home/grok-stream/sessions/<snapshot-encoded>/770c053e-889c-465b-a3f3-06b3d8f36e3f/summary.json",
+      "messages": 279
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "Adversarial review of lane fix batch 1: the branch lane/lane-fixes against dev (origin/dev at 77f7c1a); the diff between them is the change under review and the contract (scope items 1 to 12 plus the plan) is in the input file, with the session's review notes appended. Judge the implementation against the contract's acceptance list: what is claimed green but not proven, what the tests let through (the wrapper's real launch path was proven only against an executable stub), what a tripped or resumed run would do on this tree, and what the dry-run JSON hides. Findings as quotation pairs with file and line, priority P1 to P3; opinions marked as such.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T041722Z-review-grok-54e979/in/contract-lane-fixes-1-audit.md",
+        "sha256": "25975b7ba741361d459c3b78d41013359212ab832732475346ba1899319e0a9d"
+      }
+    ],
+    "sha256": "de97804dad4ed8fdbb66ea4bff800d810955e5ebfad93d37e5a78fcdbc19d262",
+    "bytes": 2961
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T04:17:22Z",
+      "ended": "2026-09-04T04:31:16Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3ec08d1ac7a6c1ee2c434f32e024359e76d78578",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 2
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/launch.py:1239",
+          "claim": "A tripped write is not committed (`if role == \"write\" and rec[\"harness\"][\"name\"] == \"codex\" and residual and not tripped:`), `_resume` never calls `_settle` or `_commit_for_harness` and always `return 0` (launch.py:1403), and `collect` then refuses because `failed = bool(last.get(\"tripped\") or last.get(\"exit\"))` is false after a successful resume (launch.py:1429-1436: \"let a normal finish settle itself\"). A timeout close is envelope status `invalid`, so `_resume` also does `env.update(settled_refusal)` (launch.py:1390-1391) and land.py:169 still says \"adjudicate the rejected dispatch by hand\". A battery-trip resume can leave envelope `ok` with `refs/dispatch/<id>` still at the base, so land prints `landed n=0` and drops the residual. Watch tests never resume a tripped write: test_launch_watch.py has no `_settle` / `_commit_for_harness`.",
+          "reproduce": "python3 -c \"from pathlib import Path; p=Path('ops/devlane/dispatch/launch.py').read_text(); r=p.split('def _resume')[1].split('def _collect')[0]; c=p.split('def _collect')[1].split('def _wait')[0]; assert '_settle(' not in r and '_commit_for_harness(' not in r and 'return 0' in r and 'settled_refusal' in r; assert 'let a normal finish settle itself' in c; print('resume-without-settle and collect-state after exit 0 confirmed')\" && python3 -c \"from pathlib import Path; t=Path('ops/devlane/dispatch/tests/test_launch_watch.py').read_text(); assert '_settle' not in t and '_commit_for_harness' not in t; print('watch tests do not pin settle on resume')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/dispatch.sh:203",
+          "claim": "The wrapper now execs `WF_AGENT=$agent \"${argv[@]}\"` instead of `python3 \"${argv[@]}\"`. Slice A proved that path only against `_plant_executable` sentinels (`path.chmod(... S_IXUSR)` at test_dispatch_wrapper.py:243-246). The only test that names the real sibling `launch.py` is dry-run (`test_conf_without_pin_resolves_the_sibling_launcher` at test_dispatch_wrapper.py:922). The 644/126 failure was fixed by hand in fdfbfd5 (mode-only; tree is now 100755) with no `os.access(launch.py, os.X_OK)` pin, so the suite stays green if the bit is lost.",
+          "reproduce": "stat -c '%a' ops/devlane/dispatch/launch.py && git ls-files -s ops/devlane/dispatch/launch.py && python3 -c \"from pathlib import Path; w=Path('ops/conductor/tools/dispatch.sh').read_text(); assert 'python3 \\\"\\${argv[@]}\\\"' not in w; assert 'WF_AGENT=\\$agent \\\"\\${argv[@]}\\\"' in w; t=Path('ops/conductor/tests/test_dispatch_wrapper.py').read_text(); assert 'os.access(path, os.X_OK)' in t and 'sentinel not executable' in t; assert 'os.access(sibling' not in t; print('exec-without-python3; tests pin sentinel +x only')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/dispatch.sh:184",
+          "claim": "Dry-run JSON is `{\"argv\", \"env\", \"launcher\"}` where `env` is only `WF_AGENT` and optional `DISPATCH_TIMEOUT`. It does not say argv[0] is exec'd (no python3), and it has no `--detach`, `DETACH_WAIT`, or jobs-root field. `print_launch` then `((dry_run)) && exit 0` (dispatch.sh:198-199) runs before the detach branch, so `--dry-run --detach` is a foreground plan. That is what hid the interpreter change that produced exit 126.",
+          "reproduce": "python3 -c \"from pathlib import Path; s=Path('ops/conductor/tools/dispatch.sh').read_text().splitlines(); assert s[197]=='print_launch' and s[198]=='((dry_run)) && exit 0'; body='\\n'.join(s[183:189]); assert 'DISPATCH_TIMEOUT' in body and 'WF_AGENT' in body; assert 'detach' not in body.lower(); assert 'python3' in body and 'sys.argv[3:]' in body; print('dry-run JSON is env-subset and precedes detach')\""
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/pr-overview/pr_overview.py:496",
+          "claim": "Plan 3.10 required `review_pages`, `buckets`, and `expected_checks` under one try. Only `buckets` is caught (`try:` at pr_overview.py:498). `review_pages` still raises `Unavailable` and `main` exits 2 with no rows \u2014 the same board-wide refusal defect 10 named, for a different per-PR read. Tests inject only `check_errors` (test_collect_rows.py:287-314) and `.claude/skills/pr-overview/tests` is absent from `ops/bin/suites.sh:17`.",
+          "reproduce": "python3 -c \"from pathlib import Path; p=Path('.claude/skills/pr-overview/pr_overview.py').read_text().splitlines(); loop='\\n'.join(p[491:530]); assert 'review_pages' in loop and loop.find('review_pages') < loop.find('try:'); assert 'unreadable_checks' in loop; s=Path('ops/bin/suites.sh').read_text(); assert 'pr-overview' not in s; t=Path('.claude/skills/pr-overview/tests/test_collect_rows.py').read_text(); assert 'check_errors' in t and 'review_pages' not in t.split('def run_board')[1].split('def test_')[0]; print('review_pages unwrapped; suite omits pr-overview tests')\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/land.py:169",
+          "claim": "`envelope-status` needed text is still \"adjudicate the rejected dispatch by hand; the lever lands only accepted work\", against acceptance \"lands through the lever, never by hand\" and plan 3.12, which required this refusal to name `launch.py collect`. Collected trips skip the line; an uncollected invalid envelope with exit 0 still gets the by-hand instruction.",
+          "reproduce": "python3 -c \"from pathlib import Path; t=Path('ops/conductor/tools/land.py').read_text(); assert 'adjudicate the rejected dispatch by hand' in t; idx=t.find('if env_status != \\\"ok\\\" and not collected:'); chunk=t[idx:idx+400]; assert 'launch.py collect' not in chunk; print('envelope-status needed remains by-hand')\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py:1439",
+          "claim": "Opinion: `collect` walls verify with `timeout = float((rec.get(\"caps\") or {}).get(\"timeout\") or 900)` \u2014 the resolved wall of the run that already died \u2014 and has no flag to raise it. The plan's live proof `launch.py collect \u2026 --verify 'bash ops/bin/suites.sh'` cannot complete on a timeout-tripped implement. Tests lock the recorded wall in (`test_collect_verify_is_walled_by_the_job_cap_in_the_snapshot`).",
+          "reproduce": "python3 -c \"from pathlib import Path; c=Path('ops/devlane/dispatch/launch.py').read_text().split('def _collect')[1].split('def _wait')[0]; assert 'rec.get(\\\"caps\\\")' in c and '--timeout' not in c; t=Path('ops/devlane/dispatch/tests/test_launch_collect.py').read_text(); assert 'test_collect_verify_is_walled_by_the_job_cap_in_the_snapshot' in t; print('collect verify wall is the recorded run cap')\""
+        },
+        {
+          "severity": "p3",
+          "where": "ruff.toml:31",
+          "claim": "Opinion: `extend-exclude` gained `\"../home\"` so a repository lint file names a launcher-runtime sibling. From the repo root that path is a sibling of the git checkout, not a job directory; it only matches `job_dir/home` when ruff's project root is a dispatch snapshot. The session notes already asked reviewers about this.",
+          "reproduce": "python3 -c \"from pathlib import Path; lines=Path('ruff.toml').read_text().splitlines(); assert lines[30].strip()=='\\\"../home\\\",'; assert 'launcher' in lines[29].lower() or 'launcher' in lines[28].lower(); print('ruff.toml excludes ../home')\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3262802,
+        "out": 43873,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3ec08d1ac7a6c1ee2c434f32e024359e76d78578",
+        "started": "2026-09-04T04:17:22Z",
+        "ended": "2026-09-04T04:28:55Z"
+      },
+      "note": "Judged lane/lane-fixes at 3ec08d1 against origin/dev 77f7c1a and the batch-1 contract (items 1-12 plus the plan). Inputs, timeout export, implement cap 3600, sibling launcher, schema append, spend fill, Claude argv permissions, collect-without-resume, and land-of-a-planted-collection are implemented and unit-pinned. CHANGES: a resumed tripped write cannot be collected or landed on this tree; the wrapper's real launch path and dry-run JSON do not pin exec-vs-python3 or detach; PR overview still refuses the board when review_pages fails and those tests are outside suites.sh."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T04:31:16.648Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,202 @@
+{
+  "id": "20260911T030702Z-check-tests-codex-5f3a98",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/gate-dispatcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-dispatcher-20260911",
+    "base_sha": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89"
+  },
+  "follows": [
+    "20260911T025531Z-tests-grok-5a362c"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T03:07:03Z",
+    "closed": "2026-09-11T03:14:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89",
+    "ref_sha": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl"
+  },
+  "session": {
+    "id": "01a08e6e-d77d-7930-87a9-c680f3bf11e7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl",
+    "stream_sha256_at_close": "3a33d33365adb4361fc0b35ca6639525446f8746d6cf73cb0f8d7167e901203a",
+    "spend": {
+      "input": 802563,
+      "cached": 713216,
+      "output": 18980,
+      "total": 821543,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl",
+      "messages": 176
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/in/plan-dispatcher-gate.md",
+        "sha256": "e7b5f7faefbef0dce092a154ebaf7ca7b8a073e0f359e78c8ffde3cf53ba7afd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/in/20260911T025531Z-tests-grok-5a362c.json",
+        "sha256": "5462c5a2293a57b5709c383934c031e3c074954a4fc1adbdc656cbf134aafe5d"
+      }
+    ],
+    "sha256": "05473fe1dcf08b97bcdc6d0b55bce70bdc218f981d72770bcfe1590aaad57ca5",
+    "bytes": 4205,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:07:03Z",
+      "ended": "2026-09-11T03:14:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:133",
+          "claim": "Observation: no numbered Contract item requires two or three --follows edges. These tests reject a compliant correction that follows one review record and names every answer.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '133,185p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,32p;56,61p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:96",
+          "claim": "Observation: the shared assertions impose an exact input/follows/answers option order absent from Contract items 1, 2, and 9, rejecting otherwise compliant argv.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '96,131p;133,215p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,32p;56,61p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:171",
+          "claim": "Contract item 9 is not exercised: the test manually supplies flags to the wrapper, so a broken ladder that skips the ledger check and immediately launches fix stages would pass.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '15,23p;171,185p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '56,61p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:227",
+          "claim": "Observation: refusal of an unrelated undocumented flag occurs in none of the ten Contract items, so this test freezes an out-of-scope parser policy.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '227,233p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,63p'"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 821543,
+        "out": 18980,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89"
+      },
+      "note": "Review only; no implementation was read. The guard accepted all plants. The seven-test run produced five assertion failures and zero errors."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T03:14:52.054Z"
+    }
+  },
+  "status": "closed"
+}

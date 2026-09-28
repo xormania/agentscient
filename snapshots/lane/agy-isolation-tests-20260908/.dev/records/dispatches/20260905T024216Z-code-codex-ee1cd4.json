@@ -1,0 +1,259 @@
+{
+  "id": "20260905T024216Z-code-codex-ee1cd4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/pr66-review-fixes-20260905",
+  "lineage": {
+    "branch": "lane/pr66-review-fixes-20260905",
+    "base_sha": "ff6744c8c26cbbbf36eb237214f7854c956a6dee"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T02:42:16Z",
+    "closed": "2026-09-05T02:46:49Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+    "ref_sha": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-17-01a06f72-00d2-7d60-add4-2cdb745308e2.jsonl"
+  },
+  "session": {
+    "id": "01a06f72-00d2-7d60-add4-2cdb745308e2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-17-01a06f72-00d2-7d60-add4-2cdb745308e2.jsonl",
+    "stream_sha256_at_close": "4a84c0376c54b101b927462b7297d5ed267a4f756f581e48b44be649870f3869",
+    "spend": {
+      "input": 1073586,
+      "cached": 1001984,
+      "output": 12917,
+      "total": 1086503,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024216Z-code-codex-ee1cd4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-17-01a06f72-00d2-7d60-add4-2cdb745308e2.jsonl",
+      "messages": 160
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-pr66-fixes.oKulon/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement only items 1, 2, 3 in ops/conductor/pr66-fixes.md: watchdog.py launcher census and unknown PID classification; worth.py retained Claude currencies negative/nonfinite rejection. Only those two production files. Read the bounded contract, make minimal functional fixes. Do not write/read/approve new tests, touch logs/data/fixtures, change the CI workflow, or pursue P3s. Existing baseline source is available; independent oracle is dispatched separately. Named command: ruff check ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py. No broad suites. Commit with Source: original and your exact model Co-Authored-By. Report scope and limitations briefly. Relative paths in authored text; never print private host/account names.\n",
+    "inputs": [],
+    "sha256": "ade01d5037817698f95a919c5fbc9d40d66300b013170c10b844ed486d88e447",
+    "bytes": 4594
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T02:42:16Z",
+      "ended": "2026-09-05T02:46:49Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0ca7e34e8e51eea2d35780571bc15758f16948a5",
+    "changed_paths": [
+      "ops/conductor/tools/watchdog.py",
+      "ops/devlane/telemetry/worth.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement-pr66-items-1-3",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 17,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": ".",
+          "claim": "Confirmed the requested baseline ref, a clean initial worktree, and no repository-level in directory.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ && git rev-parse HEAD && git status --short && rg --files in docs ops | sed -n '1,240p'"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops",
+          "claim": "Located the applicable nested instructions and measured the bounded source and contract files.",
+          "reproduce": "find ops -name AGENTS.md -print && wc -l docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/conductor/README.md ops/conductor/CONTRACT.md ops/conductor/pr66-fixes.md ops/conductor/tools/watchdog.py ops/devlane/AGENTS.md ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops",
+          "claim": "Read the founding documents and lane guidance; the combined display reached its output cap, so relevant material was subsequently read separately.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/conductor/README.md ops/conductor/CONTRACT.md ops/conductor/pr66-fixes.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md and ops",
+          "claim": "Completed the previously capped reading of mapping and relevant lane guidance.",
+          "reproduce": "sed -n '1,140p' docs/mapping.md && sed -n '141,280p' docs/mapping.md && cat ops/README.md ops/conductor/README.md ops/conductor/pr66-fixes.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Read the instrument conventions and watchdog source lines 1-320.",
+          "reproduce": "cat ops/conductor/instrument-conventions.md && sed -n '1,320p' ops/conductor/tools/watchdog.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Read watchdog source lines 321-640.",
+          "reproduce": "sed -n '321,640p' ops/conductor/tools/watchdog.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Read watchdog source lines 641-960.",
+          "reproduce": "sed -n '641,960p' ops/conductor/tools/watchdog.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py",
+          "claim": "Read the remainder of the watchdog source.",
+          "reproduce": "sed -n '961,1280p' ops/conductor/tools/watchdog.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/watchdog-lever.md",
+          "claim": "Read the watchdog contract and located relevant production and contract references without opening tests.",
+          "reproduce": "cat ops/conductor/watchdog-lever.md && rg -n \"launcher_count|launchers fewer|unobservable|harness gone|no usable|malformed-usage|retained|currency|Claude|claude\" ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py ops/conductor/*.md ops/process ops/docs docs --glob '!**/tests/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/telemetry/worth.py",
+          "claim": "Read the worth contract and source lines 1-320.",
+          "reproduce": "cat ops/process/worth.md && sed -n '1,320p' ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/telemetry/worth.py",
+          "claim": "Read worth source lines 321-640.",
+          "reproduce": "sed -n '321,640p' ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/telemetry/worth.py",
+          "claim": "Read the remainder of the worth source.",
+          "reproduce": "sed -n '641,940p' ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py and ops/devlane/telemetry/worth.py",
+          "claim": "The two-file diff was whitespace-clean and the named Ruff check passed after editing.",
+          "reproduce": "git diff --check && git diff -- ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py && ruff check ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py and ops/devlane/telemetry/worth.py",
+          "claim": "Focused scratch checks confirmed four intended launcher forms, rejected unrelated forms, classified unusable PIDs as unobservable, preserved valid currency values, and rejected booleans, negatives, infinities, and NaN; only the two authorized files were modified.",
+          "reproduce": "Run focused grep -E launcher-pattern checks and direct import assertions for Entry.harness_alive and _validated_claude_usage, then run git status --short and git diff --name-only."
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Commit creation was attempted with the required trailers but the read-only Git index prevented staging and committing.",
+          "reproduce": "git add -- ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py && git diff --cached --check && git diff --cached --name-only && git commit -m \"Fix watchdog and Claude usage boundaries\" -m \"Recognize basename, absolute, and versioned Python 3 launchers. Classify jobs without usable worker PIDs as unobservable. Reject invalid retained Claude usage currencies before aggregation. Source: original; Co-Authored-By: GPT-5 Codex <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py and ops/devlane/telemetry/worth.py",
+          "claim": "The exact named command exited 0 in the final tree.",
+          "reproduce": "ruff check ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".",
+          "claim": "Final inspection found a whitespace-clean diff limited to the two authorized production files at the requested baseline ref.",
+          "reproduce": "git status --short && git diff --check && git diff --name-only && git rev-parse HEAD && date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "ops/conductor/tools/watchdog.py": "Recognizes basename, absolute-path, and versioned Python 3 launchers using POSIX ERE; reports unusable worker PIDs as unobservable and excludes them from running and long-warning counts.",
+        "ops/devlane/telemetry/worth.py": "Rejects boolean, negative, and non-finite retained Claude currencies before aggregation, preserving the existing malformed-usage gap path."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1086503,
+        "out": 12917,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+        "started": "2026-09-05T02:42:28Z",
+        "ended": "2026-09-05T02:45:40Z"
+      },
+      "note": "Implemented only items 1-3 in the two authorized production files. No tests were read, written, approved, or run; no broad suite was run. Assumption: a usable worker PID is a positive integer or integer string; absent, malformed, boolean, floating-point, and nonpositive values remain unobservable and are reconsidered on later ticks. Commit creation was unavailable because the Git index is read-only; the launcher can commit using the supplied message.",
+      "commit": {
+        "subject": "Fix watchdog and Claude usage boundaries",
+        "body": "Recognize basename, absolute, and versioned Python 3 launchers.\nClassify jobs without usable worker PIDs as unobservable.\nReject invalid retained Claude usage currencies before aggregation.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T02:46:49.015Z"
+    }
+  },
+  "status": "closed"
+}

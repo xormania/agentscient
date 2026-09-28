@@ -1,0 +1,201 @@
+{
+  "id": "20260906T113102Z-plan-codex-dfa30a",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conduct-discovery-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-20260906",
+    "base_sha": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T11:31:03Z",
+    "closed": "2026-09-06T11:40:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8",
+    "ref_sha": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-31-03-01a0767c-77c5-7621-b567-48367ead497e.jsonl"
+  },
+  "session": {
+    "id": "01a0767c-77c5-7621-b567-48367ead497e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-31-03-01a0767c-77c5-7621-b567-48367ead497e.jsonl",
+    "stream_sha256_at_close": "c975e655cfb3deeefd813f99f5df075837ebf9c4233742c1921296bcceeca6ad",
+    "spend": {
+      "input": 1943591,
+      "cached": 1811712,
+      "output": 11069,
+      "total": 1954660,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-31-03-01a0767c-77c5-7621-b567-48367ead497e.jsonl",
+      "messages": 168
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the remaining discovery coupling gaps before corrections. Read current AGENTS.md, ops/README.md, owning discovery/MCP/onboard contracts and all supplied test/runtime review records. Read no implementation or corrected test source. Independently resolve: D-A16 nonempty stale-only reachability under readable acyclic superseders; D-A31 deterministic change-during-acquisition fixture without ambient test bypass; trusted boot transport of contract/adapter bytes missing from closed v3 config; D-A48 no-repo-consultation reachability; fixed five discovery law rows versus seven onboard rows. Give the smallest contract-preserving resolution, exact public transport/fixture seams and owning documents, plus producer handoffs. Distinguish impossible premise, implementation defect and missing declaration; do not approve skips or producer claims without proof. Inline report only. No edits, network, host/state/settings/admission changes or redesign. Preserve existing v1/v2 wire and permanent dev/prod separation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/in/ag-conduct-discovery-test-fix.json",
+        "sha256": "ac486d1f61d4a6b5811d47a7375c08a41d9938cf1ee427ea140b0b6e61334d8b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/in/ag-conduct-discovery-test-dispositions.json",
+        "sha256": "1bcd57dde696e804f00f08d09739a756d03275798ebc1527766f6cea2c25de94"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/in/ag-conduct-discovery-test-review.json",
+        "sha256": "3cfa9023d90672319ea22f7cb546502a0094effd80495403a55685235f4e7535"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/in/ag-conduct-discovery-code-review.json",
+        "sha256": "e1064f5d458dd5bfdc30fc983c3ba6372fa4f4910bffaefb15180cffe84a7505"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "4dcf0d1827b34374818c5a0be67809edd30906ffed763e7a812a7b5eb7a908a8",
+    "bytes": 3328
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T11:31:03Z",
+      "ended": "2026-09-06T11:40:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:294,319,767; ../in/ag-conduct-discovery-test-dispositions.json:108",
+          "claim": "D-A16 has an impossible nonempty stale-only premise. Restrict supersedes reachability to readable relevant handoff IDs. This remains a finite strict partial order, so a nonempty set has an unsuperseded ID whose readable revisions are current. Irrelevant superseders cannot establish staleness; missing relevant evidence makes classification unknown; pagination cannot change global selection. The reported skip therefore identifies a contract contradiction but does not discharge acceptance. Correct the owning sentence and row, preserving stale-card visibility and global selection. Do not admit fabricated stale-only acquisition data as a verified mock.",
+          "reproduce": "Read discovery-lever.md:124-130,294-335,551-553,767. Independently enumerated all 33,867 topologically ordered graphs on 1..6 vertices: each has an unsuperseded vertex. The general partial-order argument, rather than that finite enumeration, establishes impossibility at every permitted size."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:217,784; ../in/ag-conduct-discovery-test-dispositions.json:125-140",
+          "claim": "D-A31 describes reachable required behavior, but the supplied correction record expressly retains a scheduler-dependent fixture. Mutation somewhere during a child invocation does not prove mutation between acquisition's initial observation and verification. This is a missing deterministic fixture seam, not evidence that the implementation's race detection is defective. A supplied changed-during-read result tests projection only; acceptance also needs the real acquisition comparator to detect a controlled ref/file change.",
+          "reproduce": "Compare the required before/after checks and no-retry rule at discovery-lever.md:217-222 with the correction record's timing limitation. Use the checkpoint fixture specified in note; require an acknowledged mutation inside the interval, the exact unavailable result, and a stationary clean neighbor."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:60,110-120,390-429,610; ../in/ag-conduct-discovery-code-review.json",
+          "claim": "Trusted boot bytes are required but their process transport is undeclared: closed v3 configuration has no field for the contract or three implementation files, while the documented CLI supplies only config. Reading files beside mutable tools is not the declared trusted-boot coupling. The runtime review reports precisely that fallback at its separate ref; that practice violates the contract, although this review cannot independently reproduce that implementation. Complete the boot transport declaration before requiring fixtures or runtime to guess it. Direct-object acquisition requires git:null, so absence of a Git-executable transport is not independently a defect for that implementation choice.",
+          "reproduce": "Compare the complete config and CLI declarations with the exact definition-observation recipe at discovery-lever.md:418-429 and D-A47. The supplied runtime review reports adjacent-file defaults; its referenced implementation object 61f1ed42b0b97c006af6c3ebf0fca7caa1b1b6b4 is unavailable in this snapshot's object database."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:465-468,803; ../in/ag-conduct-discovery-code-review.json",
+          "claim": "D-A48 must distinguish repository participation in the profile closure from consultation of a particular Home's measured fields. A wholly repo-free discovery request is impossible because repo is mandatory. A Home with no property-specific repo observation is reachable when anchor_head fails before any verified commit permits tree_entry or read_blob. Such a card has evidence ['contract']; a failed actual document/implementation/lock attempt still adds 'repo'. The reported implementation instead synthesizes file outcomes after head failure and uses their presence as consultation. That is a reported implementation defect, not grounds to remove the negative requirement. The missing declaration is the distinction between an upstream failure and an attempted property read.",
+          "reproduce": "Plant valid config and trusted boot with a stable missing HEAD object and retained disabled. Request the document-only mapping Home under prod. Assert no home-property tree_entry/read_blob operation occurred, ownership unresolved, document_present null, entrypoint null and evidence ['contract']. Contrast with a verified HEAD followed by a failed governing-document read, which requires ['contract','repo']."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/discovery-lever.md:228,241,568,721; ops/conductor/onboard-lever.md:42-48; ../in/ag-conduct-discovery-code-review.json",
+          "claim": "Discovery's fixed five-row projection and onboard's authorized seven-row extension are compatible, but the dependency is underdeclared. At c38aa614 onboard still declares five rows; seven rows belong to the separate runtime review's reported change. Freeze discovery's five path/one-liner pairs explicitly and declare their equality to the corresponding onboard subset. Preserve seven onboard rows when that extension integrates. The runtime review's instruction to leave assertion arithmetic unchanged is unsupported by its own report of assert len(ok_lines)==5: that expectation must become seven for a complete seven-row fixture.",
+          "reproduce": "Read onboard-lever.md:42-48, discovery-lever.md:568,719-723 and discovery-examples.md's startup law array. Compare the runtime review's seven-row recommendation with its quoted five-row assertion. Independently test exact paths, order, one-liners and absence arithmetic for each projection."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T113102Z-plan-codex-dfa30a/context/diff.patch",
+        "reviewed_refs": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8 against 710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "contract_sha256": "3e2794967b4cdaad6a5079d9215caffa1a1a7100071bbbd71e3f8b6d290edbef",
+        "verification": "HEAD verified; 11 changed paths; patch headers match Git path inventory; no implementation paths changed; git diff --check exited 0. All five supplied in/ files read whole and parsed. Independent in-memory DAG enumeration completed; no product tests executed."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1954660,
+        "out": 11069,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c38aa61430e68d97e6620beaa6bb63c5c91f38d8",
+        "started": "2026-09-06T11:31:13Z",
+        "ended": "2026-09-06T11:37:01Z"
+      },
+      "note": "Reviewer: GPT-6, gpt-6-astra/Codex. This is a coupling adjudication, not approval of corrected tests or runtime. Read current AGENTS.md, ops/README.md, founding docs, discovery contract/examples/acceptance and correction records, MCP v1/v2 contracts, onboard contract, startup plan and handoff custody contract. Implementation and corrected test source were not inspected. Diff inspection was limited to path metadata and documentary material. No edits, network, product execution, host/state/settings/admission changes or session-store reads occurred. The runtime review's source findings remain attributed to its unavailable 61f1ed4 ref; its execution was explicitly denied. The test producer's 65 tests, 75 failure events, one skip and 32 rejected faulty counterparties are reported receipts, not independently reproduced acceptance. In particular, prerequisite config failures do not prove the corresponding discovery behaviors.\n\nSmallest resolutions and exact proposed seams\n\n1. D-A16: correct discovery-lever.md's selection paragraph and D-A16, with the invariant that complete nonempty relevant handoff evidence contains at least one current handoff. Retain the row identifier but replace the impossible fixture with a valid supersedes chain whose presentation page contains stale cards while its terminal current handoff lies elsewhere. Assert global selection remains one and selects that terminal key; named stale detail stays readable and cannot become selected. Preserve D-A11's complete-empty none case, D-A15's stale/current pair and D-A17's missing-superseder unknown case. Do not introduce retirement metadata, permit cycles, hide a relevant superseder from global classification or inject preclassified impossible cards. handoff/README.md owns the metadata cross-reference; existing acyclic same-kind semantics stand. The skip remains unaccepted until the corrected row has independent executable coverage.\n\n2. D-A31: declare a public in-process acquisition seam in discovery-lever.md's Fixed acquisition boundary: acquire(config, boot, *, checkpoint=None). The optional checkpoint receives a closed immutable event {phase, source_id} and returns no data. Phases are before-final-revalidation and before-file-postcheck; source_id identifies the affected configured repo, retained or dispatch source. The first phase occurs after initial identities and data are acquired, immediately before the required final identity reads. The second occurs after file bytes are read, immediately before their post-read identity/size/modification checks. Production supplies no callback. No environment variable, config key, query argument, dynamic import, skip flag or caller-supplied success result selects this mechanism. All ordinary verification and budgets remain active.\n\nAn independent fixture calls the real adapter through that seam. At the chosen event it synchronously changes one test-owned retained ref to an already planted commit, or changes one authorized dispatch file and verifies changed metadata, then acknowledges completion before acquisition resumes. The subject itself performs no write. Record the checkpoint/mutation/verification ordering and bounded completion; fail if the checkpoint is not reached. Assert unavailable/changed-during-read, snapshot/data null and no retry. A stationary neighbor must succeed. A deliberately omitted final check must fail the test. Separately pass the resulting immutable reading through the normal projection to verify the refusal reading; injecting the final unavailable packet alone cannot certify detection. These API names are proposed declarations to freeze before correction, not claims about existing signatures.\n\n3. Trusted boot: preserve the closed v3 config and all query/resource schemas. Add one v3 process-launch transport to discovery-lever.md and link it from lane-mcp-lever.md and conductor-start-plan.md: --discovery-boot-fd FD. FD is a launcher-opened read-only directory descriptor for the retained runtime artifact, separate from the repository being inspected. It grants exactly four fixed relative files: ops/conductor/discovery-lever.md and ops/conductor/tools/{lane_read.py,lane_mcp.py,lane_refs.py}. There is no directory enumeration or path selector. Open fixed components descriptor-relative without symlinks; require regular files, at most 1 MiB each and 4 MiB total, with a bounded 10-second bootstrap deadline and before/after identity checks. Trusted launch must bind the executed three modules to these same captured bytes; an unrelated claimed manifest is insufficient. Close descriptors on every failure and normal shutdown.\n\nLoad and retain those bytes once before the first discovery acquisition. Config-only check/list operations and all old queries do not read boot files or repository anchors. Missing or invalid boot on a discovery read refuses before repository acquisition with a declared v3-only line: config: expected trusted discovery boot descriptor; found invalid; needed launch with --discovery-boot-fd FD. Register a hermetic witness for this new refusal. No adjacent-file, HOME, CWD, environment or repository fallback. FD numbers and filesystem timestamps do not enter fingerprints. Apply exactly the existing contract-byte SHA-256 and canonical sorted three-file implementation manifest recipe; direct objects retain git:null. This completes transport, not a new configuration registry or authority mechanism.\n\nFor D-A47, launch two bounded synthetic boot artifacts with different contract bytes while holding the same failing repository fixture and config fixed. Contract stays ok; independently calculate its complete definition observation and source fingerprint. Change one implementation file's supplied bytes separately to verify adapter identity. Within one running process, changing a pathname outside the retained boot artifact cannot silently replace its loaded definitions. A synthetic fixture proves transport and hashing, not host admission or that arbitrary changed prose has been implemented.\n\n4. D-A48: clarify in discovery-lever.md that consultation is property-specific and derived from actual operation observations, never membership in a convenience files map. When anchor_head cannot supply a verified commit, downstream tree_entry calls are prohibited by the existing operation-input contract. Preserve that failure in the repo source and project unmeasured Home properties without inventing per-path attempts. Use the ordinary CLI/tool/resource entrypoints and the boot seam above for the missing-object fixture; no source-disable switch or new concept is needed. If an immutable-reading fixture is also used, its observations must represent that same reachable operation sequence. Keep the measured wf-runtime example unchanged. This correction retains repo in every closure and preserves failed-attempt evidence.\n\n5. Law tables: amend discovery-lever.md's Local source composition to name the fixed ordered subset explicitly: AGENTS.md, CONTRIB.md, instrument-conventions.md, stack.md and coverage-zones.md, retaining their existing one-liners. onboard-lever.md owns its expanded table, adding discovery-lever.md and conductor-start-plan.md. Discovery's five-row shape, examples and 8192-byte startup limit remain unchanged. An independent equality gate must verify the five shared pairs by path and order against onboard's corresponding rows, plus onboard's two additional rows. No runtime import of onboard, generator or replacement registry is required. Update onboard fixtures and exact successful-row expectations to seven; a fixture missing one declared law entry must show six OK rows, one ABSENT row and the existing one-absence result when other readings succeed. Do not weaken exit or absence checks to accommodate unplanted new files.\n\nProducer handoffs\n\nFirst, a contract producer corrects discovery-lever.md, its affected examples and the narrow MCP/startup/onboard/custody references. An independent reviewer verifies the graph proof, transport closure, observation semantics and five/seven relationship before test correction. Preserve historical records rather than rewriting their verdicts.\n\nNext, a test producer independent of the implementation producer owns the discovery fixtures, D-A16/D-A31/D-A47/D-A48 controls and the separate onboard fixture update. A different test reviewer checks them without implementation access. The implementation producer owns boot/coordinator/adapter/Home corrections and any required onboard integration, and neither edits nor approves those tests. The existing GPT-6 test-fixer session cannot also own implementation corrections; shared model names alone do not establish producer independence. Credit actual producers and the supplied Claude Opus 5 findings separately.\n\nFinally, an independent integrator runs the discovery_v3, lane_mcp, onboard and conformance suites against one exact combined ref, followed by bash ops/bin/suites.sh. Require raw v1/v2 parity, including refusal bytes, deterministic race witnesses, both Home evidence arms and no unresolved acceptance skip. Fault controls and producer scratch checks supplement that result; they do not replace it. Keep the branch unready until those obligations are met. Discovery remains read-only independent dev tooling, with permanent dev/prod separation and no application/vendor dependency or live activation."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T11:40:00.654Z"
+    }
+  },
+  "status": "closed"
+}

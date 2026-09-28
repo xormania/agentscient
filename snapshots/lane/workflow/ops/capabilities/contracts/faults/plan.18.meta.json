@@ -1,0 +1,8 @@
+{
+  "change": "top-level keys re-ordered relative to sort_keys extraction",
+  "contract": "plan",
+  "fault": "plan.18.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.drift",
+  "violates": "\u00a74 extract; \u00a75 N=18"
+}

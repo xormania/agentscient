@@ -1,0 +1,191 @@
+{
+  "id": "20260906T135747Z-adjudicate-grok-37ba86",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conduct-cold-ruling-c-20260906",
+  "lineage": {
+    "branch": "lane/conduct-cold-ruling-c-20260906",
+    "base_sha": "f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:57:48Z",
+    "closed": "2026-09-06T14:08:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc",
+    "ref_sha": "f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "efc6ba2f-579f-4523-b9b0-467bf4452b5a",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok-stream/sessions/<snapshot-encoded>/efc6ba2f-579f-4523-b9b0-467bf4452b5a/summary.json"
+  },
+  "session": {
+    "id": "efc6ba2f-579f-4523-b9b0-467bf4452b5a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok-stream/sessions/<snapshot-encoded>/efc6ba2f-579f-4523-b9b0-467bf4452b5a/summary.json",
+    "stream_sha256_at_close": "ca20a42fd09cc76c8f0ba7b5523b83f252fe546851a41f9c61dd5c43aa1ee693",
+    "spend": {
+      "input": 2625486,
+      "cached": 2274816,
+      "output": 36233,
+      "total": 2661719,
+      "cost_usd_ticks": 3495448200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/home/grok-stream/sessions/<snapshot-encoded>/efc6ba2f-579f-4523-b9b0-467bf4452b5a/summary.json",
+      "messages": 324
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-cold-ruling-c-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the supplied original review against this exact original snapshot. Read the report verbatim and the artifact it reviewed; do not inspect later refs, live repositories, later reviews, fixes, concessions or other dispatch state. Rule UPHELD/PARTIAL/REJECTED on every finding, grounded in commands against this snapshot, then state what the reviewer missed separately. No edits to the snapshot, tests, runtime, full floor, vendor call or authority change. Write the complete ruling to out/RULING.md and name it in artifacts; return a valid review envelope with exact SHA and bounded remedies. The adversarial-review job is used for adjudication because the documented wrapper always passes scope and therefore refuses the no-scope adjudicate job.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/in/ag-conduct-original-unit1a-review.json",
+        "sha256": "5eb6f9df7bee28cd6fbb2b92a42246c696ac29a268584634fb2383447c7aba18"
+      }
+    ],
+    "sha256": "ed26354eb7e38d382a05144b5e59b2fbde6482019ccdb91c409b6bb5cfa27ad7",
+    "bytes": 3066
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:57:48Z",
+      "ended": "2026-09-06T14:08:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/conductor-start-plan.md:339-350",
+          "claim": "UPHELD. DispatchID is still <UTC stamp>-<stage>-<harness>-<6 hex> with launch_id equal to the canonical record id; LaunchSelection is role conductor and job_role null; --stage, record.role, mint_id, trusted_context.job/stage and jobs.json stay worker enumerations. Remedy: name admissible conductor stage, record role and job tokens, or an explicit exemption from the worker record grammar, without using a worker job binding.",
+          "reproduce": "sed -n '339,351p' ops/conductor/conductor-start-plan.md; sed -n '394,395p;470p;683,684p;830,837p' ops/devlane/dispatch/CONTRACT.md; sed -n '378,381p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:410-419",
+          "claim": "UPHELD. grants_sha256 normalizes {scope,job,role,adapter,outputs,maintenance} as {repository,outputs} sets, while LaunchDeclarations produces requested_scope/job_grants/role_grants/adapter_grants plus a C2 outputs array; lane-policy.md and dispatch/CONTRACT.md contain zero mentions of job_grants or requested_scope. Remedy: write the closed map, including how C2 paths become outputs with empty repository.",
+          "reproduce": "sed -n '410,419p;325,328p;502,507p' ops/conductor/lane-policy.md; sed -n '459,460p;478,479p;491p' ops/devlane/task/CONTRACT.md; grep -c 'job_grants\\|requested_scope' ops/conductor/lane-policy.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:347-350",
+          "claim": "UPHELD. The retained result.policy prose is eight members with bare artifact/dependency digests and no outputs; PolicyResult is nine members with {path,sha256} handles including outputs; dispatch/CONTRACT.md:916-917 makes PolicyResult authoritative while lane-policy.md:364 tells readers to retain the earlier schema. Remedy: rewrite 347-357 to PolicyResult or mark that paragraph superseded.",
+          "reproduce": "sed -n '347,357p;364,366p;442p;495,507p' ops/conductor/lane-policy.md; sed -n '916,917p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:537-539",
+          "claim": "PARTIAL. Line 538 is a four-word orphan wrap, so 537-539 is a comma splice. The claimed ambiguity of exit 2 versus Abort 3 is overstated: 534-535 and dispatch/CONTRACT.md:939-941 already split pre-act exit 2 from after-effects Abort 3. Remedy: rewrap to one sentence (after launch preparation, once an attempt or verification has acted, failure of a required policy check is a late refusal).",
+          "reproduce": "sed -n '534,545p' ops/conductor/lane-policy.md; sed -n '939,941p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "commit f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc",
+          "claim": "UPHELD. One commit carries all seven documents; the message admits two were requested and points at transient out/ patches. Do not rewrite f15ca22. Remedy: retain 01-interface-fix.patch and 02-unit1a.patch with their COMMIT_MSG files as a durable record or ladder input.",
+          "reproduce": "git log -1 --format=%B f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc; git diff --name-only 4738d7437723c2c028417a8c593ddd317658e4f8 f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:698-699",
+          "claim": "MISSED. The closed result field list omits policy, while unit1a says result.policy is exactly PolicyResult and record.py owns record shape. Remedy: add policy to the result field list as PolicyResult, stating whether it is absent while launched or optional until activation.",
+          "reproduce": "sed -n '680,700p;871,872p;916,917p' ops/devlane/dispatch/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "ruling": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135747Z-adjudicate-grok-37ba86/out/RULING.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2661719,
+        "out": 36233,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc",
+        "started": null,
+        "ended": "2026-09-06T14:07:57Z"
+      },
+      "note": "Adjudication of 20260906T113433Z-review-claude-fa4a72 against snapshot f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc. Four original findings UPHELD, one PARTIAL, one missed p3. Complete ruling at artifacts.ruling. No snapshot, test, runtime, floor, vendor or authority edit."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:08:36.822Z"
+    }
+  },
+  "status": "closed"
+}

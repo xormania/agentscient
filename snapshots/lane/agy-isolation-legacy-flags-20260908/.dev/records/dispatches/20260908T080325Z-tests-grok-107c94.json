@@ -1,0 +1,165 @@
+{
+  "id": "20260908T080325Z-tests-grok-107c94",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-isolation-legacy-flags-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-legacy-flags-20260908",
+    "base_sha": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:03:25Z",
+    "closed": "2026-09-08T08:08:32Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+    "ref_sha": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "46e4b83f-6434-4655-971b-aa71d00a9a4b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok-stream/sessions/<snapshot-encoded>/46e4b83f-6434-4655-971b-aa71d00a9a4b/summary.json"
+  },
+  "session": {
+    "id": "46e4b83f-6434-4655-971b-aa71d00a9a4b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok-stream/sessions/<snapshot-encoded>/46e4b83f-6434-4655-971b-aa71d00a9a4b/summary.json",
+    "stream_sha256_at_close": "6834ac75c878deb8592816715bdeaa2228ccdba1fde354981b9221afa829224a",
+    "spend": {
+      "input": 1044772,
+      "cached": 709888,
+      "output": 15442,
+      "total": 1060214,
+      "cost_usd_ticks": 1899518800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/home/grok-stream/sessions/<snapshot-encoded>/46e4b83f-6434-4655-971b-aa71d00a9a4b/summary.json",
+      "messages": 190
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-legacy-flags-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only the newly added agy dispatch_flags=[] expectation in test_isolation_contract.py, following supplied independent ruling F2: an empty isolation flag set was not established by native evidence. Preserve exact three-legacy-profile equality and all measured agy auth/session/primary-HOME fields; do not edit test_agy_isolation.py, whose correction is concurrent. No production bodies or implementation edits. This aligns the new helper with the same ruling already governing the companion tests; do not invent alternative flags or metadata. Acceptance: focused test_isolation_contract.py discovery with honest results/zero errors, registered lint and full-range diff check for that file. Record exact changed assertion/hash and Grok 4.6 trailers. No vendors, credentials or full floor.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T080325Z-tests-grok-107c94/in/agy-isolation-test-ruling.json",
+        "sha256": "0d6c2a571a1c03c0371f24f05afdd336f573865cd05c401b5445ad198c709b86"
+      }
+    ],
+    "sha256": "5eede15d49b64f105fb992d29eb6a01c2d6526554c4e7e3b8592911c9fbd4af4",
+    "bytes": 3136
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:03:25Z",
+      "ended": "2026-09-08T08:08:32Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "be273b85d7805763037fbd77f28f5d349e888d37",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_isolation_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/harness/tests/test_isolation_contract.py",
+        "commit": "be273b85d7805763037fbd77f28f5d349e888d37",
+        "base": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+        "changed_assertion": "removed self.assertEqual([], agy[\"flags\"]) from IsolationContractTests._assert_authorized_registry; no replacement flags or metadata",
+        "file_sha256": "a8a17c71655bbf4fe62af128a8f4ad12034880d0826ecb69b916306ae8c7861c",
+        "blob": "4351125505c845195d968ca67b04807022585fa9",
+        "discovery": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_isolation_contract.py' at be273b85d7805763037fbd77f28f5d349e888d37: Ran 12 tests in 0.041s, FAILED (failures=2), 0 errors; both failures are AssertionError missing 'agy' at test_isolation_contract.py:86",
+        "lint": "python3 ops/devlane/workflow/checks/lint.py ops/devlane/harness/tests/test_isolation_contract.py at be273b85d7805763037fbd77f28f5d349e888d37: lint: clean \u2014 1 file(s), ruff 0.16.5",
+        "diff": "git diff --full-index --check b280b20dea000ae80ca07bd0ddd72d6d7643ee84 be273b85d7805763037fbd77f28f5d349e888d37 -- ops/devlane/harness/tests/test_isolation_contract.py: clean; only that path changed",
+        "trailers": "Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>; python3 ops/devlane/workflow/checks/commit_trailers.py --range b280b20dea000ae80ca07bd0ddd72d6d7643ee84..HEAD: clean \u2014 every trailer-shaped line is one git parses"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1060214,
+        "out": 15442,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b280b20dea000ae80ca07bd0ddd72d6d7643ee84",
+        "started": "2026-09-08T08:06:40Z",
+        "ended": "2026-09-08T08:07:45Z"
+      },
+      "note": "Corrected only the newly added agy empty-flags pin in test_isolation_contract.py per independent ruling F2. Changed assertion: self.assertEqual([], agy[\"flags\"]) removed from _assert_authorized_registry and replaced with a deferral comment; no alternative flags invented. Preserved exact three-legacy-profile equality and measured agy auth/session/primary-HOME fields. test_agy_isolation.py and production bodies were not edited. Focused discovery at be273b85d7805763037fbd77f28f5d349e888d37: 12 tests, 2 failures, 0 errors, both on missing agy membership rather than flags. File SHA256 a8a17c71655bbf4fe62af128a8f4ad12034880d0826ecb69b916306ae8c7861c. Trailers: Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>. term_wall.py --range was not a pass: expected TERM_WALL set; found empty."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:08:31.988Z"
+    }
+  },
+  "status": "closed"
+}

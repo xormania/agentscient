@@ -1,0 +1,486 @@
+{
+  "id": "20260911T025107Z-code-codex-c16551",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/receipts-20260911",
+  "lineage": {
+    "branch": "lane/receipts-20260911",
+    "base_sha": "9cd567ec219efeb04a987e1d2316af0ab247f960"
+  },
+  "follows": [
+    "20260911T023330Z-tests-grok-cc9d4d"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T02:51:08Z",
+    "closed": "2026-09-11T02:58:57Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9cd567ec219efeb04a987e1d2316af0ab247f960",
+    "ref_sha": "9cd567ec219efeb04a987e1d2316af0ab247f960",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-51-09-01a08e60-475f-7730-bd9b-a087e7db6c95.jsonl"
+  },
+  "session": {
+    "id": "01a08e60-475f-7730-bd9b-a087e7db6c95",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-51-09-01a08e60-475f-7730-bd9b-a087e7db6c95.jsonl",
+    "stream_sha256_at_close": "e2f986a45dd630939b80436fb41283b9e2260f5696522a2aaf51c46c083f9a77",
+    "spend": {
+      "input": 1245071,
+      "cached": 1164672,
+      "output": 23378,
+      "total": 1268449,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T22-51-09-01a08e60-475f-7730-bd9b-a087e7db6c95.jsonl",
+      "messages": 224
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Fix-code for the receipt lever, the code half of the one fix round after reviews 20260911T020846Z-review-codex-2beea3 and 20260911T020855Z-review-grok-0bc987; the tests half landed at 6dc6247 with twenty-two red cases. Read in/brief-receipt-fix-code-20260911.md and in/brief-receipt-fix-tests-20260911.md WHOLE; the frozen tests ops/devlane/harness/tests/test_receipt.py are the requirements, each red case naming its finding key and contract item. Edit ops/devlane/harness/receipt.py and, where a finding lands there, a module under ops/devlane/harness/receipt/; never the tests, the contract or the checklist. Named command, must pass: python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/in/brief-receipt-fix-code-20260911.md",
+        "sha256": "caf175db39fe7be7ef754b6da1b828dc99eec1f77dd615483429690432123d54"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/in/brief-receipt-fix-tests-20260911.md",
+        "sha256": "5939b9f4b393287d200b2d9bf9b5033b0a8ba11b3d7e43a0e3901783907f8693"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T025107Z-code-codex-c16551/in/extraction-checklist-receipts-20260911.md",
+        "sha256": "3126a46d3203cd3bb8828073fb01da4706e2a15d936e9b2c496c127defdd554a"
+      }
+    ],
+    "sha256": "98fd62175b20d777ee0dca33ac9a883a5defe254bbdec3ef1c2e3bd41e98be14",
+    "bytes": 4949
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T02:51:08Z",
+      "ended": "2026-09-11T02:58:56Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "eab690c5dab154095c09e8944eecea5bac1ba9a0",
+    "changed_paths": [
+      "ops/devlane/harness/receipt.py",
+      "ops/devlane/harness/receipt/receipts.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "20260911T025107Z-code-codex-c16551",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 51,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed the starting revision was 9cd567ec219efeb04a987e1d2316af0ab247f960.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed the initial worktree was clean.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Enumerated the six governing documentation files.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Read lines 1 through 240 of the lane operating instructions.",
+          "reproduce": "sed -n '1,240p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/brief-receipt-fix-code-20260911.md",
+          "claim": "Read the code-fix brief in full.",
+          "reproduce": "sed -n '1,260p' ../in/brief-receipt-fix-code-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/brief-receipt-fix-tests-20260911.md",
+          "claim": "Read the frozen-test brief in full.",
+          "reproduce": "sed -n '1,300p' ../in/brief-receipt-fix-tests-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/extraction-checklist-receipts-20260911.md",
+          "claim": "Read the receipt extraction checklist in full.",
+          "reproduce": "sed -n '1,320p' ../in/extraction-checklist-receipts-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/wire.md",
+          "claim": "Read the refusal and outcome wire contract in full.",
+          "reproduce": "sed -n '1,$p' docs/wire.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/workflow.md",
+          "claim": "Read the workflow genus contract in full.",
+          "reproduce": "sed -n '1,$p' docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/probes.md",
+          "claim": "Read the probes contract in full.",
+          "reproduce": "sed -n '1,$p' docs/probes.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/concerns.md",
+          "claim": "Read the concerns contract in full.",
+          "reproduce": "sed -n '1,$p' docs/concerns.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/verified-couplings.md",
+          "claim": "Read the verified-couplings obligations in full.",
+          "reproduce": "sed -n '1,$p' docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the application mapping and its dev-lane precedence warning in full.",
+          "reproduce": "sed -n '1,$p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Confirmed there was no unread remainder after line 240.",
+          "reproduce": "sed -n '241,$p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt.py",
+          "claim": "Read the receipt lever implementation in full.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/canonical.py",
+          "claim": "Read the canonical serialization module in full.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt/canonical.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/errors.py",
+          "claim": "Read the extracted error module in full.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt/errors.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/gitio.py",
+          "claim": "Read the extracted Git helper module.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt/gitio.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/receipts.py",
+          "claim": "Read the extracted receipt execution module.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/README.md",
+          "claim": "Read the extracted-module provenance note.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/receipt/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/evidence.cue",
+          "claim": "Read the receipt evidence contract.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/evidence.cue"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_receipt.py",
+          "claim": "Read the frozen receipt test file.",
+          "reproduce": "sed -n '1,$p' ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt implementation surface",
+          "claim": "Measured file lengths to ensure truncated combined output was reread in complete chunks.",
+          "reproduce": "wc -l ops/devlane/harness/receipt.py ops/devlane/harness/receipt/canonical.py ops/devlane/harness/receipt/errors.py ops/devlane/harness/receipt/gitio.py ops/devlane/harness/receipt/receipts.py ops/devlane/harness/receipt/README.md ops/devlane/harness/evidence.cue ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/gitio.py",
+          "claim": "Reread all 244 lines after combined output truncation.",
+          "reproduce": "sed -n '1,244p' ops/devlane/harness/receipt/gitio.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/receipts.py",
+          "claim": "Reread all 154 lines after combined output truncation.",
+          "reproduce": "sed -n '1,154p' ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/README.md",
+          "claim": "Reread all 20 lines after combined output truncation.",
+          "reproduce": "sed -n '1,20p' ops/devlane/harness/receipt/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/evidence.cue",
+          "claim": "Reread all 206 contract lines after combined output truncation.",
+          "reproduce": "sed -n '1,206p' ops/devlane/harness/evidence.cue"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_receipt.py",
+          "claim": "Read frozen test lines 1 through 240.",
+          "reproduce": "sed -n '1,240p' ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_receipt.py",
+          "claim": "Read frozen test lines 241 through 480.",
+          "reproduce": "sed -n '241,480p' ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_receipt.py",
+          "claim": "Read frozen test lines 481 through 674.",
+          "reproduce": "sed -n '481,674p' ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_receipt.py",
+          "claim": "Reread the test fixture and assertion helpers without output truncation.",
+          "reproduce": "sed -n '1,240p' ops/devlane/harness/tests/test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/evidence.cue",
+          "claim": "Reread the entire receipt contract without output truncation.",
+          "reproduce": "sed -n '1,206p' ops/devlane/harness/evidence.cue"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt frozen suite at 9cd567ec219efeb04a987e1d2316af0ab247f960",
+          "claim": "Proved the expected baseline: 30 tests ran with 22 failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt execution call graph",
+          "claim": "Confirmed the lever and toolchain helper were the only consumers of receipts.run in scope.",
+          "reproduce": "rg -n \"receipts\\.run|\\brun\\(\" ops/devlane/harness/receipt.py ops/devlane/harness/receipt"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt extraction history",
+          "claim": "Measured the exact original and adapted-module Source trailer forms.",
+          "reproduce": "git log --format=full -- ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt frozen suite after implementation",
+          "claim": "The first post-edit run passed all 30 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "edited Python files",
+          "claim": "Ruff reported both edited files clean after implementation.",
+          "reproduce": "ruff check ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "Git found no whitespace errors after implementation.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "protected-file probe",
+          "claim": "This read-only probe exited 128 because ../in is outside the repository; it made no changes.",
+          "reproduce": "git status --short -- ops/devlane/harness/tests/test_receipt.py ops/devlane/harness/evidence.cue ../in/brief-receipt-fix-code-20260911.md ../in/brief-receipt-fix-tests-20260911.md ../in/extraction-checklist-receipts-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "Reviewed the exact implementation diff for the two authorized files.",
+          "reproduce": "git diff -- ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "protected tracked files",
+          "claim": "Confirmed the frozen tests and evidence contract were unmodified.",
+          "reproduce": "git status --short -- ops/devlane/harness/tests/test_receipt.py ops/devlane/harness/evidence.cue"
+        },
+        {
+          "severity": "p3",
+          "where": "toolchain",
+          "claim": "Confirmed CUE was available at /home/scientdb/.local/bin/cue.",
+          "reproduce": "command -v cue"
+        },
+        {
+          "severity": "p3",
+          "where": "repository commit history",
+          "claim": "Measured the repository's Codex attribution spelling.",
+          "reproduce": "git log --all --format=full --extended-regexp --grep='Co-Authored-By:.*(Codex|OpenAI)' -n 5"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/",
+          "claim": "CUE validation exited 0 after implementation.",
+          "reproduce": "cue vet ./ops/devlane/harness/"
+        },
+        {
+          "severity": "p3",
+          "where": "receipt refusal wire",
+          "claim": "The hermetic missing-identity invocation exited 2 with empty stdout and one identity refusal line.",
+          "reproduce": "env -u WF_AGENT python3 ops/devlane/harness/receipt.py record --claim x -- true"
+        },
+        {
+          "severity": "p3",
+          "where": "final receipt tree",
+          "claim": "The required command exited 0 with all 30 tests passing in the final tree.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final edited Python files",
+          "claim": "Final Ruff validation exited 0.",
+          "reproduce": "ruff check ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final receipt contract",
+          "claim": "Final CUE validation exited 0.",
+          "reproduce": "cue vet ./ops/devlane/harness/"
+        },
+        {
+          "severity": "p3",
+          "where": "final working diff",
+          "claim": "Final whitespace validation exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "final pre-commit worktree",
+          "claim": "Only receipt.py and receipt/receipts.py were modified.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index",
+          "claim": "Staging was refused because the sandbox-mounted Git index is read-only; the launcher must commit the worktree.",
+          "reproduce": "git add -- ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py"
+        }
+      ],
+      "artifacts": {
+        "ops/devlane/harness/receipt.py": "Implemented argument, identity, cwd, repository-state, receipt-shape, canonical-name, path-safety, and refusal-wire enforcement.",
+        "ops/devlane/harness/receipt/receipts.py": "Adapted command execution to optionally preserve raw output bytes and to omit argv from spawn refusals.",
+        "verification": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py: 30 tests passed; Ruff and CUE also exited 0.",
+        "commit": "Not created because .git/index is read-only; commit message supplied in the envelope."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1268449,
+        "out": 23378,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9cd567ec219efeb04a987e1d2316af0ab247f960"
+      },
+      "note": "Baseline reproduced 30 tests with 22 failures; the final named command passed all 30. Canonical stem binding is enforced for files in the receipt store and digest-shaped explicit references, allowing descriptive external fixture files to reach their requested contract or cwd refusal. No out-of-scope follow-up was found. Git staging was impossible because the snapshot's .git index is read-only, so status remains ok and the launcher should use the supplied commit message.",
+      "commit": {
+        "subject": "harness: harden receipt validation and evidence capture",
+        "body": "Validate receipt arguments, identity, repository state, cwd containment, receipt field types, canonical digest names, and the receipt-directory path before acting. Hash subprocess stdout and stderr as raw bytes and keep all refusal output on one sanitized line without exposing command argv.\n\nAdapt ops/devlane/harness/receipt/receipts.py so its runner can return raw bytes while retaining text mode for existing callers, and so spawn failures carry safe remediation instead of argv.\n\nVerified: `python3 -m unittest discover -s ops/devlane/harness/tests -p test_receipt.py` passed 30 tests.\nVerified: `ruff check ops/devlane/harness/receipt.py ops/devlane/harness/receipt/receipts.py` and `cue vet ./ops/devlane/harness/` exited 0.\n\nSource: original\nSource: /home/scientdb/projects/uscient/scientdb/.dev/app/workflow@99334f7\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T02:58:55.947Z"
+    }
+  },
+  "status": "closed"
+}

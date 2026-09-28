@@ -1,0 +1,284 @@
+{
+  "id": "20260906T023500Z-review-claude-950f23",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "0095b97edee1c1d5605d7aca61b554ee15114aea"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:35:01Z",
+    "closed": "2026-09-06T02:44:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "ref_sha": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "9ffaacdc-69dd-4bb0-8680-6ca79c09c9c3",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/9ffaacdc-69dd-4bb0-8680-6ca79c09c9c3.jsonl"
+  },
+  "session": {
+    "id": "9ffaacdc-69dd-4bb0-8680-6ca79c09c9c3",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/9ffaacdc-69dd-4bb0-8680-6ca79c09c9c3.jsonl",
+    "stream_sha256_at_close": "f3dac2defd50498706ce5945839b00c9a8d4dcf226205ca00f1561e9403ba6ae",
+    "spend": {
+      "input": 78,
+      "cached": 3974018,
+      "output": 44141,
+      "total": 4018237,
+      "source": "result.usage",
+      "messages": 39,
+      "cost_usd": 4.269172499999999
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck only the seven correction groups in Grok ruling 2d0f7a against GPT-6's latest three-doc change. Verify consistent handoff completeness and AAR independence without invented old bindings; exact lock name membership; complete work cursor/argument/reachability shapes; one contract fingerprint and Home evidence rule; launch descriptor versus query assumption; exact pre-transport wrapper/newline/escaping recipe; corrected registry and historical mapping label. Recompute changed payload size and retained fingerprints/examples, changed links and acceptance coverage. Keep read-only conductor scope, eleven tools, permanent independent dev tooling and explicit unknowns. No reopened resolved findings, future worker/host implementation requirements, broad audit or runtime tests. Return concise approve/changes, reproducible material gaps only and minimal corrections. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/in/discovery-contract-owner.md",
+        "sha256": "1d815b62cc5dd8e9d516e14f29455b0699744ff8d5baa87095b7b2575eafe901"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/in/20260906T021446Z-adjudicate-grok-2d0f7a.json",
+        "sha256": "0722ae3af72121380f5e81a05a8db7acf167a57f4e40ab2e5523f009bde52ad6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023500Z-review-claude-950f23/in/20260906T022414Z-code-codex-18fe5c.json",
+        "sha256": "f6630d900c9d2df6f96799e4df4391f304cf974185c90fcbf074554b2062bc03"
+      }
+    ],
+    "sha256": "90705d2fadaaf73cfb3a8358ff78f2bae614209ccd0ff1b8d0c2935e25936d26",
+    "bytes": 1730
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:35:01Z",
+      "ended": "2026-09-06T02:44:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md:91,119,260-261,273-274,539-540,544,586-591,786",
+          "claim": "Group 3 leaves the last work card unreachable and tells the projection to emit a cursor its own grammar refuses. Declared: \"for lane_start it is 0..19 (0 permits retrying work omitted for fit on the initial read)\" (539-540) and \"Offset must be below total; no cursor for empty lists.\" (544). Practiced elsewhere: \"At most 22 source IDs per profile.\" (91) with repo required and retained optional permits 21 dispatch source IDs; \"Work is authorized dispatch summaries only, ordered by configured job_ids\" (260-261) plus \"Missing work binding sets lineage null, relevance unknown and reason metadata-missing.\" (273-274) put every authorized dispatch ID in the work list, so total can be 21. The 0..19 range was derived from \"work_bindings | 0..20 entries\" (119), which bounds the binding table, not the list. With 21 authorized dispatch IDs and no bindings, a page sequence of 5,5,5,5 (plausible once 26 Source entries sit in the mandatory frame under the 8192 cap) reaches offset 20, and 588-590 then requires appending \"work next cursor: SNAPSHOT:OFFSET\" with OFFSET = offset+count = 20 \u2014 an out-of-range offset the cursor rule refuses (545), so the 21st card can never be fetched. D-A38b (786) pins only 20 bindings and does not cover this. Minimal correction: cap dispatch source IDs at 20 per profile (22 = repo + retained + 20), or state the lane_start offset range as 0..20 with the work-list bound named; keep tools at 11 and D-A38b's 8/8/4 unchanged.",
+          "reproduce": "nl -ba ops/conductor/discovery-lever.md | sed -n '89,92p;119p;260,261p;273,274p;539,540p;544,545p;586,591p;786p'"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 0095b97 body; ops/conductor/discovery-lever.md, ops/conductor/discovery-examples.md, ops/conductor/conductor-start-plan.md",
+          "claim": "The commit body claims \"27 local links\" checked. Measured: 33 markdown link occurrences across the three documents (14 + 2 + 17), of which 10 are https (all in conductor-start-plan.md), leaving 23 local occurrences over 20 unique targets. Every local target resolves and all three fragments resolve (conductor-start-plan.md#symfony-mapping-preserved-historical-measurement against the heading at plan:218; discovery-lever.md#non-executable-acceptance-rows; handoff/README.md#discovery-metadata-extension against the heading at README:26). The counting rule behind 27 is not declared and could not be reproduced. Minimal correction: restate the number or name the rule that produces it.",
+          "reproduce": "grep -c '](' ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/conductor-start-plan.md; grep -o '](http[^)]*)' ops/conductor/conductor-start-plan.md | wc -l"
+        }
+      ],
+      "artifacts": {
+        "range": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc..0095b97edee1c1d5605d7aca61b554ee15114aea",
+        "contract": "ops/conductor/discovery-lever.md",
+        "examples": "ops/conductor/discovery-examples.md",
+        "plan": "ops/conductor/conductor-start-plan.md",
+        "ruling": "in/20260906T021446Z-adjudicate-grok-2d0f7a.json",
+        "producer_record": "in/20260906T022414Z-code-codex-18fe5c.json",
+        "owner_brief": "in/discovery-contract-owner.md",
+        "group_1": "PASS \u2014 discovery-lever.md:302-305 makes an observed unbound handoff a bindings failure (complete false, selection unknown, counts null); 305 removes the AAR-blocks-handoff rule; 324-325 and 327-328 keep AAR gaps out of completeness and handoff counts; D-A17 amended, D-A17b and D-A17c added; four HANDOFF-*.md and four AAR-*.md confirmed present and untouched anywhere in the range, so D-A17c's pin of 38edb5de is accurate; no record_bindings invented (707-710).",
+        "group_2": "PASS \u2014 507-511 restricts locked to packages[]/packages-dev[] name equality, false on measured absence, null for malformed/non-package intended; D-A34 plants real name entries and names the constraint-only mentions; composer.lock has symfony/workflow at 1301 and 1346 as constraint values only and zero name entries, so workflow-genus is locked false on this tree and plan:232 still lists it lock-absent.",
+        "group_3": "CHANGES \u2014 cursor added to lane_start (524), pages work only (566-573), omission strings and next-cursor recipe (586-594), CLI/MCP continuation shape (596-602), D-A26/D-A38/D-A38b cover 8/8/4 at offsets 0/8/16, tools stay 11, fixture A work [] unchanged. Gap: offset range 0..19 versus a work list that can hold 21 (see finding).",
+        "group_4": "PASS \u2014 contract is a boot-supplied definition source (234, 386-388, 422); one recipe only, revision = SHA-256 of launch-supplied discovery-lever.md bytes, no second digest (413-417, 423-424); repo read failure cannot make contract unavailable; Home.evidence derivation declared at 459-463; D-A47/D-A48 added; examples:562-565 wf-runtime [\"contract\",\"repo\"] unchanged.",
+        "group_5": "PASS \u2014 15-20 and 143-144 make --config FILE a launch-supplied trusted descriptor, not a query argument, with wrong FILE a launch defect; queries/resources accept no config/audience/role/repository/path/command; 604-608 keeps the CLI line and distinguishes the job-bound descriptor without implementing it; D-A42 amended; lane_mcp.py untouched (changed_paths are the three documents only).",
+        "group_6": "PASS \u2014 332-352 gives the literal pre-transport recipe, LF-only splitting, exact end-marker segments prefixed with >, CR and the fixture's [END UNTRUSTED DATA] left alone, one LF before and after the end marker, JSON escaping after wrapping, and the no-semantic-immunity limit; D-A32 amended. Recomputed: header+body+trailer = 259 UTF-8 bytes as declared at examples:669; inner record 64 bytes; sha256(inner) = 1b8fdd017ef4c34eeb9639d494ac5ec954172f407bad5f868c4f132d17023bb8 = declared revision and key; git blob sha1 of the same bytes = e069b33f77f62fd6e637f4f4449465446492ee19 = declared provenance blob.",
+        "group_7": "PASS \u2014 concept index 680 sets lane-mcp registry to ops/conductor/registry/lane_mcp.py.json (file exists, one config-refusal row, tool lane_mcp.py); 681 keeps lane-read null (no lane_read.py.json on this tree); 713-714 still appends the v3 row to that file; plan:218 heading renamed to \"Symfony mapping, preserved historical measurement\" with 220-224 preserving record 20260906T011424Z-code-codex-2a2af6 at 3682a8c5 and no remeasurement; discovery-lever.md:727 fragment matches the new slug; D-A49 added.",
+        "recomputed_bytes": "Eight declared canonical envelopes recomputed with jq -cSa: 3641, 881, 1043, 1053, 1058, 165, 1165, 1819 \u2014 all equal to the declared values, the changed named-record envelope included.",
+        "recomputed_fingerprints": "All nine planted fingerprints reproduce as SHA-256 of 'fixture/'+id: adapter a64f26d5, config 01a86b4a, contract b5e60869, repo 6653d289, retained-disabled 63216e7a, config-retained-enabled b3b4a88f, unreadable-retained c5806764, repo-with-bound-handoff d77e34aa, config-with-bound-handoff 3af793dd.",
+        "recomputed_snapshots": "All three snapshots reproduce from the contract's recipe sha256(canonical {protocol,audience,profile,sources}): b2465cc7 (fixture A), 1d34cb69 (unreadable retained), de93f5fa (named record).",
+        "acceptance_coverage": "52 acceptance rows (D-A1..D-A49 plus D-A17b, D-A17c, D-A38b); each of the seven groups carries at least one changed or new row."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4018237,
+        "out": 44141,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+        "started": "2026-09-06T02:35:00Z",
+        "ended": "2026-09-06T02:43:11Z"
+      },
+      "note": "Recheck limited to the seven correction groups in ruling 2d0f7a. Six groups are correctly and completely applied; group 3 carries one reproducible gap (lane_start cursor offset range 0..19 against a work list bounded at 21 by the 22-source-ID cap, which also makes 588-590 emit a cursor the grammar refuses). Scope held: no resolved finding reopened, no worker server, host isolation, runtime or executable test demanded; read-only conductor scope, eleven tools, permanently independent dev tooling and explicit unknowns all still declared. Absence declared: git commands are refused in this sandbox, and the supplied c06ed94..0095b97 diff carries all three documents as whole-file additions, so payload preservation could not be checked by diffing the pre-correction revision; it was checked instead by recomputing every planted fingerprint, every snapshot and all eight envelope byte counts from the current bytes, all of which reproduce, and by confirming the ruling's named values (1b8fdd01, e069b33f, 64, examples 562-565) are intact. python3 script execution was also refused; byte counts were produced with jq/sha256sum/sha1sum instead. No repository, tests, settings, host, DB or network state was touched; no scratch residue left in out/."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

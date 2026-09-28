@@ -1,0 +1,168 @@
+{
+  "id": "20260911T042053Z-tests-grok-31af2c",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "repair/ld14-regression-20260911",
+  "lineage": {
+    "branch": "repair/ld14-regression-20260911",
+    "base_sha": "cc30a80a641748860da7b659324c27cc382392b4"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T04:20:53Z",
+    "closed": "2026-09-11T04:43:29Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cc30a80a641748860da7b659324c27cc382392b4",
+    "ref_sha": "cc30a80a641748860da7b659324c27cc382392b4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-ld14-regression-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a2f7ae6d-1264-407c-8909-0d9754cbec85",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok-stream/sessions/<snapshot-encoded>/a2f7ae6d-1264-407c-8909-0d9754cbec85/summary.json"
+  },
+  "session": {
+    "id": "a2f7ae6d-1264-407c-8909-0d9754cbec85",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok-stream/sessions/<snapshot-encoded>/a2f7ae6d-1264-407c-8909-0d9754cbec85/summary.json",
+    "stream_sha256_at_close": "2376bf8f0a7f07c424f21233c60dd853159c5f8dadfebd85f2f49c8b62982810",
+    "spend": {
+      "input": 4176488,
+      "cached": 3844096,
+      "output": 44131,
+      "total": 4220619,
+      "cost_usd_ticks": 4847750600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/home/grok-stream/sessions/<snapshot-encoded>/a2f7ae6d-1264-407c-8909-0d9754cbec85/summary.json",
+      "messages": 288
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ld14-regression-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Regression tests for LD-14 from a second producer. Read in/brief-ld14-regression-20260911.md WHOLE; the contract paragraph \"Measured Codex read-role containment\" in ops/devlane/dispatch/CONTRACT.md is the requirement. Write ops/devlane/dispatch/tests/test_launch_codex_read_containment.py only; do not read the repairer's test_launch_read_role_tmp.py and do not edit the launcher. Prove each case red against a stub launcher emitting the old read-only argv, then green, commit, list the file in artifacts as a tree-relative path. Named command: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_codex_read_containment.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042053Z-tests-grok-31af2c/in/brief-ld14-regression-20260911.md",
+        "sha256": "86f632ebd2a0ec76bb9761efa0835bd64e04be87bd76575da328af78c645ec8b"
+      }
+    ],
+    "sha256": "a3ff77abe8dbcce1482e7eb4b540da8084c012933d0855c63a2d084982ba8ce4",
+    "bytes": 3178,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:20:53Z",
+      "ended": "2026-09-11T04:43:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "5462ee1e3a375bf1ec822946a5d7cbb0379a16a3",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_codex_read_containment.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_launch_codex_read_containment.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4220619,
+        "out": 44131,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cc30a80a641748860da7b659324c27cc382392b4",
+        "started": "2026-09-11T04:20:53Z",
+        "ended": "2026-09-11T04:42:57Z"
+      },
+      "note": "Wrote ops/devlane/dispatch/tests/test_launch_codex_read_containment.py from CONTRACT.md paragraph Measured Codex read-role containment. Did not read launch.py or test_launch_read_role_tmp.py. Red: LD14_STUB_LAUNCH=1 points load_launch at an in-file stub that execs the fake Codex CLI with argv `--sandbox read-only` (no sandbox_workspace_write.writable_roots), leaves TMPDIR unset, and leaves snapshot write bits intact. python3 /tmp/ld14-run.py under that env at the test bytes: run=33 ok=0 fail=33 error=0 skip=0; each failure was an AssertionError on that case (read-only vs workspace-write; 0 writable_roots; TMPDIR unset; README.md/alpha.py/jobs.json still writable). Committed that red file as 31c4768701adb7762e11a4981262e468367666cd. Green against the real launcher first failed 7 writable_roots tests because the parser counted the same `-c sandbox_workspace_write.writable_roots=[out]` token twice; parser fixed; stub re-run still 33 FAIL 0 ERROR. Frozen command `python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_codex_read_containment.py` at 5462ee1e3a375bf1ec822946a5d7cbb0379a16a3: Ran 33 tests in 4.073s OK. Second commit 5462ee1e3a375bf1ec822946a5d7cbb0379a16a3. Tree clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T04:43:29.031Z"
+    }
+  },
+  "status": "closed"
+}

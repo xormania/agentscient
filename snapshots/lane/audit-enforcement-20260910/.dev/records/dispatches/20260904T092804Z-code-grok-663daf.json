@@ -1,0 +1,157 @@
+{
+  "id": "20260904T092804Z-code-grok-663daf",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-3",
+  "lineage": {
+    "branch": "lane/fixture-apps-3",
+    "base_sha": "d1c6d33421d1dc6f3c9d182bb350e297246379b0"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:28:04Z",
+    "closed": "2026-09-04T09:43:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d1c6d33421d1dc6f3c9d182bb350e297246379b0",
+    "ref_sha": "d1c6d33421d1dc6f3c9d182bb350e297246379b0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4f6cd7e6-2961-4880-ae58-c2a95e960850",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok-stream/sessions/<snapshot-encoded>/4f6cd7e6-2961-4880-ae58-c2a95e960850/summary.json"
+  },
+  "session": {
+    "id": "4f6cd7e6-2961-4880-ae58-c2a95e960850",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok-stream/sessions/<snapshot-encoded>/4f6cd7e6-2961-4880-ae58-c2a95e960850/summary.json",
+    "stream_sha256_at_close": "ddfc023235ec92f854691bdfe22b802973d01f0f7013ceb4f9b859053e69d1e6",
+    "spend": {
+      "input": 2332401,
+      "cached": 2103936,
+      "output": 58085,
+      "total": 2390486,
+      "cost_usd_ticks": 3157593600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/home/grok-stream/sessions/<snapshot-encoded>/4f6cd7e6-2961-4880-ae58-c2a95e960850/summary.json",
+      "messages": 199
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-3/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 3 (apps/python-service), tests only: write ops/devlane/fixtures/tests/test_python_service_app.py from the contract in the input file (the scope, then the plan for slices 3 to 5; the slice 3 section names the app's layout, its seven faults with spans, probes, clean neighbours and fixes, the toolchain and how prove reaches it, the manifest keys, and what the lane test proves through the merged lever ops/bin/fixture.sh: make copies the app, prove is red on every planted fault and green on every clean neighbour, prove --fixed is green, the sweep accepts FAULTS.json, grade scores a planted review; plus any lever change the plan assigns to this slice, pinned on a synthetic app). Red at this ref because the app does not exist. The app, its own tests, its manifest and the lever change are the implementation and are not written here. One commit. Do not write the other slices.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T092804Z-code-grok-663daf/in/contract-fixtures-3.md",
+        "sha256": "7ae27fcf742d18174e19726906817733d5c13102ba60793d1cc08307c5343309"
+      }
+    ],
+    "sha256": "d5ce1db341870e5edd31ecfbda4b254d166be54285a96f69500b32b464331441",
+    "bytes": 3253
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:28:04Z",
+      "ended": "2026-09-04T09:43:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "74c64768f2652c36bcaa3256d5e04c91cfe3f390",
+    "changed_paths": [
+      "ops/devlane/fixtures/tests/test_python_service_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/fixtures/tests/test_python_service_app.py",
+        "commit": "74c64768f2652c36bcaa3256d5e04c91cfe3f390"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2390486,
+        "out": 58085,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d1c6d33421d1dc6f3c9d182bb350e297246379b0",
+        "started": "2026-09-04T09:30:02Z",
+        "ended": "2026-09-04T09:43:34Z"
+      },
+      "note": "Wrote ops/devlane/fixtures/tests/test_python_service_app.py from the slice-3 contract only. Slice 3 assigns no lever change. Red at d1c6d33421d1dc6f3c9d182bb350e297246379b0 because apps/python-service is absent: python3 -m unittest discover -s ops/devlane/fixtures/tests -p 'test_python_service_app.py' \u2014 32 tests, 68 failures, 0 errors, 0 skipped; first assertion fails on FAULTS.json. Committed 74c64768f2652c36bcaa3256d5e04c91cfe3f390."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T09:43:46.566Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,522 @@
+"""Harness job prompts ask for the envelope.
+
+Written from ops/devlane/task/jobs.json: every harness job's prompt except
+author-tests ends with the envelope clause. The author-tests brief must
+ask for the same envelope the other harness jobs do.
+
+The clause, verbatim:
+
+    Answer with a single JSON object and nothing else, carrying exactly
+    these keys: job, status, verdict, counts, findings, artifacts,
+    spend, stamp, note
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import unittest
+
+import support
+
+JOBS_PATH = support.APP / "jobs.json"
+
+ENVELOPE_CLAUSE = (
+    "Answer with a single JSON object and nothing else, carrying exactly "
+    "these keys: job, status, verdict, counts, findings, artifacts, spend, "
+    "stamp, note"
+)
+
+SPEND_TO_THE_LAUNCHER = (
+    'Leave `spend` as `{"harness": "<harness>", "total": 0, "out": 0, '
+    '"runs": 0}`; the launcher fills it from the session store. Do not '
+    "read the store."
+)
+
+STDOUT_EMPTY_ARTIFACTS = (
+    "Return the JSON envelope on stdout and leave artifacts empty."
+)
+
+def write_path_ask(text: str):
+    """Return the first write-path instruction in text, or None.
+
+    Loaded from write_path.py the way support.load loads sibling
+    modules. No in-file regex, no fallback that restores one.
+    """
+    module = support.load("write_path")
+    return module.write_path_ask(text)
+
+CATALOGUE_BLOB = "ops/devlane/task/jobs.json"
+LADDER_RECORD = (
+    support.REPO / ".dev/records/ladders/20260904T143022Z-ladder-2e605b.json"
+)
+
+
+class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
+    """The author-tests brief asks for the envelope."""
+
+    def test_the_author_tests_brief_asks_for_the_envelope(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        self.assertIn("author-tests", jobs)
+        spec = jobs["author-tests"]
+        self.assertIsInstance(spec, dict)
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "author-tests prompt is empty")
+        self.assertIn(
+            ENVELOPE_CLAUSE,
+            prompt,
+            "author-tests brief must ask for the envelope; "
+            f"last 240 chars: {prompt[-240:]!r}",
+        )
+
+
+class SecurityAuditIsInTheCatalogue(unittest.TestCase):
+    """security-audit is a read, whole-tree job with the envelope."""
+
+    def test_security_audit_is_a_read_whole_job_with_the_envelope(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        self.assertIn("security-audit", jobs)
+        spec = jobs["security-audit"]
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(spec.get("role"), "read")
+        self.assertEqual(spec.get("snapshot"), "whole")
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "security-audit prompt is empty")
+        for token in ("{ref}", "{base}", "{diff}", "{scope}"):
+            self.assertIn(token, prompt, f"security-audit prompt missing {token}")
+        self.assertIn(
+            ENVELOPE_CLAUSE,
+            prompt,
+            "security-audit brief must ask for the envelope; "
+            f"last 240 chars: {prompt[-240:]!r}",
+        )
+
+    def test_security_audit_declares_caps_timeout_1200(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIn("security-audit", jobs)
+        self.assertIn("adversarial-review", jobs)
+        audit = jobs["security-audit"]
+        sibling = jobs["adversarial-review"]
+        self.assertIsInstance(audit, dict)
+        self.assertIsInstance(sibling, dict)
+        audit_caps = audit.get("caps")
+        sibling_caps = sibling.get("caps")
+        self.assertIsInstance(audit_caps, dict, "security-audit must declare caps")
+        self.assertIsInstance(sibling_caps, dict)
+        self.assertEqual(sibling_caps.get("timeout"), 1200)
+        self.assertEqual(
+            audit_caps.get("timeout"), 1200,
+            "security-audit declares caps.timeout 1200, like adversarial-review",
+        )
+
+
+class EveryHarnessPromptLeavesSpendToTheLauncher(unittest.TestCase):
+    """Harness jobs do not hunt usage; the launcher fills spend."""
+
+    def test_every_harness_prompt_leaves_spend_to_the_launcher(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        harness_jobs = [
+            name for name, spec in jobs.items()
+            if isinstance(spec, dict) and spec.get("adapter") == "harness"
+        ]
+        self.assertGreater(
+            len(harness_jobs), 0,
+            "jobs.json must name at least one harness job",
+        )
+        missing = []
+        for name in harness_jobs:
+            prompt = jobs[name].get("prompt")
+            self.assertIsInstance(prompt, str, f"{name} prompt is not a string")
+            self.assertTrue(prompt.strip(), f"{name} prompt is empty")
+            if SPEND_TO_THE_LAUNCHER not in prompt:
+                missing.append(name)
+        self.assertEqual(
+            missing, [],
+            "every harness job prompt leaves spend to the launcher; "
+            f"missing from {missing!r}",
+        )
+
+
+class CheckTestsReadRolePromptRejectsAnyWritePath(unittest.TestCase):
+    """check-tests is a read role; its prompt test is not a blacklist."""
+
+    def jobs(self) -> dict:
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        payload = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(payload, dict)
+        return payload
+
+    def test_write_path_ask_comes_from_write_path_py(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        module = support.load("write_path")
+        fn = getattr(module, "write_path_ask", None)
+        self.assertTrue(
+            callable(fn),
+            "write_path.py must export write_path_ask",
+        )
+
+    def test_check_tests_role_is_read(self):
+        jobs = self.jobs()
+        self.assertIn("check-tests", jobs)
+        spec = jobs["check-tests"]
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(
+            spec.get("role"),
+            "read",
+            "check-tests is a read role; a write-path prompt is a "
+            f"role change, not a deliverable tweak: {spec!r}",
+        )
+
+    def test_a_report_rst_write_prompt_is_rejected_by_shape(self):
+        prompt = (
+            "Create REPORT.rst in the repository and include it in "
+            "artifacts. Return the JSON envelope on stdout and leave "
+            "artifacts empty."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "read-role prompt test must reject REPORT.rst by shape, "
+            "not because REPORT.txt is on a name list",
+        )
+
+    def test_a_findings_json_persist_prompt_is_rejected_by_shape(self):
+        prompt = (
+            "Persist the skeptic findings under reports/findings.json."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "read-role prompt test must reject reports/findings.json "
+            "by shape, not by listing SKEPTIC.md or {out}",
+        )
+
+    def test_create_review_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create REVIEW in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; requiring a slash, an extension, or {out} "
+            "misses Create REVIEW in the repository",
+        )
+
+    def test_create_notes_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create NOTES in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; a slash/extension matcher plus a special-case "
+            "for Create REVIEW misses Create NOTES in the repository",
+        )
+
+    def test_extensionless_relative_names_are_write_paths_by_shape(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        names = ("NOTES", "CHANGELOG", "TODO")
+        missed = []
+        for name in names:
+            prompt = f"Create {name} in the repository"
+            match = write_path_ask(prompt)
+            if match is None:
+                missed.append(prompt)
+        self.assertEqual(
+            missed,
+            [],
+            "path-shaped includes an extensionless relative name, not "
+            "only slash, extension, {out}, or Create REVIEW; missed "
+            f"{missed!r}",
+        )
+
+    def test_live_check_tests_prompt_is_not_a_write_path(self):
+        spec = self.jobs()["check-tests"]
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "check-tests prompt is empty")
+        match = write_path_ask(prompt)
+        self.assertIsNone(
+            match,
+            "check-tests read-role prompt asks for a write path: "
+            f"{match.group(0)!r}"
+            if match
+            else "",
+        )
+        self.assertIn(
+            STDOUT_EMPTY_ARTIFACTS,
+            prompt,
+            "check-tests prompt must keep the stdout / empty-artifacts "
+            f"clause; last 240 chars: {prompt[-240:]!r}",
+        )
+
+
+class OtherJobWiresAreUnchanged(unittest.TestCase):
+    """This branch changes no job other than check-tests vs origin/dev.
+
+    Compare each other job to the catalogue at git merge-base HEAD
+    origin/dev, never to a frozen digest. A digest of this branch can
+    only pass by reverting a trunk change that is outside the bucket.
+    If origin/dev is absent, read base_sha from the ladder record or
+    skip with a declared reason.
+    """
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args],
+            cwd=support.REPO,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def _others(self, jobs: dict) -> dict:
+        return {
+            name: spec for name, spec in jobs.items() if name != "check-tests"
+        }
+
+    def _merge_base(self) -> str:
+        parsed = self._git("rev-parse", "--verify", "origin/dev")
+        if parsed.returncode == 0:
+            merged = self._git("merge-base", "HEAD", "origin/dev")
+            sha = merged.stdout.strip()
+            if merged.returncode == 0 and sha:
+                return sha
+            self.skipTest(
+                "origin/dev is present but git merge-base HEAD origin/dev "
+                f"failed: {(merged.stderr or merged.stdout).strip()}"
+            )
+        if LADDER_RECORD.is_file():
+            payload = json.loads(LADDER_RECORD.read_text(encoding="utf-8"))
+            base = payload.get("base_sha")
+            if isinstance(base, str) and base.strip():
+                sha = base.strip()
+                typed = self._git("cat-file", "-t", sha)
+                if typed.returncode == 0:
+                    return sha
+        self.skipTest(
+            "origin/dev is absent in this snapshot and no usable ladder "
+            "base_sha was found; refusing to freeze a digest"
+        )
+
+    def _catalogue_at(self, rev: str) -> dict:
+        shown = self._git("show", f"{rev}:{CATALOGUE_BLOB}")
+        self.assertEqual(
+            shown.returncode,
+            0,
+            f"git show {rev}:{CATALOGUE_BLOB} failed: "
+            f"{shown.stderr.strip()}",
+        )
+        self.assertTrue(
+            shown.stdout.strip(),
+            f"{CATALOGUE_BLOB} at {rev} is empty",
+        )
+        jobs = json.loads(shown.stdout)
+        self.assertIsInstance(jobs, dict)
+        return jobs
+
+    def test_every_other_job_wire_is_unchanged(self):
+        base = self._merge_base()
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        live = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(live, dict)
+        self.assertIn("check-tests", live)
+        live_others = self._others(live)
+        base_others = self._others(self._catalogue_at(base))
+        self.assertGreater(
+            len(live_others),
+            0,
+            "jobs.json has no job other than check-tests; the comparison "
+            "would pass vacuously",
+        )
+        self.assertGreater(
+            len(base_others),
+            0,
+            f"catalogue at merge-base {base} has no job other than "
+            "check-tests; the comparison would pass vacuously",
+        )
+        self.assertEqual(
+            set(live_others),
+            set(base_others),
+            "another job was added or removed; check-tests is the only "
+            f"job this branch may change relative to merge-base {base}: "
+            f"live={sorted(live_others)!r} base={sorted(base_others)!r}",
+        )
+        for name, expected in sorted(base_others.items()):
+            spec = live_others[name]
+            self.assertIsInstance(spec, dict, name)
+            self.assertIsInstance(expected, dict, name)
+            self.assertEqual(
+                set(spec),
+                set(expected),
+                f"{name} keys changed relative to merge-base {base}: "
+                f"{sorted(spec)!r} vs {sorted(expected)!r}",
+            )
+            for key, value in expected.items():
+                self.assertEqual(
+                    spec.get(key),
+                    value,
+                    f"{name}.{key} changed relative to merge-base {base}",
+                )
+
+
+class ContractSlotsMatchPracticedPrompts(unittest.TestCase):
+    """CONTRACT.md slots sentence matches practiced jobs.json prompts.
+
+    plan names {ref, out, scope}; check-tests names {ref, inputs, scope};
+    adjudicate names {inputs, ref, out}. The doc must not claim that
+    all three read jobs name {inputs}. Do not retitle or drop the job
+    table; TheDocAndTheRegistryAgree owns that comparison.
+    Deleting the stale sentence without writing that mapping is not
+    enough.
+    """
+
+    PLAN_SLOTS = frozenset({"{ref}", "{out}", "{scope}"})
+    CHECK_TESTS_SLOTS = frozenset({"{ref}", "{inputs}", "{scope}"})
+    ADJUDICATE_SLOTS = frozenset({"{inputs}", "{ref}", "{out}"})
+
+    def test_contract_does_not_claim_all_three_read_jobs_name_inputs(self):
+        path = support.APP / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"CONTRACT.md missing: {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        collapsed = " ".join(text.split())
+        needle = "all three read jobs name `{inputs}`"
+        idx = collapsed.find(needle)
+        window = (
+            collapsed[max(0, idx - 80): idx + len(needle) + 80]
+            if idx >= 0
+            else collapsed[collapsed.find("`plan`"): collapsed.find("`plan`") + 240]
+        )
+        self.assertEqual(
+            idx,
+            -1,
+            "CONTRACT.md still claims all three read jobs name "
+            "{inputs}; plan's prompt names {ref, out, scope} only. "
+            f"slots window: {window!r}",
+        )
+        plain = collapsed.replace("`", "")
+        self.assertNotIn(
+            "all three read jobs name {inputs}",
+            plain,
+            "CONTRACT.md still claims all three read jobs name "
+            "{inputs} (ignoring backticks)",
+        )
+
+    def _slots_blob(self, text: str) -> str:
+        """Prose that documents read-job prompt slots, not the job table."""
+        paras = re.split(r"\n\s*\n", text)
+        found = []
+        for para in paras:
+            plain = " ".join(para.replace("`", "").split())
+            if plain.lstrip().startswith("|"):
+                continue
+            jobs = [
+                job for job in ("plan", "check-tests", "adjudicate")
+                if re.search(rf"\b{job}\b", plain)
+            ]
+            slots = re.findall(r"\{[a-z]+\}", plain)
+            if len(jobs) >= 2 and slots:
+                found.append(plain)
+        self.assertTrue(
+            found,
+            "CONTRACT.md has no slots paragraph documenting "
+            "plan/check-tests/adjudicate prompt slots",
+        )
+        return " ".join(found)
+
+    def _tokens_after(self, blob: str, job: str, stop_at: tuple[str, ...]) -> tuple[set[str], str]:
+        match = re.search(rf"\b{re.escape(job)}\b", blob)
+        self.assertIsNotNone(
+            match,
+            f"slots paragraph never names {job}: {blob[:240]!r}",
+        )
+        rest = blob[match.end():]
+        stops = []
+        for other in stop_at:
+            idx = re.search(rf"\b{re.escape(other)}\b", rest)
+            if idx is not None:
+                stops.append(idx.start())
+        end = min(stops) if stops else min(len(rest), 200)
+        segment = rest[:end]
+        return set(re.findall(r"\{[a-z]+\}", segment)), segment
+
+    def test_contract_documents_practiced_read_job_slots(self):
+        path = support.APP / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"CONTRACT.md missing: {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        blob = self._slots_blob(text)
+        plan_tokens, plan_seg = self._tokens_after(
+            blob, "plan", ("check-tests", "adjudicate"),
+        )
+        check_tokens, check_seg = self._tokens_after(
+            blob, "check-tests", ("plan", "adjudicate"),
+        )
+        adj_tokens, adj_seg = self._tokens_after(
+            blob, "adjudicate", ("plan", "check-tests"),
+        )
+        self.assertTrue(
+            plan_tokens >= self.PLAN_SLOTS,
+            "CONTRACT.md must document plan's practiced slots "
+            "{ref, out, scope}; "
+            f"found {sorted(plan_tokens)} in {plan_seg!r}",
+        )
+        self.assertTrue(
+            check_tokens >= self.CHECK_TESTS_SLOTS,
+            "CONTRACT.md must document that check-tests names "
+            "{ref, inputs, scope}; "
+            f"found {sorted(check_tokens)} in {check_seg!r}",
+        )
+        self.assertTrue(
+            adj_tokens >= self.ADJUDICATE_SLOTS,
+            "CONTRACT.md must document that adjudicate names "
+            "{inputs, ref, out}; "
+            f"found {sorted(adj_tokens)} in {adj_seg!r}",
+        )
+        self.assertNotIn(
+            "all three read jobs name {inputs}",
+            blob,
+            "CONTRACT.md still claims all three read jobs name "
+            f"{{inputs}}: {blob[:240]!r}",
+        )
+
+    def test_practiced_read_job_slots_are_plan_without_inputs(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        plan = jobs["plan"]["prompt"]
+        check = jobs["check-tests"]["prompt"]
+        adj = jobs["adjudicate"]["prompt"]
+        self.assertIsInstance(plan, str)
+        self.assertIsInstance(check, str)
+        self.assertIsInstance(adj, str)
+        for token in ("{ref}", "{out}", "{scope}"):
+            self.assertIn(token, plan, f"plan prompt missing {token}")
+        self.assertNotIn(
+            "{inputs}",
+            plan,
+            "plan's prompt must not name {inputs}",
+        )
+        for token in ("{ref}", "{inputs}", "{scope}"):
+            self.assertIn(token, check, f"check-tests prompt missing {token}")
+        for token in ("{inputs}", "{ref}", "{out}"):
+            self.assertIn(token, adj, f"adjudicate prompt missing {token}")
+
+
+if __name__ == "__main__":
+    unittest.main()

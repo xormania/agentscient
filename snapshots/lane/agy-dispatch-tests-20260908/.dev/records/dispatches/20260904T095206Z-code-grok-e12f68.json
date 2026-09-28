@@ -1,0 +1,157 @@
+{
+  "id": "20260904T095206Z-code-grok-e12f68",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-5",
+  "lineage": {
+    "branch": "lane/fixture-apps-5",
+    "base_sha": "b5cf5cfe4e3bab67e36e639edb851926cdb6670f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T09:52:06Z",
+    "closed": "2026-09-04T10:08:56Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b5cf5cfe4e3bab67e36e639edb851926cdb6670f",
+    "ref_sha": "b5cf5cfe4e3bab67e36e639edb851926cdb6670f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a186f482-3a59-42a6-b729-4e2d2abb1a22",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok-stream/sessions/<snapshot-encoded>/a186f482-3a59-42a6-b729-4e2d2abb1a22/summary.json"
+  },
+  "session": {
+    "id": "a186f482-3a59-42a6-b729-4e2d2abb1a22",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok-stream/sessions/<snapshot-encoded>/a186f482-3a59-42a6-b729-4e2d2abb1a22/summary.json",
+    "stream_sha256_at_close": "4fd40da881f60fc3e6815a94c7d70b98da6541c45523ef80ae1fb2afe9f10fd2",
+    "spend": {
+      "input": 7479651,
+      "cached": 7071744,
+      "output": 56321,
+      "total": 7535972,
+      "cost_usd_ticks": 7972340400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/home/grok-stream/sessions/<snapshot-encoded>/a186f482-3a59-42a6-b729-4e2d2abb1a22/summary.json",
+      "messages": 385
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-5/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 5 (apps/rust-crate), the fix round on the test: the Codex skeptic judged ops/devlane/fixtures/tests/test_rust_crate_app.py at this ref against the contract and found 1 P1 and 4 P2 (verdict CHANGES); its findings are appended to the input file after the contract. Address every finding, saying in the commit which you left and why: each fault pinned to its exact shell gate, Cargo target and behavioural probe; the binary's read and write verbs and the identity rule exercised; the manifest's locations pinned by function and lines with exact quotations; the wildcard fault pinned so a compatible range does not pass; the toolchain install and ready commands executed from the manifest, not matched as strings. The test stays red-first (the crate does not exist; do not write it). One commit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T095206Z-code-grok-e12f68/in/contract-fixtures-5-fix.md",
+        "sha256": "5bde9df9e2098b606c41cb80a5228c69b168f54d2e7b3b234287164bfe5770b2"
+      }
+    ],
+    "sha256": "34244700bcaa1df376bea96aa793cb127c184051836dcf4a29e1ce146f80d534",
+    "bytes": 3165
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T09:52:06Z",
+      "ended": "2026-09-04T10:08:56Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "92e98f9028dc46d900a5b24fd3729c598a71e3b9",
+    "changed_paths": [
+      "ops/devlane/fixtures/tests/test_rust_crate_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+        "commit": "92e98f9028dc46d900a5b24fd3729c598a71e3b9"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 7535972,
+        "out": 56321,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b5cf5cfe4e3bab67e36e639edb851926cdb6670f",
+        "started": "2026-09-04T09:52:06Z",
+        "ended": "2026-09-04T10:08:33Z"
+      },
+      "note": "Addressed all five Codex skeptic findings on ops/devlane/fixtures/tests/test_rust_crate_app.py; left none. Each fault is pinned to its shell gate, Cargo test target and behavioural probe; the bin's read/write verbs and the identity rule are exercised; locations are pinned by function, line span and exact quotations; RC-07 after fix must be anyhow =<Cargo.lock version> so a compatible range does not pass; toolchain.install, toolchain.ready and check are the contracted commands and are executed from the manifest. The crate was not written. python3 -m unittest discover -s ops/devlane/fixtures/tests -p 'test_rust_crate_app.py' \u2014 41 tests, 120 assertion failures (subtests included), 0 errors. One commit 92e98f9028dc46d900a5b24fd3729c598a71e3b9 on lane/fixture-apps-5."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T10:08:56.330Z"
+    }
+  },
+  "status": "closed"
+}

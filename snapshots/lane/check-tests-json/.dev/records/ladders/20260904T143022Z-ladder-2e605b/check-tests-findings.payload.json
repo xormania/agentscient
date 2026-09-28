@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "Declared: \u201cA pre-existing symlink is a planted fault, not a destination.\u201d Practiced: the sole write-time plant is \u201cpayload.symlink_to(secret)\u201d, using an absolute target, and the test never asserts second.returncode or a refusal. Broken implementations missed: one that handles only absolute-target symlinks but follows a relative ../../ host symlink, or one that silently returns success after check-tests when any symlink exists. Both survive while the contracted protection or refusal remains broken.",
+    "reproduce": "sed -n '743,752p;1938,1951p;3776,3857p' ops/conductor/tests/test_ladder_lever.py",
+    "severity": "p1",
+    "where": "ops/conductor/tests/test_ladder_lever.py:3776"
+  },
+  {
+    "claim": "Declared: \u201cPath-shaped includes an extensionless relative name (`REVIEW`), not only slash, extension, or `{out}`.\u201d Practiced: both files repeat only \u201cCreate REVIEW in the repository\u201d for the extensionless case. A broken detector retaining the old slash/extension matcher plus an exact special-case for that one prompt passes every test while missing `Create NOTES in the repository`.",
+    "reproduce": "rg -n 'Create [A-Z][A-Z0-9_-]* in the repository' ops/devlane/task/tests/test_check_tests_json.py ops/devlane/task/tests/test_jobs.py",
+    "severity": "p2",
+    "where": "ops/devlane/task/tests/test_check_tests_json.py:209; ops/devlane/task/tests/test_jobs.py:308"
+  },
+  {
+    "claim": "Declared: \u201cAlign the slots sentence with practiced prompts.\u201d Practiced: `test_contract_does_not_claim_all_three_read_jobs_name_inputs` only removes the exact stale words, while `test_practiced_read_job_slots_are_plan_without_inputs` examines jobs.json rather than CONTRACT.md. A broken documentation change that deletes the slots sentence without documenting the correct plan/check-tests/adjudicate mapping passes both tests.",
+    "reproduce": "sed -n '387,450p' ops/devlane/task/tests/test_jobs.py",
+    "severity": "p3",
+    "where": "ops/devlane/task/tests/test_jobs.py:399"
+  }
+]

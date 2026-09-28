@@ -1,0 +1,178 @@
+{
+  "id": "20260904T040646Z-review-codex-7fbe5c",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "11ca98c5d9f1d343342a3aca9dd60d1452d71ff7"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T04:06:46Z",
+    "closed": "2026-09-04T04:16:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "11ca98c5d9f1d343342a3aca9dd60d1452d71ff7",
+    "ref_sha": "11ca98c5d9f1d343342a3aca9dd60d1452d71ff7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-06-47-01a06a99-012d-7cc1-8f6b-f9c145ca58cc.jsonl"
+  },
+  "session": {
+    "id": "01a06a99-012d-7cc1-8f6b-f9c145ca58cc",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-06-47-01a06a99-012d-7cc1-8f6b-f9c145ca58cc.jsonl",
+    "stream_sha256_at_close": "24d561e41b69b93edaa1e3cec1fb3c82faf5701d5de7953dee8410a088ed86e0",
+    "spend": {
+      "input": 8353284,
+      "cached": 8114748,
+      "output": 37246,
+      "total": 8390530,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T00-06-47-01a06a99-012d-7cc1-8f6b-f9c145ca58cc.jsonl",
+      "messages": 452
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "4be9229129a9fce15e2ed42efdd7c752286a7807569ec47327c0899e102fd773"
+    },
+    "scope": "Security audit of lane fix batch 1: the branch lane/lane-fixes against dev (origin/dev at 77f7c1a); the diff between them is the change under audit and the contract (scope items 1 to 12 plus the plan) is in the input file, with the session's review notes appended. Aim at: the dispatcher's launch and detach paths (it now execs the launcher by path and backgrounds it), job-name and conf handling, the launcher's collect, resume and wait verbs and the sandbox tokens they carry, record validation, the land lever's collected-trip path, the PR overview's row collection, and anything a worker snapshot could use to reach outside its job directory. Findings as quotation pairs with file and line; P1 for anything exploitable from a worker or a PR.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T040646Z-review-codex-7fbe5c/in/contract-lane-fixes-1-audit.md",
+        "sha256": "25975b7ba741361d459c3b78d41013359212ab832732475346ba1899319e0a9d"
+      }
+    ],
+    "sha256": "f740a12b5c27f2c84f34756d7f9f89bd983e94a6e789d50e81765014f1a86e1f",
+    "bytes": 3663
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T04:06:46Z",
+      "ended": "2026-09-04T04:16:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "11ca98c5d9f1d343342a3aca9dd60d1452d71ff7",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 5,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/dispatch.conf:3-4 \u2194 ops/conductor/tools/dispatch.sh:55-68,201-217",
+          "claim": "Declared: an explicit LAUNCHER_PIN provides the \u201chard supply-chain lock.\u201d Practiced: without that optional environment value, the documented lever selects and executes launch.py from the PR worktree before any sandbox. A malicious PR can therefore execute host-level code when audited or dispatched.",
+          "reproduce": "env -u LAUNCHER_PIN -u DISPATCH_TIMEOUT bash ops/conductor/tools/dispatch.sh --job security-audit --harness codex --scope-file ops/bin/term-wall.conf.example --worktree \"$PWD\" --dry-run | python3 -c 'import json,sys; p=json.load(sys.stdin); print(p[\"launcher\"]); assert p[\"launcher\"][\"source\"]==\"sibling\" and p[\"argv\"][0].endswith(\"/ops/devlane/dispatch/launch.py\")' && git diff --name-only 77f7c1a425401705417cc2a11db3f03b59a89a9e 11ca98c5d9f1d343342a3aca9dd60d1452d71ff7 -- ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:174-183 \u2194 ops/devlane/dispatch/launch.py:289-312,335-374 \u2194 .claude/settings.json:10-15",
+          "claim": "Declared: project permission strings are filtered and Claude is policy-contained. Practiced: every remaining string from the untrusted snapshot is appended to --allowedTools; the current imported rules include Bash(php *) and worker-editable shell scripts. A malicious PR can run arbitrary PHP or altered repository scripts with the operator\u2019s UID and HOME.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'from pathlib import Path; import launch; _,a,d=launch._project_permissions(Path(\".\")); v=launch._argv(\"claude\",\"m\",None,\"s\",Path(\"/job/prompt.txt\"),[],\"acceptEdits\",project_allow=a,project_deny=d); assert \"Bash(php *)\" in a and \"Bash(php *)\" in v; print(\"Bash(php *) forwarded\")' && php -r 'echo \"php-r executes\", PHP_EOL;'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:255-262 \u2194 ops/devlane/dispatch/launch.py:1441-1449",
+          "claim": "Declared: collect verifies a failed worker snapshot before accepting it. Practiced: verification executes bash -c inside that attacker-modifiable snapshot with the complete ambient operator environment and no sandbox or harness isolation. A malicious test or suite script can read credentials, access the network, or modify files outside the job directory.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch AUDIT_SENTINEL=visible-to-verify python3 -c 'import inspect,os,launch; s=inspect.getsource(launch._collect); e=launch._child_env(os.environ,{},\"audit\"); assert \"[\\\"bash\\\", \\\"-c\\\", args.verify]\" in s and \"_child_env(os.environ\" in s and \"--sandbox\" not in s and e[\"AUDIT_SENTINEL\"]==\"visible-to-verify\"; print(e[\"AUDIT_SENTINEL\"])'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:247-249 \u2194 ops/devlane/dispatch/launch.py:1460-1469",
+          "claim": "Declared: a write result\u2019s HEAD must descend from ref_sha before refs/dispatch/<id> advances. Practiced: the new collect path commits and fetches the snapshot HEAD without the normal merge-base --is-ancestor check. A tripped worker can move HEAD off-lineage and have unrelated commits recorded and offered to land.",
+          "reproduce": "PYTHONPATH=ops/devlane/dispatch python3 -c 'import inspect,launch; s=inspect.getsource(launch._collect); assert \"_commit_for_harness\" in s and \"refs/dispatch/\" in s and \"is-ancestor\" not in s; print(\"ref write without ancestry check\")'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/land-lever.md:57-61 \u2194 ops/conductor/tools/land.py:112-132 \u2194 ops/devlane/dispatch/record.py:98-109",
+          "claim": "Declared: landing accepts collection evidence only when verify.exit is 0. Practiced: both validators use Python equality without an exact integer type check, so JSON false equals 0; land consequently treats a forged false verification as successful and can bypass failed-exit and invalid-envelope gates.",
+          "reproduce": "PYTHONPATH=ops/conductor/tools python3 -c 'import land; d={\"result\":{\"collected\":{\"head\":\"h\",\"verify\":{\"exit\":False}}}}; assert land.validated_collection(d,\"h\") is True; print(False==0)'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 8390530,
+        "out": 37246,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "11ca98c5d9f1d343342a3aca9dd60d1452d71ff7"
+      },
+      "note": "Covered argv, shell and template seams; secrets in all 41 changed files and nine added records; path/ref containment; sandbox claims; vendor-output handling; and supply-chain pins, lockfiles and actions. Secret scan was clean, no SQL surface changed, and no dependency lockfile or fetched-action change exists. Stateful temporary-directory suites could not run because the audit filesystem is read-only; the listed read-only reproductions ran. The session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T04:16:08.767Z"
+    }
+  },
+  "status": "closed"
+}

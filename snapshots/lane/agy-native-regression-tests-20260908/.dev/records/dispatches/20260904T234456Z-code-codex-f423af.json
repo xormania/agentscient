@@ -1,0 +1,309 @@
+{
+  "id": "20260904T234456Z-code-codex-f423af",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/security-hook-families-20260904",
+  "lineage": {
+    "branch": "lane/security-hook-families-20260904",
+    "base_sha": "d74f7686a17a36eb4ce9b29be5ad882e3fd861ca"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-04T23:44:56Z",
+    "closed": "2026-09-04T23:56:14Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d74f7686a17a36eb4ce9b29be5ad882e3fd861ca",
+    "ref_sha": "d74f7686a17a36eb4ce9b29be5ad882e3fd861ca",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T19-44-57-01a06ecf-a528-7521-ad46-a0e1bbb76d0e.jsonl"
+  },
+  "session": {
+    "id": "01a06ecf-a528-7521-ad46-a0e1bbb76d0e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T19-44-57-01a06ecf-a528-7521-ad46-a0e1bbb76d0e.jsonl",
+    "stream_sha256_at_close": "1c8a069ebdde31b985b575ac2e29c21526744ade16a9f6eb7e29dfec5db3fe3c",
+    "spend": {
+      "input": 2492974,
+      "cached": 2390528,
+      "output": 31787,
+      "total": 2524761,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T19-44-57-01a06ecf-a528-7521-ad46-a0e1bbb76d0e.jsonl",
+      "messages": 273
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr60.kePmNH/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "# Read ../in/draft62-correction-brief.md and both named review JSONs WHOLE. Fix the upheld semantic families in only the two hooks; no tests or broad suite. Run scratch family probes and this command.\npython3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py && python3 -m unittest discover -s ops/devlane/hooks/tests -p test_unsafe_command.py && ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && git diff --check\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/in/draft62-correction-brief.md",
+        "sha256": "64bc4875d0ddf281c0943ff83ce2310399c276745e417909b4dd08869dd947b8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/in/draft62-grok-report.json",
+        "sha256": "aa4167229a324112c0b224ad5eb668732a6c6d3147c28e9fd99ec997c9330525"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/in/draft62-daybreak-report.json",
+        "sha256": "78b93b7c7bb10622c2e9e2ddd7033f7ace058b25a50970982637f52c8a40fce1"
+      }
+    ],
+    "sha256": "34602328c85cc6502bb27abc7efec25314a438272c08425b13f42be13b8b394b",
+    "bytes": 4318
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T23:44:56Z",
+      "ended": "2026-09-04T23:56:14Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c7e7f84b90bc28c54669d75bded4f407165e6808",
+    "changed_paths": [
+      "ops/devlane/hooks/claude/matrix.py",
+      "ops/devlane/hooks/claude/unsafe-command.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "draft62-correction",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 23,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository discovery",
+          "claim": "Confirmed the detached snapshot was initially clean and enumerated the governing and input files.",
+          "reproduce": "pwd && git status --short --branch && rg --files docs ops | sed -n '1,240p' && rg --files ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "governing documents and inputs",
+          "claim": "Confirmed HEAD was d74f7686a17a36eb4ce9b29be5ad882e3fd861ca and began reading the governing documents and named inputs; output truncation required narrower follow-up reads.",
+          "reproduce": "git rev-parse HEAD && for path in docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/devlane/AGENTS.md ../in/draft62-correction-brief.md ../in/draft62-grok-report.json ../in/draft62-daybreak-report.json; do echo \"===== $path =====\"; sed -n '1,$p' \"$path\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md and ops/README.md",
+          "claim": "Measured document lengths and completed the previously truncated mapping and lane-instruction reads.",
+          "reproduce": "wc -l docs/*.md ops/README.md ops/devlane/AGENTS.md ../in/draft62-correction-brief.md ../in/draft62-grok-report.json ../in/draft62-daybreak-report.json && sed -n '1,220p' docs/mapping.md && sed -n '221,440p' docs/mapping.md && sed -n '1,260p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read the correction brief and both named review JSON files whole.",
+          "reproduce": "sed -n '1,200p' ../in/draft62-correction-brief.md && sed -n '1,200p' ../in/draft62-grok-report.json && sed -n '1,200p' ../in/draft62-daybreak-report.json"
+        },
+        {
+          "severity": "p3",
+          "where": "two hooks and named tests",
+          "claim": "Inspected both hooks and named tests; output truncation prompted focused range reads.",
+          "reproduce": "sed -n '1,520p' ops/devlane/hooks/claude/matrix.py && sed -n '1,420p' ops/devlane/hooks/claude/unsafe-command.py && sed -n '1,520p' ops/devlane/hooks/tests/test_matrix.py && sed -n '1,420p' ops/devlane/hooks/tests/test_unsafe_command.py"
+        },
+        {
+          "severity": "p3",
+          "where": "hook implementation ranges",
+          "claim": "Measured file lengths and inspected the operand, AST-binding, dispatch, and clipping implementation ranges.",
+          "reproduce": "wc -l ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/tests/test_matrix.py ops/devlane/hooks/tests/test_unsafe_command.py && nl -ba ops/devlane/hooks/claude/matrix.py | sed -n '150,440p' && nl -ba ops/devlane/hooks/claude/unsafe-command.py | sed -n '1,360p'"
+        },
+        {
+          "severity": "p3",
+          "where": "command_shape.py and local CLI help",
+          "claim": "Measured the shared command parser plus installed GNU env and Python option semantics.",
+          "reproduce": "sed -n '1,360p' ops/devlane/hooks/claude/command_shape.py && /usr/bin/env --help && python3 --help | sed -n '1,180p'"
+        },
+        {
+          "severity": "p3",
+          "where": "GNU head and provenance",
+          "claim": "Measured installed GNU head line/count semantics and inspected existing source/model trailer style.",
+          "reproduce": "head --help | sed -n '1,180p' && sed -n '360,460p' ops/devlane/hooks/claude/command_shape.py && git log -1 --format=fuller && git show -s --format='%B' d74f7686a17a36eb4ce9b29be5ad882e3fd861ca"
+        },
+        {
+          "severity": "p3",
+          "where": "hook history",
+          "claim": "Inspected recent hook commits and verified their trailer conventions.",
+          "reproduce": "git log -20 --format='%h%x09%s%n%b' -- ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py | sed -n '1,240p' && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "initial implementation diff",
+          "claim": "Reviewed the first implementation diff and Ruff reported clean.",
+          "reproduce": "git diff -- ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py"
+        },
+        {
+          "severity": "p3",
+          "where": "scratch classifier probe 1",
+          "claim": "The initial classifier-only cross-product passed for source forms, stdlib bindings, launch wrappers, line-head forms, and intended allows.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Load matrix.py and unsafe-command.py, then assert the initial source/binding/env/head cross-product recorded in the session transcript.\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "intermediate named verification",
+          "claim": "At the first verification point, 55 matrix tests and 6 unsafe-command tests passed, Ruff was clean, and git diff --check passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py && python3 -m unittest discover -s ops/devlane/hooks/tests -p test_unsafe_command.py && ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "existing focused tests",
+          "claim": "Located existing Python-write, launcher, and clipped-sweep coverage without editing it.",
+          "reproduce": "rg -n \"python3|python_sources|python_written_paths|builtins|pathlib|io\\.open|Path\\(\" ops/devlane/hooks/tests/test_matrix.py | sed -n '1,240p' && rg -n \"clipped-sweep|head\" ops/devlane/hooks/tests/corpus.py ops/devlane/hooks/tests/test_unsafe_command.py | sed -n '1,240p'"
+        },
+        {
+          "severity": "p3",
+          "where": "test inspection",
+          "claim": "Inspected relevant focused tests; the compound read exited 2 solely because the repository has no pyproject.toml.",
+          "reproduce": "sed -n '600,700p' ops/devlane/hooks/tests/test_matrix.py && sed -n '1080,1160p' ops/devlane/hooks/tests/test_matrix.py && sed -n '1,120p' pyproject.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "scratch classifier probe 2",
+          "claim": "A broadened scratch probe exposed an alias-binding error in the first draft and exited nonzero; the error was subsequently corrected.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Run the broadened alias, heredoc, env, launcher, and head classifier cross-product recorded in the session transcript.\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix.py alias diagnosis",
+          "claim": "Confirmed Python source extraction worked while filesystem alias resolution returned no paths, isolating the first-draft binding defect.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Load matrix.py and print tokens_of, python_sources, python_written_paths, and check_text for separate, attached, prefixed, and env-wrapped -c forms.\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "scratch classifier probe 3",
+          "claim": "After correcting aliases, the broadened scratch probe exposed stdin-heredoc recognition for bare Python and exited nonzero; it was subsequently corrected.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Re-run the broadened classifier cross-product including Python -m/file heredoc negatives and stdin positives.\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "matrix.py heredoc diagnosis",
+          "claim": "Confirmed bare Python heredoc tokens retained the redirection operand while the explicit-stdin neighbor worked, isolating heredoc operand filtering.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Load matrix.py and print commands() and python_sources() for bare and env-wrapped Python heredocs.\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "final scratch family probes",
+          "claim": "Ruff and the final classifier-only cross-product passed across attached/separate Python source, consuming options, stdin negatives and positives, stdlib aliases, arbitrary-object negatives, env launcher variants, GNU head line forms, tail-only, single-needle, and byte-mode allows.",
+          "reproduce": "ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\n# Run the final classifier-only cross-product recorded in the session transcript; expected final line: ok: classifier-only cross-product and intended allows\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "final named verification",
+          "claim": "The required unchanged command exited 0: 55 matrix tests passed, 6 unsafe-command tests passed, Ruff passed, and git diff --check passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py && python3 -m unittest discover -s ops/devlane/hooks/tests -p test_unsafe_command.py && ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "final scoped diff",
+          "claim": "Verified the final snapshot diff is whitespace-clean and modifies only matrix.py and unsafe-command.py.",
+          "reproduce": "git diff --check && git status --short && git diff --stat && git diff --name-only"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The requested commit was attempted with required trailers but the sandbox refused creation of the read-only Git index lock.",
+          "reproduce": "git add ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py && git commit -m 'hooks: close upheld semantic families' -m 'Share bounded env and Python operand parsing across source and launcher classification, bind literal stdlib filesystem aliases through the AST, and classify GNU head line clipping by parsed command semantics.' -m 'Source: original' -m 'Co-Authored-By: GPT-5 Codex <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMIT_MSG",
+          "claim": "Confirmed the base ref, two-file dirty snapshot, launcher fallback message, required trailers, and completion timestamp.",
+          "reproduce": "git rev-parse HEAD && git status --short && sed -n '1,120p' ../out/COMMIT_MSG && date --iso-8601=seconds"
+        }
+      ],
+      "artifacts": {
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T234456Z-code-codex-f423af/out/COMMIT_MSG",
+        "matrix": "ops/devlane/hooks/claude/matrix.py",
+        "unsafe_command": "ops/devlane/hooks/claude/unsafe-command.py"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2524761,
+        "out": 31787,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d74f7686a17a36eb4ce9b29be5ad882e3fd861ca",
+        "started": null,
+        "ended": "2026-09-04T19:54:34-04:00"
+      },
+      "note": "Final named command exited 0 in the final tree. Only the two hooks changed; tests were not edited. Unsafe write and launcher strings were classified only, never executed. GNU head byte-mode clipping remains intentionally outside the line-clipping contract, and env -S split-string expansion remains outside the explicitly named bounded env families. No unrelated pre-existing defect or performance concern was found. Git commit was refused by the read-only .git filesystem, so the launcher fallback message was written.",
+      "commit": {
+        "subject": "hooks: close upheld semantic families",
+        "body": "Share bounded env and Python operand parsing across source and launcher classification, bind literal stdlib filesystem aliases through the AST, and classify GNU head line clipping by parsed command semantics.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T23:56:13.802Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "schema-d1034084",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md section 3.2 says the artifacts table holds digest, size, media_type, and class.",
+  "observed": "The migrated artifacts table has those four columns plus created_at, so the column count is 5 rather than 4.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "104-104",
+      "quote": "| `artifacts` | CAS: `digest`, `size`, `media_type`, `class` | as-is |"
+    },
+    {
+      "artifact": "cue/schema.cue",
+      "lines": "53-53",
+      "quote": "_columnCount: len(_columnNames) & 4"
+    },
+    {
+      "artifact": "migrations/0001_foundation.sql",
+      "lines": "64-70",
+      "quote": "CREATE TABLE artifacts ("
+    },
+    {
+      "artifact": "migrations/0001_foundation.sql",
+      "lines": "69-69",
+      "quote": "created_at TEXT    NOT NULL"
+    }
+  ],
+  "action": "record-finding"
+}

@@ -1,0 +1,249 @@
+{
+  "id": "20260909T235710Z-review-codex-b35be7",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/onboarding-completion",
+  "lineage": {
+    "branch": "lane/onboarding-completion-20260909",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:57:10Z",
+    "closed": "2026-09-10T00:05:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-57-12-01a0889a-aa83-71a3-964b-2c446b663b11.jsonl"
+  },
+  "session": {
+    "id": "01a0889a-aa83-71a3-964b-2c446b663b11",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-57-12-01a0889a-aa83-71a3-964b-2c446b663b11.jsonl",
+    "stream_sha256_at_close": "cf3493a1c7ae44a00a544f08f261ca02f281edbb891b53dafc9295fc8a7ed4e3",
+    "spend": {
+      "input": 2168174,
+      "cached": 2030208,
+      "output": 15169,
+      "total": 2183343,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-57-12-01a0889a-aa83-71a3-964b-2c446b663b11.jsonl",
+      "messages": 170
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Audit deterministic fresh-session onboarding end to end. Categories: (1) complete CLI/tool/feature/MCP discovery and bounded context, (2) session identity/freshness/ownership/concurrency, (3) monitoring and actual alert delivery, (4) existing conduct/policy/discovery implementation versus contracts and admission dependencies. Read in/onboarding-request.md. For every category report measured gaps and existing reusable owners with exact paths. Distinguish shipped, unfinished, proposed and live-unverified. Cover all categories; no code edits. Return a concise dependency-ordered completion recommendation in note, including actual-client proof and activation. Do not investigate unrelated product features internally; inventory their discoverability. No external reads or worker delegation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235710Z-review-codex-b35be7/in/onboarding-request.md",
+        "sha256": "2b2878ff11f6ad360b66e03a131e5bd6602030fc4b2f24cdfc18bdf708665620"
+      }
+    ],
+    "sha256": "657340671c9a143a29cbcd56c553e6e7881947921b0427a2a8b2edb0aa49c4d4",
+    "bytes": 3390
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:57:10Z",
+      "ended": "2026-09-10T00:05:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 11,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "Category 1 \u2014 ops/conductor/tools/lane_read.py:1311",
+          "claim": "The requested complete discovery inventory is unfinished. CONCEPT_INDEX contains 30 concepts but omits findings.py, laneconf.py, project levers, telemetry/usage/budget/worth, the feature shelf, review-comment tooling and the Mate diagnostic route. Profile validation accepts only indexed concepts, so configuration alone cannot expose these owners. Existing reusable discovery owners are lane_read.py, lane_mcp.py and discovery-lever.md; extend their bounded catalogue and named-detail projections.",
+          "reproduce": "python3 -B - <<'PY'\nimport sys\nfrom pathlib import Path\nsys.path.insert(0,'ops/conductor/tools')\nimport lane_read as r\nprint('concepts',len(r.CONCEPT_INDEX),[x['concept'] for x in r.CONCEPT_INDEX])\nrouted={x[k] for x in r.CONCEPT_INDEX for k in ('home','contract','entrypoint','registry')}\nfor base in ('ops/bin','ops/conductor/tools','ops/devlane/telemetry'):\n for p in sorted(Path(base).glob('*')):\n  if p.suffix in ('.py','.sh') and (p.suffix=='.sh' or '__main__' in p.read_text()): print(p,'indexed' if str(p) in routed else 'unindexed')\nprint('features',[str(p) for p in Path('ops/design/features').rglob('*.feature')])\nprint('mate instructions',Path('mate/AGENT_INSTRUCTIONS.md').exists(),'mate executable',Path('vendor/bin/mate').exists())\nPY\nsed -n '1705,1717p' ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 1 \u2014 ops/conductor/tools/onboard.py:241",
+          "claim": "The accepted 'one bounded initial packet' is not enforced by the shipped onboarding brief. calibration() reads and returns the complete section, and main() prints it without a byte cap or continuation. A synthetic 100,000-character thread produced 100,659 UTF-8 bytes, exit 0 and 'brief complete'. Reuse the bounded assembly and cursor patterns in lane_read.py rather than putting every detail into startup.",
+          "reproduce": "python3 -B - <<'PY'\nimport sys,io,contextlib\nfrom pathlib import Path\nfrom unittest.mock import patch\nsys.path.insert(0,'ops/conductor/tools')\nimport onboard as o\nwith contextlib.ExitStack() as s:\n s.enter_context(patch.object(sys,'argv',['onboard.py']))\n s.enter_context(patch.object(o,'repository_root',return_value=Path.cwd()))\n for name in ('register_line','ledger_line','prs_line','dispatches_line','branch_line'): s.enter_context(patch.object(o,name,return_value=('fixture',True)))\n s.enter_context(patch.object(o,'calibration',return_value=(['X'*100000],True)))\n out=io.StringIO()\n with contextlib.redirect_stdout(out): rc=o.main()\n print(rc,len(out.getvalue().encode()),out.getvalue().splitlines()[-1])\nPY\nsed -n '241,307p' ops/conductor/tools/onboard.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Category 1 \u2014 ops/README.md:109",
+          "claim": "Published availability contradicts the tree: ops/README.md says the wf.py '--json status --checks' projection 'is present', but ops/devlane/workflow/wf.py is absent. This sends a fresh session to an unavailable command without declaring its actual state. Reusable existing check-discovery owners are ops/devlane/workflow/checks/ci_contexts.py and ops/devlane/workflow/checks/ci_matrix.py; the generic workflow runtime remains unbuilt.",
+          "reproduce": "sed -n '107,118p' ops/README.md\npython3 -B - <<'PY'\nfrom pathlib import Path\nfor p in ('ops/devlane/workflow/wf.py','ops/devlane/workflow/checks/ci_contexts.py','ops/devlane/workflow/checks/ci_matrix.py'): print(p,Path(p).is_file())\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 2 \u2014 .claude/settings.json:137",
+          "claim": "Fresh-session identity, role/profile, ownership and lifecycle admission remain unfinished. SessionStart matches only 'compact'; its hook invokes a read-only brief and converts absence exit 1 to hook exit 0. The brief establishes no session/worktree ownership claim or durable admission record, and no startup/resume/reconnect hook performs that work. Reuse the worker identity/snapshot record machinery in ops/devlane/dispatch/launch.py and record.py, branch observations in ops/conductor/tools/branches.py, and the proposed startup owner ops/conductor/conductor-start-plan.md. Worker IDs and separate worktrees do not themselves exclude two conductor sessions sharing one worktree.",
+          "reproduce": "python3 -B - <<'PY'\nimport json\nfrom pathlib import Path\ns=json.loads(Path('.claude/settings.json').read_text())\nprint(s['hooks']['SessionStart'])\nPY\ncat ops/devlane/hooks/claude/onboard-on-compact.sh\nsed -n '267,308p' ops/conductor/tools/onboard.py\nsed -n '1304,1335p;1450,1483p' ops/devlane/dispatch/launch.py\nrg -n 'claim|lease|flock|session|owner' ops/conductor/tools/branches.py ops/conductor/tools/onboard.py"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 2 \u2014 ops/devlane/hooks/claude/context-precheck.py:200",
+          "claim": "The existing freshness check does not establish the accepted policy-defined freshness. It compares remote-ref movement during a fetch, ignores a nonzero fetch result, and permits the action when nothing moved; it does not prove the checkout caught up. onboard.branch_line() reports only branch and short SHA, while dispatch's 'stale-base' check accepts an ancestor of the lineage. Reuse these owners and branches.py, but integrate the concurrent lane/dev-freshness-20260909 contract/interface before treating stationary or locally reachable refs as fresh.",
+          "reproduce": "sed -n '200,231p' ops/devlane/hooks/claude/context-precheck.py\nsed -n '226,233p' ops/conductor/tools/onboard.py\nsed -n '1376,1410p' ops/devlane/dispatch/launch.py\ncat ../in/onboarding-request.md"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 3 \u2014 ops/conductor/tools/monitor.py:977",
+          "claim": "Monitoring readiness is not observable through the startup path. monitor.py check reports valid:true for the shipped example although all three monitors are disabled; digest() returns an ordinary empty digest when its database is absent. onboard.py has no monitor-health input. Thus a valid configuration, empty queue or complete brief cannot prove coverage, monitor ownership/reuse or continued liveness. Reuse monitor.py scheduling/transactions, watchdog.py observations and lane_read.py's explicit 'monitor database is not armed' state; add the missing startup/monitor-loss evidence through those owners.",
+          "reproduce": "python3 -B ops/conductor/tools/monitor.py check\npython3 -B - <<'PY'\nimport json,sys\nfrom pathlib import Path\nfrom unittest.mock import patch\nsys.path.insert(0,'ops/conductor/tools')\nimport monitor\nc=json.loads(Path('ops/conductor/monitor.example.json').read_text())\nprint({k:v['enabled'] for k,v in c['monitors'].items()})\nwith patch.object(monitor,'_connect',return_value=None): print(monitor.digest(Path('unused'),'audit',10,4096,False).decode())\nPY\nsed -n '283,297p' ops/conductor/tools/onboard.py\nsed -n '518,530p' ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 3 \u2014 ops/conductor/monitor-lever.md:180",
+          "claim": "Actual session alert delivery remains unfinished and live-unverified. The shipped routes support queue, stdout and unsupported; the contract explicitly says a digest is 'not proof of wakeup' and acknowledgment is not external-harness receipt. MCP advertises subscribe:false and does not acknowledge alerts. No current route establishes the accepted 'verified alert delivery' to the intended session. Reuse monitor.py's consumer cursor and event identity, watchdog.py's condition output, and lane_mcp.py's bounded read projection; a delivery adapter needs an actual-client receipt and loss/reconnect proof.",
+          "reproduce": "sed -n '178,198p' ops/conductor/monitor-lever.md\nsed -n '905,924p;977,1012p;1164,1191p' ops/conductor/tools/monitor.py\nrg -n 'subscribe|idle-agent|wakeup|delivery' ops/conductor/tools/lane_mcp.py ops/conductor/tools/lane_read.py\ncat ops/conductor/monitor.example.json"
+        },
+        {
+          "severity": "p1",
+          "where": "Category 4 \u2014 ops/conductor/tools/lane_refs.py:763",
+          "claim": "The v3 implementation violates its trusted-boot admission boundary. The contract requires '--discovery-boot-fd FD' and executed-byte binding before opening repository anchors. Runtime CLI parsing does not support that option; Acquisition opens anchors first and defaults to rereading adjacent __file__ paths for contract/module hashes. Discovery without a boot descriptor returned state:ok for both profiles in the local probe. Those fingerprints therefore do not prove which bytes executed. Reuse lane_mcp.py as the declared boot custodian and lane_refs.py as acquisition owner; D-A47 and trusted-launch binding remain acceptance blockers.",
+          "reproduce": "sed -n '157,236p' ops/conductor/discovery-lever.md\nsed -n '44,64p;362,405p' ops/conductor/tools/lane_mcp.py\nsed -n '761,782p' ops/conductor/tools/lane_refs.py\npython3 -B - <<'PY'\nimport sys\nsys.path.insert(0,'ops/conductor/tools')\nimport lane_mcp as m\nprint(m._cli(['--config','unused','--discovery-boot-fd','3','query','lane_start','{\"profile\":\"dev\"}']))\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 4 \u2014 ops/conductor/tools/lane_refs.py:785",
+          "claim": "The declared independently testable acquisition seam is absent. discovery-lever.md requires 'acquire(config, boot, *, checkpoint=None)' with exact synchronous mutation checkpoints; the module exports no acquire function and exposes only Acquisition.acquire(self, profile_id). Existing MCP test files cover v1/v2, and the registry's added lane_start row still uses invalid /dev/null configuration, so it cannot witness v3 boot or race behavior. Reuse lane_refs.py, ops/conductor/tests/ and registry/lane_mcp.py.json; complete the independent D-A31/D-A47 counterparties before acceptance.",
+          "reproduce": "python3 -B - <<'PY'\nimport sys,inspect\nsys.path.insert(0,'ops/conductor/tools')\nimport lane_refs\nprint('public acquire',hasattr(lane_refs,'acquire'))\nprint(inspect.signature(lane_refs.Acquisition.acquire))\nPY\nsed -n '299,352p' ops/conductor/discovery-lever.md\ncat ops/conductor/registry/lane_mcp.py.json\nrg -n 'D-A31|D-A47|discovery-boot|lane_start|lane_refs' ops/conductor/tests"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 4 \u2014 ops/conductor/tools/lane_refs.py:837",
+          "claim": "Failed HEAD acquisition manufactures downstream absence evidence. D-A48 requires no Home-property observations when HEAD cannot be verified, document_present:null and evidence:['contract']. Instead Acquisition synthesizes tree_entry failures for every fixed path; _discovery_homes treats a propagated 'missing' reason as document_present:false and claims repo consultation. A local missing-object probe reproduced this for the prod mapping Home. Fix the existing acquisition/projection coupling rather than interpreting an unperformed read as absence.",
+          "reproduce": "sed -n '833,854p' ops/conductor/tools/lane_refs.py\nsed -n '1795,1822p' ops/conductor/tools/lane_read.py\nrg -n 'D-A48|downstream|synthesize per-path' ops/conductor/discovery-lever.md\npython3 -B - <<'PY'\nimport sys\nsys.path.insert(0,'ops/conductor/tools')\nimport lane_read as r\np={'homes':['mapping']}\nreading={'files':{'docs/mapping.md':{'state':'unavailable','reason':'missing','data':None}}}\nprint(r._discovery_homes({},p,reading))\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 4 \u2014 ops/conductor/lane-policy.md:727",
+          "claim": "Shared policy admission is proposed, not implemented. ops/lane-policy.json has standing:'proposal'; lane_policy.py and its bind_launch/check_transition/evaluate_tool interfaces are absent. The shipped record.py validator explicitly checks 'binding structure only' and permits absent policy, while land.py and ladder.py accept envelope/collection evidence without the proposed policy gate. Reuse record.py, decisions.py, laneconf.py, launch.py, land.py and ladder.py. Structural-validation acceptance must not be promoted to the contract's 'minimum complete activation'.",
+          "reproduce": "sed -n '63,88p' ops/devlane/dispatch/record.py\nsed -n '708,745p' ops/conductor/lane-policy.md\nsed -n '210,236p' ops/conductor/tools/land.py\nsed -n '705,735p' ops/conductor/tools/ladder.py\npython3 -B - <<'PY'\nimport ast,json\nfrom pathlib import Path\nprint('policy',json.loads(Path('ops/lane-policy.json').read_text())['standing'])\nprint('evaluator exists',Path('ops/conductor/tools/lane_policy.py').exists())\nnames={'bind_launch','check_transition','evaluate_tool'}\nprint('implementations',[(str(p),n.name) for p in Path('ops').rglob('*.py') if 'tests' not in p.parts and 'archive' not in p.parts for n in ast.walk(ast.parse(p.read_text())) if isinstance(n,ast.FunctionDef) and n.name in names])\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 4 \u2014 ops/devlane/task/run.py:973",
+          "claim": "The startup plan's canonical-worker-execution prerequisite remains unfinished. task.run() still selects _live(), which owns Popen and supervision separately from dispatch/launch.py; the preserved harness levers add separately documented launch paths. The plan requires canonical execution proof and retirement or explicit refusal of obsolete paths before conduct startup. Reuse the dispatch/task owners and frontends; do not add a conductor executor beside them or infer consolidation from accepted C1/C2 contracts.",
+          "reproduce": "sed -n '114,159p' ops/conductor/conductor-start-plan.md\nsed -n '960,985p;1248,1274p' ops/devlane/task/run.py\nsed -n '1208,1230p' ops/devlane/dispatch/launch.py\ncat ops/devlane/dispatch/levers/README.md"
+        },
+        {
+          "severity": "p2",
+          "where": "Category 4 \u2014 ops/conductor/tools/findings.py:41",
+          "claim": "Durable findings admission does not cover this onboarding audit's job type. jobs.json declares 'sweep', but findings.py imports only check-tests, security-audit and adversarial-review and silently continues past other jobs. The reusable ledger already owns dispositions and calibration, but sweep results cannot enter it through the existing importer. Integrate the separately owned lane/finding-admission-20260909 work before using this ledger as complete onboarding/admission evidence.",
+          "reproduce": "python3 -B - <<'PY'\nimport json,sys\nfrom pathlib import Path\nsys.path.insert(0,'ops/conductor/tools')\nimport findings\nprint('sweep declared','sweep' in json.loads(Path('ops/devlane/task/jobs.json').read_text()))\nprint('imported job types',findings.REVIEW_JOBS)\nPY\nsed -n '121,140p' ops/conductor/tools/findings.py\ncat ops/conductor/findings/README.md"
+        }
+      ],
+      "artifacts": {
+        "measurement": "Read ../in/onboarding-request.md whole. All findings apply to 20f9bcaf2b3ae2152b9cab766637b5a89b71214b. No files created or edited; final git status was clean. Shipped below means tracked executable/source capability, not verified host activation.",
+        "category_1_instruments": "Existing public instruments: ops/conductor/tools/branches.py, ops/conductor/tools/ci.py, ops/conductor/tools/co_doc.py, ops/conductor/tools/decisions.py, ops/conductor/tools/dispatch.sh, ops/conductor/tools/findings.py, ops/conductor/tools/gate.sh, ops/conductor/tools/hand.py, ops/conductor/tools/ladder.py, ops/conductor/tools/land.py, ops/conductor/tools/lane_mcp.py, ops/conductor/tools/laneconf.py, ops/conductor/tools/monitor.py, ops/conductor/tools/onboard.py, ops/conductor/tools/skills.py, ops/conductor/tools/watch.py, ops/conductor/tools/watchdog.py. Shared discovery implementation: ops/conductor/tools/lane_read.py and ops/conductor/tools/lane_refs.py.",
+        "category_1_project_levers": "ops/bin/board.sh, ops/bin/dispatch.sh, ops/bin/fixture.sh, ops/bin/go.sh, ops/bin/ladder.sh, ops/bin/link-ops.sh, ops/bin/suites.sh. Preserved launch/landing levers: ops/devlane/dispatch/levers/apply-push.sh, ops/devlane/dispatch/levers/selftest.sh, ops/devlane/dispatch/levers/claude/fable-dispatch.sh, ops/devlane/dispatch/levers/claude/selftest.sh, ops/devlane/dispatch/levers/codex/codex-dispatch.sh, ops/devlane/dispatch/levers/codex/vendor/isolation.py, ops/devlane/dispatch/levers/grok-dispatch.sh. Their discoverability and standing were inventoried; no harness was launched.",
+        "category_1_registries": "Conformance registry: ops/conductor/registry/branches.py.json, ops/conductor/registry/ci.py.json, ops/conductor/registry/decisions.py.json, ops/conductor/registry/findings.py.json, ops/conductor/registry/hand.py.json, ops/conductor/registry/ladder.py.json, ops/conductor/registry/land.py.json, ops/conductor/registry/lane_mcp.py.json, ops/conductor/registry/laneconf.py.json, ops/conductor/registry/monitor.py.json, ops/conductor/registry/onboard.py.json, ops/conductor/registry/watch.py.json, ops/conductor/registry/watchdog.py.json. Configuration: ops/lane.conf and ops/conductor/tools/laneconf.py. Job registry: ops/devlane/task/jobs.json \u2014 verify, adversarial-review, security-audit, author-tests, sweep, plan, check-tests, implement, adjudicate. Conformance rows are not a complete capability catalogue.",
+        "category_1_execution_and_diagnostics": "Execution/task surfaces: ops/devlane/dispatch/launch.py, ops/devlane/task/run.py, ops/devlane/task/fileset.py, ops/devlane/task/verify.py; semantic owner ops/devlane/task/envelope.py. Harness surfaces: ops/devlane/harness/isolation.py, ops/devlane/harness/probe.py, ops/devlane/harness/vet_context.py, ops/devlane/harness/wires.py, ops/devlane/harness/controls/build.py; staging owner ops/devlane/harness/stage.py. Gate surfaces: ops/devlane/workflow/checks/ci_contexts.py, ops/devlane/workflow/checks/ci_matrix.py, ops/devlane/workflow/checks/ci_minutes.py, ops/devlane/workflow/checks/commit_trailers.py, ops/devlane/workflow/checks/diagnostics.py, ops/devlane/workflow/checks/doc_commands.py, ops/devlane/workflow/checks/doc_covers.py, ops/devlane/workflow/checks/lint.py, ops/devlane/workflow/checks/secret_scan.py, ops/devlane/workflow/checks/term_wall.py, ops/devlane/workflow/checks/vocabulary_wall.py. Fixture owner: ops/devlane/fixtures/stores.py.",
+        "category_1_features_and_cost": "Usage/cost/budget owners: ops/devlane/telemetry/usage.py, ops/devlane/telemetry/worth.py, ops/devlane/telemetry/pulse.py, ops/devlane/telemetry/breaker.py, ops/conductor/tools/ladder.py, ops/devlane/task/jobs.json; guidance ops/process/worth.md and ops/process/token-thrift.md. Skill/tool routes: .claude/skills/skills/SKILL.md, .claude/skills/onboard/SKILL.md, .claude/skills/worth/SKILL.md, .claude/skills/dev-subs/subs.py, .claude/skills/pr-overview/pr_overview.py; review contract ops/conductor/review-comments.md. Feature shelf: ops/design/features/dispatch/structured-envelopes.feature, ops/design/features/repo/multi-worktree-day.feature, ops/design/features/telemetry/hung-reviewer-tripped.feature, ops/design/features/telemetry/what-did-today-cost.feature, ops/design/features/workflow/work-order-lifecycle.feature. Features were inventoried for routing, not investigated internally.",
+        "category_1_mcp_and_prod": "lane_mcp.py exposes 4/7/11 tools for v1/v2/v3: lane_brief, lane_record, lane_alerts, lane_usage; v2 adds lane_findings, lane_changes, lane_jobs; v3 adds lane_start, lane_homes, lane_handoffs, lane_actions. Resource routes: lane://brief, lane://alerts, lane://usage, lane://record/ID, lane://findings/ID, lane://changes, lane://jobs, plus lane://start/PROFILE, lane://homes/PROFILE, lane://handoffs/PROFILE, lane://actions/PROFILE. Detail templates cover jobs/name, homes/profile/concept, handoffs/profile/record/digest and actions/profile/name; continuations use tool/CLI cursors. Local dev/prod startup packets measured 3654/3522 bytes, with unknown handoff selection under empty bindings. Project .mcp.json declares Serena only; lane-mcp.example.json and lane-mcp-v2.example.json are inert examples. Prod diagnostic route exists in AGENTS.md and mate/AGENT_INSTRUCTIONS.md: vendor/bin/mate tools:list, tools:inspect, tools:call; vendor/bin/mate is absent here. bin/console exists. Application discovery owners are docs/mapping.md and packages/README.md. No product internals or external MCP services were queried.",
+        "category_2_owners": "Shipped reusable owners: ops/devlane/dispatch/launch.py, ops/devlane/dispatch/record.py, ops/conductor/tools/branches.py, ops/conductor/tools/onboard.py, ops/devlane/hooks/claude/context-precheck.py, ops/devlane/hooks/claude/context-boundary.sh, ops/devlane/hooks/claude/onboard-on-compact.sh. Proposed startup/custody interfaces: ops/conductor/conductor-start-plan.md, ops/conductor/harness-capabilities.md, ops/conductor/handoff/README.md, docs/workflow.md. Existing onboard LAW has seven rows; its first five exactly equal DISCOVERY_LAW. Freshness branch work named in the brief is an integration dependency outside this snapshot.",
+        "category_3_owners": "Shipped reusable observations, persistence and projections: ops/conductor/tools/monitor.py, ops/conductor/tools/watchdog.py, ops/conductor/tools/watch.py, ops/conductor/tools/ci.py, ops/conductor/tools/lane_read.py, ops/conductor/tools/lane_mcp.py. Contracts/configuration: ops/conductor/monitor-lever.md, ops/conductor/watchdog-lever.md, ops/conductor/watch-lever.md, ops/conductor/monitor.example.json. Existing independent test homes: ops/conductor/tests/test_monitor.py and ops/conductor/tests/test_watchdog*.py. Queue deduplication is implemented with SQLite transactions; it does not establish a session coverage lease or actual-client delivery.",
+        "category_4_owners_and_standing": "Shipped: structural policy validation in ops/devlane/dispatch/record.py, existing dispatch/task execution, findings ledger/calibration and legacy MCP projections. Unfinished: v3 boot/custody/checkpoint conformity, canonical execution consolidation, shared policy evaluation and complete admission consumers. Proposed: ops/lane-policy.json, ops/conductor/lane-policy.md, conductor launch/adapters in ops/conductor/conductor-start-plan.md and ops/conductor/harness-capabilities.md, worker/output interfaces in ops/devlane/dispatch/CONTRACT.md and ops/devlane/task/CONTRACT.md. Reuse ops/conductor/tools/decisions.py for authority evidence. Diagnostic contracts exist at docs/probes.md and ops/conductor/probes-lever.md; ops/conductor/tools/probes.py is absent. Handoff/AAR publication remains owner-initiated, with ops/conductor/handoff/README.md as custody owner. Generic ops/devlane/workflow/wf.py and ops/conductor/tools/board.py are absent.",
+        "hook_and_support_inventory": "Hook entrypoints inventoried: ops/devlane/hooks/install.sh; ops/devlane/hooks/claude/boundary-match.py, command_shape.py, conductor-enforce.py, context-boundary.sh, context-precheck.py, context-precheck.sh, context-stream.sh, evgrep.sh, matrix.py, no-subagents.py, onboard-on-compact.sh, pr-feedback.sh, ruff-after-edit.sh, test-guard-hook.sh, test-guard.py, unsafe-command.py. Wiring owner is .claude/settings.json; conductor-enforce.py is unarmed there. Infrastructure entrypoints inventoried only: ops/devlane/infra/build-lane.sh, ops/devlane/infra/containment-lint.sh, ops/devlane/infra/gitea/bootstrap.sh, ops/devlane/infra/gitea/entrypoint.sh, ops/devlane/infra/lane/entrypoint.sh, ops/devlane/infra/runner/entrypoint.sh.",
+        "verification_limits": "Ran local config checks, source/AST inventories and in-memory reproductions; no suite run or independently authored acceptance-test result is claimed. ops/bin/suites.sh remains the integration gate. No external reads, host configuration reads, session-store reads, worker delegation or activation. Actual client connections, current selected host records/rollouts, active monitor ownership/liveness and end-client alert receipts are live-unverified. The brief's historical host observations were not reissued as current measurements."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2183343,
+        "out": 15169,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+        "started": "2026-09-09T23:57:20Z",
+        "ended": "2026-09-10T00:02:11Z"
+      },
+      "note": "Covered every category: C1=3, C2=2, C3=2, C4=6 findings; none omitted or repeated across categories. Completion order: (1) reconcile existing contracts and stable interfaces with lane/dev-freshness-20260909 and lane/finding-admission-20260909 without duplicating their work; (2) complete catalogue coverage and v3 boot/acquisition conformity, then canonical worker execution and shared-policy consumers; (3) compose session identity/ownership/freshness admission with reusable monitoring and verified delivery, retaining durable evidence and lifecycle revalidation; (4) have independent producers supply tests, skeptical review and combined-ref suites; (5) prove actual fresh clients for each enabled harness/profile: bounded startup and detail discovery without path hints, correct MCP connection/config/artifact/source bindings, allowed and forbidden attempts with observed effects, overlapping sessions, stale checkout/config, resume/compaction/reconnect, monitor loss and a uniquely identified alert received by the intended client; (6) activate the independently verified policy/consumer/runtime custody anchor and host wiring under existing owner authority, then repeat fresh-session and alert-delivery proof after cutover. Unsupported or unreachable cases must remain explicit and cannot count as admission. Contract-only delivery or synthetic-only client proof is incomplete."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:05:40.752Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,1023 @@
+{
+  "facts": {
+    "shapes": [
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "items",
+          "type"
+        ],
+        "line": 265,
+        "type": "array"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "type"
+        ],
+        "line": 272,
+        "type": "boolean"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "type"
+        ],
+        "line": 275,
+        "type": "boolean"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "chain_hash",
+          "chain_seq",
+          "sha",
+          "type"
+        ],
+        "line": 1321,
+        "type": "commit.landed"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "type"
+        ],
+        "line": 270,
+        "type": "integer"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "properties",
+          "type"
+        ],
+        "line": 240,
+        "type": "object"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "properties",
+          "type"
+        ],
+        "line": 251,
+        "type": "object"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "properties",
+          "required",
+          "type"
+        ],
+        "line": 260,
+        "type": "object"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "properties",
+          "type"
+        ],
+        "line": 284,
+        "type": "object"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "properties",
+          "type"
+        ],
+        "line": 290,
+        "type": "object"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "actor_reserved",
+          "agent",
+          "by",
+          "declared_effect",
+          "effect",
+          "note",
+          "sources",
+          "stage",
+          "type",
+          "value"
+        ],
+        "line": 1179,
+        "type": "outcome"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "frozen",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "line": 405,
+        "type": "stage.entered"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "from_stage",
+          "frozen",
+          "reason",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "line": 991,
+        "type": "stage.entered"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "from_stage",
+          "frozen",
+          "sources",
+          "stage",
+          "type",
+          "via_outcome"
+        ],
+        "line": 1199,
+        "type": "stage.entered"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "type"
+        ],
+        "line": 242,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "type"
+        ],
+        "line": 253,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "type"
+        ],
+        "line": 264,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "type"
+        ],
+        "line": 265,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "type"
+        ],
+        "line": 267,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "description",
+          "type"
+        ],
+        "line": 268,
+        "type": "string"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "text",
+          "type"
+        ],
+        "line": 388,
+        "type": "text"
+      },
+      {
+        "file": "mcp_server.py",
+        "keys": [
+          "text",
+          "type"
+        ],
+        "line": 392,
+        "type": "text"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "kind",
+          "kind_version",
+          "objective",
+          "sources",
+          "spec_sha256",
+          "type"
+        ],
+        "line": 400,
+        "type": "wo.opened"
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "argv",
+          "check",
+          "cwd",
+          "duration_ms",
+          "exit_code",
+          "harness_scope",
+          "head_sha",
+          "manifest_files",
+          "sources",
+          "stage",
+          "stderr_sha256",
+          "stderr_tail",
+          "stdout_sha256",
+          "stdout_tail",
+          "test_manifest_sha256",
+          "test_scope",
+          "toolchain",
+          "tree_dirty",
+          "type"
+        ],
+        "line": 837,
+        "type": {
+          "unresolved": "the \"type\" value does not resolve to a string: etype is not a string constant or a name for one; etype is a parameter of receipt_event, and this file's callers supply 3 different values (chainmod.RECEIPT_CHECK = 'receipt.check'; chainmod.RECEIPT_GREEN = 'receipt.green'; chainmod.RECEIPT_RED = 'receipt.red'), so there is no one string to report; the site stays because it IS an event constructor \u2014 wf.py:1067 appends receipt_event(...) to the chain; wf.py:1741 appends receipt_event(...) to the chain; wf.py:889 appends receipt_event(...) to the chain"
+        }
+      },
+      {
+        "file": "wf.py",
+        "keys": [
+          "agent",
+          "id",
+          "note",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "line": 1800,
+        "type": {
+          "unresolved": "the \"type\" value does not resolve to a string: etype is not a string constant or a name for one; etype is a local of cmd_marker assigned 2 different values (chainmod.MARKER_CLOSE = 'marker.close' at wf.py:1798; chainmod.MARKER_OPEN = 'marker.open' at wf.py:1788), so there is no one string to report; the site stays because it IS an event constructor \u2014 wf.py:1806 appends event to the chain"
+        }
+      }
+    ],
+    "types": [
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "artifact.recorded"
+      },
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "commit.landed"
+      },
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "marker.close"
+      },
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "marker.open"
+      },
+      {
+        "files": [
+          "gitio.py",
+          "wf.py"
+        ],
+        "value": "meta.json"
+      },
+      {
+        "files": [
+          "chain.py",
+          "gatekinds.py"
+        ],
+        "value": "receipt.check"
+      },
+      {
+        "files": [
+          "chain.py",
+          "query.py"
+        ],
+        "value": "receipt.green"
+      },
+      {
+        "files": [
+          "chain.py",
+          "query.py"
+        ],
+        "value": "receipt.red"
+      },
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "stage.entered"
+      },
+      {
+        "files": [
+          "gitio.py",
+          "mcp_launch.py",
+          "mcp_server.py",
+          "wf.py"
+        ],
+        "value": "wf.db"
+      },
+      {
+        "files": [
+          "mcp_launch.py",
+          "query.py"
+        ],
+        "value": "wf.py"
+      },
+      {
+        "files": [
+          "chain.py"
+        ],
+        "value": "wo.opened"
+      }
+    ]
+  },
+  "provenance": {
+    "excluded": [
+      {
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "263-277",
+        "literal_keys": [
+          "attempts",
+          "full",
+          "n",
+          "recorded_by",
+          "since",
+          "type",
+          "wo"
+        ],
+        "rule": "\u00a75.9 shapes, NOT AN EVENT (E1): a dict literal carrying a \"type\" key is a shape unless it is proved not to be an event constructor",
+        "test": "E1",
+        "text": "            \"properties\": {\n                \"wo\": {\"type\": \"string\"},\n                \"type\": {\"type\": \"array\", \"items\": {\"type\": \"string\"},\n                         \"description\": \"event types, e.g. receipt.red\"},\n                \"recorded_by\": {\"type\": \"string\"},\n                \"since\": {\"type\": \"string\",\n                          \"description\": \"RFC3339 UTC, six fractional digits\"},\n                \"n\": {\"type\": \"integer\",\n                      \"description\": \"only the last n; -1 for all\"},\n                \"full\": {\"type\": \"boolean\",\n                         \"description\": \"complete event payloads instead of\"\n                                        \" the compact lines (default false)\"},\n                \"attempts\": {\"type\": \"boolean\",\n                             \"description\": \"include the refusal history\"},\n            },",
+        "type_value": "{'type': 'array', 'items': {'type': 'string'}, 'description': 'event types, e.g. receipt.red'}",
+        "why": "its \"type\" value is a Dict node ({'type': 'array', 'items': {'type': 'string'}, 'description'...), which can never be a str; chain.py:192 refuses any event whose type is not a non-empty str, so no runtime makes this dict an event \u2014 it is a JSON Schema type descriptor, a key literally named \"type\""
+      },
+      {
+        "enclosing_function": "status_one_body",
+        "file": "query.py",
+        "lines": "308-308",
+        "literal_keys": [
+          "seq",
+          "time",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes, NOT AN EVENT (E2): a dict literal carrying a \"type\" key is a shape unless it is proved not to be an event constructor",
+        "test": "E2",
+        "text": "        {\"seq\": e[\"seq\"], \"type\": e.get(\"type\"), \"time\": e[\"time\"]}",
+        "type_value": "e.get('type')",
+        "why": "every value in this dict is a constant-key read of the same object e ('seq': e['seq'], 'type': e.get('type'), 'time': e['time']), the \"type\" among them: it re-describes an event it was handed rather than naming a type, so it reads an event rather than constructing one"
+      },
+      {
+        "enclosing_function": "cmd_status",
+        "file": "wf.py",
+        "lines": "501-501",
+        "literal_keys": [
+          "seq",
+          "time",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes, NOT AN EVENT (E2): a dict literal carrying a \"type\" key is a shape unless it is proved not to be an event constructor",
+        "test": "E2",
+        "text": "            {\"seq\": e[\"seq\"], \"type\": e.get(\"type\"), \"time\": e[\"time\"]}",
+        "type_value": "e.get('type')",
+        "why": "every value in this dict is a constant-key read of the same object e ('seq': e['seq'], 'type': e.get('type'), 'time': e['time']), the \"type\" among them: it re-describes an event it was handed rather than naming a type, so it reads an event rather than constructing one"
+      }
+    ],
+    "files": [
+      "canonical.py",
+      "cas.py",
+      "chain.py",
+      "checks/ci_matrix.py",
+      "checks/diagnostics.py",
+      "checks/secret_scan.py",
+      "checks/vocabulary_wall.py",
+      "coord.py",
+      "errors.py",
+      "gatekinds.py",
+      "gitio.py",
+      "mcp_launch.py",
+      "mcp_server.py",
+      "query.py",
+      "receipts.py",
+      "store.py",
+      "verify.py",
+      "wf.py"
+    ],
+    "readings": [
+      "\u00a75.9's own warning holds: the /^[a-z]+\\.[a-z_]+$/ regex also matches filenames and any other dotted lowercase literal; every hit is quoted so the contract's documented \u2286 observed test can be read against its source",
+      "a type value that is a name or attribute is resolved against module-level string constants of this file or of a sibling module imported by it (ADAPTED \u2014 see the module docstring)",
+      "keys are sorted; open_keys records {**expansion} and updates records .update(...) on the bound name, both of which mean the key list is a lower bound for that shape",
+      "a site leaves shapes only on proof that it is not an event constructor (NARROWED \u2014 E1: the \"type\" value can never be a str, which chain.py:192 refuses; E2: every value in the dict is a constant-key read of one same other object, the \"type\" included, so the dict re-describes an event rather than naming one). Every dropped site is quoted in provenance.excluded",
+      "inability to prove a dict IS an event is NOT one of those tests. constructor_evidence records reaching chain.append when it can be shown, but a shape with no such evidence still stands: \"we could not look\" must not read as \"there is nothing there\"",
+      "shapes therefore stays deliberately over-inclusive. It still holds JSON Schema fragments whose \"type\" is a plain string (mcp_server.py's \"object\"/\"string\"/\"array\"/\"integer\"/\"boolean\") and MCP content blocks (\"text\"). Separating those from a real bare-word event type such as chain.py's OUTCOME = \"outcome\" would need the known-type vocabulary, and PLAN \u00a76 requires a new event type to cost zero engine changes \u2014 a vocabulary filter would silently drop exactly the new type it is most important to see. Over-inclusion is auditable from the quoted text; a wrong exclusion is not",
+      "a \"type\" that is a parameter or a branch-assigned local stays {\"unresolved\"}. Provenance names the values the population supplies, because that is evidence the site is a constructor, but it is not a resolution: those sites have more than one value and \u00a75.9's shape type is one string"
+    ],
+    "shapes": [
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "240-244",
+        "literal_keys": [
+          "properties",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        \"inputSchema\": {\n            \"type\": \"object\",\n            \"properties\": {\"wo\": {\"type\": \"string\",\n                                  \"description\": \"optional WO-NNN\"}},\n        },",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "242-243",
+        "literal_keys": [
+          "description",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "            \"properties\": {\"wo\": {\"type\": \"string\",\n                                  \"description\": \"optional WO-NNN\"}},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "251-254",
+        "literal_keys": [
+          "properties",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        \"inputSchema\": {\n            \"type\": \"object\",\n            \"properties\": {\"wo\": {\"type\": \"string\"}},\n        },",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "253-253",
+        "literal_keys": [
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "            \"properties\": {\"wo\": {\"type\": \"string\"}},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "260-278",
+        "literal_keys": [
+          "properties",
+          "required",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        \"inputSchema\": {\n            \"type\": \"object\",\n            \"required\": [\"wo\"],\n            \"properties\": {\n                \"wo\": {\"type\": \"string\"},\n                \"type\": {\"type\": \"array\", \"items\": {\"type\": \"string\"},\n                         \"description\": \"event types, e.g. receipt.red\"},\n                \"recorded_by\": {\"type\": \"string\"},\n                \"since\": {\"type\": \"string\",\n                          \"description\": \"RFC3339 UTC, six fractional digits\"},\n                \"n\": {\"type\": \"integer\",\n                      \"description\": \"only the last n; -1 for all\"},\n                \"full\": {\"type\": \"boolean\",\n                         \"description\": \"complete event payloads instead of\"\n                                        \" the compact lines (default false)\"},\n                \"attempts\": {\"type\": \"boolean\",\n                             \"description\": \"include the refusal history\"},\n            },\n        },",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "264-264",
+        "literal_keys": [
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"wo\": {\"type\": \"string\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "265-266",
+        "literal_keys": [
+          "description",
+          "items",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"type\": {\"type\": \"array\", \"items\": {\"type\": \"string\"},\n                         \"description\": \"event types, e.g. receipt.red\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "265-265",
+        "literal_keys": [
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"type\": {\"type\": \"array\", \"items\": {\"type\": \"string\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "267-267",
+        "literal_keys": [
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"recorded_by\": {\"type\": \"string\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "268-269",
+        "literal_keys": [
+          "description",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"since\": {\"type\": \"string\",\n                          \"description\": \"RFC3339 UTC, six fractional digits\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "270-271",
+        "literal_keys": [
+          "description",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"n\": {\"type\": \"integer\",\n                      \"description\": \"only the last n; -1 for all\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "272-274",
+        "literal_keys": [
+          "description",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"full\": {\"type\": \"boolean\",\n                         \"description\": \"complete event payloads instead of\"\n                                        \" the compact lines (default false)\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "275-276",
+        "literal_keys": [
+          "description",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"attempts\": {\"type\": \"boolean\",\n                             \"description\": \"include the refusal history\"},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "284-284",
+        "literal_keys": [
+          "properties",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        \"inputSchema\": {\"type\": \"object\", \"properties\": {}},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": null,
+        "file": "mcp_server.py",
+        "lines": "290-290",
+        "literal_keys": [
+          "properties",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        \"inputSchema\": {\"type\": \"object\", \"properties\": {}},",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": "handle",
+        "file": "mcp_server.py",
+        "lines": "388-388",
+        "literal_keys": [
+          "text",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "                \"content\": [{\"type\": \"text\", \"text\": canonical.dumps(exc.payload())}],",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "enclosing_function": "handle",
+        "file": "mcp_server.py",
+        "lines": "392-392",
+        "literal_keys": [
+          "text",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "            \"content\": [{\"type\": \"text\", \"text\": canonical.dumps(body)}],",
+        "type_resolution": "string constant"
+      },
+      {
+        "bound_to": null,
+        "constructor_evidence": [
+          "wf.py:400 appends this dict literal to the chain"
+        ],
+        "enclosing_function": "cmd_open",
+        "file": "wf.py",
+        "lines": "400-404",
+        "literal_keys": [
+          "agent",
+          "kind",
+          "kind_version",
+          "objective",
+          "sources",
+          "spec_sha256",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        ctx.chain.append(wo_id, {\n            \"type\": chainmod.WO_OPENED, \"kind\": spec.kind, \"kind_version\": spec.version,\n            \"spec_sha256\": digest, \"objective\": args.objective,\n            \"agent\": agent, \"sources\": ctx.sources,\n        })",
+        "type_resolution": "chainmod.WO_OPENED = 'wo.opened' at chain.py:35"
+      },
+      {
+        "bound_to": null,
+        "constructor_evidence": [
+          "wf.py:405 appends this dict literal to the chain"
+        ],
+        "enclosing_function": "cmd_open",
+        "file": "wf.py",
+        "lines": "405-408",
+        "literal_keys": [
+          "agent",
+          "frozen",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        ctx.chain.append(wo_id, {\n            \"type\": chainmod.STAGE_ENTERED, \"stage\": spec.first_stage,\n            \"frozen\": None, \"agent\": agent, \"sources\": ctx.sources,\n        })",
+        "type_resolution": "chainmod.STAGE_ENTERED = 'stage.entered' at chain.py:36"
+      },
+      {
+        "bound_to": "body",
+        "constructor_evidence": [
+          "wf.py:1067 appends receipt_event(...) to the chain",
+          "wf.py:1741 appends receipt_event(...) to the chain",
+          "wf.py:889 appends receipt_event(...) to the chain"
+        ],
+        "enclosing_function": "receipt_event",
+        "file": "wf.py",
+        "lines": "837-858",
+        "literal_keys": [
+          "agent",
+          "argv",
+          "check",
+          "cwd",
+          "duration_ms",
+          "exit_code",
+          "harness_scope",
+          "head_sha",
+          "manifest_files",
+          "sources",
+          "stage",
+          "stderr_sha256",
+          "stderr_tail",
+          "stdout_sha256",
+          "stdout_tail",
+          "test_manifest_sha256",
+          "test_scope",
+          "toolchain",
+          "tree_dirty",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "    body = {\n        \"type\": etype,\n        \"stage\": stage,\n        \"check\": check_name_for(spec, argv),\n        \"argv\": list(argv),\n        \"cwd\": \".\",\n        \"exit_code\": code,\n        \"duration_ms\": ms,\n        \"stdout_sha256\": store_output(ctx, out, \"receipt-stdout\"),\n        \"stderr_sha256\": store_output(ctx, err, \"receipt-stderr\"),\n        \"stdout_tail\": receipts.tail(out),\n        \"stderr_tail\": receipts.tail(err),\n        \"test_manifest_sha256\": digest,\n        \"manifest_files\": len(manifest),\n        \"test_scope\": spec.test_scope,\n        \"harness_scope\": spec.harness_scope,\n        \"toolchain\": toolchain,\n        \"head_sha\": head,\n        \"tree_dirty\": dirty,\n        \"agent\": ctx.agent,\n        \"sources\": sources,\n    }",
+        "type_resolution": "etype is not a string constant or a name for one",
+        "updates": [
+          "body.update(extra or {})"
+        ]
+      },
+      {
+        "bound_to": "event",
+        "constructor_evidence": [
+          "wf.py:997 appends event to the chain"
+        ],
+        "enclosing_function": "cmd_advance",
+        "file": "wf.py",
+        "lines": "991-994",
+        "literal_keys": [
+          "agent",
+          "from_stage",
+          "frozen",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [
+          "reason"
+        ],
+        "text": "        event = {\n            \"type\": chainmod.STAGE_ENTERED, \"stage\": target, \"frozen\": frozen,\n            \"from_stage\": stage, \"agent\": agent, \"sources\": ctx.sources,\n        }",
+        "type_resolution": "chainmod.STAGE_ENTERED = 'stage.entered' at chain.py:36"
+      },
+      {
+        "bound_to": "event",
+        "constructor_evidence": [
+          "wf.py:1192 appends event to the chain"
+        ],
+        "enclosing_function": "cmd_outcome",
+        "file": "wf.py",
+        "lines": "1179-1189",
+        "literal_keys": [
+          "actor_reserved",
+          "agent",
+          "by",
+          "declared_effect",
+          "effect",
+          "sources",
+          "stage",
+          "type",
+          "value"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [
+          "note"
+        ],
+        "text": "        event = {\n            \"type\": chainmod.OUTCOME,\n            \"stage\": stage,\n            \"value\": args.value,\n            \"by\": args.by,\n            \"declared_effect\": declared,\n            \"effect\": applied,\n            \"actor_reserved\": reserved,\n            \"agent\": agent,\n            \"sources\": ctx.sources,\n        }",
+        "type_resolution": "chainmod.OUTCOME = 'outcome' at chain.py:40"
+      },
+      {
+        "bound_to": null,
+        "constructor_evidence": [
+          "wf.py:1199 appends this dict literal to the chain"
+        ],
+        "enclosing_function": "cmd_outcome",
+        "file": "wf.py",
+        "lines": "1199-1203",
+        "literal_keys": [
+          "agent",
+          "from_stage",
+          "frozen",
+          "sources",
+          "stage",
+          "type",
+          "via_outcome"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "            ctx.chain.append(args.wo, {\n                \"type\": chainmod.STAGE_ENTERED, \"stage\": target, \"frozen\": frozen,\n                \"from_stage\": stage, \"via_outcome\": args.value,\n                \"agent\": agent, \"sources\": ctx.sources,\n            })",
+        "type_resolution": "chainmod.STAGE_ENTERED = 'stage.entered' at chain.py:36"
+      },
+      {
+        "bound_to": null,
+        "constructor_evidence": [
+          "wf.py:1321 appends this dict literal to the chain"
+        ],
+        "enclosing_function": "do_commit",
+        "file": "wf.py",
+        "lines": "1321-1327",
+        "literal_keys": [
+          "agent",
+          "chain_hash",
+          "chain_seq",
+          "sha",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [],
+        "text": "        ctx.chain.append(wo, {\n            \"type\": chainmod.COMMIT_LANDED,\n            \"sha\": sha,\n            \"chain_seq\": current.last_seq,\n            \"chain_hash\": current.last_hash,\n            \"agent\": ctx.agent,\n        })",
+        "type_resolution": "chainmod.COMMIT_LANDED = 'commit.landed' at chain.py:43"
+      },
+      {
+        "bound_to": "event",
+        "constructor_evidence": [
+          "wf.py:1806 appends event to the chain"
+        ],
+        "enclosing_function": "cmd_marker",
+        "file": "wf.py",
+        "lines": "1800-1803",
+        "literal_keys": [
+          "agent",
+          "id",
+          "sources",
+          "stage",
+          "type"
+        ],
+        "rule": "\u00a75.9 shapes: dict literal carrying a \"type\" key, not proved to be a non-event",
+        "subscript_keys": [
+          "note"
+        ],
+        "text": "        event = {\n            \"type\": etype, \"id\": args.id, \"stage\": state.get(\"stage\"),\n            \"agent\": agent, \"sources\": ctx.sources,\n        }",
+        "type_resolution": "etype is not a string constant or a name for one"
+      }
+    ],
+    "types": [
+      {
+        "file": "chain.py",
+        "lines": "35-35",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "WO_OPENED = \"wo.opened\"",
+        "value": "wo.opened"
+      },
+      {
+        "file": "chain.py",
+        "lines": "36-36",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "STAGE_ENTERED = \"stage.entered\"",
+        "value": "stage.entered"
+      },
+      {
+        "file": "chain.py",
+        "lines": "37-37",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "RECEIPT_RED = \"receipt.red\"",
+        "value": "receipt.red"
+      },
+      {
+        "file": "chain.py",
+        "lines": "38-38",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "RECEIPT_GREEN = \"receipt.green\"",
+        "value": "receipt.green"
+      },
+      {
+        "file": "chain.py",
+        "lines": "39-39",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "RECEIPT_CHECK = \"receipt.check\"",
+        "value": "receipt.check"
+      },
+      {
+        "file": "chain.py",
+        "lines": "41-41",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "MARKER_OPEN = \"marker.open\"",
+        "value": "marker.open"
+      },
+      {
+        "file": "chain.py",
+        "lines": "42-42",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "MARKER_CLOSE = \"marker.close\"",
+        "value": "marker.close"
+      },
+      {
+        "file": "chain.py",
+        "lines": "43-43",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "COMMIT_LANDED = \"commit.landed\"",
+        "value": "commit.landed"
+      },
+      {
+        "file": "chain.py",
+        "lines": "44-44",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "ARTIFACT_RECORDED = \"artifact.recorded\"",
+        "value": "artifact.recorded"
+      },
+      {
+        "file": "gatekinds.py",
+        "lines": "115-115",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "                if (etype == \"receipt.check\" and klass",
+        "value": "receipt.check"
+      },
+      {
+        "file": "gitio.py",
+        "lines": "28-28",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "STATE_FILES = (\"meta.json\", \"wf.db\")",
+        "value": "meta.json"
+      },
+      {
+        "file": "gitio.py",
+        "lines": "28-28",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "STATE_FILES = (\"meta.json\", \"wf.db\")",
+        "value": "wf.db"
+      },
+      {
+        "file": "mcp_launch.py",
+        "lines": "199-199",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "    if usable_cache(root / \"wf.db\"):",
+        "value": "wf.db"
+      },
+      {
+        "file": "mcp_launch.py",
+        "lines": "219-219",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "        [sys.executable, str(HERE / \"wf.py\"), \"--root\", args.root,",
+        "value": "wf.py"
+      },
+      {
+        "file": "mcp_server.py",
+        "lines": "103-103",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "        self.db_path = self.root / \"wf.db\"",
+        "value": "wf.db"
+      },
+      {
+        "file": "query.py",
+        "lines": "77-77",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "    script = Path(__file__).resolve().parent / \"wf.py\"",
+        "value": "wf.py"
+      },
+      {
+        "file": "query.py",
+        "lines": "123-123",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "    if \"receipt.red\" in missing:",
+        "value": "receipt.red"
+      },
+      {
+        "file": "query.py",
+        "lines": "130-130",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "    if \"receipt.green\" in missing:",
+        "value": "receipt.green"
+      },
+      {
+        "file": "wf.py",
+        "lines": "102-102",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "        return self.root / \"meta.json\"",
+        "value": "meta.json"
+      },
+      {
+        "file": "wf.py",
+        "lines": "106-106",
+        "rule": "\u00a75.9 types: string constant matching /^[a-z]+\\.[a-z_]+$/",
+        "text": "        return self.root / \"wf.db\"",
+        "value": "wf.db"
+      }
+    ]
+  }
+}

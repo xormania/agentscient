@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena@43ae0211d7f3bba4101cd0552707fa21d37f4c84",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "."
+      ]
+    },
+    "wf": {
+      "command": "python3",
+      "args": [
+        "ops/devlane/workflow/mcp_launch.py",
+        "--root",
+        "ops/devlane/workflow"
+      ]
+    }
+  }
+}

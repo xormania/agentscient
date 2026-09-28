@@ -1,0 +1,335 @@
+{
+  "id": "20260906T123030Z-code-codex-18ec12",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-discovery-contracts-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-contracts-20260906",
+    "base_sha": "c28c2030e04c0278b99f37d5dce2cbac18af307d"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T12:30:30Z",
+    "closed": "2026-09-06T12:40:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c28c2030e04c0278b99f37d5dce2cbac18af307d",
+    "ref_sha": "c28c2030e04c0278b99f37d5dce2cbac18af307d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e7d3-7af0-8625-a67af9862275.jsonl"
+  },
+  "session": {
+    "id": "01a076b2-e7d3-7af0-8625-a67af9862275",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e7d3-7af0-8625-a67af9862275.jsonl",
+    "stream_sha256_at_close": "2b4d0643848e8e73b3e7b1de431aa2d741c5f4f27e7dccdb1ac3074fa673c1b8",
+    "spend": {
+      "input": 1992049,
+      "cached": 1879296,
+      "output": 15984,
+      "total": 2008033,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-30-31-01a076b2-e7d3-7af0-8625-a67af9862275.jsonl",
+      "messages": 171
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-contracts-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct the six findings in the supplied Claude review of the five discovery documents. Own only those same five documents; read governing contracts and the supplied ruling first. Make the acquisition module/import seam explicit, remove stale absence declarations, define observable checkpoint multiplicity/order without overconstraining internals, distinguish missing/rejected boot refusals, and give executed-byte binding a verifiable gate with named responsibility. Preserve the accepted five resolutions, 53 existing row IDs, eight examples, limits and legacy bytes. Preserve commit history; distinguish inaccessible snapshot objects from absent canonical objects. Run document/link/example/diff checks and record exact file hashes. No implementation/tests/registry/settings/state/admission edits. Inline envelope with a compact disposition for every finding and honest limits; write clean COMMIT_MSG with Source and actual GPT-6 trailers, without a Validation heading.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/in/ag-conduct-discovery-contract-review.json",
+        "sha256": "42d14d8a98ee9bedb5d393e47da6b473d73466b0efa72e574c24a7fb844b14d8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/in/ag-conduct-discovery-contract-fix-ruling.md",
+        "sha256": "bc48f5139509935060796fe1fc7ae314dd5332efd9cc2e5571094d47c42fd5fd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123030Z-code-codex-18ec12/in/ag-conduct-discovery-coupling.json",
+        "sha256": "c441fa30b97163aa1dc7a09869b00b7ff9a53661ef683244fbb226bbe905a808"
+      }
+    ],
+    "sha256": "e597766cca8e96b047c0aff7563632e04459d30368817e62ffabf1da1bae9238",
+    "bytes": 4820
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:30:30Z",
+      "ended": "2026-09-06T12:40:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8bb2edd6b1ca32d8bb4f21abf144bba354fe2d4e",
+    "changed_paths": [
+      "ops/conductor/discovery-examples.md",
+      "ops/conductor/discovery-lever.md",
+      "ops/conductor/handoff/README.md",
+      "ops/conductor/lane-mcp-lever.md",
+      "ops/conductor/onboard-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 26,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md; finding 1",
+          "claim": "Resolved: removed current v3/lane_refs absence declarations; preserved explicitly historical measurements.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md; onboard-lever.md; finding 2",
+          "claim": "Resolved: ops.conductor.tools.lane_refs.acquire is the declared import target and coordinator; adapter operations and projection responsibilities are explicit.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md D-A31; discovery-examples.md; finding 3",
+          "claim": "Resolved: exact eligible event multiplicity, failure omissions and per-source partial order; cross-source traversal remains unconstrained. Callback cannot bypass checks or budgets.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md; discovery-examples.md; lane-mcp-lever.md; finding 4",
+          "claim": "Resolved: missing descriptor and rejected supplied boot have distinct evidence and condition-specific remedies. Unrelated legacy bytes are preserved.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md D-A47; finding 5",
+          "claim": "Resolved as a declaration: named runtime boot custodian, trusted loader responsibility, mismatch/unverified-load gates and clean execution controls. No runtime acceptance claimed.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "handoff/README.md; historical provenance; finding 6",
+          "claim": "Resolved: historical tree is inaccessible in this snapshot but resolves canonically; its five blobs exactly match the input documents. History preserved; conductor retains canonical custody.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command C1",
+          "claim": "Located workspace and governing documents; exit 0.",
+          "reproduce": "pwd; rg --files -g 'AGENTS.md' -g 'in/**' -g 'docs/**' -g 'ops/README.md' -g 'COMMIT_MSG' . ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "command C2",
+          "claim": "Confirmed c28c2030 and clean initial tree; read contracts and input inventory. Display truncation prompted narrower reads.",
+          "reproduce": "ls -la ../in; git status --short; git rev-parse HEAD; cat AGENTS.md docs/*.md ops/README.md; find ../in -maxdepth 2 -type f"
+        },
+        {
+          "severity": "p3",
+          "where": "command C3",
+          "claim": "Read supplied ruling and review records; exit 0. Truncated display followed by narrower reads.",
+          "reproduce": "cat ../in/ag-conduct-discovery-contract-fix-ruling.md ../in/ag-conduct-discovery-contract-review.json ../in/ag-conduct-discovery-coupling.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command C4",
+          "claim": "Read supplied Claude review; exit 0.",
+          "reproduce": "cat ../in/ag-conduct-discovery-contract-review.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command C5",
+          "claim": "Read supplied accepted coupling resolutions; exit 0.",
+          "reproduce": "cat ../in/ag-conduct-discovery-coupling.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command C6",
+          "claim": "Read historical mapping and located document homes; exit 0.",
+          "reproduce": "cat docs/mapping.md; rg --files ops/conductor | rg '(AGENTS|discovery|lane-mcp|onboard|handoff/README|conductor-start)'"
+        },
+        {
+          "severity": "p3",
+          "where": "command C7",
+          "claim": "Read coupling record, review tail and discovery contract; exit 0. Followed truncated display with section reads.",
+          "reproduce": "cat ../in/ag-conduct-discovery-coupling.json; tail -n 35 ../in/ag-conduct-discovery-contract-review.json; cat ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C8",
+          "claim": "Read boot/acquisition declarations and reviewer limits; exit 0.",
+          "reproduce": "sed -n '1,330p' ops/conductor/discovery-lever.md; tail -n 10 ../in/ag-conduct-discovery-contract-review.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command C9",
+          "claim": "Read selection, fingerprints, Home evidence and pagination; exit 0.",
+          "reproduce": "sed -n '331,660p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C10",
+          "claim": "Read onboard, custody and MCP contracts; exit 0.",
+          "reproduce": "cat ops/conductor/onboard-lever.md ops/conductor/handoff/README.md; sed -n '1,210p' ops/conductor/lane-mcp-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C11",
+          "claim": "Read all eight examples and fixture declarations; exit 0.",
+          "reproduce": "cat ops/conductor/discovery-examples.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C12",
+          "claim": "Read conventions, remaining contracts, suite entrypoint and history. Snapshot content-tree lookup failed; lane_refs blob and canonical repository path exist. Exact composite invocation is recorded in commands.json C12.",
+          "reproduce": "python3 -c 'import json,subprocess; d=json.load(open(\"../out/commands.json\")); subprocess.run(d[\"findings\"][11][\"reproduce\"],shell=True,check=True)'"
+        },
+        {
+          "severity": "p3",
+          "where": "command C13",
+          "claim": "Canonical lookup resolved the historical content tree; read remaining contract sections. Exact invocation is recorded in commands.json C13.",
+          "reproduce": "python3 -c 'import json,subprocess; d=json.load(open(\"../out/commands.json\")); subprocess.run(d[\"findings\"][12][\"reproduce\"],shell=True,check=True)'"
+        },
+        {
+          "severity": "p3",
+          "where": "command C14",
+          "claim": "Reviewed five-document diff; whitespace check passed.",
+          "reproduce": "git diff --stat; git diff --check; git diff -- ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-mcp-lever.md ops/conductor/onboard-lever.md ops/conductor/handoff/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C15",
+          "claim": "Initial scratch checker exited 1 because its own body oracle added an incorrect trailing LF. Corrected scratch oracle; examples untouched.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command C16",
+          "claim": "Corrected documentary checker exited 0: 53 IDs, eight unchanged examples, hashes/sizes, law equality, local links, legacy sections, limits, scope and canonical provenance.",
+          "reproduce": "python3 -B ../out/check-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command C17",
+          "claim": "Staging refused: read-only .git/index.lock; exit 128.",
+          "reproduce": "git add -- ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-mcp-lever.md ops/conductor/onboard-lever.md ops/conductor/handoff/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C18",
+          "claim": "Commit refused by the same read-only filesystem; exit 128. Clean launcher message saved.",
+          "reproduce": "git -c user.name=GPT-6 -c user.email=noreply@openai.com commit --only --file ../out/COMMIT_MSG -- ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-mcp-lever.md ops/conductor/onboard-lever.md ops/conductor/handoff/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command C19",
+          "claim": "Saved patch, recorded final hashes, confirmed exactly five modified documents and UTC stamp; exit 0. Exact invocation is recorded in commands.json C19.",
+          "reproduce": "python3 -c 'import json,subprocess; d=json.load(open(\"../out/commands.json\")); subprocess.run(d[\"findings\"][18][\"reproduce\"],shell=True,check=True)'"
+        },
+        {
+          "severity": "p3",
+          "where": "command C20",
+          "claim": "Final acceptance command exited 0 with empty output.",
+          "reproduce": "git diff --check"
+        }
+      ],
+      "artifacts": {
+        "commit_message": "../out/COMMIT_MSG",
+        "command_findings": "../out/commands.json",
+        "document_checks": "../out/document-checks.json",
+        "reproducer": "../out/check-docs.py",
+        "patch": "../out/discovery-docs.patch",
+        "ops/conductor/discovery-lever.md": "sha256:d470bdeb0f65a1c36c4d58b4f8feaaf55c255dd82b3c326b1706bb430f43f419",
+        "ops/conductor/discovery-examples.md": "sha256:96f4e4a1580be916a4f1648c552e6a65afffc65da0a000b562cc9743f1ca7088",
+        "ops/conductor/lane-mcp-lever.md": "sha256:42aacf018e95c4df7fd11bba9df85f381bd204198edd7f03468d088d6025726c",
+        "ops/conductor/onboard-lever.md": "sha256:ee341904ed0b06510b008b70c073dc5a4b88e94fcfbdc8c2c10450a6db8ef840",
+        "ops/conductor/handoff/README.md": "sha256:18e752c8b54774f026b6cd257c6a6a42e1ba15fee3ac8220fae756fb2c592d9c"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2008033,
+        "out": 15984,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c28c2030e04c0278b99f37d5dce2cbac18af307d"
+      },
+      "note": "Assumption: because the supplied command field contains prose, continued the preceding documentary producer's named acceptance command, git diff --check; it exits 0 in the final tree. All six findings received bounded documentary dispositions. Counts include resolved dispositions and command receipts, not outstanding defect totals. No implementation, tests, registry, settings, state or admission edits. Runtime suites and external links were not verified. Independent runtime/gate acceptance and the separately owned startup-plan cross-link remain pending. Git commit was refused by the read-only snapshot filesystem; launcher fallback is out/COMMIT_MSG.",
+      "commit": {
+        "subject": "docs: close six discovery contract review findings",
+        "body": "Name lane_refs.acquire and its import boundary, remove stale current absence claims, and specify exact checkpoint multiplicity with a per-source partial order. Separate missing boot from condition-specific rejected boot refusals. Assign executed-byte custody to the lane_mcp boot custodian and trusted launch owner, with independent mismatch, unverified-load and clean gates under D-A47. Apply the supplied Claude Opus 5 review and owner correction ruling.\n\nPreserve the five accepted resolutions, 53 row IDs, eight JSON examples, canonical sizes and fingerprints, limits, five/seven law tables, legacy bytes and commit history. Only the five discovery documents change. Runtime, tests, registry, settings, state, admission and the separately owned startup plan remain outside this documentary correction.\n\nDocumentary checks pass against c28c2030e04c0278b99f37d5dce2cbac18af307d. Final acceptance command: git diff --check, exit 0. The historical content tree is inaccessible in this snapshot but resolves canonically; its five blobs equal the input documents. Exact hashes and command receipts accompany the output. No runtime acceptance is claimed.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T12:40:51.987Z"
+    }
+  },
+  "status": "closed"
+}

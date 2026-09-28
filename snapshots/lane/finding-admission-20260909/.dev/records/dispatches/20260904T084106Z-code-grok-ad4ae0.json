@@ -1,0 +1,158 @@
+{
+  "id": "20260904T084106Z-code-grok-ad4ae0",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/ladder-driver",
+  "lineage": {
+    "branch": "lane/ladder-driver",
+    "base_sha": "636033686b4fe5f580c310a0b159dbd745291365"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:41:07Z",
+    "closed": "2026-09-04T09:03:08Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "636033686b4fe5f580c310a0b159dbd745291365",
+    "ref_sha": "636033686b4fe5f580c310a0b159dbd745291365",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "206a0330-cf56-4c48-b822-0ecd192748aa",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok-stream/sessions/<snapshot-encoded>/206a0330-cf56-4c48-b822-0ecd192748aa/summary.json"
+  },
+  "session": {
+    "id": "206a0330-cf56-4c48-b822-0ecd192748aa",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok-stream/sessions/<snapshot-encoded>/206a0330-cf56-4c48-b822-0ecd192748aa/summary.json",
+    "stream_sha256_at_close": "0a604ea4e541fadd5372feaa5638b205fdac5ba5b94bb95be81e4b53b287f336",
+    "spend": {
+      "input": 2903265,
+      "cached": 2734720,
+      "output": 82108,
+      "total": 2985373,
+      "cost_usd_ticks": 3735066600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/home/grok-stream/sessions/<snapshot-encoded>/206a0330-cf56-4c48-b822-0ecd192748aa/summary.json",
+      "messages": 216
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch, unit 2 (the ladder driver), the fix round on the tests: the Codex skeptic judged the tests at this ref against the contract and found 4 P1 and 6 P2 (verdict CHANGES); its findings are appended to the input file after the contract. Address every finding, saying in the commit which you left and why: the stage after a changes verdict is the tests fix round; fixtures with two S buckets and an M slice; withholding proved at every stage against the dispatched bytes; discriminating edge stubs; effort and model asserted at every stage; a real unrelated commit for the non-descendant case; resume by the named record; the branch's worktree, not cwd; every exit class planted; both re-author flags on every commit. Tests stay red-first (no implementation; do not write one); one commit per file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084106Z-code-grok-ad4ae0/in/contract-ladder-driver-fix.md",
+        "sha256": "53677add695fc20200c909584abc958231ef19e1b76fb6cbe20ba98b5eaef605"
+      }
+    ],
+    "sha256": "4bdf83be616f01e18be949038d38dec5f6cbb4646e76b3073f8c517a5be8a8e2",
+    "bytes": 3153
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:41:07Z",
+      "ended": "2026-09-04T09:03:08Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3a9373e4191fe05e212c705530ab483b13c1b595",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/conductor/tests/test_land_lever.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever.py": "ops/conductor/tests/test_ladder_lever.py",
+        "test_land_lever.py": "ops/conductor/tests/test_land_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2985373,
+        "out": 82108,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "636033686b4fe5f580c310a0b159dbd745291365",
+        "started": "2026-09-04T08:41:07Z",
+        "ended": "2026-09-04T09:02:45Z"
+      },
+      "note": "Addressed all 10 skeptic findings (4 P1, 6 P2); none left. Commits 5b26ba1 (ladder tests) and 3a9373e (land Reauthor). Red: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py \u2192 41 collected, 41 failed, 0 errors; python3 -m unittest ops.conductor.tests.test_land_lever.Reauthor \u2192 4 collected, 4 failed, 0 errors (argparse still rejects --author/--co-author). No implementation written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T09:03:08.569Z"
+    }
+  },
+  "status": "closed"
+}

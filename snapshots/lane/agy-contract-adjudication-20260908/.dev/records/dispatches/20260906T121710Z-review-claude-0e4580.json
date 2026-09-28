@@ -1,0 +1,292 @@
+{
+  "id": "20260906T121710Z-review-claude-0e4580",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-policy-review-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-review-20260906",
+    "base_sha": "b0dfb6996a4ffcf7259616372e3b10363280b8bd"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T12:17:10Z",
+    "closed": "2026-09-06T12:25:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b0dfb6996a4ffcf7259616372e3b10363280b8bd",
+    "ref_sha": "b0dfb6996a4ffcf7259616372e3b10363280b8bd",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "e91866c7-5135-44aa-ab5c-49d42dab56d8",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/e91866c7-5135-44aa-ab5c-49d42dab56d8.jsonl"
+  },
+  "session": {
+    "id": "e91866c7-5135-44aa-ab5c-49d42dab56d8",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/e91866c7-5135-44aa-ab5c-49d42dab56d8.jsonl",
+    "stream_sha256_at_close": "cec8940a48c4d28e9a2c5cd8eb59db1774e5bd7e9d52453e3892ca14ee440331",
+    "spend": {
+      "input": 92,
+      "cached": 4209003,
+      "output": 34525,
+      "total": 4243620,
+      "source": "result.usage",
+      "messages": 46,
+      "cost_usd": 4.046549
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-review-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck only the latest five unit1a findings against the corrected four-document candidate and governing contracts. Verify complete conductor record/stage/role/job/brief variant, explicit grant normalization from declarations, one PolicyResult shape, precise late-refusal timing and nullable unavailable evidence. Walk representative closed success/pre/late cases and preservation of legacy worker records/brief.policy. Inspect supplied checks and reproduce safely where allowed. The original split artifacts are durably retained in the supplied archive README; preserve old combined commit and invalid record. No edits, source/runtime changes, network, settings/state/admission. Return exact refs, all dispositions and approve/changes with limits; keep note under 700 words and findings concrete. This is documentary acceptance only.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/ag-conduct-unit1a-fix.json",
+        "sha256": "e1619e16c32bd43ea2063c35cdba185795196398096209e19624ea4ada47d484"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/ag-conduct-unit1a-review.json",
+        "sha256": "5eb6f9df7bee28cd6fbb2b92a42246c696ac29a268584634fb2383447c7aba18"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/ag-conduct-unit1a-fix-ruling.md",
+        "sha256": "896b9b8acc5cfaed865ae42c42d2da5b5efa3f00aa93ea28c3ec9128d957e7b0"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/checks.json",
+        "sha256": "c1f311eea4da75878a8d41602b4ce69bd222862dfd8246a0284fda1d0106e878"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/check_docs.py",
+        "sha256": "5f0dbd9beb6309b5a5375dc574b01801a9649a7ee25c32fd08460455f15f1334"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/synthetic-examples.json",
+        "sha256": "51c8e4a9a122246cd85336073000540fd3f9c8564a965b245953d7117fa80726"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/README.md",
+        "sha256": "3b862e81942fd1d02e4c9ccbffcabc988376244321bca7a4cda81a1ab4aa2287"
+      }
+    ],
+    "sha256": "7fc2eb1c233f7f1aa7ca2b248bed8ff53dde964357e3dbe4b4e096051d483295",
+    "bytes": 1612
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:17:10Z",
+      "ended": "2026-09-06T12:25:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b0dfb6996a4ffcf7259616372e3b10363280b8bd",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:778 (caps row), against :716-721",
+          "claim": "The conductor caps override has no admissible `caps.timeout_source` token. Declared (new): \"The following overrides completely define the non-worker variant\" (:765) and \"caps / overrides | existing supervision transport from admitted conductor configuration, with source; no worker job/default-role lookup\" (:778). Declared (pre-existing, retained): \"`caps.timeout` (seconds) resolves in one order: `DISPATCH_TIMEOUT` ... else the job's own `caps.timeout` in `jobs.json`, else 900 \u2014 and `caps.timeout_source` names the layer that answered: `DISPATCH_TIMEOUT`, `job`, or `default`\" (:718-721). Practiced: launch.py:1003-1006 writes both keys unconditionally on every attempt, choosing among exactly those three tokens from `job_caps`. A conductor has null job, so the `job` layer is forbidden, and \"admitted conductor configuration\" is not one of the three tokens; an implementer must either label conductor-configured caps `default` (naming a layer that did not answer) or emit a token outside the closed enumeration. The supplied fixture takes a third route and omits both keys: both synthetic conductor records carry `caps` as `{cap-out, source}` only, including the success record that registers attempt 1. This is the same namespace-incompatibility shape as the closed p2, narrowed to one field; it does not block record construction.",
+          "reproduce": "sed -n '765p;778p;716,721p' ops/devlane/dispatch/CONTRACT.md; sed -n '997,1006p' ops/devlane/dispatch/launch.py; jq -c '.success_record.caps, .late_before_attempt_record.caps' ../in/synthetic-examples.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:461-470",
+          "claim": "The F5 remedy replaces one unresolvable citation with two others. Declared (new): \"The bounded unit1a correction preserves combined commit `f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc`, invalid worker record `20260906T111519Z-code-codex-dce07d` and the historical absence checker. The conductor separately retains the original `01-interface-fix.patch` with `01-COMMIT_MSG` and `02-unit1a.patch` with `02-COMMIT_MSG` as durable coordination inputs.\" Practiced: `git cat-file -t` resolves f15ca22, but `grep -rn 20260906T111519Z-code-codex-dce07d .` returns exactly one hit \u2014 this sentence itself; no such record is committed under .dev/records/dispatches/ (252 records, 111519Z absent), while invalid-envelope records are otherwise committed normally (20260903T224231Z-review-codex-312a39.json:135). The four retained artifacts are named by filename with no repository, commit, record id or digest, and the archive commit c35ed64 named in the supplied README is not an object here (`git cat-file -t c35ed64`: fatal, Not a valid object name). The producer declared the absence honestly (fix record note, \"which were not supplied here\"), and the ruling assigns retention to the conductor, so the remedy is a locator or the four SHA-256 digests the supplied archive README already carries \u2014 not a re-commit.",
+          "reproduce": "sed -n '461,470p' ops/conductor/conductor-start-plan.md; grep -rn '111519Z-code-codex-dce07d' .; git cat-file -t c35ed64; ls .dev/records/dispatches/ | grep 111519Z"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md:526",
+          "claim": "One new prose line is left unwrapped at 89 characters, the same fill class the two prior rounds raised and closed. Practiced: line 526 is \"For a worker, outputs may cite the catalogue whose measured omission yields `[]`, keeping\" (wc -c 90, i.e. 89 characters), added by this commit at hunk @@ -510,8 +517,13 @@. It is the only line in ops/devlane/task/CONTRACT.md over 84 characters that is not a table row, a link or a fenced/quoted example, and the only such line added anywhere in this change: the other three over-84 non-link prose lines in the four documents (lane-policy.md:694, lane-policy.md:757, dispatch/CONTRACT.md:436) all pre-date 56125e6 and sit outside every hunk. Unlike the closed finding it is a well-formed sentence, not a splice, so the defect is fill only.",
+          "reproduce": "sed -n '526p' ops/devlane/task/CONTRACT.md | wc -c; grep -n '.\\{85,\\}' ops/devlane/task/CONTRACT.md; git diff 56125e6d04e6dcbe774206dcfd03b24b0406659d b0dfb6996a4ffcf7259616372e3b10363280b8bd -- ops | grep '^+' | grep -v '^+++' | grep -n '.\\{86,\\}'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/context/diff.patch",
+        "receipt_reviewed": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/checks.json",
+        "checker_read_not_executed": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/check_docs.py",
+        "retention_archive_declared": "/home/scientdb/.local/state/agentscient/dispatch/20260906T121710Z-review-claude-0e4580/in/README.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4243620,
+        "out": 34525,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b0dfb6996a4ffcf7259616372e3b10363280b8bd",
+        "started": null,
+        "ended": "2026-09-06T12:23:59Z"
+      },
+      "note": "REVIEW \u2014 Opus 5, exact model id claude-opus-5, read-only. Ref b0dfb6996a4ffcf7259616372e3b10363280b8bd against base 710dbac38c3b187eb4b3302308430c0a6dec4d76, measured from this snapshot and git at the moment of writing. Verdict approve, documentary consistency only: 0 p1, 0 p2, 3 p3.\n\nSCOPE. context/diff.patch is byte-identical to `git diff 710dbac b0dfb69` (diff -q, no output). b0dfb69 changes exactly the four owned documents; numstat against 56125e6: conductor-start-plan 33/2, lane-policy 117/27, dispatch/CONTRACT 102/5, task/CONTRACT 32/5. The wider range adds six prior dispatch records and one ladder input \u2014 read, not re-litigated. All five in/ files read whole.\n\nTHE FIVE DISPOSITIONS. F1 (a conduct launch had no admissible stage or record role) CLOSED: dispatch/CONTRACT.md:749-826 declares the record union selected by role, `conduct` in the id grammar (:392-395, :470-472), role `conductor`, null job and brief, the `conductor` key, and a ten-row consumer frontier. It is stamped proposed and unimplemented and names the blocking source at 56125e6; I confirmed launch.py:34 STAGES holds six worker stages with no `conduct`, launch.py:2119 binds `--stage` to it, record.py:13-17 FIELDS has no `conductor`, record.py:137 pins role to read|write. Legacy preservation holds: record.py untouched, worker bytes and job-role meanings unchanged, old records \"neither rewritten nor backfilled\", one execution service and store, startup emits no task envelope. F2 (grants_sha256 had no derivation) CLOSED: lane-policy.md:421-429 is a normative mapping table, outputs derived from every C2 entry.path and maintenance from bound rows; task/CONTRACT.md:538-545 carries the same mapping; `job_grants|requested_scope` now occurs 5x in lane-policy, was 0. check_docs.py:105-120 derives from `declarations` and asserts wg[\"job\"]!=wg[\"scope\"] and wg[\"adapter\"]!=wg[\"role\"] against by-fiat reuse. Reproduced independently with jq: `jq -Scja .worker_normalized` gives 55acf9b8\u2026 and `.conductor_normalized` gives 794c9a43\u2026, equal to checks.json. F3 (two result.policy shapes) CLOSED: the eight-member prose at lane-policy.md:347-350 now points at PolicyResult, :366-367 makes it the sole shape, dispatch:1002 unchanged, no other member list survives. F4 (spliced late-refusal sentence) CLOSED: lane-policy.md:592-600 fixes the boundary per invocation \u2014 claim, first resume/collect mutation, read-only checks and in-memory reservation excluded \u2014 and the sentence is rewrapped; nullable unavailable evidence is declared at :493-503 and :552-562 and walked at :630-634. F5 CLOSED per the ruling; its residue is finding 2.\n\nRECEIPT, REPRODUCED. checks.json: four files_sha256 match the landed blobs; head_tree e38348af equals 56125e6^{tree} (HEAD unchanged under read-only .git); worktree_diff_sha256 338fabc6 equals sha256 of `git diff --binary 56125e6 b0dfb69 -- ops`; checker_sha256, synthetic_examples_sha256 and all four inputs_sha256 match; json_fences 5, local_links 85, remote_links_unchecked 10 and preserved_policy_rows 21 reproduced by grep, and the 21 rows are identical to 56125e6. `git diff --check 710dbac b0dfb69` produced no output. Every new local anchor resolves. brief.policy is unchanged in both the contract (:302-330, outside every hunk) and record.py's nine-key validator.\n\nLIMITS, DECLARED. I did not execute check_docs.py: its ROOT/OUT are path-coupled to the job layout, so a run here would write into in/, and it asserts HEAD==56125e6, false here. Its derivations were reproduced by jq and grep and its source read instead. No runtime, verified mock, test, live capability or admission is approved; no network; the ten remote links are unfetched. The archive commit c35ed64 named in in/README.md is not an object in this repository \u2014 I could look only at the README's digests, not at those bytes. The fix record's 28 p3 entries are a command trace, not defects; noted, outside this aim. No repository, settings, state or admission write."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

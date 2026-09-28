@@ -1,0 +1,1 @@
+{"from":"examples/anatomy/goodcap","change":"remove refusal demonstration","violates":"refusal coverage","reject_path":"anatomy.undemonstrated","site":["faults/"]}

@@ -1,0 +1,425 @@
+{
+  "id": "20260904T120858Z-code-codex-075cb1",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-fix",
+  "lineage": {
+    "branch": "lane/fixture-fix",
+    "base_sha": "d037e5f8ef4355c8f45a8c3f3a7230fa83f5a766"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T12:08:59Z",
+    "closed": "2026-09-04T12:20:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d037e5f8ef4355c8f45a8c3f3a7230fa83f5a766",
+    "ref_sha": "d037e5f8ef4355c8f45a8c3f3a7230fa83f5a766",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-08-59-01a06c52-7a08-73b3-b15e-0dcc4a2f390f.jsonl"
+  },
+  "session": {
+    "id": "01a06c52-7a08-73b3-b15e-0dcc4a2f390f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-08-59-01a06c52-7a08-73b3-b15e-0dcc4a2f390f.jsonl",
+    "stream_sha256_at_close": "c32120e8805385300b62ae6c0cd036ab6384c818d5b74b349bd1b0c344dec8db",
+    "spend": {
+      "input": 4374747,
+      "cached": 4262656,
+      "output": 26148,
+      "total": 4400895,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-08-59-01a06c52-7a08-73b3-b15e-0dcc4a2f390f.jsonl",
+      "messages": 391
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_fixture_*.py\" && python3 -m unittest discover -s ops/conductor/tests -p \"test_findings*.py\" && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/in/contract-fixture-fix-A.md",
+        "sha256": "961aa3a0746abb3c56c38832c76f63a08ec112b24087b836f5ed4e83ed2bac57"
+      }
+    ],
+    "sha256": "8b4c70445f90df536337261dd687fbe07bb1b5acf855e096861ddf6adaceced5",
+    "bytes": 4022
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T12:08:59Z",
+      "ended": "2026-09-04T12:20:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0cc4f4ef04f5935b1c8ff31d311190cfeef9b3ec",
+    "changed_paths": [
+      "ops/bin/fixture.sh",
+      "ops/conductor/tools/findings.py",
+      "ops/devlane/fixtures/copy-list",
+      "ops/lane.conf"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 43,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot command 01",
+          "claim": "Confirmed the starting ref was d037e5f8ef4355c8f45a8c3f3a7230fa83f5a766.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 02",
+          "claim": "Confirmed the starting checkout was detached and clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 03",
+          "claim": "Inventoried the documentation and operating-lane files.",
+          "reproduce": "rg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 04",
+          "claim": "Read the founding contracts, ops instructions, and nested dev-lane instructions.",
+          "reproduce": "sed -n '1,$p' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 05",
+          "claim": "The baseline named command exited 1 with 15 fixture-suite failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_fixture_*.py\" && python3 -m unittest discover -s ops/conductor/tests -p \"test_findings*.py\" && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 06",
+          "claim": "Measured the relevant implementation and test file sizes before inspection.",
+          "reproduce": "wc -l ops/bin/fixture.sh ops/conductor/tools/findings.py ops/devlane/fixtures/tests/test_fixture_grade.py ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_root.py ops/conductor/tests/test_findings.py ops/conductor/tests/test_findings_calibration.py ops/lane.conf"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 07",
+          "claim": "Read the fixture lever implementation in full.",
+          "reproduce": "sed -n '1,620p' ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 08",
+          "claim": "The baseline findings suites exited 1 with two calibration-export identity failures.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p \"test_findings*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 09",
+          "claim": "Read the findings ledger implementation in full.",
+          "reproduce": "sed -n '1,340p' ops/conductor/tools/findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 10",
+          "claim": "Read the fixture grading acceptance tests in full.",
+          "reproduce": "sed -n '1,735p' ops/devlane/fixtures/tests/test_fixture_grade.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 11",
+          "claim": "Inspected the fixture lever test setup and relevant make/prove cases.",
+          "reproduce": "sed -n '1,460p;600,1341p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 12",
+          "claim": "Read the uninterrupted make and prove acceptance-test range.",
+          "reproduce": "sed -n '680,1055p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 13",
+          "claim": "Read the fixture root-tree tests in full.",
+          "reproduce": "sed -n '1,180p' ops/devlane/fixtures/tests/test_fixture_root.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 14",
+          "claim": "Located existing FIXTURE_COPY_LIST declarations and consumers.",
+          "reproduce": "rg -n \"FIXTURE_COPY_LIST|copy-list\" . --glob '!ops/devlane/fixtures/tests/test_fixture_*.py' --glob '!ops/conductor/findings/findings.jsonl'"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 15",
+          "claim": "Read the first half of the shared lane configuration reader.",
+          "reproduce": "sed -n '1,180p' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 16",
+          "claim": "Read the remaining relevant lane configuration behavior.",
+          "reproduce": "sed -n '180,360p' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 17",
+          "claim": "Inspected recent lineage and identified the commits introducing the red acceptance cases.",
+          "reproduce": "git log --oneline --decorate -12"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 18",
+          "claim": "Measured which test files the relevant recent commits changed.",
+          "reproduce": "git show --stat --oneline af66c32 c0899de e03e1b5 a8590a9 d037e5f"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 19",
+          "claim": "Read the exact acceptance-test additions and their commit rationale.",
+          "reproduce": "git show --format=medium --no-ext-diff af66c32 c0899de e03e1b5 a8590a9"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 20",
+          "claim": "Searched the contracts and lane records for fixture copy-list guidance.",
+          "reproduce": "rg -n \"fixture-apps|fixture apps|fixture.sh make|tracked copy|copy list\" ops docs CONTRIB.md README.md 2>/dev/null"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 21",
+          "claim": "Inspected neighboring portability assertions for copied lane files.",
+          "reproduce": "sed -n '1760,1820p' ops/devlane/fixtures/tests/test_python_service_app.py; sed -n '900,950p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 22",
+          "claim": "Located every neighboring LANE_COPY_PATHS declaration.",
+          "reproduce": "rg -n \"LANE_COPY_PATHS\" ops/devlane/fixtures/tests/test_*_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 23",
+          "claim": "Confirmed all four neighboring app suites use the same nine portability paths.",
+          "reproduce": "sed -n '70,105p' ops/devlane/fixtures/tests/test_python_tooling_app.py; sed -n '175,215p' ops/devlane/fixtures/tests/test_python_service_app.py; sed -n '195,230p' ops/devlane/fixtures/tests/test_symfony_app_app.py; sed -n '240,270p' ops/devlane/fixtures/tests/test_rust_crate_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 24",
+          "claim": "After the first implementation pass, 82 of 84 fixture tests passed; only refusal wording and untracked copy-list metadata remained.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_fixture_*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 25",
+          "claim": "The sandbox refused normal staging because .git/index.lock is read-only.",
+          "reproduce": "git add ops/bin/fixture.sh ops/conductor/tools/findings.py ops/lane.conf ops/devlane/fixtures/copy-list"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 26",
+          "claim": "All 18 findings tests passed after requiring identity for calibration export.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p \"test_findings*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 27",
+          "claim": "Ruff reported all checks passed after the implementation changes.",
+          "reproduce": "ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 28",
+          "claim": "Reviewed the tracked implementation diff for the four changed targets.",
+          "reproduce": "git diff -- ops/bin/fixture.sh ops/conductor/tools/findings.py ops/lane.conf ops/devlane/fixtures/copy-list"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 29",
+          "claim": "Confirmed the repository index path is .git/index.",
+          "reproduce": "git rev-parse --git-path index"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 30",
+          "claim": "Copied the read-only index to a writable temporary index for verification.",
+          "reproduce": "cp .git/index /tmp/agentscient-d037e5f.index"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 31",
+          "claim": "Using only an alternate index was insufficient because the repository object database is also read-only.",
+          "reproduce": "GIT_INDEX_FILE=/tmp/agentscient-d037e5f.index git add ops/bin/fixture.sh ops/conductor/tools/findings.py ops/lane.conf ops/devlane/fixtures/copy-list"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 32",
+          "claim": "Intent-to-add was likewise refused because Git could not create an empty blob in the read-only object database.",
+          "reproduce": "GIT_INDEX_FILE=/tmp/agentscient-d037e5f.index git add --intent-to-add ops/devlane/fixtures/copy-list"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 33",
+          "claim": "Created a writable temporary Git object directory for verification only.",
+          "reproduce": "mkdir -p /tmp/agentscient-d037e5f-objects"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 34",
+          "claim": "Staged the complete change successfully in the temporary index and object database.",
+          "reproduce": "GIT_INDEX_FILE=/tmp/agentscient-d037e5f.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-d037e5f-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/snapshot/.git/objects git add ops/bin/fixture.sh ops/conductor/tools/findings.py ops/lane.conf ops/devlane/fixtures/copy-list"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 35",
+          "claim": "All 84 fixture tests passed with the new copy-list represented in the temporary index.",
+          "reproduce": "GIT_INDEX_FILE=/tmp/agentscient-d037e5f.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-d037e5f-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/snapshot/.git/objects python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_fixture_*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 36",
+          "claim": "Confirmed the repository's Codex attribution convention is GPT-5.6 Sol with the OpenAI noreply address.",
+          "reproduce": "git log -20 --format=%B | rg \"^Co-Authored-By: .*<noreply@openai.com>$\""
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 37",
+          "claim": "Git's whitespace validation completed with no errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 38",
+          "claim": "Confirmed three modified tracked files and one new copy-list file remained for launcher staging.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 39",
+          "claim": "Started a persistent clean Bash session to preserve the writable verification index environment.",
+          "reproduce": "bash --noprofile --norc"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 40",
+          "claim": "Configured the persistent shell to use the writable verification index and object directory.",
+          "reproduce": "export GIT_INDEX_FILE=/tmp/agentscient-d037e5f.index GIT_OBJECT_DIRECTORY=/tmp/agentscient-d037e5f-objects GIT_ALTERNATE_OBJECT_DIRECTORIES=/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/snapshot/.git/objects"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 41",
+          "claim": "The named command exited 0: 84 fixture tests passed, 18 findings tests passed, and Ruff passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_fixture_*.py\" && python3 -m unittest discover -s ops/conductor/tests -p \"test_findings*.py\" && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 42",
+          "claim": "The persistent verification shell exited 0 after the named command.",
+          "reproduce": "exit"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot command 43",
+          "claim": "Recorded completion at 2026-09-04T12:18:21Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "fixture_lever": "ops/bin/fixture.sh",
+        "findings_tool": "ops/conductor/tools/findings.py",
+        "lane_config": "ops/lane.conf",
+        "copy_list": "ops/devlane/fixtures/copy-list",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120858Z-code-codex-075cb1/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4400895,
+        "out": 26148,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d037e5f8ef4355c8f45a8c3f3a7230fa83f5a766",
+        "started": null,
+        "ended": "2026-09-04T12:18:21Z"
+      },
+      "note": "Implemented only the test-pinned extras. Assumed the tracked default copy list should contain the nine portability paths consistently named by the neighboring app suites. The snapshot's Git metadata was read-only, so the launcher must stage the new copy-list and commit using out/COMMIT_MSG; verification used an equivalent writable temporary index. No unrelated behavior was changed.",
+      "commit": {
+        "subject": "fixtures: close fixture and calibration gaps",
+        "body": "Keep fixture copies tracked, use the lane default, isolate fixed probes,\nand scrub their environment. Validate grading envelopes and require an\nidentity before exporting calibration data.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T12:20:35.814Z"
+    }
+  },
+  "status": "closed"
+}

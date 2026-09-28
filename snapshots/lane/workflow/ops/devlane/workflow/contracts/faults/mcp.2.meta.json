@@ -1,0 +1,10 @@
+{
+  "contract": "mcp",
+  "fault": "mcp.2.json",
+  "from": "obs/mcp.json",
+  "change": "mcp_server.py names no `log` verb",
+  "violates": "PLAN.md §9 lines 485-486",
+  "quote": "\"**Read-only MCP status server.** Serves `status`/`next`/`log` as MCP resources over the same `--json` surface.\"",
+  "reject_path": "facts\\.verb_literals\\b|log",
+  "implied": false
+}

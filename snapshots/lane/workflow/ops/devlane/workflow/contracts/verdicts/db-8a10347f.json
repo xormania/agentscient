@@ -1,0 +1,34 @@
+{
+  "id": "db-8a10347f",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md section 3.2 says the gate_kinds table holds kind, version, and spec_json.",
+  "observed": "The live gate_kinds table has those three columns plus spec_sha256 and synced_at, so the column count is 5 rather than 3.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "103-103",
+      "quote": "| `gate_kinds` | `kind`, `version`, `spec_json` — the gate-kind registry (§6) | new |"
+    },
+    {
+      "artifact": "cue/db.cue",
+      "lines": "134-134",
+      "quote": "_columnCount: len(_columnNames) & 3"
+    },
+    {
+      "artifact": "wf.db",
+      "lines": "n/a-n/a",
+      "quote": "CREATE TABLE gate_kinds ("
+    },
+    {
+      "artifact": "wf.db",
+      "lines": "n/a-n/a",
+      "quote": "spec_sha256 TEXT    NOT NULL"
+    },
+    {
+      "artifact": "wf.db",
+      "lines": "n/a-n/a",
+      "quote": "synced_at   TEXT    NOT NULL"
+    }
+  ],
+  "action": "record-finding"
+}

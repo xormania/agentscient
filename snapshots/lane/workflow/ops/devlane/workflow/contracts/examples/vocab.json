@@ -1,0 +1,22 @@
+{
+  "facts": {
+    "literals": [
+      "capabilities",
+      "capability",
+      "chain",
+      "claim",
+      "frozen set",
+      "gate",
+      "green",
+      "marker",
+      "packet",
+      "receipt",
+      "red",
+      "stage",
+      "wf",
+      "work order"
+    ],
+    "joined": "capabilities\ncapability\nchain\nclaim\nfrozen set\ngate\ngreen\nmarker\npacket\nreceipt\nred\nstage\nwf\nwork order"
+  },
+  "provenance": {}
+}

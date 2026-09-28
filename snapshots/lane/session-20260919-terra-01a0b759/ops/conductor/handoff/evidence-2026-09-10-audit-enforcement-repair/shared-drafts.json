@@ -1,0 +1,11 @@
+{
+  "source_worktree": "/tmp/ag-manual-enforcement-20260910",
+  "producer": "GPT-6 Astra (concurrent manual repair session)",
+  "source_sha256": {
+    "ops/conductor/tools/co_doc.py": "008397c51ea0fe34070e35c52ba44a2ca6b102ed161e869fde070ac651d4372c",
+    "ops/conductor/permission-surface.md": "7877f1d9aa5bf769281ec3b56644b74c38c1afd683df8015a84e7108536e4adf",
+    "ops/process/tdd.md": "58bbf038dbbeba4fb548029a6cf83e76cf96db2a7d14b2b12197a251ed06725e",
+    "ops/conductor/registry/control.py.json": "8f0b532c5ec04c48a931859e234faaa824a825479ae28021785ad842a56ecb55"
+  },
+  "adaptation": "co_doc reads this implementation state key instruments instead of pins; both identify the frozen controller and hook hashes."
+}

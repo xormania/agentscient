@@ -1,0 +1,288 @@
+{
+  "id": "20260908T070040Z-code-codex-03813d",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-contract-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-contract-correction-20260908",
+    "base_sha": "723fe4f0dcd612179b39d81538b38b1e35bb4e26"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:00:41Z",
+    "closed": "2026-09-08T07:07:08Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "723fe4f0dcd612179b39d81538b38b1e35bb4e26",
+    "ref_sha": "723fe4f0dcd612179b39d81538b38b1e35bb4e26",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-00-41-01a07fd1-a937-7bb0-9ab8-3a58e4e01207.jsonl"
+  },
+  "session": {
+    "id": "01a07fd1-a937-7bb0-9ab8-3a58e4e01207",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-00-41-01a07fd1-a937-7bb0-9ab8-3a58e4e01207.jsonl",
+    "stream_sha256_at_close": "a3ce009b5e682c899ea42603e4d83c30823b1b31c8c655b8d72d62a2cfc85472",
+    "spend": {
+      "input": 1423990,
+      "cached": 1344512,
+      "output": 8884,
+      "total": 1432874,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-00-41-01a07fd1-a937-7bb0-9ab8-3a58e4e01207.jsonl",
+      "messages": 158
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-contract-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only the three contract documentation surfaces at fc9ad2c according to the supplied independent Grok ruling: dispatch/CONTRACT.md and module docstrings of conductor/tools/laneconf.py and devlane/harness/isolation.py. Keep executable ASTs unchanged. Apply UPHELD/PARTIAL items minimally, no rejected F7 expansion. Later wire evidence is supplied separately and can resolve F8 with precise citations; it did not seed adjudication. Preserve worker API and installation scope; no role study, new admission framework, Symfony or conduct dependency. Run the exact acceptance command in agy-contract-explicit-acceptance.md and its AST/scope checks; report actual exits. Preserve original INVALID record. Deliver corrected source with GPT-6 attribution and standard fallback COMMIT_MSG if Git staging is unavailable. Do not write tests or run full floor.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/in/agy-contract-adjudication.json",
+        "sha256": "4326b784c45e955b20489b3646fef20a5ec0689122bf5aa8e081837700caa824"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/in/agy-contract-explicit-acceptance.md",
+        "sha256": "3fc408beaada8c0cb662227e99ea36241701348f1ba22e644751135f3165ddfd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070040Z-code-codex-03813d/in/agy-worker-owner.md",
+        "sha256": "8abd7ac8e69a9610dbe58f5e0f5dc7e074c818bbc4b70387e49f01fe43d4c27c"
+      }
+    ],
+    "sha256": "f9c0e38ae2eb1fac83d7e04a7236cabb784e2b3666b20e79aecaf98dfa66bc67",
+    "bytes": 4701
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:00:41Z",
+      "ended": "2026-09-08T07:07:08Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7076a48364ad98b33165429661cf7c2008f5db3a",
+    "changed_paths": [
+      "ops/conductor/tools/laneconf.py",
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/harness/isolation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "C01",
+          "claim": "Exit 0: located inputs and repository instructions.",
+          "reproduce": "../out/command-receipts.json#/commands/0/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C02",
+          "claim": "Exit 0: read inputs/contracts; recovered truncated output through subsequent reads.",
+          "reproduce": "../out/command-receipts.json#/commands/1/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C03",
+          "claim": "Exit 0: read complete adjudication and exact acceptance instructions.",
+          "reproduce": "../out/command-receipts.json#/commands/2/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C04",
+          "claim": "Exit 0: read founding contracts.",
+          "reproduce": "../out/command-receipts.json#/commands/3/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C05",
+          "claim": "Exit 0: inspected source and scope; subsequent reads recovered truncated sections.",
+          "reproduce": "../out/command-receipts.json#/commands/4/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C06",
+          "claim": "Compound exit 0: confirmed HEAD 723fe4f; git show fc9ad2c failed with exit 128 because the object is unavailable.",
+          "reproduce": "../out/command-receipts.json#/commands/5/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C07",
+          "claim": "Exit 0: located retained records and read founding contracts.",
+          "reproduce": "../out/command-receipts.json#/commands/6/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C08",
+          "claim": "Exit 0: read original INVALID result and its artifact references.",
+          "reproduce": "../out/command-receipts.json#/commands/7/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C09",
+          "claim": "Exit 0: recovered original candidate patch from its recorded path.",
+          "reproduce": "../out/command-receipts.json#/commands/8/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C10",
+          "claim": "Exit 0: inspected mapping, refusal table, configuration closure and wrapper seams.",
+          "reproduce": "../out/command-receipts.json#/commands/9/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C11",
+          "claim": "Exit 0: restored candidate documentation and verified all three blob hashes; pinned original INVALID record hash.",
+          "reproduce": "../out/command-receipts.json#/commands/10/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C12",
+          "claim": "Exit 0: applied upheld/partial documentation corrections; no F7 expansion.",
+          "reproduce": "../out/command-receipts.json#/commands/11/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C13",
+          "claim": "Exit 0: exact acceptance command passed.",
+          "reproduce": "../out/command-receipts.json#/commands/12/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C14",
+          "claim": "Exit 0: reviewed documentation delta against source.",
+          "reproduce": "../out/command-receipts.json#/commands/13/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C15",
+          "claim": "Exit 0: corrected documented metadata signature and prose wrapping.",
+          "reproduce": "../out/command-receipts.json#/commands/14/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C16",
+          "claim": "Exit 0: exact acceptance command passed on final source; 112 tests and all documentation/lint/whitespace checks passed.",
+          "reproduce": "../out/command-receipts.json#/commands/15/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C17",
+          "claim": "Exit 0: three-file scope and both executable AST checks passed; bytes outside module docstrings and original INVALID record unchanged. Exported patch and GPT-6 COMMIT_MSG.",
+          "reproduce": "../out/command-receipts.json#/commands/16/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C18",
+          "claim": "Exit 128: staging refused by read-only .git; commit not reached. Standard fallback retained.",
+          "reproduce": "../out/command-receipts.json#/commands/17/cmd"
+        },
+        {
+          "severity": "p3",
+          "where": "C19",
+          "claim": "Exit 0: final status, hashes and required commit trailers verified.",
+          "reproduce": "../out/command-receipts.json#/commands/18/cmd"
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/worker-contract-corrected.patch",
+        "receipts": "../out/command-receipts.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1432874,
+        "out": 8884,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "723fe4f0dcd612179b39d81538b38b1e35bb4e26"
+      },
+      "note": "Final acceptance and AST/scope checks exited 0. Used the retained, blob-verified fc9ad2c patch because its Git object is unavailable. F8 uses the ruling's unresolved-spelling option; F7 unchanged. Original INVALID record preserved. No executable or test changes; no full floor. Git staging refused; launcher fallback supplied.",
+      "commit": {
+        "subject": "Correct configured worker contracts after independent ruling",
+        "body": "Restore the retained fc9ad2c documentation candidate and minimally apply\nGrok F1-F6/F8 corrections across the dispatch contract and two module\ndocstrings. Preserve F7, executable ASTs, worker scope, and the original\nINVALID delivery. Exact documentation acceptance and AST/scope checks pass.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:07:07.975Z"
+    }
+  },
+  "status": "closed"
+}

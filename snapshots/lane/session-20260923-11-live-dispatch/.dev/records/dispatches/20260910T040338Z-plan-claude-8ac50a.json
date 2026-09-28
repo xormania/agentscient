@@ -1,0 +1,273 @@
+{
+  "id": "20260910T040338Z-plan-claude-8ac50a",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/graft-integration-20260910",
+  "lineage": {
+    "branch": "lane/graft-integration-20260910",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T04:03:39Z",
+    "closed": "2026-09-10T04:14:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/tmp/ag-graft-integration-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "7e18828a-cae7-4f60-a31e-a4edb60b7b44",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/7e18828a-cae7-4f60-a31e-a4edb60b7b44.jsonl"
+  },
+  "session": {
+    "id": "7e18828a-cae7-4f60-a31e-a4edb60b7b44",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/7e18828a-cae7-4f60-a31e-a4edb60b7b44.jsonl",
+    "stream_sha256_at_close": "9e96b1ddd398b915e1aa31dd660feb93cebef32af17e11405e344416ea7dcc13",
+    "spend": {
+      "input": 82,
+      "cached": 4146893,
+      "output": 42004,
+      "total": 4188979,
+      "source": "result.usage",
+      "messages": 41,
+      "cost_usd": 4.912649
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-graft-integration-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Deliver PR 1: install pinned Graft and integrate actual code-context use by conductors and dispatched workers developing ops/. Read the complete supplied in/graft-inventory-20260910.md. Build on lane.conf, canonical dispatch/isolation/brief custody, onboarding, and suites/ladder. Cover normal worktrees and dispatch snapshots, offline worker operation, a configuration-line disable, immutable dependency identity, contract/probe/verified mock, and independent tests. Preserve role/source boundaries and existing checks. No Symfony dependency. Session-usage analytics, cherry-pick automation, deep model enrichment and general conduct startup are later PRs. Produce the bounded implementation plan and exact proposed shared call/data interface needed by independent contract/test producers; name unresolved assumptions and decisive native probes. Include explicit input filenames in every downstream scope until PR #78 lands.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/in/ag-graft-inventory-20260910.md",
+        "sha256": "e5efcfe915899cbb43be9f3e8a660a765b1fbf5e20be76e0e18c14e0665fc40f"
+      }
+    ],
+    "sha256": "8a647b3d622ef64b7b5b25bcf47cc20af0dc12bdd713df395d838bdb2ea4baa5",
+    "bytes": 3196
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T04:03:39Z",
+      "ended": "2026-09-10T04:14:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 1
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:1851-1877,1945-1948 and .gitignore",
+          "claim": "`.graft` is absent from .gitignore and `_is_cache_residual` covers only pyc/ruff/pytest/mypy, so a Graft cache written under the snapshot is an untracked residual that invalidates a read job at `_settle` (read-role-snapshot). The plan addresses it by forcing the cache outside snapshot/ via --dir and a post-build `graft-residual` guard.",
+          "reproduce": "read .gitignore; read ops/devlane/dispatch/launch.py lines 1851-1877 (_is_cache_residual) and 1945-1948 (_settle read-role invalidation)"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-graft-inventory-20260910.md:126-131",
+          "claim": "Graft's CLI preAction always calls maybeRefreshInBackground with no CI/DO_NOT_TRACK bypass in the pinned source; a missing/old update-check.json triggers an npm registry subprocess. Offline workers need GRAFT_NO_REFRESH=1 plus a seeded update-check.json. This is source-only until native probe P-GRAFT-NONET; the plan makes the wrapper refuse graft-unavailable if it cannot seed.",
+          "reproduce": "read in/ag-graft-inventory-20260910.md lines 126-131"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/jobs.json",
+          "claim": "Six harness jobs (adversarial-review, security-audit, author-tests, sweep, plan, implement) omit the {inputs} template slot, so copied input paths are not named to the worker until PR #78 lands. Every downstream scope must name in/ag-graft-inventory-20260910.md in-line.",
+          "reproduce": "read ops/devlane/task/jobs.json; note only check-tests and adjudicate interpolate {inputs}"
+        }
+      ],
+      "artifacts": {
+        "PLAN.md": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040338Z-plan-claude-8ac50a/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4188979,
+        "out": 42004,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+        "started": null,
+        "ended": null
+      },
+      "note": "Bounded PR-1 plan for installing pinned Graft and wiring structural code-context for conductors and dispatched workers developing ops/. One shared stdlib module ops/devlane/harness/graft.py is the single reader of GRAFT_ENABLE/GRAFT_NODE/GRAFT_BIN and the single builder of every Graft invocation, consumed by the launcher over the allowed dispatch->harness edge and by a ops/bin/graft.sh lever for conductors; identity is frozen in a tracked pin.json (node v24.21.0 sha, Graft source rev 3a85a2f4, committed lockfile), disable is the one line GRAFT_ENABLE=0, cache is always outside snapshot/, refresh is disabled and update-check.json seeded so offline workers make no npm subprocess, and the external surface carries a contract, a native probe and a contract-verified fake. Five slices (graft-pin S, graft-config S, graft-surface M, graft-conductor S, graft-worker M) ordered by value per cost; graft-worker is the only slice that touches the dispatcher and lands last. Placement opinion (counts.opinions=1): the interface lives under ops/devlane/harness rather than ops/conductor/tools to avoid the instrument-conventions registry-closure gate the inventory forbids editing. Every unmeasured flag/behavior assumption is made a refusal (graft-unavailable/graft-residual/graft-readonly) and named against a decisive native probe (P-GRAFT-INSTALL/STRUCT/NONET/SNAPSHOT/WORKER) to run on a warmed host before graft-launch lands. Verified with which node/npm/graft (absent) and grep graft over lane.conf and launch.py (empty) at 20f9bcaf, so every named test is red for absence."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

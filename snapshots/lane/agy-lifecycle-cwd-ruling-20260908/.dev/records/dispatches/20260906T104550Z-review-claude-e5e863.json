@@ -1,0 +1,280 @@
+{
+  "id": "20260906T104550Z-review-claude-e5e863",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-task-outputs-20260906",
+  "lineage": {
+    "branch": "lane/conduct-task-outputs-20260906",
+    "base_sha": "e1745500cecc74b0eb6d9d5c4e548905b8964e5c"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:45:51Z",
+    "closed": "2026-09-06T10:52:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e1745500cecc74b0eb6d9d5c4e548905b8964e5c",
+    "ref_sha": "e1745500cecc74b0eb6d9d5c4e548905b8964e5c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "f2fdbdc7-3dca-46d0-98d5-31a382e426b0",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/f2fdbdc7-3dca-46d0-98d5-31a382e426b0.jsonl"
+  },
+  "session": {
+    "id": "f2fdbdc7-3dca-46d0-98d5-31a382e426b0",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/f2fdbdc7-3dca-46d0-98d5-31a382e426b0.jsonl",
+    "stream_sha256_at_close": "7d9757efafa150ebcaf7a5cdbe7dacb51217df0c3ca6dccc139f4df0606de6cc",
+    "spend": {
+      "input": 44,
+      "cached": 1749348,
+      "output": 26644,
+      "total": 1776036,
+      "source": "result.usage",
+      "messages": 22,
+      "cost_usd": 2.5669064999999995
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-task-outputs-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the supplied test producer record and the resulting tests against the accepted contract and owner input. Static review plus existing producer execution receipts is sufficient; do not invent successful execution if this read profile cannot run Python. Check complete acceptance-row mapping, behavioral discrimination and meaningful red, hermetic state/custody, no weakened existing tests, public-interface assumptions and conformance to admitted boundaries. Refute findings before reporting them; implementation is absent and must not be demanded as test approval. No source/test/contract changes, host state, network or vendor launch. Return inline REVIEW <=1200 words with exact model/ref, approve/changes, precise remaining findings and whether tests are ready to freeze for an independent GPT-6 implementer.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/in/ag-conduct-task-tests-record.json",
+        "sha256": "c8a75304ad5794a2833151574e7ac8c98b197d4ca6344d8299c818ccd5df38b4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/in/worker-launch-contract-acceptance-20260906.md",
+        "sha256": "736637b6215772732d8d59029d917dc5c37700e7f6b0c8b136704e2aa8269888"
+      }
+    ],
+    "sha256": "7ae66758a6eca922e7301b61201deeae67b8654e47cda1d6f251bf7f2ab51fae",
+    "bytes": 1609
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:45:51Z",
+      "ended": "2026-09-06T10:52:20Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e1745500cecc74b0eb6d9d5c4e548905b8964e5c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/tests/test_job_outputs.py:803 DuplicatesOverlapsAndScratch.test_duplicate_json_object_members_are_refused (with :539 test_json_null_text_is_refused)",
+          "claim": "The contract row \"rejects duplicate JSON object members\" (ops/devlane/task/CONTRACT.md:332-333) is pinned only vacuously. Both string-input tests demand a refusal and no test ever requires a well-formed JSON text to be ACCEPTED, so `def validate_outputs(v, ...): if isinstance(v, str): raise EnvelopeError(...)` turns both green while detecting no duplicate member at all. The pair also silently invents an input polymorphism (validated list OR raw JSON text) that neither ops/devlane/task/CONTRACT.md nor ops/devlane/dispatch/CONTRACT.md declares, and the test itself proves json.loads has already discarded the duplicate (parsed[0][\"path\"] == \"B.md\"), so a parsed-data validator cannot honour the row. Needed: either a positive test that a well-formed JSON text of the check-tests array validates to the native list, or move the row to a separate declared text seam (e.g. envelope.load_outputs(text)) with its own accept/refuse pair.",
+          "reproduce": "python3 - <<'EOF'\nimport sys; sys.path.insert(0,'ops/devlane/task/tests'); import support\ne=support.load('envelope')\ne.validate_outputs=lambda v=(),**k: (_ for _ in ()).throw(e.EnvelopeError('x')) if isinstance(v,str) else list(v)\nimport unittest,outputs_support; outputs_support.envelope=e\nimport test_job_outputs as t\nr=unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromNames(['DuplicatesOverlapsAndScratch.test_duplicate_json_object_members_are_refused','OmissionEmptyAndNull.test_json_null_text_is_refused'],t))\nprint('blanket str-refusal passes both:', r.wasSuccessful())\nEOF"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/outputs_support.py:327-338 validate_envelope",
+          "claim": "The TypeError fallback (`if \"unexpected keyword\" in msg or \"positional\" in msg: return fn(env)`) silently downgrades every declared-outputs call to the historical kwargs-free validate(env). Four of the eight currently green acceptance tests are green only through it, three of them the ones that are supposed to pin the inline exception's narrowness (test_the_exception_does_not_allow_an_inlined_skeptic_report, test_the_exception_does_not_allow_an_inlined_ruling, test_permission_failure_does_not_fall_back_to_inline_without_the_flag): they pass today because envelope._handle (envelope.py:134) already refuses a multi-line handle, with no seam involved. A parameter named differently from inline_planning_exception= therefore produces a scattering of unrelated assertion failures rather than one legible seam refusal. Only test_the_flag_accepts_the_plan_as_an_artifact_string gates the parameter's existence, so the gap is narrow, not open. Needed: assert the fallback was not taken (or skip/fail loudly) in the tests whose subject is the flag.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_job_outputs_accept.py' -v 2>&1 | grep ' ok$'  # 8 green; the 4 using osu.validate_envelope(**kwargs) reach envelope.validate(env), whose signature is validate(env) only (envelope.py:253)"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_job_outputs.py:820 TransportReservations.test_default_reserved_leaves_are_commit_msg_and_last_message",
+          "claim": "assertEqual pins TRANSPORT_RESERVED to exactly {COMMIT_MSG, last-message.json}, but both contracts state an open list: \"Reserved leaves include last-message.json and COMMIT_MSG\" and \"The list must include any further transport paths an adapter needs\" (task CONTRACT.md:346-348), and dispatch CONTRACT.md:144-150 counts records, session state and supervisor markers as transport. Measured at this ref, launch.py writes only out/last-message.json (499, 818, 957, 1814), out/COMMIT_MSG (1279) and the legacy out/tmp (966) beneath out/, so the two-leaf default is currently correct \u2014 but an adapter transport leaf that belongs in the default rather than the reserved= argument would fail a green test and force a test edit by the implementer, who may not make one. Needed: assert containment (issuperset) plus the negative that 'tmp' is absent, which the neighbouring test already covers.",
+          "reproduce": "grep -n 'Reserved leaves include' ops/devlane/task/CONTRACT.md; grep -n '\"out\"' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_job_outputs_render.py:1279 RenderExactNativeExamples.test_a_renamed_job_with_the_same_array_renders_identically",
+          "claim": "The test calls render_declared_outputs twice with identical arguments (osu.copy_native(\"check-tests\"), osu.OUT_ROOT) and asserts the two results are equal; render takes no job name, so nothing about renaming is exercised and the assertion cannot fail unless the renderer is non-deterministic. It duplicates test_check_tests_renders_the_contract_example_exactly. The contract row (CONTRACT.md:379-380) is genuinely covered elsewhere by test_job_outputs.py:585 test_a_renamed_job_with_the_same_array_is_the_same_declaration, which does vary the name, so this is redundancy rather than a hole. Needed: drop it, or drive it through outputs_from_job for two differently named specs and render both.",
+          "reproduce": "sed -n '1279,1288p' /home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/context/diff.patch"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/context/diff.patch",
+        "record": "/home/scientdb/.local/state/agentscient/dispatch/20260906T104550Z-review-claude-e5e863/in/ag-conduct-task-tests-record.json"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1776036,
+        "out": 26644,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e1745500cecc74b0eb6d9d5c4e548905b8964e5c",
+        "started": "2026-09-06T10:45:50Z",
+        "ended": "2026-09-06T10:51:10Z"
+      },
+      "note": "REVIEW \u2014 model claude-opus-5 (Opus 5), ref e1745500cecc74b0eb6d9d5c4e548905b8964e5c against 710dbac38c3b187eb4b3302308430c0a6dec4d76. Verdict: changes (1 p2, 3 p3). Not a freeze blocker beyond the p2.\n\nExecution: this read profile CAN run Python, so the producer's receipts were re-measured, not assumed. `python3 -m unittest discover -s ops/devlane/task/tests -p 'test_*.py'` at the reviewed ref: Ran 307, FAILED (failures=86), 0 errors. `-p 'test_job_outputs*.py'`: Ran 94, failures=86, 0 errors, 0 collection failures. 307-94=213 existing task tests, all green \u2014 matching record 20260906T102743Z-tests-grok-e05117 exactly (94/86, 213 OK). Per-class static reconciliation also matches its per-file split (55/55, 18/18, 21 with 13 red and 8 green), and the 8 green accept tests are the ones I predicted before running. Diff is 7 files, all `new file mode`, 0 removed lines: no existing test is weakened, deleted or relaxed, and none is edited.\n\nAcceptance-row mapping against ops/devlane/task/CONTRACT.md \u00a7C2 (287-448) and dispatch CONTRACT.md \u00a7C2 (92-341). Covered with meaningful red: the standalone schema verbatim (array/uniqueItems, file|scratch oneOf, required sets, additionalProperties false, artifact ^[a-z][a-z0-9_-]*$ maxLength 64, $defs.path maxLength 240 and its exact pattern); omission==[] and explicit null refused, both direct and via outputs_from_job; prose never authorizing writes; duplicate paths across kinds, repeated artifact keys, ancestor/descendant overlap, two scratch entries; whole-string grammar including trailing newline, absolute, dot and parent segments, backslash, whitespace, glob, {out} substitution, length bounds; case sensitivity not folded; order preserved; renamed job identity; transport reservations for COMMIT_MSG and last-message.json plus launch-supplied reserved= at equal/ancestor/descendant, with declared scratch tmp explicitly not transport; the byte-exact check-tests, plan and adjudicate sections at /jobs/example/out; JSON string literals with no \\/ escaping and lowercase \u00e9; the none-grant line; CR/LF strip then two LFs on append; unrepresentable handle refused against envelope.HANDLE_MAX; exact decoded-handle equality with relative, ./, trailing-slash, JSON-quoted, scratch-pointing, wrong-key and missing-key spellings refused; sibling evidence handles permitted; historical records still valid without outputs=; the inline exception not generalized and not an outputs kind. Admitted out of scope and declared as such in the test docstrings, correctly: filesystem custody, digests, attempt provenance, capability witnesses, grant intersection \u2014 all dispatch-owned (task CONTRACT.md:428-433, dispatch CONTRACT.md:113-159). test_job_outputs.py is the exact prospective home dispatch CONTRACT.md:336-338 names, and the rows it lists are all present.\n\nHermetic state and custody: clean. No writes, no tempdir, no env mutation, no network, no vendor launch, no cwd dependence (fixture resolved from __file__); the fixture is one 60-byte file in a new fixtures/job_outputs/ subtree that no other suite enumerates. Reds are AssertionError/assertRaises, never ImportError \u2014 outputs_support wraps each absent seam so a missing name fails the contracted assertion instead of erroring the collection, which is the right call and is why 0 errors is reproducible.\n\nPublic-interface assumptions: the seams are inventions the contracts do not name \u2014 OUTPUTS_SCHEMA, TRANSPORT_RESERVED, validate_outputs (incl. its reserved= keyword), outputs_from_job, render_declared_outputs, append_declared_outputs, and validate(outputs=, out_root=, inline_planning_exception=). That is admissible because the record declares all seven explicitly as p2 missing-seam findings with reproductions, which is what the job asked for; the implementer must match the names exactly and has no other source for them. Refuted as findings, listed here so the freeze is entered knowingly.\n\nRefuted while reviewing: (1) no test asserts a refusal message or a class token \u2014 real, but house practice in test_envelope.py is 0 assertRaisesRegex over 18 assertRaises, and the dispatch refusal ids (outputs-schema, outputs-path) are launch-owned, so this is not chargeable here; it does mean launch's id mapping will need its own tests. (2) render raising for an unrepresentable handle looked like task usurping launch's outputs-path admission; CONTRACT.md:432 places representability before child execution and task owns rendering, so it stands. (3) The two-instance envelope load (outputs_support loads it, the other two modules load it again) looked like an identity trap for assertRaises; every assertRaises in those files routes through osu.outputs_error(), so no mismatch today. Worth a comment, not a change. (4) Implementation absence is not demanded as approval anywhere.\n\nFreeze readiness: yes after the p2. Fix test_duplicate_json_object_members_are_refused and its companion test_json_null_text_is_refused \u2014 as frozen they let a blanket \"refuse any str\" satisfy the duplicate-member row without implementing it, and they impose an undeclared list-or-JSON-text input on validate_outputs. That is the one row an independent GPT-6 implementer could pass green while leaving the contract unmet, which is exactly the no-op the contract warns about at CONTRACT.md:210-213. The three p3s are safe to freeze with (they cost redundancy, a possible forced test edit on TRANSPORT_RESERVED, and a slightly less legible failure mode for a misnamed inline parameter), but fixing them now is cheap and keeps the implementer from touching tests they may not approve. Whoever repairs these must not be the implementer."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

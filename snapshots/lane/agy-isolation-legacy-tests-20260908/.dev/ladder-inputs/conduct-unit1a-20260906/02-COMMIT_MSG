@@ -1,0 +1,20 @@
+docs(lane): complete adoption unit1a startup couplings
+
+Declare trusted selection, structured scope and declaration provenance at
+the task, dispatch and policy boundaries. Bind dependencies, candidate and
+output-attempt receipts to the checked content, reserve dispatch identity
+in memory before effects, specify result.policy and late refusal transport,
+and complete the shared evaluate_tool counterpart.
+
+Keep the accepted brief.policy shape, C1/C2 ownership, old-authority checks,
+coordination reads and permanent dev/prod separation. This is documentary
+work only; independent runtime tests, live evidence and complete owner-admitted
+cutover remain required. No historical record or live authority is changed.
+
+The successor documentary checker passed examples, local links and preserved
+policy acceptance rows against the actual working bytes with UTC and hashes.
+The historical supplied checker remains unchanged and fails because it asserts
+that the requested evaluate_tool declaration is absent.
+
+Source: original
+Co-Authored-By: GPT-6 <noreply@openai.com>

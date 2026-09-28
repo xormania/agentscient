@@ -1,0 +1,239 @@
+{
+  "id": "20260904T064724Z-review-codex-305b4e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-apps",
+  "lineage": {
+    "branch": "lane/fixture-apps",
+    "base_sha": "445135b1f962e9e1e5c09a2a329c4abafc1aba4b"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:47:24Z",
+    "closed": "2026-09-04T06:58:28Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "445135b1f962e9e1e5c09a2a329c4abafc1aba4b",
+    "ref_sha": "445135b1f962e9e1e5c09a2a329c4abafc1aba4b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-47-25-01a06b2c-10c7-74d2-95e6-44e34906f1b1.jsonl"
+  },
+  "session": {
+    "id": "01a06b2c-10c7-74d2-95e6-44e34906f1b1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-47-25-01a06b2c-10c7-74d2-95e6-44e34906f1b1.jsonl",
+    "stream_sha256_at_close": "83b1007b4c11bb110929003606b896c4a09b4f61d8bf032487c04990ac4d2329",
+    "spend": {
+      "input": 2396069,
+      "cached": 2232448,
+      "output": 30372,
+      "total": 2426441,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T02-47-25-01a06b2c-10c7-74d2-95e6-44e34906f1b1.jsonl",
+      "messages": 281
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 1 (the lever, the fault kinds, the manifest shape), the skeptic pass: judge the tests on this ref against the contract in the input file (the fixture scope and the plan). The tests are landed on this ref, red first (ops/devlane/fixtures/tests/test_fixture_lever.py, test_fixture_manifests.py, test_fixture_grade.py, ops/conductor/tests/test_findings_calibration.py, and additions to test_instrument_conventions.py). Judge whether they discriminate, whether every guarantee the plan names for slice 1 is pinned, whether the probes prove red mechanically, and whether any test would pass against a wrong lever. No implementation exists yet; do not write one.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/in/contract-fixtures-1.md",
+        "sha256": "47a5f0a7cc9fcbc29828e3b3fb8d0a7edf7106bb7036417db26c60b85583b79c"
+      }
+    ],
+    "sha256": "174582617fdedcb2684c9fd7a31f59e023ff397f56353ad57d73a478cfc984f7",
+    "bytes": 3344
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:47:24Z",
+      "ended": "2026-09-04T06:58:28Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "445135b1f962e9e1e5c09a2a329c4abafc1aba4b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 11,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_manifests.py:82",
+          "claim": "The sweep accepts mismatched app names and ID prefixes, paths escaping through ../../, overlapping fault/neighbour spans, and probe commands outside probes/. A wrong lever trusting this accepted manifest can execute outside the app and misgrade neighbours.",
+          "reproduce": "Run the in-memory validate_manifest mutant recorded in the review output; it returns [] for name=not-the-directory-name, WRONG-* ids, ../../ paths, identical fault/neighbour spans, and probe=false."
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_findings_calibration.py:195",
+          "claim": "The composite upsert key is not discriminated: only non-key fields change, and nullable keys are inserted only once. An implementation keyed solely by fault_id, or one allowing duplicate NULL-key rows, passes while losing or duplicating calibration data.",
+          "reproduce": "sed -n '185,220p;263,277p' ops/conductor/tests/test_findings_calibration.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_grade.py:333",
+          "claim": "Grading lacks duplicate-finding, multi-fault, and closed-endpoint cases. A grader counting findings rather than distinct caught faults, assigning only the first overlapped fault, or treating touching closed spans as disjoint passes with wrong rates.",
+          "reproduce": "python3 -c \"from pathlib import Path; s=Path('ops/devlane/fixtures/tests/test_fixture_grade.py').read_text(); assert 'src/a.py:10-12, src/b.py:5-8' not in s and 'src/a.py:8-10' not in s\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_findings_calibration.py:253",
+          "claim": "Legacy export is compared with the same new implementation before and after calibration, determinism is checked only by repeating one insertion order, and the tracked calibration.jsonl export is untested. A consistently changed, insertion-ordered, stdout-only exporter passes.",
+          "reproduce": "sed -n '253,277p' ops/conductor/tests/test_findings_calibration.py; ! rg -n 'calibration\\.jsonl' ops/conductor/tests/test_findings_calibration.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_findings_calibration.py:170",
+          "claim": "Malformed-row coverage removes only app, exported rows do not assert harness/model, and mixed valid-then-invalid input never proves rejection-before-action. A calibrator that drops reviewer identity and commits a prefix before refusing passes.",
+          "reproduce": "sed -n '170,250p' ops/conductor/tests/test_findings_calibration.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_manifests.py:276",
+          "claim": "FAULT-KINDS checks only global token presence, not per-row mappings. Swapped kind meanings with idiom and probe-shape words in an unrelated footer survive.",
+          "reproduce": "sed -n '276,299p' ops/devlane/fixtures/tests/test_fixture_manifests.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_manifests.py:301",
+          "claim": "All 13 manifest tests fail first on the shared missing FAULT-KINDS.md assertion, so the red run proves only file absence and not any named validation property.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p 'test_fixture_manifests.py' -v"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:405",
+          "claim": "The ignored/untracked file is never listed in the copy list. A make implementation that copies every listed existing path without consulting git ls-files passes.",
+          "reproduce": "sed -n '405,430p;655,699p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:645",
+          "claim": "Target refusal covers only the invoking worktree, and default placement covers only absent XDG_STATE_HOME. A make implementation ignoring linked worktrees/common-dir and always using HOME passes.",
+          "reproduce": "sed -n '320,349p;645,653p;740,758p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:873",
+          "claim": "The caller already supplies C locale and UTC; assertions observe inherited locale and never inspect time. A prove implementation performing no locale or time pinning passes.",
+          "reproduce": "sed -n '327,349p;873,886p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:798",
+          "claim": "prove --fixed is tested only with all probes green and with WF_AGENT present. A fixed mode requiring identity, returning zero with a remaining red probe, or replacing markers without applying valid patches survives.",
+          "reproduce": "sed -n '798,828p;888,896p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_grade.py:333",
+          "claim": "Grade does not snapshot its input record, allows arbitrary extra stdout, and verifies exact IDs/claims only for some row classes. A grader mutating the record or corrupting false-positive/unmatched rows passes.",
+          "reproduce": "sed -n '333,517p' ops/devlane/fixtures/tests/test_fixture_grade.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:376; ops/devlane/fixtures/tests/test_fixture_grade.py:280; ops/conductor/tests/test_findings_calibration.py:135; ops/conductor/tests/test_instrument_conventions.py:73",
+          "claim": "Refusal classes are substring matches rather than exact leading lowercase class: tokens, and Abort is untested. The malformed line 'not-identity garbage expected x; found y; needed z' survives the refusal helpers.",
+          "reproduce": "Use SimpleNamespace(returncode=2, stderr='not-identity garbage expected x; found y; needed z\\n', stdout='') with _LeverFixture.assert_refusal(..., 'identity'); it returns successfully at this ref."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:701",
+          "claim": "Commit checks accept arbitrary Source and Co-Authored-By values, find the expected agent name anywhere in the message, and never verify author/committer identity. Wrong attribution can pass.",
+          "reproduce": "sed -n '701,739p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "named slice-1 test files",
+          "claim": "No named test pins the required ruff.toml exclusion and reason, continued linting of lane tests, or the ops/README.md fixture and lever rows. Omitting all root changes passes these suites.",
+          "reproduce": "! rg -n 'ruff\\.toml|extend-exclude|ops/README\\.md' ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_grade.py ops/conductor/tests/test_findings_calibration.py ops/conductor/tests/test_instrument_conventions.py"
+        }
+      ],
+      "artifacts": {
+        "skeptic_report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064724Z-review-codex-305b4e/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2426441,
+        "out": 30372,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "445135b1f962e9e1e5c09a2a329c4abafc1aba4b"
+      },
+      "note": "Review completed without reading implementation or editing the tree. The report artifact could not be created because the read-only sandbox rejected apply_patch and approval is disabled. The plant guard passed. Full dynamic runs needing TemporaryDirectory were UNREACHABLE in this sandbox; the lever-existence red, kinds-existence red, and calibrate arguments-vs-calibration red were reproduced directly."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

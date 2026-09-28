@@ -1,0 +1,265 @@
+{
+  "id": "20260908T074718Z-code-codex-30a2cd",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-isolation-implementation-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-implementation-20260908",
+    "base_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:47:19Z",
+    "closed": "2026-09-08T07:52:15Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "ref_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-47-19-01a07ffc-5928-7f51-bdfe-73021b73b33d.jsonl"
+  },
+  "session": {
+    "id": "01a07ffc-5928-7f51-bdfe-73021b73b33d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-47-19-01a07ffc-5928-7f51-bdfe-73021b73b33d.jsonl",
+    "stream_sha256_at_close": "b93e37a174f5c9bf4b35a2b3fb6038772006267ec3491e6c77e63d00206ccb1b",
+    "spend": {
+      "input": 864748,
+      "cached": 792832,
+      "output": 7496,
+      "total": 872244,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-47-19-01a07ffc-5928-7f51-bdfe-73021b73b33d.jsonl",
+      "messages": 121
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-implementation-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement only agy configuration isolation in ops/devlane/harness/isolation.py against its public contract, supplied native auth/session evidence and independent test_agy_isolation.py. Preserve legacy profiles and APIs; add measured HOME-based nested auth/session behavior with only the exact auth leaf, fresh homes, explicit missing-auth and no real-HOME fallback. No live probe argv, launch/config/parser/telemetry edits or test changes. Claude test acceptance is concurrent; candidate delivery is not final acceptance. Acceptance: python3 -m unittest discover -s ops/devlane/harness/tests -p \"test*isolation*.py\"; registered lint isolation.py; git diff --check; unchanged test hashes. Report all real exits and any incompatible legacy assertion rather than editing the judge. No credentials/vendor calls/full floor or guessed permission fields. GPT-6 attribution and standard COMMIT_MSG fallback.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/in/agy-isolation-test-producer.json",
+        "sha256": "8a20064767b92d56aebeea5ab5b74fedde83f0d08b19f2efdd367b8418c295f2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074718Z-code-codex-30a2cd/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "0ca5d3cd51ef254cf98e677bf2bdbeafccccee903f147de98d9167abbaa0965a",
+    "bytes": 4746
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:47:19Z",
+      "ended": "2026-09-08T07:52:15Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ced7eb89da15a6a16c2438ac4888e6d740976f8e",
+    "changed_paths": [
+      "ops/devlane/harness/isolation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 15,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 1",
+          "claim": "Exit 0. Baseline HEAD matched the requested ref; working tree was clean.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short; rg --files ../in docs ops -g 'AGENTS.md' -g '*agy*' -g '*isolation*' -g '*lint*'; ls ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "command 2",
+          "claim": "Exit 0. Read inputs, instructions and implementation; combined output was truncated and reread subsequently.",
+          "reproduce": "cat ../in/*; cat AGENTS.md ops/devlane/AGENTS.md ops/README.md; rg --files docs; rg --files -g AGENTS.md; cat ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 3",
+          "claim": "Exit 0. Read supplied host observation record.",
+          "reproduce": "cat ../in/agy-host-observation-record.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command 4",
+          "claim": "Exit 0. Read independent test producer record and lane instructions.",
+          "reproduce": "cat ../in/agy-isolation-test-producer.json; cat ops/devlane/AGENTS.md ops/README.md; rg --files docs; rg --files -g AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 5",
+          "claim": "Exit 0. Read founding contracts and independent agy tests; located registered lint.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md; cat ops/devlane/harness/tests/test_agy_isolation.py; rg -n 'agy|isolation|lint|ruff' ops/devlane/dispatch/CONTRACT.md ops/devlane/workflow/checks/lint.py ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 6",
+          "claim": "Exit 0. Read legacy isolation assertions, lint wrapper and dispatch contract.",
+          "reproduce": "sed -n '290,500p' ../in/agy-host-observation-record.json; cat ops/devlane/harness/tests/test_isolation.py ops/devlane/harness/tests/test_isolation_contract.py; cat ops/devlane/workflow/checks/lint.py; sed -n '1,145p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 7",
+          "claim": "Combined exit 0; cat exited 1 because CONTRACT-isolation.py.md is absent. Read native evidence and recorded baseline isolation-test hashes.",
+          "reproduce": "sed -n '230,292p' ../in/agy-host-observation-record.json; cat ops/devlane/harness/CONTRACT-isolation.py.md; rg -n 'structur|auth_files' ops/devlane/harness/probe.py; sha256sum ops/devlane/harness/tests/test*isolation*.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Exit 1: 31 tests, 2 failures. test_registry_is_exactly_the_measured_contract and test_report_is_json_containing_exactly_the_registry require exactly three legacy harnesses, conflicting with adding agy. Assertions were not changed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p \"test*isolation*.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 9",
+          "claim": "Exit 0. Registered lint clean: one file, ruff 0.16.5.",
+          "reproduce": "python3 ops/devlane/workflow/checks/lint.py ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Exit 0. Whitespace check passed.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Exit 0. All seven independent agy isolation tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_agy_isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Exit 0. All 143 tracked test files and all three legacy profiles unchanged against the requested ref.",
+          "reproduce": "python3 - <<'PY'\nimport ast\nimport hashlib\nimport json\nfrom pathlib import Path\nimport subprocess\n\nref = '3e8713bac5b394886daae176e8a904dfe72b1dc4'\nfiles = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\\0')\nreceipts = {}\nfor name in files:\n    if '/tests/' not in name:\n        continue\n    original = subprocess.check_output(['git', 'show', f'{ref}:{name}'])\n    current = Path(name).read_bytes()\n    receipts[name] = {'before': hashlib.sha256(original).hexdigest(), 'after': hashlib.sha256(current).hexdigest()}\n    assert original == current, name\nPath('../out/test-hashes.json').write_text(json.dumps(receipts, indent=2) + '\\n')\nname = 'ops/devlane/harness/isolation.py'\ndef registry(source):\n    tree = ast.parse(source)\n    return next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'HARNESSES' for t in n.targets))\nbefore = registry(subprocess.check_output(['git', 'show', f'{ref}:{name}']))\nafter = registry(Path(name).read_text())\nassert before == {key: after[key] for key in before}\nprint(f'{len(receipts)} tracked test files unchanged against {ref}; all three legacy profiles unchanged.')\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Exit 0. Only isolation.py changed. Follow-up: existing probe.structural compares top-level names and cannot verify nested auth; left unchanged.",
+          "reproduce": "git diff -- ops/devlane/harness/isolation.py; sed -n '90,114p' ops/devlane/harness/probe.py; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Exit 0. Saved candidate patch.",
+          "reproduce": "git diff -- ops/devlane/harness/isolation.py > ../out/candidate.patch"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Exit 128. Sandbox read-only .git prevented creating index.lock.",
+          "reproduce": "git add ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Exit 128. Sandbox read-only .git prevented commit; GPT-6 fallback message saved.",
+          "reproduce": "git -c user.name='GPT-6' -c user.email=noreply@openai.com commit -F ../out/COMMIT_MSG --only -- ops/devlane/harness/isolation.py"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/harness/isolation.py",
+        "patch": "../out/candidate.patch",
+        "checks": "../out/check-results.json",
+        "test_hashes": "../out/test-hashes.json",
+        "command_findings": "../out/command-findings.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 872244,
+        "out": 7496,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "started": null,
+        "ended": "2026-09-08T07:50:57Z"
+      },
+      "note": "Implemented measured HOME isolation, exact nested auth symlink, brain session path, fresh-home refusal, missing-auth/HOME refusal and recursive leaf/parent verification. Assumption: credential transfer means symlinking, as the public contract and independent tests require. Named acceptance remains invalid: test_registry_is_exactly_the_measured_contract and test_report_is_json_containing_exactly_the_registry fail. Discovery/permission evidence remains explicitly unresolved. Candidate delivery is not final acceptance; concurrent Claude acceptance remains separate. Follow-up: nested auth support in probe.structural. Commit blocked by sandbox; COMMIT_MSG fallback provided.",
+      "commit": {
+        "subject": "feat(harness): isolate agy configuration under HOME",
+        "body": "Add the measured agy 1.1.27 HOME-based credential and brain session paths. Link only the nested OAuth auth leaf, refuse missing HOME/auth and directory credentials, and verify recursive leaves and required parent directories. Preserve legacy profiles and public APIs.\n\nCandidate validation at 3e8713bac5b394886daae176e8a904dfe72b1dc4 plus this change: independent agy tests 7/7 pass; named isolation discovery exits 1 (31 tests, two incompatible legacy exact-three-registry/report assertions). Registered lint and git diff --check exit 0; all 143 tracked test files are byte-identical to baseline. Concurrent Claude acceptance remains separate; this candidate is not final acceptance.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:52:15.116Z"
+    }
+  },
+  "status": "closed"
+}

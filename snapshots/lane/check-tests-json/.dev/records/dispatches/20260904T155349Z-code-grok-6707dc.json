@@ -1,0 +1,160 @@
+{
+  "id": "20260904T155349Z-code-grok-6707dc",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "4a1aff2fdf2b3b4717fdfcd2fbbc7c27394d7267"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:53:50Z",
+    "closed": "2026-09-04T16:06:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4a1aff2fdf2b3b4717fdfcd2fbbc7c27394d7267",
+    "ref_sha": "4a1aff2fdf2b3b4717fdfcd2fbbc7c27394d7267",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "de7f85f5-3923-49e9-9324-b3ea7abb4e55",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok-stream/sessions/<snapshot-encoded>/de7f85f5-3923-49e9-9324-b3ea7abb4e55/summary.json"
+  },
+  "session": {
+    "id": "de7f85f5-3923-49e9-9324-b3ea7abb4e55",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok-stream/sessions/<snapshot-encoded>/de7f85f5-3923-49e9-9324-b3ea7abb4e55/summary.json",
+    "stream_sha256_at_close": "f50f6575f6e0c9337e8e8f698072a540da73413075594e11ec5794d19e5362cd",
+    "spend": {
+      "input": 2005528,
+      "cached": 1755648,
+      "output": 41037,
+      "total": 2046565,
+      "cost_usd_ticks": 2760470200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/home/grok-stream/sessions/<snapshot-encoded>/de7f85f5-3923-49e9-9324-b3ea7abb4e55/summary.json",
+      "messages": 233
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Tests-fix on lane/check-tests-json: the catalogue test that pins every job except check-tests to a frozen digest (ops/devlane/task/tests/test_jobs.py, commit 0a14270) must instead compare each other job to the catalogue at the branch's merge-base with origin/dev, as the input explains; amend that test only, prove red then green, commit. Tests only; no implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155349Z-code-grok-6707dc/in/input-check-tests-json-3-testsfix.md",
+        "sha256": "6b4447a6ccae871bf8c3cf4488f9015971726bf188b62a660e30adc34fa9eb2c"
+      }
+    ],
+    "sha256": "cb53fe64fc7c63af1ea18c1d1c6e708e7d6a177d9c120da53b9ba9b2a586ec34",
+    "bytes": 2713
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T15:53:50Z",
+      "ended": "2026-09-04T16:06:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "706639a94e73315494c7da9e1f12de73325a6125",
+    "changed_paths": [
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/task/tests/test_jobs.py",
+        "commit": "706639a94e73315494c7da9e1f12de73325a6125",
+        "red": "../out/red-test_every_other_job_wire_is_unchanged.txt",
+        "green": "../out/green-test_every_other_job_wire_is_unchanged.txt",
+        "suite": "../out/green-test_jobs.txt"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2046565,
+        "out": 41037,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4a1aff2fdf2b3b4717fdfcd2fbbc7c27394d7267",
+        "started": "2026-09-04T16:03:16Z",
+        "ended": "2026-09-04T16:05:40Z"
+      },
+      "note": "Amended only ops/devlane/task/tests/test_jobs.py OtherJobWiresAreUnchanged.test_every_other_job_wire_is_unchanged. Other jobs are compared to git show <base>:ops/devlane/task/jobs.json where base is git merge-base HEAD origin/dev, or ladder record .dev/records/ladders/20260904T143022Z-ladder-2e605b.json field base_sha when origin/dev is absent, else skip. origin/dev is absent here; comparison used 70302ab4408be8844ea86165229733c27e021ef7. Frozen digest at 4a1aff2fdf2b3b4717fdfcd2fbbc7c27394d7267 already passed (5eebd4d restored the plan wire). Red of the new assertion: planted verify.deliverable drift, assertEqual failed 'verify.deliverable changed relative to merge-base 70302ab4408be8844ea86165229733c27e021ef7' (1 test, failures=1). Commit 706639a94e73315494c7da9e1f12de73325a6125 while the plant was unstaged. Restored jobs.json. Green: PYTHONPATH=ops/devlane/task/tests python3 -m unittest discover -s ops/devlane/task/tests -p test_jobs.py at 706639a - 16 tests, 0 failures. Tests only; jobs.json unchanged vs 4a1aff2."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T16:06:22.798Z"
+    }
+  },
+  "status": "closed"
+}

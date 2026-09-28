@@ -1,0 +1,151 @@
+{
+  "id": "20260908T094801Z-review-agy-12d55a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-accounting-acceptance-20260908",
+  "lineage": {
+    "branch": "lane/agy-accounting-acceptance-20260908",
+    "base_sha": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:48:02Z",
+    "closed": "2026-09-08T09:48:05Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+    "ref_sha": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/snapshot"
+  },
+  "harness": {
+    "name": "agy",
+    "worker": {
+      "name": "agy",
+      "executable": "/home/scientdb/.local/bin/agy",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-accounting-acceptance-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy",
+        "XDG_CONFIG_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/config",
+        "XDG_CACHE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/cache",
+        "XDG_DATA_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/data",
+        "XDG_STATE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/state",
+        "XDG_RUNTIME_DIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/runtime",
+        "TMPDIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/tmp",
+        "AGY_CLI_DISABLE_AUTO_UPDATE": "true"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy/.gemini/antigravity-cli/brain",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/home/agy",
+      "auth_files": [
+        ".gemini/antigravity-cli/antigravity-oauth-token"
+      ]
+    },
+    "sandbox": "always-proceed",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/agy",
+      "--print=",
+      "--model",
+      "gemini-3.8-flash-high",
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--disable-slash-commands",
+      "--dangerously-skip-permissions",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a/snapshot",
+      "--effort",
+      "low"
+    ]
+  },
+  "model": {
+    "requested": "gemini-3.8-flash-high",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--effort",
+      "low"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found",
+    "provider": {
+      "id": null,
+      "read_from": null,
+      "unresolved": "provider unavailable on measured agy stdout and transcript"
+    }
+  },
+  "session": {
+    "id": null,
+    "stream": null,
+    "stream_sha256_at_close": null,
+    "spend": {
+      "unresolved": "UNREACHABLE: session None not in the store (0 sessions read)",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260908T094801Z-review-agy-12d55a"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-accounting-acceptance-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Canonical agy activation smoke only: inspect the tracked ops/lane.conf WORKER_HARNESSES declaration and report whether it includes agy. Read that file using a native file-read tool; do not inspect any other source, diff, credentials, settings, stores or network. No edits or commands. Return the required JSON envelope with job=sweep, status=ok if the file was read, verdict=approve if agy is present, counts all zero and findings empty. In artifacts include the observed declaration as a string; stamp.ref is the supplied snapshot ref. Note this is one bounded dispatch smoke, not code acceptance. Stop after this single file read and answer.",
+    "inputs": [],
+    "sha256": "4618078bffc6a4f11a782f2e192075327e122e16ba286f773122b00b8c5eb4e0",
+    "bytes": 3239
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:48:02Z",
+      "ended": "2026-09-08T09:48:05Z",
+      "exit": 1,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47"
+      },
+      "note": "agy-result: vendor error: invalid model selection (--model \"gemini-3.8-flash-high\" --effort \"low\"): --model gemini-3.8-flash-high conflicts with --effort=low: no structured envelope; harness-cli: exited 1"
+    },
+    "cause": {
+      "reason": "harness-cli:1"
+    }
+  },
+  "status": "closed"
+}

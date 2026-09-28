@@ -1,0 +1,241 @@
+{
+  "id": "20260910T012416Z-code-codex-25d0b4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/onboarding-brief-inputs",
+  "lineage": {
+    "branch": "lane/onboarding-brief-inputs-fix-20260910",
+    "base_sha": "afa961909d5427434d754780ef246d71b280c22c"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:24:17Z",
+    "closed": "2026-09-10T01:29:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "afa961909d5427434d754780ef246d71b280c22c",
+    "ref_sha": "afa961909d5427434d754780ef246d71b280c22c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-fix-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-24-17-01a088ea-65bf-77e3-9f0d-c76b0e22e743.jsonl"
+  },
+  "session": {
+    "id": "01a088ea-65bf-77e3-9f0d-c76b0e22e743",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-24-17-01a088ea-65bf-77e3-9f0d-c76b0e22e743.jsonl",
+    "stream_sha256_at_close": "c2f8f73cd5adc73e16777cd9ca33bf031cae65a26275363d5ad9cc6abbc11d85",
+    "spend": {
+      "input": 873804,
+      "cached": 826496,
+      "output": 4999,
+      "total": 878803,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-24-17-01a088ea-65bf-77e3-9f0d-c76b0e22e743.jsonl",
+      "messages": 134
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-fix-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_input_visibility.py' && python3 -m unittest discover -s ops/devlane/task/tests -p 'test_*.py' # Astra: fix input filename visibility at dispatch's prompt composition boundary in launch.py ONLY. Use the actual copied input paths in caller order, independent of whether the shared template contains {inputs}. Preserve prompt instructions/schema and digest binding. Empty input list stays empty. Do not edit jobs.json, tests or other files: a jobs.json-only patch broke the separate task renderer. The new synthetic launch tests reproduce exactly six missing-path failures; task tests must stay green.\n",
+    "inputs": [],
+    "sha256": "20cea4b1fa55d6abe0558a8386a0d6135f0e4eef691f0f0bb3d0f64d17ac6e5e",
+    "bytes": 4520
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:24:17Z",
+      "ended": "2026-09-10T01:29:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "644a96c7507e3e010a8e42a19cf9a0dff542edc4",
+    "changed_paths": [
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 12,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial HEAD was afa961909d5427434d754780ef246d71b280c22c with no reported changes. Input-file discovery returned no files.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; date -u +%Y-%m-%dT%H:%M:%SZ; rg --files -g AGENTS.md -g '*.md' docs ops | sort; rg --files ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions",
+          "claim": "Inspected instructions, contracts and launcher source; combined output was truncated. Directory listing confirmed ../in was empty.",
+          "reproduce": "cat AGENTS.md docs/*.md ops/README.md ops/devlane/AGENTS.md ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md; ls -la ../in; rg --files -g AGENTS.md ops/devlane/dispatch; sed -n '1,260p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read the founding wire, workflow, probe, concern and coupling contracts.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Inspected lane instructions, input-visibility requirements and independently authored regression tests.",
+          "reproduce": "cat ops/README.md ops/devlane/AGENTS.md; rg -n 'input|prompt|digest|^#' ops/devlane/dispatch/CONTRACT.md; rg -n 'def .*prompt|inputs|prompt.*sha|prompt.*digest' ops/devlane/dispatch/launch.py; cat ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Prompt composition already had the ordered copied-path value and calculated its digest after writing the completed prompt.",
+          "reproduce": "cat ops/devlane/AGENTS.md; sed -n '735,770p' ops/devlane/dispatch/CONTRACT.md; sed -n '1410,1495p' ops/devlane/dispatch/launch.py; sed -n '2370,2420p' ops/devlane/dispatch/launch.py; cat ops/bin/suites.sh; git log -3 --format=full"
+        },
+        {
+          "severity": "p2",
+          "where": "baseline afa961909d5427434d754780ef246d71b280c22c",
+          "claim": "The requested command initially exited 1 with exactly six missing-path failures in test_every_shipped_harness_job_hands_copied_input_paths_to_the_worker. Task tests were consequently not reached.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_input_visibility.py' && python3 -m unittest discover -s ops/devlane/task/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree",
+          "claim": "After the launch.py change, the exact requested command exited 0: 2 launch tests and 312 task tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_input_visibility.py' && python3 -m unittest discover -s ops/devlane/task/tests -p 'test_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py:1436",
+          "claim": "The diff contained only three added lines in launch.py, appending copied paths when inputs exist. Whitespace validation passed.",
+          "reproduce": "git diff --check; git diff --stat; git diff -- ops/devlane/dispatch/launch.py; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites.log",
+          "claim": "The repository-wide suite command exited 0. All nine suites passed, with seven fixture skips. ResourceWarnings about subprocess/file cleanup remain a follow-up outside this change.",
+          "reproduce": "ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Commit attempt stopped at staging with exit 128 because .git/index.lock could not be created on the read-only filesystem.",
+          "reproduce": "git add -- ops/devlane/dispatch/launch.py && git commit -m 'dispatch: name copied inputs in worker prompts' -m 'Append copied input paths in caller order at the launch prompt composition boundary, independently of shared template placeholders. Preserve empty inputs, template instructions, schema composition and prompt digest binding.' -m 'Validation: input visibility tests (2) and task tests (312) pass.' -m 'Source: original\nCo-Authored-By: GPT-6 <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "intermediate working tree",
+          "claim": "While suites were running, only launch.py was modified and HEAD remained the requested base. The aggregate suite log had no summary yet.",
+          "reproduce": "rg -n '^==|^Ran |^OK|^FAILED|^FAIL:|^ERROR:|ResourceWarning' ../out/suites.log; git diff --check; git status --short; git rev-parse HEAD; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp",
+          "claim": "Inspected progress files in the most recently modified suites directory. This diagnostic did not establish ownership of that directory; final acceptance uses ../out/suites.log.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nlogs = sorted(Path('/tmp').glob('suites.*'), key=lambda path: path.stat().st_mtime)\nif logs:\n    for log in sorted(logs[-1].iterdir()):\n        if log.suffix == '.rc':\n            print(log.name, log.read_text().strip())\n        else:\n            print(log.name, log.stat().st_size, repr(log.read_text(errors='replace')[-180:]))\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree",
+          "claim": "Final inspection confirmed nine passing suite summaries, clean whitespace, and exactly three insertions in launch.py. HEAD remained afa961909d5427434d754780ef246d71b280c22c.",
+          "reproduce": "rg -n '^==|^Ran |^OK|^FAILED|^FAIL:|^ERROR:|ResourceWarning' ../out/suites.log; git diff --check; git status --short; git diff --numstat; git rev-parse HEAD; date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "suite_log": "out/suites.log"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 878803,
+        "out": 4999,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "afa961909d5427434d754780ef246d71b280c22c",
+        "started": "2026-09-10T01:24:29Z",
+        "ended": "2026-09-10T01:27:41Z"
+      },
+      "note": "Implemented only in launch.py. Interpretation: dispatch appends its ordered copied-path list independently of template placeholders; empty inputs append nothing. Existing instructions, schema and digest binding are preserved. Requested command and full suites exit 0. Git staging was blocked by the read-only filesystem; commit message supplied below. Follow-up: investigate suite ResourceWarnings.",
+      "commit": {
+        "subject": "dispatch: name copied inputs in worker prompts",
+        "body": "Append copied input paths in caller order at the launch prompt composition boundary, independently of shared template placeholders. Preserve empty inputs, template instructions, schema composition and prompt digest binding.\n\nValidation: input visibility tests (2), task tests (312), and ops/bin/suites.sh pass.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T01:28:59.406Z"
+    }
+  },
+  "status": "closed"
+}

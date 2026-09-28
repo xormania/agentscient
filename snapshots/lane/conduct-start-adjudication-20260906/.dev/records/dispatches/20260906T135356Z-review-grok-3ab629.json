@@ -1,0 +1,189 @@
+{
+  "id": "20260906T135356Z-review-grok-3ab629",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-start-adjudication-20260906",
+  "lineage": {
+    "branch": "lane/conduct-start-adjudication-20260906",
+    "base_sha": "6bf5d7bacd9fef8fdad965ed60556602805af911"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:53:56Z",
+    "closed": "2026-09-06T14:04:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "ref_sha": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "e5146da4-09b7-4423-9533-01690829df00",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok-stream/sessions/<snapshot-encoded>/e5146da4-09b7-4423-9533-01690829df00/summary.json"
+  },
+  "session": {
+    "id": "e5146da4-09b7-4423-9533-01690829df00",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok-stream/sessions/<snapshot-encoded>/e5146da4-09b7-4423-9533-01690829df00/summary.json",
+    "stream_sha256_at_close": "c7b7145cfc064a0a9fa8b69bc37f7208e43ad640163f24eaba88433ada4b3a0c",
+    "spend": {
+      "input": 1599166,
+      "cached": 1350400,
+      "output": 38646,
+      "total": 1637812,
+      "cost_usd_ticks": 2387833600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/home/grok-stream/sessions/<snapshot-encoded>/e5146da4-09b7-4423-9533-01690829df00/summary.json",
+      "messages": 236
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-start-adjudication-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Third-harness adjudication of original Claude startup CHANGES at 6bf5d7b, supplied report only and original artifact. No later fixes/concessions. Rule each of four findings UPHELD/PARTIAL/REJECTED with commands and bounded remedy: canonical DispatchID reservation versus pre-sealed binding, binding-mismatch refusal digest, full FD6 transport versus nested relay/opaque evidence, constructible positive coordinate schema. Preserve common APIs and policy/launcher/adapter ownership; no guessed positive or new authority. Identify exact owning documents and the minimal independent-test implications. No edits, runtime inspection beyond cited interface checks, full floor, vendor or live state. Return valid review envelope; missed findings separately, no self-approval.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135356Z-review-grok-3ab629/in/ag-conduct-start-coupling-review.json",
+        "sha256": "ad97a834a8487482b4d39e3a91bf0018634f98260ad39a58756c55351cb892a6"
+      }
+    ],
+    "sha256": "fbf3103f7e357495d2c3af0deb6469c32e66ed73bf6c4dce5ef5672c2874469c",
+    "bytes": 3076
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:53:56Z",
+      "ended": "2026-09-06T14:04:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "F1 UPHELD \u2014 ops/conductor/conductor-start-plan.md:351,323-324,415,438",
+          "claim": "UPHELD. The startup candidate names two minting sequences for one DispatchID and is not an exactly usable coupling. FD 5 is policy's exact ConductorBinding whose required dispatch member is the reserved id (conductor-start-plan.md:351; lane-policy.md:464,469-470), sealed by the admitted parent before ops/bin/conduct runs (conductor-start-plan.md:334-337,365-367). The same document lists in-memory identity reservation among prepare's only four acts (323-324), orders reserve-the-canonical-dispatch-identity inside the preflight sequence (415), and says launch reserves a fresh id through the canonical dispatch owner before admission (438). lane-policy.md:631 has policy derive ConductorBinding from startup-supplied LaunchSelection, not mint the id. Dispatch CONTRACT.md:1064-1072 already names the sole helper mint_id(stage,harness): a trusted caller may reserve first and pass that exact value; omission mints once; a supplied id is never silently reminted. The start-plan does not apply that protocol. A fixture that seals D1 on FD 5 and then follows 415/438 mints D2, so descriptor.launch_id differs from ConductorBinding.dispatch and line 442 fires on every clean positive; a prepare that adopts D1 performs no reservation, contradicting 323-324 and 415. Bounded remedy, no new authority, common APIs unchanged: apply the existing mint_id omit-or-supply rule in conductor-start-plan.md. Sole minter remains the canonical dispatch owner. Because FD 5.dispatch is required on this channel, the parent may reserve first, policy derives the binding, FD 5 is sealed with that id, and prepare validates spelling and equality and never remints; recast 323-324/415/438 as validation of the supplied reserved id, not a second mint. Policy stays derivation-only; launcher/adapter do not mint. Independent tests: one positive where FD 5.dispatch=D1 and prepare returns descriptor.launch_id=D1 with zero remint; one negative where a second mint would yield D2 against sealed D1 refuses as mismatched record/descriptor binding before effects. Do not add a reservation verb.",
+          "reproduce": "sed -n '322,324p;334,337p;351p;365,367p;414,417p;437,442p' ops/conductor/conductor-start-plan.md; sed -n '462,470p;631p' ops/conductor/lane-policy.md; sed -n '1059,1072p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "F2 UPHELD \u2014 ops/conductor/permission-surface.md:217,277",
+          "claim": "UPHELD. The binding-mismatch Decision is still not an exact byte. permission-surface.md:175 and 408 bind Request.binding_sha256 to the held conductor descriptor digest; 217 requires Decision id/binding to match Request and the held current binding; 202 lists binding-mismatch as a Decision Reason; 277 tells the independent owner to assert the exact fixed binding-mismatch Decision. When Request.binding_sha256 differs from the held descriptor digest, 217's two conjuncts cannot both hold, so an evaluator that copies the held digest and one that echoes the forged Request digest both satisfy a reading. The sentence is byte-identical to 8324aa38:148 inside a file the increment otherwise extended (permission-surface sha256 eeccf74d... -> f77611d6...). Bounded remedy: permission-surface.md Common request and decision owns Decision; lane-policy.md evaluate_tool is the counterpart and must not fork. Add one sentence naming which SHA256 Decision.binding_sha256 carries on reason binding-mismatch. The only already-declared candidates are the held conductor descriptor digest (175,408) and Request.binding_sha256. Name exactly one; do not introduce a third digest or raw-echo the forged request (220). Decision.id can remain Request.id without new authority. Independent tests: ForbiddenHandwork.test_binding_mismatch_is_refused plants held digest D_held and Request digest D_forged and asserts that one named Decision, outcome refuse, Reason binding-mismatch, no execution, no raw echo. Until that sentence exists the row-277 oracle is two legal byte-strings.",
+          "reproduce": "python3 -c \"from pathlib import Path; import subprocess, hashlib; prev=subprocess.check_output(['git','show','8324aa389a467417380683e6cd135efdd818acfa:ops/conductor/permission-surface.md'], text=True).splitlines(); cur=Path('ops/conductor/permission-surface.md').read_text().splitlines(); print('identical', prev[147]==cur[216]); print('prev148', prev[147]); print('cur217', cur[216]); print('cur175', cur[174]); print('cur277', cur[276]); print('sha_prev_line', hashlib.sha256(prev[147].encode()).hexdigest()); print('sha_cur_line', hashlib.sha256(cur[216].encode()).hexdigest())\""
+        },
+        {
+          "severity": "p3",
+          "where": "F3 UPHELD \u2014 ops/conductor/conductor-start-plan.md:352",
+          "claim": "UPHELD. FD 6 is not an exactly usable compile-transport slot. conductor-start-plan.md:352 names transport.json as held harness transport and says Codex uses exactly codex-relay/1, linking to harness-capabilities.md#trusted-relay-transport, not a generic executable/config fixture. harness-capabilities.md:452-454 declares that nested {schema,processes,endpoint,configuration,rpc,targets,deadlines,resume} object is not an alternative top-level compile transport. The full trusted compilation transport is the eight-member handle at 131-142 (executable, configuration, manifest, canonical_paths, evidence, launch_session, resume, relay). FD 6 is the only inherited transport slot (start-plan slot table; harness-capabilities.md:127-128). A literal fixture that serializes only the nested relay members leaves compile_launch without executable, configuration.mcp, manifest.adapter, launch_session or evidence, so prepare cannot take descriptor.mcp from configuration.mcp (136 vs start-plan:460) for the pure-preflight catalogue check at start-plan:669. evidence is an opaque non-JSON handle (139,145; dispatch CONTRACT.md compilation evidence custody) with no stated representation in a sealed JSON buffer. Bounded remedy: conductor-start-plan.md owns the slot table; harness-capabilities.md owns compile transport and nested relay; dispatch CONTRACT owns evidence custody. Declare FD 6 as the serializable projection of the eight-member compile transport, with relay exactly the nested codex-relay/1 object for Codex and null for ordinary CLI; not-a-generic-executable/config-fixture means Codex cannot omit relay or substitute a CLI-only transport. Do not make nested relay top-level. evidence stays opaque and is restored only by the admitted loader from launch-owned custody, never from candidate JSON and never as a new schema. Preserve compile_launch's five-key result and common APIs. Independent tests: a fixture that puts only nested relay members in FD 6 must refuse at bootstrap/descriptor validation; a fixture with the serializable projection plus loader-restored evidence is the unique positive that can compute descriptor.mcp. Do not equate relay.configuration.registry_sha256 with descriptor.mcp.catalogue_sha256; looked and found no owner declaration of that equality.",
+          "reproduce": "sed -n '352p;459,460p;669p' ops/conductor/conductor-start-plan.md; sed -n '127,142p;452,454p' ops/conductor/harness-capabilities.md; sed -n '329,345p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "F4 PARTIAL \u2014 ops/conductor/permission-surface.md:242,183,283-287",
+          "claim": "PARTIAL. Coordinate-kind remains unconstructible, but permission-surface.md:242 is not a kind=coordinate allow duty. mcp-read is constructible from the eleven v3 lane_mcp tool schemas (measured 11 names in ops/conductor/tools/lane_mcp.py). kind=coordinate at 183 defers to the lever owner's closed verb schema; no coordination lever in this tree publishes a closed JSON verb schema, executable closure and effect reconciliation; 283-287 forbid fabricating that positive. conductor-start-plan.md:610 still lists positive coordination/delegation among required independent startup cases, with no specific declaration that the kind=coordinate positive is unavailable. The overstated consequence is 242: necessary coordination reads work is discharged as kind=read by the correction row at 272 (declared read target, WF_AGENT absent). An evaluator that refuses every kind=coordinate request for missing declaration (190) satisfies every correction row and 242; it does not satisfy 610 as written. Bounded remedy, no guessed positive, no new authority: do not invent a coordinate schema. Either a named existing lever owner publishes its closed JSON verb schema and closures, or start-plan:610 (and any kind=coordinate allow reading) is restated to record that positive unavailable until that owner exists, matching 283-287. Keep 272 as a kind=read case. Independent tests: no kind=coordinate allow assertion until an owner schema exists; add an explicit missing-declaration refusal for kind=coordinate; retain the read-target coordination-read test.",
+          "reproduce": "rg -n 'coordinat' ops/conductor/permission-surface.md ops/conductor/conductor-start-plan.md; python3 -c \"import re, pathlib; t=pathlib.Path('ops/conductor/tools/lane_mcp.py').read_text(); print(sorted(set(re.findall(r'\\\"(lane_[a-z]+)\\\"', t))))\""
+        }
+      ],
+      "artifacts": {
+        "reviewed_head": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+        "base": "710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "source_report": "in/ag-conduct-start-coupling-review.json sha256 ad97a834a8487482b4d39e3a91bf0018634f98260ad39a58756c55351cb892a6",
+        "startup_increment": "8324aa389a467417380683e6cd135efdd818acfa..9ac9d42cad25415b35e11a0a91ebed166a64bfb7 conductor-start-plan.md +209/-3 permission-surface.md +99; assembled at 6bf5d7b with adapter parent 518e1b23",
+        "rulings": "F1 UPHELD p2; F2 UPHELD p2; F3 UPHELD p3; F4 PARTIAL p3; missed none",
+        "conductor_start_plan_sha256": "7b79701f29983783f8c04a9938d22548f1242177cadf064dfc7d7a2770aad9ee",
+        "permission_surface_sha256": "f77611d6d186a372e504cb4d4f690ba972619bf95dda4983fd9e6f0c5634404c",
+        "harness_capabilities_sha256": "bb4595545d2bb0db964f354079c559f8c47a6664e03892f8014320f398641728",
+        "lane_policy_sha256": "8f7a82b7170b9c992ccc2444493f66e9ecfd6794fdf19d52bbef22b73060d12e",
+        "dispatch_contract_sha256": "463bfaf9d7ee2b3d082dd9e218647d5215a13d75bc64308fd4e9280bf8f3bed1",
+        "missed": "looked at allow-path binding identity (permission-surface.md:175,217,408), prepare return, native request, conduct-config, eleven lane_mcp tools, zero subprocess in lane_read.py, mint_id settlement in CONTRACT.md:1064-1072, and FD6/launch_session as a third id copy; no independent defect beyond F1-F4"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1637812,
+        "out": 38646,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6bf5d7bacd9fef8fdad965ed60556602805af911",
+        "started": "2026-09-06T13:53:56Z",
+        "ended": "2026-09-06T14:03:54Z"
+      },
+      "note": "Adjudication of original Claude CHANGES at 6bf5d7bacd9fef8fdad965ed60556602805af911 against 710dbac38c3b187eb4b3302308430c0a6dec4d76, supplied report 20260906T134140Z-review-claude-5a1f3a only, original artifact only; no later fixes. F1 UPHELD p2 canonical DispatchID reservation versus pre-sealed binding; F2 UPHELD p2 binding-mismatch refusal digest; F3 UPHELD p3 full FD6 transport versus nested relay/opaque evidence; F4 PARTIAL p3 constructible positive coordinate schema (610 still requires a coordinate positive, 242 is kind=read). Missed findings: looked and found none independent of F1-F4. Common APIs and policy/launcher/adapter ownership preserved in remedies; no guessed positive or new authority. Read-only; no full floor, vendor, live state, or runtime inspection beyond cited interface checks (11 lane_mcp names, 0 subprocess in lane_read.py)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:04:51.312Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,354 @@
+{
+  "id": "20260906T125131Z-code-codex-ab077f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-relay-contract-20260906",
+  "lineage": {
+    "branch": "lane/conduct-relay-contract-20260906",
+    "base_sha": "83706c91ccb3488d74334a150aded6ba55700cc2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T12:51:31Z",
+    "closed": "2026-09-06T13:09:07Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "83706c91ccb3488d74334a150aded6ba55700cc2",
+    "ref_sha": "83706c91ccb3488d74334a150aded6ba55700cc2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-51-33-01a076c6-2acf-7b13-b767-52615253556f.jsonl"
+  },
+  "session": {
+    "id": "01a076c6-2acf-7b13-b767-52615253556f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-51-33-01a076c6-2acf-7b13-b767-52615253556f.jsonl",
+    "stream_sha256_at_close": "1e010c80a21b2403ce9ff1530d5ae454d7be7cfb33983551485becaf061c0ded",
+    "spend": {
+      "input": 2881955,
+      "cached": 2749312,
+      "output": 23214,
+      "total": 2905169,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T08-51-33-01a076c6-2acf-7b13-b767-52615253556f.jsonl",
+      "messages": 235
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-relay-contract-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Declare the concrete Codex sole-client relay mechanism from supplied research and security dispositions in existing harness-capabilities.md, permission-surface.md and probes-lever.md only. Keep common compile_launch/normalizer APIs and selection axes; specify the exact trusted transport needed for canonical launch to supervise app-server, relay and native remote TUI without another executor. Freeze strict frame/request schemas, allowed RPC/capability ownership, finite failures, replay/effect reconciliation, sealed registry/config/resume and credential custody. Clarify lane-owned rejected-input records versus private vendor history per the accepted ruling. Declare independent mock/live acceptance and source/version pins without claiming measurement. Resolve boundary conflicts explicitly, not another broad plan. Read owning contracts; no implementation/tests/global config/state/admission edits. Run doc/link/schema/example/diff checks. Source/GPT-6 trailers; compact inline envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/in/ag-conduct-codex-mediation.json",
+        "sha256": "8616278ce05b36d6efc2643afdbf32b65c9930b012cce09d7b9c54b17fcf9593"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/in/ag-conduct-recording-security.json",
+        "sha256": "3945abbd3d9595f58499d6842366b722857f387be81c6422639f3e570aff8c0f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/in/ag-conduct-recording-scope-ruling.md",
+        "sha256": "fd73a27a9654282139042dcfba6dc8e9bfa36f3b99190ab9074851dfc16443d3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125131Z-code-codex-ab077f/in/ag-conduct-codex-native-prereqs.json",
+        "sha256": "c72c935e34e1c3a399e69caf793d5ecc8f18ee711759f3bdd53f020f6fbcbaf3"
+      }
+    ],
+    "sha256": "2943a51b8a21a7e1ed3361471c2a21be26d892df627ecc628dde0c290f29b699",
+    "bytes": 4841
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:51:31Z",
+      "ended": "2026-09-06T13:09:07Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "526989b6187b2ef37fe0862233e9315afd9fed72",
+    "changed_paths": [
+      "ops/conductor/harness-capabilities.md",
+      "ops/conductor/permission-surface.md",
+      "ops/conductor/probes-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code-codex-ab077f",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 28,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed requested HEAD and initially clean tree.",
+          "reproduce": "pwd; rg --files ../in; git status --short; git rev-parse HEAD; rg --files -g AGENTS.md -g '*harness-capabilities*' -g '*permission-surface*' -g '*probes-lever*' -g '*wire*' -g '*workflow*' -g '*concern*' -g '*coupling*' -g '*probe*' docs ops"
+        },
+        {
+          "severity": "p3",
+          "where": "in",
+          "claim": "Read all supplied inputs; repeated focused reads where output was truncated.",
+          "reproduce": "cat ../in/ag-conduct-recording-security.json ../in/ag-conduct-codex-mediation.json ../in/ag-conduct-recording-scope-ruling.md ../in/ag-conduct-codex-native-prereqs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "in",
+          "claim": "Read mediation research and governing recording ruling together.",
+          "reproduce": "cat ../in/ag-conduct-codex-mediation.json ../in/ag-conduct-recording-scope-ruling.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read founding contracts and lane instructions.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-codex-native-prereqs.json",
+          "claim": "Read native prerequisite report separately.",
+          "reproduce": "cat ../in/ag-conduct-codex-native-prereqs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor",
+          "claim": "Read the three authorized documents together.",
+          "reproduce": "cat ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane",
+          "claim": "Inspected contract/checker inventory; harness/CONTRACT.md was absent.",
+          "reproduce": "rg --files docs; cat ops/devlane/harness/CONTRACT.md ops/devlane/dispatch/CONTRACT.md; cat ops/bin/suites.sh; rg -n 'doc|link|schema|example' ops/conductor/*suite* ops/bin/* ops/conductor/tests --glob '*.py' --glob '*.sh'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/harness-capabilities.md",
+          "claim": "Read common compilation, grammar and capability bindings.",
+          "reproduce": "cat ops/conductor/harness-capabilities.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor",
+          "claim": "Read normalized tool and diagnostic contracts without truncation.",
+          "reproduce": "cat ops/conductor/permission-surface.md ops/conductor/probes-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "owning contracts",
+          "claim": "Inspected OpenAI Docs skill, suite entry point, selection and transport references.",
+          "reproduce": "cat ../home/codex/skills/.system/openai-docs/SKILL.md; cat ops/bin/suites.sh; rg --files docs; rg -n 'compile_launch|transport|adapter|LaunchSelection|strict|canonical|ID|SHA256|single|supervis|argv|execute|normaliz' ops/conductor/conductor-start-plan.md ops/conductor/lane-policy.md ops/devlane/dispatch/CONTRACT.md ops/devlane/harness/CONTRACT.md; rg --files ops | rg '(doc|link|schema|example|suite).*\\.(py|sh)$'"
+        },
+        {
+          "severity": "p3",
+          "where": "owning contracts",
+          "claim": "Inspected startup, documentary checkers, evaluator counterpart and security disposition.",
+          "reproduce": "cat ops/conductor/conductor-start-plan.md; cat ops/devlane/workflow/checks/doc_commands.py ops/devlane/workflow/checks/doc_covers.py; rg --files ops/devlane/harness | head -30; sed -n '635,669p' ops/conductor/lane-policy.md; cat ../in/ag-conduct-recording-security.json"
+        },
+        {
+          "severity": "p3",
+          "where": "owning contracts",
+          "claim": "Re-read exact startup binding and application mapping boundaries.",
+          "reproduce": "sed -n '310,455p' ops/conductor/conductor-start-plan.md; sed -n '1,115p' ops/devlane/workflow/checks/doc_commands.py; cat docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "official source",
+          "claim": "Shell retrieval of pinned protocol failed with DNS unavailable.",
+          "reproduce": "python3 -c \"import urllib.request; urllib.request.urlopen('https://raw.githubusercontent.com/openai/codex/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server-protocol/src/protocol/common.rs',timeout=10).read()\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane",
+          "claim": "Inspected isolation assumptions and canonical conductor record ownership.",
+          "reproduce": "rg -n 'ghost_link_errors|doc_commands|doc_covers' ops --glob '*.py' --glob '*.sh'; sed -n '1,100p' ops/devlane/harness/isolation.py; sed -n '1,110p' ops/devlane/dispatch/CONTRACT.md; sed -n '746,839p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/verification.json",
+          "claim": "Web retrieval supplied pinned protocol and three generated types; other response-type fetches were unavailable. No binary/live measurement claimed.",
+          "reproduce": "Read source URLs and retrieval limits in ../out/verification.json; pinned protocol: https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server-protocol/src/protocol/common.rs"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites-first.log",
+          "claim": "First full suite run exited 1 with two teardown failures.",
+          "reproduce": "bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "document checks",
+          "claim": "Document-command, frontmatter and diff checks passed; measured input hashes and three-file scope.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; python3 ops/devlane/workflow/checks/doc_covers.py ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; git diff --check; git diff --stat; git status --short; sha256sum ../in/*"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-codex-native-prereqs.json",
+          "claim": "Read the complete research note separately.",
+          "reproduce": "python3 -c \"import json; print(json.load(open('../in/ag-conduct-codex-native-prereqs.json'))['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/relay.patch",
+          "claim": "Captured documentary diff; suite log was initially pending.",
+          "reproduce": "git diff -- ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md > ../out/relay.patch; tail -50 ../out/suites.log; rg -n 'FAIL|ERROR|Ran |^==' ../out/suites.log"
+        },
+        {
+          "severity": "p3",
+          "where": "out/check-docs.py",
+          "claim": "Created and ran a scratch documentary checker: five JSON examples, 24 local links/anchors, common signatures, request inventory and authorized scope passed.",
+          "reproduce": "python3 ../out/check-docs.py > ../out/doc-check.json; cat ../out/doc-check.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/COMMIT_MSG",
+          "claim": "Saved Source/GPT-6 trailers; git add and commit were refused by read-only .git/index.lock.",
+          "reproduce": "git diff --numstat; git diff --check; cat ../out/COMMIT_MSG; git add ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites-first.log",
+          "claim": "Inspected suite outcomes and confirmed only authorized documents changed.",
+          "reproduce": "rg -n '^==|^Ran |^FAILED|^FAIL:|^ERROR:|^OK' ../out/suites-first.log; tail -100 ../out/suites-first.log; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py",
+          "claim": "Inspected failing teardown assertions without modifying tests.",
+          "reproduce": "sed -n '52,78p' ../out/suites-first.log; rg -n 'class WithholdingEnvelope|live dispatch store mutated|store.*before|_before' ops/conductor/tests/test_ladder_lever.py; sed -n '2940,3070p' ops/conductor/tests/test_ladder_lever.py; git diff -- ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md > ../out/relay.patch"
+        },
+        {
+          "severity": "p3",
+          "where": "out/suites.log",
+          "claim": "Preserved first failure log and reran unchanged suite command; final run exited 0.",
+          "reproduce": "cp ../out/suites.log ../out/suites-first.log; bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "document verification",
+          "claim": "Inspected teardown and failing cases, reran documentary checks and hashed artifacts.",
+          "reproduce": "sed -n '723,745p' ops/conductor/tests/test_ladder_lever.py; sed -n '780,815p' ops/conductor/tests/test_ladder_lever.py; sed -n '2655,2705p' ops/conductor/tests/test_ladder_lever.py; python3 ../out/check-docs.py > ../out/doc-check.json; git diff --check; git diff --name-only; sha256sum ../out/relay.patch ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "out/doc-check.json",
+          "claim": "Checked pending suite output and retained document digest receipt.",
+          "reproduce": "rg -n '^==|^Ran |^FAILED|^FAIL:|^ERROR:|^OK' ../out/suites.log; git diff --check; cat ../out/doc-check.json"
+        },
+        {
+          "severity": "p3",
+          "where": "out/verification.json",
+          "claim": "Recorded input hashes, source-retrieval limits, commit refusal and follow-up.",
+          "reproduce": "cat ../out/verification.json; sha256sum ../in/*"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final documentary checks passed; all nine suites reported OK, 2087 tests ran with seven skips. Only three authorized documents changed.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; python3 ops/devlane/workflow/checks/doc_covers.py ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; python3 ../out/check-docs.py; git diff --check; rg -n '^==|^Ran |^FAILED|^FAIL:|^ERROR:|^OK' ../out/suites.log; git status --short; git diff -- ops/conductor/harness-capabilities.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py:790",
+          "claim": "Follow-up: shared dispatch-directory changes caused two first-run WithholdingEnvelope teardown failures. Unchanged rerun passed; no test or store fix made.",
+          "reproduce": "sed -n '52,78p' ../out/suites-first.log; rg '^FAIL:' ../out/suites-first.log"
+        }
+      ],
+      "artifacts": {
+        "diff": "out/relay.patch",
+        "document_checks": "out/doc-check.json",
+        "scratch_checker": "out/check-docs.py",
+        "suites": "out/suites.log",
+        "first_suite_failure": "out/suites-first.log",
+        "verification": "out/verification.json",
+        "commit_message": "out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2905169,
+        "out": 23214,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "83706c91ccb3488d74334a150aded6ba55700cc2",
+        "started": null,
+        "ended": "2026-09-06T13:06:30Z"
+      },
+      "note": "Declared the concrete relay in the three permitted documents only. Preserved common APIs/selection axes; froze transport, protocol ownership, failures, reconciliation, configuration/resume and credential custody; applied accepted recording scope. Assumed the prose after \u201ccommand\u201d was the contract brief and used the owning bash ops/bin/suites.sh gate, which exited 0 on the final tree. No implementation, tests, global configuration/state or admission edits. Commit blocked by read-only Git metadata; launcher message retained.",
+      "commit": {
+        "subject": "Declare the Codex sole-client relay contract",
+        "body": "Freeze canonical launcher transport, strict RPC ownership and schemas, sealed configuration and registry, credential custody, finite failures, and receipt-based effect reconciliation across resume. Apply the accepted recording-scope ruling and declare independent mock/live acceptance.\n\nSource: original\nSource: openai/codex@3d2ee51ca2d5db578f328aa75e20aa22c0197c9a\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T13:09:06.097Z"
+    }
+  },
+  "status": "closed"
+}

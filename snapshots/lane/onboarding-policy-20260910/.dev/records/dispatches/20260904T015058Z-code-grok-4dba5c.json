@@ -1,0 +1,172 @@
+{
+  "id": "20260904T015058Z-code-grok-4dba5c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-fixes",
+  "lineage": {
+    "branch": "lane/lane-fixes",
+    "base_sha": "bd94fc00ea770ceb2120d852d9ec5bdaf2a850e9"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T01:50:58Z",
+    "closed": "2026-09-04T02:12:13Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "bd94fc00ea770ceb2120d852d9ec5bdaf2a850e9",
+    "ref_sha": "bd94fc00ea770ceb2120d852d9ec5bdaf2a850e9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "86882d7d-635b-4d18-8278-82dc04c42209",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok-stream/sessions/<snapshot-encoded>/86882d7d-635b-4d18-8278-82dc04c42209/summary.json"
+  },
+  "session": {
+    "id": "86882d7d-635b-4d18-8278-82dc04c42209",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok-stream/sessions/<snapshot-encoded>/86882d7d-635b-4d18-8278-82dc04c42209/summary.json",
+    "stream_sha256_at_close": "d0e0233ea079d4e6424472910dac4287c9c2a03dd1be27bd732a288598947b13",
+    "spend": {
+      "input": 7800777,
+      "cached": 7322624,
+      "output": 54434,
+      "total": 7855211,
+      "cost_usd_ticks": 8405177400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/home/grok-stream/sessions/<snapshot-encoded>/86882d7d-635b-4d18-8278-82dc04c42209/summary.json",
+      "messages": 401
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-fixes/ops/devlane/task/jobs.json",
+      "sha256": "06ef9ff25759b502aa7b0f13dc997c3c4028c2c638b40aac3f4a7b2ade0198db"
+    },
+    "scope": "Lane fix batch 1, tests only, slice B of section 4 of the plan in the input file: ops/devlane/dispatch/tests/ and ops/devlane/task/tests/test_jobs.py, for the defects the plan assigns to slice B. Red at this ref, one commit per file, as the author-tests prompt says. Slices A and C are separate runs; do not write them.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T015058Z-code-grok-4dba5c/in/contract-lane-fixes-1.md",
+        "sha256": "cf18136e09853166a70ca4278c81ffe3f1abb6eb10d145b02d57ec221044a17d"
+      }
+    ],
+    "sha256": "0acfa2c1826f061469fe91816924fd6ac61204eaa8b1b13cbc260a9ea1e6ffb3",
+    "bytes": 983
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T01:50:58Z",
+      "ended": "2026-09-04T02:12:13Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6f2f68e05aea8a5350a40f2a017483afb76ae440",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/launch_support.py",
+      "ops/devlane/dispatch/tests/test_launch_brief_schema.py",
+      "ops/devlane/dispatch/tests/test_launch_collect.py",
+      "ops/devlane/dispatch/tests/test_launch_isolation.py",
+      "ops/devlane/dispatch/tests/test_launch_job_caps.py",
+      "ops/devlane/dispatch/tests/test_launch_record.py",
+      "ops/devlane/dispatch/tests/test_launch_watch.py",
+      "ops/devlane/dispatch/tests/test_record.py",
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "job_caps": "ops/devlane/dispatch/tests/test_launch_job_caps.py",
+        "jobs": "ops/devlane/task/tests/test_jobs.py",
+        "record": "ops/devlane/dispatch/tests/test_record.py",
+        "brief_schema": "ops/devlane/dispatch/tests/test_launch_brief_schema.py",
+        "record_spend": "ops/devlane/dispatch/tests/test_launch_record.py",
+        "isolation": "ops/devlane/dispatch/tests/test_launch_isolation.py",
+        "watch": "ops/devlane/dispatch/tests/test_launch_watch.py",
+        "collect": "ops/devlane/dispatch/tests/test_launch_collect.py",
+        "fake_cli": "ops/devlane/dispatch/tests/launch_support.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "bd94fc00ea770ceb2120d852d9ec5bdaf2a850e9",
+        "started": "2026-09-04T01:50:58Z",
+        "ended": "2026-09-04T02:12:01Z"
+      },
+      "note": "Slice B only, tests only, one commit per file, nine commits on detached HEAD from bd94fc00ea770ceb2120d852d9ec5bdaf2a850e9. 25 new tests; 24 proven red on the contracted assertion (python3 -m unittest <class.method> -v); test_claude_brief_carries_no_schema_section already green at this ref because Claude already has no schema section. Existing cases in the edited files still pass. ruff check on the nine paths: All checks passed. launch.py, record.py, and jobs.json were not opened. Tree clean at 6f2f68e05aea8a5350a40f2a017483afb76ae440."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T02:12:13.620Z"
+    }
+  },
+  "status": "closed"
+}

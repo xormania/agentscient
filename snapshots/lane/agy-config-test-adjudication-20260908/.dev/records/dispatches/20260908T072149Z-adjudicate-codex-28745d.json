@@ -1,0 +1,185 @@
+{
+  "id": "20260908T072149Z-adjudicate-codex-28745d",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/agy-config-test-adjudication-20260908",
+  "lineage": {
+    "branch": "lane/agy-config-test-adjudication-20260908",
+    "base_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:21:49Z",
+    "closed": "2026-09-08T07:24:46Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "ref_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-21-50-01a07fe5-03c9-7f21-8f5a-e20affb7cc8f.jsonl"
+  },
+  "session": {
+    "id": "01a07fe5-03c9-7f21-8f5a-e20affb7cc8f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-21-50-01a07fe5-03c9-7f21-8f5a-e20affb7cc8f.jsonl",
+    "stream_sha256_at_close": "fbc15ee81dc07d77562f5e3bd513e97be8cb6bb5f876288f2af715555bd423c8",
+    "spend": {
+      "input": 629842,
+      "cached": 549760,
+      "output": 3905,
+      "total": 633747,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-21-50-01a07fe5-03c9-7f21-8f5a-e20affb7cc8f.jsonl",
+      "messages": 90
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-config-test-adjudication-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the five original Claude findings against Grok configuration tests at 6d1b1a4. Original reviewed source/report only; no later fixes. You produced neither tests nor findings. Rule UPHELD/PARTIAL/REJECTED per item and smallest correction, preserving corrected contract legacy executable fallback and no invented dry-run fields. Test bodies and contract docstrings may be read; production function bodies must remain unread. Evaluate claimed severity separately from correctness; no new framework or broad test expansion. No edits, inference, credentials or full floor. Return rulings inline for the original test author; final test acceptance remains with an independent reviewer.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T072149Z-adjudicate-codex-28745d/in/agy-configuration-test-review.json",
+        "sha256": "31f469939df1144ef2822f694843b436d10ea4adb249ccdd6c9e29d9e7aa37ac"
+      }
+    ],
+    "sha256": "dd8e8c3f2922000700027bab05cd88cc315feacfeaf01c5c32d825382a4b6282",
+    "bytes": 3002
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:21:49Z",
+      "ended": "2026-09-08T07:24:46Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:1626-1631",
+          "claim": "Original finding 1 \u2014 UPHELD on correctness; claimed P1 reduced to P2. CONTRACT.md:58 preserves 'shutil.which(name) or name' for legacy workers, but this test requests grok without an override on an empty PATH and asserts an executable refusal. This is a contradictory acceptance assertion; the reviewed evidence does not establish a runtime regression warranting P1. Smallest correction: assert successful resolution to literal 'grok', executable source 'PATH', and workers source 'default'; retain the PATH-miss refusal as a listed-agy case. Preserve invalid-override refusals, including the empty override at lines 1589-1596. Apply the helper corrections below with this change.",
+          "reproduce": "Read test_laneconf.py:1589-1596,1626-1631; CONTRACT.md:57-59,839; laneconf.py module docstring:12-18 at the stamped ref."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1681-1703,2039-2065",
+          "claim": "Original finding 2 \u2014 PARTIAL; P2 retained. The invented dry-run worker field is a valid finding: 'self.assertIn(\"worker\", payload, payload)' imposes a wrapper output obligation absent from the corrected contract, which instead declares 'Launch records the returned worker object as harness.worker'. However, the earlier argv/model/effort assertions still execute, so 'carry no signal' overstates the consequence. Moving all provenance checks to standalone loader tests would also leave the explicitly required wrapper forwarding seam unverified. Smallest correction: remove PIN_WORKER_DRY_RUN and worker-field dependencies, retaining existing dry-run argv/env checks. Keep exact worker-object assertions on the declared loader CLI. Preserve wrapper provenance verification through the existing synthetic launcher seam, observing the selected keys in the actual child environment and the declared loader result there; do not add production dry-run fields or a new framework.",
+          "reproduce": "Read test_dispatch_wrapper.py:1681-1703,1770-1850,2039-2065 and its existing _plant_python_sentinel helper; CONTRACT.md:48-54; laneconf.py module docstring:31-40. Search CONTRACT.md for 'dry': no matches."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/worker_conf.py:89-92; ops/conductor/tests/test_dispatch_wrapper.py:1690-1692",
+          "claim": "Original finding 3 \u2014 UPHELD; P2 retained. The unconditional 'Path(payload[\"executable\"]).is_absolute()' excludes the contract's bare legacy fallback. This is a separate assertion location requiring correction alongside finding 1, not evidence of another runtime failure. Smallest correction: remove absolute-path validation from the generic JSON-shape helper and retain it only for override/agy expectations, with exact executable comparison in each success case. An explicit expectation parameter is also sufficient; it must not make absolute paths a universal legacy requirement. Delete the wrapper copy with finding 2 rather than maintaining an undeclared worker-output validator.",
+          "reproduce": "Read worker_conf.py:64-93; test_laneconf.py:1372-1385; test_dispatch_wrapper.py:1681-1694; laneconf.py module docstring:12-18."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_laneconf.py:1383,1396-1410; ops/conductor/tests/worker_conf.py:27-29,32-52",
+          "claim": "Original finding 4 \u2014 UPHELD as an expectation overreach; P3 retained. The contract confines absolute realpath requirements to overrides and agy, but assert_worker compares every executable with 'str(Path(executable).resolve())', and plant_executable returns path.resolve(). Smallest correction: compare the supplied expected string unchanged; supply the planted PATH spelling for legacy lookup cases and resolved targets for overrides/agy. Keep file-source path normalization unchanged. The report's symlink-dependent failure was not demonstrated here and is not treated as an observed failure at this ref. Correct helper citations: path_with is lines 27-29; plant_executable returns the resolved path at line 41.",
+          "reproduce": "Read test_laneconf.py:1340-1358,1372-1410; worker_conf.py:27-56; CONTRACT.md:57-59. Compare the explicit normalization assertions with the declared legacy expression."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1706-2016; ops/conductor/tests/test_laneconf.py:1665-1746",
+          "claim": "Original finding 5 \u2014 UPHELD; P3 retained as bounded coverage gaps, not demonstrated implementation defects. The original wrapper tests do not supply exported WORKER_HARNESSES against a conflicting file value; no EFFORT_AGY_<JOB> case appears; and executable precedence cases do not plant a local-file executable. These correspond to CONTRACT.md:50-53,67-71. Smallest correction: one conflicting exported-worker-list wrapper case, one job-specific effort case with a distinct generic effort value and no effort flag, and a local executable rung added to the existing precedence case, checking local-over-file and env-over-local with source labels. Reuse existing fixtures and declared outputs; no broad matrix or new dry-run field.",
+          "reproduce": "Search both original test files for WORKER_HARNESSES, EFFORT_AGY, EXECUTABLE_, plant_local and lane.local.conf; read the matching bodies and CONTRACT.md:50-53,67-71. Existing local MODEL_GROK tests do not exercise executable precedence."
+        }
+      ],
+      "artifacts": {
+        "input": "../in/agy-configuration-test-review.json; read whole; SHA256 31f469939df1144ef2822f694843b436d10ea4adb249ccdd6c9e29d9e7aa37ac",
+        "diff": "../context/diff.patch; SHA256 fdebb5cbb0e398e6e7ea10aaa27c3d47e21c53a187e7d38e2724ccf3f6f8e161",
+        "measurement": "git rev-parse HEAD confirmed the stamped ref. Against 3432b5cb8b9e171ecc981efa8409d299a85ec4c0, git diff --numstat reports test_dispatch_wrapper.py +446, test_laneconf.py +448, worker_conf.py +93, with no deletions. git status --porcelain returned empty.",
+        "limits": "Static adjudication of the original report, test bodies/helpers and corrected contract/docstring. No later fixes or production function bodies read. No edits, credentials, session-store access, vendor inference or full floor. Tests were not rerun in this read-only session; Claude's reported runtime results remain attributed evidence, not independently reproduced results. The historical wrapper-spec path referenced by the tests was absent."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 633747,
+        "out": 3905,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+        "started": "2026-09-08T07:21:59Z",
+        "ended": "2026-09-08T07:23:48Z"
+      },
+      "note": "Rulings address the five original Claude findings in order for the original test author. Counts reflect adjudicated severity. Findings 1, 3 and 4 require coordinated legacy-expectation corrections. This adjudication neither authors corrections nor grants final test acceptance; acceptance remains with an independent reviewer."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:24:45.899Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,260 @@
+{
+  "id": "20260904T053104Z-plan-claude-9e58d9",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/ladder-driver",
+  "lineage": {
+    "branch": "lane/ladder-driver",
+    "base_sha": "0dfb24002fd5c820e38211ec0cd358062b3cb23b"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T05:31:05Z",
+    "closed": "2026-09-04T05:44:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0dfb24002fd5c820e38211ec0cd358062b3cb23b",
+    "ref_sha": "0dfb24002fd5c820e38211ec0cd358062b3cb23b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "47b5bf8a57ba4e9ae645d0370ca1d192addb8ad0872dab91fbca1077554831c7",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "ba4d1793-0169-463f-b6a1-1e7a7c64846c",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ba4d1793-0169-463f-b6a1-1e7a7c64846c",
+    "stream": null,
+    "stream_sha256_at_close": null,
+    "spend": {
+      "input": 422,
+      "cached": 2766321,
+      "output": 59753,
+      "source": "result.usage",
+      "cost_usd": 9.218497999999999,
+      "total": 2826496
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Plan the lane configuration and the ladder driver as one batch of two units, from the two scope files in the input: unit 1 the lane conf (S), unit 2 the ladder driver (M) reading its names from the conf. For each unit: what it unblocks, its bucket, the edges it touches and the guarantees it must declare or keep, what it depends on, and that it lands green on its own; the tests per slice by file with the reason each is red at this ref; the order of implementation; the acceptance mapped to proof. No code.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/in/scope-lane-conf.md",
+        "sha256": "f7d5ad417ed9b643a87c2351355efd5cf598104827f309e15ed1d40a144ebd57"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/in/scope-ladder-driver.md",
+        "sha256": "e0cd9e45d9a82e6506a777d0f0d07b15a336a62329061f73eb9fbce7b4b17422"
+      }
+    ],
+    "sha256": "0a83dd02edb4c349afb0f4483d79c6cc36efccf4d6f3c1bf6ecb471ca3cb1fc6",
+    "bytes": 1281
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": {
+    "head": "0dfb24002fd5c820e38211ec0cd358062b3cb23b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "in/scope-lane-conf.md line 29 vs .claude/skills/pr-overview/pr_overview.py:226,248,255",
+          "claim": "The scope attributes the check name `ci` to the PR overview; at 0dfb240 the overview's three `\"ci\"` hits are the gate-kind entry key, and the check name is a code literal nowhere but .github/workflows/ci.yml lines 1 and 21. The plan gives CHECK_NAME the closure check as its reader (agreement with the workflow name) and the driver's PR body in unit 2.",
+          "reproduce": "grep -c \"'ci'\" .claude/skills/pr-overview/pr_overview.py; grep -n '\"ci\"' .claude/skills/pr-overview/pr_overview.py; grep -n '^name: ci' .github/workflows/ci.yml"
+        },
+        {
+          "severity": "p3",
+          "where": "AGENTS.md \u00a7Ground rules vs ops/devlane/dispatch/launch.py:799 and ops/conductor/tools/branches.py:271,276,305",
+          "claim": "AGENTS.md names `master` as the release branch; the launcher's record-target set and the census's feed labels say `main`. The snapshot holds no remote refs, so the plan defers the RELEASE_BRANCH value to a measurement at implementation and makes every `main` literal a read of that key.",
+          "reproduce": "git for-each-ref --format='%(refname)' refs/remotes refs/heads; grep -n '\"main\"' ops/devlane/dispatch/launch.py ops/conductor/tools/branches.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/.gitignore:1-2 vs ops/conductor/tools/dispatch.conf",
+          "claim": "The only ignore line naming `dispatch.conf` is scoped to ops/bin/ and cites a `dispatch.conf.example` that does not exist; the tracked seed at ops/conductor/tools/ is unaffected by it. The plan drops those lines with the move to ops/lane.conf and ignores ops/lane.local.conf instead.",
+          "reproduce": "grep -n dispatch.conf ops/.gitignore ops/bin/.gitignore ops/devlane/.gitignore; git ls-files ops/conductor/tools/dispatch.conf; ls ops/bin/dispatch.conf.example"
+        },
+        {
+          "severity": "p3",
+          "where": "in/scope-ladder-driver.md line 57 vs .dev/",
+          "claim": "The driver scope names the conf scope at `.dev/wip/scope-lane-conf.md`; the snapshot has no .dev/wip/. The plan read the conf scope from in/ as the brief names, and notes the absence.",
+          "reproduce": "ls .dev; ls .dev/wip"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T053104Z-plan-claude-9e58d9/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "0dfb24002fd5c820e38211ec0cd358062b3cb23b",
+        "started": "2026-09-04T05:31:04Z",
+        "ended": "2026-09-04T05:43:04Z"
+      },
+      "note": "Plan written for two units in one batch: unit 1 the lane conf at ops/lane.conf with a reader instrument ops/conductor/tools/laneconf.py carrying the closure and literals checks (S); unit 2 the ladder driver ops/conductor/tools/ladder.py behind ops/bin/ladder.sh, reading every name from the conf, with two additive flags on the land lever for re-authoring (M). Decisions the scope left open are listed in \u00a71 for the owner to overrule before tests are written: the file's location and grammar, LANE_CONF replacing DISPATCH_CONF (the one wire change), WALL_DEFAULT as the key name since DEFAULT_TIMEOUT is retired, the state root as a rule not a key, name keys forbidden in the local file, the lane-kind literal exempted by name, one fix round after the skeptic with no re-check. Residue declared in \u00a77, the snapshot half of D-FIREWALL-1 first: the launcher mints only whole snapshots, so the driver proves withholding on the input file and not the tree. Every code site each conf value replaces is listed with line numbers measured at 0dfb240; the release branch name could not be measured here and is deferred to implementation. Snapshot not edited.; DIED: process vanished without exit"
+    }
+  },
+  "status": "died"
+}

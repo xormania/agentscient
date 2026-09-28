@@ -1,0 +1,24 @@
+{
+  "id": "events-0801e281",
+  "verdict": "extraction-wrong",
+  "rule": "PLAN.md names chain-resident event types as dotted strings such as receipt.red, not as JSON Schema type descriptors.",
+  "observed": "shapes[23].type is an unresolved object whose payload is a JSON Schema fragment describing event types, e.g. receipt.red.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "116-116",
+      "quote": "| test receipts | `receipt.red`, `receipt.green` |"
+    },
+    {
+      "artifact": "cue/events.cue",
+      "lines": "14-14",
+      "quote": "type!: string"
+    },
+    {
+      "artifact": "obs/events.json",
+      "lines": "250-252",
+      "quote": "event types, e.g. receipt.red"
+    }
+  ],
+  "action": "amend-extractor"
+}

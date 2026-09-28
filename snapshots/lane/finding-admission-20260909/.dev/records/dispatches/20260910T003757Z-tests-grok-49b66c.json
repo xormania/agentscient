@@ -1,0 +1,176 @@
+{
+  "id": "20260910T003757Z-tests-grok-49b66c",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "a1a08daafe9108db56a3c7d917c538904eb9ab67"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:37:58Z",
+    "closed": "2026-09-10T00:49:29Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a1a08daafe9108db56a3c7d917c538904eb9ab67",
+    "ref_sha": "a1a08daafe9108db56a3c7d917c538904eb9ab67",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "bbec5088-931a-4423-8184-ce70310ba776",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok-stream/sessions/<snapshot-encoded>/bbec5088-931a-4423-8184-ce70310ba776/summary.json"
+  },
+  "session": {
+    "id": "bbec5088-931a-4423-8184-ce70310ba776",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok-stream/sessions/<snapshot-encoded>/bbec5088-931a-4423-8184-ce70310ba776/summary.json",
+    "stream_sha256_at_close": "55b35f7a1b05b498ab69788222f2522edee8b9b78fe56ee4b91b1c2eb939c746",
+    "spend": {
+      "input": 3368245,
+      "cached": 2797952,
+      "output": 36354,
+      "total": 3404599,
+      "cost_usd_ticks": 4688066200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/home/grok-stream/sessions/<snapshot-encoded>/bbec5088-931a-4423-8184-ce70310ba776/summary.json",
+      "messages": 277
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only the declared-coupling fixture defects in in/admission-regression-fixture-handoff.md against FINDING-ADMISSION.md. Allowed: new ledger/routing test files and existing test_ladder_lever.py fixture plus directly superseded raw-SKEPTIC assertion. Production source is still old on this lineage: do not read implementation or tune to it. Preserve binding, refusal, custody, resume and withheld-source checks. No new test inventory or unrelated changes. Stage declared dependencies without inspecting implementation. Prove intended RED on old code with original commands, report still-passing controls, no errors and hashes. Commit only tests with proper trailers.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/in/admission-regression-fixture-handoff.md",
+        "sha256": "2aa200f5b2682547248af394338ff4ba144b2650ff2c520be1c0d841166617e3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T003757Z-tests-grok-49b66c/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "58135a7310491ae02ccee59bd7d43889ce210c7eebc9537f219f9ee7314397c9",
+    "bytes": 3015
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:37:58Z",
+      "ended": "2026-09-10T00:49:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4c810a2e43af8d61f8685e2ee3685a24fcbce9b7",
+    "changed_paths": [
+      "ops/conductor/tests/test_finding_admission_ledger.py",
+      "ops/conductor/tests/test_finding_admission_routing.py",
+      "ops/conductor/tests/test_ladder_lever.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ledger": "ops/conductor/tests/test_finding_admission_ledger.py",
+        "routing": "ops/conductor/tests/test_finding_admission_routing.py",
+        "ladder": "ops/conductor/tests/test_ladder_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3404599,
+        "out": 36354,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a1a08daafe9108db56a3c7d917c538904eb9ab67",
+        "started": "2026-09-10T00:40:48Z",
+        "ended": "2026-09-10T00:49:02Z"
+      },
+      "note": "Corrected declared-coupling fixtures only against FINDING-ADMISSION.md; production source unread and unchanged. Commits on lane/finding-admission-20260909: b88027ded39cbacc93fc27e9ce9456b27299ac37 (ledger), 607c87bb3b938608b1d3903241425e682dd88669 (routing), 4c810a2e43af8d61f8685e2ee3685a24fcbce9b7 (ladder). RED on old code at a1a08daafe9108db56a3c7d917c538904eb9ab67, 0 errors. python3 ops/conductor/tests/test_finding_admission_ledger.py -v: 15 tests, 13 failed, 0 errors; file sha256 99849fa4aa0da60da4d01ac3173791d0aedb18157b4b797f9c696ac16f5d5e86; cause corrections/dispute still class arguments and export has no evaluations; still passing legacy four-field import and review-job authority (unsupported job need not select successfully). python3 ops/conductor/tests/test_finding_admission_routing.py -v: 4 tests, 4 failed, 0 errors; file sha256 b9430e951114b0f2a1f9bfded48618bec046064d6157c24c091ca1ea6ce590d6; cause driver still routes tests-fix from raw changes, never calls corrections, copies SKEPTIC.md; stub keys now bind to mocked check-tests record 20260904T120000Z-check-tests-codex-aa0232. python3 ops/conductor/tests/test_ladder_lever.py -v: 66 tests, 1 failed, 0 errors; file sha256 f0959f302c90df91769dd75d76753ef26f5ab400c6094553c1a895305ef942c5; intended red TestsFixInputs.test_tests_fix_is_given_skeptic_md (admitted demand absent, raw SKEPTIC.md still present); 65 controls still passing including withholding, resume, refusals, custody, stage selection. Unchanged envelope file python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v: 17 tests, 16 failed, 0 errors."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:49:28.590Z"
+    }
+  },
+  "status": "closed"
+}

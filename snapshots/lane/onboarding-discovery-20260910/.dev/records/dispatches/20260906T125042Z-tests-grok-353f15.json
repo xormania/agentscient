@@ -1,0 +1,188 @@
+{
+  "id": "20260906T125042Z-tests-grok-353f15",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-discovery-final-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-final-tests-20260906",
+    "base_sha": "e3190d7419cd387b1696cbbd3ebf377f0bfe03f3"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T12:50:42Z",
+    "closed": "2026-09-06T13:17:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e3190d7419cd387b1696cbbd3ebf377f0bfe03f3",
+    "ref_sha": "e3190d7419cd387b1696cbbd3ebf377f0bfe03f3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f4d4d43b-6a13-4118-a21f-9435970ae139",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok-stream/sessions/<snapshot-encoded>/f4d4d43b-6a13-4118-a21f-9435970ae139/summary.json"
+  },
+  "session": {
+    "id": "f4d4d43b-6a13-4118-a21f-9435970ae139",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok-stream/sessions/<snapshot-encoded>/f4d4d43b-6a13-4118-a21f-9435970ae139/summary.json",
+    "stream_sha256_at_close": "79a344a181796c5644de827a2b197a08815b96211b23cb9ab42137da79053d0f",
+    "spend": {
+      "input": 8547814,
+      "cached": 7570560,
+      "output": 85749,
+      "total": 8633563,
+      "cost_usd_ticks": 13568852600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/home/grok-stream/sessions/<snapshot-encoded>/f4d4d43b-6a13-4118-a21f-9435970ae139/summary.json",
+      "messages": 431
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-final-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently finish discovery/3 tests from the original Grok baseline and corrected contracts, following the supplied ruling and original Claude findings. Own only the existing seven discovery_v3_support/test_discovery_v3 files and necessary discovery-specific fixtures under ops/conductor/tests. Never read implementation or the GPT-6 test candidate. Cover all 53 row IDs, deterministic D-A31, corrected D-A16, trusted boot/executed-byte D-A47, D-A48 evidence and five/seven law equality. Preserve closed schemas, exact caps and raw parity. No sleeps, vacuous controls, unexplained skips or guessed protocols. Demonstrate assertion failures rather than import errors against unfinished runtime and discriminate faulty controls. Record exact hashes, commands, row coverage and gaps. No source/contracts/settings/state/admission edits or real vendor launches. Grok-only trailers; inline envelope note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/in/ag-conduct-discovery-final-tests-ruling.md",
+        "sha256": "2c219e2c43869d528ff55c8a595cf6e126c39aa0543a8dd9ae096eb4acd6c27e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/in/ag-conduct-discovery-test-review.json",
+        "sha256": "3cfa9023d90672319ea22f7cb546502a0094effd80495403a55685235f4e7535"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/in/ag-conduct-discovery-coupling.json",
+        "sha256": "c441fa30b97163aa1dc7a09869b00b7ff9a53661ef683244fbb226bbe905a808"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125042Z-tests-grok-353f15/in/ag-conduct-discovery-contract-recheck.json",
+        "sha256": "d9d996e04962299db2132b392e33c0fce4922a2dbbb67adf37b216f5d2088a0c"
+      }
+    ],
+    "sha256": "a45043e23cee75c0c5605e49f84d6333656621981bdbbd1db82b30bf8ff4fe29",
+    "bytes": 3264
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:50:42Z",
+      "ended": "2026-09-06T13:17:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "75aa9a4395b72103256c7b962a6f78f898395c17",
+    "changed_paths": [
+      "ops/conductor/tests/discovery_v3_support.py",
+      "ops/conductor/tests/test_discovery_v3_adapter.py",
+      "ops/conductor/tests/test_discovery_v3_catalogues.py",
+      "ops/conductor/tests/test_discovery_v3_config.py",
+      "ops/conductor/tests/test_discovery_v3_handoffs.py",
+      "ops/conductor/tests/test_discovery_v3_snapshots.py",
+      "ops/conductor/tests/test_discovery_v3_startup.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "head": "75aa9a4395b72103256c7b962a6f78f898395c17",
+        "base": "e3190d7419cd387b1696cbbd3ebf377f0bfe03f3",
+        "branch": "lane/conduct-discovery-final-tests-20260906",
+        "commits": "2cef00ffc52bc71c2860a33a419817101ae1b50a,c67df55a87a71f5ce28c0ac5b13528fee140812c,7bf109441d74388a65ef671c7e275dc6acbfda6d,13164d1e63582803a88c8af40955fd35b3508fa4,0590f0984051fbfb5c64735e89895ab311cc11fb,75aa9a4395b72103256c7b962a6f78f898395c17",
+        "owned_paths": "ops/conductor/tests/discovery_v3_support.py,ops/conductor/tests/test_discovery_v3_config.py,ops/conductor/tests/test_discovery_v3_startup.py,ops/conductor/tests/test_discovery_v3_catalogues.py,ops/conductor/tests/test_discovery_v3_handoffs.py,ops/conductor/tests/test_discovery_v3_snapshots.py,ops/conductor/tests/test_discovery_v3_adapter.py",
+        "blob_sha256": "support b066c01e5509b32de9b5fc992d5a6ad5e87b9474adf0b06fae8118d35d7db083; config 4b6d2ba06dc4185b4ff7548a784d7ba85050c82329f7139e8155f3ce1c317025; startup f0608a0fd136f4e31dbfb0f2e60e244d88da5a4a33bb392b69bd6147d66f88ee; catalogues 49ff0e24b5e7378ac1e60af7f5376468a23e271cea52902e73470de2ae00f2ec; handoffs cf481fdd76983a8c97fefc2ae72c4231a4cc3b668a51036a7a043aeb277bcbb3; snapshots bac7b4e8d4ad1fd18e24b9f494b1183a447f602eef40c63af98c252354bef911; adapter 3f66073d38ba1f3c23961a03054861340b7316c3d3ddbd295521462c3e655096",
+        "git_blobs_at_head": "support ccb3e5c2b2e0fc7fb551c929a08952ba9109acf3; config eea4d22858284386abb71129796fff7d6f32899c; startup faf6c8fe5e851de9630e380d894cd4b8b407cd91; catalogues 03d868619bf7045e8b597acb8669301148cdecba; handoffs f6bc9b0f0626a02c1dd859a98fa520e7c579c930; snapshots 39fe16288ea203c72e879034c413f1361fe70445; adapter f0ea20e38d14c533eba3cf96aea3b4f34a28cad9",
+        "row_ids": "53/53 D-A1..D-A49 plus D-A17b,D-A17c,D-A38b,D-A38c",
+        "methods": "56 = 53 rows + test_lane_mcp_and_lane_read_are_present + second D-A41 presence + test_discovery_five_onboard_seven_law_tables_equal",
+        "red_per_file": "config 10 tests failures=10 errors=0; startup 11 tests failures=14 errors=0; catalogues 7 tests failures=10 errors=0; handoffs 14 tests failures=14 errors=0; snapshots 6 tests failures=6 errors=0; adapter 8 tests failures=8 errors=0",
+        "combined_red": "python3 -B -m unittest discover -s ops/conductor/tests -p test_discovery_v3_*.py at 75aa9a4395b72103256c7b962a6f78f898395c17: Ran 56 tests in 8.776s FAILED (failures=62) 0 ERROR lines",
+        "law_tables": "extract_path_oneliner_table(discovery-lever.md)==LAW 5 rows; onboard-lever.md==ONBOARD_LAW 7 rows; onboard[:5]==discovery",
+        "constraint_canary": "constraint_only_lock bytes 399 contain symfony/workflow outside packages[].name",
+        "not_read": "implementation sources and GPT-6 test candidate c38aa614 were not opened",
+        "out_of_scope": "ops/conductor/tests/test_onboard_lever.py still ships a five-row LAW constant; not edited"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 8633563,
+        "out": 85749,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e3190d7419cd387b1696cbbd3ebf377f0bfe03f3",
+        "started": "2026-09-06T12:50:42Z",
+        "ended": "2026-09-06T13:15:58Z"
+      },
+      "note": "Author: Grok 4.6. Write job on tree e3190d7419cd387b1696cbbd3ebf377f0bfe03f3, finishing the original Grok baseline (52c47ffe) against the corrected contracts at 48277e7. Implementation and the GPT-6 test candidate at c38aa614 were not read. Owned paths are the seven discovery_v3_support/test_discovery_v3 files only. Six commits on lane/conduct-discovery-final-tests-20260906, Grok-only trailers, HEAD 75aa9a4395b72103256c7b962a6f78f898395c17, working tree clean.\n\nRow coverage is 53/53 named D-A IDs (D-A1..D-A49 plus D-A17b, D-A17c, D-A38b, D-A38c) across 56 methods. Extra methods are the presence checks and the five/seven law equality gate. Document tables measured equal: discovery five pairs match onboard's first five; onboard has seven. constraint_only_lock is 399 bytes and names symfony/workflow only outside packages[].name.\n\nClaude's thirteen findings are applied in the tests: D-A8 mapping locked is null; D-A47 does not require the contract digest in the closed Source object; D-A16 is a 17-ID readable supersedes chain with a stale first page and a globally current terminal key; D-A38 requires the initial work drop and the 8192 cap with no optional branch; D-A38c pads recorded_status from an independent envelope model; D-A43 pins selection one; D-A46 plants a failed retained source; D-A34 plants a constraint canary; D-A39/D-A44 compare canonical/raw bytes; D-A28 uses chmod-0 or a FIFO so listdir fails as root; the live-repo git-diff custody guard is gone; vacuous asserts were removed. D-A31 calls ops.conductor.tools.lane_refs.acquire(config, boot, checkpoint=...) with synchronous retained-ref and dispatch-file mutation, a stationary neighbor, failed-before-phase omission, and an omitted-check control that would accept a success packet. No sleeps. D-A47 uses --discovery-boot-fd, missing and rejected boot lines, A/A and B/B markers, A/B binding-mismatch, digest-only fault control, and in-process loader custody of the dotted acquire target. D-A48 missing HEAD yields evidence [\"contract\"]; a verified HEAD plus corrupt mapping blob yields [\"contract\",\"repo\"].\n\nRed per file, then combined, all AssertionError, 0 errors: config 10/10, startup 11/14, catalogues 7/10, handoffs 14/14, snapshots 6/6, adapter 8/8; combined `python3 -B -m unittest discover -s ops/conductor/tests -p test_discovery_v3_*.py` at 75aa9a4 Ran 56 tests in 8.776s FAILED (failures=62). Failures exceed tests because of subTest sites. Current runtime still treats --discovery-boot-fd as an unknown CLI verb, so many discovery queries fail at load_envelope rather than their later envelope charge; that is unfinished runtime, not an import error or skip. Gaps: onboard's own test fixture remains five-row (out of scope); ops/bin/suites.sh was not run; no vendor launch; no source/contracts/settings/state/admission edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T13:17:03.692Z"
+    }
+  },
+  "status": "closed"
+}

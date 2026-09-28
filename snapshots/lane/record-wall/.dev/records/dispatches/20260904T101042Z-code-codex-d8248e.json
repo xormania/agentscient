@@ -1,0 +1,378 @@
+{
+  "id": "20260904T101042Z-code-codex-d8248e",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-3",
+  "lineage": {
+    "branch": "lane/fixture-apps-3",
+    "base_sha": "5c3f8dd182244b9d4497c8c62dafd7d90e656a8c"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:10:43Z",
+    "closed": "2026-09-04T10:26:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5c3f8dd182244b9d4497c8c62dafd7d90e656a8c",
+    "ref_sha": "5c3f8dd182244b9d4497c8c62dafd7d90e656a8c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-43-01a06be6-3348-71a1-ba14-588defe47df7.jsonl"
+  },
+  "session": {
+    "id": "01a06be6-3348-71a1-ba14-588defe47df7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-43-01a06be6-3348-71a1-ba14-588defe47df7.jsonl",
+    "stream_sha256_at_close": "2ba73d75e517262838ebce089a5c758c0eab1fc2a44c17dbcd8be20bd79be79f",
+    "spend": {
+      "input": 4530999,
+      "cached": 4373120,
+      "output": 39270,
+      "total": 4570269,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-10-43-01a06be6-3348-71a1-ba14-588defe47df7.jsonl",
+      "messages": 350
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-3/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T101042Z-code-codex-d8248e/in/contract-fixtures-3-A.md",
+        "sha256": "05fee56c8cf169bf9998e1f439ad0a7c3ebd906b95b820ea14e8b444ffc6cc39"
+      }
+    ],
+    "sha256": "7a77772884dafc5be066dc20b025fc4050da9f9fc99b0c9bc335f87e7bc6473b",
+    "bytes": 3979
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:10:43Z",
+      "ended": "2026-09-04T10:26:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cf249cdf0ba4e132ad0d331a723ea8e62095a8db",
+    "changed_paths": [
+      "ops/devlane/fixtures/apps/python-service/.gitignore",
+      "ops/devlane/fixtures/apps/python-service/FAULTS.json",
+      "ops/devlane/fixtures/apps/python-service/README.md",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps01.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps02.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps03.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps04.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps05.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps06.patch",
+      "ops/devlane/fixtures/apps/python-service/fixes/ps07.patch",
+      "ops/devlane/fixtures/apps/python-service/probes/ps01.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps02.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps03.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps04.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps05.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps06.py",
+      "ops/devlane/fixtures/apps/python-service/probes/ps07.py",
+      "ops/devlane/fixtures/apps/python-service/pyproject.toml",
+      "ops/devlane/fixtures/apps/python-service/requirements.lock",
+      "ops/devlane/fixtures/apps/python-service/ruff.toml",
+      "ops/devlane/fixtures/apps/python-service/service/__init__.py",
+      "ops/devlane/fixtures/apps/python-service/service/__main__.py",
+      "ops/devlane/fixtures/apps/python-service/service/api.py",
+      "ops/devlane/fixtures/apps/python-service/service/audit.py",
+      "ops/devlane/fixtures/apps/python-service/service/cli.py",
+      "ops/devlane/fixtures/apps/python-service/service/export.py",
+      "ops/devlane/fixtures/apps/python-service/service/paging.py",
+      "ops/devlane/fixtures/apps/python-service/service/store.py",
+      "ops/devlane/fixtures/apps/python-service/tests/test_api.py",
+      "ops/devlane/fixtures/apps/python-service/tests/test_paging.py",
+      "ops/devlane/fixtures/apps/python-service/tests/test_store.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement-python-service-fixture",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 30,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed the snapshot was clean at 5c3f8dd182244b9d4497c8c62dafd7d90e656a8c and enumerated the contracts and input.",
+          "reproduce": "pwd && date --iso-8601=seconds && git rev-parse HEAD && git status --short && printf '%s\\n' 'DOC_FILES' && rg --files docs | sort && printf '%s\\n' 'INPUT_FILES' && if test -d ../in; then rg --files ../in | sort; else printf '%s\\n' '../in absent'; fi && printf '%s\\n' 'TARGET_TEST' && sed -n '1,260p' ops/devlane/fixtures/tests/test_python_tooling_app.py && printf '%s\\n' 'OPS_README' && sed -n '1,320p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs, input, and python-tooling test",
+          "claim": "A combined read produced 2,681 lines but its captured output was truncated, so the files were subsequently read in bounded ranges.",
+          "reproduce": "awk 'FNR == 1 {print \"FILE \" FILENAME} {print}' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ../in/contract-fixtures-3-A.md && sed -n '261,$p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "docs, input, and target test",
+          "claim": "Measured 2,934 lines across the repository contracts, input brief, and python-tooling acceptance test.",
+          "reproduce": "wc -l docs/*.md ../in/contract-fixtures-3-A.md ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read all six repository contract documents completely.",
+          "reproduce": "awk 'FNR == 1 {print \"FILE \" FILENAME} {print}' docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md",
+          "claim": "The first whole-file input read was captured with truncation and was followed by bounded reads.",
+          "reproduce": "sed -n '1,845p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md:1",
+          "claim": "Read input lines 1 through 300.",
+          "reproduce": "sed -n '1,300p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md:301",
+          "claim": "Read input lines 301 through 600 in the initial bounded batch.",
+          "reproduce": "sed -n '301,600p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md:601",
+          "claim": "Read input lines 601 through 845 in the initial bounded batch.",
+          "reproduce": "sed -n '601,845p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md:301",
+          "claim": "Re-read lines 301 through 600 without combined-output truncation.",
+          "reproduce": "sed -n '301,600p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-3-A.md",
+          "claim": "Re-read the boundary around lines 251 through 320 and the complete final range through line 845.",
+          "reproduce": "sed -n '251,320p' ../in/contract-fixtures-3-A.md && sed -n '601,845p' ../in/contract-fixtures-3-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "required command at the starting tree",
+          "claim": "The python-tooling suite passed 23 tests; the lane suite failed with 71 python-service failures because that fixture was absent.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_service_app.py:1",
+          "claim": "Measured the python-service acceptance file at 2,704 lines and read lines 1 through 700.",
+          "reproduce": "wc -l ops/devlane/fixtures/tests/test_python_service_app.py && sed -n '1,700p' ops/devlane/fixtures/tests/test_python_service_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_service_app.py:701",
+          "claim": "Read acceptance-test lines 701 through 1,400.",
+          "reproduce": "sed -n '701,1400p' ops/devlane/fixtures/tests/test_python_service_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_service_app.py:1401",
+          "claim": "Read acceptance-test lines 1,401 through 2,100.",
+          "reproduce": "sed -n '1401,2100p' ops/devlane/fixtures/tests/test_python_service_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_service_app.py:2101",
+          "claim": "Read acceptance-test lines 2,101 through 2,704.",
+          "reproduce": "sed -n '2101,2704p' ops/devlane/fixtures/tests/test_python_service_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/apps/python-tooling and test_fixture_manifests.py",
+          "claim": "Read the complete exemplar fixture and the manifest validator used by the target suite.",
+          "reproduce": "rg --files ops/devlane/fixtures/apps/python-tooling | sort && while IFS= read -r file; do printf '%s\\n' \"FILE $file\"; sed -n '1,1000p' \"$file\"; done < <(rg --files ops/devlane/fixtures/apps/python-tooling | sort) && printf '%s\\n' 'MANIFEST_VALIDATOR' && sed -n '1,430p' ops/devlane/fixtures/tests/test_fixture_manifests.py && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Measured the current history and adopted its GPT-5.6 Sol noreply attribution format.",
+          "reproduce": "git branch --show-current && git log -5 --format='%H%n%B%n'"
+        },
+        {
+          "severity": "p3",
+          "where": "python-service clean skeleton",
+          "claim": "The first lint run found UP047 in the generic paging helper.",
+          "reproduce": "ruff check ops/devlane/fixtures/apps/python-service && PYTHONPATH=ops/devlane/fixtures/apps/python-service python3 -m pytest -q ops/devlane/fixtures/apps/python-service/tests"
+        },
+        {
+          "severity": "p3",
+          "where": "python-service clean skeleton",
+          "claim": "After correcting UP047, Ruff passed; the host Python lacked pytest, so the direct pytest invocation was unreachable.",
+          "reproduce": "ruff check ops/devlane/fixtures/apps/python-service && PYTHONPATH=ops/devlane/fixtures/apps/python-service python3 -m pytest -q ops/devlane/fixtures/apps/python-service/tests && PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest test_python_service_app.PythonServiceLayout"
+        },
+        {
+          "severity": "p3",
+          "where": "PythonServiceLayout",
+          "claim": "The layout suite then demonstrated that the required final fixture must carry the planted K9 range; the clean exact pin was rejected.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest test_python_service_app.PythonServiceLayout && PYTHONPATH=ops/devlane/fixtures/apps/python-service python3 -m service >/tmp/python-service-noargs.stdout 2>/tmp/python-service-noargs.stderr; status=$?; test \"$status\" -eq 2 && test ! -s /tmp/python-service-noargs.stdout && test \"$(wc -l < /tmp/python-service-noargs.stderr)\" -eq 1 && sed -n '1p' /tmp/python-service-noargs.stderr"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index",
+          "claim": "The requested intermediate commit was refused because the snapshot Git index is mounted read-only.",
+          "reproduce": "git diff --check && git status --short && git diff --stat && git add ops/devlane/fixtures/apps/python-service && git commit -m 'fixtures: add clean python service skeleton' -m 'Add the packaged records service, JSON-lines CLI boundary, pinned toolchain metadata, local lint policy, and focused service tests for the production-Python fixture profile.' -m 'Source: original' -m 'Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>' && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "python-service planted fixture",
+          "claim": "Ruff passed and exact source line numbers were measured for all seven manifest spans.",
+          "reproduce": "ruff check ops/devlane/fixtures/apps/python-service; for file in README.md pyproject.toml service/api.py service/audit.py service/export.py service/paging.py service/store.py tests/test_api.py; do printf '%s\\n' \"FILE $file\"; nl -ba \"ops/devlane/fixtures/apps/python-service/$file\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "PythonService acceptance in the uncommitted snapshot",
+          "claim": "Manifest, layout, and grading assertions passed; ten make/prove tests could not see the fixture because fixture.sh intentionally copies tracked files only.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_service_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "committed scratch verification",
+          "claim": "The first writable scratch commit reduced the suite to one K1 setup error and one Ruff-policy failure caused by copied ops files.",
+          "reproduce": "verify_dir=$(mktemp -d /tmp/agentscient-python-service-XXXXXX) && git clone --quiet . \"$verify_dir\" && cp -a ops/devlane/fixtures/apps/python-service \"$verify_dir/ops/devlane/fixtures/apps/\" && git -C \"$verify_dir\" add ops/devlane/fixtures/apps/python-service && git -C \"$verify_dir\" -c user.name='Codex Verify' -c user.email='noreply@openai.com' commit --quiet -m 'temporary verification commit' && printf '%s\\n' \"$verify_dir\" && python3 -m unittest discover -s \"$verify_dir/ops/devlane/fixtures/tests\" -p \"test_python_service_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "committed scratch verification after Ruff exclusion",
+          "claim": "After excluding copied ops machinery from the app-local lint policy, 34 tests passed or skipped and only the K1 clean-neighbour setup error remained.",
+          "reproduce": "verify_dir=$(mktemp -d /tmp/agentscient-python-service-XXXXXX) && git clone --quiet . \"$verify_dir\" && cp -a ops/devlane/fixtures/apps/python-service \"$verify_dir/ops/devlane/fixtures/apps/\" && git -C \"$verify_dir\" add ops/devlane/fixtures/apps/python-service && git -C \"$verify_dir\" -c user.name='Codex Verify' -c user.email='noreply@openai.com' commit --quiet -m 'temporary verification commit' && printf '%s\\n' \"$verify_dir\" && python3 -m unittest discover -s \"$verify_dir/ops/devlane/fixtures/tests\" -p \"test_python_service_app.py\""
+        },
+        {
+          "severity": "p3",
+          "where": "focused fixture checks",
+          "claim": "Ruff and 25 non-make acceptance tests passed, and all seven probes were RED. Patch checks were invoked from the wrong repository root and failed despite the loop's misleading APPLIES labels; the next command corrected this.",
+          "reproduce": "app=ops/devlane/fixtures/apps/python-service && ruff check \"$app\" && PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest test_python_service_app.PythonServiceExists test_python_service_app.PythonServiceLayout test_python_service_app.PythonServiceManifest test_python_service_app.PythonServiceGrade && for probe in \"$app\"/probes/ps*.py; do if (cd \"$app\" && PYTHONPATH=. python3 \"probes/$(basename \"$probe\")\"); then printf '%s\\n' \"unexpected GREEN $probe\"; exit 1; else printf '%s\\n' \"RED $probe\"; fi; done && for patch in \"$app\"/fixes/ps*.patch; do git apply --check \"$patch\"; printf '%s\\n' \"APPLIES $patch\"; done && rg --files -uu \"$app\" | sort && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "fixes/ps01.patch through fixes/ps07.patch",
+          "claim": "Removed generated caches and confirmed all seven fixes apply cleanly when checked with the fixture directory prefix.",
+          "reproduce": "app=ops/devlane/fixtures/apps/python-service && rm -r \"$app/.ruff_cache\" \"$app/service/__pycache__\" && for patch in \"$app\"/fixes/ps*.patch; do git apply --check --directory=\"$app\" \"$patch\" || exit 1; printf '%s\\n' \"APPLIES $patch\"; done && rg --files -uu \"$app\" | sort && git diff --check && git status --short"
+        },
+        {
+          "severity": "p1",
+          "where": "test_python_service_app.PythonServiceMakeProve.test_clean_neighbours_are_exercised (kind='K1')",
+          "claim": "The required command exits 1 in a committed final-tree simulation. The sole error occurs before checksum_file is called: the protected test embeds an absolute marker path in a filename, and Path.write_text fails because the resulting intermediate directories do not exist.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p \"test_python_tooling_app.py\" && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "root Ruff gate",
+          "claim": "The standalone repository Ruff gate passes.",
+          "reproduce": "ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "../out/COMMIT_MSG and repository state",
+          "claim": "Confirmed COMMIT_MSG was initially absent, HEAD remained at the requested ref, and only python-service was untracked.",
+          "reproduce": "if test -e ../out/COMMIT_MSG; then sed -n '1,200p' ../out/COMMIT_MSG; else printf '%s\\n' 'out/COMMIT_MSG absent'; fi && date --iso-8601=seconds && git rev-parse HEAD && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "final artifacts",
+          "claim": "Measured the fixture at 31 files and 645 lines; recorded the fallback commit message with SHA-256 3889bc417f4290d6a12d2b36f3ed6f1f6c303cda119df01db7318dabae61c774.",
+          "reproduce": "app=ops/devlane/fixtures/apps/python-service && printf 'files=%s\\n' \"$(rg --files -uu \"$app\" | wc -l)\" && rg --files -uu -0 \"$app\" | xargs -0 wc -l | tail -n 1 && sha256sum ../out/COMMIT_MSG && sed -n '1,80p' ../out/COMMIT_MSG && date --iso-8601=seconds && git status --short"
+        }
+      ],
+      "artifacts": {
+        "fixture": "ops/devlane/fixtures/apps/python-service/",
+        "commit_message": "../out/COMMIT_MSG",
+        "committed_tree_verification": "/tmp/agentscient-python-service-2HiAJM"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4570269,
+        "out": 39270,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5c3f8dd182244b9d4497c8c62dafd7d90e656a8c",
+        "started": "2026-09-04T06:11:06-04:00",
+        "ended": "2026-09-04T06:23:57-04:00"
+      },
+      "note": "Assumption: the explicit exit-0 command overrode the input brief's run-A-only boundary, so the complete python-service fixture and calibration apparatus were implemented. Status remains invalid because the protected test test_python_service_app.PythonServiceMakeProve.test_clean_neighbours_are_exercised errors in its K1 setup before calling fixture code: it builds a filename containing an absolute marker path and Path.write_text raises FileNotFoundError. Editing that test was forbidden, and adding implementation-side global pathlib/test monkeypatches would violate the fixture boundary. Git commit was also refused by the read-only .git index; the launcher commit message is in out/COMMIT_MSG.",
+      "commit": {
+        "subject": "fixtures: add python service calibration app",
+        "body": "Add the production-Python fixture as a packaged JSON-lines records\nservice with its wire-facing CLI, pinned toolchain configuration,\nfocused service tests, and local Ruff policy.\n\nPlant the seven declared calibration faults with independently green\nfixes, executable red probes, clean neighbours, exact source spans,\nand grading metadata in FAULTS.json.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T10:26:25.980Z"
+    }
+  },
+  "status": "closed"
+}

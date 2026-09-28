@@ -1,0 +1,156 @@
+{
+  "id": "20260904T182558Z-tests-grok-07fa7c",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "8b2e6cad62b04c56f40e4f71b3a805cdfebd5cd8"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T18:25:59Z",
+    "closed": "2026-09-04T18:32:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8b2e6cad62b04c56f40e4f71b3a805cdfebd5cd8",
+    "ref_sha": "8b2e6cad62b04c56f40e4f71b3a805cdfebd5cd8",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "9833ee78-f2bb-4688-b628-3c8344da3dc9",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok-stream/sessions/<snapshot-encoded>/9833ee78-f2bb-4688-b628-3c8344da3dc9/summary.json"
+  },
+  "session": {
+    "id": "9833ee78-f2bb-4688-b628-3c8344da3dc9",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok-stream/sessions/<snapshot-encoded>/9833ee78-f2bb-4688-b628-3c8344da3dc9/summary.json",
+    "stream_sha256_at_close": "ae9b117e64275e1985358ecf1681005e4b07ce4c534bfdd9e1029296b57062f6",
+    "spend": {
+      "input": 1063773,
+      "cached": 757760,
+      "output": 23267,
+      "total": 1087040,
+      "cost_usd_ticks": 1921863600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/home/grok-stream/sessions/<snapshot-encoded>/9833ee78-f2bb-4688-b628-3c8344da3dc9/summary.json",
+      "messages": 153
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
+    },
+    "scope": "Item 50 P2 only (23ee3d#3). write_path.py still enumerates verbs; Produce REVIEW in the repository is not a write path. Frozen: python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T182558Z-tests-grok-07fa7c/in/slice-write-path-produce.md",
+        "sha256": "b8e4ebb8b10365caebc6fd050ff49a393a41fa4e71ed96ebc343b25f9983a467"
+      }
+    ],
+    "sha256": "427de46070c4ec3a273d8c4782c3d7175d961994a5f279c07fa91c2cf8a841c9",
+    "bytes": 2554
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:25:59Z",
+      "ended": "2026-09-04T18:32:53Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ce9142a016be57054a8e8c1e17f2fad374dab30c",
+    "changed_paths": [
+      "ops/devlane/task/tests/test_check_tests_json.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/task/tests/test_check_tests_json.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1087040,
+        "out": 23267,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8b2e6cad62b04c56f40e4f71b3a805cdfebd5cd8",
+        "started": "2026-09-04T18:30:18Z",
+        "ended": "2026-09-04T18:32:26Z"
+      },
+      "note": "Pinned Produce REVIEW in the repository on test_write_verb_plus_path_token_is_not_a_verb_blacklist (Produce NOTES as the shape copy; planted Produce REVIEW plus STDOUT_EMPTY_ARTIFACTS in the same missed list). Frozen python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py at ce9142a016be57054a8e8c1e17f2fad374dab30c: 22 tests, 1 failure (assertEqual missed==[], missed Produce REVIEW, Produce NOTES, and the planted live brief); the other 21 stayed green. Commit ce9142a.; head_commit mismatch"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T18:32:52.424Z"
+    }
+  },
+  "status": "closed"
+}

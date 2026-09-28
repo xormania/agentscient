@@ -1,0 +1,24 @@
+{
+  "id": "cli-df87ac3b",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md specifies wf advance <wo> with --to and --reason, and it never names a --root flag.",
+  "observed": "The advance command's fifth argument is a --root option.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "253-253",
+      "quote": "| `wf advance <wo>` | enter the next stage; refuses if required evidence is missing; seals the frozen set on entry to implementation; `--to <stage> --reason` re-enters an earlier stage (§3.3) |"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "223-223",
+      "quote": "for _, argument in arguments if argument._is_positional {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "45-47",
+      "quote": "[\n  \"--root\"\n]"
+    }
+  ],
+  "action": "record-finding"
+}

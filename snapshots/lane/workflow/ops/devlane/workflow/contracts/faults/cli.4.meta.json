@@ -1,0 +1,12 @@
+{
+  "contract": "cli",
+  "fault": "cli.4.json",
+  "from": "obs/cli.json",
+  "change": "`wf green` cannot take `--json`: the flag is gone from the command and there is no global `--json` to fall back to",
+  "violates": "PLAN.md §4 line 265 (with §1 line 30)",
+  "quote": "\"Every command: `--json` output mode; no interactive prompts, ever\" / \"**Agent-first.** `--json` everywhere\"",
+  "reject_path": "--json|json",
+  "implied": false,
+  "sites": 2,
+  "note": "§5.6 of SPEC.md says the contract accepts `--json` global *or* per-command, checking globals first. Dropping it from `green` alone would therefore be satisfied by the global; the single constraint under test (green can be asked for JSON) needs both sites. Every other command keeps its own `--json`."
+}

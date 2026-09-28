@@ -1,0 +1,205 @@
+{
+  "id": "20260906T023832Z-adjudicate-grok-8cdf11",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:38:32Z",
+    "closed": "2026-09-06T02:44:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b",
+    "ref_sha": "c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c7dce145-a124-4e84-85f9-ecafc06ff109",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok-stream/sessions/<snapshot-encoded>/c7dce145-a124-4e84-85f9-ecafc06ff109/summary.json"
+  },
+  "session": {
+    "id": "c7dce145-a124-4e84-85f9-ecafc06ff109",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok-stream/sessions/<snapshot-encoded>/c7dce145-a124-4e84-85f9-ecafc06ff109/summary.json",
+    "stream_sha256_at_close": "7fb8b4022ff793276dd7304d22f3e423b3369e25ac6639d23bb5dfcfbe28dc4e",
+    "spend": {
+      "input": 603914,
+      "cached": 466304,
+      "output": 21538,
+      "total": 625452,
+      "cost_usd_ticks": 1083920000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/home/grok-stream/sessions/<snapshot-encoded>/c7dce145-a124-4e84-85f9-ecafc06ff109/summary.json",
+      "messages": 120
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate Claude 954c77's eight findings on GPT-6 lane-policy contract/data. Rule each with precise evidence, minimal coherent correction; no new architecture or broad audit. Verify gate/authority protection and its derivable inclusion rule without making legitimate dev maintenance unusable; exact read semantics; maintenance boolean; admission store/record schema; standing versus per-job grants; standing enum and false-output case. Verify the actual existing decisions tool/store contract before recommending a verb or fields; do not invent register capabilities or require a fresh human approval for already authorized routine work. Host custody assumptions must be explicit. Treat repeated commit-message reflow as nonblocking launcher history: no amend/rewrite in this slice. Return <=1200-word inline RULING with bounded correction targets and test-readiness requirements. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/in/lane-policy-contract-owner.md",
+        "sha256": "dba0914ffae4619e0cb4a33f39e1bb30f0ac9e0f2b7480700aee79f1680878c8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/in/20260906T022855Z-review-claude-954c77.json",
+        "sha256": "9d2fe0254dbb13c129fdf6224744fdd91d9d3a9d28d2506c6f94557a1975a913"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T023832Z-adjudicate-grok-8cdf11/in/20260906T021901Z-code-codex-444175.json",
+        "sha256": "34af78866be7ebd043bafd7de61222374dbd90f66612503674efedc7cd0ee5c6"
+      }
+    ],
+    "sha256": "bf39d7025266ea2370336602204ff44b968d362237de478b4415a62a68c55645",
+    "bytes": 3271
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:38:32Z",
+      "ended": "2026-09-06T02:44:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/lane-policy.json:5-15; ops/conductor/lane-policy.md:29,36,95,275,288,293",
+          "claim": "PARTIAL. Named gate/dispatch entrypoints are unprotected inside `dev`'s `ops/` write root, so a routine `dev` job may rewrite `ops/bin/suites.sh`, `ops/bin/dispatch.sh`, `ops/bin/go.sh`, and `ops/conductor/tools/laneconf.py` while `ops/README.md` is blocked. Claude's directory correction is REJECTED: prefix `ops/bin/` matches prescribed P1 `ops/bin/example.sh`; prefix `ops/devlane/hooks/` would make ordinary hook work require maintenance. Do not protect `decisions.py` or `decisions.seed.json` as gates. Add those four exact paths. Inclusion rule: every exclusive dispatch lever and every suite/conformance gate entrypoint this contract already names is a protected exact path; directory prefixes that swallow ordinary `ops/bin/` tooling are forbidden. Unprotected ops writes still pass without a maintenance record.",
+          "reproduce": "python3 -c \"import json; p=json.load(open('ops/lane-policy.json')); prot=set(p['protected_authority_paths']); print(p['profiles']['dev']['write_roots']); print([x for x in ['ops/bin/suites.sh','ops/bin/dispatch.sh','ops/bin/go.sh','ops/conductor/tools/laneconf.py','ops/README.md'] if x in prot]); print('ops/bin/' in prot, any(x.startswith('ops/bin/') for x in prot))\"; sed -n '29p;36p;95p;275p;288p;293p' ops/conductor/lane-policy.md; git ls-files ops/bin ops/devlane/hooks | wc -l"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/lane-policy.json:4; ops/conductor/lane-policy.md:40-41,52-53,293-294",
+          "claim": "UPHELD. `shared_read_roots` is a required key with no semantics, refusal, or case. As a read ceiling it excludes `src/` and `packages/` and contradicts :40-41 and P1. Define it as an additive shared-document allowance that never narrows profile or inspection reads. Application-source inspection stays the :40-41 grant, not this list. Add a case: `dev` reading `src/` to describe Symfony still passes.",
+          "reproduce": "rg -n 'shared_read_roots' ops/conductor/lane-policy.md ops/lane-policy.json; sed -n '40,41p;52,53p;293,294p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:29,95-96,129,296; ops/lane-policy.json:25,36,50",
+          "claim": "UPHELD. The protected-path rule is stated three ways: :29 and :129 authorize by record alone; :95-96 is a necessary condition only for `authority_maintenance: true`. P4 exercises only the true-valued profile, so false-plus-record is untestable. State that `authority_maintenance: false` refuses every protected path even with a valid record; restate :29 and :129; add negative case `dev` plus valid maintenance record editing `ops/README.md` \u2192 `lane-write`. Unprotected ops tooling still needs no record.",
+          "reproduce": "sed -n '29p;95,96p;129p;296p' ops/conductor/lane-policy.md; python3 -c \"import json; p=json.load(open('ops/lane-policy.json')); print({k:v['authority_maintenance'] for k,v in p['profiles'].items()})\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:76-78,99,159-161,234-235,296; ops/conductor/decisions-register.md; ops/conductor/tools/decisions.py:117-121,253-264",
+          "claim": "PARTIAL. Unnamed admission store/fields UPHELD; invented register columns REJECTED. Existing decisions contract (standing PROPOSED) has verbs add/list/show/ratify/reject/supersede/note/export/report and row fields id, question, home, standing, blocked_on, decided_by, decided_at, evidence, recorded_by, supersedes/superseded_by, created_at/created_by \u2014 no path/ref/digest columns. Store is `Path.home()/.local/state/<LANE_NAME>/decisions.db`; isolated dispatch HOME is not the owner host. `handwork.db` is a different grant; seed JSON is a birth export. Name that host store and `python3 ops/conductor/tools/decisions.py show <id>`. Admission is a `ratified` row: `home` is `ops/lane-policy.json`; `evidence` quotes the full git id and blob sha256; `decided_by` is the owner principal. `brief.policy.admission.record` is the decision id; `admission.sha256` is SHA-256 of the exact `show` stdout bytes. Trusted caller reads with the owner's host HOME, never the worker HOME. Host custody is an explicit assumption. Do not add columns, verbs, or a second store; naming the register does not ratify it.",
+          "reproduce": "sed -n '76,78p;99p;159,161p;234,235p;296p' ops/conductor/lane-policy.md; sed -n '1,8p;16,20p;36,70p' ops/conductor/decisions-register.md; sed -n '117,121p;253,264p' ops/conductor/tools/decisions.py; sed -n '1,20p' ops/conductor/handwork-ledger.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:96-98,103-104,296",
+          "claim": "UPHELD. :96-98 requires principal, admitted ref/digest, exact paths, purpose, and job/lineage; :103-104 says an existing owner instruction suffices. A standing instruction cannot carry per-dispatch fields. Split two forms. Standing grant: one ratified decision covering named path prefixes, applicable across jobs while the current admitted policy ref/digest holds; no job/lineage field. Per-job grant: only for paths outside every standing grant; carries principal, exact paths, purpose, job/lineage, and the admitted ref/digest. Work already covered by a standing grant needs no fresh owner act. Unprotected `dev` tooling needs neither. Candidate bytes still cannot self-authorize.",
+          "reproduce": "sed -n '96,98p;103,104p;296p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:54-55,60; ops/lane-policy.json:3",
+          "claim": "PARTIAL. Permitted `standing` set is unstated; adding `active` is REJECTED because the field is never an activation switch. Allowed value is exactly `proposal`; any other value refuses `lane-policy`. Activation remains owner admission of consumer revision, not this field. Add that negative case.",
+          "reproduce": "sed -n '1,4p;54,55p;60p' ops/conductor/lane-policy.md; python3 -c \"import json; print(json.load(open('ops/lane-policy.json'))['standing'])\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:131-132,295,302; ops/lane-policy.json:26,37,51",
+          "claim": "UPHELD. `allow_declared_outputs: false` is unused. All shipped profiles set it true. P3 sets both booleans false but only repository results; N6 tests missing declaration. Extend P3 so a present valid declared `out/` write under that fixture profile refuses `lane-write`.",
+          "reproduce": "sed -n '131,132p;295p;302p' ops/conductor/lane-policy.md; python3 -c \"import json; p=json.load(open('ops/lane-policy.json')); print({k:v['allow_declared_outputs'] for k,v in p['profiles'].items()})\""
+        }
+      ],
+      "artifacts": {
+        "RULING": "RULING at c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Artifact: GPT-6 lane-policy contract/data, three files still identical to 9ca4727 (ops/conductor/lane-policy.md, ops/lane-policy.json, ops/devlane/dispatch/CONTRACT.md coupling). Review: Claude 954c77 eight findings. This adjudicator produced neither. Inputs read whole from in/. No source/tests/settings/host/DB/network edits; no vendor launch; suites not run.\n\nF1 P1 protected set \u2014 PARTIAL. Gap UPHELD: `dev.write_roots` is `ops/`; `ops/bin/suites.sh`, `ops/bin/dispatch.sh`, `ops/bin/go.sh`, and `ops/conductor/tools/laneconf.py` are absent from `protected_authority_paths` while `ops/README.md` is present. A routine `dev` job may rewrite the suite entry, exclusive dispatch levers, and laneconf closure/literals module with no maintenance record. Contract :275 and :288 call those gates mandatory; :95 forbids routine protected edits. Claude's directory correction is REJECTED: prefix `ops/bin/` matches prescribed P1 `ops/bin/example.sh`; prefix `ops/devlane/hooks/` would pull hook tests into maintenance though hooks \"may follow\" (:272). `decisions.py` and `decisions.seed.json` are not gate entrypoints (F4).\n\nCorrection: add those four exact paths. Inclusion rule: every exclusive dispatch lever and every suite/conformance gate entrypoint this contract already names is a protected exact path; directory prefixes that swallow ordinary `ops/bin/` tooling are forbidden. Unprotected ops writes still pass without a maintenance record (:36).\n\nF2 P2 shared_read_roots \u2014 UPHELD. Required key, two occurrences, no semantics, no refusal, no case. As a read ceiling it excludes `src/`/`packages/` and contradicts :40-41 and P1.\n\nCorrection: define it as an additive shared-document allowance that never narrows profile or inspection reads. Application-source inspection stays the :40-41 grant, not this list. Add a case: `dev` reading `src/` to describe Symfony still passes.\n\nF3 P2 authority_maintenance boolean \u2014 UPHELD. :29 and :129 authorize protected edits by authorization alone; :95-96 is a necessary condition only for true-valued profiles. P4 exercises only `authority-maintenance`. False-profile-plus-record is untested.\n\nCorrection: `authority_maintenance: false` refuses every protected path even with a valid record. Restate :29 and :129. Add negative case: `dev` plus valid maintenance record editing `ops/README.md` \u2192 `lane-write`. Unprotected ops tooling still needs no record.\n\nF4 P2 admission store \u2014 PARTIAL. Missing name/fields UPHELD; new register schema REJECTED. Existing `ops/conductor/decisions-register.md` (standing PROPOSED): verbs add/list/show/ratify/reject/supersede/note/export/report; row fields id, question, home, standing, blocked_on, decided_by, decided_at, evidence, recorded_by, supersedes/superseded_by, created_at/created_by. No path/ref/digest columns. Store is `Path.home()/.local/state/<LANE_NAME>/decisions.db`. Isolated dispatch HOME is not the owner host. `handwork.db` is a different grant. Seed JSON is a birth export, not the live store.\n\nCorrection: name that host store and `python3 ops/conductor/tools/decisions.py show <id>`. Admission is a `ratified` row: `home` is `ops/lane-policy.json`; `evidence` quotes the full git id and blob sha256; `decided_by` is the owner principal. `brief.policy.admission.record` is the decision id; `admission.sha256` is SHA-256 of the exact `show` stdout bytes. The trusted caller reads with the owner's host HOME, never the worker HOME; worker copies are not authority. Host custody is an explicit assumption (:234-235). Do not add columns, verbs, or a second store. Naming this register does not ratify it.\n\nF5 P2 standing vs per-job \u2014 UPHELD. :96-98 demands job/lineage and admitted ref/digest; :103-104 says an existing owner instruction suffices. A standing instruction cannot carry per-dispatch fields.\n\nCorrection: split two forms. Standing grant: one ratified decision covering named path prefixes, applicable across jobs while the current admitted policy ref/digest holds; no job/lineage field. Per-job grant: only for paths outside every standing grant; carries principal, exact paths, purpose, job/lineage, and the admitted ref/digest. Work already covered by a standing grant needs no fresh owner act. Unprotected `dev` tooling needs neither. Candidate bytes still cannot self-authorize.\n\nF6 P3 standing enum \u2014 PARTIAL. Unstated set UPHELD; adding `active` REJECTED (`never an activation switch`). JSON value is `proposal`.\n\nCorrection: allowed value is exactly `proposal`; any other value refuses `lane-policy`. Activation remains owner admission of consumer revision, not this field. Add that negative case.\n\nF7 P3 allow_declared_outputs false \u2014 UPHELD. :131-132 is unused. All shipped profiles are true. P3 sets both booleans false but only repository results; N6 tests missing declaration.\n\nCorrection: extend P3 so a present valid declared `out/` write under that fixture profile refuses `lane-write`.\n\nF8 P3 commit reflow \u2014 REJECTED as blocking. Trailer hoist at 9ca4727 is real (`Validation:` truncated; continuation stranded). This slice does not amend or rewrite launcher history.\n\nTEST-READINESS (independent author; no tests here): keep P1 pass for `ops/bin/example.sh`; add `dev` writing `ops/bin/suites.sh` without maintenance \u2192 `lane-write`; F2 inspection case; F3 false-profile+record; P4 built from `decisions.py show` of a ratified admission under host HOME; standing-grant pass and outside-grant without per-job record refuse; unknown `standing` \u2192 `lane-policy`; P3 declared-output refuse.\n\nMissed by the reviewer: directory protection versus P1; invented decisions columns; `active` standing; host versus worker HOME; seed JSON is not the live store."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 625452,
+        "out": 21538,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c7ae2a2aecd8aa4576b05d923b33c93ca81daa6b",
+        "started": "2026-09-06T02:38:45Z",
+        "ended": "2026-09-06T02:43:30Z"
+      },
+      "note": "Adjudication of Claude 954c77's eight findings on GPT-6 lane-policy contract/data at c7ae2a2. Verdict changes: F1 partial P1 (named gate/dispatch paths unprotected; directory prefixes rejected because they break P1); F2/F3/F5 upheld P2; F4 partial P2 (use existing decisions show/host store, do not invent columns); F6 partial P3 (enum is singleton proposal, not active); F7 upheld P3; F8 rejected as nonblocking launcher history. No amend/rewrite. Host custody of decisions.db is an explicit caller-HOME assumption."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:44:21.438Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,23 @@
+{
+  "facts": {
+    "trailer_keys": [
+      "Co-Authored-By",
+      "Event",
+      "Source",
+      "Stage",
+      "WO"
+    ],
+    "subject_literals": [
+      "wf(WO-012/red): receipt.red cargo-test"
+    ],
+    "literals": [
+      "Co-Authored-By: <agent from the active claim/session>",
+      "Event: 14 3f9c2a1b",
+      "Source: generated: wf",
+      "Stage: red",
+      "WO: WO-012",
+      "wf(WO-012/red): receipt.red cargo-test"
+    ]
+  },
+  "provenance": {}
+}

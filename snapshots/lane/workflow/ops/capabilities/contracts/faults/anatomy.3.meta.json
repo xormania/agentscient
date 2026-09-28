@@ -1,0 +1,1 @@
+{"from":"examples/anatomy/goodcap","change":"declare absent member","violates":"interface implementation","reject_path":"anatomy.member-missing","site":["capability.json"]}

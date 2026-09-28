@@ -1,0 +1,10 @@
+{
+  "contract": "events",
+  "fault": "events.3.json",
+  "from": "obs/events.json",
+  "change": "the event type `receipt.check` appears nowhere in the tree",
+  "violates": "PLAN.md §3.2 line 117 (with §3.4 lines 171-173, §9 line 490)",
+  "quote": "\"| security / generic check receipts | `receipt.check` |\"",
+  "reject_path": "facts\\.types\\b|receipt\\.check",
+  "implied": false
+}

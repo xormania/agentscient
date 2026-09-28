@@ -1,0 +1,179 @@
+{
+  "id": "20260906T010702Z-review-codex-1d530c",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "8601d2534d37ec284187d827c69c82ee6b99bd39"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:07:02Z",
+    "closed": "2026-09-06T01:11:00Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8601d2534d37ec284187d827c69c82ee6b99bd39",
+    "ref_sha": "8601d2534d37ec284187d827c69c82ee6b99bd39",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-07-03-01a07441-2c86-71d1-b662-904de892d083.jsonl"
+  },
+  "session": {
+    "id": "01a07441-2c86-71d1-b662-904de892d083",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-07-03-01a07441-2c86-71d1-b662-904de892d083.jsonl",
+    "stream_sha256_at_close": "5a10372174e030fa6386211315df84d549bef8fc89e9cbc777185f0d6824a9cd",
+    "spend": {
+      "input": 1041329,
+      "cached": 937088,
+      "output": 6380,
+      "total": 1047709,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-07-03-01a07441-2c86-71d1-b662-904de892d083.jsonl",
+      "messages": 121
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Owner-requested read-only Loopstrap comparison. Earlier worker could not fetch source; SOURCE.json now identifies a local no-checkout Git clone pinned to xormania/loopstrap@ca5ab8d363f8822ac5406f5e0bf5c94288102f1a. Use git show/ls-tree against that object store, no network or execution of repository code needed. Inspect concrete harness configurability/extensibility, role/capability policy, onboarding/discovery, lifecycle, enforcement and diagnostics. Compare with supplied current Agentscient plan/contract and owner requirements. Return <=1200 words with immutable GitHub source links and exact paths/lines: useful implemented mechanisms versus aspirations, fit to existing Agentscient owners, and bounded recommendations grouped into steps 1-4. No automatic adoption, copied code, new authority/store or second harness system; no edits/settings/tests/host changes. Preserve repo@sha provenance and declare inspection limits. This is research, not approval of the current plan. Prefer source facts over branding.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/in/SOURCE.json",
+        "sha256": "45b9262f1193ca0782cf95d6144980ecf4c98f9349516aaf118c517137b13fb0"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/in/discovery-contract-owner.md",
+        "sha256": "f5efc28034d5813173d37e9078a204c1e1cc0bf9d43c6c3b40f15eb3cc5d51d9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/in/conductor-start-home-map-20260905.md",
+        "sha256": "d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/in/conductor-start-plan.md",
+        "sha256": "62f3579679bd14d9e972f0ec1f3b054f611011b2a1a292315199d3da9da4a58e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010702Z-review-codex-1d530c/in/discovery-lever.md",
+        "sha256": "76ee7ac8158dff14c354195acf17af987837cb0cc2ce4d57c85a2df94a3c502e"
+      }
+    ],
+    "sha256": "eca93970569b33177edc112a02b4f28059f135c54eb58ea34488d475504dc0eb",
+    "bytes": 3327
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:07:02Z",
+      "ended": "2026-09-06T01:11:00Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8601d2534d37ec284187d827c69c82ee6b99bd39",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 4
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/conductor-start-plan.md:88-96",
+          "claim": "The documented step 3 omits explicit owner-required selection constraints and capability separation. Expected: \u201cRole restrictions such as Daybreak/security must be enforceable selection constraints\u201d; found: \u201cProfile configuration, separate Claude/Codex/Grok adapters\u201d and generic shared policy. This leaves model restrictions, declared-versus-measured capabilities, and explicit dispatch choices outside the documented deliverable. Carry these requirements into step 3 without implementing them in step 1.",
+          "reproduce": "Compare [owner requirements, lines 49-55](https://github.com/uscient/agentscient/blob/8601d2534d37ec284187d827c69c82ee6b99bd39/.dev/ladder-inputs/discovery-contract-owner.md#L49-L55) with [plan, lines 88-96](https://github.com/uscient/agentscient/blob/8601d2534d37ec284187d827c69c82ee6b99bd39/ops/conductor/conductor-start-plan.md#L88-L96). The supplied files match these Git blobs byte-for-byte."
+        }
+      ],
+      "artifacts": {
+        "comparison": "Source: xormania/loopstrap@ca5ab8d363f8822ac5406f5e0bf5c94288102f1a. Loopstrap offers implemented configuration, routing, certification and recovery mechanisms worth studying. It does not supply an operational replacement for conduct: [launch-loop.sh:1-8](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/launch-loop.sh#L1-L8) unconditionally refuses, while [loopstrap_core/cli.py:43-67](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/cli.py#L43-L67) fixes certified=false. These are concrete implementation limits, not inferred from branding. Research only; no plan approval or adoption.",
+        "step_1": "Discovery contract: learn from the compact, vendor-neutral orientation and explicit authority/method/record distinction in [.agents/README.md:3-43](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/.agents/README.md#L3-L43). This is authored documentation, not automatic onboarding or measured discovery. Agentscient already declares the appropriate home: [ops/conductor/discovery-lever.md:20-46](https://github.com/uscient/agentscient/blob/8601d2534d37ec284187d827c69c82ee6b99bd39/ops/conductor/discovery-lever.md#L20-L46), extending lane_read/lane_mcp. Recommendation: retain compact ownership/action cards and explicit evidence standing; document the later capability/constraint projection and resolve the finding above. Do not promote either project's descriptive map into another authority.",
+        "step_2": "Shared read service: Loopstrap's [loopstrap_core/context.py:13-32](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/context.py#L13-L32) implements a role-specific artifact-key exclusion for test authors. Useful principle: constrain supplied context at assembly. Its check examines labels; it does not establish content isolation or fresh-session discovery. Agentscient's existing [lane_read.py:1195-1213](https://github.com/uscient/agentscient/blob/8601d2534d37ec284187d827c69c82ee6b99bd39/ops/conductor/tools/lane_read.py#L1195-L1213) already composes bounded brief data with declared omissions. Recommendation: extend that service through independent tests, implementation and review, preserving CLI/MCP parity, allowlisted ref reads, provenance and explicit ambiguity. Prove both profiles can recover relevant records without supplied paths; do not import Loopstrap's context or artifact store.",
+        "step_3": "Harness configuration, enforcement and diagnostics: [profiles.py:165-219](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/profiles.py#L165-L219) loads validated profiles and renders token vectors/environment templates; [wrappers.py:120-188](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/wrappers.py#L120-L188) rejects undeclared overrides and compiles launch plans. This is useful configurability, but not proof of transparent interactive argv forwarding, hooks or resume. Certification discovery still contains vendor-specific defaults in [certification.py:449-495](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/certification.py#L449-L495).\n\n[RoleRouter, harness.py:459-507](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/harness.py#L459-L507) rejects disabled/uncertified treatments, missing capabilities and configured independence violations. These are routing checks, not per-tool conductor enforcement. The tracked [.claude/settings.json:2-78](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/.claude/settings.json#L2-L78) explicitly describes lane discipline as doctrinal and sets bypassPermissions; that approach does not satisfy the owner's enforced delegation boundary.\n\n[certification.py:397-425](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/certification.py#L397-L425) checks receipt identity, required passing layers, executable bytes and evidence availability. Its [mechanical evaluator:843-883](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/certification.py#L843-L883) requires complete ordered observations. Recommendation: express equivalent evidence obligations through existing harness/dispatch contracts and docs/probes.md, with shared conductor policy owned outside vendor adapters. Preserve explicit model selection, enforce Daybreak/security restrictions, and record requested versus observed capabilities. Test positive/negative tool attempts, effects, malformed hooks, override conflicts, resume and actual MCP connection; unreachable cases cannot pass. Extend existing machinery and the declared Symfony AI boundary, without another harness system, fixed job/model table or certification authority.",
+        "step_4": "Lifecycle: [recovery.py:39-81](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/recovery.py#L39-L81) implements idempotent dispatch reservation; [89-123](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/loopstrap_core/recovery.py#L89-L123) rejects stale responses against reservation/current revisions. These are useful recovery invariants. [.claude/commands/retro.md:1-5](https://github.com/xormania/loopstrap/blob/ca5ab8d363f8822ac5406f5e0bf5c94288102f1a/.claude/commands/retro.md#L1-L5) is a prompt for a draft retrospective, not canonical lifecycle publication. Recommendation: specify idempotency and revision checks within Agentscient's existing workflow genus and record lineage. Keep handoff, AAR and combined closeout explicitly owner-initiated; checkpoints remain unfinished recovery evidence. Do not adopt Loopstrap's ledger or infer completed closeout from exit.",
+        "inspection_limits": "Measured through local Git/read commands at 2026-09-06T01:09:42Z. Inspected SOURCE.json and all four supplied Markdown inputs whole; each Markdown input equals its target blob. Compared Agentscient 8601d2534d37ec284187d827c69c82ee6b99bd39 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc within the requested research scope; historical capture bodies were not exhaustively audited. Enumerated Loopstrap's pinned tree and inspected targeted configuration, implementation, documentation and wrapper-test source. No tests or repository code executed; no network, checkout, edits, settings or host changes; no session-store access. Live behavior, installed vendor CLI compatibility and remote link availability remain unverified. Agentscient composer.lock lacks ai-platform, workflow and mcp-bundle; vendor is absent, so Symfony ownership remains direction rather than installed runtime evidence."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1047709,
+        "out": 6380,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8601d2534d37ec284187d827c69c82ee6b99bd39",
+        "started": null,
+        "ended": "2026-09-06T01:09:42Z"
+      },
+      "note": "Four bounded recommendation groups; one documented requirements gap. Verdict intentionally null: this comparison neither approves the current plan nor authorizes adoption."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:10:59.995Z"
+    }
+  },
+  "status": "closed"
+}

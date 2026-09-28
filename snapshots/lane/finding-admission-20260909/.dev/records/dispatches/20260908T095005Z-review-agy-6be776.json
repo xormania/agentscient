@@ -1,0 +1,161 @@
+{
+  "id": "20260908T095005Z-review-agy-6be776",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-accounting-acceptance-20260908",
+  "lineage": {
+    "branch": "lane/agy-accounting-acceptance-20260908",
+    "base_sha": "deea88e7d11ccc25183aecdedd28efb62b433639"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:50:06Z",
+    "closed": "2026-09-08T09:50:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "deea88e7d11ccc25183aecdedd28efb62b433639",
+    "ref_sha": "deea88e7d11ccc25183aecdedd28efb62b433639",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/snapshot"
+  },
+  "harness": {
+    "name": "agy",
+    "worker": {
+      "name": "agy",
+      "executable": "/home/scientdb/.local/bin/agy",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-accounting-acceptance-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy",
+        "XDG_CONFIG_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/config",
+        "XDG_CACHE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/cache",
+        "XDG_DATA_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/data",
+        "XDG_STATE_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/state",
+        "XDG_RUNTIME_DIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/runtime",
+        "TMPDIR": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/tmp",
+        "AGY_CLI_DISABLE_AUTO_UPDATE": "true"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy/.gemini/antigravity-cli/brain",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/home/agy",
+      "auth_files": [
+        ".gemini/antigravity-cli/antigravity-oauth-token"
+      ]
+    },
+    "sandbox": "always-proceed",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/agy",
+      "--print=",
+      "--model",
+      "gemini-3.8-flash-high",
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--disable-slash-commands",
+      "--dangerously-skip-permissions",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/snapshot"
+    ]
+  },
+  "model": {
+    "requested": "gemini-3.8-flash-high",
+    "effort_requested": null,
+    "effort_argv": [],
+    "ran": "gemini-3.8-flash-high",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/raw.out",
+    "provider": {
+      "id": null,
+      "read_from": null,
+      "unresolved": "provider unavailable on measured agy stdout and transcript"
+    }
+  },
+  "session": {
+    "id": "2d2b7a32-a6f5-4615-ad8e-efbb4b341420",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/raw.out",
+    "stream_sha256_at_close": "f1960c00c3a1f8efd32131f7a4d1afc27ddf2e00b4e1db1101f6381af2824e3e",
+    "spend": {
+      "input": 12884,
+      "cached": 24433,
+      "output": 11136,
+      "total": 24020,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T095005Z-review-agy-6be776/raw.out",
+      "messages": 1
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-accounting-acceptance-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Canonical agy activation smoke only: inspect the tracked ops/lane.conf WORKER_HARNESSES declaration and report whether it includes agy. Read that file using a native file-read tool; do not inspect any other source, diff, credentials, settings, stores or network. No edits or commands. Return the required JSON envelope with job=sweep, status=ok if the file was read, verdict=approve if agy is present, counts all zero and findings empty. In artifacts include the observed declaration as a string; stamp.ref is the supplied snapshot ref. Note this is one bounded dispatch smoke, not code acceptance. Stop after this single file read and answer.",
+    "inputs": [],
+    "sha256": "089d4fc2084b7016a849bfc9d7552a2ecc28785876f83d0f5f8f37e85fe3ddac",
+    "bytes": 3239
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:50:06Z",
+      "ended": "2026-09-08T09:50:45Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "deea88e7d11ccc25183aecdedd28efb62b433639",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "WORKER_HARNESSES": "WORKER_HARNESSES='claude codex grok agy'"
+      },
+      "spend": {
+        "harness": "agy",
+        "total": 24020,
+        "out": 11136,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "deea88e7d11ccc25183aecdedd28efb62b433639"
+      },
+      "note": null
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": null,
+      "at": null
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,272 @@
+{
+  "id": "20260908T085213Z-review-claude-812e9d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-isolation-last-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-last-fix-20260908",
+    "base_sha": "12333e1e8eb3db22cdd477f37a9deca3e89b155d"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:52:14Z",
+    "closed": "2026-09-08T08:55:39Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "12333e1e8eb3db22cdd477f37a9deca3e89b155d",
+    "ref_sha": "12333e1e8eb3db22cdd477f37a9deca3e89b155d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-isolation-last-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "b80798ae-fca9-4fe0-8c71-67882cb4872e",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/b80798ae-fca9-4fe0-8c71-67882cb4872e.jsonl"
+  },
+  "session": {
+    "id": "b80798ae-fca9-4fe0-8c71-67882cb4872e",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/b80798ae-fca9-4fe0-8c71-67882cb4872e.jsonl",
+    "stream_sha256_at_close": "3454f90ddef0f02f783bd90604a9a5d79bce41deba32621c82f56c3450f789e0",
+    "spend": {
+      "input": 42,
+      "cached": 964603,
+      "output": 13445,
+      "total": 978090,
+      "source": "result.usage",
+      "messages": 21,
+      "cost_usd": 1.2198799999999999
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-last-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Verify only the final three tiny isolation-test corrections against supplied cold ruling: measured.unresolved nonempty string, report equality, optional historical doc wording. No implementation bodies. Read exact changed hunks and producer hashes; run both focused test files plus lint/full-range whitespace. Return acceptance verdict inline. Scope is already accepted except these corrections; no new matrix, coverage projects, source review, vendors, edits or full floor.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/in/agy-isolation-last-fix-producer.json",
+        "sha256": "6a70c91610b7efb12a1e3cafe4f04c66d18e69720395ec544277f99de1cc6953"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085213Z-review-claude-812e9d/in/agy-isolation-final-ruling.json",
+        "sha256": "45c77201110f884f6ee52785595cfbb309213e6ba4639e611c831277dbd179eb"
+      }
+    ],
+    "sha256": "f0f1e848fc4ea946e75bfa103a006f0d7d4b38411785ed76131178b05ccf2e71",
+    "bytes": 1251
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:52:14Z",
+      "ended": "2026-09-08T08:55:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "12333e1e8eb3db22cdd477f37a9deca3e89b155d",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "commit e1c59aaa372faa02741ce3a53ce988e3302125b3 trailers; commit 12333e1e8eb3db22cdd477f37a9deca3e89b155d trailers",
+          "claim": "Both correction commits carry `Co-Authored-By: gpt-6-astra <noreply@openai.com>` in addition to `Co-Authored-By: Grok 4.6 <noreply@x.ai>` and `Reviewed-by: gpt-6-astra <noreply@openai.com>`. The supplied adjudicate record 20260908T082619Z-adjudicate-codex-f8dfc8 declares role 'read' with changed_paths [] and residual_paths [], so gpt-6-astra wrote no file here; AGENTS.md states 'Work you did not do gets no trailer with your name'. Read the other way \u2014 the ruling did supply the three statements verbatim \u2014 the same actor is then both co-author and approver of one artifact, and it is already Co-Authored-By on the implementation these tests exercise (ded2987 'feat(harness): isolate agy configuration under HOME'), against 'Whoever writes an implementation neither writes nor approves its tests.' The immediate precedent for this exact shape, adjudicated grok test corrections 2e45832 and 0314068, carries only `Co-Authored-By: Grok 4.6` plus `Reviewed-by: gpt-6-astra`; the added co-author trailer is an unexplained deviation. The record, not the practice, is the defect: the file edits were produced by the tests dispatch 20260908T082927Z-tests-grok-851ac6 (role 'write', changed_paths exactly the two test files). Smallest correction is a follow-up provenance note dropping the gpt-6-astra co-author trailer and keeping Reviewed-by, matching the precedent; no code change is implied and nothing about the three corrections is affected.",
+          "reproduce": "git log --format='%h %s%n%(trailers:only=true)' -4 2e45832 shows the precedent pattern (Co-Authored-By: Grok 4.6 + Reviewed-by: gpt-6-astra) and shows ded2987 carrying Co-Authored-By: gpt-6-astra. git show --format=fuller e1c59aa 12333e1 shows the four-trailer block on both commits under review. in/agy-isolation-final-ruling.json lines 12-13 and 125-130 give the adjudicator's read role and empty changed_paths."
+        }
+      ],
+      "artifacts": {
+        "inputs": "Read whole: in/agy-isolation-final-ruling.json (adjudicate record 20260908T082619Z-adjudicate-codex-f8dfc8) and in/agy-isolation-last-fix-producer.json (tests record 20260908T082927Z-tests-grok-851ac6).",
+        "diff": "git diff 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 12333e1e8eb3db22cdd477f37a9deca3e89b155d piped to cmp against context/diff.patch: identical, exit 0.",
+        "hunks": "e1c59aa touches ops/devlane/harness/tests/test_agy_isolation.py only, 4 insertions 2 deletions, two hunks: docstring line 11 final sentence replaced with 'These tests were authored before implementation.'; lines 126-131 retain the three note checks and replace assertIn('unresolved', note.lower()) with unresolved = measured.get('unresolved'); assertIsInstance(unresolved, str); assertTrue(unresolved.strip()). 12333e1 touches ops/devlane/harness/tests/test_isolation_contract.py only, 1 insertion: self.assertEqual(isolation.HARNESSES, json.loads(rendered)) appended after the existing _assert_authorized_registry call at line 305. No production files in either commit.",
+        "ruling_match": "F1 applied as the three statements the ruling prescribed at in/agy-isolation-final-ruling.json:143, note checks retained, no source prose duplicated. F2 applied as the single assertEqual the ruling prescribed at :149, existing assertions retained. F3 optional clarification applied with the exact sentence prescribed at :155. No fourth change.",
+        "producer_hashes": "sha256sum at HEAD reproduces the tests record's artifacts exactly: test_agy_isolation.py 2b6a51db57c71ec789acb9e84e4905f895506122415dfd29eea0b5f659fb4180, test_isolation_contract.py 5843a26b358b6324e9c72d3780af018e37c95f6fdc5b0bf392cf8480078df742.",
+        "verification": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_agy_isolation.py': Ran 7 tests, OK. python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_isolation_contract.py': Ran 12 tests, OK (test_report_is_json_containing_exactly_the_registry listed and passing under -v). python3 ops/devlane/workflow/checks/lint.py on both files: 'lint: clean - 2 file(s), ruff 0.16.5', exit 0. git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 12333e1e8eb3db22cdd477f37a9deca3e89b155d: no output, exit 0. Counts match the producer note.",
+        "substance": "F1's new assertion refuses an absent key: measured.get('unresolved') returns None on absence and assertIsInstance(str) fails, so silence is not accepted as a declaration. Grepped ops/devlane/harness/isolation.py: 'unresolved' is present in the agy measured block at line 116, and the docstring claim at test line 9 that discovery isolation remains unresolved in existing measured metadata is true of that source. F2's equality is round-trip identity against the current report() (isolation.py:417 returns json.dumps(HARNESSES, indent=2, sort_keys=True)), so it cannot fail today; it is still a live guard against the projection regression the function's own comment at isolation.py:412-416 records, and it makes the test name accurate. Not reported as a finding: the ruling prescribed this assertion and the smaller alternatives pin unmeasured values.",
+        "scope": "Read-only. No edits, no vendor calls, no credentials, no session-store read, no full floor, no new matrix or coverage projects, no implementation bodies reviewed beyond the two grep-level source facts the assertions depend on. git status --porcelain empty at start and after all commands."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 978090,
+        "out": 13445,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "12333e1e8eb3db22cdd477f37a9deca3e89b155d",
+        "started": "2026-09-08T08:52:13Z",
+        "ended": "2026-09-08T08:54:58Z"
+      },
+      "note": "Accepted. All three corrections match the supplied cold ruling verbatim and nothing else changed: two test files, five added lines, two removed, production untouched. Both focused discoveries are green at HEAD (7 and 12), registered lint is clean on both files at ruff 0.16.5, full-range whitespace is clean, and the supplied diff is byte-identical to the computed range diff. The producer's two sha256 artifacts reproduce exactly at HEAD. The single P3 is a trailer-provenance defect in the commit record, not in the corrections; it does not withhold acceptance and is fixable by a follow-up note."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,230 @@
+{
+  "id": "20260905T040741Z-code-codex-2a1aed",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "records/wip-private-20260905",
+  "lineage": {
+    "branch": "records/wip-private-20260905",
+    "base_sha": "98b75aa090440cf082f3216e794d616aa6c9d4cc"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T04:07:42Z",
+    "closed": "2026-09-05T04:10:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+    "ref_sha": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-07-43-01a06fc0-3701-78d0-9f6e-443a7a168b94.jsonl"
+  },
+  "session": {
+    "id": "01a06fc0-3701-78d0-9f6e-443a7a168b94",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-07-43-01a06fc0-3701-78d0-9f6e-443a7a168b94.jsonl",
+    "stream_sha256_at_close": "e263a375508808b374a3f95ca72d0bc04be275f760be0dc472805f94b85969e2",
+    "spend": {
+      "input": 593815,
+      "cached": 553728,
+      "output": 6933,
+      "total": 600748,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-codex-2a1aed/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T00-07-43-01a06fc0-3701-78d0-9f6e-443a7a168b94.jsonl",
+      "messages": 126
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-wip-private.qBc4X6/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement only the Captured data is not authored vocabulary section of ops/devlane/workflow/checks/CONTRACT-term-wall.md in term_wall.py. Exempt content .dev/wip/ except its README.md, and direct .dev/records/dispatches/*.json; paths ALWAYS scanned; other content and modes unchanged. Update module description and ops/README.md wall paragraph to accurately describe policy. Never edit captured data. No tests authored or approved. Named command: ruff check ops/devlane/workflow/checks/term_wall.py. No broad suites. Commit Source: original and exact GPT-5.6 Sol Co-Authored-By.\n",
+    "inputs": [],
+    "sha256": "7bc1b20451f5043204436591e24dc7012380ce40d2e48873ec684315a817eaaf",
+    "bytes": 4425
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T04:07:42Z",
+      "ended": "2026-09-05T04:10:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "15598f9092860e3fb126be7577c0b6448db554cf",
+    "changed_paths": [
+      "ops/README.md",
+      "ops/devlane/workflow/checks/term_wall.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "Implement captured-data content exemptions in the term wall",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 12,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Confirmed the snapshot was clean at 98b75aa090440cf082f3216e794d616aa6c9d4cc; no sibling in/ files were present.",
+          "reproduce": "pwd && find ../in -type f -print 2>/dev/null && find docs -type f -print | sort && git status --short && git rev-parse HEAD && date --iso-8601=seconds"
+        },
+        {
+          "severity": "p3",
+          "where": "governing documentation",
+          "claim": "Read the named contract, implementation, ops README, and repository docs; output truncation prompted narrower follow-up reads.",
+          "reproduce": "for f in docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md ops/devlane/workflow/checks/CONTRACT-term-wall.md ops/devlane/workflow/checks/term_wall.py; do echo \"FILE $f\"; sed -n '1,9999p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "test discovery",
+          "claim": "The initially inferred test path under checks/ was absent, so this command stopped before its reads.",
+          "reproduce": "wc -l -c docs/*.md ops/README.md ops/devlane/workflow/checks/test_term_wall.py && sed -n '1,9999p' docs/concerns.md docs/probes.md docs/wire.md && sed -n '1,9999p' ops/devlane/workflow/checks/test_term_wall.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test discovery and docs",
+          "claim": "Located the existing test at ops/devlane/workflow/tests/test_term_wall.py and completed the first narrowed documentation read.",
+          "reproduce": "rg --files | rg 'term_wall|term-wall|test.*wall' && sed -n '1,9999p' docs/concerns.md docs/probes.md docs/wire.md"
+        },
+        {
+          "severity": "p3",
+          "where": "governing documentation and existing tests",
+          "claim": "Completed the remaining repository-mandated reads and inspected, without editing or approving, the existing term-wall tests.",
+          "reproduce": "sed -n '1,9999p' docs/mapping.md && sed -n '1,9999p' docs/verified-couplings.md docs/workflow.md && sed -n '1,9999p' ops/devlane/workflow/tests/test_term_wall.py && sed -n '1,9999p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "working-tree diff",
+          "claim": "The initial implementation diff passed whitespace validation and changed only term_wall.py and ops/README.md.",
+          "reproduce": "git diff --check && git diff -- ops/devlane/workflow/checks/term_wall.py ops/README.md && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/workflow/checks/term_wall.py",
+          "claim": "The named Ruff command exited 0 after implementation.",
+          "reproduce": "ruff check ops/devlane/workflow/checks/term_wall.py"
+        },
+        {
+          "severity": "p3",
+          "where": "commit attribution",
+          "claim": "Measured the repository's established GPT-5.6 Sol attribution as noreply@openai.com.",
+          "reproduce": "git log -20 --format='%H%n%B%n--END--' | rg -n 'Co-Authored-By:|Source:'"
+        },
+        {
+          "severity": "p3",
+          "where": "git commit",
+          "claim": "The commit attempt was refused because the sandbox exposes .git as read-only and could not create index.lock.",
+          "reproduce": "git add -- ops/devlane/workflow/checks/term_wall.py ops/README.md && git commit -m \"Exempt captured data from term wall content\" -m \"Source: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "out/COMMIT_MSG preparation",
+          "claim": "Confirmed out/COMMIT_MSG was absent and the worktree contained only the two intended modifications before writing the launcher fallback.",
+          "reproduce": "ls -la ../out && git status --short && test ! -e ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "final named verification",
+          "claim": "The named Ruff command exited 0 in the final tree with \u201cAll checks passed!\u201d.",
+          "reproduce": "ruff check ops/devlane/workflow/checks/term_wall.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree and launcher artifact",
+          "claim": "Final diff validation passed; only ops/README.md and term_wall.py are modified, the requested commit message is recorded, and HEAD remains the requested base commit.",
+          "reproduce": "git diff --check && git diff --name-only && git status --short && sed -n '1,9999p' ../out/COMMIT_MSG && git rev-parse HEAD && date --iso-8601=seconds"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/workflow/checks/term_wall.py",
+        "documentation": "ops/README.md",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 600748,
+        "out": 6933,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+        "started": "2026-09-05T00:07:54-04:00",
+        "ended": "2026-09-05T00:09:47-04:00"
+      },
+      "note": "Implemented content-only exemptions for all tracked files below .dev/wip/ except its README.md, plus immediate lowercase-*.json children of .dev/records/dispatches/. Path scanning remains unconditional; explicit path selection inherits the same policy; other modes are unchanged. No captured data or tests were edited, authored, run, or approved. Assumption: \u201cdirect .dev/records/dispatches/*.json\u201d means immediate children with the contract's lowercase .json suffix. Git commit was sandbox-blocked, so the launcher fallback was written.",
+      "commit": {
+        "subject": "Exempt captured data from term wall content",
+        "body": "Source: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T04:10:21.519Z"
+    }
+  },
+  "status": "closed"
+}

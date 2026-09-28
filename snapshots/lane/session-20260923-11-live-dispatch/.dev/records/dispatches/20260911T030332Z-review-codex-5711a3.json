@@ -1,0 +1,206 @@
+{
+  "id": "20260911T030332Z-review-codex-5711a3",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/receipts-20260911",
+  "lineage": {
+    "branch": "lane/receipts-20260911",
+    "base_sha": "40173663861eac2297043cfc6ec2edc0222d028e"
+  },
+  "follows": [
+    "20260911T025107Z-code-codex-c16551"
+  ],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T03:03:33Z",
+    "closed": "2026-09-11T03:10:30Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "40173663861eac2297043cfc6ec2edc0222d028e",
+    "ref_sha": "40173663861eac2297043cfc6ec2edc0222d028e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-03-34-01a08e6b-a38b-78e2-966f-34eae0f29381.jsonl"
+  },
+  "session": {
+    "id": "01a08e6b-a38b-78e2-966f-34eae0f29381",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-03-34-01a08e6b-a38b-78e2-966f-34eae0f29381.jsonl",
+    "stream_sha256_at_close": "fd920ac35ef37cdf51272ada1aa3c5fff57084c0b9911107a18b1fe24e15d2f5",
+    "spend": {
+      "input": 2523767,
+      "cached": 2393151,
+      "output": 28169,
+      "total": 2551936,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-03-34-01a08e6b-a38b-78e2-966f-34eae0f29381.jsonl",
+      "messages": 266
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-receipts-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security re-audit of PR 101 at this head, after its one fix round: the receipt lever ops/devlane/harness/receipt.py, the modules under ops/devlane/harness/receipt/ (receipts.py adapted in the fix; the rest verbatim from the previous repository), the contract ops/devlane/harness/evidence.cue, and the tests ops/devlane/harness/tests/test_receipt.py. Read in/brief-receipt-fix-code-20260911.md and in/extraction-checklist-receipts-20260911.md WHOLE; the checklist's nineteen items and the contract are the only requirements; checklist items 6 and 12 are the owner's decisions, not defects. Confirm or refute each of the fifteen fix-round findings named in the brief against the code as landed, then hunt what the fix may have opened. Each finding quotes the checklist item or contract field it violates or is marked observation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/in/brief-receipt-fix-code-20260911.md",
+        "sha256": "caf175db39fe7be7ef754b6da1b828dc99eec1f77dd615483429690432123d54"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030332Z-review-codex-5711a3/in/extraction-checklist-receipts-20260911.md",
+        "sha256": "3126a46d3203cd3bb8828073fb01da4706e2a15d936e9b2c496c127defdd554a"
+      }
+    ],
+    "sha256": "537c6c929a803eeb9a4c4554c0be3c870340667b780d4b440d784bc3854397fc",
+    "bytes": 4429
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:03:33Z",
+      "ended": "2026-09-11T03:10:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "40173663861eac2297043cfc6ec2edc0222d028e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:160-199,238-260",
+          "claim": "Checklist item 11 requires receipts at `.dev/records/receipts/<digest>.json` so the filename is tamper-evident. `load_receipt` accepts any existing out-of-tree path and checks its stem only when digest-shaped or resolved under the receipt directory. A non-digest external ref can therefore change without renaming, and `verify` executes its argv. This leaves 2beea3#3 and 0bc987#4 incompletely fixed and reaches outside the job.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport hashlib,json,os,subprocess\nhead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(); empty=hashlib.sha256(b'').hexdigest()\nbody={'kind':'receipt','claim':'before','argv':['/bin/true'],'cwd':'.','head_sha':hashlib.sha256(head.encode()).hexdigest(),'tree_dirty':False,'exit_code':0,'duration_ms':0,'stdout_sha256':empty,'stderr_sha256':empty,'actor':'Audit <a@b>','at':'x'}\nfd=os.memfd_create('not-a-digest'); ref=f'/proc/self/fd/{fd}'\ndef write(value):\n raw=json.dumps(value).encode(); os.ftruncate(fd,0); os.lseek(fd,0,0); os.write(fd,raw); os.lseek(fd,0,0)\nwrite(body)\nv=subprocess.run(['python3','ops/devlane/harness/receipt.py','verify',ref],pass_fds=(fd,),capture_output=True,text=True)\nwrite({**body,'claim':'after'})\ns=subprocess.run(['python3','ops/devlane/harness/receipt.py','show',ref],pass_fds=(fd,),capture_output=True,text=True)\nprint(v.returncode,v.stdout.strip(),s.returncode,json.loads(s.stdout)['claim'])\nassert v.returncode==0 and s.returncode==0 and json.loads(s.stdout)['claim']=='after'\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:238-260; ops/devlane/harness/evidence.cue:10-16,63-67",
+          "claim": "The contract says verification runs the command \u201cat the recorded state,\u201d but `cmd_verify` compares only HEAD and never checks current worktree dirt. It can report a clean receipt verified while tracked or untracked inputs differ from the recorded state, breaking evidence integrity.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport hashlib,importlib.util\nfrom pathlib import Path\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nspec=importlib.util.spec_from_file_location('lever',Path('ops/devlane/harness/receipt.py').resolve()); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\ne=hashlib.sha256(b'').hexdigest(); body={'kind':'receipt','claim':'x','argv':['true'],'cwd':'.','head_sha':'a'*64,'tree_dirty':False,'exit_code':0,'duration_ms':0,'stdout_sha256':e,'stderr_sha256':e,'actor':'A <a@b>','at':'x'}\nwith patch.object(m,'repo_root',return_value=Path.cwd()),patch.object(m,'load_receipt',return_value=(body,Path('r.json'))),patch.object(m,'relative_cwd',return_value='.'),patch.object(m,'head_digest',return_value='a'*64),patch.object(m,'dirty_paths',return_value=['tracked-change']) as dirty,patch.object(m.receipts,'run',return_value=(0,b'',b'',0)):\n code=m.cmd_verify(SimpleNamespace(receipt='r'))\n print(code,dirty.call_count); assert code==0 and dirty.call_count==0\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/receipt.py:91-113,211-224",
+          "claim": "The `tree_dirty` contract must describe the recorded state. To satisfy checklist item 11, the fix excludes receipt-directory ancestors, but `git status --untracked-files=normal` collapses an entirely untracked `.dev` subtree to `?? .dev/`. The ancestor rule classifies that whole subtree as clean, including unrelated files, allowing `tree_dirty:false` evidence for a dirty tree.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport importlib.util\nfrom pathlib import Path\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nspec=importlib.util.spec_from_file_location('lever',Path('ops/devlane/harness/receipt.py').resolve()); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\ndef classify(raw):\n with patch.object(m.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=raw)):\n  return m.dirty_paths(Path.cwd())\nparent=classify('?? .dev/\\0'); child=classify('?? .dev/unrelated\\0')\nprint(parent,child); assert parent==[] and child==['.dev/unrelated']\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py:178-199,263-269",
+          "claim": "Checklist item 10 requires `cwd` to be repository-relative. Although `verify` now checks it, `load_receipt` treats any non-empty cwd as valid, so `show` successfully presents a correctly digest-named receipt containing `/` as contract-conforming.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport importlib.util,json\nfrom pathlib import Path\nfrom unittest.mock import patch\nspec=importlib.util.spec_from_file_location('lever',Path('ops/devlane/harness/receipt.py').resolve()); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\nz='0'*64; body={'kind':'receipt','claim':'x','argv':['true'],'cwd':'/','head_sha':z,'tree_dirty':False,'exit_code':0,'duration_ms':0,'stdout_sha256':z,'stderr_sha256':z,'actor':'A <a@b>','at':'x'}\ndigest=m.canonical.digest(body); repo=Path.cwd(); target=repo/m.RECEIPTS_DIR/f'{digest}.json'\nwith patch.object(Path,'is_file',lambda p:p==target),patch.object(Path,'read_text',lambda p,**kw:json.dumps(body)):\n loaded,_=m.load_receipt(repo,str(target))\nprint(loaded['cwd'],target.stem); assert loaded['cwd']=='/' and target.stem==digest\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/receipt.py:218-232; ops/devlane/harness/evidence.cue:59-62",
+          "claim": "Observation: the deferred 2beea3#9 remains present. `argv` is copied verbatim into the tracked receipt, so credentials supplied as command arguments enter repository records. No actual credential was found in this change.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport importlib.util,os\nfrom pathlib import Path\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nspec=importlib.util.spec_from_file_location('lever',Path('ops/devlane/harness/receipt.py').resolve()); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\nseen={}; secret='FAKE-CREDENTIAL-DO-NOT-USE'\ndef capture(repo,body): seen.update(body); return 'd'*64,repo/m.RECEIPTS_DIR/('d'*64+'.json')\nargs=SimpleNamespace(claim='x',argv=['tool','--token',secret],cwd='.',allow_dirty=False)\nwith patch.dict(os.environ,{'WF_AGENT':'A <a@b>'}),patch.object(m,'repo_root',return_value=Path.cwd()),patch.object(m,'relative_cwd',return_value='.'),patch.object(m,'dirty_paths',return_value=[]),patch.object(m,'head_digest',return_value='a'*64),patch.object(m,'receipt_directory'),patch.object(m.receipts,'run',return_value=(0,b'',b'',0)),patch.object(m,'write_receipt',side_effect=capture):\n m.cmd_record(args)\nprint(seen['argv']); assert secret in seen['argv']\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/receipt/README.md:1-9; ops/devlane/harness/receipt/receipts.py",
+          "claim": "Observation: the supply-chain provenance note still says all four modules are byte-for-byte copies and \u201cnothing here is edited,\u201d but `receipts.py` was adapted in the fix. The adapting commit records this correctly, yet the package-local verification claim now points auditors to a false pinned-byte invariant.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport subprocess\nfrom pathlib import Path\nold=subprocess.check_output(['git','rev-parse','79da612683d0d8fef47beec412e8ecde61d4513d:ops/devlane/harness/receipt/receipts.py'],text=True).strip()\nnew=subprocess.check_output(['git','rev-parse','HEAD:ops/devlane/harness/receipt/receipts.py'],text=True).strip()\ntext=Path('ops/devlane/harness/receipt/README.md').read_text()\nprint(old,new); assert old!=new and 'byte for byte' in text and 'nothing here\\nis edited' in text\nPY"
+        }
+      ],
+      "artifacts": {
+        "diff.patch": "37745aab298c79a6012d1727db99b1f827980882bca33bc3b9d6784ea31cd275",
+        "ops/devlane/harness/receipt.py": "eebc679121348bb6ae8a269b1c82d22ccf936232165d8c56e2a23dc8cc805239",
+        "ops/devlane/harness/receipt/receipts.py": "7c9a887307b3482613a28858f346525cb4c93afa7d7d4d4c62c6c4385968fd0d",
+        "ops/devlane/harness/evidence.cue": "97fc9a01c67f78168249c3c557f7be7265981330441cb853b5e361d0feddd0ac",
+        "ops/devlane/harness/tests/test_receipt.py": "a217c9aa0558d31c2bb62c0979d915ee731536454a07663150bda441ee2350a6"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2551936,
+        "out": 28169,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "40173663861eac2297043cfc6ec2edc0222d028e",
+        "started": "2026-09-11T03:03:41Z",
+        "ended": "2026-09-11T03:08:30Z"
+      },
+      "note": "Fix-round disposition: confirmed fixed 2beea3#1, #2, #4, #5, #6, #7, #8 and 0bc987#1, #2, #3, #5, #6, #7; refuted full closure of 2beea3#3 and 0bc987#4 through finding 1. Checklist decisions 6 and 12 were not treated as defects. Covered argv/shell, SQL/template, credentials, path/ref containment, sandbox-record alignment, vendor-output checks, and supply-chain changes. No shell execution, SQL/template seam, actual credential signature, sandbox mismatch, dependency/lockfile/action delta, or loosened pin was found. The changed-file secret scan covered 20 files and was clean. CUE vet and git diff --check exited 0; Ruff passed with caching disabled. The frozen 30-test command could not run because the read-only sandbox exposes no writable temporary directory; all cases stopped during fixture setup. Filesystem-mutating and concurrent symlink/TOCTOU probes therefore could not be exercised; read-only memfd and mocked probes were used. The session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T03:10:30.273Z"
+    }
+  },
+  "status": "closed"
+}

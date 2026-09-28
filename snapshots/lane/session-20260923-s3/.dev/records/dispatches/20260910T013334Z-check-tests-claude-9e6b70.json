@@ -1,0 +1,262 @@
+{
+  "id": "20260910T013334Z-check-tests-claude-9e6b70",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "6429d3e1f1c43f489e7c018c64e03952cdcdba55"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "gpt-6-astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:33:35Z",
+    "closed": "2026-09-10T01:40:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+    "ref_sha": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "0f6a5e19-618b-4608-9d31-dca374d72b9d",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/0f6a5e19-618b-4608-9d31-dca374d72b9d.jsonl"
+  },
+  "session": {
+    "id": "0f6a5e19-618b-4608-9d31-dca374d72b9d",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/0f6a5e19-618b-4608-9d31-dca374d72b9d.jsonl",
+    "stream_sha256_at_close": "37a0203bd33ca3b6886478d3c91b195a618a340a94f12731552a5e2986b4f66e",
+    "spend": {
+      "input": 32,
+      "cached": 1397197,
+      "output": 26184,
+      "total": 1423413,
+      "source": "result.usage",
+      "messages": 16,
+      "cost_usd": 2.338987000000001
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Bounded independent test acceptance: judge only test_monitor_malformed_git.py against the admitted malformed Git metadata failure and monitor contract. Read ../in/monitor-malformed-test-brief.md. Verify planted bytes and existing consumer assertions; confirm the RED reason, valid safety controls, and coverage of only the named correction. No implementation reading or new test inventory. One complete report.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/in/monitor-malformed-test-brief.md",
+        "sha256": "f13e5fac55b462f9ee7796acc5de78f185d659cbac66a48f71ac36be7955b941"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/in/test_monitor_malformed_git.py",
+        "sha256": "dbb5ff14388529eef52a97c91c10259d37e9f3f39f171ff16db831a9e07f00fa"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/in/monitor-malformed-reproduction.json",
+        "sha256": "ab8c5a73f382b6ef3b4105ea50541c194a344fb3a9e423783d3242a4ff5e1155"
+      }
+    ],
+    "sha256": "d590171315e48d7ba8228d318599ee70fda9b620af5b739ad4cc088e6d5887ba",
+    "bytes": 1814
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:33:35Z",
+      "ended": "2026-09-10T01:40:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "Bounded independent test acceptance: test_monitor_malformed_git.py vs admitted malformed Git metadata failure and monitor contract",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 1
+      },
+      "findings": [],
+      "artifacts": {
+        "SKEPTIC.md": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013334Z-check-tests-claude-9e6b70/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1423413,
+        "out": 26184,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6429d3e1f1c43f489e7c018c64e03952cdcdba55",
+        "started": "2026-09-10T01:33:34Z",
+        "ended": "2026-09-10T01:39:00Z"
+      },
+      "note": "All three tests in test_monitor_malformed_git.py are RED against the current unfixed monitor.py (Ran 3 tests, FAILED failures=5 counting the 3 overlap subTests) and each names a distinct broken implementation it would catch: (1) disabled malformed source that blocks/queries the healthy sibling, (2) enabled malformed source not classified as freshness=local-unavailable / a run refusal, (3) a fix that drops or narrows the state/repo disjointness guard (linked-worktree subcase catches a repo-path-only guard). Planted malformed .git bytes are proven (regular file, exact bytes, not a gitdir pointer); loops are guarded by exact len==2 counts; expectations (local-unavailable, state=unavailable, ref order, disjoint) are contract-derived (monitor-lever.md lines 198,214,221), not read off output; fixture pre-call checks passed so reds are contract-assertion reds, not import/collection reds; scope is bounded to the named correction. Implementation not read and no mutant planted per dispatch override; RED established by execution. One P3 opinion (non-gating): test 3's current red rides the malformed bug rather than exercising the overlap path and pins the literal token \"disjoint\" which the contract states only in prose \u2014 over-strict, lets no bug through. No findings; verdict approve."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

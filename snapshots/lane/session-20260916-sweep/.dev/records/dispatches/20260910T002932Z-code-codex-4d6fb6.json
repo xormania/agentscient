@@ -1,0 +1,220 @@
+{
+  "id": "20260910T002932Z-code-codex-4d6fb6",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "a135faed508642aeda326260a1323f7f5fde12b3"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:29:32Z",
+    "closed": "2026-09-10T00:38:11Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a135faed508642aeda326260a1323f7f5fde12b3",
+    "ref_sha": "a135faed508642aeda326260a1323f7f5fde12b3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-29-33-01a088b8-47b8-78b1-bfc3-f082aca4ad65.jsonl"
+  },
+  "session": {
+    "id": "01a088b8-47b8-78b1-bfc3-f082aca4ad65",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-29-33-01a088b8-47b8-78b1-bfc3-f082aca4ad65.jsonl",
+    "stream_sha256_at_close": "17c84ce381b8ed2ae85c694c5d98dfc964198ffa5d8d5e9c1bd64de2321ecabd",
+    "spend": {
+      "input": 1365267,
+      "cached": 1282304,
+      "output": 15192,
+      "total": 1380459,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-29-33-01a088b8-47b8-78b1-bfc3-f082aca4ad65.jsonl",
+      "messages": 192
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement ONLY the git-refs observation adapter and example in monitor-lever.md using existing monitor.py adapter/condition/queue boundaries. Follow in/monitor-only-scope.md. Independent tests were authored and checked before implementation; read frozen test_monitor_git_refs.py and make it green without editing/approving tests. Reuse existing bounded subprocess helper where contract permits. Preserve one shared local+remote deadline, no mutation, exact selected full refs, unavailable versus missing, and state/source separation. No onboarding, hooks, branch recovery, monitor lifecycle or activation. Update only delivered contract standing clauses. Run focused tests and existing monitor regressions, record results and commit source/docs with trailers. Root will reproduce green, full suites, and batch independent acceptance; do not dispatch reviews yourself. Report concrete contradictory test assertions rather than weakening safety or modifying tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/in/monitor-test-acceptance.json",
+        "sha256": "87e890ecb84832ec5134b589dd5bad67f2af09a02fd80fd267f6195c585c182a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T002932Z-code-codex-4d6fb6/in/monitor-red-corrected.json",
+        "sha256": "a737c9bec2a94228ca9b2d75d73eb69c67ffbb0fe92aba90c2614132437a8357"
+      }
+    ],
+    "sha256": "79a587a7418cab48fe340f660dd0fe375d4a47ec5b09735037897715c6c6edd0",
+    "bytes": 4809
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:29:32Z",
+      "ended": "2026-09-10T00:38:10Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "17bee8dac4b3b7798b17a0fcd803873e13c30101",
+    "changed_paths": [
+      "ops/conductor/monitor-lever.md",
+      "ops/conductor/tools/monitor.py",
+      "ruff.toml"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_monitor_git_refs.py:937",
+          "claim": "The empty-branches subtest expects refusal, but its fixture replaces [] with valid branches [dev, master]. Tests remain unchanged.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_monitor_git_refs.py:495",
+          "claim": "Three tests require summary == oid; the inherited event boundary produces field=JSON(value). Preserved existing serialization under the adapter-only scope.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_monitor_git_refs.py:755",
+          "claim": "Five unavailable tests require remote-unavailable in events whose inherited summary is state=unavailable. Their later changed-events assertion also conflicts with existing condition behavior.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor_git_refs.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/live-probe.json",
+          "claim": "Bounded live probe returned remote-unavailable for both branches. This snapshot has no configured remote; live remote verification remains unverified.",
+          "reproduce": "python3 ../out/reproduce.py 28"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Staging failed because .git is read-only. Source/docs changes remain in the snapshot; COMMIT_MSG contains required trailers.",
+          "reproduce": "git add ops/conductor/tools/monitor.py ops/conductor/monitor-lever.md ruff.toml && git commit -F ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "report": "../out/REPORT.md",
+        "command_findings": "../out/command-findings.json",
+        "command_reproducer": "../out/reproduce.py",
+        "verification": "../out/verification.json",
+        "focused_tests": "../out/git-refs-tests.log",
+        "monitor_regressions": "../out/monitor-regressions.log",
+        "live_probe": "../out/live-probe.json",
+        "scratch_measurements": "../out/scratch-measurements.log",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1380459,
+        "out": 15192,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a135faed508642aeda326260a1323f7f5fde12b3",
+        "started": null,
+        "ended": "2026-09-10T00:36:32Z"
+      },
+      "note": "Implemented adapter, shared deadline, exact refs, absence/unavailability distinction, state separation and disabled markdown example. All 48 monitor regressions and lint pass. Acceptance exits 1: 19 tests, nine failures, including test_invalid_params_refuse_before_any_query [empty-branches]; all failing names are recorded in verification.json. Tests were neither edited nor approved. Every executed shell command is recorded as a finding with reproduction instructions. Full suites and independent acceptance remain with root.",
+      "commit": {
+        "subject": "monitor: add bounded git-refs observation adapter",
+        "body": "Implement the adapter and disabled documentation example while preserving existing condition and queue boundaries. Monitor regressions pass 48 tests; frozen acceptance retains nine fixture/event-boundary failures detailed in out/REPORT.md. Live remote verification remains unavailable. Full commit message: out/COMMIT_MSG.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:38:09.899Z"
+    }
+  },
+  "status": "closed"
+}

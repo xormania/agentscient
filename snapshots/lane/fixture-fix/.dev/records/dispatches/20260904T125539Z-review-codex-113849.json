@@ -1,0 +1,197 @@
+{
+  "id": "20260904T125539Z-review-codex-113849",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/fixture-fix",
+  "lineage": {
+    "branch": "lane/fixture-fix",
+    "base_sha": "c4a70106179c8bee35b7f100efc86324d2df917f"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T12:55:39Z",
+    "closed": "2026-09-04T13:05:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c4a70106179c8bee35b7f100efc86324d2df917f",
+    "ref_sha": "c4a70106179c8bee35b7f100efc86324d2df917f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-55-40-01a06c7d-3578-7903-ab29-ac13ee93817c.jsonl"
+  },
+  "session": {
+    "id": "01a06c7d-3578-7903-ab29-ac13ee93817c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-55-40-01a06c7d-3578-7903-ab29-ac13ee93817c.jsonl",
+    "stream_sha256_at_close": "cfe8e2c5cb76fa5198051b314c2d0996baf01e421d89c780107263bfab929e34",
+    "spend": {
+      "input": 5740713,
+      "cached": 5556279,
+      "output": 33465,
+      "total": 5774178,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-55-40-01a06c7d-3578-7903-ab29-ac13ee93817c.jsonl",
+      "messages": 398
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Security re-audit of the fixture batch's fix round (branch lane/fixture-fix, the diff against its merge-base with dev is the fix round: two implement runs after the two audits). Input file: the first security audit's eight findings (5 P1, 2 P2, 1 P3), verbatim. For each finding: quote the declared words and the practiced evidence in the fixed tree, and state fixed, not fixed, or regressed, with file:line. Then hunt the fix round itself for new security findings of the same classes: reads that write, identity on writing verbs, path canonicalisation, envelope revalidation, untracked files riding into a fixture, unhashed installs. Review only; do not edit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T125539Z-review-codex-113849/in/input-fixture-reaudit.md",
+        "sha256": "deb75cd36c7edc7f4ebeaf1628a0357cc0b08b01b9713a46a32129a5c06ae87b"
+      }
+    ],
+    "sha256": "f65383ae75c0a9bca05f02f41436864d64e421a3b209edf4f5c978d46fc2eba3",
+    "bytes": 3994
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T12:55:39Z",
+      "ended": "2026-09-04T13:05:48Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c4a70106179c8bee35b7f100efc86324d2df917f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 4,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "docs/probes.md:23-24 \u2194 ops/bin/fixture.sh:294-307 \u2194 ops/bin/fixture.sh:370-373",
+          "claim": "NOT FIXED. Declared: \u201cRow commands are restricted to an allowlisted read set\u201d and \u201cread-only is enforced.\u201d Practiced: probe retains HOME and passes each manifest `probe` string to `/bin/sh` with `shell=True`. The fix removed most ambient environment keys, but an ordinary trusted fixture probe can still read credential files under HOME or write outside the fixture, so the declared security boundary is still absent.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def probe(\"):s.index(\"def prove(\")]; p=s[s.index(\"def prove(\"):s.index(\"def spans(\")]; assert \"for key in (\\\"PATH\\\", \\\"HOME\\\")\" in b and \"shell=True\" in b and \"probe(fault[\\\"probe\\\"], directory, timeout)\" in p'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/task/envelope.py:14-18 \u2194 ops/bin/fixture.sh:443-475 \u2194 .dev/records/dispatches/20260904T122257Z-code-codex-c7f52a.json:382",
+          "claim": "REGRESSED. Declared: parsed envelopes are revalidated and counts must match the exact finding shape. Practiced: the second implement run explicitly treats any envelope whose only key is `findings` as `legacy_fixture`, skips `envelope.validate()` and the status check, and also never calls the available dispatch-record validator or checks the outer record status. The run record calls this an intentional compatibility assumption. A fabricated findings-only or outer-tripped record can therefore still overwrite calibration rows.",
+          "reproduce": "git diff 1b820912c0cb22daa223e6135991ebf232f51b5d 7abf3f152054c3cbea14d9b1243128595bd66c71 -- ops/bin/fixture.sh | rg 'legacy_fixture|not legacy_fixture' && python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); r=s[s.index(\"def review_envelope(\"):s.index(\"def grade(\")]; g=s[s.index(\"def grade(\"):s.index(\"if not ARGS:\")]; assert \"set(envelope) == {\\\"findings\\\"}\" in r and \"not legacy_fixture\" in r and \"record.validate\" not in g and \"payload.get(\\\"status\\\")\" not in g'"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/input-fixture-reaudit.md:6 \u2194 ops/devlane/fixtures/apps/symfony-app/.gitignore:1 \u2194 ops/bin/fixture.sh:351-365 \u2194 ops/devlane/fixtures/apps/symfony-app/probes/sa01.sh:2",
+          "claim": "NEW. Declared: the fixture comes from the tracked tree \u201cso an untracked or ignored file never rides.\u201d Practiced: fixed proof now detects an ignored `vendor/bin/phpunit`, copies the entire ignored vendor tree into the trial, and the shipped probes execute that copied binary. A stale or replaced untracked vendor executable can control calibration results with the lane user's authority.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); p=s[s.index(\"def prove(\"):s.index(\"def spans(\")]; i=Path(\"ops/devlane/fixtures/apps/symfony-app/.gitignore\").read_text(); q=Path(\"ops/devlane/fixtures/apps/symfony-app/probes/sa01.sh\").read_text(); assert \"/vendor/\" in i and \"shutil.copytree(vendor, trial / \\\"vendor\\\", symlinks=True)\" in p and \"exec vendor/bin/phpunit\" in q'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:38-41 \u2194 ops/devlane/dispatch/CONTRACT.md:111-130 \u2194 .dev/records/dispatches/20260904T120858Z-code-codex-075cb1.json:309-343",
+          "claim": "NEW. Declared: \u201cthe job directory is where one dispatch's snapshot and artifacts live.\u201d Practiced: the first implement run copied the repository index and wrote Git objects to fixed names under global `/tmp`; those paths remain after closure, outside the job, with modes 0644 and 0755. This both escapes the recorded job boundary and leaves world-readable private-tree residue at predictable names.",
+          "reproduce": "python3 -c 'from pathlib import Path; from stat import S_IMODE; r=Path(\".dev/records/dispatches/20260904T120858Z-code-codex-075cb1.json\").read_text(); i=Path(\"/tmp/agentscient-d037e5f.index\"); o=Path(\"/tmp/agentscient-d037e5f-objects\"); assert \"cp .git/index /tmp/agentscient-d037e5f.index\" in r and \"mkdir -p /tmp/agentscient-d037e5f-objects\" in r and i.is_file() and o.is_dir() and S_IMODE(i.stat().st_mode)==0o644 and S_IMODE(o.stat().st_mode)==0o755'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/python-service/README.md:5-11 \u2194 ops/devlane/fixtures/apps/python-service/requirements.lock:14-15 \u2194 ops/devlane/fixtures/apps/python-service/FAULTS.json:3-6",
+          "claim": "NOT FIXED. Declared: install and run a \u201cpinned toolchain.\u201d Practiced: the lock now hashes and pins Ruff, but the sole green check still invokes bare `ruff` from PATH instead of `.venv/bin/ruff`. The bytes installed into the fixture are therefore not necessarily the executable that decides the check.",
+          "reproduce": "python3 -c 'import json; from pathlib import Path; d=json.loads(Path(\"ops/devlane/fixtures/apps/python-service/FAULTS.json\").read_text()); lock=Path(\"ops/devlane/fixtures/apps/python-service/requirements.lock\").read_text(); assert \"--require-hashes\" in d[\"toolchain\"][\"install\"] and \"ruff==0.16.5\" in lock and \"&& ruff check .\" in d[\"check\"] and \".venv/bin/ruff\" not in d[\"check\"]'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/apps/rust-crate/FAULTS.json:5-7 \u2194 ops/devlane/fixtures/apps/rust-crate/FAULTS.json:38-41 \u2194 ops/devlane/fixtures/tests/test_rust_crate_app.py:1758-1764",
+          "claim": "NEW. Declared/practiced as a toolchain readiness and per-probe needs check, the new command is `cargo metadata --offline` without `--locked`. Cargo's own help distinguishes `--offline` from `--locked` (\u201cAssert that Cargo.lock will remain unchanged\u201d); on a stale manifest/lock, this nominal read may rewrite Cargo.lock and resolve a different cached graph before calibration.",
+          "reproduce": "python3 -c 'import json; from pathlib import Path; d=json.loads(Path(\"ops/devlane/fixtures/apps/rust-crate/FAULTS.json\").read_text()); cmds=[d[\"toolchain\"][\"ready\"],*[n for f in d[\"faults\"] for n in f.get(\"needs\", [])]]; assert cmds and all(\"cargo metadata --offline\" in c and \"--locked\" not in c for c in cmds)' && cargo metadata --help | rg -- '--locked +Assert that `Cargo.lock` will remain unchanged'"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/input-fixture-reaudit.md:12 \u2194 ops/bin/fixture.sh:269-291",
+          "claim": "NEW. Declared: nothing outside the copy list enters fixed proof. Practiced: a manifest fix path is checked only lexically, then `Path.is_file()` and `git apply` follow it without resolving and proving containment. A hostile tracked `fixes/*.patch` symlink can therefore make fixed proof read an external file; under the ruled private-branch trust model this requires a hostile branch and is P3.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def patch_fixture(\"):s.index(\"def probe(\")]; assert \"safe_relative(rel)\" in b and \"patch = directory / rel\" in b and \"patch.is_file()\" in b and \"[\\\"git\\\", \\\"apply\\\"\" in b and \"patch.resolve()\" not in b and \"relative_to(directory)\" not in b'"
+        }
+      ],
+      "artifacts": {
+        "input": "../in/input-fixture-reaudit.md",
+        "diff": "../context/diff.patch",
+        "base": "0cea17ab4023f80c92c99591e4aaf825f9bac98a",
+        "head": "c4a70106179c8bee35b7f100efc86324d2df917f"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5774178,
+        "out": 33465,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c4a70106179c8bee35b7f100efc86324d2df917f",
+        "started": null,
+        "ended": null
+      },
+      "note": "Original-eight disposition at c4a70106179c8bee35b7f100efc86324d2df917f: F1 NOT FIXED \u2014 declared \u201callowlisted read set\u201d (docs/probes.md:23-24), practiced HOME plus shell=True (ops/bin/fixture.sh:294-307,370-373); its reproduce is finding 1. F2 FIXED \u2014 declared \u201can untracked or ignored file never rides\u201d (../in/input-fixture-reaudit.md:6), practiced `git ls-files -z` and copies only those entries (ops/bin/fixture.sh:151-168,200-207); reproduce: `python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def make(\"):s.index(\"def load_manifest(\")]; assert \"[\\\"git\\\", \\\"ls-files\\\", \\\"-z\\\"]\" in b and \"app_root.rglob\" not in b'`. F3 FIXED \u2014 declared \u201cWriting verbs require an agent identity\u201d (docs/wire.md:29-31), practiced `identity()` before `destination.write_text` (ops/conductor/tools/findings.py:228-245); reproduce: `python3 -c 'from pathlib import Path; s=Path(\"ops/conductor/tools/findings.py\").read_text(); b=s[s.index(\"def do_export(\"):s.index(\"def do_summary(\")]; assert b.index(\"identity()\") < b.index(\"destination.write_text\")'`. F4 FIXED \u2014 declared the checked neighbour \u201cproves it starts with the canonical root\u201d (ops/devlane/fixtures/apps/rust-crate/FAULTS.json:62-65), practiced candidate canonicalization before starts_with (ops/devlane/fixtures/apps/rust-crate/src/store.rs:50-57); reproduce: `python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/apps/rust-crate/src/store.rs\").read_text(); b=s[s.index(\"pub fn checked_record_path\"):s.index(\"fn normalize\")]; assert \"normalize(&base.join(name)).canonicalize()?\" in b'`. F5 REGRESSED \u2014 declared parsed-envelope revalidation (ops/devlane/task/envelope.py:14-18,253-305), practiced `legacy_fixture` bypass (ops/bin/fixture.sh:443-475); its reproduce is finding 2. F6 FIXED \u2014 declared prove --fixed is a read (../in/input-fixture-reaudit.md:10), practiced copy to `trial` then `patch_fixture(trial, ...)` (ops/bin/fixture.sh:349-366); reproduce: `python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def prove(\"):s.index(\"def spans(\")]; assert \"patch_fixture(trial, manifest, fault_id)\" in b and \"patch_fixture(directory, manifest)\" not in b'`. F7 NOT FIXED \u2014 declared \u201cpinned toolchain\u201d (ops/devlane/fixtures/apps/python-service/README.md:5-11), practiced bare PATH Ruff (ops/devlane/fixtures/apps/python-service/FAULTS.json:3-6); its reproduce is finding 5. F8 FIXED for the reported copytree dereference \u2014 declared nothing outside the copy list enters (../in/input-fixture-reaudit.md:12), practiced `symlinks=True` on both trial copies (ops/bin/fixture.sh:351-365); reproduce: `python3 -c 'from pathlib import Path; s=Path(\"ops/bin/fixture.sh\").read_text(); b=s[s.index(\"def prove(\"):s.index(\"def spans(\")]; assert b.count(\"symlinks=True\") >= 2'`. Clean categories: the changed argv seams use list arguments; no changed SQL or template seam was found; `python3 ops/devlane/workflow/checks/secret_scan.py` reported 0 signatures; no fetched-action or lockfile pin was loosened. Not covered: network access was unavailable, so the newly listed PyPI artifact hashes could not be independently fetched and verified; per instruction, no session store was read, and no live grade was invoked because it writes the findings store."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T13:05:48.087Z"
+    }
+  },
+  "status": "closed"
+}

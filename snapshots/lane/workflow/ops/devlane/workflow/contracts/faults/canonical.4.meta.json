@@ -1,0 +1,10 @@
+{
+  "contract": "canonical",
+  "fault": "canonical.4.json",
+  "from": "obs/canonical.json",
+  "change": "the json.dumps call passes no sort_keys keyword at all",
+  "violates": "PLAN.md §2 line 52 (with §13 lines 574-575)",
+  "quote": "\"canonical form is *defined* as byte-identical to Python's `json.dumps(obj, sort_keys=True, separators=(\\\",\\\",\\\":\\\"))`\"",
+  "reject_path": "facts\\.json_dumps_calls\\.[0-9]+\\.keywords(\\.sort_keys)?\\b",
+  "implied": false
+}

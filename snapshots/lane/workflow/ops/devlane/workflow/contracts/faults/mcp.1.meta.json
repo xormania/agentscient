@@ -1,0 +1,11 @@
+{
+  "contract": "mcp",
+  "fault": "mcp.1.json",
+  "from": "obs/mcp.json",
+  "change": "mcp_server.py does not import `query`",
+  "violates": "PLAN.md §9 lines 486-487",
+  "quote": "\"Read-only by construction: it imports the query layer, not the append layer.\"",
+  "reject_path": "facts\\.server_imports\\b|query",
+  "implied": false,
+  "note": "The clean run may already fail on this path: mcp_server.py imports `chain`, which §13 line 567 calls append/verify/project. That is an observed disagreement, not this fault."
+}

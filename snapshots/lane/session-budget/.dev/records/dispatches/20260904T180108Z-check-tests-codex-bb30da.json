@@ -1,0 +1,206 @@
+{
+  "id": "20260904T180108Z-check-tests-codex-bb30da",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/session-budget",
+  "lineage": {
+    "branch": "lane/session-budget",
+    "base_sha": "cb40f137f6d5005b796af6e2d45c9ace3096b79e"
+  },
+  "follows": [
+    "20260904T175121Z-tests-grok-a0a65d"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T18:01:09Z",
+    "closed": "2026-09-04T18:06:47Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cb40f137f6d5005b796af6e2d45c9ace3096b79e",
+    "ref_sha": "cb40f137f6d5005b796af6e2d45c9ace3096b79e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-01-09-01a06d94-e4fc-7582-b06f-7bc193f93c52.jsonl"
+  },
+  "session": {
+    "id": "01a06d94-e4fc-7582-b06f-7bc193f93c52",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-01-09-01a06d94-e4fc-7582-b06f-7bc193f93c52.jsonl",
+    "stream_sha256_at_close": "d89c4e79218cfc793fd0efb2ed5a808f78672a325da4ff22c52db99e23c50a1d",
+    "spend": {
+      "input": 782815,
+      "cached": 698880,
+      "output": 15448,
+      "total": 798263,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-01-09-01a06d94-e4fc-7582-b06f-7bc193f93c52.jsonl",
+      "messages": 147
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/in/slice-session-budget.md",
+        "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/in/20260904T175121Z-tests-grok-a0a65d.json",
+        "sha256": "8013405c13879516fe901aceb901a67775644ad25908aac23a09e4f4551ec2f2"
+      }
+    ],
+    "sha256": "41d9e1318cdfbd5a704dfe7ed0c5fea20afc8d27785114b38ac4d90ad349a77c",
+    "bytes": 3225
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:01:09Z",
+      "ended": "2026-09-04T18:06:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cb40f137f6d5005b796af6e2d45c9ace3096b79e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1312",
+          "claim": "Over-budget cases invoke only Bash and Write. An implementation limiting session-budget checks to those tool names would pass while other parsed PreToolUse calls escape the watchdog.",
+          "reproduce": "sed -n '1312,1547p' ops/devlane/hooks/tests/test_matrix.py | rg -n 'tool_name|payload_(bash|write)'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1537",
+          "claim": "The no-grant-escape test covers hand-write but not an over-budget dispatch with an open grant. An implementation evaluating dispatch-by-hand first and returning allow for HAND_GRANT would pass, violating both no grant escape and required row ordering.",
+          "reproduce": "! sed -n '1312,1547p' ops/devlane/hooks/tests/test_matrix.py | rg -Fn 'dispatch('"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1393",
+          "claim": "The average-context fixture has one assistant usage row, making sum, mean, maximum, and last-row value identical. An implementation checking only the latest row passes but allows two row totals of 400001 and 1, whose mean is 200001.",
+          "reproduce": "sed -n '1393,1432p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:29",
+          "claim": "All threshold fixtures repeat 100, 200000, and 10. An implementation requiring the keys but discarding their configured values in favor of hard-coded constants passes, so the tests do not prove ops/lane.conf controls enforcement.",
+          "reproduce": "rg -n -e 'SESSION_TURNS_CEILING' -e 'SESSION_AVG_CONTEXT_CEILING' -e 'SESSION_REFUSALS_CEILING' -e 'CEILING + 1' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1378",
+          "claim": "Deny fixtures are ceiling-plus-one while the sole allow fixture is far below every ceiling. An implementation using >= instead of the contracted strict past-ceiling comparison passes but wrongly refuses exactly 100 turns, 200000 average context, or 10 refusals.",
+          "reproduce": "sed -n '535,541p;1378,1472p;1508,1535p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:493",
+          "claim": "Every turns-fixture line is an assistant usage row and every refusal marker is inside tool_result. Raw line-counting and raw substring-scanning implementations therefore pass while counting unrelated rows or marker text in prompts and assistant prose.",
+          "reproduce": "sed -n '493,521p;535,541p;1434,1472p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1329",
+          "claim": "The unreadable-transcript plant is only a nonexistent path. An implementation refusing ENOENT but treating another read failure, such as a directory transcript path, as an empty session passes without satisfying the could-not-look contract.",
+          "reproduce": "sed -n '1329,1338p' ops/devlane/hooks/tests/test_matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1385",
+          "claim": "Measured figures use substring assertions and the expected clause has only a generic shape check. An implementation can report 1101 for 101 turns, 1200001 for 200001 context, or 111 for 11 refusals, and omit the applicable ceiling name, while passing.",
+          "reproduce": "sed -n '1385,1391p;1426,1432p;1466,1492p' ops/devlane/hooks/tests/test_matrix.py"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180108Z-check-tests-codex-bb30da/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 798263,
+        "out": 15448,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cb40f137f6d5005b796af6e2d45c9ace3096b79e",
+        "started": null,
+        "ended": "2026-09-04T18:06:11Z"
+      },
+      "note": "The review completed without reading implementation, but the required report could not be created: apply_patch was refused by the read-only sandbox and the target remained absent. The exact frozen command could not look because no default temporary directory was writable; a supplemental TMPDIR=/dev/shm run executed 63 tests and produced 11 intended red assertion failures, and test-guard reported every plant guarded."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T18:06:47.206Z"
+    }
+  },
+  "status": "closed"
+}

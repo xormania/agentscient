@@ -1,0 +1,12 @@
+{
+  "change": "economics.carry is hand-written; carry is derived",
+  "contract": "plan",
+  "fault": "plan.15.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.derived-key",
+  "site": [
+    "economics",
+    "carry"
+  ],
+  "violates": "\u00a73.1 carry; \u00a75 N=15"
+}

@@ -1,0 +1,181 @@
+{
+  "id": "20260904T170050Z-review-grok-41c1f5",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "9be13730203c664f773e5dcd9b138ef8b3adadde"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T17:00:50Z",
+    "closed": "2026-09-04T17:15:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9be13730203c664f773e5dcd9b138ef8b3adadde",
+    "ref_sha": "9be13730203c664f773e5dcd9b138ef8b3adadde",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "102e9925-5964-4d14-9011-e307f2d5f127",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok-stream/sessions/<snapshot-encoded>/102e9925-5964-4d14-9011-e307f2d5f127/summary.json"
+  },
+  "session": {
+    "id": "102e9925-5964-4d14-9011-e307f2d5f127",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok-stream/sessions/<snapshot-encoded>/102e9925-5964-4d14-9011-e307f2d5f127/summary.json",
+    "stream_sha256_at_close": "29f9d8097713444f1d094db32c03ec5e5f5d99ed6b318d8223b424315ea499bc",
+    "spend": {
+      "input": 2115243,
+      "cached": 1815168,
+      "output": 50094,
+      "total": 2165337,
+      "cost_usd_ticks": 3074106600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/home/grok-stream/sessions/<snapshot-encoded>/102e9925-5964-4d14-9011-e307f2d5f127/summary.json",
+      "messages": 219
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
+    },
+    "scope": "Audit the item 31 batch on lane/check-tests-json against its merge-base with dev: slice 1 (the check-tests job returns its report on the wire, the driver writes a findings file for tests-fix) and slice 2 (the driver validates the check-tests envelope's verdict, counts and findings before writing; a shape-based write-path recogniser in ops/devlane/task/write_path.py; the findings file resolved against the worktree and published symlink-safe; the contract's slots paragraph). Inputs: the slice-2 plan and the first re-audit's findings. Quote declared words and practiced evidence with file:line for every finding; hunt: a changes envelope with no findings accepted, a symlink followed on the findings write, a path escaping the ladder input directory, a read-role prompt naming a write path, a test that pins absence only, a catalogue job changed other than check-tests. Review only; do not edit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/in/PLAN-check-tests-json-2.md",
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170050Z-review-grok-41c1f5/in/input-check-tests-json-2-plan.md",
+        "sha256": "9792718ca3c0fd16ae49be84579a7e480b1816dac85339bae21b91ff31b5a632"
+      }
+    ],
+    "sha256": "9b555891f59b2508e6de4aa218972b468c5ce485b7c1852baa99925bb021d3a0",
+    "bytes": 3206
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T17:00:50Z",
+      "ended": "2026-09-04T17:15:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9be13730203c664f773e5dcd9b138ef8b3adadde",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/ladder-inputs/PLAN-check-tests-json-2.md:80-86; ops/conductor/tools/ladder.py:184-193,1011-1019,1062-1071",
+          "claim": "Declared: the slice-2 plan says \"the driver may write the findings payload only as a regular file inside `inputs_dir` (`.dev/records/ladders/<id>/` in the worktree)\" and \"the ladder writes under that inputs dir, not through a symlink to the host\"; \"A pre-existing symlink is a planted fault, not a destination.\" Practiced: `replace_text` does `tempfile.mkstemp(..., dir=path.parent)` then `os.replace` (ladder.py:186,191), which follow a directory symlink at `inputs_dir`; `findings_file.parent.mkdir(exist_ok=True)` (1013) leaves that symlink in place; `inputs_for` then bounds with `candidate.is_relative_to(self.inputs_dir.resolve())` (1064), so the host directory counts as ladder inputs and tests-fix is given a path outside the worktree. The payload-file symlink plant is no longer followed; the target moved to the directory.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c 'import os,tempfile; from pathlib import Path; from types import SimpleNamespace as N; import ladder; td=tempfile.TemporaryDirectory(); root=Path(td.name); wt=root/\"wt\"; wt.mkdir(); host=root/\"hostdir\"; host.mkdir(); inputs=wt/\"inputs\"; inputs.symlink_to(host); d=object.__new__(ladder.Driver); d.worktree=wt; d.inputs_dir=inputs; d.findings=wt/\"findings.py\"; d.stage_by_name={\"check-tests\":{}}; d.commit=lambda *a:None; d.plan=None; ladder.run=lambda *a,**k:N(returncode=0,stdout=\"\",stderr=\"\"); p=ladder.Pending(\"check-tests\",\"id\",wt/\"r\",\"m\",\"e\",\"b\",0.0); d.ledger_result(p,{\"verdict\":\"changes\",\"counts\":{\"p1\":1,\"p2\":0,\"p3\":0,\"opinions\":0},\"findings\":[{\"severity\":\"p1\",\"where\":\"x\",\"claim\":\"y\",\"reproduce\":\"true\"}]}); payload=host/\"check-tests-findings.payload.json\"; assert payload.is_file() and \"claim\" in payload.read_text(); d.row=lambda name: d.stage_by_name[\"check-tests\"] if name==\"check-tests\" else {}; out=d.inputs_for(\"tests-fix\",{\"check-tests\":\"rec\"},None); resolved=[Path(x).resolve() for x in out]; assert any(str(x).startswith(str(host.resolve())+os.sep) for x in resolved); print(\"directory symlink write landed on host and tests-fix received it\")'"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/ladder-inputs/PLAN-check-tests-json-2.md:91-92; ops/devlane/task/tests/test_check_tests_json.py:132-136,217-233; ops/devlane/task/tests/test_jobs.py:150-151,229-245; ops/devlane/task/write_path.py:7-15",
+          "claim": "Declared: the plan says \"a write verb plus a path-shaped token. Path-shaped includes an extensionless relative name (`REVIEW`), not only slash, extension, or `{out}`\"; the tests say the read-role prompt \"rejects any write path, not a blacklist\" and \"path-shaped includes an extensionless relative name.\" Practiced: `_WRITE_PATH` still lists `create|persist|save|store|write` and treats an extensionless name as a path only with `(?=\\s+in\\s+(?:the\\s+)?repository\\b)`. `Create REVIEW on disk` and `Dump REVIEW in the repository` return None from `write_path_ask`. Planting `Create REVIEW on disk. Return the JSON envelope on stdout and leave artifacts empty.` as the live check-tests prompt leaves all 21 tests in CheckTestsPromptCarriesNoFilePath, ReadRolePromptRejectsAnyWritePath, and CheckTestsReadRolePromptRejectsAnyWritePath green. The named `Create REVIEW in the repository` plant is now red; the bypass class is not.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/devlane/task/tests python3 -c 'import json,unittest,sys; from pathlib import Path; import test_check_tests_json as a,test_jobs as b; sys.path.insert(0,\"ops/devlane/task\"); import write_path; jobs=json.loads(Path(\"ops/devlane/task/jobs.json\").read_text()); prompt=\"Create REVIEW on disk. Return the JSON envelope on stdout and leave artifacts empty.\"; assert write_path.write_path_ask(prompt) is None; assert write_path.write_path_ask(\"Dump REVIEW in the repository\") is None; jobs[\"check-tests\"][\"prompt\"]=prompt; F=type(\"F\",(),{\"is_file\":lambda self:True,\"read_text\":lambda self,encoding=None:json.dumps(jobs)}); a.JOBS_PATH=b.JOBS_PATH=F(); s=unittest.TestSuite(); [s.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(c)) for c in (a.CheckTestsPromptCarriesNoFilePath,a.ReadRolePromptRejectsAnyWritePath,b.CheckTestsReadRolePromptRejectsAnyWritePath)]; r=unittest.TextTestRunner(verbosity=0).run(s); print(\"wrong extensionless write prompt accepted\", r.wasSuccessful()); raise SystemExit(not r.wasSuccessful())'"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/ladder-inputs/PLAN-check-tests-json-2.md:48-49; ops/conductor/tests/test_ladder_lever.py:3375-3382,3529-3617",
+          "claim": "Declared: CheckTestsEnvelopeValidatedBeforeFindingsFile says \"Validate verdict, counts, and findings shape before writing\" and \"verdict=changes with an empty findings list is an envelope stop\"; the plan says pin the refusal, \"Do not leave the method as an absence-only test,\" and names `test_findings_none_does_not_move_to_tests_fix` as the instance. Practiced: that one method now calls `assert_stopped(..., reason=\"envelope\")`. `test_counts_that_disagree_with_findings_do_not_move_to_tests_fix` (3529-3559), `test_a_finding_missing_its_shape_does_not_move_to_tests_fix` (3561-3591), and `test_approve_with_findings_does_not_skip_to_implement` (3593-3617) still assert only that `tests-fix`/`code` and payload files are absent. A driver that silently returns success passes all three.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tests python3 -c 'import test_ladder_lever as t; names=[\"test_counts_that_disagree_with_findings_do_not_move_to_tests_fix\",\"test_a_finding_missing_its_shape_does_not_move_to_tests_fix\",\"test_approve_with_findings_does_not_skip_to_implement\"];\ndef run(n):\n c=t.CheckTestsEnvelopeValidatedBeforeFindingsFile(n); c.patch_plant=lambda **kw:None; c.files_before_run=lambda:set(); c.run_ladder=lambda:object(); c.dispatch_names=lambda:[]; c.combined=lambda proc:\"silent success\"; c.findings_payload_files=lambda before:[]; c.plant_check_tests_findings=lambda **kw:[{\"severity\":\"p2\"}]; c.counts_from_findings=lambda planted:{\"p2\":1}; getattr(c,n)(); print(n, \"absence-only test accepted a result with no returncode or refusal\")\nlist(map(run, names))'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/ladder-lever.md:88-91; .dev/ladder-inputs/PLAN-check-tests-json-2.md:86; ops/conductor/tools/ladder.py:1019,1117-1122,1688-1692",
+          "claim": "Declared: ladder-lever.md says \"If its stopped dispatch record is now closed with an accepted envelope, resume consumes and lands it without relaunching\"; the plan says \"Replacing the symlink with a regular file inside inputs, or stopping before the write, are both refusals of the bypass.\" Practiced: after a symlink-safe payload replace, the published name is created with `findings_file.symlink_to(findings_payload.name)` (ladder.py:1019), which neither replaces a pre-existing path nor raises `Stopped`. A second `ledger_result` \u2014 resume of a closed check-tests envelope whose row outcome is not `ok` (`finish(..., already_closed=...)` at 1117-1122) \u2014 raises `FileExistsError`. `main` catches only `Refused` and `Stopped` (1688-1692), so the ladder crashes off the wire instead of `stopped stage=check-tests reason=findings-file`.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c 'import tempfile; from pathlib import Path; from types import SimpleNamespace as N; import ladder; td=tempfile.TemporaryDirectory(); wt=Path(td.name)/\"wt\"; wt.mkdir(); d=object.__new__(ladder.Driver); d.worktree=wt; d.inputs_dir=wt/\"inputs\"; d.inputs_dir.mkdir(); d.findings=wt/\"findings.py\"; d.stage_by_name={\"check-tests\":{}}; d.commit=lambda *a:None; ladder.run=lambda *a,**k:N(returncode=0,stdout=\"\",stderr=\"\"); p=ladder.Pending(\"check-tests\",\"id\",wt/\"r\",\"m\",\"e\",\"b\",0.0); env={\"verdict\":\"changes\",\"counts\":{\"p1\":1,\"p2\":0,\"p3\":0,\"opinions\":0},\"findings\":[{\"severity\":\"p1\",\"where\":\"x\",\"claim\":\"y\",\"reproduce\":\"true\"}]}; d.ledger_result(p, env); exec(\"try:\\\\n d.ledger_result(p, env)\\\\n print(\\\"second publish ok\\\")\\\\nexcept FileExistsError:\\\\n print(\\\"second publish FileExistsError not Stopped\\\")\")'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2165337,
+        "out": 50094,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9be13730203c664f773e5dcd9b138ef8b3adadde",
+        "started": "2026-09-04T17:00:50Z",
+        "ended": "2026-09-04T17:13:00Z"
+      },
+      "note": "Looked and found clean at 9be13730203c664f773e5dcd9b138ef8b3adadde vs 340badebd2deb9a5209689f414c5fdf70e60cc2c: schema-valid verdict=changes with findings=[] is refused by Driver.validate_check_tests as reason=envelope (launch._schema_valid still True, as the plan left envelope.py out of scope); a payload-file symlink (absolute or relative ../../) is replaced, host body stays HOST; consume-time absolute, ../, and file-symlink plants are Stopped reason=findings-file; no catalogue job other than check-tests differs from the merge-base; CONTRACT.md:133-135 matches practiced plan/check-tests/adjudicate slots and no longer claims all three read jobs name {inputs}; the live check-tests prompt is not a write_path_ask hit. Full ladder fixture suite not run; hunts used unit reproduces against this tree."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T17:15:22.847Z"
+    }
+  },
+  "status": "closed"
+}

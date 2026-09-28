@@ -1,0 +1,194 @@
+{
+  "id": "20260908T071550Z-adjudicate-codex-aa8b1a",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/agy-envelope-test-adjudication-20260908",
+  "lineage": {
+    "branch": "lane/agy-envelope-test-adjudication-20260908",
+    "base_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:15:51Z",
+    "closed": "2026-09-08T07:18:55Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "ref_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-15-53-01a07fdf-9368-7613-bad1-161f2d064d0a.jsonl"
+  },
+  "session": {
+    "id": "01a07fdf-9368-7613-bad1-161f2d064d0a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-15-53-01a07fdf-9368-7613-bad1-161f2d064d0a.jsonl",
+    "stream_sha256_at_close": "3b74df61f2bb82cc4cc9a31b92104d56a0833ad9a030cf13ac9e4fceabf2b7bb",
+    "spend": {
+      "input": 587632,
+      "cached": 521600,
+      "output": 3822,
+      "total": 591454,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-15-53-01a07fdf-9368-7613-bad1-161f2d064d0a.jsonl",
+      "messages": 90
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-envelope-test-adjudication-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate only the five original Claude findings against Grok envelope tests at cf729ae, using original reviewed source/report and original wire evidence. You produced neither tests nor findings. Rule UPHELD/PARTIAL/REJECTED per item with smallest test correction. No later fixes or observations. Distinguish missing vendor-status discrimination and ambiguous bare stdout acceptance from speculative vocabulary/schema; do not invent status enums. Assess whether decoy-preempted red receipts require bounded test improvements rather than a new gate. No source/test edits, parser-body reads, credentials, inference or full floor. Return inline rulings; acceptance remains with an independent test reviewer. No role studies or framework expansion.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/in/agy-envelope-test-review.json",
+        "sha256": "eaa2a028ac24224d14133edbb50fa2932d06d9161575b5643fa2c6019cdc2961"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071550Z-adjudicate-codex-aa8b1a/in/agy-envelope-test-producer.json",
+        "sha256": "a7aa48c7b0147a62013a918d772923f1826b67696c0923cdeb633aa9d71e4b5e"
+      }
+    ],
+    "sha256": "bdd1dc64dbffc6f10fc5d9639bdc43bb820f830512ba2bd9a3710650839d9721",
+    "bytes": 3058
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:15:51Z",
+      "ended": "2026-09-08T07:18:55Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/agy_envelope_support.py:83; ops/devlane/dispatch/tests/test_agy_envelope.py:177",
+          "claim": "1 \u2014 PARTIAL. Missing vendor-status discrimination is established: every published_result call uses the SUCCESS default; the failure case adds only error. CONTRACT.md:73 requires rejection of vendor errors beside a plausible envelope. However, the original wire evidence supplies no failure-status enum or status/error relationship. The changelog does not establish either, and SUCCESS plus error is not proven impossible. Smallest correction: retain the explicit-error case, add a missing-status malformed-carrier case beside a valid nested envelope, and identify status-only vendor-failure coverage as unresolved until an evidence-backed value and meaning are available. Do not invent status enums or equate malformed metadata with demonstrated vendor-failure coverage.",
+          "reproduce": "At cf729ae, inspect published_result calls in both original test files and compare in/agy-wire-evidence.json result.envelope.artifacts.published_wire, synthetic_shapes and release_specific_corrections. No call overrides vendor status."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:116",
+          "claim": "2 \u2014 PARTIAL. The happy-path test accepts an unwrapped result-shaped object between unrelated NDJSON objects, without establishing why that object is terminal. Original evidence illustrates a whole print-JSON stdout document and separately framed stream results; CONTRACT.md:72 declares stream-json transport. This supports the ambiguity finding, but does not prove that every conceivable mixed output is vendor-impossible or require a second bare-print acceptance path. Smallest correction: replace this mixed bare-object success expectation with rejection under the declared stream transport. If standalone print acceptance remains intended, first ground that carrier boundary, use a whole-document positive fixture, and add duplicate/mixed-carrier rejection coverage. Do not merely extend permissive stdout scanning.",
+          "reproduce": "At cf729ae, read test_agy_envelope.py:116-133 alongside CONTRACT.md:72-73 and in/agy-wire-evidence.json result.envelope.artifacts.synthetic_shapes."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:318; :332; :347",
+          "claim": "3 \u2014 UPHELD. The assertions require literal truncated/malformed vocabulary, while CONTRACT.md:73 requires an invalid/null-verdict result 'with a cause on failure'. The fixtures establish invalid JSON or a non-object payload, not a mandated diagnostic taxonomy. Smallest correction: remove those three literal-token requirements while retaining invalid status, null verdict, an explanatory nonempty cause and rejection of decoy output. Preserve the malformed and truncated input cases themselves; no new cause schema is needed.",
+          "reproduce": "At cf729ae, compare assert_invalid_cause at test_agy_envelope.py:64-82 and its calls at lines 318, 332 and 347 with CONTRACT.md:73."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:276-347; :425-456",
+          "claim": "4 \u2014 PARTIAL. The original review records 21 tests, 19 assertion failures, two passes and zero errors; 18 failures are preempted by the leading decoy. Those receipts establish extraction failures, not independent discrimination of every downstream rejection rule. They do not establish that all such tests become green merely when extraction works, and removing decoys does not guarantee a rule-specific red. Smallest correction: retain the decoy extraction controls and give the existing rejection cases decoy-free variants with corresponding valid terminal controls, so rejection behavior can be assessed without the leading decoy. Report what those assertions actually exercise through focused discovery. No new gate, mutation framework or universal per-rule red requirement follows.",
+          "reproduce": "Compare the original producer and Claude review result.envelope.artifacts.unittest/reds entries with the unchanged rejection fixtures at cf729ae. Receipt attribution is taken from those original reports; no later run is substituted."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:39-44",
+          "claim": "5 \u2014 UPHELD. parse() silently converts a tuple containing a dict into the expected result, weakening the existing result-object boundary without contractual support. Smallest correction: assert that the direct return is a dict and return it unchanged; remove tuple unwrapping. The two legacy passes do not themselves prove the tuple branch unreachable because they use this same permissive helper. Upholding the correction requires no claim about the unread parser body.",
+          "reproduce": "At cf729ae, inspect parse() at test_agy_envelope.py:30-44 and the legacy controls at lines 462-484 against CONTRACT.md:73."
+        }
+      ],
+      "artifacts": {
+        "scope": "Only the five original Claude findings adjudicated against original cf729ae test source, original producer/review reports and original supplied wire evidence.",
+        "patch": "Supplied context/diff.patch byte-equals git diff 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 cf729ae7c1c2d1fcc08ef6c936b558c435641228; SHA256 b9ab090c1b83809ba69ed10014a64099fa840277774ce8cc958be821aff384c1. Both reviewed test files byte-match cf729ae. Range diff --check exited 0.",
+        "inputs": "Read all three inputs whole. SHA256: agy-envelope-test-review.json=eaa2a028ac24224d14133edbb50fa2932d06d9161575b5643fa2c6019cdc2961; agy-envelope-test-producer.json=a7aa48c7b0147a62013a918d772923f1826b67696c0923cdeb633aa9d71e4b5e; agy-wire-evidence.json=3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac.",
+        "original_receipts": "Claude's supplied cf729ae report records focused discovery: 21 run, 19 FAIL, 2 PASS, 0 ERROR, exit 1; legacy neighbors: 58 passed; registered lint: exit 0. These are original reported receipts, not fresh executions.",
+        "limits": "No edits, parser-body reads, credentials, settings or session-store access, inference runs, later fixes/observations, test executions or full floor. Tracked working-tree status was empty."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 591454,
+        "out": 3822,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+        "started": "2026-09-08T07:16:03Z",
+        "ended": "2026-09-08T07:18:01Z"
+      },
+      "note": "Rulings: PARTIAL, PARTIAL, UPHELD, PARTIAL, UPHELD. Counts retain the five original severities for the sustained corrections. Tests remain provisional; acceptance belongs to an independent test reviewer. No new gate or framework is proposed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:18:55.364Z"
+    }
+  },
+  "status": "closed"
+}

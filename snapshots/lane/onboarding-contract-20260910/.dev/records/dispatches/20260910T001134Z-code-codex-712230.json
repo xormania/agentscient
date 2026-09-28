@@ -1,0 +1,273 @@
+{
+  "id": "20260910T001134Z-code-codex-712230",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/onboarding-contract",
+  "lineage": {
+    "branch": "lane/onboarding-contract-20260910",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:11:34Z",
+    "closed": "2026-09-10T00:23:42Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-contract-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-11-35-01a088a7-d4e4-77f3-ac71-3663f8920a4f.jsonl"
+  },
+  "session": {
+    "id": "01a088a7-d4e4-77f3-ac71-3663f8920a4f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-11-35-01a088a7-d4e4-77f3-ac71-3663f8920a4f.jsonl",
+    "stream_sha256_at_close": "5e666572cde12cf85a665b6ea554bfdc5ea8197fc6b0ebac3b0fce9feb3f6d0f",
+    "spend": {
+      "input": 1606298,
+      "cached": 1505536,
+      "output": 22527,
+      "total": 1628825,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-11-35-01a088a7-d4e4-77f3-ac71-3663f8920a4f.jsonl",
+      "messages": 154
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-contract-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check . -- ; author only ops/conductor/session-onboarding.md and a reciprocal link/explicit precedence amendment in ops/conductor/conductor-start-plan.md. Read all named in/ inputs. Declare the complete deterministic onboarding/admission boundary the owner approved: full tool-feature-MCP discovery with bounded first context, current identity/work ownership and freshness, monitor coverage lease/reuse/liveness, actual-client delivery proof, durable startup evidence, revalidation, and explicit unsupported states. Define exact CLI/library/data/refusal interfaces, closed schemas, measured budgets and independent fault/clean acceptance rows. Reuse canonical dispatch records, monitor store and existing discovery/policy owners; no duplicate executor/store, no Symfony runtime. Reconcile existing prerequisites honestly; do not claim runtime/activation. This is a contract artifact for immediate independent tests and implementation, not task completion. Do not edit tests or any other files.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/in/onboarding-request.md",
+        "sha256": "2b2878ff11f6ad360b66e03a131e5bd6602030fc4b2f24cdfc18bdf708665620"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/in/owner-clarification.md",
+        "sha256": "0d51b0ce49b26595e81912709574d98081e500e2d4a90fb034245a5eaa02a4a2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/in/host-evidence.md",
+        "sha256": "0d9934254e78e2d8b4289d97cbef32288081091e63c797a535c95627b14a13db"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/in/inventory-envelope.json",
+        "sha256": "76e45ced0eee9d17c527760f0386493393335c06c9bcba7727eac1af9cf6414f"
+      }
+    ],
+    "sha256": "7c5c506d3fd340683905702fe79e54d8366fb0f2bbff435aa1db0e17b3a4c4a1",
+    "bytes": 4851
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:11:34Z",
+      "ended": "2026-09-10T00:23:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9901c408a98eb6a6177715bcdcd5c059cd2ceece",
+    "changed_paths": [
+      "ops/conductor/conductor-start-plan.md",
+      "ops/conductor/session-onboarding.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 14,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "Initial snapshot inspection",
+          "claim": "HEAD matched the requested commit; the initial working tree was clean. Enumerated supplied inputs and repository documentation.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; rg --files ../in docs ops/conductor -g '*.md' -g '*'"
+        },
+        {
+          "severity": "p3",
+          "where": "Initial instruction reads",
+          "claim": "Read inputs, founding documents, AGENTS.md and ops/README.md. Combined output was truncated, so relevant content was subsequently reread in smaller groups.",
+          "reproduce": "cat ../in/*; cat docs/*.md; cat AGENTS.md ops/README.md; rg --files -g AGENTS.md ops"
+        },
+        {
+          "severity": "p3",
+          "where": "Supplied owner and inventory inputs",
+          "claim": "Read the request, clarification and inventory envelope whole. The clarification assigns monitoring to onboarding and limits the concurrent session to Git/GitHub synchronization.",
+          "reproduce": "cat ../in/onboarding-request.md ../in/owner-clarification.md; cat ../in/inventory-envelope.json"
+        },
+        {
+          "severity": "p3",
+          "where": "Founding contracts",
+          "claim": "Read the wire, probes, verified couplings, concerns, workflow and mapping documents before authoring.",
+          "reproduce": "cat docs/wire.md docs/probes.md docs/verified-couplings.md docs/concerns.md docs/workflow.md docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Existing startup contracts",
+          "claim": "Inspected startup, harness and onboard contracts; preserved their canonical ownership and read-only brief boundary.",
+          "reproduce": "cat ops/conductor/conductor-start-plan.md ops/conductor/harness-capabilities.md ops/conductor/onboard-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Startup precedence",
+          "claim": "Reread the complete start plan to reconcile its earlier deferrals, proposed descriptor and actual-client timing requirements.",
+          "reproduce": "cat ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Monitor and policy interfaces",
+          "claim": "Inspected monitor persistence, acknowledgment limits, instrument conventions and discovery/policy interface locations.",
+          "reproduce": "cat ops/conductor/monitor-lever.md; cat ops/conductor/instrument-conventions.md; rg -n '^##|^###|acquire\\(|def |CREATE TABLE|schema|conductor|admission' ops/conductor/lane-policy.md ops/conductor/discovery-lever.md ops/devlane/dispatch/record.py ops/conductor/tools/monitor.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Closed schemas and refusal timing",
+          "claim": "Read discovery schemas, policy timing, record validation and canonical conductor references. Retained unsupported prerequisites rather than claiming activation.",
+          "reproduce": "sed -n '210,380p' docs/mapping.md; sed -n '518,798p' ops/conductor/discovery-lever.md; sed -n '583,675p' ops/conductor/lane-policy.md; sed -n '1,155p' ops/devlane/dispatch/record.py; rg -n 'canonical-conductor|conductor:|conductor\\.|result.status|onboarding|def bind|def check|evaluate_tool' ops/devlane/dispatch/CONTRACT.md ops/conductor/permission-surface.md ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Canonical record and adapter contracts",
+          "claim": "Read the conductor record variant, adapter compilation, discovery configuration and remaining mapping sections.",
+          "reproduce": "sed -n '1085,1225p' ops/devlane/dispatch/CONTRACT.md; sed -n '1,150p' ops/conductor/harness-capabilities.md; sed -n '57,146p' ops/conductor/discovery-lever.md; sed -n '120,210p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Snapshot prerequisite measurement",
+          "claim": "Python Path/AST/JSON inspection at 2026-09-10T00:12:37Z measured input hashes, missing proposed executables, proposal policy standing, compact-only startup hook and disabled example monitors. Source reads confirmed unfinished discovery boot, separate task supervision and sweep importer coverage. These remain implementation follow-ups.",
+          "reproduce": "python3 -B - <<'PY'\nimport ast, datetime, hashlib, json\nfrom pathlib import Path\nprint('measured_at',datetime.datetime.now(datetime.timezone.utc).isoformat())\nfor p in sorted(Path('../in').iterdir()):\n b=p.read_bytes(); print('input',p.name,len(b),hashlib.sha256(b).hexdigest())\nfor p in ('ops/conductor/tools/lane_policy.py','ops/conductor/tools/conduct.py','ops/conductor/tools/probes.py','ops/devlane/workflow/wf.py','vendor/bin/mate','ops/conductor/session-onboarding.md'):\n print('present',p,Path(p).exists())\nfor p in ('ops/conductor/tools/lane_refs.py','ops/conductor/tools/onboard.py','ops/conductor/tools/monitor.py'):\n t=ast.parse(Path(p).read_text()); print('functions',p,[n.name for n in t.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))])\nprint('policy standing',json.loads(Path('ops/lane-policy.json').read_text())['standing'])\nprint('session hooks',json.loads(Path('.claude/settings.json').read_text())['hooks']['SessionStart'])\nprint('monitor enabled',{k:v['enabled'] for k,v in json.loads(Path('ops/conductor/monitor.example.json').read_text())['monitors'].items()})\nfor root in ('ops/bin','ops/conductor/registry','ops/design/features','ops/devlane/telemetry'):\n print('inventory',root,[str(p) for p in sorted(Path(root).rglob('*')) if p.is_file()])\nPY\nsed -n '362,408p' ops/conductor/tools/lane_mcp.py\nsed -n '760,805p' ops/conductor/tools/lane_refs.py\nsed -n '960,985p' ops/devlane/task/run.py\nsed -n '30,45p' ops/conductor/tools/findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Authorized document edits",
+          "claim": "Applied two successful documentation patches and wrote the fallback commit message. Three intervening patch attempts failed context matching without modifying files. The contract declares interfaces, schemas, budgets, prerequisites and 20 independent fault/clean acceptance rows; no tests or runtime files were edited.",
+          "reproduce": "git diff -- ops/conductor/conductor-start-plan.md; cat ops/conductor/session-onboarding.md ../out/COMMIT_MSG; git status --short"
+        },
+        {
+          "severity": "p2",
+          "where": "git diff --check . --",
+          "claim": "The exact requested command failed initially and in the final tree with exit 128: fatal: bad revision '.'. Git interprets '.' as a revision before the trailing '--'. The authorized document edits cannot repair this command. Final HEAD remained 20f9bcaf2b3ae2152b9cab766637b5a89b71214b, measured at 2026-09-10T00:21:43Z.",
+          "reproduce": "git diff --check . --\ngit diff --stat\npython3 -B - <<'PY'\nimport re\nfrom pathlib import Path\np=Path('ops/conductor/session-onboarding.md')\ns=p.read_text()\nprint('contract lines',len(s.splitlines()),'bytes',len(s.encode()))\nprint('acceptance rows',len(re.findall(r'^\\| S\\d\\d ',s,re.M)))\nfor source in (p,Path('ops/conductor/conductor-start-plan.md')):\n for target in re.findall(r'\\]\\(([^)]+)\\)',source.read_text()):\n  if '://' not in target and not target.startswith('#'):\n   q=source.parent/target.split('#')[0]\n   if not q.exists(): print('missing link',source,target)\n print('trailing whitespace',source,[i for i,l in enumerate(source.read_text().splitlines(),1) if l.rstrip()!=l])\nPY\ngit status --short\ngit rev-parse HEAD\ndate -u +%Y-%m-%dT%H:%M:%SZ\ngit diff --check . --"
+        },
+        {
+          "severity": "p3",
+          "where": "Contract refinement inspection",
+          "claim": "Located exact schema and durability passages before refining freshness binding, native-tool discovery, generation checks, immutable evidence and commit timing.",
+          "reproduce": "rg -n -A 6 -B 3 'Binding is|Kind is|Evidence is|Session \\||Durability gate|All new JSON|Class is|operation handles|Unsupported database|same interface|No historical' ops/conductor/session-onboarding.md; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "Supplementary documentary verification",
+          "claim": "Separate whitespace checks passed for both documents. Scratch checks passed for whitespace, balanced fences, local link targets, reciprocal links and 20 acceptance rows. No runtime or independent acceptance result is claimed.",
+          "reproduce": "git diff --check -- ops/conductor/conductor-start-plan.md\ngit diff --no-index --check /dev/null ops/conductor/session-onboarding.md\npython3 -B - <<'PY'\nfrom pathlib import Path\nimport re\npaths=[Path('ops/conductor/session-onboarding.md'),Path('ops/conductor/conductor-start-plan.md')]\nfor p in paths:\n s=p.read_text()\n assert not any(l.rstrip()!=l for l in s.splitlines())\n assert s.count('```')%2==0\n for target in re.findall(r'\\]\\(([^)]+)\\)',s):\n  if '://' not in target and not target.startswith('#'):\n   assert (p.parent/target.split('#')[0]).exists(), target\n print(p,len(s.encode()),'bytes; whitespace, fences and local link targets checked')\nassert 'session-onboarding.md' in paths[1].read_text()\nassert 'conductor-start-plan.md#session-admission-amendment' in paths[0].read_text()\nprint('20 independent acceptance rows:',len(re.findall(r'^\\| S\\d\\d ',paths[0].read_text(),re.M))==20)\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "Commit attempt",
+          "claim": "Staging failed because .git/index.lock could not be created on the read-only filesystem, so commit did not execute. Saved the attributed message to ../out/COMMIT_MSG. This sandbox restriction is separate from the failing required command.",
+          "reproduce": "git add -- ops/conductor/session-onboarding.md ops/conductor/conductor-start-plan.md && git commit -m 'docs(conductor): define deterministic session admission boundary' -m 'Declare complete onboarding discovery, ownership, freshness, monitor coverage, actual-client delivery, durable evidence and revalidation interfaces with closed schemas, bounded resources and independent acceptance rows. Amend startup precedence while preserving existing owners and explicit unfinished prerequisites. No runtime or activation claimed.' -m 'Source: original\nCo-Authored-By: GPT-6 Codex <noreply@openai.com>'"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/conductor/session-onboarding.md",
+        "precedence_amendment": "ops/conductor/conductor-start-plan.md",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1628825,
+        "out": 22527,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+        "started": null,
+        "ended": "2026-09-10T00:21:43Z"
+      },
+      "note": "Failing test: git diff --check . -- (exit 128, bad revision '.'). Authored only the two authorized repository documents. Assumption: complete discovery requires an explicit versioned extension while preserving existing closed schemas. Existing prerequisite defects remain follow-ups, not runtime fixes. This is a contract artifact, not activation or completion of the owner's onboarding request.",
+      "commit": {
+        "subject": "docs(conductor): define deterministic session admission boundary",
+        "body": "Declare complete onboarding discovery, ownership, freshness, monitor coverage,\nactual-client delivery, durable evidence and revalidation interfaces with closed\nschemas, bounded resources and independent acceptance rows. Amend startup\nprecedence while preserving existing owners and explicit unfinished prerequisites.\nNo runtime or activation claimed.\n\nSource: original\nCo-Authored-By: GPT-6 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:23:41.331Z"
+    }
+  },
+  "status": "closed"
+}

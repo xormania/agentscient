@@ -1,0 +1,10 @@
+{
+  "contract": "layout",
+  "fault": "layout.5.json",
+  "from": "obs/layout.json",
+  "change": "gate-kinds/tdd.json is not in the tree",
+  "violates": "PLAN.md §8 line 473 (with §11 line 516, §6 lines 328-329)",
+  "quote": "\"  gate-kinds/*.json    # gate-kind registry, source of truth\" / \"seeded `tdd` and `artifact` gate kinds\"",
+  "reject_path": "facts\\.files\\b|tdd\\.json",
+  "implied": false
+}

@@ -1,0 +1,10 @@
+{
+  "contract": "db",
+  "fault": "db.6.json",
+  "from": "obs/db.json",
+  "change": "the `tdd` registry row's raw spec digest is 32 hex characters, not a sha256",
+  "violates": "PLAN.md §6 line 355 (with §3.1 line 79)",
+  "quote": "\"`(kind, version, spec_sha256)` at `open` — digest recorded in the chain's opening event\" / \"`hash` = SHA-256 over the canonical JSON\"",
+  "reject_path": "facts\\.gate_kinds\\.[0-9]+\\.spec_sha256_raw\\b",
+  "implied": false
+}

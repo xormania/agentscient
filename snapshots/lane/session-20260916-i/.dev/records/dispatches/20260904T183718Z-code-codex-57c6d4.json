@@ -1,0 +1,359 @@
+{
+  "id": "20260904T183718Z-code-codex-57c6d4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/dispatch-agent",
+  "lineage": {
+    "branch": "lane/dispatch-agent",
+    "base_sha": "f90da574a324b6bf18ff488236bda5b324d61700"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T18:37:19Z",
+    "closed": "2026-09-04T18:41:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f90da574a324b6bf18ff488236bda5b324d61700",
+    "ref_sha": "f90da574a324b6bf18ff488236bda5b324d61700",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-37-20-01a06db6-0459-7cb0-8084-4f17f4b59482.jsonl"
+  },
+  "session": {
+    "id": "01a06db6-0459-7cb0-8084-4f17f4b59482",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-37-20-01a06db6-0459-7cb0-8084-4f17f4b59482.jsonl",
+    "stream_sha256_at_close": "48674efa2aff2fedab2e6013b41d6a7bbe484d6f8d09bea369f663ae5dcb6487",
+    "spend": {
+      "input": 714594,
+      "cached": 664960,
+      "output": 10703,
+      "total": 725297,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-37-20-01a06db6-0459-7cb0-8084-4f17f4b59482.jsonl",
+      "messages": 162
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-agent/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "dispatch.sh stamps WF_AGENT_DEFAULT even when WF_AGENT is exported. Identity is --agent if passed, else WF_AGENT if set in Name <address> form, else WF_AGENT_DEFAULT. Frozen: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T183718Z-code-codex-57c6d4/in/slice-dispatch-agent.md",
+        "sha256": "7c8e1d25557aeaac17986d3f6ea561c948738f4ca800bf24119e3ae6c328dc9e"
+      }
+    ],
+    "sha256": "07ed863b2cb9c8aa15b7e4e8275b8e2c5f325a89666891690e52b97dad131b2c",
+    "bytes": 4101
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:37:19Z",
+      "ended": "2026-09-04T18:41:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3cfbb25da04565959865965cec4cce499090f60f",
+    "changed_paths": [
+      "ops/conductor/tools/dispatch.sh"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "dispatch-agent",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 32,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "Resolved the working directory to the requested snapshot.",
+          "reproduce": "pwd"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "Initial repository state was detached and clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "Initial HEAD matched the requested ref f90da574a324b6bf18ff488236bda5b324d61700.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops",
+          "claim": "Enumerated repository instruction and README files.",
+          "reproduce": "rg --files docs ops -g 'README.md' -g 'AGENT_INSTRUCTIONS.md'"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Found the supplied slice-dispatch-agent.md input.",
+          "reproduce": "find ../in -type f -print"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/slice-dispatch-agent.md",
+          "claim": "Read the supplied task input whole before implementation.",
+          "reproduce": "cat ../in/slice-dispatch-agent.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Enumerated all founding contract documents.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Read the lane operating instructions.",
+          "reproduce": "cat ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read all founding contract documents.",
+          "reproduce": "cat docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh",
+          "claim": "Inspected the dispatch wrapper before editing.",
+          "reproduce": "cat ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "Inspected the frozen wrapper tests without modifying them.",
+          "reproduce": "cat ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh",
+          "claim": "Inspected recent wrapper history.",
+          "reproduce": "git log -5 --oneline -- ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor and ops/bin",
+          "claim": "Located identity-selection references and related contracts.",
+          "reproduce": "rg -n \"WF_AGENT_DEFAULT|WF_AGENT|--agent\" ops/conductor ops/bin"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/dispatch.sh:127",
+          "claim": "The baseline frozen suite had four failures because the wrapper selected WF_AGENT_DEFAULT unconditionally and required it before identity precedence could be resolved.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "Inspected focused default and exported-agent acceptance cases.",
+          "reproduce": "sed -n '500,570p;1480,1660p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh",
+          "claim": "Inspected numbered configuration and argument-selection lines.",
+          "reproduce": "nl -ba ops/conductor/tools/dispatch.sh | sed -n '45,145p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor and ops/devlane",
+          "claim": "Located existing identity validation implementations.",
+          "reproduce": "rg -n \"full_identity|Name <address>|\\[\\[.*WF_AGENT|WF_AGENT.*=~\" ops/conductor/tools ops/devlane | head -80"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py and ops/devlane/dispatch/launch.py",
+          "claim": "Confirmed the established full identity validation shape.",
+          "reproduce": "sed -n '260,285p' ops/conductor/tools/ladder.py; sed -n '175,205p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py",
+          "claim": "Located the shared identity regular expression.",
+          "reproduce": "rg -n \"^IDENTITY\" ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh",
+          "claim": "The edited wrapper passed Bash syntax validation.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "The first post-edit frozen run passed all 63 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "The implementation diff contained no whitespace errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/dispatch.sh",
+          "claim": "Reviewed the complete surgical implementation diff.",
+          "reproduce": "git diff -- ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "Only the dispatch wrapper was modified after implementation.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Inspected required trailer formatting in recent commits.",
+          "reproduce": "git log -5 --format='%h%n%B%n--'"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Confirmed repository precedent for GPT-5 Codex attribution.",
+          "reproduce": "git log --all --format=%B | rg '^Co-Authored-By: .*Codex.*<noreply@openai.com>$' | sort -u"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git",
+          "claim": "Commit creation was refused because the sandbox exposes .git/index.lock on a read-only filesystem.",
+          "reproduce": "git commit -am \"dispatch: honor exported agent identity\" -m \"Select dispatch identity by the declared precedence: explicit --agent, then a well-formed invoking WF_AGENT, then WF_AGENT_DEFAULT. Require the default only when fallback selection needs it.\" -m \"Source: original\" -m \"Co-Authored-By: GPT-5 Codex <noreply@openai.com>\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py",
+          "claim": "The final frozen command exited 0 with all 63 tests passing.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "The final diff contained no whitespace errors.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "The final tree changes only ops/conductor/tools/dispatch.sh.",
+          "reproduce": "git diff --name-only"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "The final uncommitted modification is the dispatch wrapper only.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "workspace",
+          "claim": "HEAD remains the requested base because the sandbox refused the commit.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "session",
+          "claim": "Final verification ended at 2026-09-04T18:40:13Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/conductor/tools/dispatch.sh",
+        "frozen_test": "63 tests passed; exit 0"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 725297,
+        "out": 10703,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f90da574a324b6bf18ff488236bda5b324d61700",
+        "started": null,
+        "ended": "2026-09-04T18:40:13Z"
+      },
+      "note": "Implemented the direct reading of Name <address> using the launcher's established full-identity shape. No tests or command shims were changed. Git commit was attempted but refused by the read-only .git filesystem; the launcher can commit using the supplied message.",
+      "commit": {
+        "subject": "dispatch: honor exported agent identity",
+        "body": "Select dispatch identity by the declared precedence: explicit --agent, then a well-formed invoking WF_AGENT, then WF_AGENT_DEFAULT. Require the default only when fallback selection needs it.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T18:41:25.550Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"duplicate serves","violates":"global serves uniqueness","reject_path":"registry.serves-duplicate","site":["capabilities",1,"serves"]}

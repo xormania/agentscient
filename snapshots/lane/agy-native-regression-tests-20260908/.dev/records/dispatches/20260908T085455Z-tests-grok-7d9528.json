@@ -1,0 +1,190 @@
+{
+  "id": "20260908T085455Z-tests-grok-7d9528",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-native-regression-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-native-regression-tests-20260908",
+    "base_sha": "e219ae20953ed56ae2a94d626545689203325d41"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:54:55Z",
+    "closed": "2026-09-08T09:10:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e219ae20953ed56ae2a94d626545689203325d41",
+    "ref_sha": "e219ae20953ed56ae2a94d626545689203325d41",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-native-regression-tests-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ac4ebd29-2228-455b-95c6-0839339084eb",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok-stream/sessions/<snapshot-encoded>/ac4ebd29-2228-455b-95c6-0839339084eb/summary.json"
+  },
+  "session": {
+    "id": "ac4ebd29-2228-455b-95c6-0839339084eb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok-stream/sessions/<snapshot-encoded>/ac4ebd29-2228-455b-95c6-0839339084eb/summary.json",
+    "stream_sha256_at_close": "f29d14269fafc99e1911e001b53e6242354e9f62e0cc645954cec0132745208d",
+    "spend": {
+      "input": 1687971,
+      "cached": 1444096,
+      "output": 29615,
+      "total": 1717586,
+      "cost_usd_ticks": 2358729600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/home/grok-stream/sessions/<snapshot-encoded>/ac4ebd29-2228-455b-95c6-0839339084eb/summary.json",
+      "messages": 199
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-native-regression-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author one small regression file for the actual native transcript seam only, from supplied smoke evidence/producer explanation and cold F1 ruling. Preserve _stream/_agy_stream existing tuple and raw.out ownership; no implementation bodies. Cover measured planner thinking/tool_calls without content, unfinished final transcript line or blank tail retaining raw binding, and a confirmed malformed completed row refusing. Use synthetic payloads only, no model prose or credentials. No resume/usage matrix or existing test edits. Run focused discovery plus lint/diff; report genuine red separately from fixture errors. No vendors/full floor. Commit tests with Grok-4.6 attribution and COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/in/agy-native-reader-fix-producer.json",
+        "sha256": "5864ab8384faf8a49c4e7b9d611a1cfda1507aef3864f1ff7b5216c46a11c259"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/in/agy-grok-code-ruling.json",
+        "sha256": "99122a409949c690d483812565212e7c3647f5c6a2258e93fa0899c383749301"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085455Z-tests-grok-7d9528/in/agy-canonical-smoke-success.json",
+        "sha256": "0352b76beb9f46d00060b0411596278bf8f02223083c2f3deda5fa7b850fa9c1"
+      }
+    ],
+    "sha256": "b98b41261fbffb5f3bf609846894472305be35ae1ba3196798172528c8917f07",
+    "bytes": 3045
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:54:55Z",
+      "ended": "2026-09-08T09:10:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "057648b7d748d4909dff3999f45f5c2f622714d5",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_native_transcript.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 2,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_agy_native_transcript.py:test_unfinished_final_transcript_line_retains_raw_out_binding",
+          "claim": "Genuine red, not a fixture or collection error. After a complete-transcript control binds, cutting the final native transcript line makes _agy_stream return (None, None, None, 'agy stream parse: Expecting property name enclosed in double quotes: line 1 column 76 (char 75)') and voids the raw.out binding. Measured at e219ae20953ed56ae2a94d626545689203325d41.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_native_transcript.py' -v -k test_unfinished_final_transcript_line_retains_raw_out_binding"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_agy_native_transcript.py:test_blank_transcript_tail_retains_raw_out_binding",
+          "claim": "Genuine red, not a fixture or collection error. After a complete-transcript control binds, a trailing blank line makes _agy_stream return (None, None, None, 'agy stream parse: Expecting value: line 1 column 1 (char 0)') and voids the raw.out binding. Same F1 mechanism as the torn-line case. Measured at e219ae20953ed56ae2a94d626545689203325d41.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_native_transcript.py' -v -k test_blank_transcript_tail_retains_raw_out_binding"
+        }
+      ],
+      "artifacts": {
+        "test": "ops/devlane/dispatch/tests/test_agy_native_transcript.py",
+        "commit": "057648b7d748d4909dff3999f45f5c2f622714d5",
+        "unittest": "../out/unittest-native-transcript.txt",
+        "ruff": "../out/ruff-native-transcript.txt",
+        "diff": "../out/test-agy-native-transcript.diff",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1717586,
+        "out": 29615,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e219ae20953ed56ae2a94d626545689203325d41",
+        "started": "2026-09-08T09:00:05Z",
+        "ended": "2026-09-08T09:10:07Z"
+      },
+      "note": "One new file ops/devlane/dispatch/tests/test_agy_native_transcript.py committed as 057648b7d748d4909dff3999f45f5c2f622714d5 with Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. Focused discovery at e219ae20953ed56ae2a94d626545689203325d41: 4 tests, 2 genuine assertion failures, 2 ok, 0 errors, 0 collection misses. Torn-line and blank-tail tests are red on the F1 raw.out-binding assertion. Planner thinking/tool_calls without content and malformed completed-row refusal already hold on this tree (producer c05c0a5), so those two pins could not be shown red without editing launch.py. ruff check exit 0. No implementation bodies, no launch.py read, no existing test edits, no resume/usage matrix, no vendors or full floor. Synthetic payloads only."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T09:10:37.753Z"
+    }
+  },
+  "status": "closed"
+}

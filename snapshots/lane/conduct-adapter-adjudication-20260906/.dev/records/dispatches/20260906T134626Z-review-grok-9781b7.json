@@ -1,0 +1,186 @@
+{
+  "id": "20260906T134626Z-review-grok-9781b7",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-adapter-adjudication-20260906",
+  "lineage": {
+    "branch": "lane/conduct-adapter-adjudication-20260906",
+    "base_sha": "518e1b23a6582c87bbf1a2c6e80ddcd363028ef9"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:46:26Z",
+    "closed": "2026-09-06T13:56:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "518e1b23a6582c87bbf1a2c6e80ddcd363028ef9",
+    "ref_sha": "518e1b23a6582c87bbf1a2c6e80ddcd363028ef9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "d83c16c0-772a-4e93-b60d-efb6016f6639",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok-stream/sessions/<snapshot-encoded>/d83c16c0-772a-4e93-b60d-efb6016f6639/summary.json"
+  },
+  "session": {
+    "id": "d83c16c0-772a-4e93-b60d-efb6016f6639",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok-stream/sessions/<snapshot-encoded>/d83c16c0-772a-4e93-b60d-efb6016f6639/summary.json",
+    "stream_sha256_at_close": "9b1acd552f0214d74cc8deac62f8e6499f8bd1bd1c9f22cabbfda9b483e98c5d",
+    "spend": {
+      "input": 1316758,
+      "cached": 1027328,
+      "output": 33064,
+      "total": 1349822,
+      "cost_usd_ticks": 2194543600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/home/grok-stream/sessions/<snapshot-encoded>/d83c16c0-772a-4e93-b60d-efb6016f6639/summary.json",
+      "messages": 172
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-adapter-adjudication-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Third-harness adjudication of supplied Claude CHANGES against original GPT-6 combined relay/adapter artifact 518e1b23, base 83706c9. Read only that original artifact and original finding report; no later fixes/concessions. Rule UPHELD/PARTIAL/REJECTED on all five findings with commands, severity and bounded remedy: governing-record/ruling custody and test baseline locator, six versus five axes/effort coverage, heartbeat digest binding, observation reason vocabulary, resume digest type. Preserve source mechanics/common APIs and honest UNPROBED status. Distinguish absence in this snapshot from absence in canonical custody; do not invent live admission or force code merely to archive evidence. Return valid review envelope; no edits, tests, full floor, vendor call or state mutation. Do not approve your own new findings; enumerate any missed gap separately.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134626Z-review-grok-9781b7/in/ag-conduct-adapter-contract-review.json",
+        "sha256": "f870b0834ee36ffe9c2bd1df0ded952a8eea8266bcc7e2704c31abf3f9873199"
+      }
+    ],
+    "sha256": "a7e353ab8c86194514f0554cff8454264c7014749ac2e0789f626b84d1aace3d",
+    "bytes": 3172
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:46:26Z",
+      "ended": "2026-09-06T13:56:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "518e1b23a6582c87bbf1a2c6e80ddcd363028ef9",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/harness-capabilities.md:415-418, :371-372; ops/conductor/permission-surface.md:403-405; ops/conductor/probes-lever.md:359-361",
+          "claim": "PARTIAL. Snapshot tree has no in-repo counterparty for mediation 20260906T123030Z-plan-codex-0fdfa5, security 20260906T124459Z-review-codex-ed048d, tests review 20260906T125857Z-review-claude-10edd9, commit d3ea314ba00456ed65751d3f9aa0381e000a58b0, or the recording-scope/adapter-coupling rulings; only 20260906T115721Z-plan-codex-52cd87 is under .dev/records/dispatches/. Canonical conductor custody holds closed live records for all four dispatch ids, both rulings as dispatch inputs (recording-scope sha256 fd73a27a9654282139042dcfba6dc8e9bfa36f3b99190ab9074851dfc16443d3; adapter-coupling sha256 3d9035a5b0870013b2428aa7717ae541163c05f2b98b86e55964cbb51fec87fd), and d3ea314 plus branch lane/conduct-adapter-tests-20260906 in /home/scientdb/projects/uscient/agentscient. expected: live counterparties, with snapshot absence distinguished from missing custody. found: dangling in this snapshot, present in canonical dispatch state and canonical git. needed: name conductor-state (and the tests branch for d3ea314) at the citation sites. Rejected: copying those records/rulings/bytes into this tree merely to archive evidence, treating snapshot absence as absent law, or inventing runtime admission from dispatch directories.",
+          "reproduce": "ls .dev/records/dispatches/ | rg '52cd87|0fdfa5|ed048d|10edd9'\ngit cat-file -t d3ea314ba00456ed65751d3f9aa0381e000a58b0\nls .dev/ladder-inputs/ | rg -i 'recording-scope|adapter-coupling'\nls /home/scientdb/.local/state/agentscient/dispatch/ | rg '52cd87|0fdfa5|ed048d|10edd9'\ngit -C /home/scientdb/projects/uscient/agentscient cat-file -t d3ea314ba00456ed65751d3f9aa0381e000a58b0\ngit -C /home/scientdb/projects/uscient/agentscient branch -a | rg 'conduct-adapter-tests'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:316-318 versus ops/conductor/permission-surface.md:176-177, ops/conductor/probes-lever.md:320, ops/conductor/conductor-start-plan.md:453-454",
+          "claim": "UPHELD. The new worker encoding declares six selection axes and names effort among the axes launch rechecks, but effort has no COND-AXIS-N1 acceptance arm and co-owning contracts still state five. expected: one count and one enumeration of the selection axes, with a gate for each declared launch-rechecked axis. found: dispatch/CONTRACT.md:316-318 is new ('All six selection axes' and 'job_role, model, effort or profile'); TaskSelection and LaunchSelection already carry six members including effort; COND-AXIS-N1 still enumerates five (permission-surface.md:177; probes-lever.md:320), inherited unchanged from 83706c9; conductor-start-plan.md:453-454 still requires 'all five selection axes independently' and was untouched. COND-RELAY-RESUME-N1 says 'mutate each selection axis' without a count. Combined window 83706c9..518e1b23 does edit permission-surface.md and probes-lever.md, so this is not only a residual on a later owner. needed: add an effort arm to both COND-AXIS-N1 enumerations and reconcile the startup count to six, or state in dispatch/CONTRACT.md that effort is carried in the invariant but is deliberately not an independently exercised COND-AXIS-N1 arm.",
+          "reproduce": "rg -n 'All six selection axes|five selection|COND-AXIS-N1' ops/devlane/dispatch/CONTRACT.md ops/conductor/permission-surface.md ops/conductor/probes-lever.md ops/conductor/conductor-start-plan.md\nsed -n '467,470p' ops/devlane/task/CONTRACT.md; sed -n '353,354p;452,456p' ops/conductor/conductor-start-plan.md\ngit diff 83706c9..HEAD --stat -- ops/conductor/permission-surface.md ops/conductor/probes-lever.md ops/conductor/conductor-start-plan.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:342 versus ops/conductor/harness-capabilities.md:467",
+          "claim": "UPHELD. Relay heartbeat constants are supervision bounds outside the frozen, digest-bound deadlines object, so changing them is invisible to adapter.config_sha256 and to C2 freshness. expected: every relay bound that governs abort behaviour frozen in transport.relay.deadlines (harness-capabilities.md:488-491 routes that object into the config digest). found: deadlines freezes frame_ms 5000, request_ms 5000, effect_ms 60000, shutdown_ms 2000, pending 64, queue_bytes 1048576, while permission-surface.md:342 declares health only in prose ('sent every 1000ms; absence for 5000ms aborts'). COND-RELAY-WALL-N1 requires vanished heartbeat to terminate within the frozen bounds. Coincidence with frame_ms 5000 is not a declared alias. needed: add the heartbeat interval and abort threshold to deadlines, or state that they are derived constants of the pinned relay revision already bound by adapter.revision.",
+          "reproduce": "rg -n 'sent every 1000ms|deadlines' ops/conductor/permission-surface.md ops/conductor/harness-capabilities.md\nsed -n '467p;488,491p' ops/conductor/harness-capabilities.md; sed -n '342p' ops/conductor/permission-surface.md; sed -n '380p' ops/conductor/probes-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/probes-lever.md:270-273 versus :363-364, :378-379",
+          "claim": "PARTIAL. Two new relay acceptance families require disclosure/retention observations the frozen conduct-observations/1 Case.reason list does not name, while the same section forbids extending the schema. expected: every required acceptance failure mode has a declared reason token, or an explicit mapping onto an existing one. found: reason is eleven tokens; COND-RELAY-CUSTODY-N1 and COND-RELAY-RECORD-N1 (and pre-existing COND-SECRET-N1) grade canary disclosure/retention. Rejected: 'no token fits' \u2014 probes-lever.md:289 already grades an unintended effect as FAIL, so unexpected-effect can carry a canary appearance if mapped. needed: state which existing token those families use; do not add schema fields or extra reason tokens.",
+          "reproduce": "sed -n '268,279p;288,290p' ops/conductor/probes-lever.md\nsed -n '363,364p;378,379p;319p' ops/conductor/probes-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/harness-capabilities.md:141",
+          "claim": "UPHELD. One member of the closed trusted-transport table is untyped where every sibling is typed. expected: in a table introduced as exact content for a handle whose serializable members obey 'Startup strict JSON/types/bounds' (:144-145), each member carries its type, as session_binding_sha256 does. found: the resume row reads {parent_descriptor_sha256,session_binding_sha256:SHA256,session} \u2014 parent_descriptor_sha256 has no annotation, and its nullability appears only later in prose at :191-193 ('the retained launch descriptor digest for conduct and null for workers'). Startup's sibling table types it SHA256 without null (conductor-start-plan.md:370), which would be wrong for workers. needed: write parent_descriptor_sha256:SHA256|null in the table row.",
+          "reproduce": "sed -n '141p;191,193p' ops/conductor/harness-capabilities.md; sed -n '370p' ops/conductor/conductor-start-plan.md"
+        }
+      ],
+      "artifacts": {
+        "ruling": "out/RULING.md",
+        "diff": "context/diff.patch"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1349822,
+        "out": 33064,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "518e1b23a6582c87bbf1a2c6e80ddcd363028ef9",
+        "started": null,
+        "ended": "2026-09-06T13:54:26Z"
+      },
+      "note": "Changes on residual documentary gaps; declared mechanics and UNPROBED status hold. Window 83706c9..518e1b23 (six files, +1421/-9) is the aimed combined relay/adapter artifact; supplied diff base 710dbac is wider; 7741a1a is absent from this snapshot. Rulings: F1 PARTIAL (P2 reduced to P3 custody labels \u2014 snapshot absence is not missing canonical custody; do not copy records/rulings/bytes into this tree); F2 UPHELD P2 (six vs five axes/effort); F3 UPHELD P3 (heartbeat outside deadlines); F4 PARTIAL P3 (map disclosure/retention onto unexpected-effect; do not extend Case.reason); F5 UPHELD P3 (type parent_descriptor_sha256:SHA256|null). Common compile_launch signature, five return keys, nine-field worker vs eleven-field conduct encodings, sealed model/effort, source protection, and reported-not-measured pins are unchanged. No implementation, test, configuration, or admission file changed. Missed by the finder, not approved as findings: frame size 65536 is a fail-closed bound outside deadlines while pending/queue_bytes are inside; effect_ms 60000 is declared and unused in heartbeat/frame prose; Claude's residual-owner claim is false of the combined window, which does edit permission-surface.md and probes-lever.md. Not run: full floor, tests, vendor fetch of source locators, snapshot writes. Later reviews/tests/concessions were not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T13:56:05.276Z"
+    }
+  },
+  "status": "closed"
+}

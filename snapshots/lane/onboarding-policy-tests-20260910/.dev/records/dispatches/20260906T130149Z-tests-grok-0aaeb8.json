@@ -1,0 +1,165 @@
+{
+  "id": "20260906T130149Z-tests-grok-0aaeb8",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-policy-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-tests-20260906",
+    "base_sha": "6c4c42e3cae1a1ab680345e02982f12ee82e9098"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:01:50Z",
+    "closed": "2026-09-06T13:15:24Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6c4c42e3cae1a1ab680345e02982f12ee82e9098",
+    "ref_sha": "6c4c42e3cae1a1ab680345e02982f12ee82e9098",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f1f7e6c0-cc04-474e-9168-10a06999d401",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok-stream/sessions/<snapshot-encoded>/f1f7e6c0-cc04-474e-9168-10a06999d401/summary.json"
+  },
+  "session": {
+    "id": "f1f7e6c0-cc04-474e-9168-10a06999d401",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok-stream/sessions/<snapshot-encoded>/f1f7e6c0-cc04-474e-9168-10a06999d401/summary.json",
+    "stream_sha256_at_close": "10a836b016d272bcd7b1ddf2192522f59873e207c5f7600467be942b095caf47",
+    "spend": {
+      "input": 3073433,
+      "cached": 2632448,
+      "output": 48535,
+      "total": 3121968,
+      "cost_usd_ticks": 4231986800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/home/grok-stream/sessions/<snapshot-encoded>/f1f7e6c0-cc04-474e-9168-10a06999d401/summary.json",
+      "messages": 273
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct all eight findings and the checked_at UTC gap in the supplied Claude review. Own only test_lane_policy.py and policy-specific test helpers/fixtures. Never read/write implementation. Terminal passes require registered completed attempts and declared file receipts; add null-preflight substitution and fresh/reuse foreign/future/stale negatives. Derive the complete ConductorBinding digest, assert its closed keys unconditionally, and bind closed Decision id/digest to Request. Discriminate reserialization separately from trailing newline, correct malformed coordinate versus normalized shell refusal, cover all fixed reasons, and restore environment in finally with the pinned lane's store guard. Preserve legitimate opaque trusted inputs and external dispatch boundaries. Prove assertion reds plus discriminating positive/faulty controls, no skips/import errors; record hashes/commands. No real state/settings/admission/vendor. Grok-only trailers; note at most 1000 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/in/ag-conduct-policy-tests-review.json",
+        "sha256": "4722f2e80ead0ed5026d8bdd80738e55f520b39cc84d5a34e8fd07a077bc6972"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T130149Z-tests-grok-0aaeb8/in/ag-conduct-policy-tests.json",
+        "sha256": "3976b6972734d5cd77e91df1e6c079f81a8c9a4047853f72e0a4dd5769f1115c"
+      }
+    ],
+    "sha256": "1cffc819d6abd3265d4fdb6e5a891f11b99555e3a01d95a39e38fd9813e4ac67",
+    "bytes": 3325
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:01:50Z",
+      "ended": "2026-09-06T13:15:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7202be0b86c4cafd975957bea5994173a2109737",
+    "changed_paths": [
+      "ops/conductor/tests/test_lane_policy.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_lane_policy.py",
+        "commit": "7202be0b86c4cafd975957bea5994173a2109737",
+        "tests_sha256": "5a095972311a5f1b62fdeb0d6a90493b6a49c53999a9bf22baca21142ed9188f  ops/conductor/tests/test_lane_policy.py",
+        "unittest": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' \u2014 Ran 66 tests, FAILED (failures=78), 0 errors, 0 skips",
+        "ruff": "ruff check ops/conductor/tests/test_lane_policy.py \u2014 All checks passed",
+        "implementation": "ops/conductor/tools/lane_policy.py ABSENT at 6c4c42e3cae1a1ab680345e02982f12ee82e9098 and 7202be0b86c4cafd975957bea5994173a2109737"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3121968,
+        "out": 48535,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6c4c42e3cae1a1ab680345e02982f12ee82e9098",
+        "started": "2026-09-06T13:02:35Z",
+        "ended": "2026-09-06T13:14:51Z"
+      },
+      "note": "Corrected ops/conductor/tests/test_lane_policy.py for Claude review 20260906T125232Z-review-claude-8c16f4 (eight findings plus checked_at UTC). Did not read or write ops/conductor/tools/lane_policy.py; ls reports it absent at the supplied tree and at the tests commit. Owned only that test file.\n\nTerminal check_writes and non-launch R1 passes now send OutputAttempt attempt=1 with declared file receipts; launch still uses the null-attempt preflight value. Added null-preflight substitution negatives at settle/collect-before/collect-after/land/ladder, a fresh-production settlement pass, a verified earlier-attempt reuse pass, and foreign-dispatch/future-attempt/stale-digest reuse refuses. ConductorBinding\u2019s ten keys are asserted unconditionally; Request.binding_sha256 is sha256 of the canonical 10-key object, not grants_sha256. Decision is closed at five keys and must repeat Request id and binding_sha256. Coordinate with an undeclared command key expects malformed-request; a normalized forbidden shell wrapper still expects shell-escape; unknown-tool and binding-mismatch are covered. ExactShowDigest plants indented unsorted show stdout so reserialization is distinct from the trailing newline. PolicyResult.checked_at must match YYYY-MM-DDTHH:MM:SSZ. tearDown restores LANE_* in finally; LIVE_STORE is Path.home()/.local/state/<LANE_NAME>/decisions.db with LANE_NAME parsed from pinned ops/lane.conf. Opaque trusted_context/bound_role keys and external dispatch exit/claim/record surfaces were left uninvented.\n\nCommand python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' at 7202be0b86c4cafd975957bea5994173a2109737: Ran 66 tests, FAILED (failures=78), 0 errors, 0 skips (extra failures are subTests). Failures are AssertionError against the absent stand-in, not import or collection errors. ruff check and ruff format --check: All checks passed. tests sha256 5a095972311a5f1b62fdeb0d6a90493b6a49c53999a9bf22baca21142ed9188f. Committed 7202be0b86c4cafd975957bea5994173a2109737 on lane/conduct-policy-tests-20260906 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai> only).\n\nUntestable without inventing a coupling: the exact custody-evidence object hashed as ConductorBinding.custody_sha256 (named by contents, not a closed JSON object; asserted 64-hex and folded into the whole-binding digest); the board lever\u2019s positive verb schema (permission-surface.md names the owner\u2019s closed schema, not the keys)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T13:15:23.676Z"
+    }
+  },
+  "status": "closed"
+}

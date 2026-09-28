@@ -1,0 +1,29 @@
+{
+  "id": "gatekinds-c6ad8971",
+  "verdict": "doc-wrong",
+  "rule": "PLAN.md requires that fix cannot be left while markers from the current review cycle are open, and it says gate kinds are data, but the spec field list never names blocked_by_open_markers.",
+  "observed": "artifact.json's fix stage has blocked_by_open_markers set to true, which the closed spec rejects.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "197-198",
+      "quote": "findings open markers; `fix` cannot be left while"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "198-198",
+      "quote": "markers from the current review cycle are open (mechanical, again)."
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "328-328",
+      "quote": "**Gate kinds are data.** Source of truth is tracked JSON under"
+    },
+    {
+      "artifact": "gate-kinds/artifact.json",
+      "lines": "50-53",
+      "quote": "\"blocked_by_open_markers\": true"
+    }
+  ],
+  "action": "record-finding"
+}

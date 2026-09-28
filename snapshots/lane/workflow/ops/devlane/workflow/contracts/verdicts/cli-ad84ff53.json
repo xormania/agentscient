@@ -1,0 +1,44 @@
+{
+  "id": "cli-ad84ff53",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md allows --json on every command and documents --agent, --no-commit, and --source without saying the only legal global argument is --json.",
+  "observed": "Five flags are registered as global arguments (--agent, --json, --no-commit, --root, --source), so the contract's [] | [--json] disjunction is empty.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "262-262",
+      "quote": "requires `--agent` (or `$WF_AGENT`) — receipts, attempts, and commit"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "265-265",
+      "quote": "`--json` output mode"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "291-291",
+      "quote": "`--no-commit` defers;"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "300-300",
+      "quote": "accepts a repeatable `--source`, recorded in the event payload and emitted"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "650-650",
+      "quote": "if len(global_arguments) == 0 {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1286-1335",
+      "quote": "7 errors in empty disjunction"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "25-66",
+      "quote": "\"--agent\""
+    }
+  ],
+  "action": "amend-contract"
+}

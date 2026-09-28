@@ -1,0 +1,11 @@
+{
+  "contract": "exitcodes",
+  "fault": "exitcodes.2.json",
+  "from": "obs/exitcodes.json",
+  "change": "64 is gone from the observed set, replaced by 65",
+  "violates": "PLAN.md §4 line 274 (with §2 line 59)",
+  "quote": "\"`3` claim held by another agent; `64` usage.\"",
+  "reject_path": "all_codes(\\.[0-9]+)?:.*\\b65\\b",
+  "implied": false,
+  "note": "Removing 64 outright would only produce an absence error on `facts.all_codes`, the same path the clean run already fails on (70). Substituting 65 removes 64 *and* leaves a named value at a concrete path, so the fault stays attributable."
+}

@@ -1,0 +1,73 @@
+# What this repository's CI billed in the last seven days, measured weekly
+# and refused over budget.
+#
+# Actions on a private repository bills every job a whole minute, rounded
+# up. Measured at d6b3549 (2026-08-28, `ci_minutes.py --days 7`): 2,247
+# jobs. The reporting pipe below runs with `set -o pipefail`, preserving
+# the tool's refusal or over-budget exit through `tee`.
+# 1,271 real minutes, 2,904 billed. Nine days after CI first ran the
+# organisation's included minutes were spent, the spending limit was at
+# its default of zero, and GitHub refused every job on every pull request
+# and on dev before its first step -- 134 such jobs in that window. The
+# tree was green; the first anyone learned of it was the refusal. See
+# AGENTS.md §Metered CI states what it bills.
+#
+# This is the check that makes the number red HERE first. It runs on a
+# schedule, not on pull requests: a scheduled job adds no check-run
+# context, so ci_contexts.py does not read this file and no ruleset can
+# be waiting on it. test_ci_minutes.py pins that shape.
+#
+# The budget is a weekly share of the plan's included minutes: GitHub
+# Team includes 3,000 a month, which is 700 a week; Free includes 2,000,
+# which would be 460. The plan is the owner's to name, so the figure below
+# is the Team share until the owner says otherwise -- and a figure that
+# is wrong in the tree is one commit from right, where a limit that is
+# only on a billing page is invisible to every harness.
+name: CI minutes
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC; the week's bill is complete
+  workflow_dispatch:
+    inputs:
+      days:
+        description: window in days
+        default: "7"
+      budget:
+        description: billed minutes the window may reach
+        default: "700"
+
+# The guard runs on the self-hosted runners too (its one weekly minute
+# was hosted; now none is), and it is the job that would notice if
+# `vars.CI_RUNNER` had quietly moved everything back onto the bill.
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  minutes:
+    name: "dev: minutes"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DAYS: ${{ inputs.days || '7' }}
+      BUDGET: ${{ inputs.budget || '700' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install GitHub CLI
+        run: sudo apt-get update && sudo apt-get install -y gh
+
+      # The report is the step summary, so the number is on the run's
+      # page without opening a log. Selecting bash enables pipefail, so the
+      # tool's exit code survives the tee.
+      - name: Bill the window against the budget
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 ops/devlane/workflow/checks/ci_minutes.py \
+            --repo "$GITHUB_REPOSITORY" --days "$DAYS" --budget "$BUDGET" \
+            | tee -a "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,273 @@
+{
+  "id": "20260906T115012Z-code-codex-253f16",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-discovery-contracts-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-contracts-20260906",
+    "base_sha": "28d408ef6001eebf12c536d7c6396d4928cd3f45"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T11:50:13Z",
+    "closed": "2026-09-06T11:59:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "28d408ef6001eebf12c536d7c6396d4928cd3f45",
+    "ref_sha": "28d408ef6001eebf12c536d7c6396d4928cd3f45",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-50-13-01a0768e-0402-79d3-93e7-057f1f0795f3.jsonl"
+  },
+  "session": {
+    "id": "01a0768e-0402-79d3-93e7-057f1f0795f3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-50-13-01a0768e-0402-79d3-93e7-057f1f0795f3.jsonl",
+    "stream_sha256_at_close": "fdaf993394c4d31a8025ec7a7d9c6f77e63e46924c820953f0c0d2386d834974",
+    "spend": {
+      "input": 1615622,
+      "cached": 1509120,
+      "output": 14304,
+      "total": 1629926,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T07-50-13-01a0768e-0402-79d3-93e7-057f1f0795f3.jsonl",
+      "messages": 146
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-contracts-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement the five discovery resolutions in the supplied GPT-6 adjudication. Read AGENTS.md, ops/README.md and owning contracts. Own only discovery-lever.md, discovery-examples.md, lane-mcp-lever.md, onboard-lever.md and handoff/README.md under ops/conductor. Preserve seven onboard rows and freeze the shared five-row discovery subset. Correct D-A16 without a skip; declare deterministic checkpoints, trusted --discovery-boot-fd transport and property-specific D-A48 evidence. No runtime/tests/settings/state/registry/admission changes or redesign. The parallel interface track owns conductor-start-plan.md; report its pending cross-link, do not edit it. Final named acceptance: git diff --check. Also check JSON/examples, links and preserved row IDs with exact content/tree hashes and UTC. Historical checkers remain provenance. Return dispositions, pending counterparts and clean GPT-6 trailers.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/in/ag-conduct-discovery-coupling.json",
+        "sha256": "c441fa30b97163aa1dc7a09869b00b7ff9a53661ef683244fbb226bbe905a808"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/in/ag-conduct-discovery-code-review.json",
+        "sha256": "e1064f5d458dd5bfdc30fc983c3ba6372fa4f4910bffaefb15180cffe84a7505"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T115012Z-code-codex-253f16/in/ag-conduct-discovery-test-fix.json",
+        "sha256": "ac486d1f61d4a6b5811d47a7375c08a41d9938cf1ee427ea140b0b6e61334d8b"
+      }
+    ],
+    "sha256": "911d96b81ddb4157e181dc57557ab903a1a74a7db4641f6245afa3974beb5ad7",
+    "bytes": 4745
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T11:50:13Z",
+      "ended": "2026-09-06T11:59:02Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0813c0041e5db7d88926e25a182b6c6a4fcdb0ef",
+    "changed_paths": [
+      "ops/conductor/discovery-examples.md",
+      "ops/conductor/discovery-lever.md",
+      "ops/conductor/handoff/README.md",
+      "ops/conductor/lane-mcp-lever.md",
+      "ops/conductor/onboard-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 16,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "Initial repository inspection",
+          "claim": "Confirmed clean starting HEAD at the requested ref; located inputs and read operating instructions.",
+          "reproduce": "pwd; date -u +%Y-%m-%dT%H:%M:%SZ; git status --short; git rev-parse HEAD; rg --files ../in; rg --files -g AGENTS.md -g '*discovery*' -g '*onboard*' -g '*lane-mcp*' -g '*handoff*' -g '*adjudication*' docs ops; cat AGENTS.md; cat ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Inputs and founding contracts",
+          "claim": "Read supplied records and contracts; oversized output required subsequent focused reads.",
+          "reproduce": "cat ../in/ag-conduct-discovery-test-fix.json ../in/ag-conduct-discovery-coupling.json ../in/ag-conduct-discovery-code-review.json; rg --files docs; cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md; cat ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "GPT-6 adjudication",
+          "claim": "Read all five resolutions and producer handoffs.",
+          "reproduce": "cat ../in/ag-conduct-discovery-coupling.json"
+        },
+        {
+          "severity": "p3",
+          "where": "Supplied producer receipts",
+          "claim": "Read runtime-review and test-correction records as attributed provenance.",
+          "reproduce": "cat ../in/ag-conduct-discovery-code-review.json; cat ../in/ag-conduct-discovery-test-fix.json"
+        },
+        {
+          "severity": "p3",
+          "where": "Founding obligations",
+          "claim": "Read wire, workflow, probes, concerns and coupling obligations; the requested input line range returned no content.",
+          "reproduce": "sed -n '390,470p' ../in/ag-conduct-discovery-code-review.json; cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Onboard, custody and discovery",
+          "claim": "Confirmed seven existing onboard rows and inspected acquisition and metadata declarations.",
+          "reproduce": "cat ops/conductor/onboard-lever.md ops/conductor/handoff/README.md; sed -n '1,260p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Discovery selection and evidence",
+          "claim": "Verified the contradictory stale-only sentence and missing transport/checkpoint/property-observation declarations.",
+          "reproduce": "sed -n '261,640p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "MCP and examples",
+          "claim": "Read the baseline transport and all literal discovery envelopes.",
+          "reproduce": "cat ops/conductor/lane-mcp-lever.md; cat ops/conductor/discovery-examples.md"
+        },
+        {
+          "severity": "p3",
+          "where": "Counterparty boundaries",
+          "claim": "Inspected v2, conventions, startup ownership, acceptance rows and remaining supplied review findings.",
+          "reproduce": "cat ops/conductor/lane-mcp-v2.md ops/conductor/instrument-conventions.md; sed -n '1,160p' ops/conductor/conductor-start-plan.md; sed -n '641,850p' ops/conductor/discovery-lever.md; python3 - <<'PY'\nimport json\nfrom pathlib import Path\np=Path('../in/ag-conduct-discovery-code-review.json')\nd=json.loads(p.read_text())\nfor f in d['result']['envelope']['findings'][6:]: print(json.dumps(f,indent=2))\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "Provenance and commit conventions",
+          "claim": "Confirmed base tree 9f5dfe74a4dc72008564cea2e604a9700844a5f5 and read attribution/history boundaries.",
+          "reproduce": "cat ops/conductor/instrument-conventions.md CONTRIB.md; sed -n '1,100p' ops/conductor/conductor-start-plan.md; rg -n 'boot|discovery|historical|checker|acceptance' ops/conductor/reports/discovery-contract-acceptance-20260906.md ops/conductor/reports/discovery-contract-correction-20260906.md; git rev-parse HEAD^{tree}; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "Document diff",
+          "claim": "Reviewed exactly five changed documents; preliminary whitespace check exited 0.",
+          "reproduce": "git diff --stat; git diff --check; git diff -- ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-mcp-lever.md ops/conductor/onboard-lever.md ops/conductor/handoff/README.md; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "Scratch verification, first invocation",
+          "claim": "Exited 1 because the scratch script incorrectly appended LF to the existing hostile-body fixture. Corrected the scratch assumption only.",
+          "reproduce": "python3 -B ../out/verify-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Scratch verification, corrected invocation",
+          "claim": "Exited 0 at 2026-09-06T11:56:04Z: preserved 53 row IDs, seven onboard rows and eight JSON blocks; verified five shared pairs, canonical sizes/snapshots, body hashes, local links and unchanged startup-plan bytes. Nested Git commands are recorded as findings in verification.json.",
+          "reproduce": "python3 -B ../out/verify-docs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Commit attempt",
+          "claim": "Staging exited 128: .git/index.lock could not be created on the read-only filesystem. Commit message saved for the launcher.",
+          "reproduce": "git add -- ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/lane-mcp-lever.md ops/conductor/onboard-lever.md ops/conductor/handoff/README.md && git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "Final artifact inspection",
+          "claim": "At 2026-09-06T11:57:26Z, confirmed only five owned files changed, saved the patch, and verified exactly Source and GPT-6 Co-Authored-By trailers.",
+          "reproduce": "git status --short; git diff --binary > ../out/discovery-contracts.patch; git interpret-trailers --parse < ../out/COMMIT_MSG; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "Final named acceptance",
+          "claim": "git diff --check exited 0 with empty output on final content tree e14b8823943f017fb42b1bdf29cdf1d225bfbf96.",
+          "reproduce": "git diff --check"
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/discovery-contracts.patch",
+        "dispositions_and_pending_counterparts": "../out/dispositions.json",
+        "exact_hashes_UTC_examples_links_rows": "../out/verification.json",
+        "scratch_verifier": "../out/verify-docs.py",
+        "commit_message": "../out/COMMIT_MSG",
+        "final_content_tree": "e14b8823943f017fb42b1bdf29cdf1d225bfbf96"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1629926,
+        "out": 14304,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "28d408ef6001eebf12c536d7c6396d4928cd3f45",
+        "started": "2026-09-06T11:50:25Z",
+        "ended": null
+      },
+      "note": "Implemented all five documentary resolutions. Assumed the explicit five-file ownership defines implementation scope. Pending: parallel startup-plan boot cross-link, independent contract review, runtime/test/conformance counterparts and combined-suite acceptance. Historical checkers remain provenance. Inherited contradictory v3 standing language is reported for the admission owner, unchanged. P3 entries are command receipts, not defect counts. Final named acceptance passed; sandbox prevented committing.",
+      "commit": {
+        "subject": "docs: Resolve the five discovery contract couplings",
+        "body": "Correct D-A16 without an accepted skip; declare deterministic acquisition checkpoints, trusted --discovery-boot-fd transport and property-specific D-A48 evidence. Preserve seven onboard rows and freeze the shared five discovery pairs.\n\nApply the supplied GPT-6 adjudication, informed by attributed Claude Opus 5 findings. Independent runtime/test verification and the parallel startup-plan cross-link remain pending. Historical evidence and admission standing are unchanged.\n\nScratch document verification passed at 2026-09-06T11:56:04Z against base 28d408ef6001eebf12c536d7c6396d4928cd3f45 and final content tree e14b8823943f017fb42b1bdf29cdf1d225bfbf96. All 53 row IDs, eight JSON examples and seven onboard rows were preserved; shared pairs, canonical hashes/sizes and local links checked. Final git diff --check exited 0. Exact receipts are in the output artifacts.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T11:59:01.705Z"
+    }
+  },
+  "status": "closed"
+}

@@ -1,0 +1,365 @@
+{
+  "id": "20260908T074315Z-code-codex-f7eb5e",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-config-implementation-20260908",
+  "lineage": {
+    "branch": "lane/agy-config-implementation-20260908",
+    "base_sha": "15961b3da733d067fcbb079c8011730c1ada0978"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:43:15Z",
+    "closed": "2026-09-08T07:51:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "15961b3da733d067fcbb079c8011730c1ada0978",
+    "ref_sha": "15961b3da733d067fcbb079c8011730c1ada0978",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-43-15-01a07ff8-a206-70d0-8bba-ba1de7592790.jsonl"
+  },
+  "session": {
+    "id": "01a07ff8-a206-70d0-8bba-ba1de7592790",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-43-15-01a07ff8-a206-70d0-8bba-ba1de7592790.jsonl",
+    "stream_sha256_at_close": "82464be90874f31438a8625b21559d22b95d081eacd1c3255957ec5a4ea73cc6",
+    "spend": {
+      "input": 1160760,
+      "cached": 1075200,
+      "output": 12781,
+      "total": 1173541,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T03-43-15-01a07ff8-a206-70d0-8bba-ba1de7592790.jsonl",
+      "messages": 153
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-config-implementation-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement the configured-worker boundary in laneconf.py, conductor/tools/dispatch.sh, ops/lane.conf and launch.py configuration/argv-executable wiring only. Follow integrated contract and independent corrected tests; preserve the agy parser and legacy behavior. One loader resolves worker membership, literal executable paths, source provenance and precedence for wrapper/direct launch before minting. Preserve legacy PATH fallback, explicit model/job/generic precedence, optional effort and current role restrictions. No agy native adapter/isolation/telemetry code or test edits. Claude test acceptance runs concurrently; candidate delivery is not final acceptance. Acceptance: focused test_laneconf.py, test_dispatch_wrapper.py and test_launch_refusals.py discovery; laneconf.py closure; registered lint on changed files; git diff --check. All must pass; report actual exits and untouched test hashes. No hardcoded models, new executor, Symfony or full floor. GPT-6 trailers and standard COMMIT_MSG fallback.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/in/agy-config-test-corrected-producer.json",
+        "sha256": "a6405d04eac93a2d7696e47e62f3bda74138c4d1635e0d86ecc288e6473cfa21"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/in/agy-config-test-adjudication.json",
+        "sha256": "3faf35e2ec2f78dad69489bfdfeba96204f05e8f2e9586d3d817266cbfde717c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074315Z-code-codex-f7eb5e/in/agy-worker-owner.md",
+        "sha256": "8abd7ac8e69a9610dbe58f5e0f5dc7e074c818bbc4b70387e49f01fe43d4c27c"
+      }
+    ],
+    "sha256": "82d5b7eedb78d69cf2a6aabcf005f8b265efd2933f425247d4a12e310c112497",
+    "bytes": 4857
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:43:15Z",
+      "ended": "2026-09-08T07:51:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2a7049bd653dd369a717de63426cc1b1e34035cc",
+    "changed_paths": [
+      "ops/conductor/tools/dispatch.sh",
+      "ops/conductor/tools/laneconf.py",
+      "ops/devlane/dispatch/launch.py",
+      "ops/lane.conf"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 31,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 1",
+          "claim": "Baseline discovery exited 0; HEAD matched the requested ref.",
+          "reproduce": "pwd; rg --files ../in docs ops -g '*AGENTS.md' -g '*laneconf*' -g '*dispatch*' -g '*launch*' -g '*contract*' -g '*worker*'; ls ../in; git status --short; git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "command 2",
+          "claim": "Input and instruction reads exited 0.",
+          "reproduce": "cat ../in/*; rg --files docs; cat AGENTS.md ops/README.md ops/devlane/AGENTS.md; rg --files -g AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 3",
+          "claim": "Contract and loader reads exited 0.",
+          "reproduce": "cat ../in/agy-worker-owner.md ../in/agy-config-test-corrected-producer.json; cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md; cat ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 4",
+          "claim": "Configuration inspection and initial test hashing exited 0.",
+          "reproduce": "cat ops/conductor/tools/dispatch.sh ops/lane.conf; sed -n '1,155p' ops/devlane/dispatch/CONTRACT.md; rg -n 'laneconf|harness|executable|shutil.which|model_job|effort' ops/devlane/dispatch/launch.py; cat ops/conductor/registry/laneconf.py.json; rg -n 'lint|ruff|shellcheck|closure' ops/bin/suites.sh ops/conductor/tools/gate.sh; sha256sum ops/conductor/tests/test_laneconf.py ops/conductor/tests/test_dispatch_wrapper.py ops/conductor/tests/worker_conf.py ops/devlane/dispatch/tests/test_launch_refusals.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 5",
+          "claim": "Read/discovery group exited 2 because the final search included absent paths; the registered lint checker was located.",
+          "reproduce": "sed -n '1,115p' ops/devlane/dispatch/launch.py; sed -n '480,575p' ops/devlane/dispatch/launch.py; sed -n '1125,1285p' ops/devlane/dispatch/launch.py; sed -n '1770,1830p' ops/devlane/dispatch/launch.py; sed -n '2150,2235p' ops/devlane/dispatch/launch.py; sed -n '1330,1830p' ops/conductor/tests/test_laneconf.py; cat ops/devlane/dispatch/tests/test_launch_refusals.py; cat ops/bin/suites.sh; rg -n 'ruff|shellcheck|lint' ops/conductor/checks* ops/conductor/*json ops/devlane/workflow/checks* pyproject.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "command 6",
+          "claim": "Independent loader-test read exited 0.",
+          "reproduce": "sed -n '1320,1850p' ops/conductor/tests/test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 7",
+          "claim": "Independent wrapper-test read exited 0.",
+          "reproduce": "sed -n '1630,2170p' ops/conductor/tests/test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 8",
+          "claim": "Launch and registered-lint inspection exited 0.",
+          "reproduce": "sed -n '1095,1128p' ops/devlane/dispatch/launch.py; sed -n '1003,1017p' ops/devlane/dispatch/launch.py; sed -n '2165,2225p' ops/devlane/dispatch/launch.py; cat ruff.toml; cat ops/devlane/workflow/checks/lint.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 9",
+          "claim": "Wrapper forwarding and launch inspection exited 0.",
+          "reproduce": "sed -n '1740,1895p' ops/conductor/tests/test_dispatch_wrapper.py; rg -n -A45 'def _plant_python_sentinel' ops/conductor/tests/test_dispatch_wrapper.py; sed -n '1850,1935p' ops/conductor/tests/test_laneconf.py; sed -n '975,992p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Initial candidate: 83 tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Initial candidate: 88 tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Initial candidate: 47 tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_refusals.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Initial candidate closure exited 0.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py closure"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Initial candidate registered lint exited 0.",
+          "reproduce": "python3 ops/devlane/workflow/checks/lint.py ops/conductor/tools/laneconf.py ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Candidate inspection group exited 0.",
+          "reproduce": "git diff --stat; git diff --check; bash -n ops/conductor/tools/dispatch.sh; sed -n '1,80p' ops/conductor/tests/test_laneconf.py; sed -n '1,150p' ops/devlane/dispatch/tests/test_launch_lane_conf.py; git status --short; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Final implementation diff inspection exited 0; only four authorized files changed.",
+          "reproduce": "git diff -- ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py ops/lane.conf; rg --files ops/devlane/dispatch/tests | rg 'agy|harness_fixes'; git diff --name-only -- '**/tests/**'; git log -1 --format='%h %s%n%b'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Final tree: 83 laneconf tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py > ../out/laneconf.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Final tree: 88 wrapper tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py > ../out/wrapper.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Final tree: 47 launch-refusal tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_refusals.py > ../out/refusals.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Final tree: 8 launch-configuration tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_lane_conf.py > ../out/launch-conf.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Final tree: 32 agy-envelope tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_envelope.py > ../out/agy-envelope.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Final tree: 25 harness-fix tests passed, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_harness_fixes.py > ../out/harness-fixes.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "Final tree closure exited 0.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py closure > ../out/closure.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Final tree registered lint exited 0: two changed Python files, ruff 0.16.5.",
+          "reproduce": "python3 ops/devlane/workflow/checks/lint.py ops/conductor/tools/laneconf.py ops/devlane/dispatch/launch.py > ../out/lint.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "Final wrapper shell syntax check exited 0.",
+          "reproduce": "bash -n ops/conductor/tools/dispatch.sh > ../out/shell-syntax.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "Final tree diff check exited 0.",
+          "reproduce": "git diff --check > ../out/diff-check.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Log inspection, test hashing and patch capture exited 0; test hashes matched their initial values.",
+          "reproduce": "tail -n 5 ../out/laneconf.log ../out/wrapper.log ../out/refusals.log ../out/launch-conf.log ../out/agy-envelope.log ../out/harness-fixes.log ../out/lint.log; sha256sum ops/conductor/tests/test_laneconf.py ops/conductor/tests/test_dispatch_wrapper.py ops/conductor/tests/worker_conf.py ops/devlane/dispatch/tests/test_launch_refusals.py; git diff --exit-code -- '**/tests/**'; git diff --binary > ../out/configured-worker.patch"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "Commit preparation exited 128: read-only .git prevented index.lock creation. COMMIT_MSG fallback is supplied.",
+          "reproduce": "git add -- ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/lane.conf ops/devlane/dispatch/launch.py && git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "Post-commit-attempt diff check exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command 30",
+          "claim": "All test files remained unchanged; exit 0.",
+          "reproduce": "git diff --exit-code HEAD -- '**/tests/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 31",
+          "claim": "Final state and artifact hashing exited 0; HEAD remains the requested baseline with four modified implementation/configuration files.",
+          "reproduce": "git status --short; git rev-parse HEAD; sha256sum ../out/configured-worker.patch ../out/COMMIT_MSG; date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/configured-worker.patch; sha256 40aab946453c8e27afe1f5dc91c146c1aba1b5052ba78c81c749260aef635844",
+        "commit_message": "../out/COMMIT_MSG; sha256 b1151600e53ffaadfee0b7429cfc1b9ada866a94eae0cab09ab936e519457d04",
+        "command_receipts": "../out/command-findings.json",
+        "focused_acceptance": "laneconf 83/83, wrapper 88/88, launch-refusals 47/47; each exit 0. Logs: ../out/laneconf.log, ../out/wrapper.log, ../out/refusals.log",
+        "checks": "Closure, registered Python lint, shell syntax and git diff --check each exit 0. Logs: ../out/closure.log, ../out/lint.log, ../out/shell-syntax.log, ../out/diff-check.log",
+        "additional_regressions": "Launch configuration 8/8, agy envelope 32/32, harness fixes 25/25; each exit 0.",
+        "test_laneconf_sha256": "63af29d2c4abb84caad00eacd1833e79186c0dd0846a384632401548806a0cd9",
+        "test_dispatch_wrapper_sha256": "3595755bd0b4202e3adbe0ff5858458ab0a750b5b0566a0d77d5a5886def056a",
+        "worker_conf_sha256": "2a38e486b88226a0b1c2d924fca335c10c081be2e22bae40d1e0e49dd25e81ff",
+        "test_launch_refusals_sha256": "da588f6616c6c05c0af47ecb94990882cc937bcdbdb319e99e202d0f4af9de54"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1173541,
+        "out": 12781,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "15961b3da733d067fcbb079c8011730c1ada0978",
+        "ended": "2026-09-08T07:49:05Z"
+      },
+      "note": "Implemented shared worker membership, executable resolution/provenance, wrapper precedence, launch argv wiring and resume drift refusal. All named acceptance checks pass. Assumption: configured membership is separate from adapter admission, so tracked defaults retain the three legacy workers and direct launch refuses unimplemented adapters. Ag y native code, isolation, telemetry and tests were not changed. No unrelated fixes or full floor. Findings/counts are command receipts, not defect counts. Candidate delivery is not independent final acceptance. Commit was blocked by read-only .git; the requested fallback is ready.",
+      "commit": {
+        "subject": "conductor: resolve configured workers before dispatch",
+        "body": "Resolve worker membership, literal executables and source provenance through laneconf for wrapper and direct launch. Preserve legacy PATH fallback and model/effort precedence, carry the executable separately from adapter identity, and refuse resume selection drift before attempts.\n\nKeep agy adapter, isolation, telemetry and tests unchanged. Configured membership remains separate from adapter admission.\n\nValidation: focused laneconf 83, wrapper 88 and launch-refusal 47 tests pass; launch configuration 8, agy envelope 32 and harness fixes 25 pass. Closure, registered lint on the two changed Python files, shell syntax and git diff --check exit 0. Test hashes unchanged. Candidate delivery awaits independent acceptance.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T07:51:24.819Z"
+    }
+  },
+  "status": "closed"
+}

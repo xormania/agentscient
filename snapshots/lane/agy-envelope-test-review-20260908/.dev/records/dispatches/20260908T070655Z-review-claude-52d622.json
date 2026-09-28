@@ -1,0 +1,288 @@
+{
+  "id": "20260908T070655Z-review-claude-52d622",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-envelope-test-review-20260908",
+  "lineage": {
+    "branch": "lane/agy-envelope-test-review-20260908",
+    "base_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:06:55Z",
+    "closed": "2026-09-08T07:14:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "ref_sha": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "9b2100fe-67d9-40ff-8ed3-8bab27803006",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/9b2100fe-67d9-40ff-8ed3-8bab27803006.jsonl"
+  },
+  "session": {
+    "id": "9b2100fe-67d9-40ff-8ed3-8bab27803006",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/9b2100fe-67d9-40ff-8ed3-8bab27803006.jsonl",
+    "stream_sha256_at_close": "ccee01318fe2f0b84ced7d93847ec2b361c916d2bfcbff0d3ddd1a469072c866",
+    "spend": {
+      "input": 56,
+      "cached": 2522756,
+      "output": 33119,
+      "total": 2555931,
+      "source": "result.usage",
+      "messages": 28,
+      "cost_usd": 3.2081825
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-envelope-test-review-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the two agy envelope test files added at cf729ae against the declared terminal-carrier contract and supplied published wire evidence. Review tests, not implementation; do not inspect production parser source. Check meaningful red assertion receipts, clean legacy neighbors, missing/ambiguous/truncated/vendor-failure cases and semantic envelope validity. Synthetic fixtures are published-shape examples, not live verified vendor mocks; reject invented provider/denied_actions schema or blanket rejection of benign tool denial. Contract correction affects config/metadata seams only; parser tests remain provisional until accepted. Run focused discovery and registered lint where allowed; report access limits accurately. No edits, credentials, live inference or full floor. Return stamped findings and verdict inline.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/in/agy-envelope-test-producer.json",
+        "sha256": "a7aa48c7b0147a62013a918d772923f1826b67696c0923cdeb633aa9d71e4b5e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T070655Z-review-claude-52d622/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      }
+    ],
+    "sha256": "9cedc5bf8f019cf748a1c7185129d47fc9b947019302637ecd11bcb344cf021e",
+    "bytes": 1616
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:06:55Z",
+      "ended": "2026-09-08T07:14:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/agy_envelope_support.py:83 and ops/devlane/dispatch/tests/test_agy_envelope.py:174-214",
+          "claim": "The vendor `status` field is never exercised as a failure signal. `published_result(response, *, status=\"SUCCESS\", ...)` exposes the knob, but `grep -n 'status=' ` over both new files returns only that default at support.py:83 and three nested-envelope statuses at test lines 355, 371, 408 \u2014 no call site passes a vendor status. All 21 cases therefore carry `\"status\": \"SUCCESS\"`. The single vendor-failure fixture (test:177-195) keeps SUCCESS and adds `error=\"vendor boom\"`, a combination the supplied evidence does not exhibit (agy-wire-evidence.json published_wire lists `error` as conditional; release_specific_corrections records that in 1.1.20 benign tool errors ceased making the overall run fail, which implies a non-SUCCESS status exists). An agy branch that reads only `error` and never `status` passes all 21 tests, so a vendor-reported failed run carrying a plausible nested envelope closes as `ok` \u2014 the outcome CONTRACT.md:73 forbids (\"must reject ... vendor errors even beside a plausible envelope\"; \"Vendor schema acceptance or exit 0 alone never certifies work\").",
+          "reproduce": "grep -n 'status=' ops/devlane/dispatch/tests/test_agy_envelope.py ops/devlane/dispatch/tests/agy_envelope_support.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:116-133",
+          "claim": "The bare print-JSON carrier is pinned on its happy path only. `grep -n 'published_result\\|result_frame'` shows line 118 is the sole `published_result(...)` not wrapped in `result_frame(...)`; every rejection case \u2014 missing (276), ambiguous (286), truncated line (301), malformed payload (320), truncated response (334), vendor error (177) \u2014 is built with the `{\"event\":\"result\"}` wrapper. The bare-object path thus has no missing/ambiguous/truncated/malformed/error coverage at all: an implementation that accepts any stdout line whose object carries conversation_id+status+response, with no duplicate check and no error check on that path, passes all 21 tests, which is the \"arbitrary intermediate JSON\" CONTRACT.md:73 forbids. The fixture shape is also not a published one \u2014 agy-wire-evidence.json synthetic_shapes describes the print JSON result as the stdout document, so it cannot appear as one NDJSON line flanked by two other objects, and the transport declared in the same contract row is `--output-format stream-json`.",
+          "reproduce": "grep -n 'published_result\\|result_frame' ops/devlane/dispatch/tests/test_agy_envelope.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:301-347 (and :320-332)",
+          "claim": "The tests pin a cause vocabulary the contract does not declare. `assert_invalid_cause` requires the invalid envelope's note to contain the literal token \"truncated\" (lines 318 and 347) and \"malformed\" (line 332), while CONTRACT.md:73 says only \"Return the existing invalid/null-verdict result with a cause on failure\" and ops/devlane/task/envelope.py raises EnvelopeError text naming fields, not these tokens. A byte-cut result line (complete[:40]) and a byte-cut response string are both simply unparseable JSON; a conforming implementation that reports one cause for both \u2014 e.g. `malformed: result line is not JSON` \u2014 goes red on two tests for wording alone.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py (whole file)",
+          "claim": "The red receipt is real (21 ran, 19 assertion FAIL, 2 PASS, 0 ERROR, exit 1, reproduced at cf729ae) but not per-rule attributable: 18 of the 19 reds are explained by one upstream condition \u2014 `_envelope` has no agy branch, so the legacy scan returns the leading decoy. Nine fail `'decoy-scan-lead' != <expected note>` and nine more fail `'ok' != 'invalid'` while returning that same decoy envelope. Only test_a_raw_nine_key_object_is_not_an_agy_terminal_result (line 158, the one case built without decoys) is red on its own planted defect ('unrelated-intermediate' returned). The counts-mismatch, extra-key, two-result ambiguity and truncation rules therefore have no red attributable to themselves at this ref; each flips green the moment extraction works, without ever having been observed to discriminate. A decoy-free variant per reject rule would give each rule its own receipt.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' 2>&1 | grep -n '^FAIL: \\|^AssertionError'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_envelope.py:41-44",
+          "claim": "`parse()` accepts either a dict or a tuple whose first element is a dict, silently unwrapping `got[0]`. CONTRACT.md:73 declares one returned result object, and the two green legacy controls (tests at lines 462 and 474) prove `_envelope` returns a dict at this ref, so the tuple branch is unreachable. Keeping it means a later change to `_envelope`'s return shape \u2014 which every existing caller depends on \u2014 would not be caught by this file.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' -v"
+        }
+      ],
+      "artifacts": {
+        "patch": "sha256 of `git diff 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 cf729ae7c1c2d1fcc08ef6c936b558c435641228` equals the supplied context/diff.patch: b9ab090c1b83809ba69ed10014a64099fa840277774ce8cc958be821aff384c1. `git diff --check` over the same range: no output. Commit cf729ae carries `Source: original` and `Co-Authored-By: Grok 4.6 <noreply@x.ai>`.",
+        "unittest": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_envelope.py' at cf729ae7c1c2d1fcc08ef6c936b558c435641228: Ran 21, 19 FAIL, 2 PASS, 0 ERROR, exit 1. Reproduces the producer receipt in .dev/records/dispatches/20260908T065318Z-tests-grok-877495.json exactly. Red split measured: 9 fail on `'decoy-scan-lead' != <note>`, 10 fail on `'ok' != 'invalid'` (9 of those returning the decoy, 1 returning its own plant).",
+        "lint": "ruff check ops/devlane/dispatch/tests/test_agy_envelope.py ops/devlane/dispatch/tests/agy_envelope_support.py at cf729ae, ruff 0.16.5 under the tracked ruff.toml: All checks passed (exit 0).",
+        "legacy_neighbors": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_envelope*.py' at cf729ae: Ran 58, OK, exit 0. The two in-file legacy controls (omitted harness, harness='grok') are the 2 PASS above.",
+        "contract_grounding": "Checked against ops/devlane/dispatch/CONTRACT.md:73 (the `_envelope` row added by this range) and ops/devlane/task/envelope.py:429-513. Confirmed grounded, not invented: extra-key rejection and the 'transcript' needle (validate raises `envelope fields {list(env)} are not the contract's ...`); the 'counts' needle (`counts {..} disagree with the findings {..}`); the opinion fixture (tally counts a reproduce-less finding in both its severity bucket and `opinions`, so counts p2=1/opinions=1 with one such finding is correct); tripped+changes and invalid+null-verdict; commit as the one optional key. No harness allowlist exists in validate, so spend.harness='agy' is admissible.",
+        "evidence_discipline": "Checked and clean: the helper's docstring states the fixtures are illustrations, not executed vendor output; no denied_actions item schema is invented (the key appears only as an empty list, test:229); no provider or native-session field is invented; the denial cases (test:220 and :240) assert the envelope still extracts and status stays ok, so no benign tool denial is turned into a blanket failure. tool_info uses only the published name/parameters/output/error{type,message} keys.",
+        "access_limits": "Declared, not inferred. launch.py was not read (brief prohibition); all statements about parser behaviour come from executing the tests, never from its source. The producer head 3b1de205dda2e01f5f22bd1a3e8126637f9482e8 is absent from this snapshot (`git cat-file -t` => could not get object info), so I could not verify that cf729ae's tree equals the tree the producer measured; I verified instead that the supplied patch equals git diff BASE->cf729ae. No live agy invocation, no credentials, no session store, no settings, no full floor, no edits. The two non-test files in the range (ops/conductor/tools/laneconf.py, ops/devlane/harness/isolation.py) were not reviewed: out of the aimed scope.",
+        "scope_note": "One judgement call recorded rather than filed as a finding: test_two_result_events_are_ambiguous (line 286) declares two `event:result` frames ambiguous. Under the supplied evidence, stream *input* yields one result per turn, so multiple result frames are a published possibility; the pin is correct only because the transport declared in the same contract row is `--input-format text` (single turn). The test does not state that coupling, so it would silently become wrong if the transport moved to stream input."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2555931,
+        "out": 33119,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cf729ae7c1c2d1fcc08ef6c936b558c435641228",
+        "started": "2026-09-08T07:06:55Z",
+        "ended": "2026-09-08T07:13:17Z"
+      },
+      "note": "PROVISIONAL, matching the producer's own marking: the `_envelope` contract row is pending review, so these parser tests are not yet acceptance. Verdict is changes, on two coverage gaps inside the aimed scope, not on evidence discipline \u2014 the fixtures stay inside the published shapes, invent no provider or denied_actions schema, and correctly refuse to turn a benign tool denial into a blanket failure. The red receipt, lint and legacy neighbours all reproduce as claimed. The two p2s are what an implementation could satisfy while still being wrong: the vendor `status` field is never varied (support.py:83 exposes the knob; no test uses it), and the bare print-JSON carrier has a happy path and no rejection cases. The three p3s are test-design: an undeclared truncated/malformed cause vocabulary, reds that are not attributable per rule because a leading decoy preempts 18 of 19, and a dict-or-tuple hedge in parse(). Access limits are stated under artifacts.access_limits; in particular launch.py was not read and the producer head 3b1de20 is not in this snapshot."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

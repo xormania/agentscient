@@ -1,0 +1,24 @@
+{
+  "id": "events-88f3d343",
+  "verdict": "extraction-wrong",
+  "rule": "PLAN.md names event types as dotted string values such as stage.entered.",
+  "observed": "shapes[26].type is an unresolved object because etype is not a string constant.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "114-114",
+      "quote": "`stage.entered`"
+    },
+    {
+      "artifact": "cue/events.cue",
+      "lines": "14-14",
+      "quote": "type!: string"
+    },
+    {
+      "artifact": "obs/events.json",
+      "lines": "303-304",
+      "quote": "etype is not a string constant or a name for one"
+    }
+  ],
+  "action": "amend-extractor"
+}

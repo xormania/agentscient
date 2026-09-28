@@ -1,0 +1,332 @@
+{
+  "id": "20260905T002756Z-code-codex-3a92cb",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/security-resume-binding-20260904",
+  "lineage": {
+    "branch": "lane/security-resume-binding-20260904",
+    "base_sha": "52a724a80580cfb41851e7b3b6150aeb219d8783"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T00:27:56Z",
+    "closed": "2026-09-05T00:40:38Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "52a724a80580cfb41851e7b3b6150aeb219d8783",
+    "ref_sha": "52a724a80580cfb41851e7b3b6150aeb219d8783",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-27-57-01a06ef7-057d-7e11-ab03-30dcaae1a2f0.jsonl"
+  },
+  "session": {
+    "id": "01a06ef7-057d-7e11-ab03-30dcaae1a2f0",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-27-57-01a06ef7-057d-7e11-ab03-30dcaae1a2f0.jsonl",
+    "stream_sha256_at_close": "91f1d6977c94bfa6ea8c231c0f7bc1386f1fe25a87f5119efb7123898c1fc928",
+    "spend": {
+      "input": 4492018,
+      "cached": 4374016,
+      "output": 29998,
+      "total": 4522016,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-27-57-01a06ef7-057d-7e11-ab03-30dcaae1a2f0.jsonl",
+      "messages": 399
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr57.A9JZzO/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/draft63-path-protocol.md WHOLE. Fix root-proven residual path C-quote/rename parsing and Git pathspec interpretation as a single machine-readable/literal boundary. Only launch.py plus precise contract; NO tests. Preserve exact filenames, both rename endpoints, ignored source evidence, cache policy, original index and no collateral staging. Owned synthetic Git filename probes + full dispatch suite/Ruff/diff. No real-store mutation or broad refactor.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T002756Z-code-codex-3a92cb/in/draft63-path-protocol.md",
+        "sha256": "de12df674d4cc385ff0d57bb5c7b104d8121351385a49914583ffab7ae133059"
+      }
+    ],
+    "sha256": "b84fcdb3e6b497a430a42f339c069a078628391a9a70eaeb373d9082b4f73eb2",
+    "bytes": 4310
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T00:27:56Z",
+      "ended": "2026-09-05T00:40:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "29611aa9deb3c7725b8313fc745d72a5640ef87b",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 28,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "../in/draft63-path-protocol.md",
+          "claim": "Read the required brief whole.",
+          "reproduce": "cat ../in/draft63-path-protocol.md"
+        },
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed starting HEAD 52a724a80580cfb41851e7b3b6150aeb219d8783 and inventoried docs and ops files.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short; rg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/, ops/README.md, ops/devlane/AGENTS.md",
+          "claim": "Read the governing contracts and lane instructions before editing.",
+          "reproduce": "for path in docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/devlane/AGENTS.md; do cat \"$path\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Measured and inspected launch.py and its contract.",
+          "reproduce": "wc -l ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md; cat ops/devlane/dispatch/launch.py; cat ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Located every residual-path, rename, ignored-file, and staging callsite.",
+          "reproduce": "rg -n \"status_paths|residual|git add|pathspec|porcelain|ignored|rename\" ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Inspected the residual settlement and collection implementations and matching contract sections.",
+          "reproduce": "sed -n '1430,1620p' ops/devlane/dispatch/launch.py; sed -n '1760,1885p' ops/devlane/dispatch/launch.py; sed -n '70,110p' ops/devlane/dispatch/CONTRACT.md; sed -n '255,300p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "The brief's adc7ab2 abbreviation was not present in this snapshot's history; the path-related tip was 52a724a.",
+          "reproduce": "git log --oneline --decorate -12 -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md; git show --stat --oneline adc7ab2; git show --format=fuller --no-ext-diff adc7ab2 -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "52a724a80580cfb41851e7b3b6150aeb219d8783",
+          "claim": "Inspected the cache-residual change that introduced the human-status parsing boundary.",
+          "reproduce": "git show --format=fuller --no-ext-diff HEAD -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "Located existing residual and patch coverage without editing tests.",
+          "reproduce": "rg -n \"_residual|residual_paths|residual.patch|ignored|cache residual|pathspec|rename\" ops/devlane/dispatch/tests --glob '*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "Inspected relevant test helpers and harness commit behavior.",
+          "reproduce": "sed -n '1,125p' ops/devlane/dispatch/tests/launch_support.py; sed -n '330,400p' ops/devlane/dispatch/tests/test_launch_harness_fixes.py; sed -n '1,125p' ops/devlane/dispatch/tests/test_launch_collect.py; rg -n \"def _commit_for_harness|git.*add\" ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/dispatch-path-display.*",
+          "claim": "Measured Git's human and NUL-delimited rendering for spaces, UTF-8, quotes, backslashes, tabs, newlines, arrows, leading dashes, wildcards, and pathspec-looking filenames.",
+          "reproduce": "Create an isolated Git repository with the named filename matrix, then run: git status --porcelain=v1 -uall; git status --porcelain=v1 -z -uall | od -An -tx1c"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "Initial implementation passed diff whitespace validation and Python compilation.",
+          "reproduce": "git diff --check; git diff -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md; python3 -m py_compile ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch focused tests",
+          "claim": "An initial package-style unittest invocation failed because launch_support was not on sys.path.",
+          "reproduce": "python3 -m unittest ops.devlane.dispatch.tests.test_launch_harness_fixes.ResidualPatchIsDurable -v"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch focused tests",
+          "claim": "A corrected-directory invocation exposed that the guessed test class name was wrong.",
+          "reproduce": "cd ops/devlane/dispatch/tests && python3 -m unittest test_launch_harness_fixes.ResidualPatchIsDurable -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py",
+          "claim": "Located the exact residual-patch test class.",
+          "reproduce": "cd ops/devlane/dispatch/tests && rg -n '^class ' test_launch_harness_fixes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch focused tests",
+          "claim": "All three existing residual-patch and cache-policy tests passed.",
+          "reproduce": "cd ops/devlane/dispatch/tests && python3 -m unittest test_launch_harness_fixes.WhatAHarnessLeavesUncommittedIsPreserved -v"
+        },
+        {
+          "severity": "p3",
+          "where": "owned synthetic Git probe",
+          "claim": "Initial 15-record matrix produced a 2184-byte applicable patch with exact bytes, both rename endpoints, ignored source, cache policy, and an unchanged original index.",
+          "reproduce": "Run the owned inline Python synthetic matrix against ops/devlane/dispatch/launch.py, creating its repositories under /tmp/dispatch-path-matrix-*."
+        },
+        {
+          "severity": "p3",
+          "where": "dispatch suite",
+          "claim": "The complete dispatch suite passed: 323 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -v"
+        },
+        {
+          "severity": "p3",
+          "where": "lint and diff",
+          "claim": "Ruff lint and git diff validation passed; Ruff's formatter reported the pre-existing whole-file formatting style rather than a focused lint defect.",
+          "reproduce": "ruff check ops/devlane/dispatch/launch.py; ruff format --check ops/devlane/dispatch/launch.py; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Verified record serialization uses ASCII-safe JSON escaping and inspected launcher commit staging.",
+          "reproduce": "rg -n \"def _write_record|json\\.dump|write_text\\(json\" ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py; sed -n '860,925p' ops/devlane/dispatch/launch.py; sed -n '1320,1350p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Only launch.py and CONTRACT.md were modified; Ruff and diff checks passed.",
+          "reproduce": "git status --short; git diff --stat; git diff --check; ruff check ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Git commit was attempted but the sandbox refused creation of .git/index.lock because .git is read-only.",
+          "reproduce": "git add -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md; git commit -m \"dispatch: make residual paths literal\" -m \"...trailers...\""
+        },
+        {
+          "severity": "p3",
+          "where": "HEAD formatting baseline",
+          "claim": "Checked the committed launch.py formatting baseline separately from the working-tree change.",
+          "reproduce": "git show HEAD:ops/devlane/dispatch/launch.py | ruff format --check -"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh",
+          "claim": "Inspected the repository's authoritative full-suite command before execution.",
+          "reproduce": "cat ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "full repository suite",
+          "claim": "The authoritative suite exited 0: 1766 tests passed with 7 skips.",
+          "reproduce": "ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "final implementation",
+          "claim": "Reviewed the final boundary and contract; only the two permitted snapshot files changed, with Ruff and diff checks green.",
+          "reproduce": "sed -n '1480,1685p' ops/devlane/dispatch/launch.py; sed -n '260,305p' ops/devlane/dispatch/CONTRACT.md; git diff --check; git diff --name-only; ruff check ops/devlane/dispatch/launch.py; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "final owned synthetic Git probe",
+          "claim": "The final tree passed the 15-record, 2184-byte filename matrix; patch application reproduced exact selected files and bytes while preserving the original index and excluding cache and wildcard collateral.",
+          "reproduce": "Run the owned inline Python matrix against the latest /tmp/dispatch-path-matrix-* repository and apply residual.patch to a fresh clone."
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final HEAD remained the requested base because commit was sandbox-blocked; Ruff and diff checks passed and exactly the two permitted files remained modified.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ; git rev-parse HEAD; git diff --check; ruff check ops/devlane/dispatch/launch.py; git status --short"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/dispatch/launch.py",
+        "contract": "ops/devlane/dispatch/CONTRACT.md",
+        "commit_message": "../out/COMMIT_MSG",
+        "verification": "ops/bin/suites.sh: 1766 passed, 7 skipped, exit 0; dispatch suite: 323 passed; final owned path matrix: 15 records, 2184 patch bytes; Ruff and diff checks passed"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4522016,
+        "out": 29998,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "52a724a80580cfb41851e7b3b6150aeb219d8783",
+        "started": "2026-09-05T00:27:56Z",
+        "ended": "2026-09-05T00:39:06Z"
+      },
+      "note": "Implemented the directly supported reading that residual_paths remains a Git-like human compatibility projection while NUL-delimited byte records are authoritative for classification and patch selection. No tests were edited. Commit was blocked by the sandbox's read-only .git; ../out/COMMIT_MSG was written. Follow-up: the green full suite emitted pre-existing ResourceWarnings for live subprocesses/unclosed files in dispatch, task, and telemetry.",
+      "commit": {
+        "subject": "dispatch: make residual paths literal",
+        "body": "Read residual status and ignored filenames as NUL-delimited bytes, retain both\nrename endpoints, and derive display and patch selection from the same\nclassified entries. Stage the temporary salvage index with literal pathspec\nsemantics.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T00:40:37.161Z"
+    }
+  },
+  "status": "closed"
+}

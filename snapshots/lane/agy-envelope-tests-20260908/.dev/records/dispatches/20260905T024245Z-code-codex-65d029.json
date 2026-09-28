@@ -1,0 +1,132 @@
+{
+  "id": "20260905T024245Z-code-codex-65d029",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/pr66-review-fixes-20260905",
+  "lineage": {
+    "branch": "lane/pr66-review-fixes-20260905",
+    "base_sha": "ff6744c8c26cbbbf36eb237214f7854c956a6dee"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T02:42:45Z",
+    "closed": "2026-09-05T02:44:12Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+    "ref_sha": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-46-01a06f72-71c9-77f0-a59b-43095daa9d82.jsonl"
+  },
+  "session": {
+    "id": "01a06f72-71c9-77f0-a59b-43095daa9d82",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-46-01a06f72-71c9-77f0-a59b-43095daa9d82.jsonl",
+    "stream_sha256_at_close": "87055f55a1b4a0d211e2e835ecfd9e7cd01e6bae2453104637666dd7407775db",
+    "spend": {
+      "input": 340383,
+      "cached": 297728,
+      "output": 2830,
+      "total": 343213,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T024245Z-code-codex-65d029/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-42-46-01a06f72-71c9-77f0-a59b-43095daa9d82.jsonl",
+      "messages": 82
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-pr66-fixes.oKulon/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement only items 1, 2, 3 in ops/conductor/pr66-fixes.md: watchdog.py launcher census and unknown PID classification; worth.py retained Claude currencies negative/nonfinite rejection. Only those two production files. Read the bounded contract, make minimal functional fixes. Do not write/read/approve new tests, touch logs/data/fixtures, change the CI workflow, or pursue P3s. Existing baseline source is available; independent oracle is dispatched separately. Named command: ruff check ops/conductor/tools/watchdog.py ops/devlane/telemetry/worth.py. No broad suites. Commit with Source: original and your exact model Co-Authored-By. Report scope and limitations briefly. Relative paths in authored text; never print private host/account names.\n",
+    "inputs": [],
+    "sha256": "ade01d5037817698f95a919c5fbc9d40d66300b013170c10b844ed486d88e447",
+    "bytes": 4594
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T02:42:45Z",
+      "ended": "2026-09-05T02:44:12Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ff6744c8c26cbbbf36eb237214f7854c956a6dee",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "ff6744c8c26cbbbf36eb237214f7854c956a6dee"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}

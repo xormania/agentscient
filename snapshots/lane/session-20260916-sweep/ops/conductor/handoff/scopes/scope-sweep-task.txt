@@ -1,0 +1,16 @@
+Make this exit 0 from the repository root:
+  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'
+  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'
+  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'
+Move that family onto World(host_path=False), planting a fake for every
+tool the subject calls. 38 rows: test_fileset 34, test_run 3,
+test_verify 1.
+THE SUBJECT IS THE TEST FILES. This job's standing line 'do not edit the
+files the tests live in' is inverted here and only here: edit those files,
+do NOT edit the implementation they exercise.
+docs/tests.md rules 4 (hermetic, ambient named), 5 (testkit run, timeout),
+6 (fakes via registry, logging each call; no program in a test module).
+List and remedy: ops/conductor/handoff/
+HANDOFF-2026-09-16-hermetic-path-sweep.md on this branch. Re-measure
+first; its counts are from lane/session-20260916-g at e948141a.
+Commit here with Source: and Co-Authored-By: trailers. Nothing else.

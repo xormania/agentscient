@@ -1,0 +1,171 @@
+{
+  "id": "20260904T190017Z-review-codex-469774",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/skeptic-write",
+  "lineage": {
+    "branch": "lane/skeptic-write",
+    "base_sha": "75c4428ec6267dfd1eaa86f926b17a3ba654baff"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T19:00:17Z",
+    "closed": "2026-09-04T19:08:19Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "75c4428ec6267dfd1eaa86f926b17a3ba654baff",
+    "ref_sha": "75c4428ec6267dfd1eaa86f926b17a3ba654baff",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T15-00-18-01a06dcb-0b24-7df2-9a17-63c8513720dd.jsonl"
+  },
+  "session": {
+    "id": "01a06dcb-0b24-7df2-9a17-63c8513720dd",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T15-00-18-01a06dcb-0b24-7df2-9a17-63c8513720dd.jsonl",
+    "stream_sha256_at_close": "81113349f2a0ffdc1398b70405a3a8cbac14b3a304f940aebac479bc73787085",
+    "spend": {
+      "input": 4033981,
+      "cached": 3888956,
+      "output": 26982,
+      "total": 4060963,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T15-00-18-01a06dcb-0b24-7df2-9a17-63c8513720dd.jsonl",
+      "messages": 388
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-skeptic-write/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security audit PR #57 lane/skeptic-write 75c4428 vs origin/dev. Files: ops/devlane/dispatch/launch.py ops/conductor/tools/ladder.py. Hunt: writable_roots granted beyond check-tests out/; TMPDIR escaping the job; wait-reason treating a live wall as envelope=invalid.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/in/slice-skeptic-write.md",
+        "sha256": "83fe83e9e34eb3d7423ef18caa89c35ba94fcf97ac70b286fcc05677a969cb9f"
+      }
+    ],
+    "sha256": "741a5a9d3ee851ad0ffaa9d1aa87cf3f4163b02c54f0c38b36804e4b0acbe309",
+    "bytes": 3598
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T19:00:17Z",
+      "ended": "2026-09-04T19:08:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "75c4428ec6267dfd1eaa86f926b17a3ba654baff",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "../in/slice-skeptic-write.md:15 \u2194 ops/devlane/task/jobs.json:66-75 \u2194 ops/devlane/dispatch/launch.py:418-427,759-772",
+          "claim": "Declared: read-role Codex must write out/SKEPTIC.md and temporary files while the snapshot remains read-only. Practiced: the argv selects `--sandbox read-only` and only configures `sandbox_workspace_write.writable_roots`; the installed Codex policy says read-only permits only reads and writable_roots applies to workspace-write. Fresh check-tests therefore remains unable to produce its deliverable or use TMPDIR, breaking the lane.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/devlane/dispatch python3 -c 'import launch,pathlib,shutil,subprocess; a=launch._argv(\"codex\",\"m\",None,\"s\",\"/job/prompt.txt\",[],\"read-only\",writable_out=True); b=subprocess.check_output([\"strings\",str(pathlib.Path(shutil.which(\"codex\")).resolve())],text=True); ro=\"Filesystem sandboxing defines which files can be read or written. `sandbox_mode` is `read-only`: The sandbox only permits reading files.\"; assert a[a.index(\"--sandbox\")+1]==\"read-only\" and any(\"sandbox_workspace_write.writable_roots=\" in x for x in a) and ro in b; print(a); print(ro)'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/CONTRACT.md:358-367 \u2194 ops/devlane/dispatch/launch.py:380-387,759-762",
+          "claim": "The new resumed check-tests argv appends `--sandbox` to `codex exec resume`, but that subcommand does not accept the option. Every resumed Codex check-tests attempt exits 2 during argument parsing before the model runs.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/devlane/dispatch python3 -c 'import launch,subprocess; a=launch._argv(\"codex\",\"m\",None,\"00000000-0000-0000-0000-000000000000\",\"/job/prompt.txt\",[],\"read-only\",resume=True,writable_out=True); p=subprocess.run(a,input=\"\",text=True,capture_output=True); print(p.stderr); assert p.returncode==2 and \"unexpected argument\" in p.stderr and \"--sandbox\" in p.stderr'"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/slice-skeptic-write.md:15 \u2194 ops/devlane/dispatch/launch.py:769-772",
+          "claim": "TMPDIR is resolved without rejecting symlinks. Because a prior attempt controls out/, it can replace the initially empty out/tmp directory with a directory symlink; a resume accepts that symlink via mkdir(exist_ok=True) and exports its resolved target outside the job. This violates the job-directory boundary and can also make resumed tests fail under containment.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/dispatch/launch.py\").read_text(); out=Path(\".claude/skills\").resolve(); p=Path(\".claude/skills/mate-php-environment-check\"); assert \"tmpdir.mkdir(exist_ok=True)\" in s and \"env[\\\"TMPDIR\\\"] = str(tmpdir.resolve())\" in s and p.is_symlink(); p.mkdir(exist_ok=True); print(p.resolve()); assert not p.resolve().is_relative_to(out)'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/context/diff.patch",
+        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260904T190017Z-review-codex-469774/snapshot",
+        "base": "c715b24aaea4bf040b2bf63021b59125474e1485",
+        "head": "75c4428ec6267dfd1eaa86f926b17a3ba654baff"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4060963,
+        "out": 26982,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "75c4428ec6267dfd1eaa86f926b17a3ba654baff"
+      },
+      "note": "Covered argv, shell/template, secret, path/ref, sandbox/record, wait-output, vendor-compatibility, and supply-chain surfaces. The nine changed files passed the repository secret scanner; no SQL, dependency pin, lockfile, or fetched-action surface changed. The new writable_out gate is check-tests-specific, and the ladder still classifies a live wait exit 2 as wall. Stateful unit suites could not run because the audit sandbox exposes no writable temporary directory; the non-mutating reproductions ran. Sandbox behavior was measured against installed codex-cli 0.153.2 after official documentation search returned no usable page. The session store was not read and the worktree remained clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T19:08:18.369Z"
+    }
+  },
+  "status": "closed"
+}

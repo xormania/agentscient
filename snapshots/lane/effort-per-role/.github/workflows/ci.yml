@@ -1,0 +1,51 @@
+name: ci
+# The gate every PR into dev must pass whole: the wall over the tree,
+# lint under the pinned contract, every lane suite (stdlib only, no
+# cached oracle), then the Symfony project: manifest and lock agree,
+# install from the lock, the kernel boots, every PHPUnit suite. Runs on
+# this repository's own self-hosted runners (the House's pattern; the
+# toolchain lives on the host), with CI_RUNNER as the override. `edited` is in the trigger set so a title or body
+# changed after checks passed is judged again.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+jobs:
+  ci:
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: the host's user toolchain on PATH (ruff, composer, cue live in ~/.local/bin)
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: term wall — tree content and paths
+        env:
+          TERM_WALL: ${{ vars.TERM_WALL }}
+        run: python3 ops/devlane/workflow/checks/term_wall.py --root .
+      - name: ruff — the pinned contract (the host's ruff; ruff.toml refuses a version outside the range)
+        run: |
+          ruff --version
+          ruff check .
+      - name: lane suites
+        run: bash ops/bin/suites.sh
+      - name: the host toolchain the self-hosted runner relies on
+        run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
+      - name: composer validate — the manifest and the lock agree
+        run: composer validate --strict
+      - name: composer install — from the lock, nothing resolved on the runner
+        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: php lint
+        run: find src packages -name '*.php' -print0 | xargs -0 -r -n50 php -l
+      - name: the kernel boots
+        run: php bin/console about
+      - name: phpunit — the project and every package
+        run: vendor/bin/phpunit
+      - name: mate serves measured truth — the compiled container answers
+        run: |
+          vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \
+            | jq -e '.untrusted_data.services["router.default"]'
+          vendor/bin/mate tools:list

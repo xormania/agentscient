@@ -1,0 +1,287 @@
+{
+  "id": "20260905T001916Z-code-codex-a49445",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/security-hook-families-20260904",
+  "lineage": {
+    "branch": "lane/security-hook-families-20260904",
+    "base_sha": "0347aac0f64420b7df84bf62ab0b209cf59a9289"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T00:19:16Z",
+    "closed": "2026-09-05T00:29:08Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0347aac0f64420b7df84bf62ab0b209cf59a9289",
+    "ref_sha": "0347aac0f64420b7df84bf62ab0b209cf59a9289",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-19-17-01a06eef-168b-79c0-89aa-756cf18006aa.jsonl"
+  },
+  "session": {
+    "id": "01a06eef-168b-79c0-89aa-756cf18006aa",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-19-17-01a06eef-168b-79c0-89aa-756cf18006aa.jsonl",
+    "stream_sha256_at_close": "70e2958bb2ff59ff5c54682765afdbd6011caf0ec20789f1e61311b38d40b7b7",
+    "spend": {
+      "input": 2271441,
+      "cached": 2162816,
+      "output": 23537,
+      "total": 2294978,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T20-19-17-01a06eef-168b-79c0-89aa-756cf18006aa.jsonl",
+      "messages": 223
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-grok-pr60.kePmNH/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/draft62-last-correction-brief.md WHOLE and both final review JSONs. Correct four upheld semantic families together: unique GNU option prefixes, head short clusters, path-qualified existing wrappers, fd0 Python heredocs. NO tests. Allowed matrix.py, unsafe-command.py, narrow shared command_shape.py boundary. Preserve intended data/read/tail/byte allows; no blanket token scanning or new parser rewrite. Family probes + existing hooks suites and Ruff/diff; no live writes/vendors. Final correction, no third review cycle.\n\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/in/draft62-last-correction-brief.md",
+        "sha256": "a0093cd3148ebb3ba10b46b9c7e5b7616e2c478fd184c8f2b14cf80318d43635"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/in/draft62-final-grok-report.json",
+        "sha256": "1a9022194f7fc243b902130630d0426529b64eb0fa96f985dfccd47672a99df4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/in/draft62-final-daybreak-report.json",
+        "sha256": "20f37c6172320d1bd1da2e2b4b65a2f010bca350c2468970f515b5ca7fd6d7f0"
+      }
+    ],
+    "sha256": "436e8c779698cf28624ee1976483d4807497bc2f96c99965a503a63cf69c165e",
+    "bytes": 4380
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T00:19:16Z",
+      "ended": "2026-09-05T00:29:08Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3496a2f719a9b8759315cf991543c026daf2b658",
+    "changed_paths": [
+      "ops/devlane/hooks/claude/command_shape.py",
+      "ops/devlane/hooks/claude/matrix.py",
+      "ops/devlane/hooks/claude/unsafe-command.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "draft62-last-correction",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository",
+          "claim": "Confirmed the clean starting tree and requested target 0347aac0f64420b7df84bf62ab0b209cf59a9289.",
+          "reproduce": "pwd && git status --short && git rev-parse HEAD && rg --files ../in docs ops | sed -n '1,240p'"
+        },
+        {
+          "severity": "p3",
+          "where": "governing inputs",
+          "claim": "Inspected the governing documents and correction inputs; the combined displayed output was truncated.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md ops/devlane/AGENTS.md ../in/draft62-last-correction-brief.md ../in/draft62-final-daybreak-report.json ../in/draft62-final-grok-report.json"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read the correction brief and both final review JSONs whole before implementation.",
+          "reproduce": "cat ../in/draft62-last-correction-brief.md && cat ../in/draft62-final-daybreak-report.json && cat ../in/draft62-final-grok-report.json && cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md && cat docs/mapping.md && cat ops/README.md && cat ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read the five compact founding-contract documents whole.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the mapping document whole.",
+          "reproduce": "cat docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks",
+          "claim": "Located the option, wrapper, heredoc, and test surfaces and inspected the three permitted implementation files.",
+          "reproduce": "rg -n \"def (command|unwrap|head_clips|env|python)|ENV_|HEAD_|heredoc|timeout|wrapper|normalize|unique\" ops/devlane/hooks/claude/{matrix.py,unsafe-command.py,command_shape.py} ops/devlane/hooks/tests && sed -n '1,420p' ops/devlane/hooks/claude/matrix.py && sed -n '1,300p' ops/devlane/hooks/claude/unsafe-command.py && sed -n '1,300p' ops/devlane/hooks/claude/command_shape.py"
+        },
+        {
+          "severity": "p3",
+          "where": "permitted implementation and tests",
+          "claim": "Inspected the relevant implementations and existing command-shape tests by line.",
+          "reproduce": "nl -ba ops/devlane/hooks/claude/matrix.py | sed -n '1,390p'; nl -ba ops/devlane/hooks/claude/unsafe-command.py | sed -n '110,230p'; nl -ba ops/devlane/hooks/claude/command_shape.py | sed -n '200,470p'; nl -ba ops/devlane/hooks/tests/test_command_shape.py | sed -n '1,190p'"
+        },
+        {
+          "severity": "p3",
+          "where": "existing hook corpus",
+          "claim": "Measured the existing coverage and neighboring option, wrapper, and heredoc behavior without editing tests.",
+          "reproduce": "rg -n \"HEREDOC_OPEN|env_operand|python_sources|head_clips_lines|HEAD_COUNT|command_shape\" ops/devlane/hooks/claude ops/devlane/hooks/tests/test_matrix.py ops/devlane/hooks/tests/test_unsafe_command.py 2>/dev/null; nl -ba ops/devlane/hooks/claude/unsafe-command.py | sed -n '120,210p'; nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '560,760p'; nl -ba ops/devlane/hooks/tests/test_unsafe_command.py | sed -n '1,260p'"
+        },
+        {
+          "severity": "p3",
+          "where": "GNU coreutils",
+          "claim": "Measured the installed GNU env and head option vocabularies and argument forms using harmless help invocations.",
+          "reproduce": "/usr/bin/env --help && /usr/bin/head --help"
+        },
+        {
+          "severity": "p3",
+          "where": "working diff",
+          "claim": "The first implementation diff passed whitespace validation and stayed within the three allowed files.",
+          "reproduce": "git diff --check && git diff -- ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/claude/command_shape.py"
+        },
+        {
+          "severity": "p3",
+          "where": "targeted existing suites",
+          "claim": "The command-shape, matrix, and unsafe-command modules passed 70 existing tests.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_command_shape.py' && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_matrix.py' && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/devlane/hooks/tests -p 'test_unsafe_command.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/claude/matrix.py",
+          "claim": "Inspected the final decision path and confirmed normalized command variants feed both Python-write and dispatch classification.",
+          "reproduce": "nl -ba ops/devlane/hooks/claude/matrix.py | sed -n '650,790p'; nl -ba ops/devlane/hooks/claude/matrix.py | sed -n '790,930p'; rg -n \"python_written_paths|dispatch_args|commands\\(\" ops/devlane/hooks/claude/matrix.py"
+        },
+        {
+          "severity": "p3",
+          "where": "four semantic families",
+          "claim": "Classifier-only cross-product probes passed for unique env prefixes, clustered and abbreviated head options, path-qualified wrappers, fd0 heredocs, non-stdin/data heredocs, reads, byte mode, tail-only, and single-needle allows.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport importlib.util, pathlib, subprocess, sys\nroot=pathlib.Path.cwd(); hooks=root/'ops/devlane/hooks/claude'; sys.path.insert(0,str(hooks))\ndef load(n,f):\n s=importlib.util.spec_from_file_location(n,hooks/f); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); return m\nmatrix=load('matrix_probe','matrix.py'); unsafe=load('unsafe_probe','unsafe-command.py'); shape=load('shape_probe','command_shape.py')\nlaunch='ops/devlane/dispatch/launch.py --job verify'\nfor option in ('--deb','--igno-e','--n','--uns=GONE','--chd=.','--blo=PIPE','--lis'):\n assert 'direct-launch' in str(matrix.check_text(f'/usr/bin/env {option} {launch}',str(root)))\nfor args in (['env','--ign',launch],['env','--bogus',launch],['env','--debug=x',launch]): assert matrix.env_operand(args,0) is None\nassert matrix.env_operand(['env','--block-signal','PIPE',launch],0)==2\nr=subprocess.run(['/usr/bin/env','--deb','/bin/printf','env-prefix-ok'],text=True,capture_output=True,check=True); assert r.stdout=='env-prefix-ok'\np=\"grep -E 'a|b|c' ops/README.md | tail -10 | head \"\nfor o in ('-vn5','-qvn5','-qv -n5','-vn-2','-qn3','--l=5','--lin 5','--verb -n5'): assert unsafe.check(p+o)[0]=='clipped-sweep'\nfor o in ('-vc5','-qvc 5','--b=5','--by 5','-zn5','-qz -n5','--zero-t --lines=5','--v -n5'): assert unsafe.check(p+o) is None\nassert unsafe.check(\"grep -E 'a|b|c' ops/README.md | tail -3\") is None\nassert unsafe.check(\"grep -n 'single' ops/README.md | head -3\") is None\nwrite=\"open('AGENTS.md','w').write('x')\"\nfor c in (f'/usr/bin/timeout 2 python3 -c \"{write}\"',f'/usr/bin/env python3 -c \"{write}\"',\"python3 0<<'PY2'\\n\"+write+'\\nPY2',\"python3 <<'PY2'\\n\"+write+'\\nPY2'): assert 'hand-write' in str(matrix.check_text(c,str(root)))\nfor c in ('echo \"python3 -c data\"',\"python3 -c \\\"open('AGENTS.md').read()\\\"\",\"python3 2<<'PY2'\\n\"+write+'\\nPY2',\"cat 0<<'PY2'\\n\"+write+'\\nPY2'): assert matrix.check_text(c,str(root)) is None\nassert any(c.startswith('python3 -c') for c in shape.commands('/usr/bin/timeout 2 python3 -c \"print(1)\"'))\nprint('family probes ok')\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "changed files",
+          "claim": "Ruff and diff checks passed after the main correction.",
+          "reproduce": "ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/claude/command_shape.py && git diff --check && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests",
+          "claim": "The complete existing hooks suite passed all 215 tests after the main correction.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/devlane/hooks/tests"
+        },
+        {
+          "severity": "p3",
+          "where": "commit history",
+          "claim": "Measured the repository's exact required GPT-5.6 Sol attribution trailer.",
+          "reproduce": "git log -12 --format='%H%n%B%n---' | rg -n 'Source:|Co-Authored-By:'"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree verification",
+          "claim": "After the final fd0 normalization, all 215 hooks tests, Ruff, diff checking, and diff-stat reporting exited 0.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/devlane/hooks/tests && ruff check ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/claude/command_shape.py && git diff --check && git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The sandbox refused git staging and commit because the snapshot Git metadata is read-only.",
+          "reproduce": "git add ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/claude/command_shape.py && git commit -m 'hooks: close final command classification gaps' -m 'Normalize unique GNU option prefixes, clustered head flags, path-qualified wrappers, and fd0 Python heredocs without widening the parser boundary.' -m 'Source: original' -m 'Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "final working tree",
+          "claim": "Final diff checking exited 0; only the three allowed implementation files are modified, the base remains 0347aac0f64420b7df84bf62ab0b209cf59a9289, and the fallback commit message contains the required trailers.",
+          "reproduce": "git status --short && git diff --check && git diff --stat && git rev-parse HEAD && sha256sum ops/devlane/hooks/claude/matrix.py ops/devlane/hooks/claude/unsafe-command.py ops/devlane/hooks/claude/command_shape.py && sed -n '1,20p' ../out/COMMIT_MSG && date -Iseconds"
+        }
+      ],
+      "artifacts": {
+        "matrix": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/snapshot/ops/devlane/hooks/claude/matrix.py",
+        "unsafe_command": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/snapshot/ops/devlane/hooks/claude/unsafe-command.py",
+        "command_shape": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/snapshot/ops/devlane/hooks/claude/command_shape.py",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260905T001916Z-code-codex-a49445/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2294978,
+        "out": 23537,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0347aac0f64420b7df84bf62ab0b209cf59a9289",
+        "started": null,
+        "ended": "2026-09-04T20:27:27-04:00"
+      },
+      "note": "Implemented all four upheld families together without test edits: unique GNU env/head prefixes are resolved only when unambiguous with their declared argument semantics; head q/v/z clusters reuse count classification and NUL-record mode is not treated as a bounded newline view; path-qualified existing wrappers normalize at command_shape; and default/fd0 Python heredocs are distinguished from non-stdin heredocs while removing only their actual delimiter operand. Intended data/read/tail/single-needle/byte-mode behavior remains allowed. Assumption: the declared static limits for dynamic eval/paths, env -S expansion, and full shell grammar remain out of scope. No unrelated defect or performance concern was found. The complete existing hooks discovery command exited 0 in the final tree. Git commit was attempted but refused by the read-only .git sandbox, so the launcher must commit using out/COMMIT_MSG.",
+      "commit": {
+        "subject": "hooks: close final command classification gaps",
+        "body": "Normalize unique GNU option prefixes, clustered head flags, path-qualified\nwrappers, and fd0 Python heredocs without widening the parser boundary.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T00:29:07.391Z"
+    }
+  },
+  "status": "closed"
+}

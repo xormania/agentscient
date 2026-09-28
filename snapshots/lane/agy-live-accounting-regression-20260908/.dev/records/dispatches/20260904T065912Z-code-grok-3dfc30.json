@@ -1,0 +1,166 @@
+{
+  "id": "20260904T065912Z-code-grok-3dfc30",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps",
+  "lineage": {
+    "branch": "lane/fixture-apps",
+    "base_sha": "f8b0285edd6d3b5c9386c3de6c2287271ed63196"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:59:13Z",
+    "closed": "2026-09-04T07:21:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f8b0285edd6d3b5c9386c3de6c2287271ed63196",
+    "ref_sha": "f8b0285edd6d3b5c9386c3de6c2287271ed63196",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "84a423d7-5f45-4f5f-8977-a38b94bd2e61",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok-stream/sessions/<snapshot-encoded>/84a423d7-5f45-4f5f-8977-a38b94bd2e61/summary.json"
+  },
+  "session": {
+    "id": "84a423d7-5f45-4f5f-8977-a38b94bd2e61",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok-stream/sessions/<snapshot-encoded>/84a423d7-5f45-4f5f-8977-a38b94bd2e61/summary.json",
+    "stream_sha256_at_close": "f6cbb26869e8a27973a776ccecf331ebcf71bd76ba482c1c36e0024941ca89b2",
+    "spend": {
+      "input": 6518221,
+      "cached": 6036352,
+      "output": 78203,
+      "total": 6596424,
+      "cost_usd_ticks": 7566924400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/home/grok-stream/sessions/<snapshot-encoded>/84a423d7-5f45-4f5f-8977-a38b94bd2e61/summary.json",
+      "messages": 286
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture apps batch, slice 1 (the lever, the fault kinds, the manifest shape), the fix round on the tests: the Codex skeptic judged the tests at this ref against the contract and found 2 P1, 11 P2, 2 P3 (verdict CHANGES); its findings are appended to the input file after the contract. Address every P1 and P2 and the P3s you agree with, saying in the commit which you left and why. The tests stay red-first at this ref (no implementation exists: ops/bin/fixture.sh and FAULT-KINDS.md are absent; do not write them); one commit per file. Files: ops/devlane/fixtures/tests/test_fixture_lever.py, test_fixture_manifests.py, test_fixture_grade.py, ops/conductor/tests/test_findings_calibration.py, ops/conductor/tests/test_instrument_conventions.py, and for finding 15 a test that pins the root changes the contract names.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T065912Z-code-grok-3dfc30/in/contract-fixtures-1-fix.md",
+        "sha256": "a0d1940d133778913eee2843603666eb43dac16bea70f13110e2ac267691fab1"
+      }
+    ],
+    "sha256": "6117377bcd60fcce0511ea11612f589fd00a2f3781ba01e47afd8f0a1df4fd60",
+    "bytes": 3166
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:59:13Z",
+      "ended": "2026-09-04T07:21:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "063a0dee11b2d63665a2c430500a4ab9f1f4837a",
+    "changed_paths": [
+      "ops/conductor/tests/test_findings_calibration.py",
+      "ops/conductor/tests/test_instrument_conventions.py",
+      "ops/devlane/fixtures/tests/test_fixture_grade.py",
+      "ops/devlane/fixtures/tests/test_fixture_lever.py",
+      "ops/devlane/fixtures/tests/test_fixture_manifests.py",
+      "ops/devlane/fixtures/tests/test_fixture_root.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_fixture_lever": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+        "test_fixture_manifests": "ops/devlane/fixtures/tests/test_fixture_manifests.py",
+        "test_fixture_grade": "ops/devlane/fixtures/tests/test_fixture_grade.py",
+        "test_findings_calibration": "ops/conductor/tests/test_findings_calibration.py",
+        "test_instrument_conventions": "ops/conductor/tests/test_instrument_conventions.py",
+        "test_fixture_root": "ops/devlane/fixtures/tests/test_fixture_root.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6596424,
+        "out": 78203,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f8b0285edd6d3b5c9386c3de6c2287271ed63196",
+        "started": "2026-09-04T06:59:13Z",
+        "ended": "2026-09-04T07:20:55Z"
+      },
+      "note": "Fix round on slice-1 tests at f8b0285. Addressed both P1s, all 11 P2s, and both P3s (none left). Six commits on lane/fixture-apps, one file each: ec16ac7 lever (findings 8\u201311, 13, 14), 1cd666f manifests (1, 6, 7), 53eef02 grade (3, 12, 13), e86d0e9 calibrate (2, 4, 5, 13), c5edc14 conventions (13), 063a0de root pins (15). Tests stay red: ops/bin/fixture.sh and FAULT-KINDS.md were not written. Abort (exit 3) has no hermetic make/prove/grade trigger in the contract; helpers reject embedded class tokens and abort-as-refusal; prove timeout is UNREACHABLE exit 1, not abort."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T07:21:18.133Z"
+    }
+  },
+  "status": "closed"
+}

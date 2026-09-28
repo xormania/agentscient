@@ -1,0 +1,245 @@
+{
+  "id": "20260916T082610Z-review-codex-ee08a7",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-f",
+  "lineage": {
+    "branch": "lane/session-20260916-f",
+    "base_sha": "515e5b72e2340a73a68ed624365ff9408828e4a0"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:26:10Z",
+    "closed": "2026-09-16T08:33:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "515e5b72e2340a73a68ed624365ff9408828e4a0",
+    "ref_sha": "515e5b72e2340a73a68ed624365ff9408828e4a0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-26-25-01a0a953-051d-7773-a7c2-004d0f672cd2.jsonl"
+  },
+  "session": {
+    "id": "01a0a953-051d-7773-a7c2-004d0f672cd2",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-26-25-01a0a953-051d-7773-a7c2-004d0f672cd2.jsonl",
+    "stream_sha256_at_close": "152905e7077ed0fe260694cdfb20597068382db79a98474e7b7e8c380242a33d",
+    "spend": {
+      "input": 2351405,
+      "cached": 2240512,
+      "output": 15539,
+      "total": 2366944,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-26-25-01a0a953-051d-7773-a7c2-004d0f672cd2.jsonl",
+      "messages": 278
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Review the watchdog backlog fix and the watch skill, slice one (PR #244, lane/session-20260916-f, head 515e5b72). Contract: ops/conductor/watchdog-lever.md.\nAim skepticism at: the ruling that a watcher reports nothing about what it can see at start (closed records, no-copy directories, unreadable inputs) unless --report-existing is given, and only what changes after start speaks; the claim that no live condition changed, pinned by a test that plants a directory after start; the contract wording that replaced the old carve-out; the class-level fixture override adding --report-existing to planted-closed families; and whether .claude/skills/watch/SKILL.md tells a session anything the tools and contracts do not measure.\n",
+    "inputs": [],
+    "sha256": "b3851d68c4dfafb54c0b5cc2188e6ec31212c4c1780704644c6826c5a7d5999b",
+    "bytes": 10356,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/lane-mcp.json",
+      "sha256": "375dd182c46f7c7068c55bf00807489f657bfc99ac1581efd0dd579c4f936098",
+      "job_ids": [
+        "20260916T082553Z-review-grok-61ba2a"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "632ed8a84b331c4cc3eb099fe35224fa3f633eb0909bdf517bff6e3fde4425c3"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T08:26:24Z",
+      "ended": "2026-09-16T08:33:41Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "515e5b72e2340a73a68ed624365ff9408828e4a0",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/watchdog.py:904-927,1039-1041,1099-1115",
+          "claim": "startup_silent permanently suppresses an ID, not merely its startup condition. A no-copy directory whose record.json becomes unreadable after startup emits neither deviation unavailable nor watchdog error, and a startup-closed record amended to introduce a deviation is never rescanned. This contradicts watchdog-lever.md:57-60 and :223-225. The new live test only plants an entirely new ID, so it misses both transitions.",
+          "reproduce": "Using test_watchdog._WatchdogFixture, plant_no_copy(ID), start loop(), then mkdir ID/record.json after 0.2s: measured ERROR_LINES=[] and DEVIATIONS=[]. Separately plant a closed-ok record and amend it after start to closed-tripped with changed_paths: measured DEVIATIONS=[]."
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/watch/SKILL.md:70-72",
+          "claim": "The advertised \"stalls, deviations, CI\" Monitor command cannot report CI: it passes --no-forge, which prevents CI acquisition, and its grep expression does not match lines beginning \"ci fail\" or \"ci cancel\".",
+          "reproduce": "printf '%s\\n' 'ci fail #244 at 0123456789012345678901234567890123456789: lane' 'stall lane/x: no dispatch running, 60 min since the lock' | grep -E --line-buffered 'stall |deviation |no record copy |harness gone |watchdog error' outputs only the stall line."
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/watch/SKILL.md:78-87",
+          "claim": "The old-checkout awk fallback discards live conditions whenever their line contains a prior-day record ID. Stall lines commonly name the closed record anchoring the stall, contrary to line 87's claim that stall names no record; long, unobservable, and harness-gone lines can be lost similarly.",
+          "reproduce": "printf '%s\\n' 'stall lane/x: no dispatch running, 60 min since 20260915T090000Z-code-test-old' | awk -v today=20260916 '$0 !~ /[0-9]{8}T[0-9]{6}Z/ || $0 ~ today {print; fflush()}' produces no output."
+        },
+        {
+          "severity": "p2",
+          "where": ".claude/skills/watch/SKILL.md:64-76; ops/conductor/harness-capabilities.md:15-28",
+          "claim": "The skill makes the exact Monitor(...) API, per-stdout-line chat delivery, and 30-minute ceiling load-bearing without a current contract or probe. The capability inventory only measures generic background-task completion notifications, while repository search finds the exact Monitor surface only in this new skill and a historical proposal. A session therefore cannot distinguish unsupported delivery from a quiet watch.",
+          "reproduce": "rg -n 'Monitor\\(|timeout_ms|stdout line.*message|30 minutes' ops/devlane/harness ops/conductor/harness-capabilities.md .claude/skills/watch/SKILL.md ops/conductor/mcp-tools.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py:1302; .claude/skills/watch/SKILL.md:29",
+          "claim": "Both user-facing flag descriptions retain the old meaning, saying --report-existing reports records already closed at startup. The revised contract also makes startup no-copy and unreadable directories backlog, so help omits two condition families the flag now controls.",
+          "reproduce": "python3 ops/conductor/tools/watchdog.py --help | sed -n '/report-existing/,+1p' prints 'report records already closed at start'."
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/context/diff.patch read whole",
+        "tests": "test_watchdog.py: 61 tests OK; test_watchdog_deliverable.py: 7 tests OK",
+        "live_transition": "no-copy to unreadable emitted no error/deviation; amended closed record emitted no new deviation",
+        "workspace": "git status --short was empty; no files edited"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2366944,
+        "out": 15539,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "515e5b72e2340a73a68ed624365ff9408828e4a0",
+        "started": null,
+        "ended": "2026-09-16T08:32:59Z"
+      },
+      "note": "reused: agentscient-lane brief/jobs/changes/findings, Graft repository map, watchdog contract, and existing World/_WatchdogFixture. No in/ directory existed at either expected sibling path; the supplied context/diff.patch was read whole. Graft saved approximately 1,422,556 tokens this turn."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082610Z-review-codex-ee08a7/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T04-26-25-01a0a953-051d-7773-a7c2-004d0f672cd2.jsonl"
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

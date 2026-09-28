@@ -1,0 +1,152 @@
+{
+  "id": "20260905T040741Z-code-grok-357119",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/wip-final-tests-20260905",
+  "lineage": {
+    "branch": "lane/wip-final-tests-20260905",
+    "base_sha": "98b75aa090440cf082f3216e794d616aa6c9d4cc"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T04:07:42Z",
+    "closed": "2026-09-05T04:14:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+    "ref_sha": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "6ad0d298-f5df-4f24-ba5b-7fe515674729",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok-stream/sessions/<snapshot-encoded>/6ad0d298-f5df-4f24-ba5b-7fe515674729/summary.json"
+  },
+  "session": {
+    "id": "6ad0d298-f5df-4f24-ba5b-7fe515674729",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok-stream/sessions/<snapshot-encoded>/6ad0d298-f5df-4f24-ba5b-7fe515674729/summary.json",
+    "stream_sha256_at_close": "03fd3b06efce816d8ba24546778a292ec77ce29575905906b58c29d8b16cc40e",
+    "spend": {
+      "input": 1007102,
+      "cached": 819072,
+      "output": 24868,
+      "total": 1031970,
+      "cost_usd_ticks": 1589166800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T040741Z-code-grok-357119/home/grok-stream/sessions/<snapshot-encoded>/6ad0d298-f5df-4f24-ba5b-7fe515674729/summary.json",
+      "messages": 185
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finishWipTestsTree.5KBR2B/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author one small new test_term_wall_archives.py under ops/devlane/workflow/tests from CONTRACT-term-wall.md Captured data section, no implementation reading. Reuse test_term_wall.py fixtures. Test archive contents exempt and bytes unchanged; README/code outside still hit; direct dispatch JSON exempt but nested/non-JSON not; forbidden archive path still hit; explicit path selection same; stdin unchanged. Use existing synthetic plant only. Max120 lines target, no new framework, no broad suites/network/data edits. Prove baseline red for archive behavior with controls green. Commit Source: original and exact Grok 4.6 attribution. Root judges oracle.\n",
+    "inputs": [],
+    "sha256": "c3523c2329c9a6accb598dfff4a7c7ba542e373e23c804635368fbf649a4d6e7",
+    "bytes": 2997
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T04:07:42Z",
+      "ended": "2026-09-05T04:14:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "993a16c70eb99bd1649c61f7329ffcf5e68eb57d",
+    "changed_paths": [
+      "ops/devlane/workflow/tests/test_term_wall_archives.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test": "ops/devlane/workflow/tests/test_term_wall_archives.py",
+        "commit": "993a16c70eb99bd1649c61f7329ffcf5e68eb57d"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1031970,
+        "out": 24868,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "98b75aa090440cf082f3216e794d616aa6c9d4cc",
+        "started": "2026-09-05T04:07:42Z",
+        "ended": "2026-09-05T04:14:21Z"
+      },
+      "note": "in/ was empty (looked; no named inputs). Authored ops/devlane/workflow/tests/test_term_wall_archives.py from CONTRACT-term-wall.md \u00a7Captured data, reusing test_term_wall.py fixtures, synthetic plant only; 99 lines. Did not read term_wall.py. Per-test at ops/devlane/workflow/tests: 13 collected. Red (assertClean vs content hit): wip contents, direct dispatch JSON, explicit wip path, explicit dispatch JSON. Green: bytes unchanged, README, outside code, nested JSON, non-JSON, forbidden archive path, explicit README, explicit nested, stdin. Existing test_term_wall.py: 15 OK. Committed 993a16c70eb99bd1649c61f7329ffcf5e68eb57d Source: original Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T04:14:40.117Z"
+    }
+  },
+  "status": "closed"
+}
