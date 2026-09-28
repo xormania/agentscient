@@ -353,7 +353,9 @@ class GitHubTests(unittest.TestCase):
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        # shutdown() waits for the server's next poll; its 0.5s default adds
+        # idle teardown time to every HTTP fixture without testing anything.
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
         self.provider.url = "http://127.0.0.1:" + str(self.server.server_port)
         self.http = GitHubHTTP(api_root=self.provider.url, credential=lambda: "fixture-credential")
 

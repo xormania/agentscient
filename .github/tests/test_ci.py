@@ -21,7 +21,10 @@ class RoutingTests(unittest.TestCase):
         product = {"symfony", "maker-mate"}
         cases = [
             (["devtools/telemetry.py", "docs/runtime-telemetry.md"], dev),
-            (["devtools/tests/test_runtime.py"], dev),
+            (["devtools/tests/test_runtime.py", "devtools/tests/native_fixture.py"], {"live-mcp"}),
+            (["devtools/tests/support.py"], dev),
+            (["devtools/integration/symfony.py"], {"live-mcp", "maker-mate"}),
+            (["devtools/integration/serena.py", "devtools/serena/entry.py"], {"live-mcp", "serena"}),
             ([".agents/skills/agentscient-xo/SKILL.md"], dev),
             (["AGENTS.md", ".claude/skills/mate-system-information"], dev),
             (["composer.lock", "config/bundles.php", "src/Kernel.php"], product),

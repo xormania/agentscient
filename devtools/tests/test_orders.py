@@ -1,12 +1,11 @@
 import json
 import subprocess
-import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import test_delivery
-from support import Client, until
+from support import Client, held_check, until
 
 from devtools.api import API
 from devtools.github import GitHub, short_pr
@@ -303,16 +302,19 @@ class OrderTests(unittest.TestCase):
 
         (root / "vendor/.agentscient-dependencies").write_text(hashlib.sha256(b"{}{}").hexdigest())
         config = json.loads((self.state / "team.json").read_text())
-        config["project"]["development"] = {
-            "checks": {
-                "combined": [sys.executable, "-c", "import time; time.sleep(0.7); print('combined result checked')"]
-            }
-        }
+        argv, started, release = held_check(self.root)
+        config["project"]["development"] = {"checks": {"combined": argv}}
         (self.state / "team.json").write_text(json.dumps(config))
         client = Client(self.state, "xo")
-        receipt = client.tool("work_check", {})
-        self.assertIn(receipt["state"], {"queued", "running"})
-        client.close()
+        try:
+            receipt = client.tool("work_check", {})
+            self.assertIn(receipt["state"], {"queued", "running"})
+            until(started.exists)
+            client.close()
+            self.assertEqual("running", self.xo.operations.inspect()["operations"][0]["state"])
+        finally:
+            release.touch()
+            client.close()
         result = until(
             lambda: next((r for r in self.xo.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )

@@ -72,5 +72,18 @@
       "CLAUDE.md",
       ".phpactor.json"
     ]
+  },
+  "exclude": {
+    "maker-mate": [
+      "devtools/tests/test_*.py",
+      "devtools/tests/*_fixture.py",
+      "devtools/integration/serena.py",
+      "devtools/serena/*"
+    ],
+    "serena": [
+      "devtools/tests/test_*.py",
+      "devtools/tests/*_fixture.py",
+      "devtools/integration/symfony.py"
+    ]
   }
 }
