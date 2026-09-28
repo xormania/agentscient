@@ -48,12 +48,12 @@ def family(records):
         found.update(extra)
 
 
-def register(store, member, generation, pid, *, group=False):
+def register(store, member, generation, pid):
     record = identity(pid)
     if record:
         path = store.directory / "processes" / identifier(member) / generation / f"{pid}.json"
         temporary = path.with_suffix('.tmp')
-        write_json(temporary, {**record, "group": group})
+        write_json(temporary, record)
         temporary.replace(path)
     return record
 

@@ -70,13 +70,15 @@ class LaunchTests(unittest.TestCase):
         self.assertFalse(processes.owned(self.store, 'worker', first['session']['generation']))
         second = self.start()
         self.assertNotEqual(first['session']['generation'], second['session']['generation'])
+        self.assertTrue(launch.stop(self.state, 'worker', expected_generation=first['session']['generation'])['superseded'])
+        self.assertEqual('running', self.store.member('worker')['desired'])
 
     def test_hung_supervisor_is_reaped_without_touching_an_unrelated_session(self):
         self.start()
         current = self.store.member('worker')
         owned = processes.owned(self.store, 'worker', current['generation'])
         terminals.command(self.state, 'new-session', '-d', '-s', 'unrelated', '--', 'sleep', '30')
-        os.kill(current['pid'], signal.SIGSTOP)
+        processes.signal_owned(owned, signal.SIGSTOP)
         result = launch.stop(self.state, 'worker', grace=0.1)
         self.assertTrue(result['forced'])
         self.assertFalse(processes.alive(owned))
@@ -121,7 +123,7 @@ class LaunchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'live owned terminal'):
             launch.start(self.state, 'worker')
         self.assertTrue(terminals.status(self.store, 'worker')['exists'])
-        terminals.command(self.state, 'set-option', '-w', '-t', '=agent-worker', 'remain-on-exit', 'on')
+        terminals.command(self.state, 'set-option', '-w', '-t', '=agent-worker:', 'remain-on-exit', 'on')
         pid = terminals.status(self.store, 'worker')['panes'][0]['pid']
         os.kill(pid, signal.SIGTERM)
         until(lambda: terminals.status(self.store, 'worker')['panes'][0]['dead'])

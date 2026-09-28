@@ -70,7 +70,7 @@ class Native:
         self.trace.record("process_started", {"component": component, "argv": argv, "pid": process.pid})
         from .processes import register
 
-        register(self.store, self.member, self.generation, process.pid, group=True)
+        register(self.store, self.member, self.generation, process.pid)
         rpc = RPC(process, handler, notify, jsonrpc=jsonrpc, trace=self.trace, component=component)
         task = asyncio.create_task(self.drain_stderr(process, component))
         self.tasks.add(task)
@@ -434,7 +434,7 @@ def claude(directory, member, config, generation):
     process = subprocess.Popen(argv, cwd=config["workspace"], env=env, start_new_session=True)
     from .processes import register
 
-    register(store, member, generation, process.pid, group=True)
+    register(store, member, generation, process.pid)
     trace.record("process_started", {"argv": argv, "pid": process.pid})
     store.session(member, generation=generation, native_id=native_id, detail={"transport": "claude/channel"})
     ready = False

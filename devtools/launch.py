@@ -148,10 +148,11 @@ def _start(directory, member, binding_revision):
         from . import processes, terminals
 
         owned = processes.owned(store, member, current["generation"])
-        panes = terminals.status(store, member)["panes"]
-        if any(row["pid"] == current["pid"] for row in owned) or any(
-            row["pid"] == current["pid"] and not row["dead"] for row in panes
-        ):
+        running = any(row["pid"] == current["pid"] for row in owned)
+        if not running:
+            running = any(row["pid"] == current["pid"] and not row["dead"]
+                          for row in terminals.status(store, member)["panes"])
+        if running:
             return {"member": member, "already_running": True, "session": current}
     config = configuration(directory, member)
     launch_id = "agentscient-launch-" + uuid.uuid4().hex
@@ -195,12 +196,17 @@ def _start(directory, member, binding_revision):
     return {"member": member, "requested": "running", **detail, "session": current}
 
 
-def stop(directory, member, *, grace=STOP_GRACE):
+def stop(directory, member, *, grace=STOP_GRACE, expected_generation=None):
     store = Store(directory)
     locks = store.directory / "launch-locks"
     locks.mkdir(exist_ok=True, mode=0o700)
     with (locks / (identifier(member) + ".lock")).open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        current = store.member(member)
+        if expected_generation is not None and (
+            current["generation"] != expected_generation or current["desired"] != "stopped"
+        ):
+            return {"superseded": True}
         return _stop(store, member, grace=grace)
 
 

@@ -645,7 +645,7 @@ class Commands:
         for row in self.store.members():
             if row["harness"] != "external" and row["desired"] == "stopped" and row["pid"]:
                 try:
-                    launch.stop(self.store.directory, row["name"])
+                    launch.stop(self.store.directory, row["name"], expected_generation=row["generation"])
                 except BlockingIOError:
                     pass
         with self.store.connect() as db:
