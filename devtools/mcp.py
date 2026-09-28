@@ -104,9 +104,20 @@ def serve(directory, member, channel=False, operator=False):
             except Exception as error:
                 api.store.event(member, "command_watch_error", error=str(error)[:1000])
 
+    def cleanup():
+        from .retirement import Retirement
+
+        initialized.wait()
+        while not stopped.wait(2):
+            try:
+                Retirement(api.store, member).tick()
+            except Exception as error:
+                api.store.event(member, "cleanup_watch_error", error=str(error)[:1000])
+
     if channel:
         threading.Thread(target=channels, daemon=True).start()
     threading.Thread(target=watches, daemon=True).start()
+    threading.Thread(target=cleanup, daemon=True).start()
     with ThreadPoolExecutor(max_workers=4) as pool:
         try:
             while line := sys.stdin.buffer.readline(MAX_FRAME + 1):

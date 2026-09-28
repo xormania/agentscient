@@ -297,7 +297,7 @@ TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
     spec(
         "work_inspect",
-        "Inspect this job's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
+        "Inspect your work's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
         {
             "section": {"type": "string", "enum": ["overview", "changes", "operations", "review", "ci", "feedback"]},
             "path": TEXT,
@@ -318,7 +318,7 @@ TOOLS += [
     ),
     spec(
         "work_refresh",
-        "Preserve a checkpoint and incorporate upstream changes; retain work if a conflict needs guidance.",
+        "Incorporate accepted work and upstream changes; preserve a checkpoint and expose any conflicts to your editing tools.",
     ),
     spec(
         "work_recover",
@@ -328,7 +328,7 @@ TOOLS += [
     ),
     spec(
         "work_submit",
-        "Checkpoint and publish this job, create or reuse its PR, retain evidence and follow CI.",
+        "Validate and submit your current contribution or integrated work; retain evidence and follow CI.",
         {"summary": REQUIRED_DETAIL},
         ("summary",),
     ),
@@ -413,6 +413,10 @@ class API:
                 common |= {"framework_inspect", "work_check"}
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
+        if scope and not scope["job"] and role == "xo" and project_config(self.store):
+            common |= {"work_inspect", "work_refresh", "work_submit"}
+            if development_configured(self.store):
+                common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
         if scope is None:
             allowed.discard("conclude")
@@ -423,8 +427,8 @@ class API:
             return OPERATOR_INSTRUCTIONS
         role = self.commands.role(self.control.snapshot())
         command = {
-            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team. Use conclude only when all jobs are finished and your assessment is ready.",
-            "xo": " Use orchestrate to organize named jobs and live collaborators; an audit role can share the producer's job name. Monitor shows progress or a named job's review packet. Steer guides, pauses, resumes, stops, or accepts/cancels a named job with an assessment. Inspect the current delivery before acceptance.",
+            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team. Once XO submits the integrated result, inspect it with monitor section review. Use conclude with your assessment to deliver the checked outcome.",
+            "xo": " Use orchestrate to organize named jobs and live collaborators; an audit role can share the producer's job name. Monitor shows progress or a named job's review packet. Steer guides, pauses, resumes, stops, or accepts/cancels a named job with an assessment. Inspect the current delivery before acceptance. Once contributions are accepted, use work_submit to validate and submit the combined result to CO.",
         }.get(role, "")
         return self.control.instructions(self.invoke("work_context", {})) + command
 
@@ -511,6 +515,10 @@ class API:
 
     def invoke(self, name, args):
         if name == "work_inspect" and args.get("section") in {"review", "ci", "feedback"}:
+            if not self.control.current()["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).inspect(**args)
             return self.delivery.inspect(**args)
         if name == "work_inspect" and "page" in args:
             raise ValueError("page is available for review, CI and feedback inspection; other sections use offset.")

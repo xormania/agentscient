@@ -4,7 +4,8 @@
     "pull_request": {
       "branches": [
         "dev",
-        "master"
+        "master",
+        "work-order/*"
       ]
     },
     "push": {

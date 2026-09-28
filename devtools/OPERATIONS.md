@@ -46,7 +46,7 @@ harness or starting workspace in place; use a new member name for that change.
 | Project setting | Meaning |
 | --- | --- |
 | `checkout`, `repository`, `target`, `remote` | Existing Git root, GitHub identity, integration branch and remote. |
-| `workspaces` | Optional directory for managed worktrees; outside the source checkout and private state. |
+| `workspaces` | Managed worktree parent; defaults to `../wt-ag/` beside `project.checkout`, outside source and private state. Explicit configuration is preserved. |
 | `fetch` | Defaults to true; set false explicitly for an offline local target. |
 | `identity` | Optional commit identity with `name` and `email`; otherwise use Git's configured identity. |
 | `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [workspaces.py](workspaces.py). |
@@ -57,9 +57,56 @@ harness or starting workspace in place; use a new member name for that change.
 | `serena.image` | Locally built separate Serena provider image. |
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
 
-Each job owns its worktree and Composer install. Managed startup selects that
-worktree automatically. Dependency installation refreshes when Composer metadata
-changes. Do not share a vendor-directory symlink across jobs.
+Each work order and job owns its worktree and Composer install. Managed startup
+selects it automatically. Dependency installation refreshes when Composer metadata
+changes. Do not share a vendor-directory symlink across worktrees.
+
+### Branches and worktree lifetime
+
+Work-order source is prepared on first use, from the fetched `project.target`
+(normally `dev`). Its branch is `work-order/<team>-<number>-<generation>`.
+The initial remote publication contains the development revision. Each job starts
+from the latest remote work-order branch and submits its PR into that branch.
+XO acceptance merges the contribution; XO's `work_submit` validates the combined
+workspace and opens its PR into `project.target`. CO's `monitor(section="review")`
+and `conclude` inspect and deliver that final result under normal GitHub rules.
+The service never directly pushes new source commits into the integration branch.
+
+Job `work_refresh` incorporates both the parent work-order tip and current
+development changes. XO `work_refresh` fast-forwards the integration workspace
+to accepted contributions. If development has changed incompatibly, use a bounded
+job to resolve integration before final delivery. See [GitHub settings](../.github/CI.md#github-settings).
+Refresh preserves a checkpoint and leaves conflicts available to the job's editing
+tools. Resolve them within the role's permitted paths, then use `work_save` and
+`work_refresh` again. Clean upstream changes outside those paths are preserved;
+editing them or resolving an out-of-scope conflict requires appropriate guidance.
+
+Local directories default to sibling `wt-ag/`, with distinct team/work identifiers
+for work orders, jobs and audit snapshots. An explicit `project.workspaces` wins;
+already-recorded paths and targets are preserved. Upgrading does not move, retarget
+or remove older local worktrees or unrelated branches. Start new work to use the
+new routing; an existing issued job retains its recorded target.
+
+After a retained merge result, cleanup is queued durably. An MCP background worker
+removes only the recorded worktree with Git, without force, and deletes its local
+branch only at the accepted revision. It waits for bound collaborators, managed
+sessions, workspace leases, development operations and labelled Serena containers
+to stop. All audit snapshots created for that job are included. Paused Serena
+providers close when their binding is released, even with an external MCP client.
+
+Dirty, untracked, changed-commit, replaced, locked or otherwise unexpected
+workspaces are preserved. Git-ignored build caches leave with a clean worktree.
+Cancellation and report-only completion preserve their worktrees. A cleanup error
+is retained and retried without blocking coordination or unrelated jobs. While a
+work order is active, `monitor` shows cleanup status; afterward the read-only
+`evidence` index and telemetry retain it. Pending cleanup resumes when an MCP
+connection is running again. Force-killed or unreachable Docker providers require
+operator repair before their source can retire. History, artifacts and acceptance
+records stay in private state. Remote branch deletion is a GitHub setting.
+
+Use one execution host and its state directory at a time. These worktrees and
+processes belong to that host; GitHub branches do not synchronize live SQLite,
+absolute paths or process identities between the Dell and Chromebook.
 
 ## Operator CLI
 

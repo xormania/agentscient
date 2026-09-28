@@ -16,6 +16,7 @@ import uuid
 from pathlib import Path
 
 from .control import REQUEST_BINDING, Control
+from .retirement import key, lease
 from .store import Store
 from .workspaces import EDITORS, Workspaces, project_config
 
@@ -66,6 +67,8 @@ class Serena:
         self.workspace_root = None
         self.paused = False
         self.log = None
+        self.mutex = threading.RLock()
+        self.workspace_lease = None
         atexit.register(self.close)
 
     def scope(self):
@@ -107,6 +110,8 @@ class Serena:
             "--interactive",
             "--name",
             self.container,
+            "--label",
+            "agentscient.workspace=" + key(workspace["root"]),
             "--pull=never",
             "--network=none",
             "--read-only",
@@ -183,14 +188,25 @@ class Serena:
 
     def start(self, scope, workspace, signature):
         argv = self.command(scope, workspace)
+        self.workspace_lease = lease(self.store, workspace["root"])
+        self.workspace_lease.__enter__()
+        with self.store.connect() as db:
+            db.execute("UPDATE managed_worktrees SET provider=1 WHERE root=?", (workspace["root"],))
         path = self.store.directory / "telemetry" / (self.member + "-serena.log")
         path.parent.mkdir(mode=0o700, exist_ok=True)
         self.log = path.open("ab")
-        self.process = subprocess.Popen(
-            argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, start_new_session=True
-        )
+        try:
+            self.process = subprocess.Popen(
+                argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, start_new_session=True
+            )
+        except Exception:
+            self.workspace_lease.__exit__(None, None, None)
+            self.workspace_lease = None
+            self.log.close()
+            raise
         self.signature = signature
         self.workspace_root = workspace["root"]
+        threading.Thread(target=self.retire_when_released, args=(self.process, signature), daemon=True).start()
         threading.Thread(target=self.reader, args=(self.process, self.packets), daemon=True).start()
         self.request(
             "initialize",
@@ -221,12 +237,28 @@ class Serena:
         from .api import validate
 
         validate(arguments, TOOL["inputSchema"])
-        scope, signature = self.scope()
-        token = REQUEST_BINDING.set((self.member, scope))
-        try:
-            return self._call(arguments, scope, signature)
-        finally:
-            REQUEST_BINDING.reset(token)
+        with self.mutex:
+            scope, signature = self.scope()
+            token = REQUEST_BINDING.set((self.member, scope))
+            try:
+                return self._call(arguments, scope, signature)
+            finally:
+                REQUEST_BINDING.reset(token)
+
+    def retire_when_released(self, process, signature):
+        while self.process is process:
+            time.sleep(0.5)
+            with self.mutex:
+                if self.process is not process:
+                    return
+                current = self.control.snapshot()
+                identity = tuple(current[k] for k in ("job", "work_order", "role", "reports_to")) if current else None
+                if identity != signature[0]:
+                    try:
+                        self.close()
+                    except Exception as error:
+                        self.store.event(self.member, "serena_shutdown_error", error=str(error)[:1000])
+                    return
 
     def _call(self, arguments, scope, signature):
         self.deadline = time.monotonic() + 100
@@ -290,6 +322,10 @@ class Serena:
                     self.freeze(True)
 
     def close(self):
+        with self.mutex:
+            self._close()
+
+    def _close(self):
         if self.process is None:
             return
         process, self.process = self.process, None
@@ -311,6 +347,9 @@ class Serena:
             self.container = "agentscient-serena-" + uuid.uuid4().hex
             self.session = uuid.uuid4().hex[:8]
             self.packets = queue.Queue()
+            if self.workspace_lease:
+                self.workspace_lease.__exit__(None, None, None)
+                self.workspace_lease = None
 
 
 def serve(directory, member):

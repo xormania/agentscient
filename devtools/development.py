@@ -51,7 +51,7 @@ def capabilities(spec):
         ),
         spec(
             "work_check",
-            "Run the configured validation for your job and retain measured results; completion is delivered automatically.",
+            "Run the configured validation for your current work and retain measured results; completion is delivered automatically.",
             {
                 "check": {**name, "description": "Optional configured check name; omit for the full configured suite."},
             },

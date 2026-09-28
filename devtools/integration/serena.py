@@ -12,10 +12,11 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client  # noqa: E402
+from support import Client, until  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
+from devtools.retirement import key, lease  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -102,6 +103,26 @@ def main():
             xo.call("steer", {"action": "resume", "work": "Serena example"})
             assert "42" in repl(client, "answer")
             API(state, "coder").call("work_save", {"note": "Serena-generated change"})
+            xo.call("steer", {"action": "cancel", "work": "Serena example", "direction": "Fixture complete"})
+
+            def stopped():
+                containers = subprocess.run(
+                    ["docker", "ps", "--all", "--quiet", "--filter", "label=agentscient.workspace=" + key(workspace)],
+                    capture_output=True,
+                    check=True,
+                    timeout=10,
+                ).stdout
+                if containers.strip():
+                    return False
+                try:
+                    with lease(xo.store, workspace, exclusive=True):
+                        return True
+                except ValueError:
+                    return False
+
+            until(stopped, timeout=20)
+            assert client.process.poll() is None, "External MCP connection should remain open"
+            assert workspace.exists(), "Cancellation must preserve unfinished source"
             print(
                 json.dumps(
                     {
@@ -114,6 +135,7 @@ def main():
                             "no Docker socket",
                             "live pause/resume",
                             "control-plane checkpoint",
+                            "released provider shutdown with external MCP still connected",
                         ],
                         "symbols": symbols,
                     }

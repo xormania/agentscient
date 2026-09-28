@@ -69,6 +69,9 @@ def review_snapshot(store, member, workspace, *, refresh=False):
     view = {**workspace, "root": str(root), "base_revision": base, "review_revision": revision}
     Workspaces._verify(view, Workspaces(store, member).checkout())
     with store.connect() as db:
+        from .retirement import register
+
+        register(db, view, job["work_order"])
         db.execute(
             "INSERT INTO review_views(member,job,root,revision,base_revision) VALUES (?,?,?,?,?) ON CONFLICT(member,job) DO UPDATE SET root=excluded.root,revision=excluded.revision,base_revision=excluded.base_revision",
             (member, job["id"], str(root), revision, base),
@@ -275,6 +278,11 @@ class Delivery:
         return receipt
 
     def finish_job(self, job, assessment, *, cancel=False):
+        scope, _ = self.scope(job, role={"xo"})
+        with self.spaces.lock("order-" + str(scope["work_order"])):
+            return self._finish_job(job, assessment, cancel=cancel)
+
+    def _finish_job(self, job, assessment, *, cancel=False):
         scope, work = self.scope(job, role={"xo"})
         if scope["paused"]:
             raise ValueError("Work is paused.")
@@ -345,6 +353,10 @@ class Delivery:
                     "INSERT INTO deliveries(job,accepted_by,revision,merge_commit,assessment,outcome,created) VALUES (?,?,?,?,?,?,?)",
                     (job, self.member, revision, merge_commit, assessment, outcome, stamp()),
                 )
+                if merge_commit:
+                    from .retirement import queue
+
+                    queue(db, scope["work_order"], job, revision)
                 members = [r["member"] for r in db.execute("SELECT member FROM member_bindings WHERE job=?", (job,))]
                 for member in members:
                     self.release(db, member)

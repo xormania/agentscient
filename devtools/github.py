@@ -68,7 +68,7 @@ class GitHub:
     def _context(self, repository=None, pr=None, job=UNSET):
         with self.store.connect() as db:
             order, job = self.store.current_work(db, self.member, job=job)
-            work = record(db, "jobs", job) if job is not None else {}
+            work = record(db, "jobs", job) if job is not None else record(db, "work_orders", order) if order else {}
         linked = re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/pull/(\d+)", work.get("pull_request", ""))
         repository = (
             repository or work.get("repository") or (linked[1] if linked else None) or self.config.get("repository")
@@ -164,6 +164,13 @@ class GitHub:
                 pull_request=pr["html_url"],
             )
         if context["work_order"] is not None:
+            if context["job"] is None:
+                Work(self.store, self.member).work_order_update(
+                    work_order=context["work_order"],
+                    repository=context["repository"],
+                    branch=pr["head"]["ref"],
+                    pull_request=pr["html_url"],
+                )
             Work(self.store, self.member).work_link(
                 work_order=context["work_order"], job=context["job"], kind="pull_request", reference=pr["html_url"]
             )
@@ -241,7 +248,10 @@ class GitHub:
                     raise ValueError("Supply a PR title or select a job with a title.")
                 body = summary
                 if work:
-                    body += f"\n\nWork order: {context['work_order']} · Job: {context['job']}\n\n" + work["objective"]
+                    body += f"\n\nWork order: {context['work_order']}"
+                    if context["job"] is not None:
+                        body += f" · Job: {context['job']}"
+                    body += "\n\n" + work["objective"]
                     body += "\n\nDone when:\n" + work["done_when"]
                     if work["constraints"]:
                         body += "\n\nBoundaries:\n" + work["constraints"]

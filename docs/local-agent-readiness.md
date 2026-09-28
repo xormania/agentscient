@@ -17,7 +17,7 @@ team. For normal agent usage, see the [roles and tools](control-plane-roles-and-
 | Source work | Job worktree supplied automatically; Serena is separate and restricted to the role's paths. Makers/Mate run through control-plane tools. | Navigation, a persistent REPL value, an allowed edit, installed generation and validation are observed in the bound worktree. Protected paths remain protected. |
 | Live coordination | Native conversations stay alive while work proceeds. Reports, evidence and guidance retain their job association. | A live clarification and response are observed with the same native conversation ID; queued messages alone do not establish receipt. |
 | Delivery | Save/check/submit through outcome tools; audit the submitted snapshot when needed; inspect before acceptance. | PR/CI/evidence are associated automatically. Changed revisions or dirty work block acceptance. Normal GitHub requirements apply. |
-| Turnover | XO accepts or explicitly cancels a named job; CO concludes the finished work order. | Work and evidence remain; collaborators stop and become reusable. A subsequent job starts from the accepted target. |
+| Turnover | XO accepts jobs into their work order and submits the combined result; CO inspects and concludes it. | Job and final PRs are checked separately. Merged worktrees retire after shutdown; history and evidence remain. |
 | Authenticated local acceptance | Run the selected installed harnesses with their real accounts through a bounded, authorized job. | The operator inspects actual native/tool evidence, artifact results, PR and CI. Record the tested revision and harness versions. This stage remains a local check. |
 
 ## One-time operator setup
@@ -60,6 +60,9 @@ python3 devtools/run.py init \
 ```
 
 `init` enables managed workspaces, default installed Symfony tools/checks and the
+default sibling `../wt-ag/` worktree directory. Work orders integrate their jobs
+before final delivery into `dev`. Configure the [GitHub rules](../.github/CI.md#github-settings)
+for both PR destinations before local acceptance. `init` also enables the
 separate Serena image. It does not start models. It refuses to replace an existing
 team. For an existing team, edit its private `team.json`; see
 [team and project configuration](../devtools/OPERATIONS.md#team-and-project-configuration).
@@ -119,8 +122,10 @@ Require the following evidence without prescribing how agents solve the job:
   conversation identity remains stable. Pause/resume also preserves that identity.
 - The result is checkpointed and submitted with retained evidence. Audit, when
   assigned, reviews that revision; findings and responses arrive through MCP.
-- XO inspects and accepts the current passing revision through ordinary GitHub
-  rules. CO sees the result. Turnover preserves history and permits another job.
+- XO inspects and accepts each passing contribution, then submits the combined
+  result with `work_submit`. CO inspects that delivery and concludes after CI
+  passes. Turnover preserves history and permits another job; merged worktrees
+  retire after shutdown.
 - Native shell/edit attempts are denied; observed usage is reported honestly.
   A stopped/restarted session is a new conversation, not claimed transcript recovery.
 

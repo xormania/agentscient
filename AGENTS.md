@@ -29,8 +29,10 @@ configured validation through `work_check`. Serena v2 REPL is a separate provide
 for product source work; it receives the bound workspace automatically. Auditors
 review an immutable submitted revision; XO accepts a named job through `steer`
 after inspecting its current review packet with `monitor`. Normal GitHub rules apply.
-Work-order numbers bind the overall effort; jobs are bounded pieces delivered
-through PRs. Agents use task-facing MCP tools; the services handle storage and
+Work orders integrate bounded jobs through their PRs. XO submits the combined
+result with `work_submit`; CO inspects it with `monitor(section="review")` and
+delivers the checked outcome with `conclude`. Agents use task-facing MCP tools;
+the services handle workspace lifetime, branch/PR routing, storage and
 record association internally.
 
 Make changes on an owned branch based on `dev`, test the affected behavior, and
