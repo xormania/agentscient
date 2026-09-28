@@ -11,7 +11,7 @@ from .telemetry import clean
 
 BOOTSTRAP_UNSET = (
     "PYTHONHOME", "PYTHONPATH", "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT",
-    "LD_DEBUG", "LD_DEBUG_OUTPUT", "LD_PROFILE", "LD_PROFILE_OUTPUT", "LD_TRACE_LOADED_OBJECTS", "GLIBC_TUNABLES",
+    "LD_DEBUG", "LD_DEBUG_OUTPUT", "LD_PROFILE", "LD_PROFILE_OUTPUT", "GLIBC_TUNABLES",
 )
 
 
@@ -47,6 +47,9 @@ def start(store, member, argv, workspace):
     target = "=" + detail["terminal"]
     if command(store.directory, "has-session", "-t", target, check=False).returncode == 0:
         raise ValueError("This member already has an owned terminal; inspect it before restarting.")
+    # Unlike the overrides below, this loader switch is enabled even when empty.
+    # Remove it from an existing owned server before any bootstrap is executed.
+    command(store.directory, "set-environment", "-gu", "LD_TRACE_LOADED_OBJECTS", check=False)
     command(
         store.directory,
         "new-session",

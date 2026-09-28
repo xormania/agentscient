@@ -127,7 +127,8 @@ class NativeProtocolTests(unittest.TestCase):
                         marker = root / "stale-imported"
                         (stale / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').write('stale')\n")
                         for name, value in {"PYTHONHOME": str(stale), "PYTHONPATH": str(stale),
-                                            "LD_PRELOAD": "/missing/stale.so", "LD_LIBRARY_PATH": str(stale)}.items():
+                                            "LD_PRELOAD": "/missing/stale.so", "LD_LIBRARY_PATH": str(stale),
+                                            "LD_TRACE_LOADED_OBJECTS": "1"}.items():
                             command(state, "set-environment", "-g", name, value)
                     order = client.invoke(
                         "work_order_create", title="Protocol test", objective="Live work", done_when="Received"
