@@ -432,9 +432,9 @@ class API:
         }.get(role, "")
         return self.control.instructions(self.invoke("work_context", {})) + command
 
-    def call(self, name, arguments):
+    def call(self, name, arguments, *, on_context=None):
         if self.operator:
-            return self._operator_call(name, arguments)
+            return self._operator_call(name, arguments, on_context=on_context)
         scope = self.control.snapshot()
         allowed = self._tools(scope)
         schema = next((row for row in allowed if row["name"] == name), None)
@@ -447,15 +447,19 @@ class API:
             with self.store.work_context(
                 self.member, scope["work_order"] if scope else None, scope["job"] if scope else None
             ):
+                if on_context:
+                    on_context()
                 return self.run(name, arguments)
         finally:
             REQUEST_BINDING.reset(token)
 
-    def _operator_call(self, name, arguments):
+    def _operator_call(self, name, arguments, *, on_context=None):
         outer = next((row for row in OPERATOR_TOOLS if row["name"] == name), None)
         if outer is None:
             raise ValueError("Unknown MCP tool")
         validate(arguments, outer["inputSchema"])
+        if name != "capability_invoke" and on_context:
+            on_context()
         if name == "capability_search":
             query = arguments.get("query", "").casefold()
             rows = [
@@ -480,6 +484,8 @@ class API:
             None if capability.startswith("work_order_") or capability in {"job_create", "job_select"} else UNSET
         )
         with self.store.work_context(self.member, args.get("work_order", default_order), args.get("job", default_job)):
+            if on_context:
+                on_context()
             return self.run(capability, args)
 
     def run(self, capability, args):
