@@ -24,6 +24,14 @@ the tmux command line. Capture uses the redacted runtime telemetry described in
 [runtime telemetry](runtime-telemetry.md). Terminal scrollback itself is native
 tmux data; treat the local terminal and state directory as private.
 
+The terminal starts an isolated stdlib bootstrap directly, with Python and loader
+overrides cleared by tmux before execution. It reads the private snapshot and
+executes the application interpreter with that environment before importing any
+application modules. Terminal identity variables come from the new pane. The
+application consumes and deletes the snapshot. This uses tmux's documented
+[multiple-argument direct execution](https://man.openbsd.org/tmux#COMMANDS), with
+no intermediate shell or credential-bearing command arguments.
+
 Duplicate starts retain an existing live session. An unexpected existing terminal
 is reported for inspection instead of being killed. Startup errors are retained
 and sent through the reporting chain. Terminal creation does not prove that a
