@@ -16,23 +16,12 @@ ROLE_TOOLS = {"co": {"direct", "monitor", "conclude"}, "xo": {"orchestrate", "mo
 def capabilities(spec):
     text = {"type": "string", "minLength": 1, "maxLength": 2000}
     name = {**text, "maxLength": 100}
-    setting = {**text, "maxLength": 120, "pattern": "[A-Za-z0-9][A-Za-z0-9_./:@+-]{0,119}"}
-    selection = {
-        "type": "object",
-        "description": "Optional filters for an available configured harness slot; monitor shows capacity.",
-        "properties": {
-            "harness": {"type": "string", "enum": sorted(launch.HARNESSES)},
-            "model": setting,
-            "reasoning": setting,
-        },
-        "additionalProperties": False,
-    }
     goal = {"objective": text, "done_when": text, "constraints": {**text, "minLength": 0}}
     return [
         spec(
             "direct",
             "CO: establish or revise the current objective and boundaries; bind XO and deliver relevant briefs.",
-            {"title": name, **goal, "selection": selection},
+            {"title": name, **goal},
             ("title", "objective", "done_when", "constraints"),
         ),
         spec(
@@ -49,7 +38,6 @@ def capabilities(spec):
                             "name": name,
                             "role": {"type": "string", "enum": [r for r in ROLES if r not in ROLE_TOOLS]},
                             **{key: {**value, "maxLength": 800} for key, value in goal.items()},
-                            "selection": selection,
                         },
                         "required": ["name", "role", "objective", "done_when", "constraints"],
                         "additionalProperties": False,
@@ -121,7 +109,7 @@ class Commands:
 
     def _config(self):
         config = launch.team_config(self.store.directory)
-        self.store.initialize(config["members"])
+        self.store.initialize(config["members"], runtime=config.get("runtime", False))
         return config
 
     def _scope(self, db, roles, *, bootstrap=False):
@@ -149,34 +137,18 @@ class Commands:
             )
         ]
 
-    @staticmethod
-    def _matches(row, selection):
-        return all(row.get(key) == value for key, value in (selection or {}).items())
+    def _slot(self, db, config, existing=None, role=None):
+        if config.get("runtime"):
+            from .runtime import allocate
 
-    @staticmethod
-    def _settings(db, slot):
-        session = db.execute("SELECT state FROM members WHERE name=?", (slot["name"],)).fetchone()
-        if session["state"] in {"starting", "idle", "active"}:
-            event = db.execute(
-                "SELECT data FROM events WHERE actor=? AND kind='session_starting' ORDER BY id DESC LIMIT 1",
-                (slot["name"],),
-            ).fetchone()
-            settings = json.loads(event["data"]).get("settings") if event else None
-            return (
-                (settings, "session_start")
-                if settings
-                else ({"harness": slot["harness"], "model": None, "reasoning": None}, "unknown")
-            )
-        return {key: slot.get(key) for key in ("harness", "model", "reasoning")}, "configured"
-
-    def _slot(self, db, config, selection, existing=None):
+            return allocate(self.store, db, config, role or existing["role"], existing)
         if existing:
             row = next((r for r in config["members"] if r["name"] == existing["member"]), None)
-            if not row or not self._matches(self._settings(db, row)[0], selection):
-                raise ValueError("This work already has a collaborator with different configured settings.")
+            if not row:
+                raise ValueError("This collaborator is no longer configured; request operator assistance.")
             return row
         for row in config["members"]:
-            if row["name"] == config.get("co") or row["name"] == self.member or not self._matches(row, selection):
+            if row["name"] == config.get("co") or row["name"] == self.member:
                 continue
             session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
             if not binding(db, row["name"]) and session["state"] in {"stopped", "failed"} and not session["pid"]:
@@ -237,7 +209,7 @@ class Commands:
                 "UPDATE member_bindings SET launch_pending=1,launch_error=NULL WHERE member=?", (scope["member"],)
             )
 
-    def direct(self, title, objective, done_when, constraints, selection=None):
+    def direct(self, title, objective, done_when, constraints):
         config = self._config()
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -255,7 +227,7 @@ class Commands:
             candidates = [row for row in team if row["role"] == "xo" and row["reports_to"] == self.member]
             if len(candidates) > 1:
                 raise ValueError("More than one XO is bound to CO; resolve the trusted setup before directing work.")
-            slot = self._slot(db, config, selection, candidates[0] if candidates else None)
+            slot = self._slot(db, config, existing=candidates[0] if candidates else None, role="xo")
             xo = self.control.bind_in(
                 db,
                 slot["name"],
@@ -334,7 +306,7 @@ class Commands:
                         "A job has one producer and an optional auditor; use another name for separate work."
                     )
                 prior = dict(same[0]) if same else None
-                slot = self._slot(db, config, item.get("selection"), prior)
+                slot = self._slot(db, config, existing=prior, role=item["role"])
                 target = self.control.bind_in(
                     db,
                     slot["name"],
@@ -419,7 +391,7 @@ class Commands:
                     db.execute("UPDATE members SET desired='stopped' WHERE name=?", (target["member"],))
                 target = binding(db, target["member"])
                 if action == "resume":
-                    slot = self._slot(db, config, None, target)
+                    slot = self._slot(db, config, existing=target)
                     self._start_intent(db, target, slot)
                 sent = self._direction(
                     db,
@@ -452,7 +424,6 @@ class Commands:
             (row for row in config["members"] if row["name"] == scope["member"]),
             {"name": scope["member"], "harness": session["harness"]},
         )
-        settings, settings_source = self._settings(db, slot)
         job = record(db, "jobs", scope["job"]) if scope["job"] else None
         update = db.execute(
             "SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? ORDER BY id DESC LIMIT 1",
@@ -475,8 +446,6 @@ class Commands:
             "work_state": "paused" if current["paused"] else "active",
             "status": job["status"] if job else record(db, "work_orders", scope["work_order"])["status"],
             "blocker": job["blocker"] if job else "",
-            "settings": settings,
-            "settings_source": settings_source,
             "session": {
                 "observed": session["state"],
                 "desired": session["desired"],
@@ -586,16 +555,31 @@ class Commands:
                 if scope
                 else []
             )
-            capacity = {}
+            available = 0
             for slot in config["members"]:
                 if slot["name"] in {self.member, config.get("co")} or binding(db, slot["name"]):
                     continue
                 session = db.execute("SELECT state,pid FROM members WHERE name=?", (slot["name"],)).fetchone()
                 if session["state"] not in {"stopped", "failed"} or session["pid"]:
                     continue
-                settings = {key: slot.get(key) for key in ("harness", "model", "reasoning")}
-                key = canonical(settings)
-                capacity.setdefault(key, {**settings, "available": 0})["available"] += 1
+                available += 1
+            capacity = [{"available": available}]
+            if config.get("runtime"):
+                from .runtime import load, resolve
+
+                policy, _, _ = load(self.store.directory)
+                used = db.execute("SELECT count(*) FROM member_bindings WHERE role!='co'").fetchone()[0]
+                ready = []
+                for role in ROLES:
+                    if role == "co":
+                        continue
+                    try:
+                        resolve(self.store.directory, role)
+                        ready.append(role)
+                    except ValueError:
+                        pass
+                capacity = [{"available": max(0, policy["max_sessions"] - used), "roles": ready,
+                             "shared_pool": True}]
             return {
                 "work": self._brief(db, scope)["work"] if scope else None,
                 "delivery": {"pr": record(db, "work_orders", scope["work_order"])["pull_request"] or None}
@@ -612,7 +596,7 @@ class Commands:
                 else [],
                 "collaborators": [self._participant(db, row, config) for row in team[offset : offset + 10]],
                 "next_offset": offset + 10 if len(team) > offset + 10 else None,
-                "capacity": list(capacity.values()),
+                "capacity": capacity,
                 "jobs": [
                     {key: row[key] for key in ("title", "status", "next_action", "blocker", "pull_request")}
                     for row in jobs[offset : offset + 10]

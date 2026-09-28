@@ -151,6 +151,8 @@ class Native:
                 params["model"] = self.config["model"]
             if self.config.get("reasoning"):
                 params["config"] = {"model_reasoning_effort": self.config["reasoning"]}
+            if self.config.get("provider"):
+                params["modelProvider"] = self.config["provider"]
             result = await self.rpc.request("thread/start", params)
             self.session = result["thread"]["id"]
         else:
