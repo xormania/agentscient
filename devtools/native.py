@@ -21,7 +21,7 @@ from .serena_provider import TOOL as SERENA_TOOL
 from .serena_provider import enabled as serena_enabled
 from .serena_provider import server_config as serena_config
 from .store import Store
-from .telemetry import Trace
+from .telemetry import Trace, Transcript, context, observed, requested
 
 
 class Native:
@@ -33,7 +33,8 @@ class Native:
         self.workspace = config["workspace"]
         self.harness = config["harness"]
         self.private, self.env, self.server = prepare(directory, member, self.harness)
-        self.trace = Trace(directory, member)
+        self.trace = Trace(directory, member, context=lambda: context(self.store, member))
+        requested(self.store, member, config, self.private)
         self.session = None
         self.busy = False
         self.prompts_in_flight = 0
@@ -67,7 +68,8 @@ class Native:
             limit=4 * 1024 * 1024,
             start_new_session=True,
         )
-        rpc = RPC(process, handler, notify, jsonrpc=jsonrpc, trace=self.trace)
+        self.trace.record("process_started", {"component": component, "argv": argv, "pid": process.pid})
+        rpc = RPC(process, handler, notify, jsonrpc=jsonrpc, trace=self.trace, component=component)
         task = asyncio.create_task(self.drain_stderr(process, component))
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
@@ -177,6 +179,7 @@ class Native:
             )
             self.session = result["sessionId"]
         self.state("idle", native_id=self.session, detail={"transport": self.harness})
+        observed(self.store, self.member, self.harness + "/session-start", result)
         self.event("native_session", native_id=self.session, harness=self.harness)
 
     def verify_identity(self, params):
@@ -238,6 +241,8 @@ class Native:
         if self.session is None:
             return
         update = params.get("update", {})
+        if method in {"session/update", "thread/started", "thread/configuration/updated"}:
+            observed(self.store, self.member, method, params)
         if method == "thread/tokenUsage/updated" or "usage" in method.lower() or "usage" in update:
             self.event(
                 "native_usage",
@@ -388,6 +393,9 @@ def claude(directory, member, config, generation):
     debug.write_text("")
     debug.chmod(0o600)
     channel_log = ClaudeChannelLog(debug)
+    trace = Trace(directory, member, component="claude", context=lambda: context(store, member))
+    transcript = Transcript(store, member, trace)
+    requested(store, member, config, private)
     argv = [
         config["binary"],
         "--session-id",
@@ -420,10 +428,12 @@ def claude(directory, member, config, generation):
         argv += ["--effort", config["reasoning"]]
     argv += ["--", "Stay in this conversation and handle live peer messages through " + SERVER + "."]
     process = subprocess.Popen(argv, cwd=config["workspace"], env=env, start_new_session=True)
+    trace.record("process_started", {"argv": argv, "pid": process.pid})
     store.session(member, generation=generation, native_id=native_id, detail={"transport": "claude/channel"})
     ready = False
     try:
         while process.poll() is None and store.member(member)["desired"] == "running":
+            transcript.poll()
             if not ready:
                 if observation := channel_log.poll():
                     ready = True
@@ -442,3 +452,5 @@ def claude(directory, member, config, generation):
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGKILL)
             process.wait()
+        transcript.poll()
+        trace.close()

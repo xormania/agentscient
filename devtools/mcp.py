@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import VERSION
 from .api import API, SERVER, render
+from .telemetry import Trace, context
 
 MAX_FRAME = 131072
 
@@ -16,10 +17,18 @@ def serve(directory, member, channel=False, operator=False):
     output_lock = threading.Lock()
     initialized = threading.Event()
     stopped = threading.Event()
+    incoming_sequence = outgoing_sequence = 0
+    trace = Trace(directory, member, component="mcp", context=lambda: context(api.store, member))
 
-    def write(packet):
+    def write(packet, frame_context=None):
+        nonlocal outgoing_sequence
         encoded = json.dumps({"jsonrpc": "2.0", **packet}, ensure_ascii=False)
         with output_lock:
+            outgoing_sequence += 1
+            trace.record("mcp_out", packet, frame_context={
+                **(frame_context if frame_context is not None else context(api.store, member)),
+                "wire_sequence": outgoing_sequence,
+            })
             sys.stdout.write(encoded + "\n")
             sys.stdout.flush()
 
@@ -40,23 +49,47 @@ def serve(directory, member, channel=False, operator=False):
                             "content": render(message) if operator else api.control.render(message),
                             "meta": {"message_id": str(message["id"]), "sender_id": message["sender"]},
                         },
-                    }
+                    },
+                    {**context(api.store, member), "work_order": message["work_order"],
+                     "job": message["job"], "scope_source": "message"},
                 )
                 api.store.delivered(member, message["id"], message["attempt"], transport="claude/channel")
             except Exception as error:
                 api.store.delivered(member, message["id"], message["attempt"], error=str(error)[:1000])
                 stopped.set()
 
-    def handle(packet):
+    def handle(packet, received_context):
         ident, method = packet.get("id"), packet.get("method")
+        frame_context = None if method == "tools/call" else received_context
+
+        def capture_context(resolved=True):
+            nonlocal frame_context
+            frame_context = {
+                **(context(api.store, member) if resolved else received_context),
+                "request_sequence": received_context["wire_sequence"],
+                "wire_sequence": received_context["wire_sequence"],
+            }
+            if not resolved:
+                frame_context.update(work_order=None, job=None, scope_source="unresolved")
+            trace.record("mcp_in", packet, frame_context=frame_context)
+
+        def reply(response):
+            if frame_context is None:
+                capture_context(False)
+            write(response, frame_context)
+
         if method == "notifications/initialized":
             initialized.set()
             api.store.event(member, "mcp_ready", channel=channel)
             return
         if ident is None:
+            if frame_context is None:
+                capture_context(False)
             return
         try:
             if method == "initialize":
+                api.store.event(member, "mcp_client", client=packet.get("params", {}).get("clientInfo", {}),
+                                connection=trace.connection, channel=channel, operator=operator)
                 caps = {"tools": {"listChanged": not operator}}
                 if channel:
                     caps["experimental"] = {"claude/channel": {}}
@@ -75,16 +108,16 @@ def serve(directory, member, channel=False, operator=False):
             elif method == "tools/call":
                 params = packet.get("params", {})
                 try:
-                    value = api.call(params["name"], params.get("arguments", {}))
+                    value = api.call(params["name"], params.get("arguments", {}), on_context=capture_context)
                     result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
                 except Exception as error:
                     result = {"isError": True, "content": [{"type": "text", "text": str(error)[:2000]}]}
             else:
-                write({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
+                reply({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
                 return
-            write({"id": ident, "result": result})
+            reply({"id": ident, "result": result})
         except Exception as error:
-            write({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
+            reply({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
 
     def watches():
         tool_names = [row["name"] for row in api.tools()]
@@ -133,9 +166,16 @@ def serve(directory, member, channel=False, operator=False):
                         break
                     continue
                 if packet["method"] == "tools/call":
-                    pool.submit(handle, packet)
+                    incoming_sequence += 1
+                    received = {**context(api.store, member), "wire_sequence": incoming_sequence}
+                    pool.submit(handle, packet, received)
                 else:
-                    handle(packet)
+                    incoming_sequence += 1
+                    received = {**context(api.store, member), "wire_sequence": incoming_sequence}
+                    trace.record("mcp_in", packet, frame_context=received)
+                    handle(packet, received)
         finally:
             stopped.set()
             initialized.set()
+    trace.record("mcp_closed", {})
+    trace.close()

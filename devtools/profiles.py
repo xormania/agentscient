@@ -147,8 +147,23 @@ def prepare(directory, member, harness):
 
 def hook(directory, member, harness, payload):
     from .store import Store
+    from .telemetry import Trace, context, observed
 
     store = Store(directory)
+    trace = Trace(directory, member, component="hook", context=lambda: context(store, member))
+    try:
+        trace.record("native_hook", {"harness": harness, "payload": payload})
+    finally:
+        trace.close()
+    observed(store, member, harness + "/hook", payload)
+    if harness == "claude" and payload.get("transcript_path"):
+        path = Path(payload["transcript_path"]).expanduser().resolve()
+        root = Path(os.environ.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude"))).resolve() / "projects"
+        native_id = payload.get("session_id")
+        if path.is_relative_to(root) and path.name == str(native_id) + ".jsonl":
+            store.event(member, "native_transcript", path=str(path), native_id=native_id)
+        else:
+            store.event(member, "transcript_rejected", reason="Path outside the native session transcript directory")
     event = payload.get("hook_event_name", payload.get("hookEventName", "PreToolUse"))
     event = {
         "pre_tool_use": "PreToolUse",

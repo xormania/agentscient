@@ -11,12 +11,13 @@ class RPCError(RuntimeError):
 
 
 class RPC:
-    def __init__(self, process, request_handler, notification_handler, jsonrpc=True, trace=None):
+    def __init__(self, process, request_handler, notification_handler, jsonrpc=True, trace=None, component="native"):
         self.process = process
         self.request_handler = request_handler
         self.notification_handler = notification_handler
         self.jsonrpc = jsonrpc
         self.trace = trace
+        self.component = component
         self.next_id = 0
         self.pending = {}
         self.tasks = set()
@@ -31,7 +32,7 @@ class RPC:
         if self.dead.is_set():
             raise ConnectionError(self.failure or "Harness RPC closed")
         if self.trace:
-            self.trace.record("rpc_out", packet)
+            self.trace.record("rpc_out", {"component": self.component, "packet": packet})
         self.process.stdin.write((json.dumps(packet) + "\n").encode())
         await self.process.stdin.drain()
 
@@ -76,7 +77,7 @@ class RPC:
                         self.trace.record("invalid_rpc_line", {"line": line.decode("utf-8", errors="replace")})
                     raise ValueError("Non-JSON data on native protocol stdout; see invalid_rpc_line in trace") from None
                 if self.trace:
-                    self.trace.record("rpc_in", packet)
+                    self.trace.record("rpc_in", {"component": self.component, "packet": packet})
                 if "method" in packet:
                     if "id" in packet:
                         task = asyncio.create_task(self.answer(packet))
