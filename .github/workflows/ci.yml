@@ -145,7 +145,7 @@
         },
         {
           "name": "Exercise Maker/Mate through normal MCP",
-          "run": "python3 devtools/integration/symfony.py > var/ci/maker-mate/development-tools.json"
+          "run": "python3 devtools/integration/symfony.py --evidence-dir var/ci/maker-mate > var/ci/maker-mate/development-tools.json"
         },
         {
           "name": "Retain Maker/Mate integration evidence",

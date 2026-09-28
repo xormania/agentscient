@@ -71,6 +71,26 @@ class DevelopmentTests(unittest.TestCase):
         self.assertEqual("failed", value["state"])
         self.assertIn("paused", value["error"])
 
+    def test_crashed_check_retains_signal_and_output_without_retry(self):
+        program = (
+            "import os, resource, signal\n"
+            "from pathlib import Path\n"
+            "resource.setrlimit(resource.RLIMIT_CORE, (0, 0))\n"
+            "with Path('executions').open('a') as output: output.write('started\\n')\n"
+            "print('last event before crash', flush=True)\n"
+            "os.kill(os.getpid(), signal.SIGSEGV)\n"
+        )
+        root = self.configure({"crash": [sys.executable, "-c", program]})
+        result = Development(self.store, "coder").check()
+        self.assertFalse(result["passed"])
+        check = result["checks"][0]
+        self.assertEqual(-11, check["exit_code"])
+        self.assertEqual("SIGSEGV", check["signal"])
+        self.assertIn("last event before crash", check["output"])
+        self.assertEqual("started\n", (root / "executions").read_text())
+        artifact = self.api.call("work_context", {"reference": check["evidence"]})
+        self.assertEqual("SIGSEGV", json.loads(artifact["content"])["signal"])
+
     def test_dead_worker_is_uncertain_without_automatic_replay(self):
         self.configure()
         with patch.object(Operations, "launch"):

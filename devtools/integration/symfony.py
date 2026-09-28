@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Exercise actual installed Makers/Mate through normal MCP, in a disposable job worktree."""
 
+import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +17,7 @@ sys.path.insert(0, str(REPO / "devtools/tests"))
 from support import Client  # noqa: E402
 
 from devtools.api import API  # noqa: E402
+from devtools.development import DEFAULT_CHECKS, Development  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
 from devtools.readiness import platform  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
@@ -36,6 +39,15 @@ def completed(client, tool, arguments):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--evidence-dir", type=Path, help="Retain results and test events even when the fixture fails")
+    parser.add_argument("--full-checks", action="store_true", help="Diagnose with the normal agent's full check suite")
+    args = parser.parse_args()
+    evidence = args.evidence_dir.resolve() if args.evidence_dir else None
+    if evidence:
+        evidence.mkdir(parents=True, exist_ok=True)
+        for name in ("result.json", "phpunit-events.log"):
+            (evidence / name).unlink(missing_ok=True)
     platform_result = platform(REPO, {})
     with tempfile.TemporaryDirectory(prefix="agentscient-symfony-") as temporary:
         root = Path(temporary)
@@ -45,6 +57,12 @@ def main():
         git(checkout, "config", "user.name", "Integration fixture")
         git(checkout, "config", "user.email", "fixture@example.invalid")
         state = root / "state"
+        events = root / "phpunit-events.log"
+        checks = (
+            {name: list(argv) for name, argv in DEFAULT_CHECKS.items()}
+            if args.full_checks else {"generated-test": ["php", "vendor/bin/phpunit", "tests/FixtureGeneratedTest.php"]}
+        )
+        checks["tests" if args.full_checks else "generated-test"].extend(["--log-events-text", str(events)])
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
         config["project"] = {
@@ -53,13 +71,12 @@ def main():
             "repository": "example/fixture",
             "fetch": False,
             "development": {
-                "checks": {
-                    "generated-test": ["php", "vendor/bin/phpunit", "tests/FixtureGeneratedTest.php"],
-                },
+                "checks": checks,
             },
         }
         (state / "team.json").write_text(json.dumps(config))
         co, xo, coder = [Client(state, member) for member in ("owner", "xo", "coder")]
+        report = {"platform": platform_result, "full_checks": args.full_checks}
         try:
             co.tool(
                 "direct",
@@ -84,6 +101,12 @@ def main():
                     ]
                 },
             )
+            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
+            runtime = Development(API(state, "coder").store, "coder").run(
+                workspace, ["php", str(REPO / "devtools/integration/php-runtime.php")]
+            )
+            assert runtime["exit_code"] == 0, runtime
+            report["runtime"] = json.loads(runtime["output"])
             makers = completed(coder, "framework_inspect", {"kind": "makers"})["result"]["makers"]
             assert "make:command" in {row["name"] for row in makers}, makers
             metadata = completed(coder, "framework_inspect", {"kind": "makers", "name": "make:command"})["result"]
@@ -92,7 +115,6 @@ def main():
                 coder, "framework_generate", {"maker": "make:command", "arguments": {"name": "app:fixture-command"}}
             )["result"]
             assert generated["exit_code"] == 0, generated
-            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
             command = next((workspace / "src/Command").glob("*.php")).read_text()
             assert "#[AsCommand" in command and "#[Argument" in command and "#[Option" in command, command
             actual = subprocess.run(
@@ -116,8 +138,9 @@ def main():
             )["result"]
             assert tests["exit_code"] == 0, tests
             validation = completed(coder, "work_check", {})
+            report["validation"] = validation
             assert validation["passed"], validation
-            assert [row["check"] for row in validation["checks"]] == ["generated-test"], validation
+            assert [row["check"] for row in validation["checks"]] == list(checks), validation
             print(
                 json.dumps(
                     {
@@ -131,15 +154,23 @@ def main():
                             "configured checks",
                         ],
                         "mate": mate["result"],
-                        "platform": platform_result,
-                        "validation": validation,
+                        **report,
                     },
                     indent=2,
                 )
             )
+        except Exception as error:
+            report["error"] = str(error)
+            raise
         finally:
-            for client in (coder, xo, co):
-                client.close()
+            try:
+                if evidence:
+                    (evidence / "result.json").write_text(json.dumps(report, indent=2) + "\n")
+                    if events.is_file():
+                        shutil.copyfile(events, evidence / "phpunit-events.log")
+            finally:
+                for client in (coder, xo, co):
+                    client.close()
 
 
 if __name__ == "__main__":
