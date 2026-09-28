@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 7:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 8:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -137,6 +137,11 @@ class Store:
                     "launch_error": "TEXT",
                 },
                 "messages": {"category": "TEXT NOT NULL DEFAULT 'peer'"},
+                "work_orders": {
+                    "repository": "TEXT NOT NULL DEFAULT ''",
+                    "branch": "TEXT NOT NULL DEFAULT ''",
+                    "pull_request": "TEXT NOT NULL DEFAULT ''",
+                },
             }
             for table, fields in additions.items():
                 present = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
@@ -175,7 +180,51 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS deliveries (
                 job INTEGER PRIMARY KEY REFERENCES jobs(id), accepted_by TEXT NOT NULL REFERENCES members(name),
                 revision TEXT, merge_commit TEXT, assessment TEXT NOT NULL, outcome TEXT NOT NULL, created TEXT NOT NULL)""")
-            db.execute("PRAGMA user_version=7")
+            db.execute("""CREATE TABLE IF NOT EXISTS order_workspaces (
+                work_order INTEGER PRIMARY KEY REFERENCES work_orders(id), root TEXT NOT NULL UNIQUE,
+                branch TEXT NOT NULL, target TEXT NOT NULL, base_revision TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS workspace_merges (
+                job INTEGER PRIMARY KEY REFERENCES jobs(id), head TEXT NOT NULL,
+                revision TEXT NOT NULL, entries TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS order_inspections (
+                member TEXT NOT NULL REFERENCES members(name), work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                revision TEXT NOT NULL, updated TEXT NOT NULL, PRIMARY KEY(member,work_order))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS order_deliveries (
+                work_order INTEGER PRIMARY KEY REFERENCES work_orders(id), revision TEXT, merge_commit TEXT,
+                assessment TEXT NOT NULL, created TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS managed_worktrees (
+                root TEXT PRIMARY KEY, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), branch TEXT, revision TEXT,
+                state TEXT NOT NULL DEFAULT 'active', sessions TEXT NOT NULL DEFAULT '{}',
+                provider INTEGER NOT NULL DEFAULT 0, detail TEXT NOT NULL DEFAULT '',
+                retry_after REAL NOT NULL DEFAULT 0, updated TEXT NOT NULL)""")
+            db.execute(
+                "INSERT OR IGNORE INTO managed_worktrees(root,work_order,job,branch,updated) "
+                "SELECT w.root,j.work_order,w.job,w.branch,? FROM job_workspaces w JOIN jobs j ON j.id=w.job",
+                (stamp(),),
+            )
+            db.execute(
+                "INSERT OR IGNORE INTO managed_worktrees(root,work_order,job,revision,updated) "
+                "SELECT v.root,j.work_order,v.job,v.revision,? FROM review_views v JOIN jobs j ON j.id=v.job",
+                (stamp(),),
+            )
+            if next(r for r in db.execute("PRAGMA table_info(operations)") if r["name"] == "job")["notnull"]:
+                db.execute("ALTER TABLE operations RENAME TO previous_operations")
+                db.execute("""CREATE TABLE operations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
+                    work_order INTEGER NOT NULL REFERENCES work_orders(id), job INTEGER REFERENCES jobs(id),
+                    binding TEXT NOT NULL, action TEXT NOT NULL, arguments TEXT NOT NULL,
+                    state TEXT NOT NULL, result TEXT, error TEXT, created TEXT NOT NULL, updated TEXT NOT NULL)""")
+                db.execute("INSERT INTO operations SELECT * FROM previous_operations")
+                db.execute("DROP TABLE previous_operations")
+            db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS active_job_operation ON operations(job) WHERE state IN ('queued','running')"
+            )
+            db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS active_order_operation ON operations(work_order) "
+                "WHERE job IS NULL AND state IN ('queued','running')"
+            )
+            db.execute("PRAGMA user_version=8")
 
     @contextmanager
     def connect(self):
@@ -188,7 +237,7 @@ class Store:
         finally:
             connection.close()
 
-    def initialize(self, members):
+    def initialize(self, members, *, runtime=False):
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
@@ -199,7 +248,8 @@ class Store:
                 if self.directory == root or self.directory.is_relative_to(root):
                     raise ValueError("Keep live state outside the managed source worktree.")
                 old = db.execute("SELECT * FROM members WHERE name=?", (name,)).fetchone()
-                if old and (old["harness"] != member["harness"] or old["workspace"] != str(root)):
+                managed_runtime = runtime and member["harness"] != "external" and old and old["harness"] != "external"
+                if old and ((old["harness"] != member["harness"] and not managed_runtime) or old["workspace"] != str(root)):
                     raise ValueError(f"Member {name} already has a different harness or worktree.")
                 db.execute(
                     "INSERT OR IGNORE INTO members(name,harness,workspace,updated) VALUES (?,?,?,?)",
@@ -244,6 +294,8 @@ class Store:
 
     @staticmethod
     def _event(db, actor, kind, data):
+        from .telemetry import clean
+
         data = dict(data)
         work_order, job = Store.current_work(db, actor, data.pop("work_order", UNSET), data.pop("job", UNSET))
         member = db.execute("SELECT generation,native_id FROM members WHERE name=?", (actor,)).fetchone()
@@ -253,7 +305,7 @@ class Store:
                     data.setdefault(field, member[field])
         return db.execute(
             "INSERT INTO events(at,actor,kind,data,work_order,job) VALUES (?,?,?,?,?,?)",
-            (stamp(), actor, kind, canonical(data), work_order, job),
+            (stamp(), actor, kind, canonical(clean(data)), work_order, job),
         ).lastrowid
 
     def event(self, actor, kind, **data):
@@ -296,8 +348,10 @@ class Store:
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
     def begin_session(self, name, pid, *, binding_revision=None, settings=None):
+        from .sessions import lock
+
         generation = uuid.uuid4().hex
-        with self.connect() as db:
+        with lock(self, name, exclusive=True), self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM members WHERE name=?", (name,)).fetchone()
             if not row:
@@ -410,9 +464,13 @@ class Store:
             )
         return {"message": message, "acknowledged": True}
 
-    def take_delivery(self, member, *, scoped=False):
+    def take_delivery(self, member, *, scoped=False, generation=UNSET):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if generation is not UNSET:
+                current = db.execute("SELECT generation,desired FROM members WHERE name=?", (member,)).fetchone()
+                if not current or current["generation"] != generation or current["desired"] != "running":
+                    return None
             clause, args = "1", ()
             if scoped:
                 from .control import binding, scope_sql
@@ -430,6 +488,10 @@ class Store:
             db.execute("UPDATE messages SET delivery='delivering',attempt=? WHERE id=?", (attempt, row["id"]))
             result = dict(row)
             result["attempt"] = attempt
+            self._event(db, member, "message_delivering", {
+                "message": row["id"], "attempt": attempt, "sender": row["sender"],
+                "body": row["body"], "work_order": row["work_order"], "job": row["job"],
+            })
             return result
 
     def delivered(self, member, message, attempt, *, error=None, transport=None):
@@ -454,7 +516,7 @@ class Store:
                 db,
                 member,
                 "delivery_uncertain" if error else "message_submitted",
-                {"message": message, "transport": transport, "error": error, **dict(binding)},
+                {"message": message, "attempt": attempt, "transport": transport, "error": error, **dict(binding)},
             )
 
     def retry(self, member, message):

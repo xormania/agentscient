@@ -14,8 +14,8 @@ Specialists receive the context and capabilities needed for their responsibility
 
 | Concept | Meaning |
 | --- | --- |
-| Work order | The numbered overall effort: objective, completion criteria, boundaries, decisions and evidence. |
-| Job | A bounded responsibility beneath a work order, normally delivered through a PR. |
+| Work order | The numbered overall effort and integrated result: objective, completion criteria, boundaries, decisions and evidence. |
+| Job | A bounded contribution to a work order; its source changes are delivered through one PR into that work order. |
 | Role | The tools and default editable paths available to a participant. |
 | Work binding | The work to which that role's calls and context apply. |
 | Reporting relationship | Where findings, questions, results and guidance go. |
@@ -31,7 +31,9 @@ role or work authority.
 
 ## Role catalog
 
-Every bound role gets **`work_context`, `work_report`, `guidance_request`**.
+Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
+Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
+and skill catalogs shared across all supported harnesses.
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -39,8 +41,8 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
-| CO | `direct`, `monitor`, `conclude` | None |
-| XO | `orchestrate`, `monitor`, `steer` | None |
+| CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
+| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`; with development enabled: `work_check` | None |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
@@ -54,7 +56,7 @@ paths. The current research profile covers repository material, supplied sources
 and retained evidence; a general external web-search provider is not configured.
 
 An unbound member gets only `work_context`. The external member explicitly
-appointed as CO also gets `direct` and `monitor` before its first work order.
+appointed as CO also gets `onboard`, `skill_read`, `direct` and `monitor` before its first work order.
 Member names alone confer no role. Normal connections cannot invoke the operator
 catalog, even by guessing a backing capability's name.
 
@@ -103,10 +105,11 @@ which they started; subsequent calls use the current binding.
 | Role / tool | Outcome |
 | --- | --- |
 | CO — `direct` | Establish or revise the current objective, completion criteria and boundaries; bind XO and deliver its brief. |
-| CO/XO — `monitor` | Read scoped work, sessions, progress, blockers, measured usage and available capacity; focus on a named job for delivery details. |
-| CO — `conclude` | Retain the completed work-order assessment and release its team. |
+| CO/XO — `monitor` | Read scoped progress, capacity and cleanup status; inspect named work or the combined delivery. |
+| CO — `conclude` | Deliver the inspected, passing integrated result, retain the assessment and release the team. |
+| CO — `restart_xo` | Replace XO's conversation using current runtime policy while retaining its work and team. |
 | XO — `orchestrate` | Create/update named responsibilities, bind suitable configured collaborators and start their live sessions. |
-| XO — `steer` | Guide, pause, resume or stop collaborators; revise a named brief or accept/cancel a named job. |
+| XO — `steer` | Guide, pause, resume, stop or replace collaborators; revise a named brief or accept/cancel a named job. |
 
 `direct` requires `title`, `objective`, `done_when` and `constraints`. Its first call
 creates the work order and claims an available XO slot. Later calls revise that
@@ -118,10 +121,10 @@ the same job/collaborator. Names are case-insensitive within the work order.
 One producer and an optional auditor can share the job name with distinct briefs.
 The auditor's brief does not overwrite the producer's completion criteria.
 
-Both tools support optional `selection` filters for configured `harness`, `model`
-and `reasoning` values; each orchestrated responsibility can have its own selection.
-Slots supply binaries and runtime settings. Existing collaborators keep their
-session settings. Failed allocation batches roll back jobs, bindings and messages.
+Runtime choices belong to the operator's [role and vendor policy](shared-runtime-config.md).
+Neither tool takes harness/model/reasoning selectors. The service allocates role
+instances and starts [owned tmux terminals](tmux-control.md). Existing collaborators
+keep their launch settings. Failed allocation batches roll back jobs, bindings and messages.
 
 The following illustrates an authorized product job, not a request to implement it:
 
@@ -136,6 +139,9 @@ The following illustrates an authorized product job, not a request to implement 
 `next_offset` or `next_job_offset` as `offset`. CO sees its work-order team; XO sees
 its descendants and jobs. Usage is the latest raw observation, not an invented cost
 or an additive total. Missing usage stays unknown.
+The default `section="overview"` shows progress. With a named `work`, the default
+shows its review packet. Omit `work` and select `section="review"`, `"ci"` or
+`"feedback"` to inspect the integrated work-order delivery.
 
 For live steering, omit `work` to address the team or name a responsibility. An
 optional `role` filter selects its producer or auditor. `guide` retains direction;
@@ -143,6 +149,10 @@ optional `role` filter selects its producer or auditor. `guide` retains directio
 pause and starts a stopped session if needed. `stop` requests orderly shutdown and
 preserves the unfinished job and binding. Pause is not a native mid-token interrupt.
 Stopping/restarting creates a new native conversation.
+`replace` requests shutdown and a fresh conversation using current vendor policy;
+include a reason in `direction`. CO can do the same for XO using `restart_xo`.
+See [session handover](session-handover.md) for switching the user-facing CO and
+the retained context and generation boundaries.
 
 A named producer brief can revise `objective`, `done_when` or `constraints`; it does
 not rewrite CO's work-order objective. Commands recheck scope when committing.
@@ -152,18 +162,24 @@ retries XO startup, and `steer(action="resume")` retries a collaborator.
 
 ## Workspaces and Git
 
-Each job gets an owned worktree and branch, outside the source checkout and private
-state. Managed harnesses and file-backed evidence use the bound worktree. New jobs
-fetch the configured target; the operator can explicitly select an offline target.
-Git operations, Makers, checks and Serena calls coordinate through the job lock.
+The service prepares an integration workspace for each work order and a separate
+workspace for each job. Managed harnesses and file-backed evidence use the bound
+workspace automatically. Jobs incorporate accepted contributions through their
+parent work order. Git operations, Makers, checks and Serena calls coordinate
+through scoped locks. Branch routing and local paths are service responsibilities.
 
 | Tool | Outcome / input |
 | --- | --- |
 | `work_inspect` | Read changes, checkpoints, scope, retained operations or delivery evidence. |
 | `work_save` | Checkpoint allowed changes and retain a diff; takes `note`. |
-| `work_refresh` | Checkpoint current work, fetch the target and merge it. A conflict is aborted with the checkpoint preserved. |
+| `work_refresh` | For a job, checkpoint and incorporate accepted contributions plus current development changes. Resolve any listed conflicts with the editing tools, then `work_save` and refresh again. For XO, synchronize the integrated result. |
 | `work_recover` | Restore a returned `checkpoint` as a new commit; takes `reason` and preserves current work first. |
-| `work_submit` | Checkpoint, validate when configured, push without force, create/reuse the PR and start CI observation; takes `summary`. |
+| `work_submit` | Submit a checked contribution, or let XO submit the combined result once jobs are finished; takes `summary`. Publication and CI observation are automatic. |
+
+For review fixes before acceptance, keep working in the same job and call
+`work_submit` again. It updates the existing PR and starts observation of the new
+CI result. XO inspects the changed revision again before accepting it; GitHub's
+required checks still apply. Branch names and PR targets remain service-managed.
 
 `work_inspect` defaults to `overview`. Use `section="changes"` with optional `path`
 and `offset` for bounded local diffs. `section="operations"` reads retained long
@@ -283,12 +299,12 @@ write outcomes are not silently repeated.
 XO inspects the current delivery with `monitor(work="Job name")`, then uses
 `steer(action="accept", work="Job name", direction="Assessment")`. Acceptance
 requires the same inspected PR revision, passing CI, the managed branch/target and
-a clean producer workspace at that revision. The service merges through normal
+a clean producer workspace at that revision. The service merges into the work order through normal
 GitHub rules, retains the assessment/evidence and marks the job done.
 
 For report-only work, a retained `work_report(kind="result")` and no unsubmitted
-source changes are required. Audit is available when the responsibility needs it;
-there is no mandatory sequence of review roles.
+source changes are required. XO can assign an auditor when the responsibility
+needs review.
 
 `steer(action="cancel", work="Job name", direction="Reason")` preserves the
 worktree, PR and evidence and marks the job cancelled. An existing PR remains open
@@ -296,10 +312,15 @@ for the owner to decide its disposition. Acceptance/cancellation releases bindin
 and requests shutdown; slots become reusable after the native processes stop.
 
 Completed jobs stay visible in `monitor`. New responsibilities use new names and
-new worktrees based on the configured target. Old branches, worktrees, messages and
-artifacts remain; acceptance does not delete history.
+start from the integrated work. Merged job worktrees and audit snapshots are
+retired after their processes and providers stop. Unexpected changes remain for
+inspection; cleanup reports its status without blocking other work. Messages,
+checkpoints, assessments, PR references and artifacts remain available.
 
-When every job is done or cancelled, CO calls `conclude(assessment)` to retain the
-work-order outcome and release the remaining team. The next authorized `direct`
-creates a new work order. Queued, submitted, acknowledged, reviewed and completed
-remain distinct observations throughout the process.
+When every job is done or cancelled, XO uses `work_submit(summary)` to validate
+and submit the combined result. CO inspects it with `monitor(section="review")`,
+then calls `conclude(assessment)` to deliver the passing outcome and release the
+remaining team. The integration workspace retires after this final merge and
+shutdown. Report-only work with no source changes can conclude without a PR.
+The next authorized `direct` creates a new work order. Submission, contribution
+acceptance and delivery of the overall outcome remain distinct observations.

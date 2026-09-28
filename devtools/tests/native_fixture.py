@@ -9,6 +9,7 @@ import asyncio
 import json
 import re
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -20,11 +21,12 @@ class Fixture:
         self.harness = "codex" if "app-server" in sys.argv else "grok"
         self.pending = {}
         self.count = 0
-        self.session = "fixture-native-conversation"
+        self.session = "fixture-native-" + uuid.uuid4().hex
         self.mcp = None
         self.tasks = set()
         self.command = False
         self.organized = False
+        self.onboarded = False
 
     def write(self, packet):
         print(json.dumps(packet), flush=True)
@@ -61,6 +63,10 @@ class Fixture:
         return await self.mcp.request("tools/call", {"name": capability, "arguments": args})
 
     async def accept(self, text, hold):
+        if not self.onboarded:
+            await self.tool("onboard", {})
+            await self.tool("skill_read", {"name": "agentscient-xo" if self.command else "agentscient-coder"})
+            self.onboarded = True
         ident = int(re.search(r"Live message #(\d+)", text)[1])
         if self.harness == "codex":
             self.write({"method": "turn/started", "params": {"threadId": self.session, "turn": {"id": "held-turn"}}})
@@ -121,9 +127,9 @@ class Fixture:
                 assert params["sandbox"] == "read-only"
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
-                expected = {"work_context", "work_report", "guidance_request"}
+                expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
                 assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
-                result = {"thread": {"id": self.session}}
+                result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]
                 process = await asyncio.create_subprocess_exec(
@@ -143,7 +149,9 @@ class Fixture:
                     },
                 )
                 await self.mcp.notify("notifications/initialized")
-                result = {"sessionId": self.session}
+                catalogue = (await self.mcp.request("tools/list", {}))["tools"]
+                self.command = "orchestrate" in {row["name"] for row in catalogue}
+                result = {"sessionId": self.session, "models": {"currentModelId": "fixture-model"}}
             elif method == "turn/start":
                 assert params["threadId"] == self.session
                 assert params["input"] == []

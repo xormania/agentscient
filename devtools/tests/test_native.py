@@ -5,13 +5,74 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from support import Client, until
+from support import Client, require_tmux, retain_native, until
 
+from devtools.control import Control
 from devtools.launch import initialize
 from devtools.store import Store
 
 
 class NativeProtocolTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_tmux()
+
+    def test_xo_replacement_changes_vendor_in_tmux_and_retains_running_specialist(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace, home, state = root / "workspace", root / "home", root / "state"
+            workspace.mkdir()
+            home.mkdir()
+            initialize(state, workspace, ["owner:external"], co="owner", runtime=True)
+            fixture = Path(__file__).with_name("native_fixture.py")
+            fixture.chmod(0o755)
+            policy = json.loads((state / "roles.json").read_text())
+            for row in policy["profiles"].values():
+                row["binary"] = str(fixture)
+            (state / "roles.json").write_text(json.dumps(policy))
+            vendors = json.loads((state / "vendors.json").read_text())
+            vendors["vendors"]["openai"]["available"] = True
+            vendors["vendors"]["xai"]["available"] = True
+            (state / "vendors.json").write_text(json.dumps(vendors))
+            env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / ".codex"), "GROK_HOME": str(home / ".grok")}
+            store = Store(state)
+            co = Client(state, "owner", env=env)
+            stale = None
+            try:
+                co.tool("direct", {"title": "Replace XO", "objective": "Retain the team across vendor turnover",
+                                   "done_when": "Replacement recovers its specialist", "constraints": "Fixture only"})
+                until(lambda: any("Collaborator receipt observed" in row["body"] for row in store.inbox("owner")["messages"]), timeout=12)
+                with store.connect() as db:
+                    chief = db.execute("SELECT member FROM member_bindings WHERE role='xo'").fetchone()[0]
+                    worker = db.execute("SELECT member FROM member_bindings WHERE role='coder'").fetchone()[0]
+                before, worker_before = store.member(chief), store.member(worker)
+                binding = Control(store, chief).snapshot()
+                stale = Client(state, chief, env=env, generation=before["generation"])
+                vendors["vendors"]["openai"]["available"] = False
+                (state / "vendors.json").write_text(json.dumps(vendors))
+                co.tool("restart_xo", {"reason": "Vendor quota unavailable; recover current team"})
+                until(lambda: store.member(chief)["generation"] != before["generation"], timeout=15)
+                until(lambda: store.member(chief)["state"] in {"idle", "active"}, timeout=8)
+                self.assertEqual("grok", store.member(chief)["harness"])
+                self.assertNotEqual(before["native_id"], store.member(chief)["native_id"])
+                self.assertEqual(worker_before["generation"], store.member(worker)["generation"])
+                current = Control(store, chief).snapshot()
+                for key in ("member", "role", "work_order", "reports_to"):
+                    self.assertEqual(binding[key], current[key])
+                with self.assertRaisesRegex(ValueError, "replaced"):
+                    stale.tool("steer", {"action": "stop"})
+                until(lambda: any(row["data"].get("generation") == store.member(chief)["generation"]
+                                  for row in store.events(actor=chief, kind="onboarding_delivered")["events"]), timeout=8)
+            finally:
+                for row in store.members():
+                    if row["name"] != "owner":
+                        store.session(row["name"], desired="stopped")
+                until(lambda: all(row["state"] in {"stopped", "failed"} for row in store.members()), timeout=10)
+                if stale:
+                    stale.close()
+                co.close()
+                retain_native(state, "xo-vendor-replacement")
+
     def test_co_direction_launches_xo_and_collaborator_and_pause_retains_live_session(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -88,9 +149,10 @@ class NativeProtocolTests(unittest.TestCase):
                 if xo:
                     xo.close()
                 co.close()
+                retain_native(state, "co-xo-collaborator")
 
     def test_live_messages_during_unfinished_work_keep_native_identity(self):
-        for harness in ("codex", "grok"):
+        for harness in ("codex", "grok", "claude"):
             with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 workspace = root / "workspace"
@@ -99,7 +161,7 @@ class NativeProtocolTests(unittest.TestCase):
                 home = root / "login-home"
                 home.mkdir()
                 initialize(state, workspace, ["owner:external", "worker:" + harness])
-                fixture = Path(__file__).with_name("native_fixture.py")
+                fixture = Path(__file__).with_name("claude_fixture.py" if harness == "claude" else "native_fixture.py")
                 fixture.chmod(0o755)
                 config = json.loads((state / "team.json").read_text())
                 config["members"][1]["binary"] = str(fixture)
@@ -113,6 +175,18 @@ class NativeProtocolTests(unittest.TestCase):
                 }
                 client = Client(state, "owner", env=env, operator=True)
                 try:
+                    if harness == "codex":
+                        from devtools.terminals import command
+
+                        command(state, "new-session", "-d", "-s", "environment-seed", "--", "sleep", "30")
+                        stale = root / "stale-python"
+                        stale.mkdir()
+                        marker = root / "stale-imported"
+                        (stale / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').write('stale')\n")
+                        for name, value in {"PYTHONHOME": str(stale), "PYTHONPATH": str(stale),
+                                            "LD_PRELOAD": "/missing/stale.so", "LD_LIBRARY_PATH": str(stale),
+                                            "LD_TRACE_LOADED_OBJECTS": "1"}.items():
+                            command(state, "set-environment", "-g", name, value)
                     order = client.invoke(
                         "work_order_create", title="Protocol test", objective="Live work", done_when="Received"
                     )
@@ -126,13 +200,20 @@ class NativeProtocolTests(unittest.TestCase):
                     )
                     started = client.invoke("session_start", member="worker")
                     self.assertEqual("running", started["requested"])
+                    if harness == "codex":
+                        self.assertFalse(marker.exists())
+                    self.assertTrue(client.invoke("terminal_status", member="worker")["exists"])
                     until(lambda: store.member("worker")["state"] == "idle")
                     original_id = store.member("worker")["native_id"]
+                    runtime = until(lambda: store.events(kind="runtime_observed", actor="worker")["events"])
+                    self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
                     first = client.invoke(
                         "message_send", to="worker", body="Keep working while a tool is held", key="first"
                     )
                     until(lambda: store.inbox("worker")["messages"][0]["acknowledged"])
+                    self.assertEqual("coder", store.events(kind="onboarding_delivered", actor="worker")["events"][-1]["data"]["role"])
+                    self.assertTrue(store.events(kind="skill_loaded", actor="worker")["events"])
                     until(
                         lambda: (
                             store.events(kind="operation_started")["events"]
@@ -156,7 +237,7 @@ class NativeProtocolTests(unittest.TestCase):
                         submissions = store.events(kind="message_submitted", actor="worker")["events"]
                         self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
                     else:
-                        self.assertTrue(store.events(kind="native_usage")["events"])
+                        until(lambda: store.events(kind="native_usage")["events"])
                 except Exception:
                     log = state / "logs/worker.log"
                     if log.exists():
@@ -168,4 +249,7 @@ class NativeProtocolTests(unittest.TestCase):
                         until(lambda: store.member("worker")["state"] in {"stopped", "failed"}, timeout=8)
                     finally:
                         client.close()
+                        if harness == "codex":
+                            command(state, "kill-session", "-t", "=environment-seed", check=False)
+                        retain_native(state, harness)
                 self.assertEqual("stopped", store.member("worker")["state"])

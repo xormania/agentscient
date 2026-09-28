@@ -21,8 +21,13 @@ class Operations:
 
     def start(self, action, arguments):
         scope = self.control.current()
-        if action not in ACTIONS or not scope or not scope["job"] or scope["paused"]:
-            raise ValueError("This operation requires an active job.")
+        if (
+            action not in ACTIONS
+            or not scope
+            or scope["paused"]
+            or (not scope["job"] and (scope["role"] != "xo" or action not in {"work_check", "work_submit"}))
+        ):
+            raise ValueError("This operation requires active work in the corresponding role.")
         payload = canonical(arguments)
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -30,7 +35,8 @@ class Operations:
             if current != scope:
                 raise ValueError("Work context changed; inspect before retrying.")
             old = db.execute(
-                "SELECT * FROM operations WHERE job=? AND state IN ('queued','running')", (scope["job"],)
+                "SELECT * FROM operations WHERE work_order=? AND job IS ? AND state IN ('queued','running')",
+                (scope["work_order"], scope["job"]),
             ).fetchone()
             if old:
                 if old["member"] != self.member or old["action"] != action or old["arguments"] != payload:

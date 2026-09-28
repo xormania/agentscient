@@ -214,7 +214,7 @@ class Work:
             return self.update_in(db, table, work_order, job, **fields)
 
     def update_in(self, db, table, work_order=UNSET, job=UNSET, **fields):
-        if not fields or fields.keys() - (FIELDS | (JOB_FIELDS if table == "jobs" else set())):
+        if not fields or fields.keys() - (FIELDS | JOB_FIELDS):
             raise ValueError("Supply the fields to update.")
         if "status" in fields and fields["status"] not in STATUSES:
             raise ValueError("Unknown status")
@@ -224,8 +224,7 @@ class Work:
         fields = {key: value for key, value in fields.items() if current[key] != value}
         if not fields:
             return {"job" if table == "jobs" else "work_order": current}
-        if table == "jobs":
-            self._check_branch(record(db, table, ident) | fields)
+        self._check_branch(record(db, table, ident) | fields)
         db.execute(
             f"UPDATE {table} SET " + ",".join(field + "=?" for field in fields) + ",updated=? WHERE id=?",
             (*fields.values(), stamp(), ident),

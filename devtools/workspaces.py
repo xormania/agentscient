@@ -1,4 +1,4 @@
-"""Owned job worktrees and serialized Git operations; no agent-supplied commands."""
+"""Owned worktrees and serialized Git operations; no agent-supplied commands."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -79,28 +80,37 @@ class Workspaces:
             current = binding(db, self.member)
         if (
             not current
-            or not current["job"]
+            or (not current["job"] and current["role"] not in {"co", "xo"})
             or not expected
-            or any(current[k] != expected[k] for k in ("role", "job", "work_order"))
+            or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):
-            raise ValueError("This capability needs your current job binding.")
-        if write and (current["role"] not in EDITORS or current["paused"]):
+            raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
+        writable = current["role"] in EDITORS if current["job"] else current["role"] == "xo"
+        if write and (not writable or current["paused"]):
             raise ValueError("Your current role cannot change this work, or the work is paused.")
         if write:
             with self.store.connect() as db:
-                if record(db, "jobs", current["job"])["status"] in {"done", "cancelled"}:
-                    raise ValueError("This job is finished; new changes belong to a new responsibility.")
+                table, ident = ("jobs", current["job"]) if current["job"] else ("work_orders", current["work_order"])
+                if record(db, table, ident)["status"] in {"done", "cancelled"}:
+                    raise ValueError("This work is finished; new changes belong to a new responsibility.")
         return current
 
     @contextmanager
-    def lock(self, name):
+    def lock(self, name, timeout=0):
         directory = self.store.directory / "work-locks"
         directory.mkdir(mode=0o700, exist_ok=True)
         with (directory / (str(name) + ".lock")).open("a") as stream:
-            try:
-                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                raise ValueError("Another operation is using this work. Inspect progress before retrying.") from None
+            deadline = time.monotonic() + timeout
+            while True:
+                try:
+                    fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        raise ValueError(
+                            "Another operation is using this work. Inspect progress before retrying."
+                        ) from None
+                    time.sleep(0.01)
             yield
 
     def checkout(self):
@@ -119,6 +129,40 @@ class Workspaces:
             raise ValueError("Invalid configured target branch.")
         return target
 
+    def remote(self):
+        remote = self.config.get("remote", "origin")
+        if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
+            raise ValueError("Invalid configured Git remote.")
+        return remote
+
+    def upstream(self, target):
+        checkout, remote = self.checkout(), self.remote()
+        ref = target
+        if self.config.get("fetch", True) and git(checkout, "remote", "get-url", remote, check=False).returncode == 0:
+            ref = "refs/remotes/" + remote + "/" + target
+            git(checkout, "fetch", "--no-tags", remote, target + ":" + ref)
+        return git(checkout, "rev-parse", "--verify", ref + "^{commit}").stdout.decode().strip()
+
+    def parent(self):
+        checkout = self.checkout()
+        parent = Path(self.config.get("workspaces", checkout.parent / "wt-ag")).expanduser().resolve()
+        if (
+            parent == checkout
+            or parent.is_relative_to(checkout)
+            or parent == self.store.directory
+            or parent.is_relative_to(self.store.directory)
+        ):
+            raise ValueError("Managed workspaces must be outside the source checkout and private control-plane state.")
+        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return parent
+
+    def team(self):
+        return hashlib.sha256(str(self.store.directory).encode()).hexdigest()[:10]
+
+    @staticmethod
+    def scope_lock(scope):
+        return "job-" + str(scope["job"]) if scope["job"] else "order-" + str(scope["work_order"])
+
     def ensure(self):
         scope = self.scope()
         with self.lock("repository"):
@@ -130,6 +174,11 @@ class Workspaces:
             return workspace
 
     def _ensure(self, scope):
+        from .orders import Orders
+        from .retirement import register
+
+        if not scope["job"]:
+            return Orders(self.store, self.member).ensure_in(scope["work_order"])
         checkout = self.checkout()
         with self.store.connect() as db:
             old = db.execute("SELECT * FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
@@ -137,32 +186,15 @@ class Workspaces:
         if old:
             self._verify(dict(old), checkout)
             return dict(old)
-        target = self.target()
-        base_ref = target
-        remote = self.config.get("remote", "origin")
-        if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
-            raise ValueError("Invalid configured Git remote.")
-        if self.config.get("fetch", True) and git(checkout, "remote", "get-url", remote, check=False).returncode == 0:
-            base_ref = "refs/remotes/" + remote + "/" + target
-            git(checkout, "fetch", "--no-tags", remote, target + ":" + base_ref)
-        base = git(checkout, "rev-parse", "--verify", base_ref + "^{commit}").stdout.decode().strip()
-        team = hashlib.sha256(str(self.store.directory).encode()).hexdigest()[:10]
-        parent = (
-            Path(self.config.get("workspaces", self.store.directory.parent / ("agentscient-work-" + team)))
-            .expanduser()
-            .resolve()
-        )
-        if (
-            parent == checkout
-            or parent.is_relative_to(checkout)
-            or parent == self.store.directory
-            or parent.is_relative_to(self.store.directory)
-        ):
-            raise ValueError("Managed workspaces must be outside the source checkout and private control-plane state.")
-        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        order = Orders(self.store, self.member).ensure_in(scope["work_order"])
+        target = order["branch"]
+        base = self.upstream(target)
+        team, parent = self.team(), self.parent()
         generation = hashlib.sha256(job["created"].encode()).hexdigest()[:8]
-        root = parent / f"job-{scope['job']}-{generation}"
-        branch = f"agentscient/{team}/wo-{scope['work_order']}/job-{scope['job']}-{generation}"
+        root = parent / f"job-{team}-{scope['job']}-{generation}"
+        # Job refs are siblings: Git cannot hold both <order> and <order>/<job>.
+        # The work-order ruleset excludes the -job-* suffix so fixes can be pushed.
+        branch = f"{target}-job-{scope['job']}-{generation}"
         if not root.exists():
             existing = git(checkout, "show-ref", "--verify", "refs/heads/" + branch, check=False)
             if existing.returncode == 0:
@@ -182,6 +214,7 @@ class Workspaces:
                 db, "jobs", scope["work_order"], scope["job"], repository=repository, branch=branch
             )
             Work(self.store, self.member).attach(db, scope["work_order"], scope["job"], "worktree", str(root))
+            register(db, workspace, scope["work_order"])
         return workspace
 
     @staticmethod
@@ -232,13 +265,36 @@ class Workspaces:
             index += 1
         return result
 
-    def _allowed_changes(self, workspace, scope):
+    @staticmethod
+    def index_entries(root):
+        entries = {}
+        for entry in git(root, "ls-files", "--stage", "-z").stdout.decode().split("\0"):
+            if entry:
+                metadata, path = entry.split("\t", 1)
+                entries.setdefault(path, []).append(metadata)
+        return entries
+
+    def _allowed_changes(self, workspace, scope, imported=None):
         changes = self.changes(workspace["root"])
+        entries = self.index_entries(workspace["root"]) if imported is not None else {}
+
+        def allowed(item, path):
+            if self.permitted_path(path, scope["role"]):
+                return True
+            # Clean upstream changes outside the editor's scope can be committed only
+            # unchanged from the recorded merge index. Conflict resolution stays scoped.
+            return (
+                imported is not None
+                and item["status"][1] == " "
+                and entries.get(path) == imported.get(path)
+                and all(entry.endswith(" 0") for entry in imported.get(path, []))
+            )
+
         denied = [
             path
             for item in changes
             for path in (item["path"], item.get("previous_path"))
-            if path and not self.permitted_path(path, scope["role"])
+            if path and not allowed(item, path)
         ]
         if denied:
             raise ValueError(
@@ -252,7 +308,7 @@ class Workspaces:
     def use(self, write=False):
         scope = self.scope(write)
         workspace = self.ensure()
-        with self.lock("job-" + str(scope["job"])):
+        with self.lock(self.scope_lock(scope)):
             self.scope(write)
             self._verify(workspace, self.checkout())
             yield scope, workspace
@@ -294,10 +350,26 @@ class Workspaces:
 
     def _save(self, scope, workspace, note):
         self.scope(write=True)
-        changes = self._allowed_changes(workspace, scope)
         root = workspace["root"]
-        if changes:
+        merging = git(root, "rev-parse", "--verify", "MERGE_HEAD", check=False)
+        imported = None
+        if merging.returncode == 0:
+            with self.store.connect() as db:
+                pending = db.execute("SELECT * FROM workspace_merges WHERE job=?", (scope["job"],)).fetchone()
+            if (
+                not pending
+                or pending["revision"] != merging.stdout.decode().strip()
+                or pending["head"] != git(root, "rev-parse", "HEAD").stdout.decode().strip()
+            ):
+                raise ValueError("An unrecognized integration is in progress. Work was preserved; request guidance.")
+            imported = json.loads(pending["entries"])
+            if git(root, "diff", "--check", check=False).returncode:
+                raise ValueError("Resolve conflict markers and whitespace errors before saving this integration.")
+        changes = self._allowed_changes(workspace, scope, imported)
+        if changes or imported is not None:
             git(root, "add", "--all", "--", ".")
+            if imported is not None and git(root, "diff", "--cached", "--check", check=False).returncode:
+                raise ValueError("Resolve conflict markers and whitespace errors before saving this integration.")
             identity = self.config.get("identity", {})
             env = (
                 {
@@ -312,6 +384,7 @@ class Workspaces:
             git(root, "-c", "commit.gpgsign=false", "commit", "--no-verify", "-m", note, env=env)
         revision = git(root, "rev-parse", "HEAD").stdout.decode().strip()
         with self.store.connect() as db:
+            db.execute("DELETE FROM workspace_merges WHERE job=?", (scope["job"],))
             db.execute(
                 "INSERT OR IGNORE INTO checkpoints(job,revision,note,created) VALUES (?,?,?,?)",
                 (scope["job"], revision, note, stamp()),
@@ -324,7 +397,11 @@ class Workspaces:
             work_order=scope["work_order"],
             job=scope["job"],
         )["artifact"]["id"]
-        return {"checkpoint": "checkpoint:" + revision, "changed": bool(changes), "evidence": "artifact:" + str(saved)}
+        return {
+            "checkpoint": "checkpoint:" + revision,
+            "changed": bool(changes) or imported is not None,
+            "evidence": "artifact:" + str(saved),
+        }
 
     def save(self, note):
         with self.use(write=True) as (scope, workspace):
@@ -332,23 +409,14 @@ class Workspaces:
 
     def refresh(self):
         with self.use(write=True) as (scope, workspace):
+            if not scope["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).sync(workspace)
             preserved = self._save(scope, workspace, "Preserve work before incorporating upstream changes")
-            remote = self.config.get("remote", "origin")
-            if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote):
-                raise ValueError("Invalid configured Git remote.")
             with self.lock("repository"):
-                git(
-                    self.checkout(),
-                    "fetch",
-                    "--no-tags",
-                    remote,
-                    f"{workspace['target']}:refs/remotes/{remote}/{workspace['target']}",
-                )
-            revision = (
-                git(self.checkout(), "rev-parse", "refs/remotes/" + remote + "/" + workspace["target"])
-                .stdout.decode()
-                .strip()
-            )
+                targets = list(dict.fromkeys([workspace["target"], self.target()]))
+                revisions = [self.upstream(target) for target in targets]
             identity = self.config.get("identity", {})
             env = (
                 {
@@ -360,22 +428,47 @@ class Workspaces:
                 if identity
                 else None
             )
-            result = git(
-                workspace["root"], "-c", "commit.gpgsign=false", "merge", "--no-edit", revision, check=False, env=env
-            )
-            if result.returncode:
-                conflicts = (
-                    git(workspace["root"], "diff", "--name-only", "--diff-filter=U").stdout.decode().splitlines()
+            for revision in revisions:
+                result = git(
+                    workspace["root"],
+                    "-c",
+                    "commit.gpgsign=false",
+                    "merge",
+                    "--no-edit",
+                    revision,
+                    check=False,
+                    env=env,
                 )
-                git(workspace["root"], "merge", "--abort", check=False)
-                return {
-                    "state": "needs_guidance",
-                    "conflicts": conflicts[:20],
-                    "preserved": preserved,
-                    "message": "Upstream could not be incorporated automatically. Your checkpoint is preserved.",
-                }
+                if result.returncode:
+                    conflicts = (
+                        git(workspace["root"], "diff", "--name-only", "--diff-filter=U").stdout.decode().splitlines()
+                    )
+                    if conflicts:
+                        with self.store.connect() as db:
+                            db.execute(
+                                "INSERT OR REPLACE INTO workspace_merges(job,head,revision,entries) VALUES (?,?,?,?)",
+                                (
+                                    scope["job"],
+                                    git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip(),
+                                    revision,
+                                    json.dumps(self.index_entries(workspace["root"])),
+                                ),
+                            )
+                    else:
+                        git(workspace["root"], "merge", "--abort", check=False)
+                    return {
+                        "state": "needs_resolution" if conflicts else "needs_guidance",
+                        "conflicts": conflicts[:20],
+                        "preserved": preserved,
+                        "message": (
+                            "Your checkpoint is preserved. Resolve the listed files with your editing tools, "
+                            "then work_save and work_refresh. Request guidance for paths outside your role."
+                            if conflicts
+                            else "Upstream could not be incorporated automatically. Your checkpoint is preserved."
+                        ),
+                    }
             with self.store.connect() as db:
-                db.execute("UPDATE job_workspaces SET base_revision=? WHERE job=?", (revision, scope["job"]))
+                db.execute("UPDATE job_workspaces SET base_revision=? WHERE job=?", (revisions[0], scope["job"]))
             return {
                 "state": "refreshed",
                 "preserved": preserved,
@@ -400,6 +493,10 @@ class Workspaces:
         from .github import GitHub
 
         with self.use(write=True) as (scope, workspace):
+            if not scope["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).submit(scope, workspace, summary)
             github, context = None, None
             with self.store.connect() as db:
                 attached = record(db, "jobs", scope["job"])["pull_request"]
@@ -458,8 +555,10 @@ class Workspaces:
 def current_workspace(store, member, job=UNSET):
     scope = Control(store, member).current()
     with store.connect() as db:
-        _, job = store.current_work(db, member, job=job)
+        order, job = store.current_work(db, member, job=job)
         row = db.execute("SELECT root FROM job_workspaces WHERE job=?", (job,)).fetchone() if job else None
+        if order and not job:
+            row = db.execute("SELECT root FROM order_workspaces WHERE work_order=?", (order,)).fetchone()
         if job and scope and scope["role"] == "audit":
             row = db.execute("SELECT root FROM review_views WHERE member=? AND job=?", (member, job)).fetchone() or row
     return Path(row["root"] if row else store.member(member)["workspace"])

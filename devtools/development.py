@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import signal
 import subprocess
 import tempfile
@@ -33,9 +34,13 @@ def capabilities(spec):
             "framework_inspect",
             "Inspect installed basic Makers or call an installed Mate diagnostic in your job workspace. Results are retained and delivered automatically.",
             {
-                "kind": {"type": "string", "enum": ["makers", "mate"]},
+                "kind": {"type": "string", "enum": ["makers", "mate", "mate_resource", "packages"]},
                 "name": name,
                 "parameters": values,
+                "resource": {"type": "string", "maxLength": 240,
+                             "pattern": "^symfony-profiler://profile/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_.-]+)?$"},
+                "package": {"type": "string", "maxLength": 160,
+                            "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.*-]+$"},
             },
             ("kind",),
         ),
@@ -51,7 +56,7 @@ def capabilities(spec):
         ),
         spec(
             "work_check",
-            "Run the configured validation for your job and retain measured results; completion is delivered automatically.",
+            "Run the configured validation for your current work and retain measured results; completion is delivered automatically.",
             {
                 "check": {**name, "description": "Optional configured check name; omit for the full configured suite."},
             },
@@ -106,11 +111,17 @@ class Development:
             text = output.read(2 * 1024 * 1024).decode(errors="replace")
         from .github_http import GitHubHTTP
 
-        return {
+        result = {
             "exit_code": process.returncode,
             "output": GitHubHTTP().clean(text),
             "truncated": size > 2 * 1024 * 1024,
         }
+        if process.returncode < 0:
+            try:
+                result["signal"] = signal.Signals(-process.returncode).name
+            except ValueError:
+                result["signal"] = f"SIG{-process.returncode}"
+        return result
 
     def prepare(self, root):
         root = Path(root)
@@ -156,7 +167,21 @@ class Development:
                 "Installed command did not return valid JSON metadata: " + result["output"][:600]
             ) from None
 
-    def inspect(self, kind, name=None, parameters=None):
+    def inspect(self, kind, name=None, parameters=None, resource=None, package=None):
+        if kind == "packages":
+            if name or parameters is not None or resource or not package or not re.fullmatch(
+                r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.*-]+", package
+            ):
+                raise ValueError("Supply only a package name or vendor/package* filter")
+        elif package:
+            raise ValueError("package is only available for kind packages")
+        if kind == "mate_resource":
+            if name or parameters is not None or not resource or not re.fullmatch(
+                r"symfony-profiler://profile/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_.-]+)?", resource
+            ):
+                raise ValueError("Supply only a profiler resource URI returned by Mate")
+        elif resource:
+            raise ValueError("resource is only available for kind mate_resource")
         with self.workspaces.use() as (_, workspace):
             root = workspace["root"]
             self.prepare(root)
@@ -183,6 +208,10 @@ class Development:
                             if r["name"].startswith("make:")
                         ]
                     }
+            elif kind == "mate_resource":
+                value = self._json(root, ["vendor/bin/mate", "resources:read", resource, "--format=json"])
+            elif kind == "packages":
+                value = self._json(root, [self.config.get("composer", "composer"), "show", "--format=json", package])
             else:
                 tools = self._json(root, ["vendor/bin/mate", "tools:list", "--format=json"])["tools"]
                 if name:
@@ -304,6 +333,7 @@ class Development:
                 {
                     "check": name,
                     "exit_code": result["exit_code"],
+                    **({"signal": result["signal"]} if "signal" in result else {}),
                     "output": result["output"][-2500:],
                     "evidence": self.evidence("check-" + name + ".json", result),
                 }

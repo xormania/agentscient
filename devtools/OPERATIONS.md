@@ -46,7 +46,7 @@ harness or starting workspace in place; use a new member name for that change.
 | Project setting | Meaning |
 | --- | --- |
 | `checkout`, `repository`, `target`, `remote` | Existing Git root, GitHub identity, integration branch and remote. |
-| `workspaces` | Optional directory for managed worktrees; outside the source checkout and private state. |
+| `workspaces` | Managed worktree parent; defaults to `../wt-ag/` beside `project.checkout`, outside source and private state. Explicit configuration is preserved. |
 | `fetch` | Defaults to true; set false explicitly for an offline local target. |
 | `identity` | Optional commit identity with `name` and `email`; otherwise use Git's configured identity. |
 | `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [workspaces.py](workspaces.py). |
@@ -57,9 +57,73 @@ harness or starting workspace in place; use a new member name for that change.
 | `serena.image` | Locally built separate Serena provider image. |
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
 
-Each job owns its worktree and Composer install. Managed startup selects that
-worktree automatically. Dependency installation refreshes when Composer metadata
-changes. Do not share a vendor-directory symlink across jobs.
+Each work order and job owns its worktree and Composer install. Managed startup
+selects it automatically. Dependency installation refreshes when Composer metadata
+changes. Do not share a vendor-directory symlink across worktrees.
+
+### Branches and worktree lifetime
+
+Work-order source is prepared on first use, from the fetched `project.target`
+(normally `dev`). The services generate these related branch names:
+
+| Work | Branch | PR target |
+| --- | --- | --- |
+| Work order | `work-order/<wo>` | `project.target` (normally `dev`) |
+| Job | `work-order/<wo>-job-<job>` | `work-order/<wo>` |
+
+`<wo>` is the team identifier, work-order number and creation generation;
+`<job>` is the job number and creation generation. These are generated internally.
+The hyphen before `job` avoids Git's ref conflict between a branch and a child
+path of that branch. The work-order ruleset includes `work-order/*` and excludes
+`work-order/*-job-*`; see [GitHub settings](../.github/CI.md#github-settings).
+The initial remote publication contains the development revision. Each job starts
+from the latest remote work-order branch and submits its PR into that branch.
+XO acceptance merges the contribution; XO's `work_submit` validates the combined
+workspace and opens its PR into `project.target`. CO's `monitor(section="review")`
+and `conclude` inspect and deliver that final result under normal GitHub rules.
+The service never directly pushes new source commits into the integration branch.
+
+Review fixes use the existing job workspace and `work_submit` again. The service
+pushes without force to the same job branch and reuses its PR. GitHub reruns CI;
+XO must inspect the new revision before acceptance. Both job acceptance and final
+work-order delivery wait for current CI and GitHub's merge eligibility. New fixes
+after a job's PR has already merged belong to a new job.
+
+Job `work_refresh` incorporates both the parent work-order tip and current
+development changes. XO `work_refresh` fast-forwards the integration workspace
+to accepted contributions. If development has changed incompatibly, use a bounded
+job to resolve integration before final delivery. See [GitHub settings](../.github/CI.md#github-settings).
+Refresh preserves a checkpoint and leaves conflicts available to the job's editing
+tools. Resolve them within the role's permitted paths, then use `work_save` and
+`work_refresh` again. Clean upstream changes outside those paths are preserved;
+editing them or resolving an out-of-scope conflict requires appropriate guidance.
+
+Local directories default to sibling `wt-ag/`, with distinct team/work identifiers
+for work orders, jobs and audit snapshots. An explicit `project.workspaces` wins;
+already-recorded paths and targets are preserved. Upgrading does not move, retarget
+or remove older local worktrees or unrelated branches. Start new work to use the
+new routing; an existing issued job retains its recorded target.
+
+After a retained merge result, cleanup is queued durably. An MCP background worker
+removes only the recorded worktree with Git, without force, and deletes its local
+branch only at the accepted revision. It waits for bound collaborators, managed
+sessions, workspace leases, development operations and labelled Serena containers
+to stop. All audit snapshots created for that job are included. Paused Serena
+providers close when their binding is released, even with an external MCP client.
+
+Dirty, untracked, changed-commit, replaced, locked or otherwise unexpected
+workspaces are preserved. Git-ignored build caches leave with a clean worktree.
+Cancellation and report-only completion preserve their worktrees. A cleanup error
+is retained and retried without blocking coordination or unrelated jobs. While a
+work order is active, `monitor` shows cleanup status; afterward the read-only
+`evidence` index and telemetry retain it. Pending cleanup resumes when an MCP
+connection is running again. Force-killed or unreachable Docker providers require
+operator repair before their source can retire. History, artifacts and acceptance
+records stay in private state. Remote branch deletion is a GitHub setting.
+
+Use one execution host and its state directory at a time. These worktrees and
+processes belong to that host; GitHub branches do not synchronize live SQLite,
+absolute paths or process identities between the Dell and Chromebook.
 
 ## Operator CLI
 
@@ -430,16 +494,10 @@ Queued, submitted, and acknowledged are distinct. A crash during delivery become
 retry that message; the ID stays the same. Traces and message history stay local.
 
 
-## Source and historical material
+## Source attribution
 
-Native transport adapters derive from the accepted
+Native transport adapters use code from the
 [multi-harness proof](https://github.com/xormania/multi-harness-proof/tree/a944f31b7527807d000da985c546e8b5bc9ff476).
 Its MIT notice is retained in [PROVENANCE-LICENSE](PROVENANCE-LICENSE). The pinned
 Serena image retains its upstream source and GPL license as described in the
 [Serena reference](../docs/control-plane-roles-and-tools.md#serena-v2-repl).
-
-The removed development system is preserved on the
-[`shit` archive branch](https://github.com/uscient/agentscient/tree/shit), at
-`456457b9a0a9eb1ff285ee2d3e40535b6f722cdb`. Its Conductor, dispatch and hand-grant
-instructions describe that historical implementation. Current operation is
-documented in the guides linked above.

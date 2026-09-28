@@ -21,13 +21,35 @@
       {
         "name": "Prepare temporary PHP 8.5 for the self-hosted job",
         "if": "${{ runner.environment == 'self-hosted' }}",
-        "run": "[[ \"$RUNNER_OS/$RUNNER_ARCH\" == Linux/X64 ]] || { echo 'The pinned PHP runtime requires Linux/X64'; exit 1; }\nci_php=$(mktemp -d \"$RUNNER_TEMP/prod-php.XXXXXX\")\ncurl --fail --silent --show-error --location https://dl.static-php.dev/v3/php-bin/common/php-8.5.11-cli-linux-x86_64.tar.gz -o \"$ci_php/php.tar.gz\"\nprintf '%s  %s\\n' bc03d6be4eafa2f77e3fadd3875de6f021dd6369684ee0a10c7d2fbcaead76ed \"$ci_php/php.tar.gz\" | sha256sum --check --status\ntar --no-same-owner -xzf \"$ci_php/php.tar.gz\" -C \"$ci_php\" php\n\"$ci_php/php\" --version\nprintf '%s\\n' \"$ci_php\" >> \"$GITHUB_PATH\"",
-        "shell": "bash"
+        "run": "bash \"$CI_PHP_ACTION_PATH/install-php.sh\" \"$PHP_ARCHIVE_URL\" \"$PHP_ARCHIVE_SHA256\"",
+        "shell": "bash",
+        "env": {
+          "CI_PHP_ACTION_PATH": "${{ github.action_path }}",
+          "PHP_ARCHIVE_URL": "https://dl.static-php.dev/v3/php-bin/common/php-8.5.11-cli-linux-x86_64.tar.gz",
+          "PHP_ARCHIVE_SHA256": "bc03d6be4eafa2f77e3fadd3875de6f021dd6369684ee0a10c7d2fbcaead76ed"
+        }
       },
       {
         "name": "Prepare temporary Composer when absent",
         "run": "if command -v composer >/dev/null; then exit 0; fi\nci_tools=$(mktemp -d \"$RUNNER_TEMP/prod-composer.XXXXXX\")\ncurl --fail --silent --show-error https://getcomposer.org/installer -o \"$ci_tools/installer.php\"\nexpected=$(curl --fail --silent --show-error https://composer.github.io/installer.sig)\nactual=$(php -r 'echo hash_file(\"sha384\", $argv[1]);' \"$ci_tools/installer.php\")\n[[ \"$expected\" == \"$actual\" ]]\nphp \"$ci_tools/installer.php\" --2 --quiet --install-dir=\"$ci_tools\" --filename=composer\nprintf '%s\\n' \"$ci_tools\" >> \"$GITHUB_PATH\"",
         "shell": "bash"
+      },
+      {
+        "name": "Locate hosted Composer download cache",
+        "id": "composer-cache",
+        "if": "${{ runner.environment == 'github-hosted' }}",
+        "shell": "bash",
+        "run": "printf 'path=%s\\n' \"$(composer config cache-files-dir)\" >> \"$GITHUB_OUTPUT\""
+      },
+      {
+        "name": "Cache hosted Composer downloads",
+        "if": "${{ runner.environment == 'github-hosted' }}",
+        "uses": "actions/cache@caa296126883cff596d87d8935842f9db880ef25",
+        "with": {
+          "path": "${{ steps.composer-cache.outputs.path }}",
+          "key": "composer-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('composer.lock') }}",
+          "restore-keys": "composer-${{ runner.os }}-${{ runner.arch }}-"
+        }
       }
     ]
   }

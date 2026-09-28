@@ -1,8 +1,13 @@
 import json
+import os
+import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
 import time
+import unittest
+import uuid
 from pathlib import Path
 
 ENTRY = Path(__file__).resolve().parents[1] / "run.py"
@@ -11,7 +16,7 @@ ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 class Client:
     """A real stdio MCP client, including concurrent requests and notifications."""
 
-    def __init__(self, directory, member, channel=False, env=None, operator=False, provider="mcp"):
+    def __init__(self, directory, member, channel=False, env=None, operator=False, provider="mcp", generation=None):
         self.process = subprocess.Popen(
             [
                 sys.executable,
@@ -23,6 +28,7 @@ class Client:
                 member,
                 *(["--channel"] if channel else []),
                 *(["--operator"] if operator else []),
+                *(["--generation", generation] if generation else []),
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -35,10 +41,14 @@ class Client:
         self.ident = 0
         self.reader = threading.Thread(target=self.read, daemon=True)
         self.reader.start()
-        self.initialization = self.call(
-            "initialize",
-            {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}},
-        )
+        try:
+            self.initialization = self.call(
+                "initialize",
+                {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}},
+            )
+        except Exception:
+            self.close()
+            raise
         self.write({"method": "notifications/initialized"})
 
     def read(self):
@@ -102,3 +112,49 @@ def until(predicate, timeout=5):
             return value
         time.sleep(0.02)
     raise AssertionError("Expected observation did not arrive before timeout")
+
+
+def held_check(directory):
+    """A check that cannot complete until the test releases it after disconnect."""
+    started, release = Path(directory) / "check-started", Path(directory) / "check-release"
+    program = (
+        "import sys, time\nfrom pathlib import Path\n"
+        "Path(sys.argv[1]).touch()\n"
+        "deadline = time.monotonic() + 15\n"
+        "while not Path(sys.argv[2]).exists():\n"
+        "    if time.monotonic() >= deadline: raise TimeoutError('Test did not release the check')\n"
+        "    time.sleep(0.01)\n"
+        "print('measured check completed')\n"
+    )
+    return [sys.executable, "-c", program, str(started), str(release)], started, release
+
+
+def require_tmux():
+    """CI must run real terminals; constrained local containers may explicitly skip."""
+    binary = shutil.which("tmux")
+    reason = "tmux is not installed"
+    if binary:
+        socket = "agentscient-test-" + uuid.uuid4().hex
+        result = subprocess.run([binary, "-L", socket, "-f", "/dev/null", "new-session", "-d", "sleep 5"],
+                                capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            subprocess.run([binary, "-L", socket, "kill-server"], capture_output=True, timeout=10)
+            return
+        reason = result.stderr.strip()
+    if os.environ.get("AGENTSCIENT_REQUIRE_TMUX") == "1":
+        raise RuntimeError("Real tmux acceptance required: " + reason)
+    raise unittest.SkipTest("Real tmux unavailable: " + reason)
+
+
+def retain_native(state, label):
+    target = os.environ.get("AGENTSCIENT_EVIDENCE_DIR")
+    if target:
+        destination = Path(target) / label
+        destination.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(state / "live.sqlite3") as source, sqlite3.connect(destination / "live.sqlite3") as copy:
+            source.backup(copy)
+        if (state / "telemetry").exists():
+            shutil.copytree(state / "telemetry", destination / "telemetry", dirs_exist_ok=True)
+        (destination / "interpretation.txt").write_text(
+            "Real tmux and MCP; native protocol fixtures. Not authenticated vendor/model acceptance.\n"
+        )

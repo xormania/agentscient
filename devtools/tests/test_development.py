@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 import test_workspaces
-from support import Client, until
+from support import Client, held_check, until
 
 from devtools.api import API
 from devtools.development import Development
@@ -34,11 +34,18 @@ class DevelopmentTests(unittest.TestCase):
         return root
 
     def test_checks_complete_after_client_disconnect_and_route_evidence(self):
-        self.configure({"fixture": [sys.executable, "-c", "import time; time.sleep(0.7); print('measured')"]})
+        argv, started, release = held_check(self.root)
+        self.configure({"fixture": argv})
         client = Client(self.state, "coder")
-        receipt = client.tool("work_check", {})
-        self.assertIn(receipt["state"], {"queued", "running"})
-        client.close()
+        try:
+            receipt = client.tool("work_check", {})
+            self.assertIn(receipt["state"], {"queued", "running"})
+            until(started.exists)
+            client.close()
+            self.assertEqual("running", self.api.operations.inspect()["operations"][0]["state"])
+        finally:
+            release.touch()
+            client.close()
         result = until(
             lambda: next((r for r in self.api.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )
@@ -63,6 +70,26 @@ class DevelopmentTests(unittest.TestCase):
         value = self.api.operations.inspect()["operations"][0]
         self.assertEqual("failed", value["state"])
         self.assertIn("paused", value["error"])
+
+    def test_crashed_check_retains_signal_and_output_without_retry(self):
+        program = (
+            "import os, resource, signal\n"
+            "from pathlib import Path\n"
+            "resource.setrlimit(resource.RLIMIT_CORE, (0, 0))\n"
+            "with Path('executions').open('a') as output: output.write('started\\n')\n"
+            "print('last event before crash', flush=True)\n"
+            "os.kill(os.getpid(), signal.SIGSEGV)\n"
+        )
+        root = self.configure({"crash": [sys.executable, "-c", program]})
+        result = Development(self.store, "coder").check()
+        self.assertFalse(result["passed"])
+        check = result["checks"][0]
+        self.assertEqual(-11, check["exit_code"])
+        self.assertEqual("SIGSEGV", check["signal"])
+        self.assertIn("last event before crash", check["output"])
+        self.assertEqual("started\n", (root / "executions").read_text())
+        artifact = self.api.call("work_context", {"reference": check["evidence"]})
+        self.assertEqual("SIGSEGV", json.loads(artifact["content"])["signal"])
 
     def test_dead_worker_is_uncertain_without_automatic_replay(self):
         self.configure()

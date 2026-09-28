@@ -41,7 +41,7 @@ class DeliveryTests(unittest.TestCase):
                 "merged": False,
                 "draft": False,
                 "head": {"sha": test.head, "ref": test.managed["branch"]},
-                "base": {"sha": test.managed["base_revision"], "ref": "dev"},
+                "base": {"sha": test.managed["base_revision"], "ref": test.managed["target"]},
                 "mergeable": True,
                 "mergeable_state": "clean",
             }
@@ -77,7 +77,7 @@ class DeliveryTests(unittest.TestCase):
             def pr_merge(self, context, revision):
                 self._revision(self.pr, revision)
                 self.merges.append(revision)
-                git(test.remote, "update-ref", "refs/heads/dev", revision)
+                git(test.remote, "update-ref", "refs/heads/" + self.pr["base"]["ref"], revision)
                 self.pr.update(merged=True, state="closed", merge_commit_sha=revision)
                 return {"merged": True, "commit": revision}
 

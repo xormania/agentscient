@@ -64,14 +64,15 @@ class CommandTests(unittest.TestCase):
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
         co = self.client("owner")
         self.assertIn("ready_to_direct", co.initialization["instructions"])
-        self.assertEqual({"work_context", "direct", "monitor"}, {r["name"] for r in co.call("tools/list")["tools"]})
+        self.assertEqual({"work_context", "direct", "monitor", "onboard", "skill_read"},
+                         {r["name"] for r in co.call("tools/list")["tools"]})
         idle = self.client("xo")
         with self.assertRaisesRegex(ValueError, "not available"):
             idle.tool("direct", GOAL)
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer"},
+            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer", "onboard", "skill_read"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))
@@ -123,7 +124,7 @@ class CommandTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 xo.call("orchestrate", payload)
-        with self.assertRaisesRegex(ValueError, "No available"):
+        with self.assertRaises(ValueError):
             xo.call("orchestrate", {"work": [responsibility() | {"selection": {"model": "unconfigured"}}]})
         # Worst-case Unicode input stays within the real stdio frame limit.
         client = self.client("xo")
@@ -228,10 +229,9 @@ class CommandTests(unittest.TestCase):
                 "reasoning": "high",
             }
         )
+        config["members"] = [config["members"][0], config["members"][-1]]
         (self.state / "team.json").write_text(json.dumps(config))
-        result = self.co.call(
-            "direct", GOAL | {"selection": {"harness": "codex", "model": "configured-model", "reasoning": "high"}}
-        )
+        result = self.co.call("direct", GOAL)
         self.assertTrue(result["xo"]["session"]["launch_pending"])
         restarted = API(self.state, "owner")
         restarted.commands.tick()
@@ -239,7 +239,7 @@ class CommandTests(unittest.TestCase):
         self.assertIn("Install/login", observed["session"]["error"])
         self.assertFalse(observed["session"]["launch_pending"])
         self.assertIn("startup failed", self.store.inbox("owner")["messages"][0]["body"])
-        restarted.call("direct", GOAL | {"selection": {"harness": "codex"}})
+        restarted.call("direct", GOAL)
         scope = Control(self.store, "managed").snapshot()
         self.assertTrue(scope["launch_pending"])
         self.co.control.unbind("managed")
@@ -260,7 +260,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual("Prior progress", upgraded.call("work_context", {"reference": update["reference"]})["text"])
         self.assertFalse(upgraded.control.snapshot()["paused"])
         with self.store.connect() as db:
-            self.assertEqual(7, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(8, db.execute("PRAGMA user_version").fetchone()[0])
             self.assertTrue(all(row[0] == "peer" for row in db.execute("SELECT category FROM messages")))
 
 

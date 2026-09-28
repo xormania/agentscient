@@ -109,6 +109,20 @@ class SerenaTests(unittest.TestCase):
         self.assertEqual(["start", "pause", "unpause", "pause"], events)
         self.assertEqual("prepared", self.api.workspaces.inspect()["workspace"])
 
+    def test_released_external_binding_closes_idle_provider(self):
+        provider = self.configure()
+        signature = provider.scope()[1]
+        sentinel = object()
+        provider.process = sentinel
+        self.api.control.unbind("coder")
+
+        def close():
+            provider.process = None
+
+        with patch.object(provider, "close", side_effect=close) as stopped:
+            provider.retire_when_released(sentinel, signature)
+            stopped.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

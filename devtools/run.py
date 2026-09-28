@@ -33,12 +33,20 @@ def main():
         "doctor",
         "connection",
         "evidence",
+        "co",
     ):
         command = commands.add_parser(name)
         command.add_argument("--state", required=True, help="Private state directory outside source worktrees")
-        if name not in {"init", "status", "doctor", "connection", "evidence"}:
+        if name not in {"init", "status", "doctor", "connection", "evidence", "co"}:
             command.add_argument("--member", required=True)
-        if name == "init":
+        if name in {"mcp", "hook", "serena"}:
+            command.add_argument("--generation", help=argparse.SUPPRESS)
+        if name == "co":
+            command.add_argument("--profile", help="Select one configured CO profile; default uses availability order")
+            command.add_argument("--model", help="Override the model for this CO session")
+            command.add_argument("--reasoning", help="Override native reasoning effort for this CO session")
+        elif name == "init":
+            command.add_argument("--runtime", action="store_true", help="Create shared role/vendor runtime policy")
             command.add_argument("--co", help="Name of the external user-facing CO session")
             command.add_argument("--workspace", required=True)
             command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
@@ -63,6 +71,7 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
+            command.add_argument("--launch-id", help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -71,7 +80,11 @@ def main():
             command.add_argument("--harness", required=True, choices=("codex", "claude", "grok"))
     args = parser.parse_args()
     try:
-        if args.command == "init":
+        if args.command == "co":
+            from devtools.console import run
+
+            return run(args.state, args.profile, args.model, args.reasoning)
+        elif args.command == "init":
             from devtools.readiness import project
 
             if args.serena_image and not args.repository:
@@ -81,7 +94,7 @@ def main():
                 if args.repository
                 else None
             )
-            result = launch.initialize(args.state, args.workspace, args.member, args.co, configured)
+            result = launch.initialize(args.state, args.workspace, args.member, args.co, configured, args.runtime)
         elif args.command in {"doctor", "connection", "evidence"}:
             from devtools import readiness
 
@@ -96,7 +109,7 @@ def main():
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 2 if result.get("status") == "blocked" else 0
         elif args.command == "mcp":
-            serve(args.state, args.member, args.channel, args.operator)
+            serve(args.state, args.member, args.channel, args.operator, args.generation)
             return 0
         elif args.command == "operation":
             from devtools.operations import execute
@@ -106,10 +119,10 @@ def main():
         elif args.command == "serena":
             from devtools.serena_provider import serve as serena_serve
 
-            serena_serve(args.state, args.member)
+            serena_serve(args.state, args.member, args.generation)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_id)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)
@@ -127,7 +140,7 @@ def main():
             payload = sys.stdin.buffer.read(131073)
             if len(payload) > 131072:
                 raise ValueError("Hook payload exceeds 128 KiB")
-            result = hook(args.state, args.member, args.harness, json.loads(payload))
+            result = hook(args.state, args.member, args.harness, json.loads(payload), args.generation)
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except Exception as error:

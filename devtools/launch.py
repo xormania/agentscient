@@ -2,16 +2,13 @@
 
 import asyncio
 import fcntl
-import hashlib
 import json
 import os
-import shlex
 import shutil
 import signal
-import subprocess
 import sys
-import threading
 import time
+import uuid
 from pathlib import Path
 
 from .store import Store, identifier
@@ -19,7 +16,7 @@ from .store import Store, identifier
 HARNESSES = {"codex", "claude", "grok", "external"}
 
 
-def initialize(directory, workspace, members, co=None, project=None):
+def initialize(directory, workspace, members, co=None, project=None, runtime=False):
     from .profiles import write_json
 
     directory = Path(directory).expanduser().resolve()
@@ -45,12 +42,19 @@ def initialize(directory, workspace, members, co=None, project=None):
     if co is not None and not any(row["name"] == co and row["harness"] == "external" for row in rows):
         raise ValueError("CO must name the external user-facing session.")
     Store(directory).initialize(rows)
-    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {})})
+    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {}),
+                        **({"runtime": True} if runtime else {})})
+    if runtime:
+        from .runtime import defaults
+
+        defaults(directory)
     return {"state": str(directory), "members": rows}
 
 
 def team_config(directory):
     config = json.loads((Path(directory) / "team.json").read_text())
+    if type(config.get("runtime", False)) is not bool:
+        raise ValueError("runtime must be a boolean")
     rows = config.get("members")
     if not isinstance(rows, list) or not rows:
         raise ValueError("team.json needs a nonempty members array")
@@ -72,12 +76,13 @@ def team_config(directory):
 
 def configuration(directory, member):
     store = Store(directory)
-    rows = team_config(store.directory)["members"]
-    store.initialize(rows)
+    team = team_config(store.directory)
+    rows = team["members"]
+    store.initialize(rows, runtime=team.get("runtime", False))
     selected = next((row for row in rows if row["name"] == member), None)
-    if selected is None:
+    if selected is None and not team.get("runtime"):
         raise ValueError("Member is not configured in team.json")
-    if selected["harness"] == "external":
+    if selected and selected["harness"] == "external":
         raise ValueError("External members connect their own MCP client; there is no managed process to start.")
     from .control import Control
 
@@ -86,21 +91,21 @@ def configuration(directory, member):
         raise ValueError(
             "Bind this member's role and work through the operator member_bind capability before starting it."
         )
+    if team.get("runtime"):
+        from .runtime import resolve
+
+        row = store.member(member)
+        selected = {"name": member, "workspace": row["workspace"], **resolve(directory, scope["role"])}
     selected = dict(selected)
     from .workspaces import Workspaces, project_config
 
-    if scope["job"] and project_config(store):
+    if project_config(store):
         selected["workspace"] = Workspaces(store, member).ensure()["root"]
     binary = shutil.which(selected.get("binary", selected["harness"]))
     if not binary:
         raise ValueError(f"Install/login to {selected['harness']} and set its binary in team.json")
     selected["binary"] = str(Path(binary).resolve())
     return selected
-
-
-def tmux_name(directory, member):
-    digest = hashlib.sha256(str(Path(directory).resolve()).encode()).hexdigest()[:10]
-    return f"agentscient-{digest}-{identifier(member)}"
 
 
 def start(directory, member, *, binding_revision=None):
@@ -137,7 +142,6 @@ def _start(directory, member, binding_revision):
     from .profiles import ENTRY
 
     store = Store(directory)
-    config = configuration(directory, member)
     current = store.member(member)
     previous_generation = current["generation"]
     if current["state"] in {"starting", "idle", "active"} and current["pid"]:
@@ -147,28 +151,24 @@ def _start(directory, member, binding_revision):
             pass
         else:
             return {"member": member, "already_running": True, "session": current}
+    config = configuration(directory, member)
+    from .profiles import write_json
+
+    launch_id = "launch-" + uuid.uuid4().hex
+    snapshot = store.directory / "launches" / (launch_id + ".json")
+    write_json(snapshot, {"member": member, "config": config, "environment": dict(os.environ)})
     argv = [sys.executable, str(ENTRY), "agent", "--state", str(store.directory), "--member", member]
+    argv += ["--launch-id", launch_id]
     if binding_revision is not None:
         argv += ["--binding-revision", str(binding_revision)]
-    if config["harness"] == "claude":
-        if not shutil.which("tmux"):
-            raise ValueError(
-                "Claude's native TUI needs tmux for background launch, or run the agent command in a terminal."
-            )
-        name = tmux_name(directory, member)
-        subprocess.run(["tmux", "new-session", "-d", "-s", name, "--", shlex.join(argv)], check=True, timeout=10)
-        detail = {"terminal": name, "attach": f"tmux attach -t {name}"}
-    else:
-        logs = store.directory / "logs"
-        logs.mkdir(exist_ok=True, mode=0o700)
-        path = logs / (identifier(member) + ".log")
-        with path.open("a") as stream:
-            path.chmod(0o600)
-            process = subprocess.Popen(
-                argv, stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True
-            )
-        threading.Thread(target=process.wait, daemon=True).start()
-        detail = {"pid": process.pid, "log": str(path)}
+    argv = [sys.executable, "-I", "-S", str(ENTRY.with_name("bootstrap.py")), str(snapshot), *argv]
+    from .terminals import start as start_terminal
+
+    try:
+        detail = start_terminal(store, member, argv, config["workspace"])
+    except Exception:
+        snapshot.unlink(missing_ok=True)
+        raise
     store.event(member, "launch_requested", **detail)
     # Return observed startup, not a fabricated ready acknowledgement.
     deadline = time.monotonic() + 2
@@ -178,45 +178,66 @@ def _start(directory, member, binding_revision):
             break
         time.sleep(0.05)
     current = store.member(member)
-    if binding_revision is not None and current["generation"] == previous_generation:
+    if current["generation"] == previous_generation:
         raise RuntimeError("Managed process did not establish a session; inspect monitor and retry with resume.")
     if current["generation"] != previous_generation and current["state"] == "failed":
         raise RuntimeError(current["detail"].get("error", "Native startup failed"))
     return {"member": member, "requested": "running", **detail, "session": current}
 
 
-def agent(directory, member, binding_revision=None):
+def agent(directory, member, binding_revision=None, launch_id=None):
     from .control import REQUEST_BINDING, Control
 
     store = Store(directory)
-    config = configuration(directory, member)
+    if launch_id:
+        snapshot = store.directory / "launches" / (identifier(launch_id) + ".json")
+        saved = json.loads(snapshot.read_text())
+        if saved["member"] != member:
+            raise ValueError("Launch snapshot belongs to another member")
+        config = saved["config"]
+        snapshot.unlink()
+    else:
+        config = configuration(directory, member)
     control = Control(store, member)
     origin = control.snapshot()
     generation = store.begin_session(
         member,
         os.getpid(),
         binding_revision=binding_revision,
-        settings={key: config.get(key) for key in ("harness", "model", "reasoning")},
+        settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider")},
     )
+    with store.connect() as db:
+        db.execute("UPDATE members SET harness=? WHERE name=?", (config["harness"], member))
+    if config.get("selection"):
+        store.event(member, "runtime_selected", **config["selection"],
+                    settings={k: config.get(k) for k in ("harness", "vendor", "model", "reasoning", "provider")})
 
     def stop(_signal, _frame):
         store.session(member, generation=generation, desired="stopped")
 
-    for sig in (signal.SIGTERM, signal.SIGINT):
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(sig, stop)
     error = None
     try:
         from .native import Native, claude
+        from .retirement import lease
 
-        if config["harness"] == "claude":
-            claude(directory, member, config, generation)
-        else:
-            asyncio.run(Native(directory, member, config, generation).run())
+        with lease(store, config["workspace"]):
+            if config["harness"] == "claude":
+                claude(directory, member, config, generation)
+            else:
+                asyncio.run(Native(directory, member, config, generation).run())
     except Exception as exc:
         error = str(exc)[:1000]
         store.event(member, "session_failed", error=error)
         raise
     finally:
+        from .profiles import retain_login
+
+        try:
+            retain_login(directory, member, config["harness"], generation)
+        except (OSError, ValueError):
+            store.event(member, "login_cache_failed", harness=config["harness"])
         store.session(
             member,
             generation=generation,

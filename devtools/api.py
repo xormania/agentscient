@@ -70,6 +70,10 @@ def spec(name, description, properties=None, required=(), readonly=False):
 
 
 CAPABILITIES = [
+    spec("terminal_status", "Inspect an owned tmux session and its attach command.", {"member": NAME}, ("member",), readonly=True),
+    spec("terminal_read", "Read recent output from an owned tmux terminal.",
+         {"member": NAME, "lines": {"type": "integer", "minimum": 1, "maximum": 500}}, ("member",), readonly=True),
+    spec("runtime_status", "Inspect operator role policy, vendor availability and runtime choices.", readonly=True),
     spec("peers", "List configured live members, native session identities and current observed state.", readonly=True),
     spec(
         "message_send",
@@ -295,9 +299,12 @@ OPERATOR_TOOLS = [
 
 TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
+    spec("onboard", "Load your current role onboarding, shared essentials, allowed tools and skill catalog.", readonly=True),
+    spec("skill_read", "Load a relevant skill from your current role's onboard catalog.",
+         {"name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"}}, ("name",), readonly=True),
     spec(
         "work_inspect",
-        "Inspect this job's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
+        "Inspect your work's changes, checkpoints, operations, review, CI failure evidence or external feedback; provider context is automatic.",
         {
             "section": {"type": "string", "enum": ["overview", "changes", "operations", "review", "ci", "feedback"]},
             "path": TEXT,
@@ -318,7 +325,7 @@ TOOLS += [
     ),
     spec(
         "work_refresh",
-        "Preserve a checkpoint and incorporate upstream changes; retain work if a conflict needs guidance.",
+        "Incorporate accepted work and upstream changes; preserve a checkpoint and expose any conflicts to your editing tools.",
     ),
     spec(
         "work_recover",
@@ -328,7 +335,7 @@ TOOLS += [
     ),
     spec(
         "work_submit",
-        "Checkpoint and publish this job, create or reuse its PR, retain evidence and follow CI.",
+        "Validate and submit your current contribution or integrated work; retain evidence and follow CI.",
         {"summary": REQUIRED_DETAIL},
         ("summary",),
     ),
@@ -397,11 +404,13 @@ class API:
     def tools(self):
         if self.operator:
             return OPERATOR_TOOLS
-        return self._tools(self.control.snapshot())
+        return self._tools(self.control.current())
 
     def _tools(self, scope):
         role = self.commands.role(scope)
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        if role:
+            common |= {"onboard", "skill_read"}
         if scope and scope["job"] and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
@@ -413,24 +422,25 @@ class API:
                 common |= {"framework_inspect", "work_check"}
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
+        if scope and not scope["job"] and role == "xo" and project_config(self.store):
+            common |= {"work_inspect", "work_refresh", "work_submit"}
+            if development_configured(self.store):
+                common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
         if scope is None:
-            allowed.discard("conclude")
+            allowed -= {"conclude", "restart_xo"}
         return [row for row in TOOLS if row["name"] in allowed]
 
     def instructions(self):
         if self.operator:
             return OPERATOR_INSTRUCTIONS
-        role = self.commands.role(self.control.snapshot())
-        command = {
-            "co": " You are the user-facing CO. Use direct for authorized objectives and boundaries; monitor shows the team. Use conclude only when all jobs are finished and your assessment is ready.",
-            "xo": " Use orchestrate to organize named jobs and live collaborators; an audit role can share the producer's job name. Monitor shows progress or a named job's review packet. Steer guides, pauses, resumes, stops, or accepts/cancels a named job with an assessment. Inspect the current delivery before acceptance.",
-        }.get(role, "")
-        return self.control.instructions(self.invoke("work_context", {})) + command
+        from .onboarding import Onboarding
 
-    def call(self, name, arguments):
+        return Onboarding(self).startup() + "\n" + self.control.instructions(self.invoke("work_context", {}))
+
+    def call(self, name, arguments, *, on_context=None):
         if self.operator:
-            return self._operator_call(name, arguments)
+            return self._operator_call(name, arguments, on_context=on_context)
         scope = self.control.snapshot()
         allowed = self._tools(scope)
         schema = next((row for row in allowed if row["name"] == name), None)
@@ -443,15 +453,19 @@ class API:
             with self.store.work_context(
                 self.member, scope["work_order"] if scope else None, scope["job"] if scope else None
             ):
+                if on_context:
+                    on_context()
                 return self.run(name, arguments)
         finally:
             REQUEST_BINDING.reset(token)
 
-    def _operator_call(self, name, arguments):
+    def _operator_call(self, name, arguments, *, on_context=None):
         outer = next((row for row in OPERATOR_TOOLS if row["name"] == name), None)
         if outer is None:
             raise ValueError("Unknown MCP tool")
         validate(arguments, outer["inputSchema"])
+        if name != "capability_invoke" and on_context:
+            on_context()
         if name == "capability_search":
             query = arguments.get("query", "").casefold()
             rows = [
@@ -476,6 +490,8 @@ class API:
             None if capability.startswith("work_order_") or capability in {"job_create", "job_select"} else UNSET
         )
         with self.store.work_context(self.member, args.get("work_order", default_order), args.get("job", default_job)):
+            if on_context:
+                on_context()
             return self.run(capability, args)
 
     def run(self, capability, args):
@@ -510,7 +526,23 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {"onboard", "skill_read"}:
+            from .onboarding import Onboarding
+
+            return Onboarding(self).onboard() if name == "onboard" else Onboarding(self).read(**args)
+        if name in {"terminal_status", "terminal_read"}:
+            from . import terminals
+
+            return getattr(terminals, name.removeprefix("terminal_"))(self.store, **args)
+        if name == "runtime_status":
+            from .runtime import status
+
+            return status(self.store)
         if name == "work_inspect" and args.get("section") in {"review", "ci", "feedback"}:
+            if not self.control.current()["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).inspect(**args)
             return self.delivery.inspect(**args)
         if name == "work_inspect" and "page" in args:
             raise ValueError("page is available for review, CI and feedback inspection; other sections use offset.")

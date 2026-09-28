@@ -1,14 +1,12 @@
 # Working on Agentscient
 
 The owner's current instructions define the task and take precedence over
-repository documents and historical plans. Preserve unrelated work and report
-what was actually verified.
+repository documents. Preserve unrelated work and report what was actually verified.
 
 - `src/`, `config/`, `packages/`, and `tests/` belong to the Symfony application.
 - `devtools/` provides MCP tools for live native harness communication, telemetry,
   work orders, their child jobs, and artifacts.
   It must remain usable without PHP or the Symfony application's dependencies.
-- The `dev` branch contains both. Branch names do not determine responsibility.
 
 Use Symfony's existing features, PHP attributes, autowiring, and autoconfiguration
 where they fit. Inspect installed packages and existing services before adding
@@ -21,8 +19,8 @@ authorized for maintainers building or repairing the dev-lane itself.
 The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
-connection. No task dispatch, grant system, review ladder, or workflow engine is
-provided. CO uses `direct`/`monitor`/`conclude`; XO uses `orchestrate`/`monitor`/`steer`.
+connection. CO uses `direct`/`monitor`/`conclude`; XO uses
+`orchestrate`/`monitor`/`steer` to coordinate live collaborators.
 Command services bind work and configured collaborators, supply current briefs,
 and retain live direction. Managed workspace/Git outcomes and installed Maker/Mate
 capabilities are provided through MCP. Use installed Maker metadata, generate through
@@ -31,8 +29,10 @@ configured validation through `work_check`. Serena v2 REPL is a separate provide
 for product source work; it receives the bound workspace automatically. Auditors
 review an immutable submitted revision; XO accepts a named job through `steer`
 after inspecting its current review packet with `monitor`. Normal GitHub rules apply.
-Work-order numbers bind the overall effort; jobs are bounded pieces delivered
-through PRs. Agents use task-facing MCP tools; the services handle storage and
+Work orders integrate bounded jobs through their PRs. XO submits the combined
+result with `work_submit`; CO inspects it with `monitor(section="review")` and
+delivers the checked outcome with `conclude`. Agents use task-facing MCP tools;
+the services handle workspace lifetime, branch/PR routing, storage and
 record association internally.
 
 Make changes on an owned branch based on `dev`, test the affected behavior, and
