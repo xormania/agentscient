@@ -46,7 +46,10 @@ def start(store, member, argv, workspace):
     detail = describe(store.directory, member)
     target = "=" + detail["terminal"]
     if command(store.directory, "has-session", "-t", target, check=False).returncode == 0:
-        raise ValueError("This member already has an owned terminal; inspect it before restarting.")
+        panes = status(store, member)["panes"]
+        if not panes or any(not pane["dead"] for pane in panes):
+            raise ValueError("This member already has a live owned terminal; use session_stop before restarting.")
+        stop(store, member)
     # Unlike the overrides below, this loader switch is enabled even when empty.
     # Remove it from an existing owned server before any bootstrap is executed.
     command(store.directory, "set-environment", "-gu", "LD_TRACE_LOADED_OBJECTS", check=False)
@@ -70,7 +73,22 @@ def status(store, member):
     store.member(member)
     detail = describe(store.directory, member)
     exists = command(store.directory, "has-session", "-t", "=" + detail["terminal"], check=False).returncode == 0
-    return {**detail, "exists": exists}
+    panes = []
+    if exists:
+        result = command(store.directory, "list-panes", "-s", "-t", "=" + detail["terminal"],
+                         "-F", "#{pane_pid} #{pane_dead}", check=False)
+        for line in result.stdout.splitlines():
+            pid, dead = line.split()
+            panes.append({"pid": int(pid), "dead": dead == "1"})
+    return {**detail, "exists": exists, "panes": panes}
+
+
+def stop(store, member):
+    store.member(member)
+    _, session = address(store.directory, member)
+    command(store.directory, "kill-session", "-t", "=" + session, check=False)
+    if status(store, member)["exists"]:
+        raise RuntimeError("Owned terminal did not stop")
 
 
 def read(store, member, lines=80):

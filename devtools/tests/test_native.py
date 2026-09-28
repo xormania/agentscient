@@ -1,11 +1,10 @@
 import json
 import os
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-from support import Client, require_tmux, retain_native, until
+from support import Client, require_tmux, retain_native, terminal_team, until
 
 from devtools.control import Control
 from devtools.launch import initialize
@@ -18,7 +17,7 @@ class NativeProtocolTests(unittest.TestCase):
         require_tmux()
 
     def test_xo_replacement_changes_vendor_in_tmux_and_retains_running_specialist(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with terminal_team() as temporary:
             root = Path(temporary)
             workspace, home, state = root / "workspace", root / "home", root / "state"
             workspace.mkdir()
@@ -74,7 +73,7 @@ class NativeProtocolTests(unittest.TestCase):
                 retain_native(state, "xo-vendor-replacement")
 
     def test_co_direction_launches_xo_and_collaborator_and_pause_retains_live_session(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with terminal_team() as temporary:
             root = Path(temporary)
             workspace, home = root / "workspace", root / "login-home"
             workspace.mkdir()
@@ -153,7 +152,7 @@ class NativeProtocolTests(unittest.TestCase):
 
     def test_live_messages_during_unfinished_work_keep_native_identity(self):
         for harness in ("codex", "grok", "claude"):
-            with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(harness=harness), terminal_team() as temporary:
                 root = Path(temporary)
                 workspace = root / "workspace"
                 workspace.mkdir()

@@ -71,7 +71,7 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
-            command.add_argument("--launch-id", help=argparse.SUPPRESS)
+            command.add_argument("--launch-fd", type=int, help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -122,13 +122,12 @@ def main():
             serena_serve(args.state, args.member, args.generation)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision, args.launch_id)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)
         elif args.command == "stop":
-            Store(args.state).session(args.member, desired="stopped")
-            result = {"member": args.member, "requested": "stopped"}
+            result = launch.stop(args.state, args.member)
         elif args.command == "status":
             result = {"members": Store(args.state).members()}
         elif args.command == "send":
