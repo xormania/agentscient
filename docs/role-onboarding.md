@@ -4,10 +4,12 @@ Claude, Codex and Grok receive the same startup essentials through MCP. The curr
 role determines responsibilities, tools, work/source boundaries, reporting and
 skills. Harness/model/reasoning choices do not change that content or authority.
 
-At startup, after handover or after a role/context change, call `onboard`. It returns
+At startup, after handover or after a role change, call `onboard`. For other work
+changes, refresh `work_context` without reloading unchanged role guidance. It returns
 the shared essentials, customized role instructions, current brief, available tool
-names and a skill catalog with provenance and content hashes. Use `skill_read(name)`
-to load a relevant catalog entry. These reads and their exact revisions are recorded
+names and a compact skill catalog. Entries marked `loaded` are already included;
+use `skill_read(name)` only for a relevant entry whose body you still need. Full
+source provenance and hashes remain in skill reads and telemetry. These reads and their exact revisions are recorded
 in telemetry. A delivery record means the content was supplied, not proof a model
 understood it. Onboarding does not create work or invent an acceptance gate.
 
@@ -23,7 +25,7 @@ understood it. Onboarding does not create work or invent an acceptance gate.
 | Architect | Existing capabilities, interfaces, design tradeoffs and migration | `agentscient-architect` |
 
 Every role also receives `agentscient-context`. Canonical skill content lives in
-`.agents/skills`; role selection and the MCP adapter live in `devtools/onboarding.py`.
+`.agents/skills`; role selection and delivery live in `devtools/onboarding.py`.
 There are no per-harness copies to drift. Unbound, unappointed members have no role
 catalog. A role change changes subsequent onboarding and skill access immediately.
 An in-flight response keeps its captured role binding for its context, tools and
@@ -33,18 +35,18 @@ When installed development tools are enabled for the bound job, the catalog also
 includes relevant existing Mate skills. Coder, Audit, Research and Test Writer get
 all six; Doc and Architect get system information and service inspection. CO/XO
 get their coordination skills and use specialist reports for application diagnostics.
-Mate skill source remains unchanged; a returned adapter maps its CLI examples to
-`framework_inspect`. The profiler resource path is available as `kind="mate_resource"`
+Repository Mate skill guidance uses `framework_inspect` directly, with focused
+parameters and diagnostic interpretation. It does not append a second CLI adapter.
+When refreshing upstream Mate exports, retain the managed MCP examples before committing. The profiler resource path is available as `kind="mate_resource"`
 with the URI returned by Mate. No native shell capability is added.
 Installed Composer versions use `kind="packages"` with a package name or family filter.
-The catalog retains `sha256` for the source file and adds `guidance_sha256` for the
-complete delivered skill payload, including the MCP adapter. Onboarding revisions
-and skill-delivery events include that guidance hash, so adapter-only edits are
-distinguishable without changing the source skill.
+Skill reads retain `sha256` for the source file and `guidance_sha256` for the
+complete delivered payload. The onboarding revision and skill-delivery events
+track guidance changes without repeating per-skill hashes in the startup catalog.
 
 ```json
 {"name":"onboard","arguments":{}}
-{"name":"skill_read","arguments":{"name":"agentscient-coder"}}
+{"name":"skill_read","arguments":{"name":"mate-symfony-service-inspection"}}
 {"name":"framework_inspect","arguments":{"kind":"mate","name":"symfony-services","parameters":{"query":"Mailer"}}}
 {"name":"framework_inspect","arguments":{"kind":"mate_resource","resource":"symfony-profiler://profile/abc123"}}
 ```
@@ -54,3 +56,4 @@ grant another role, expand writable paths, select another work order or bypass
 review requirements. Missing source/search/setup capabilities are reported through
 the existing guidance path. Operator initialization and local authenticated
 acceptance are described in [local readiness](local-agent-readiness.md).
+

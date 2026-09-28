@@ -49,14 +49,6 @@ MATE = (
     "mate-symfony-profiler-debugging",
     "mate-symfony-dotenv-diagnostics",
 )
-ADAPTER = (
-    "This source skill contains Mate CLI examples. Managed agents execute them through MCP: "
-    "framework_inspect(kind='mate') lists diagnostics; add name to inspect its schema; "
-    "add parameters (including {} for a no-argument call) to execute it. "
-    "Use framework_inspect(kind='mate_resource', resource=<returned profiler URI>) for profiler resources. "
-    "Use framework_inspect(kind='packages', package='vendor/package') for installed Composer versions. "
-    "Native shell/cache commands in source examples do not grant a shell capability; report any unmet setup need."
-)
 
 
 def document(name):
@@ -106,8 +98,6 @@ class Onboarding:
         catalog = []
         for name in names:
             skill = document(name)
-            if name in MATE:
-                skill["mcp_adapter"] = ADAPTER
             skill["guidance_sha256"] = hashlib.sha256(
                 json.dumps(skill, sort_keys=True, separators=(",", ":")).encode()
             ).hexdigest()
@@ -116,17 +106,13 @@ class Onboarding:
 
     def startup(self):
         role = self.role()
-        common = document("agentscient-context")["content"]
         if role not in ROLES:
-            return common + "\nAwait an authorized role binding; work_context shows your current state."
+            return "Await an authorized role binding; work_context shows your current state."
         return (
-            common
-            + "\nYour responsibility: "
-            + ROLES[role][0]
-            + (
-                "\nCall onboard at session start, after handover or when your role/context revision changes. "
-                "Load relevant skills using skill_read; these do not expand your tool or path authority."
-            )
+            "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
+            "It supplies the complete shared/role instructions and current brief. "
+            "For subsequent work/context changes refresh work_context. "
+            "Read only relevant skills not already supplied by onboard. Your role: " + role + "."
         )
 
     def onboard(self):
@@ -144,7 +130,10 @@ class Onboarding:
             "role_instructions": catalog[1]["content"],
             "context": self.api.invoke("work_context", {}),
             "tools": tools,
-            "skills": [{k: v for k, v in row.items() if k not in {"content", "mcp_adapter"}} for row in catalog],
+            "skills": [
+                {"name": row["name"], "description": row["description"], "loaded": index < 2}
+                for index, row in enumerate(catalog)
+            ],
         }
         self.api.store.event(
             self.api.member,
@@ -164,3 +153,4 @@ class Onboarding:
             guidance_sha256=skill["guidance_sha256"], source=skill["source"]
         )
         return skill
+
