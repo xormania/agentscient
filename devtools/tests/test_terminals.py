@@ -17,13 +17,14 @@ class TerminalTests(unittest.TestCase):
         created = subprocess.CompletedProcess([], 0, "", "")
         with (
             patch("devtools.terminals.shutil.which", return_value="/bin/tmux"),
-            patch("devtools.terminals.subprocess.run", side_effect=[absent, created]) as run,
+            patch("devtools.terminals.subprocess.run", side_effect=[absent, absent, created]) as run,
         ):
             result = terminals.start(store, "coder", ["/python", "file with spaces.py", "$(no-shell)"], "/work path")
         argv = run.call_args.args[0]
         self.assertEqual("/bin/tmux", argv[0])
         self.assertEqual("-L", argv[1])
         self.assertIn("/dev/null", argv)
+        self.assertEqual(["set-environment", "-gu", "LD_TRACE_LOADED_OBJECTS"], run.call_args_list[1].args[0][-3:])
         self.assertEqual(["/python", "file with spaces.py", "$(no-shell)"], argv[argv.index("--") + 1:])
         for name in ("LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "PYTHONHOME", "PYTHONPATH"):
             self.assertIn(name + "=", argv)
@@ -59,8 +60,11 @@ class TerminalTests(unittest.TestCase):
             application = "import json,os,selected_module; print(json.dumps([selected_module.VALUE,os.environ['TMUX_PANE'],os.environ['TEST_API_KEY']]))"
             argv = [sys.executable, "-I", "-S", str(bootstrap), str(snapshot), sys.executable, "-c", application]
             bad = {**os.environ, "PYTHONHOME": str(stale), "PYTHONPATH": str(stale), "TMUX_PANE": "%42"}
-            result = subprocess.run(argv, env=bad, capture_output=True, text=True, timeout=10)
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual(["current-launch", "%42", "private-snapshot-secret"], json.loads(result.stdout))
-            self.assertFalse(marker.exists())
+            # Exercise both isolated Python and the exact environment overrides
+            # tmux supplies: some loader flags trigger even with an empty value.
+            for environment in (bad, {**bad, **dict.fromkeys(terminals.BOOTSTRAP_UNSET, "")}):
+                result = subprocess.run(argv, env=environment, capture_output=True, text=True, timeout=10)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(["current-launch", "%42", "private-snapshot-secret"], json.loads(result.stdout))
+                self.assertFalse(marker.exists())
             self.assertNotIn("private-snapshot-secret", " ".join(argv))
