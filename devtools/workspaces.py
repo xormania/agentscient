@@ -192,7 +192,9 @@ class Workspaces:
         team, parent = self.team(), self.parent()
         generation = hashlib.sha256(job["created"].encode()).hexdigest()[:8]
         root = parent / f"job-{team}-{scope['job']}-{generation}"
-        branch = f"agentscient/{team}/wo-{scope['work_order']}/job-{scope['job']}-{generation}"
+        # Job refs are siblings: Git cannot hold both <order> and <order>/<job>.
+        # The work-order ruleset excludes the -job-* suffix so fixes can be pushed.
+        branch = f"{target}-job-{scope['job']}-{generation}"
         if not root.exists():
             existing = git(checkout, "show-ref", "--verify", "refs/heads/" + branch, check=False)
             if existing.returncode == 0:

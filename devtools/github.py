@@ -468,6 +468,20 @@ class GitHub:
         method = method or self.config.get("merge_method") or (allowed[0] if allowed else None)
         if method not in allowed:
             raise ValueError("Choose one of the repository's allowed merge methods: " + ", ".join(allowed))
+        current = self.pr_get(context)
+        if (
+            current["pr"]["revision"] != revision
+            or current["pr"]["branch"] != pr["head"]["ref"]
+            or current["pr"]["base"] != pr["base"]["ref"]
+        ):
+            raise ValueError("The PR changed. Inspect its current revision and target before merging it.")
+        if current["pr"]["state"] != "open" or current["observed_blockers"]:
+            raise ValueError(
+                "The PR is not ready to merge: "
+                + "; ".join(current["observed_blockers"] or [current["pr"]["state"]])
+            )
+        # Honor GitHub's requirements even if the credential has bypass authority.
+        # A passing subset of checks does not establish that required lane passed.
         result = self.http.request(
             "PUT", context["root"] + f"/pulls/{context['pr']}/merge", {"sha": revision, "merge_method": method}
         )

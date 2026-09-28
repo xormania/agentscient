@@ -31,6 +31,8 @@ class Provider:
         self.inline = []
         self.exists = False
         self.logs_missing = False
+        self.review_decision = "REVIEW_REQUIRED"
+        self.merge_state = "BLOCKED"
         self.pr = {
             "number": 7,
             "node_id": "PR_7",
@@ -154,8 +156,8 @@ class Provider:
                         "data": {
                             "repository": {
                                 "pullRequest": {
-                                    "reviewDecision": "REVIEW_REQUIRED",
-                                    "mergeStateStatus": "BLOCKED",
+                                    "reviewDecision": self.review_decision,
+                                    "mergeStateStatus": self.merge_state,
                                     "reviews": {"nodes": []},
                                 }
                             }
@@ -406,12 +408,55 @@ class GitHubTests(unittest.TestCase):
         self.assertEqual(HEAD, client.invoke("pr_comments", kind="review")["comments"][0]["revision"])
         with self.assertRaisesRegex(ValueError, "head changed"):
             client.invoke("pr_merge", revision="c" * 40)
+        with self.assertRaisesRegex(ValueError, "not ready to merge"):
+            client.invoke("pr_merge", revision=HEAD)
         self.assertFalse(any(method == "PUT" for method, *_ in self.provider.requests))
+        self.provider.review_decision = None
+        self.provider.merge_state = "CLEAN"
+        self.provider.checks[MERGE] = [self.provider.check("success")]
+        self.provider.run["conclusion"] = "success"
         merged = client.invoke("pr_merge", revision=HEAD)
         self.assertEqual("merge", merged["method"])
         self.assertTrue(merged["merged"])
         self.assertEqual("open", client.invoke("work_order_get")["work_order"]["status"])
         self.assertTrue(client.invoke("pr_merge", revision=HEAD)["already_merged"])
+
+    def test_review_fix_requires_current_checks_and_github_merge_eligibility(self):
+        client = self.client()
+        self.work(client)
+        client.invoke("pr_open", draft=False)
+        self.provider.review_decision = None
+        self.provider.checks[MERGE] = [self.provider.check("success")]
+        self.provider.run["conclusion"] = "success"
+        revised, test_merge = "c" * 40, "d" * 40
+        self.provider.pr["head"]["sha"] = revised
+        self.provider.pr["merge_commit_sha"] = test_merge
+        with self.assertRaisesRegex(ValueError, "head changed"):
+            client.invoke("pr_merge", revision=HEAD)
+        with self.assertRaisesRegex(ValueError, "Observed CI: unknown"):
+            client.invoke("pr_merge", revision=revised)
+
+        # Old successes do not cover the fix. Other new checks can pass before
+        # required lane even appears; GitHub still reports the merge as blocked.
+        self.provider.checks[test_merge] = [self.provider.check("success")]
+        self.assertEqual("passed", client.invoke("ci_status")["state"])
+        with self.assertRaisesRegex(ValueError, "GitHub merge state: BLOCKED"):
+            client.invoke("pr_merge", revision=revised)
+        lane = dict(self.provider.check(None), id=202, name="lane", status="in_progress")
+        self.provider.checks[test_merge].append(lane)
+        with self.assertRaisesRegex(ValueError, "Observed CI: pending"):
+            client.invoke("pr_merge", revision=revised)
+        lane.update(status="completed", conclusion="failure")
+        with self.assertRaisesRegex(ValueError, "Observed CI: failed"):
+            client.invoke("pr_merge", revision=revised)
+        lane["conclusion"] = "success"
+        with self.assertRaisesRegex(ValueError, "GitHub merge state: BLOCKED"):
+            client.invoke("pr_merge", revision=revised)
+        self.assertFalse(any(method == "PUT" for method, *_ in self.provider.requests))
+        self.provider.merge_state = "CLEAN"
+        self.assertTrue(client.invoke("pr_merge", revision=revised)["merged"])
+        writes = [body for method, _, body, _ in self.provider.requests if method == "PUT"]
+        self.assertEqual([{"sha": revised, "merge_method": "merge"}], writes)
 
     def test_review_threads_and_closed_input_boundary(self):
         client = self.client()
