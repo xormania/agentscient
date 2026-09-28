@@ -145,7 +145,11 @@
         },
         {
           "name": "Exercise Maker/Mate through normal MCP",
-          "run": "python3 devtools/integration/symfony.py > var/ci/maker-mate/development-tools.json"
+          "run": "python3 devtools/integration/symfony.py --evidence-dir var/ci/maker-mate > var/ci/maker-mate/development-tools.json"
+        },
+        {
+          "name": "One-time PHP crash reproduction",
+          "run": "for attempt in 1 2 3; do\n  python3 devtools/integration/symfony.py --full-checks --evidence-dir \"var/ci/maker-mate/diagnostic-$attempt\" > \"var/ci/maker-mate/diagnostic-$attempt.json\"\ndone"
         },
         {
           "name": "Retain Maker/Mate integration evidence",

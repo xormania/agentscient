@@ -33,7 +33,7 @@
         },
         {
           "name": "Record revision and tool versions",
-          "run": "mkdir -p var/ci\ngit rev-parse HEAD | tee var/ci/revision.txt\nprintf 'Tested revision: `%s`\\n' \"$(cat var/ci/revision.txt)\" >> \"$GITHUB_STEP_SUMMARY\"\nphp --version\ncomposer --version"
+          "run": "mkdir -p var/ci\ngit rev-parse HEAD | tee var/ci/revision.txt\nprintf 'Tested revision: `%s`\\n' \"$(cat var/ci/revision.txt)\" >> \"$GITHUB_STEP_SUMMARY\"\nphp --version\ncomposer --version\nphp devtools/integration/php-runtime.php > var/ci/php-runtime.json"
         },
         {
           "name": "Validate Composer metadata",
@@ -57,7 +57,7 @@
         },
         {
           "name": "Run PHPUnit",
-          "run": "vendor/bin/phpunit --log-junit var/ci/phpunit.xml"
+          "run": "vendor/bin/phpunit --log-junit var/ci/phpunit.xml --log-events-text var/ci/phpunit-events.log"
         },
         {
           "name": "Upload revision and PHPUnit results",

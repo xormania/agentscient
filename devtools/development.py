@@ -111,11 +111,17 @@ class Development:
             text = output.read(2 * 1024 * 1024).decode(errors="replace")
         from .github_http import GitHubHTTP
 
-        return {
+        result = {
             "exit_code": process.returncode,
             "output": GitHubHTTP().clean(text),
             "truncated": size > 2 * 1024 * 1024,
         }
+        if process.returncode < 0:
+            try:
+                result["signal"] = signal.Signals(-process.returncode).name
+            except ValueError:
+                result["signal"] = f"SIG{-process.returncode}"
+        return result
 
     def prepare(self, root):
         root = Path(root)
@@ -327,6 +333,7 @@ class Development:
                 {
                     "check": name,
                     "exit_code": result["exit_code"],
+                    **({"signal": result["signal"]} if "signal" in result else {}),
                     "output": result["output"][-2500:],
                     "evidence": self.evidence("check-" + name + ".json", result),
                 }

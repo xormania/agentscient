@@ -18,6 +18,14 @@ The Symfony job uploads its tested revision, dependency observations, PHPUnit
 results as a CI artifact. Maker/Mate retains separate revision and integration
 evidence. The Serena job records its build and integration results in the logs.
 
+Both PHP jobs retain streamed PHPUnit events, including the active test when a
+process crashes. They also record the PHP binary hash, extensions, loaded INI
+paths and selected OPcache/JIT/stack settings. This uses selected runtime facts,
+not `phpinfo()` or an environment dump. Maker/Mate measures the filtered child
+environment used by `work_check`; its `result.json` and event log are copied out
+before the disposable worktree is deleted, including on failure. Signalled
+development checks retain the signal name alongside their negative exit code.
+
 ## File filters
 
 | Changed files | Selected suites |
@@ -114,6 +122,16 @@ built Serena image described in [setup](../docs/local-agent-readiness.md):
 python3 devtools/integration/symfony.py
 python3 devtools/integration/serena.py
 ```
+
+To investigate the complete agent check sequence in a disposable Maker/Mate
+worktree, including the application tests alongside the generated test:
+
+```sh
+python3 devtools/integration/symfony.py --full-checks --evidence-dir var/ci/php-diagnostic
+```
+
+This is an explicit diagnostic invocation. Normal CI keeps the generated-test
+integration separate from the full product suite; neither mode retries failures.
 
 They use disposable repositories/worktrees. The Python suite uses native protocol
 and GitHub HTTP fixtures; the integrations execute real Symfony and Serena code.
