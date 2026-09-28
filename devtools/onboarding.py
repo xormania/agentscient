@@ -103,7 +103,16 @@ class Onboarding:
         tools = {row["name"] for row in self.api.tools()}
         if "framework_inspect" in tools:
             names += list(MATE) if role not in {"docs", "architect"} else [MATE[0], MATE[2]]
-        return [document(name) for name in names]
+        catalog = []
+        for name in names:
+            skill = document(name)
+            if name in MATE:
+                skill["mcp_adapter"] = ADAPTER
+            skill["guidance_sha256"] = hashlib.sha256(
+                json.dumps(skill, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            catalog.append(skill)
+        return catalog
 
     def startup(self):
         role = self.role()
@@ -126,7 +135,7 @@ class Onboarding:
         if not catalog:
             raise ValueError("Await an authorized role binding")
         tools = [row["name"] for row in self.api.tools()]
-        revision = hashlib.sha256(json.dumps([(r["name"], r["sha256"]) for r in catalog]).encode()).hexdigest()
+        revision = hashlib.sha256(json.dumps([(r["name"], r["guidance_sha256"]) for r in catalog]).encode()).hexdigest()
         value = {
             "role": role,
             "responsibility": ROLES[role][0],
@@ -135,7 +144,7 @@ class Onboarding:
             "role_instructions": catalog[1]["content"],
             "context": self.api.invoke("work_context", {}),
             "tools": tools,
-            "skills": [{k: v for k, v in row.items() if k != "content"} for row in catalog],
+            "skills": [{k: v for k, v in row.items() if k not in {"content", "mcp_adapter"}} for row in catalog],
         }
         self.api.store.event(
             self.api.member,
@@ -151,6 +160,7 @@ class Onboarding:
         if not skill:
             raise ValueError("Choose a skill from your current onboard catalog")
         self.api.store.event(
-            self.api.member, "skill_loaded", role=self.role(), name=name, sha256=skill["sha256"], source=skill["source"]
+            self.api.member, "skill_loaded", role=self.role(), name=name, sha256=skill["sha256"],
+            guidance_sha256=skill["guidance_sha256"], source=skill["source"]
         )
-        return {**skill, **({"mcp_adapter": ADAPTER} if name in MATE else {})}
+        return skill

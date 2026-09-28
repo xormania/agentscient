@@ -9,6 +9,11 @@ from pathlib import Path
 from .store import identifier
 from .telemetry import clean
 
+BOOTSTRAP_UNSET = (
+    "PYTHONHOME", "PYTHONPATH", "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT",
+    "LD_DEBUG", "LD_DEBUG_OUTPUT", "LD_PROFILE", "LD_PROFILE_OUTPUT", "LD_TRACE_LOADED_OBJECTS", "GLIBC_TUNABLES",
+)
+
 
 def address(directory, member):
     digest = hashlib.sha256(str(Path(directory).resolve()).encode()).hexdigest()[:16]
@@ -50,8 +55,9 @@ def start(store, member, argv, workspace):
         detail["terminal"],
         "-c",
         workspace,
+        *(item for name in BOOTSTRAP_UNSET for item in ("-e", name + "=")),
         "--",
-        "exec " + shlex.join(argv),
+        *argv,
     )
     store.event(member, "terminal_created", **detail)
     return detail

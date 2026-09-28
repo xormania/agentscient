@@ -53,7 +53,7 @@ class Trace:
 
     clean = staticmethod(clean)
 
-    def record(self, kind, data):
+    def record(self, kind, data, *, frame_context=None):
         row = {
             "time": time.time(),
             "monotonic_ns": time.monotonic_ns(),
@@ -61,7 +61,7 @@ class Trace:
             "actor": self.member,
             "component": self.component,
             "connection": self.connection,
-            "context": self.clean(self.context() if self.context else {}),
+            "context": self.clean(frame_context if frame_context is not None else self.context() if self.context else {}),
             "kind": kind,
             "data": self.clean(data),
         }
@@ -81,12 +81,23 @@ class Trace:
 
 
 def context(store, member):
+    from .control import REQUEST_BINDING
+    from .store import REQUEST_WORK
+
     row = store.member(member)
     with store.connect() as db:
         scope = db.execute("SELECT role,revision FROM member_bindings WHERE member=?", (member,)).fetchone()
+        work_order, job = store.current_work(db, member)
+    request = REQUEST_WORK.get()
+    bound = REQUEST_BINDING.get()
+    if bound and bound[0] == member:
+        scope = {k: bound[1][k] for k in ("role", "revision")} if bound[1] else None
     return {
         **{k: row[k] for k in ("generation", "native_id", "harness", "selected_work_order", "selected_job")},
         **(dict(scope) if scope else {}),
+        "work_order": work_order,
+        "job": job,
+        "scope_source": "request" if request and request[0] == member else "selection",
     }
 
 

@@ -26,6 +26,8 @@ Every role also receives `agentscient-context`. Canonical skill content lives in
 `.agents/skills`; role selection and the MCP adapter live in `devtools/onboarding.py`.
 There are no per-harness copies to drift. Unbound, unappointed members have no role
 catalog. A role change changes subsequent onboarding and skill access immediately.
+An in-flight response keeps its captured role binding for its context, tools and
+catalog, so a concurrent rebind takes effect on the next request.
 
 When installed development tools are enabled for the bound job, the catalog also
 includes relevant existing Mate skills. Coder, Audit, Research and Test Writer get
@@ -35,6 +37,10 @@ Mate skill source remains unchanged; a returned adapter maps its CLI examples to
 `framework_inspect`. The profiler resource path is available as `kind="mate_resource"`
 with the URI returned by Mate. No native shell capability is added.
 Installed Composer versions use `kind="packages"` with a package name or family filter.
+The catalog retains `sha256` for the source file and adds `guidance_sha256` for the
+complete delivered skill payload, including the MCP adapter. Onboarding revisions
+and skill-delivery events include that guidance hash, so adapter-only edits are
+distinguishable without changing the source skill.
 
 ```json
 {"name":"onboard","arguments":{}}

@@ -4,6 +4,11 @@ The private state directory retains `live.sqlite3` events and
 `telemetry/<member>.jsonl` communications. Captures are append-only across restarts;
 each frame includes the component, connection, process, member, generation, native
 conversation, role and work binding when known. Multiple writers serialize appends.
+MCP tool frames retain the effective per-request `work_order` and `job` separately
+from the member's persistent selection, including explicit operator overrides.
+Rejected requests with no resolved scope are marked `unresolved`. Directional
+`wire_sequence` values preserve transport order across concurrent request handling;
+outbound recording and transmission share one lock.
 Files are owner-readable. They contain task content; keep the state directory private.
 Credential keys, known secret environment values and bearer credentials are redacted
 in events and traces, including JSON nested in MCP text results. This is a credential
