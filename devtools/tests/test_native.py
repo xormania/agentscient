@@ -148,7 +148,7 @@ class NativeProtocolTests(unittest.TestCase):
                     self.assertTrue(client.invoke("terminal_status", member="worker")["exists"])
                     until(lambda: store.member("worker")["state"] == "idle")
                     original_id = store.member("worker")["native_id"]
-                    runtime = store.events(kind="runtime_observed", actor="worker")["events"]
+                    runtime = until(lambda: store.events(kind="runtime_observed", actor="worker")["events"])
                     self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
                     first = client.invoke(
