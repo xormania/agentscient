@@ -1,0 +1,76 @@
+{
+  "ignore": [
+    "README.md",
+    "CONTRIB.md",
+    "docs/*.md",
+    "devtools/*.md",
+    "devtools/PROVENANCE-LICENSE",
+    "packages/*.md",
+    ".github/CI.md",
+    ".github/CODEOWNERS",
+    ".github/dependabot.yml",
+    ".editorconfig"
+  ],
+  "all": [
+    ".github/*",
+    ".gitignore"
+  ],
+  "jobs": {
+    "live-mcp": [
+      "devtools/*",
+      ".agents/*",
+      ".claude/*",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "ruff.toml"
+    ],
+    "maker-mate": [
+      "devtools/*",
+      ".agents/*",
+      ".claude/*",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "composer.*",
+      "symfony.lock",
+      ".env*",
+      "src/*",
+      "config/*",
+      "packages/*",
+      "mate/*",
+      "bin/*",
+      "phpunit*.xml*",
+      "tests/bootstrap.php"
+    ],
+    "symfony": [
+      "composer.*",
+      "symfony.lock",
+      ".env*",
+      "src/*",
+      "config/*",
+      "packages/*",
+      "mate/*",
+      "bin/*",
+      "phpunit*.xml*",
+      "tests/*",
+      "public/*",
+      "assets/*",
+      "templates/*",
+      "translations/*",
+      "migrations/*",
+      "importmap.php",
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "webpack.config.js"
+    ],
+    "serena": [
+      "devtools/*",
+      ".agents/*",
+      ".claude/*",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".phpactor.json"
+    ]
+  }
+}

@@ -60,10 +60,6 @@
           "run": "vendor/bin/phpunit --log-junit var/ci/phpunit.xml"
         },
         {
-          "name": "Exercise normal MCP with installed Symfony development tools",
-          "run": "python3 devtools/integration/symfony.py > var/ci/development-tools.json"
-        },
-        {
           "name": "Upload revision and PHPUnit results",
           "if": "${{ always() }}",
           "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
