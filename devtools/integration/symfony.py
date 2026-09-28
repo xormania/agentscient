@@ -101,6 +101,12 @@ def main():
                     ]
                 },
             )
+            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
+            runtime = Development(API(state, "coder").store, "coder").run(
+                workspace, ["php", str(REPO / "devtools/integration/php-runtime.php")]
+            )
+            assert runtime["exit_code"] == 0, runtime
+            report["runtime"] = json.loads(runtime["output"])
             makers = completed(coder, "framework_inspect", {"kind": "makers"})["result"]["makers"]
             assert "make:command" in {row["name"] for row in makers}, makers
             metadata = completed(coder, "framework_inspect", {"kind": "makers", "name": "make:command"})["result"]
@@ -109,12 +115,6 @@ def main():
                 coder, "framework_generate", {"maker": "make:command", "arguments": {"name": "app:fixture-command"}}
             )["result"]
             assert generated["exit_code"] == 0, generated
-            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
-            runtime = Development(API(state, "coder").store, "coder").run(
-                workspace, ["php", str(REPO / "devtools/integration/php-runtime.php")]
-            )
-            assert runtime["exit_code"] == 0, runtime
-            report["runtime"] = json.loads(runtime["output"])
             command = next((workspace / "src/Command").glob("*.php")).read_text()
             assert "#[AsCommand" in command and "#[Argument" in command and "#[Option" in command, command
             actual = subprocess.run(
