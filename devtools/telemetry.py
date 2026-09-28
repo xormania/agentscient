@@ -86,6 +86,7 @@ def context(store, member):
         scope = db.execute("SELECT role,revision FROM member_bindings WHERE member=?", (member,)).fetchone()
     return {
         **{k: row[k] for k in ("generation", "native_id", "harness", "selected_work_order", "selected_job")},
+        "harness": row["detail"].get("harness", row["harness"]),
         **(dict(scope) if scope else {}),
     }
 

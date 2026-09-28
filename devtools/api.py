@@ -428,7 +428,7 @@ class API:
                 common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
         if scope is None:
-            allowed.discard("conclude")
+            allowed -= {"conclude", "restart_xo"}
         return [row for row in TOOLS if row["name"] in allowed]
 
     def instructions(self):

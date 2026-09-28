@@ -347,8 +347,10 @@ class Store:
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
     def begin_session(self, name, pid, *, binding_revision=None, settings=None):
+        from .sessions import lock
+
         generation = uuid.uuid4().hex
-        with self.connect() as db:
+        with lock(self, name, exclusive=True), self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM members WHERE name=?", (name,)).fetchone()
             if not row:

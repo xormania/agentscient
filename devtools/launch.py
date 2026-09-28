@@ -236,6 +236,12 @@ def agent(directory, member, binding_revision=None, launch_id=None):
         store.event(member, "session_failed", error=error)
         raise
     finally:
+        from .profiles import retain_login
+
+        try:
+            retain_login(directory, member, config["harness"], generation)
+        except (OSError, ValueError):
+            store.event(member, "login_cache_failed", harness=config["harness"])
         store.session(
             member,
             generation=generation,

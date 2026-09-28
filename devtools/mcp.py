@@ -7,17 +7,28 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import VERSION
 from .api import API, SERVER, render
+from .sessions import Lease
 from .telemetry import Trace, context
 
 MAX_FRAME = 131072
 
 
-def serve(directory, member, channel=False, operator=False):
+def serve(directory, member, channel=False, operator=False, generation=None):
     api = API(directory, member, operator=operator)
+    lease = Lease(api.store, member, generation, operator=operator)
     output_lock = threading.Lock()
     initialized = threading.Event()
     stopped = threading.Event()
-    trace = Trace(directory, member, component="mcp", context=lambda: context(api.store, member))
+    tool_names = [row["name"] for row in api.tools()]
+    trace = Trace(
+        directory,
+        member,
+        component="mcp",
+        context=lambda: {
+            **context(api.store, member),
+            "connection_generation": lease.generation,
+        },
+    )
 
     def write(packet):
         trace.record("mcp_out", packet)
@@ -29,28 +40,43 @@ def serve(directory, member, channel=False, operator=False):
     def channels():
         initialized.wait()
         while not stopped.wait(0.1):
-            session = api.store.member(member)
-            if session["desired"] != "running" or session["state"] not in {"idle", "active"}:
-                continue
-            message = api.store.take_delivery(member, scoped=not operator)
-            if message is None:
-                continue
             try:
-                write(
-                    {
-                        "method": "notifications/claude/channel",
-                        "params": {
-                            "content": render(message) if operator else api.control.render(message),
-                            "meta": {"message_id": str(message["id"]), "sender_id": message["sender"]},
-                        },
-                    }
-                )
-                api.store.delivered(member, message["id"], message["attempt"], transport="claude/channel")
-            except Exception as error:
-                api.store.delivered(member, message["id"], message["attempt"], error=str(error)[:1000])
+                with lease.hold():
+                    deliver_channel()
+            except ValueError:
                 stopped.set()
 
+    def deliver_channel():
+        session = api.store.member(member)
+        if session["desired"] != "running" or session["state"] not in {"idle", "active"}:
+            return
+        message = api.store.take_delivery(member, scoped=not operator)
+        if message is None:
+            return
+        try:
+            write(
+                {
+                    "method": "notifications/claude/channel",
+                    "params": {
+                        "content": render(message) if operator else api.control.render(message),
+                        "meta": {"message_id": str(message["id"]), "sender_id": message["sender"]},
+                    },
+                }
+            )
+            api.store.delivered(member, message["id"], message["attempt"], transport="claude/channel")
+        except Exception as error:
+            api.store.delivered(member, message["id"], message["attempt"], error=str(error)[:1000])
+            stopped.set()
+
     def handle(packet):
+        try:
+            with lease.hold():
+                handle_current(packet)
+        except ValueError as error:
+            if packet.get("id") is not None:
+                write({"id": packet["id"], "error": {"code": -32602, "message": str(error)}})
+
+    def handle_current(packet):
         ident, method = packet.get("id"), packet.get("method")
         if method == "notifications/initialized":
             initialized.set()
@@ -60,8 +86,14 @@ def serve(directory, member, channel=False, operator=False):
             return
         try:
             if method == "initialize":
-                api.store.event(member, "mcp_client", client=packet.get("params", {}).get("clientInfo", {}),
-                                connection=trace.connection, channel=channel, operator=operator)
+                api.store.event(
+                    member,
+                    "mcp_client",
+                    client=packet.get("params", {}).get("clientInfo", {}),
+                    connection=trace.connection,
+                    channel=channel,
+                    operator=operator,
+                )
                 caps = {"tools": {"listChanged": not operator}}
                 if channel:
                     caps["experimental"] = {"claude/channel": {}}
@@ -92,22 +124,29 @@ def serve(directory, member, channel=False, operator=False):
             write({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
 
     def watches():
-        tool_names = [row["name"] for row in api.tools()]
         initialized.wait()
         while not stopped.wait(1):
             try:
-                current = [row["name"] for row in api.tools()]
-                if current != tool_names:
-                    write({"method": "notifications/tools/list_changed"})
-                    tool_names = current
-                api.github.tick()
-            except Exception as error:
-                api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
-            try:
-                api.commands.tick()
-                api.operations.tick()
-            except Exception as error:
-                api.store.event(member, "command_watch_error", error=str(error)[:1000])
+                with lease.hold():
+                    watch_current()
+            except ValueError:
+                stopped.set()
+
+    def watch_current():
+        nonlocal tool_names
+        try:
+            current = [row["name"] for row in api.tools()]
+            if current != tool_names:
+                write({"method": "notifications/tools/list_changed"})
+                tool_names = current
+            api.github.tick()
+        except Exception as error:
+            api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
+        try:
+            api.commands.tick()
+            api.operations.tick()
+        except Exception as error:
+            api.store.event(member, "command_watch_error", error=str(error)[:1000])
 
     def cleanup():
         from .retirement import Retirement
@@ -115,7 +154,10 @@ def serve(directory, member, channel=False, operator=False):
         initialized.wait()
         while not stopped.wait(2):
             try:
-                Retirement(api.store, member).tick()
+                with lease.hold():
+                    Retirement(api.store, member).tick()
+            except ValueError:
+                stopped.set()
             except Exception as error:
                 api.store.event(member, "cleanup_watch_error", error=str(error)[:1000])
 

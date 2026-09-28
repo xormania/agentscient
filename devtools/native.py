@@ -8,13 +8,12 @@ import asyncio
 import os
 import signal
 import subprocess
-import sys
 import time
 import uuid
 
 from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
-from .profiles import CODEX_FEATURES, ENTRY, permitted, prepare, toml
+from .profiles import CODEX_FEATURES, permitted, prepare, toml
 from .rpc import RPC
 from .serena_provider import SERVER as SERENA_SERVER
 from .serena_provider import TOOL as SERENA_TOOL
@@ -90,7 +89,7 @@ class Native:
                 raise ValueError("Installed Codex must expose TurnStartParams.toolOutput for live communication")
             # Dynamic tools are a native proxy to a real stdio MCP server.
             self.mcp = await self.spawn(
-                [sys.executable, str(ENTRY), "mcp", "--state", str(self.store.directory), "--member", self.member],
+                [self.server["command"], *self.server["args"]],
                 self.reject,
                 self.ignore,
                 component="mcp",

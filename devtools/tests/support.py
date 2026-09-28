@@ -16,7 +16,7 @@ ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 class Client:
     """A real stdio MCP client, including concurrent requests and notifications."""
 
-    def __init__(self, directory, member, channel=False, env=None, operator=False, provider="mcp"):
+    def __init__(self, directory, member, channel=False, env=None, operator=False, provider="mcp", generation=None):
         self.process = subprocess.Popen(
             [
                 sys.executable,
@@ -28,6 +28,7 @@ class Client:
                 member,
                 *(["--channel"] if channel else []),
                 *(["--operator"] if operator else []),
+                *(["--generation", generation] if generation else []),
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -40,10 +41,14 @@ class Client:
         self.ident = 0
         self.reader = threading.Thread(target=self.read, daemon=True)
         self.reader.start()
-        self.initialization = self.call(
-            "initialize",
-            {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}},
-        )
+        try:
+            self.initialization = self.call(
+                "initialize",
+                {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}},
+            )
+        except Exception:
+            self.close()
+            raise
         self.write({"method": "notifications/initialized"})
 
     def read(self):

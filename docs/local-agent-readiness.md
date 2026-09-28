@@ -71,17 +71,20 @@ Existing fixed-member teams remain supported. Shared runtime teams set optional
 For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
 
-Check the setup and export the actual CO connection:
+Check the setup and launch the native CO using current role/vendor policy:
 
 ```sh
 python3 devtools/run.py doctor --state "$HOME/.local/state/agentscient-live" --online
-python3 devtools/run.py connection --state "$HOME/.local/state/agentscient-live"
+python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
-Use the returned `mcpServers` object in the user-facing CO client's MCP settings.
-It has absolute paths and no `--operator` flag. Keep that connection active while
-managed startup, delivery and CI observation are needed. No separate XO connection
-needs to be assembled by agents.
+Use `--profile`, `--model` and `--reasoning` for operator choices on this launch;
+see [CO startup and handover](session-handover.md). Keep its MCP connection active
+while managed startup, delivery and CI observation are needed. Agents do not
+assemble a separate XO connection. For an existing external CO client, the
+`connection --state ...` command still exports an absolute normal `mcpServers`
+configuration without `--operator`; only MCP communications from that client are
+visible to the service.
 
 `doctor` returns exit code 2 for a failed prerequisite. Its probes inspect the
 configured checkout, remote identity, Git identity, private state, locked real PHP
