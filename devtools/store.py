@@ -464,9 +464,13 @@ class Store:
             )
         return {"message": message, "acknowledged": True}
 
-    def take_delivery(self, member, *, scoped=False):
+    def take_delivery(self, member, *, scoped=False, generation=UNSET):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if generation is not UNSET:
+                current = db.execute("SELECT generation,desired FROM members WHERE name=?", (member,)).fetchone()
+                if not current or current["generation"] != generation or current["desired"] != "running":
+                    return None
             clause, args = "1", ()
             if scoped:
                 from .control import binding, scope_sql

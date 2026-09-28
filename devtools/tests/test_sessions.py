@@ -138,6 +138,23 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(frames)
         self.assertTrue(all("connection_generation" in row["context"] for row in frames))
 
+    def test_stopping_generation_cannot_claim_the_replacement_recovery_direction(self):
+        xo = self.bind()
+        first = self.store.begin_session(xo.member, os.getpid())
+        original = self.store.take_delivery(xo.member, scoped=True, generation=first)
+        self.assertIsNotNone(original)
+        self.store.acknowledge(xo.member, original["id"])
+        self.co.call("restart_xo", {"reason": "Switch to the available vendor"})
+        # The old delivery loop may already have observed desired=running before
+        # restart_xo commits the stop and queues the replacement's direction.
+        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
+        self.store.session(xo.member, generation=first, state="stopped", pid=None)
+        second = self.store.begin_session(xo.member, os.getpid())
+        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
+        recovery = self.store.take_delivery(xo.member, scoped=True, generation=second)
+        self.assertIn("Recover your existing work and team", recovery["body"])
+        self.assertIn("Switch to the available vendor", recovery["body"])
+
     def test_private_generation_profiles_do_not_rebind_old_native_clients(self):
         self.bind()
         first = self.store.begin_session("owner", os.getpid())

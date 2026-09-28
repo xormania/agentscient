@@ -52,7 +52,9 @@ def serve(directory, member, channel=False, operator=False, generation=None):
         session = api.store.member(member)
         if session["desired"] != "running" or session["state"] not in {"idle", "active"}:
             return
-        message = api.store.take_delivery(member, scoped=not operator)
+        message = api.store.take_delivery(
+            member, scoped=not operator, generation=session["generation"] if operator else lease.generation
+        )
         if message is None:
             return
         try:
