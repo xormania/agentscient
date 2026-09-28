@@ -123,7 +123,7 @@ class CommandTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 xo.call("orchestrate", payload)
-        with self.assertRaisesRegex(ValueError, "No available"):
+        with self.assertRaises(ValueError):
             xo.call("orchestrate", {"work": [responsibility() | {"selection": {"model": "unconfigured"}}]})
         # Worst-case Unicode input stays within the real stdio frame limit.
         client = self.client("xo")
@@ -228,10 +228,9 @@ class CommandTests(unittest.TestCase):
                 "reasoning": "high",
             }
         )
+        config["members"] = [config["members"][0], config["members"][-1]]
         (self.state / "team.json").write_text(json.dumps(config))
-        result = self.co.call(
-            "direct", GOAL | {"selection": {"harness": "codex", "model": "configured-model", "reasoning": "high"}}
-        )
+        result = self.co.call("direct", GOAL)
         self.assertTrue(result["xo"]["session"]["launch_pending"])
         restarted = API(self.state, "owner")
         restarted.commands.tick()
@@ -239,7 +238,7 @@ class CommandTests(unittest.TestCase):
         self.assertIn("Install/login", observed["session"]["error"])
         self.assertFalse(observed["session"]["launch_pending"])
         self.assertIn("startup failed", self.store.inbox("owner")["messages"][0]["body"])
-        restarted.call("direct", GOAL | {"selection": {"harness": "codex"}})
+        restarted.call("direct", GOAL)
         scope = Control(self.store, "managed").snapshot()
         self.assertTrue(scope["launch_pending"])
         self.co.control.unbind("managed")

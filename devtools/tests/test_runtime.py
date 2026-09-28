@@ -1,0 +1,111 @@
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from test_commands import GOAL, responsibility
+
+from devtools.api import API
+from devtools.control import ROLES
+from devtools.launch import configuration, initialize, start
+from devtools.runtime import load, resolve
+from devtools.store import Store
+
+
+class RuntimeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.workspace = self.root / "workspace"
+        self.workspace.mkdir()
+        self.state = self.root / "state"
+        initialize(self.state, self.workspace, ["owner:external"], co="owner", runtime=True)
+        self.store = Store(self.state)
+        self.co = API(self.state, "owner")
+        policy = json.loads((self.state / "roles.json").read_text())
+        for row in policy["profiles"].values():
+            row.update(binary="/bin/true", model="configured-model", reasoning="high")
+        self.write("roles", policy)
+        self.vendor("openai", True)
+
+    def write(self, name, value):
+        (self.state / (name + ".json")).write_text(json.dumps(value))
+
+    def vendor(self, name, available):
+        value = json.loads((self.state / "vendors.json").read_text())
+        value["vendors"][name] = {"available": available, "reason": "Quota unavailable" if not available else "Enabled"}
+        self.write("vendors", value)
+
+    def xo(self):
+        self.co.call("direct", GOAL)
+        with self.store.connect() as db:
+            name = db.execute("SELECT member FROM member_bindings WHERE role='xo'").fetchone()[0]
+        return API(self.state, name)
+
+    def test_fallback_all_roles_config_revision_and_fail_closed(self):
+        first = resolve(self.state, "coder")
+        self.vendor("openai", False)
+        self.vendor("xai", True)
+        for role in ROLES:
+            selected = resolve(self.state, role)
+            self.assertEqual("grok", selected["harness"])
+            self.assertEqual(2, len(selected["selection"]["skipped"]))
+            self.assertNotEqual(first["selection"]["revision"], selected["selection"]["revision"])
+        self.vendor("xai", False)
+        with self.assertRaisesRegex(ValueError, "No runtime available"):
+            self.co.call("direct", GOAL)
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM work_orders").fetchone()[0])
+        policy = json.loads((self.state / "roles.json").read_text())
+        del policy["roles"]["architect"]
+        self.write("roles", policy)
+        with self.assertRaisesRegex(ValueError, "all eight roles"):
+            load(self.state)
+
+    def test_dynamic_multiple_instances_normal_tools_hide_runtime_and_capacity_is_atomic(self):
+        xo = self.xo()
+        xo.call("orchestrate", {"work": [responsibility("One"), responsibility("Two")]})
+        report = xo.call("monitor", {})
+        self.assertEqual(["coder", "coder"], [row["role"] for row in report["collaborators"]])
+        self.assertNotIn("configured-model", json.dumps(report))
+        self.assertNotIn("harness", json.dumps(report))
+        self.assertEqual(1, len(json.loads((self.state / "team.json").read_text())["members"]))
+        with self.assertRaises(ValueError):
+            xo.call("runtime_status", {})
+        with self.assertRaises(ValueError):
+            xo.call("orchestrate", {"work": [responsibility("Three") | {"selection": {"harness": "grok"}}]})
+        policy = json.loads((self.state / "roles.json").read_text())
+        policy["max_sessions"] = 4
+        self.write("roles", policy)
+        with self.assertRaisesRegex(ValueError, "capacity"):
+            xo.call("orchestrate", {"work": [responsibility("Three"), responsibility("Four")]})
+        with self.store.connect() as db:
+            self.assertEqual(2, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+            self.assertEqual(4, db.execute("SELECT count(*) FROM members").fetchone()[0])
+
+    def test_running_session_retains_snapshot_after_vendor_disabled(self):
+        xo = self.xo()
+        before = configuration(self.state, xo.member)
+        generation = self.store.begin_session(xo.member, os.getpid(), settings=before)
+        self.store.session(xo.member, generation=generation, state="idle")
+        self.vendor("openai", False)
+        self.vendor("xai", True)
+        self.assertTrue(start(self.state, xo.member)["already_running"])
+        self.assertEqual(generation, self.store.member(xo.member)["generation"])
+        self.assertEqual("codex", self.store.member(xo.member)["harness"])
+        self.store.session(xo.member, generation=generation, state="stopped", pid=None)
+        self.assertEqual("grok", configuration(self.state, xo.member)["harness"])
+
+    def test_missing_binary_falls_back_and_policy_read_cannot_choose_shell_arguments(self):
+        self.vendor("anthropic", True)
+        with patch("devtools.runtime.shutil.which", side_effect=[None, "/bin/true"]):
+            selected = resolve(self.state, "research")
+        self.assertEqual("claude", selected["harness"])
+        policy = json.loads((self.state / "roles.json").read_text())
+        policy["profiles"]["codex"]["args"] = ["--unsafe"]
+        self.write("roles", policy)
+        with self.assertRaisesRegex(ValueError, "Unknown runtime profile"):
+            load(self.state)

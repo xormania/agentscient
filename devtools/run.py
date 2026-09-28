@@ -39,6 +39,7 @@ def main():
         if name not in {"init", "status", "doctor", "connection", "evidence"}:
             command.add_argument("--member", required=True)
         if name == "init":
+            command.add_argument("--runtime", action="store_true", help="Create shared role/vendor runtime policy")
             command.add_argument("--co", help="Name of the external user-facing CO session")
             command.add_argument("--workspace", required=True)
             command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
@@ -63,6 +64,7 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
+            command.add_argument("--launch-id", help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -81,7 +83,7 @@ def main():
                 if args.repository
                 else None
             )
-            result = launch.initialize(args.state, args.workspace, args.member, args.co, configured)
+            result = launch.initialize(args.state, args.workspace, args.member, args.co, configured, args.runtime)
         elif args.command in {"doctor", "connection", "evidence"}:
             from devtools import readiness
 
@@ -109,7 +111,7 @@ def main():
             serena_serve(args.state, args.member)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_id)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)

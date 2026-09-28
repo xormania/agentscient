@@ -109,7 +109,7 @@ def requested(store, member, config, private=None):
     store.event(
         member,
         "runtime_requested",
-        settings={k: config.get(k, inherited.get(k)) for k in fields},
+        settings={k: config.get(k) or inherited.get(k) for k in fields},
         sources={k: "explicit" if config.get(k) else "inherited" if inherited.get(k) else "unknown" for k in fields},
         selection=config.get("selection"),
     )

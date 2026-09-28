@@ -70,6 +70,7 @@ def spec(name, description, properties=None, required=(), readonly=False):
 
 
 CAPABILITIES = [
+    spec("runtime_status", "Inspect operator role policy, vendor availability and runtime choices.", readonly=True),
     spec("peers", "List configured live members, native session identities and current observed state.", readonly=True),
     spec(
         "message_send",
@@ -514,6 +515,10 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name == "runtime_status":
+            from .runtime import status
+
+            return status(self.store)
         if name == "work_inspect" and args.get("section") in {"review", "ci", "feedback"}:
             if not self.control.current()["job"]:
                 from .orders import Orders
