@@ -3,21 +3,49 @@
 import json
 import os
 import signal
+from functools import cache
 from pathlib import Path
 
 from .profiles import write_json
 from .store import identifier
 
 
-def identity(pid):
+@cache
+def boot_id():
+    if int(Path('/proc/self/stat').read_text().split(' ', 1)[0]) != os.getpid():
+        raise RuntimeError("Managed process recovery requires /proc in this PID namespace")
+    return Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+
+
+def status(pid):
     try:
         fields = (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()
         if fields[0] == 'Z':
             return None
-        return {"pid": int(pid), "start": fields[19], "session": int(fields[3]),
-                "boot": Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
+        return ({"pid": int(pid), "start": fields[19], "session": int(fields[3]), "boot": boot_id()}, int(fields[1]))
     except (FileNotFoundError, ProcessLookupError):
         return None
+
+
+def identity(pid):
+    observed = status(pid)
+    return observed[0] if observed else None
+
+
+def family(records):
+    """Capture descendants before a killed parent can reparent them elsewhere."""
+    table = {}
+    for entry in Path('/proc').iterdir():
+        if entry.name.isdecimal() and (observed := status(int(entry.name))):
+            table[int(entry.name)] = observed
+    found = {row['pid']: row for row in records if table.get(row['pid'], (None,))[0] == row}
+    sessions = {row['pid'] for row in found.values() if row['session'] == row['pid']}
+    while True:
+        extra = {pid: row for pid, (row, parent) in table.items()
+                 if pid not in found and (parent in found or row['session'] in sessions)}
+        if not extra:
+            return list(found.values())
+        found.update(extra)
 
 
 def register(store, member, generation, pid, *, group=False):
@@ -41,13 +69,7 @@ def owned(store, member, generation):
         if not current or any(current[key] != saved[key] for key in current):
             continue  # Never signal a reused PID or an unverifiable old group.
         result[current["pid"]] = current
-        if saved["group"] and current["session"] == current["pid"]:
-            for entry in Path('/proc').iterdir():
-                if entry.name.isdecimal():
-                    child = identity(int(entry.name))
-                    if child and child["session"] == current["session"]:
-                        result[child["pid"]] = child
-    return list(result.values())
+    return family(result.values()) if result else []
 
 
 def alive(records):

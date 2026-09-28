@@ -145,11 +145,13 @@ def _start(directory, member, binding_revision):
     store = Store(directory)
     current = store.member(member)
     if current["state"] in {"starting", "idle", "active"} and current["pid"]:
-        try:
-            os.kill(current["pid"], 0)
-        except ProcessLookupError:
-            pass
-        else:
+        from . import processes, terminals
+
+        owned = processes.owned(store, member, current["generation"])
+        panes = terminals.status(store, member)["panes"]
+        if any(row["pid"] == current["pid"] for row in owned) or any(
+            row["pid"] == current["pid"] and not row["dead"] for row in panes
+        ):
             return {"member": member, "already_running": True, "session": current}
     config = configuration(directory, member)
     launch_id = "agentscient-launch-" + uuid.uuid4().hex
@@ -217,8 +219,10 @@ def _stop(store, member, *, grace=STOP_GRACE):
             records[row["pid"]] = row
         terminal = terminals.status(store, member)
         for pane in terminal["panes"]:
-            if row := processes.identity(pane["pid"]):
+            if not pane["dead"] and (row := processes.identity(pane["pid"])):
                 records[row["pid"]] = row
+        for row in processes.family(records.values()) if records else []:
+            records[row["pid"]] = row
         return processes.alive(records.values()), terminal["exists"]
 
     deadline = time.monotonic() + grace

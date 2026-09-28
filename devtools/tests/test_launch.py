@@ -26,7 +26,9 @@ class LaunchTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.state = self.root / 'state'
-        launch.initialize(self.state, self.root, ['owner:external', 'worker:grok'])
+        self.workspace = self.root / 'workspace'
+        self.workspace.mkdir()
+        launch.initialize(self.state, self.workspace, ['owner:external', 'worker:grok'])
         fixture = Path(__file__).with_name('native_fixture.py')
         fixture.chmod(0o755)
         config = json.loads((self.state / 'team.json').read_text())
@@ -125,6 +127,17 @@ class LaunchTests(unittest.TestCase):
         until(lambda: terminals.status(self.store, 'worker')['panes'][0]['dead'])
         self.start()
 
+
+class ProcessTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            processes.boot_id()
+        except RuntimeError as error:
+            if os.environ.get('AGENTSCIENT_REQUIRE_TMUX') == '1':
+                raise
+            raise unittest.SkipTest(str(error)) from error
+
     def test_stale_process_identity_cannot_signal_a_reused_pid(self):
         child = subprocess.Popen(['sleep', '30'], start_new_session=True)
         self.addCleanup(child.wait)
@@ -133,3 +146,20 @@ class LaunchTests(unittest.TestCase):
         stale = {**record, 'start': str(int(record['start']) - 1)}
         processes.signal_owned([stale], signal.SIGKILL)
         self.assertIsNone(child.poll())
+
+    def test_recovery_tracks_children_that_create_separate_sessions(self):
+        program = 'import subprocess,time; p=subprocess.Popen(["sleep","30"],start_new_session=True); print(p.pid,flush=True); time.sleep(30)'
+        parent = subprocess.Popen([sys.executable, '-c', program], stdout=subprocess.PIPE, text=True, start_new_session=True)
+        self.addCleanup(parent.stdout.close)
+        self.addCleanup(parent.wait)
+        self.addCleanup(parent.terminate)
+        child_pid = int(parent.stdout.readline())
+        child = processes.identity(child_pid)
+        self.addCleanup(processes.signal_owned, [child], signal.SIGKILL)
+        family = processes.family([processes.identity(parent.pid)])
+        self.assertIn(child, family)
+        parent.kill()
+        parent.wait()
+        self.assertIn(child, processes.alive(family))
+        processes.signal_owned(family, signal.SIGTERM)
+        until(lambda: not processes.alive(family))
