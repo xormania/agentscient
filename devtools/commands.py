@@ -10,7 +10,7 @@ from .control import BRIEF_FIELDS, ROLES, Control, binding
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLE_TOOLS = {"co": {"direct", "monitor", "conclude"}, "xo": {"orchestrate", "monitor", "steer"}}
+ROLE_TOOLS = {"co": {"direct", "monitor", "conclude", "restart_xo"}, "xo": {"orchestrate", "monitor", "steer"}}
 
 
 def capabilities(spec):
@@ -23,6 +23,12 @@ def capabilities(spec):
             "CO: establish or revise the current objective and boundaries; bind XO and deliver relevant briefs.",
             {"title": name, **goal},
             ("title", "objective", "done_when", "constraints"),
+        ),
+        spec(
+            "restart_xo",
+            "CO: replace the XO conversation using current runtime policy; retain its work, team and reports.",
+            {"reason": text},
+            ("reason",),
         ),
         spec(
             "orchestrate",
@@ -70,7 +76,7 @@ def capabilities(spec):
             "steer",
             "XO: guide collaborators, revise a named brief, or accept/cancel a named job with an assessment.",
             {
-                "action": {"type": "string", "enum": ["guide", "pause", "resume", "stop", "accept", "cancel"]},
+                "action": {"type": "string", "enum": ["guide", "pause", "resume", "stop", "replace", "accept", "cancel"]},
                 "work": {**name, "description": "A name supplied to orchestrate; omit to address your team."},
                 "role": {
                     "type": "string",
@@ -332,6 +338,30 @@ class Commands:
                 results.append({**self._participant(db, target, config), "direction": direction})
         return {"work": results}
 
+    def restart_xo(self, reason):
+        config = self._config()
+        with self.store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            scope = self._scope(db, {"co"})
+            target = db.execute(
+                "SELECT member FROM member_bindings WHERE reports_to=? AND work_order=? AND role='xo'",
+                (self.member, scope["work_order"]),
+            ).fetchone()
+            if not target:
+                raise ValueError("No XO is assigned; use direct to establish the responsibility.")
+            member = target["member"]
+            db.execute("UPDATE members SET desired='stopped' WHERE name=?", (member,))
+            db.execute("UPDATE member_bindings SET paused=0 WHERE member=?", (member,))
+            self._touch(db, member)
+            target = binding(db, member)
+            slot = self._slot(db, config, existing=target)
+            if slot["harness"] == "external":
+                raise ValueError("This XO is external; its operator must reconnect it.")
+            self._start_intent(db, target, slot)
+            sent = self._direction(db, target, "Recover your existing work and team after session replacement. " + reason)
+            self.store._event(db, self.member, "session_replacement_requested", {"member": member, "role": "xo", "reason": reason})
+            return {"xo": self._participant(db, target, config), "direction": sent}
+
     def steer(self, action, work=None, direction=None, role=None, **fields):
         if role == "audit" and fields:
             raise ValueError(
@@ -352,6 +382,8 @@ class Commands:
             raise ValueError("Name one responsibility when revising its objective, completion criteria or constraints.")
         if action == "guide" and not direction and not fields:
             raise ValueError("Supply direction or a revised job brief.")
+        if action == "replace" and not direction:
+            raise ValueError("Supply the reason for replacing the conversation as direction.")
         config = self._config()
         results = []
         with self.store.connect() as db:
@@ -378,20 +410,22 @@ class Commands:
                     old = record(db, "jobs", target["job"])
                     changed = any(old[key] != value for key, value in fields.items())
                     self.work.update_in(db, "jobs", scope["work_order"], target["job"], **fields)
-                paused = 1 if action in {"pause", "stop"} else 0 if action == "resume" else target["paused"]
+                paused = 1 if action in {"pause", "stop"} else 0 if action in {"resume", "replace"} else target["paused"]
                 brief = direction if direction is not None else target["brief"]
-                if changed or paused != target["paused"] or brief != target["brief"]:
+                if changed or paused != target["paused"] or brief != target["brief"] or action == "replace":
                     db.execute(
                         "UPDATE member_bindings SET paused=?,brief=? WHERE member=?", (paused, brief, target["member"])
                     )
                     self._touch(db, target["member"])
                 if action in {"pause", "stop"}:
                     db.execute("UPDATE member_bindings SET launch_pending=0 WHERE member=?", (target["member"],))
-                if action == "stop":
+                if action in {"stop", "replace"}:
                     db.execute("UPDATE members SET desired='stopped' WHERE name=?", (target["member"],))
                 target = binding(db, target["member"])
-                if action == "resume":
+                if action in {"resume", "replace"}:
                     slot = self._slot(db, config, existing=target)
+                    if action == "replace" and slot["harness"] == "external":
+                        raise ValueError("This collaborator is external; its operator must reconnect it.")
                     self._start_intent(db, target, slot)
                 sent = self._direction(
                     db,
@@ -401,6 +435,7 @@ class Commands:
                         "pause": "Pause new work; remain available for guidance.",
                         "resume": "Resume work within the current brief.",
                         "stop": "Stop work; the managed session will close.",
+                        "replace": "Recover the existing brief, reports and evidence in a new conversation.",
                     }[action],
                 )
                 self.store._event(

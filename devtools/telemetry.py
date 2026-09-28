@@ -94,6 +94,7 @@ def context(store, member):
         scope = {k: bound[1][k] for k in ("role", "revision")} if bound[1] else None
     return {
         **{k: row[k] for k in ("generation", "native_id", "harness", "selected_work_order", "selected_job")},
+        "harness": row["detail"].get("harness", row["harness"]),
         **(dict(scope) if scope else {}),
         "work_order": work_order,
         "job": job,

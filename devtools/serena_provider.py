@@ -17,7 +17,9 @@ from pathlib import Path
 
 from .control import REQUEST_BINDING, Control
 from .retirement import key, lease
+from .sessions import Lease
 from .store import Store
+from .telemetry import Trace, context
 from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "serena"
@@ -41,9 +43,11 @@ def enabled(store, scope):
 
 
 def server_config(directory, member):
+    generation = Store(directory).member(member)["generation"]
     return {
         "command": sys.executable,
-        "args": [str(Path(__file__).with_name("run.py")), "serena", "--state", str(directory), "--member", member],
+        "args": [str(Path(__file__).with_name("run.py")), "serena", "--state", str(directory), "--member", member,
+                 *(["--generation", generation] if generation else [])],
     }
 
 
@@ -54,8 +58,9 @@ def mount(source, target, readonly=False):
 
 
 class Serena:
-    def __init__(self, directory, member):
+    def __init__(self, directory, member, generation=None):
         self.store, self.member = Store(directory), member
+        self.session_lease = Lease(self.store, member, generation)
         self.control = Control(self.store, member)
         self.spaces = Workspaces(self.store, member)
         self.process = None
@@ -72,6 +77,7 @@ class Serena:
         atexit.register(self.close)
 
     def scope(self):
+        self.session_lease.check()
         current = self.control.snapshot()
         if not enabled(self.store, current):
             raise ValueError("Serena is not configured for your current job and role.")
@@ -237,7 +243,7 @@ class Serena:
         from .api import validate
 
         validate(arguments, TOOL["inputSchema"])
-        with self.mutex:
+        with self.session_lease.hold(), self.mutex:
             scope, signature = self.scope()
             token = REQUEST_BINDING.set((self.member, scope))
             try:
@@ -253,7 +259,12 @@ class Serena:
                     return
                 current = self.control.snapshot()
                 identity = tuple(current[k] for k in ("job", "work_order", "role", "reports_to")) if current else None
-                if identity != signature[0]:
+                try:
+                    self.session_lease.check()
+                    current_session = True
+                except ValueError:
+                    current_session = False
+                if identity != signature[0] or not current_session:
                     try:
                         self.close()
                     except Exception as error:
@@ -352,18 +363,22 @@ class Serena:
                 self.workspace_lease = None
 
 
-def serve(directory, member):
+def serve(directory, member, generation=None):
     def stop(signum, frame):
         raise SystemExit(0)
 
     signal.signal(signal.SIGTERM, stop)
-    provider = Serena(directory, member)
+    provider = Serena(directory, member, generation)
+    trace = Trace(directory, member, component="serena-mcp", context=lambda: {
+        **context(provider.store, member), "connection_generation": provider.session_lease.generation,
+    })
     initialized = False
     try:
         while line := sys.stdin.buffer.readline(131073):
             if len(line) > 131072:
                 raise ValueError("Serena MCP frame exceeds 128 KiB.")
             packet = json.loads(line)
+            trace.record("mcp_in", packet)
             ident, method = packet.get("id"), packet.get("method")
             if method == "notifications/initialized":
                 initialized = True
@@ -371,6 +386,7 @@ def serve(directory, member):
             if ident is None:
                 continue
             try:
+                provider.session_lease.check()
                 if method == "initialize":
                     result = {
                         "protocolVersion": "2025-06-18",
@@ -398,6 +414,8 @@ def serve(directory, member):
                     if method == "tools/call"
                     else {"id": ident, "error": {"code": -32602, "message": str(error)[:1800]}}
                 )
+            trace.record("mcp_out", response)
             print(json.dumps({"jsonrpc": "2.0", **response}), flush=True)
     finally:
         provider.close()
+        trace.close()

@@ -9,6 +9,7 @@ import asyncio
 import json
 import re
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -20,7 +21,7 @@ class Fixture:
         self.harness = "codex" if "app-server" in sys.argv else "grok"
         self.pending = {}
         self.count = 0
-        self.session = "fixture-native-conversation"
+        self.session = "fixture-native-" + uuid.uuid4().hex
         self.mcp = None
         self.tasks = set()
         self.command = False
@@ -148,6 +149,8 @@ class Fixture:
                     },
                 )
                 await self.mcp.notify("notifications/initialized")
+                catalogue = (await self.mcp.request("tools/list", {}))["tools"]
+                self.command = "orchestrate" in {row["name"] for row in catalogue}
                 result = {"sessionId": self.session, "models": {"currentModelId": "fixture-model"}}
             elif method == "turn/start":
                 assert params["threadId"] == self.session

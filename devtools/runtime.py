@@ -82,10 +82,12 @@ def load(directory):
     return policy, availability, revision
 
 
-def resolve(directory, role, *, installed=True):
+def resolve(directory, role, *, installed=True, profile=None):
     policy, availability, revision = load(directory)
+    if profile is not None and profile not in policy["roles"][role]:
+        raise ValueError("Select a profile from this role's configured preferences")
     skipped = []
-    for name in policy["roles"][role]:
+    for name in [profile] if profile is not None else policy["roles"][role]:
         profile = policy["profiles"][name]
         vendor = availability["vendors"][profile["vendor"]]
         reason = None

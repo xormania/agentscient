@@ -41,7 +41,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
-| CO | `direct`, `monitor`, `conclude` | None |
+| CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
 | XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`; with development enabled: `work_check` | None |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
@@ -107,8 +107,9 @@ which they started; subsequent calls use the current binding.
 | CO — `direct` | Establish or revise the current objective, completion criteria and boundaries; bind XO and deliver its brief. |
 | CO/XO — `monitor` | Read scoped progress, capacity and cleanup status; inspect named work or the combined delivery. |
 | CO — `conclude` | Deliver the inspected, passing integrated result, retain the assessment and release the team. |
+| CO — `restart_xo` | Replace XO's conversation using current runtime policy while retaining its work and team. |
 | XO — `orchestrate` | Create/update named responsibilities, bind suitable configured collaborators and start their live sessions. |
-| XO — `steer` | Guide, pause, resume or stop collaborators; revise a named brief or accept/cancel a named job. |
+| XO — `steer` | Guide, pause, resume, stop or replace collaborators; revise a named brief or accept/cancel a named job. |
 
 `direct` requires `title`, `objective`, `done_when` and `constraints`. Its first call
 creates the work order and claims an available XO slot. Later calls revise that
@@ -148,6 +149,10 @@ optional `role` filter selects its producer or auditor. `guide` retains directio
 pause and starts a stopped session if needed. `stop` requests orderly shutdown and
 preserves the unfinished job and binding. Pause is not a native mid-token interrupt.
 Stopping/restarting creates a new native conversation.
+`replace` requests shutdown and a fresh conversation using current vendor policy;
+include a reason in `direction`. CO can do the same for XO using `restart_xo`.
+See [session handover](session-handover.md) for switching the user-facing CO and
+the retained context and generation boundaries.
 
 A named producer brief can revise `objective`, `done_when` or `constraints`; it does
 not rewrite CO's work-order objective. Commands recheck scope when committing.

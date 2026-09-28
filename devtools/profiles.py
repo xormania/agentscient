@@ -1,5 +1,6 @@
 """Private native settings. The only policy here is the requested MCP-only tool surface."""
 
+import hashlib
 import json
 import os
 import shlex
@@ -43,6 +44,32 @@ def toml(value):
     return json.dumps(value)
 
 
+def restore_login(private, original, harness):
+    """Carry refreshed private credentials forward; a changed operator login wins."""
+    source = original / "auth.json"
+    digest = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
+    cache = private.parent / (harness + "-login.json")
+    previous = json.loads(cache.read_text()) if cache.is_file() else {}
+    destination = private / "auth.json"
+    if previous.get("source_sha256") == digest and "auth" in previous:
+        destination.write_text(previous["auth"])
+    elif source.is_file():
+        shutil.copyfile(source, destination)
+    if destination.exists():
+        destination.chmod(0o600)
+    write_json(private / "login-origin.json", {"source_sha256": digest, "harness": harness})
+
+
+def retain_login(directory, member, harness, generation):
+    if harness not in {"codex", "grok"}:
+        return
+    private = Path(directory) / "profiles" / member / generation
+    if (private / "auth.json").is_file() and (private / "login-origin.json").is_file():
+        origin = json.loads((private / "login-origin.json").read_text())
+        write_json(private.parent / (harness + "-login.json"),
+                   {"source_sha256": origin["source_sha256"], "auth": (private / "auth.json").read_text()})
+
+
 def permitted(harness, tool, arguments):
     if not isinstance(tool, str) or not isinstance(arguments, dict):
         return False
@@ -74,7 +101,12 @@ def permitted(harness, tool, arguments):
 def prepare(directory, member, harness):
     """Keep global settings untouched; reuse only the selected native login files."""
     directory = Path(directory).resolve()
+    from .store import Store
+
+    generation = Store(directory).member(member)["generation"]
     private = directory / "profiles" / member
+    if generation:
+        private /= generation
     private.mkdir(parents=True, exist_ok=True, mode=0o700)
     env = os.environ.copy()
     # Grok gets a private HOME below; the server still uses the operator's GitHub OAuth session.
@@ -89,8 +121,10 @@ def prepare(directory, member, harness):
         "GROK_SESSION_ID",
     ):
         env.pop(key, None)
+    lease_args = ["--generation", generation] if generation else []
     hook = shlex.join(
-        [sys.executable, str(ENTRY), "hook", "--state", str(directory), "--member", member, "--harness", harness]
+        [sys.executable, str(ENTRY), "hook", "--state", str(directory), "--member", member, "--harness", harness,
+         *lease_args]
     )
     groups = {
         name: [
@@ -101,7 +135,8 @@ def prepare(directory, member, harness):
         ]
         for name in ("PreToolUse", "PostToolUse", "SessionStart", "Stop")
     }
-    server = {"command": sys.executable, "args": [str(ENTRY), "mcp", "--state", str(directory), "--member", member]}
+    server = {"command": sys.executable,
+              "args": [str(ENTRY), "mcp", "--state", str(directory), "--member", member, *lease_args]}
     if harness == "claude":
         from .control import Control
         from .store import Store
@@ -115,10 +150,7 @@ def prepare(directory, member, harness):
         write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
-        for name in ("auth.json",):
-            if (original / name).is_file() and not (private / name).exists():
-                shutil.copyfile(original / name, private / name)
-                (private / name).chmod(0o600)
+        restore_login(private, original, harness)
         settings = {}
         config = original / "config.toml"
         if config.is_file():
@@ -134,9 +166,7 @@ def prepare(directory, member, harness):
         env["CODEX_HOME"] = str(private)
     elif harness == "grok":
         original = Path(os.environ.get("GROK_HOME", str(Path.home() / ".grok")))
-        if (original / "auth.json").is_file() and not (private / "auth.json").exists():
-            shutil.copyfile(original / "auth.json", private / "auth.json")
-            (private / "auth.json").chmod(0o600)
+        restore_login(private, original, harness)
         write_json(private / "hooks" / "agentscient-live.json", {"hooks": groups})
         (private / "config.toml").write_text("mcp_servers = {}\n")
         env.update(HOME=str(private), GROK_HOME=str(private), GROK_CONFIG_DIR=str(private))
@@ -145,7 +175,15 @@ def prepare(directory, member, harness):
     return private, env, server
 
 
-def hook(directory, member, harness, payload):
+def hook(directory, member, harness, payload, generation=None):
+    from .sessions import Lease
+    from .store import Store
+
+    with Lease(Store(directory), member, generation).hold():
+        return _hook(directory, member, harness, payload)
+
+
+def _hook(directory, member, harness, payload):
     from .store import Store
     from .telemetry import Trace, context, observed
 
@@ -171,6 +209,10 @@ def hook(directory, member, harness, payload):
         "session_start": "SessionStart",
         "stop": "Stop",
     }.get(event, event)
+    if event == "SessionStart" and isinstance(payload.get("session_id"), str):
+        current = store.member(member)
+        if current["native_id"] is None and current["generation"] is not None:
+            store.session(member, generation=current["generation"], native_id=payload["session_id"])
     tool = payload.get("tool_name", payload.get("toolName"))
     arguments = payload.get("tool_input", payload.get("toolInput", {}))
     if event == "PreToolUse":

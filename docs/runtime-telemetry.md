@@ -22,6 +22,10 @@ session file under the native Claude projects directory is accepted. A missing o
 rejected transcript does not count as captured conversation content. Partial JSONL
 writes wait for the complete line. An external CO connected through MCP has MCP
 traffic captured; its private native conversation is not visible to this server.
+The common `co` launcher additionally captures live native terminal output with
+the same filtering, plus hooks and available Claude transcript entries. It does
+not capture raw keystrokes. The separate Serena MCP gateway also records incoming
+requests and outgoing results. See [session handover](session-handover.md).
 
 `runtime_requested` records explicit and inherited harness/model/reasoning/provider
 choices. `runtime_observed` records only fields actually reported by the native
