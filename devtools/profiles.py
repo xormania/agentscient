@@ -175,6 +175,10 @@ def hook(directory, member, harness, payload):
     arguments = payload.get("tool_input", payload.get("toolInput", {}))
     if event == "PreToolUse":
         allowed = permitted(harness, tool, arguments)
+        if harness == "claude":
+            current = store.member(member)
+            if current["desired"] == "running" and current["state"] == "idle":
+                store.session(member, generation=current["generation"], state="active")
         store.event(member, "native_tool_allowed" if allowed else "native_tool_denied", tool=tool, harness=harness)
         if harness == "grok":
             return {"decision": "allow" if allowed else "deny", "reason": "Use this team's MCP tools."}
@@ -186,4 +190,8 @@ def hook(directory, member, harness, payload):
             }
         }
     store.event(member, "native_hook", event=event, native_id=payload.get("session_id"), tool=tool)
+    if harness == "claude" and event == "Stop":
+        current = store.member(member)
+        if current["desired"] == "running" and current["state"] == "active":
+            store.session(member, generation=current["generation"], state="idle")
     return {}

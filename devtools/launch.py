@@ -2,15 +2,11 @@
 
 import asyncio
 import fcntl
-import hashlib
 import json
 import os
-import shlex
 import shutil
 import signal
-import subprocess
 import sys
-import threading
 import time
 import uuid
 from pathlib import Path
@@ -112,11 +108,6 @@ def configuration(directory, member):
     return selected
 
 
-def tmux_name(directory, member):
-    digest = hashlib.sha256(str(Path(directory).resolve()).encode()).hexdigest()[:10]
-    return f"agentscient-{digest}-{identifier(member)}"
-
-
 def start(directory, member, *, binding_revision=None):
     store = Store(directory)
     locks = store.directory / "launch-locks"
@@ -165,30 +156,18 @@ def _start(directory, member, binding_revision):
 
     launch_id = "launch-" + uuid.uuid4().hex
     snapshot = store.directory / "launches" / (launch_id + ".json")
-    write_json(snapshot, {"member": member, "config": config})
+    write_json(snapshot, {"member": member, "config": config, "environment": dict(os.environ)})
     argv = [sys.executable, str(ENTRY), "agent", "--state", str(store.directory), "--member", member]
     argv += ["--launch-id", launch_id]
     if binding_revision is not None:
         argv += ["--binding-revision", str(binding_revision)]
-    if config["harness"] == "claude":
-        if not shutil.which("tmux"):
-            raise ValueError(
-                "Claude's native TUI needs tmux for background launch, or run the agent command in a terminal."
-            )
-        name = tmux_name(directory, member)
-        subprocess.run(["tmux", "new-session", "-d", "-s", name, "--", shlex.join(argv)], check=True, timeout=10)
-        detail = {"terminal": name, "attach": f"tmux attach -t {name}"}
-    else:
-        logs = store.directory / "logs"
-        logs.mkdir(exist_ok=True, mode=0o700)
-        path = logs / (identifier(member) + ".log")
-        with path.open("a") as stream:
-            path.chmod(0o600)
-            process = subprocess.Popen(
-                argv, stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True
-            )
-        threading.Thread(target=process.wait, daemon=True).start()
-        detail = {"pid": process.pid, "log": str(path)}
+    from .terminals import start as start_terminal
+
+    try:
+        detail = start_terminal(store, member, argv, config["workspace"])
+    except Exception:
+        snapshot.unlink(missing_ok=True)
+        raise
     store.event(member, "launch_requested", **detail)
     # Return observed startup, not a fabricated ready acknowledgement.
     deadline = time.monotonic() + 2
@@ -198,7 +177,7 @@ def _start(directory, member, binding_revision):
             break
         time.sleep(0.05)
     current = store.member(member)
-    if binding_revision is not None and current["generation"] == previous_generation:
+    if current["generation"] == previous_generation:
         raise RuntimeError("Managed process did not establish a session; inspect monitor and retry with resume.")
     if current["generation"] != previous_generation and current["state"] == "failed":
         raise RuntimeError(current["detail"].get("error", "Native startup failed"))
@@ -216,6 +195,11 @@ def agent(directory, member, binding_revision=None, launch_id=None):
             raise ValueError("Launch snapshot belongs to another member")
         config = saved["config"]
         snapshot.unlink()
+        # tmux servers outlive their creator and otherwise retain an old login environment.
+        terminal_env = {key: os.environ[key] for key in ("TERM", "TMUX", "TMUX_PANE") if key in os.environ}
+        os.environ.clear()
+        os.environ.update(saved["environment"])
+        os.environ.update(terminal_env)
     else:
         config = configuration(directory, member)
     control = Control(store, member)
@@ -235,7 +219,7 @@ def agent(directory, member, binding_revision=None, launch_id=None):
     def stop(_signal, _frame):
         store.session(member, generation=generation, desired="stopped")
 
-    for sig in (signal.SIGTERM, signal.SIGINT):
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(sig, stop)
     error = None
     try:

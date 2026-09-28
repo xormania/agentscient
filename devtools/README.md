@@ -36,8 +36,8 @@ each collaborator's work binding.
 ## Runtime
 
 The core uses Python 3.11+ and SQLite from the standard library on Linux/macOS or
-WSL. Native collaborators need installed, authenticated harnesses; managed Claude
-sessions also need tmux. Source editing uses the pinned Docker-based Serena
+WSL. Native collaborators need installed, authenticated harnesses and tmux for
+managed sessions. Source editing uses the pinned Docker-based Serena
 provider. Symfony generation, diagnostics and validation need PHP and Composer
 matching the application's committed lockfile.
 

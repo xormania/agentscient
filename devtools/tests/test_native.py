@@ -5,13 +5,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from support import Client, until
+from support import Client, require_tmux, retain_native, until
 
 from devtools.launch import initialize
 from devtools.store import Store
 
 
 class NativeProtocolTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        require_tmux()
+
     def test_co_direction_launches_xo_and_collaborator_and_pause_retains_live_session(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -88,9 +92,10 @@ class NativeProtocolTests(unittest.TestCase):
                 if xo:
                     xo.close()
                 co.close()
+                retain_native(state, "co-xo-collaborator")
 
     def test_live_messages_during_unfinished_work_keep_native_identity(self):
-        for harness in ("codex", "grok"):
+        for harness in ("codex", "grok", "claude"):
             with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 workspace = root / "workspace"
@@ -99,7 +104,7 @@ class NativeProtocolTests(unittest.TestCase):
                 home = root / "login-home"
                 home.mkdir()
                 initialize(state, workspace, ["owner:external", "worker:" + harness])
-                fixture = Path(__file__).with_name("native_fixture.py")
+                fixture = Path(__file__).with_name("claude_fixture.py" if harness == "claude" else "native_fixture.py")
                 fixture.chmod(0o755)
                 config = json.loads((state / "team.json").read_text())
                 config["members"][1]["binary"] = str(fixture)
@@ -126,6 +131,7 @@ class NativeProtocolTests(unittest.TestCase):
                     )
                     started = client.invoke("session_start", member="worker")
                     self.assertEqual("running", started["requested"])
+                    self.assertTrue(client.invoke("terminal_status", member="worker")["exists"])
                     until(lambda: store.member("worker")["state"] == "idle")
                     original_id = store.member("worker")["native_id"]
                     runtime = store.events(kind="runtime_observed", actor="worker")["events"]
@@ -158,7 +164,7 @@ class NativeProtocolTests(unittest.TestCase):
                         submissions = store.events(kind="message_submitted", actor="worker")["events"]
                         self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
                     else:
-                        self.assertTrue(store.events(kind="native_usage")["events"])
+                        until(lambda: store.events(kind="native_usage")["events"])
                 except Exception:
                     log = state / "logs/worker.log"
                     if log.exists():
@@ -170,4 +176,5 @@ class NativeProtocolTests(unittest.TestCase):
                         until(lambda: store.member("worker")["state"] in {"stopped", "failed"}, timeout=8)
                     finally:
                         client.close()
+                        retain_native(state, harness)
                 self.assertEqual("stopped", store.member("worker")["state"])
