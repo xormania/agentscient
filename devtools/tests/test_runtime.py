@@ -9,7 +9,7 @@ from test_commands import GOAL, responsibility
 
 from devtools.api import API
 from devtools.control import ROLES
-from devtools.launch import configuration, initialize, start
+from devtools.launch import agent, configuration, initialize, start
 from devtools.runtime import load, resolve
 from devtools.store import Store
 
@@ -109,3 +109,47 @@ class RuntimeTests(unittest.TestCase):
         self.write("roles", policy)
         with self.assertRaisesRegex(ValueError, "Unknown runtime profile"):
             load(self.state)
+
+    def test_migrated_fixed_members_keep_their_work_after_a_harness_change(self):
+        state = self.root / "fixed-state"
+        initialize(state, self.workspace, ["owner:external", "chief:codex", "worker:claude"], co="owner")
+        co, xo = API(state, "owner"), API(state, "chief")
+        co.call("direct", GOAL)
+        xo.call("orchestrate", {"work": [responsibility()]})
+        before = API(state, "worker").control.snapshot()
+        co.store.begin_session("worker", os.getpid())
+        co.store.session("worker", state="stopped", desired="stopped", pid=None)
+        team = json.loads((state / "team.json").read_text())
+        team["runtime"] = True
+        (state / "team.json").write_text(json.dumps(team))
+        (state / "roles.json").write_text((self.state / "roles.json").read_text())
+        self.vendor("openai", False)
+        self.vendor("xai", True)
+        (state / "vendors.json").write_text((self.state / "vendors.json").read_text())
+
+        class Native:
+            def __init__(self, directory, member, config, generation):
+                self.harness = config["harness"]
+
+            async def run(self):
+                assert self.harness == "grok"
+
+        with patch("devtools.native.Native", Native), patch("devtools.launch.signal.signal"):
+            agent(state, "worker")
+        self.assertEqual("grok", co.store.member("worker")["harness"])
+        self.assertEqual("claude", team["members"][2]["harness"])
+        co.call("monitor", {})
+        co.call("direct", GOAL)
+        xo.call("orchestrate", {"work": [responsibility()]})
+        self.assertEqual(before, API(state, "worker").control.snapshot())
+        self.assertEqual("grok", configuration(state, "worker")["harness"])
+        # Runtime changes do not authorize workspace changes or converting an external identity.
+        with self.assertRaisesRegex(ValueError, "different harness or worktree"):
+            co.store.initialize(team["members"])
+        other = self.root / "other-workspace"
+        other.mkdir()
+        changed = [{**team["members"][2], "workspace": str(other)}]
+        with self.assertRaisesRegex(ValueError, "different harness or worktree"):
+            co.store.initialize(changed, runtime=True)
+        with self.assertRaisesRegex(ValueError, "different harness or worktree"):
+            co.store.initialize([{**team["members"][0], "harness": "codex"}], runtime=True)

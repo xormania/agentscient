@@ -1,13 +1,18 @@
+import io
 import json
 import os
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from support import Client, until
 
+from devtools.api import API
 from devtools.launch import initialize
+from devtools.mcp import serve
 from devtools.profiles import hook, prepare
 from devtools.store import Store
 from devtools.telemetry import Trace, Transcript, context, observed, requested
@@ -23,6 +28,77 @@ class TelemetryTests(unittest.TestCase):
         workspace.mkdir()
         initialize(self.state, workspace, ["owner:external", "worker:claude"])
         self.store = Store(self.state)
+
+    def test_explicit_request_scope_is_retained_for_both_frames_during_concurrent_calls(self):
+        client = Client(self.state, "owner", operator=True)
+        try:
+            first = client.invoke("work_order_create", title="First", objective="First", done_when="Done")["work_order"]["id"]
+            second = client.invoke("work_order_create", title="Second", objective="Second", done_when="Done")["work_order"]["id"]
+            job = client.invoke("job_create", work_order=second, title="Job", objective="Job", done_when="Done")["job"]["id"]
+            client.invoke("work_order_select", work_order=first)
+            calls = []
+            for key, scope in (("job", {"job": job}), ("order", {"work_order": first})):
+                ident = client.begin("tools/call", {"name": "capability_invoke", "arguments": {
+                    "capability": "message_send", "arguments": {"to": "worker", "body": key, "key": key, **scope},
+                }})
+                calls.append((ident, (second, job) if key == "job" else (first, None)))
+            for ident, _ in calls:
+                self.assertFalse(client.finish(ident).get("isError"))
+            with self.assertRaises(ValueError):
+                client.invoke("job_get", job=9999)
+            rejected = client.ident
+        finally:
+            client.close()
+        rows = [json.loads(line) for line in (self.state / "telemetry/owner.jsonl").read_text().splitlines()]
+        for ident, expected in calls:
+            frames = [r for r in rows if r["data"].get("id") == ident]
+            self.assertEqual({"mcp_in", "mcp_out"}, {r["kind"] for r in frames})
+            for frame in frames:
+                self.assertEqual(expected, (frame["context"]["work_order"], frame["context"]["job"]))
+                self.assertEqual("request", frame["context"]["scope_source"])
+                self.assertEqual(first, frame["context"]["selected_work_order"])
+        for frame in [r for r in rows if r["data"].get("id") == rejected]:
+            self.assertEqual("unresolved", frame["context"]["scope_source"])
+            self.assertIsNone(frame["context"]["work_order"])
+
+    def test_concurrent_output_trace_order_matches_the_wire(self):
+        first_logged, second_written = threading.Event(), threading.Event()
+        original_record, original_call = Trace.record, API.call
+
+        class Output(io.StringIO):
+            def write(self, text):
+                result = super().write(text)
+                if json.loads(text).get("id") == 3:
+                    second_written.set()
+                return result
+
+        def record(trace, kind, data, **kwargs):
+            original_record(trace, kind, data, **kwargs)
+            if kind == "mcp_out" and data.get("id") == 2:
+                first_logged.set()
+                second_written.wait(0.2)
+
+        def call(api, name, arguments, **kwargs):
+            result = original_call(api, name, arguments, **kwargs)
+            if arguments.get("query") == "second":
+                self.assertTrue(first_logged.wait(2))
+            return result
+
+        packets = [{"id": 1, "method": "initialize"}, {"method": "notifications/initialized"}]
+        packets += [{"id": ident, "method": "tools/call", "params": {
+            "name": "capability_search", "arguments": {"query": query}}}
+            for ident, query in ((2, "first"), (3, "second"))]
+        source = io.BytesIO(("\n".join(map(json.dumps, packets)) + "\n").encode())
+        output = Output()
+        with patch("devtools.mcp.sys.stdin", SimpleNamespace(buffer=source)), patch("devtools.mcp.sys.stdout", output), \
+                patch.object(Trace, "record", record), patch.object(API, "call", call):
+            serve(self.state, "owner", operator=True)
+        wire = [json.loads(line)["id"] for line in output.getvalue().splitlines()]
+        rows = [json.loads(line) for line in (self.state / "telemetry/owner.jsonl").read_text().splitlines()]
+        sent = [r for r in rows if r["kind"] == "mcp_out"]
+        self.assertEqual([1, 2, 3], wire)
+        self.assertEqual(wire, [r["data"]["id"] for r in sent])
+        self.assertEqual([1, 2, 3], [r["context"]["wire_sequence"] for r in sent])
 
     def test_mcp_wire_capture_correlates_live_channel_and_acknowledgement(self):
         generation = self.store.begin_session("worker", os.getpid())
