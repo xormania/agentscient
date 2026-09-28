@@ -239,9 +239,22 @@ def doctor(directory, online=False):
                 }
             )
     seen = set()
-    for member in config["members"]:
+    members = list(config["members"])
+    if config.get("runtime"):
+        from .runtime import load
+
+        def runtime_policy():
+            policy, availability, revision = load(directory)
+            members.extend(row for row in policy["profiles"].values()
+                           if availability["vendors"][row["vendor"]]["available"])
+            return {"revision": revision, "roles": list(policy["roles"])}
+
+        check("Runtime policy", runtime_policy)
+    if any(row["harness"] != "external" for row in members) or config.get("runtime"):
+        check("tmux", lambda: require(bool(shutil.which("tmux")), "Managed harness sessions require tmux."))
+    for member in members:
         harness = member["harness"]
-        binary = member.get("binary", harness)
+        binary = member.get("binary") or harness
         if harness == "external" or (harness, binary) in seen:
             continue
         seen.add((harness, binary))
@@ -259,7 +272,6 @@ def doctor(directory, online=False):
                 )
                 detail["protocol"] = capability
             elif harness == "claude":
-                require(bool(shutil.which("tmux")), "Managed Claude needs tmux for its native TUI.")
                 detail["protocol"] = "Channel registration is checked on actual startup."
             else:
                 detail["protocol"] = "ACP authentication and session creation are checked on actual startup."

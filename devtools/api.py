@@ -70,6 +70,9 @@ def spec(name, description, properties=None, required=(), readonly=False):
 
 
 CAPABILITIES = [
+    spec("terminal_status", "Inspect an owned tmux session and its attach command.", {"member": NAME}, ("member",), readonly=True),
+    spec("terminal_read", "Read recent output from an owned tmux terminal.",
+         {"member": NAME, "lines": {"type": "integer", "minimum": 1, "maximum": 500}}, ("member",), readonly=True),
     spec("runtime_status", "Inspect operator role policy, vendor availability and runtime choices.", readonly=True),
     spec("peers", "List configured live members, native session identities and current observed state.", readonly=True),
     spec(
@@ -521,6 +524,10 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {"terminal_status", "terminal_read"}:
+            from . import terminals
+
+            return getattr(terminals, name.removeprefix("terminal_"))(self.store, **args)
         if name == "runtime_status":
             from .runtime import status
 

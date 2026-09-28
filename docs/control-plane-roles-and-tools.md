@@ -118,10 +118,10 @@ the same job/collaborator. Names are case-insensitive within the work order.
 One producer and an optional auditor can share the job name with distinct briefs.
 The auditor's brief does not overwrite the producer's completion criteria.
 
-Both tools support optional `selection` filters for configured `harness`, `model`
-and `reasoning` values; each orchestrated responsibility can have its own selection.
-Slots supply binaries and runtime settings. Existing collaborators keep their
-session settings. Failed allocation batches roll back jobs, bindings and messages.
+Runtime choices belong to the operator's [role and vendor policy](shared-runtime-config.md).
+Neither tool takes harness/model/reasoning selectors. The service allocates role
+instances and starts [owned tmux terminals](tmux-control.md). Existing collaborators
+keep their launch settings. Failed allocation batches roll back jobs, bindings and messages.
 
 The following illustrates an authorized product job, not a request to implement it:
 

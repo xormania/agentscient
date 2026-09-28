@@ -48,8 +48,20 @@
           "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools"
         },
         {
+          "name": "Prepare tmux",
+          "if": "${{ runner.environment == 'github-hosted' }}",
+          "run": "command -v tmux || (sudo apt-get update && sudo apt-get install -y tmux)"
+        },
+        {
           "name": "Verify live MCP and transport protocols",
+          "env": {"AGENTSCIENT_REQUIRE_TMUX": "1", "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence"},
           "run": "python3 -m unittest discover -s devtools/tests -v"
+        },
+        {
+          "name": "Retain runtime fixture evidence",
+          "if": "${{ always() }}",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {"name": "runtime-fixture-evidence", "path": "${{ runner.temp }}/runtime-evidence", "retention-days": 7}
         }
       ]
     },
