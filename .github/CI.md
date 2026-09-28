@@ -7,8 +7,8 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
-| `changes` | Tests CI routing and the aggregate gate, then compares the event's Git revisions to select jobs. |
-| `live-mcp` | Ruff and the Python service, stdio MCP, native protocol, Git and GitHub fixture tests. |
+| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; runs Ruff before selected dev-lane jobs can start. |
+| `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
 | `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
@@ -22,7 +22,9 @@ evidence. The Serena job records its build and integration results in the logs.
 
 | Changed files | Selected suites |
 | --- | --- |
-| `devtools/`, agent instructions and skills | `live-mcp`, `maker-mate`, `serena`; no product suite. |
+| Shared `devtools/` code, agent instructions and skills | `live-mcp`, `maker-mate`, `serena`; no product suite. |
+| Python test modules and native/HTTP harness fixtures | `live-mcp` only. The shared `devtools/tests/support.py` client still selects both integrations. |
+| Maker/Mate integration / Serena integration or image | `live-mcp` plus the corresponding integration. |
 | Application code/configuration, Composer, PHP environment, Mate or PHPUnit configuration/bootstrap | Product suite and `maker-mate`. |
 | Other product tests, public files, assets, templates and translations | Product suite. |
 | `ruff.toml` / `.phpactor.json` | `live-mcp` / `serena`, respectively. |
@@ -31,7 +33,7 @@ evidence. The Serena job records its build and integration results in the logs.
 
 Rules use case-sensitive Python `fnmatch` patterns: `*` also matches `/`, so
 `devtools/*` includes nested files. `ignore` takes precedence, then `all`, then
-the union of matching jobs. Unclassified paths select everything so new code
+the union of matching jobs after each job's `exclude` patterns. Unclassified paths select everything so new code
 cannot silently lose coverage. Add an explicit rule when adding a component.
 The workflow summary lists selected and skipped jobs.
 
@@ -48,6 +50,37 @@ the actual tools. Its fixture configures only the generated test as a check;
 normal agents retain their default container, YAML and application test checks.
 The product workflow can also be invoked manually on its own.
 
+## Scheduling and caches
+
+Selection and lint finish before the selected suites start in parallel. Product
+checks do not wait for the Python suite, and integrations do not wait for each
+other. An updated PR cancels its obsolete run. Pushes, merge groups and manual
+runs keep separate concurrency groups: push filters cover only that event's
+delta, so cancelling an earlier push could discard its selected coverage.
+
+| Cache | Local runners | Hosted runners |
+| --- | --- | --- |
+| Ruff downloads | pip's existing local cache | `setup-python` pip cache, keyed by [requirements-ci.txt](requirements-ci.txt). |
+| Composer package downloads | Composer's existing local cache | GitHub cache keyed by OS, architecture and `composer.lock`, with a platform fallback. |
+| Pinned PHP archive | `RUNNER_TOOL_CACHE/agentscient-php`, keyed and verified by SHA-256 on every use; extracted into a fresh job directory. | Managed by `setup-php`. |
+| Serena Docker layers | Existing Docker builder cache | Buildx with the GitHub Actions layer cache. |
+
+Only downloaded dependencies and build layers are cached. Each job still installs
+locked Composer dependencies into its own checkout/worktree and executes its
+selected tests. No application `vendor/`, runtime state, credentials, or passing
+test results are stored in these caches. A damaged PHP archive is downloaded and
+verified again before use; an invalid download fails the job.
+
+Serena uses a unique image tag per run and attempt, passed through to the integration
+and removed afterwards. Concurrent jobs sharing the WSL Docker daemon cannot
+replace the image another job is about to test. Layer caching remains available.
+
+Test fixtures use short HTTP shutdown polling and explicit release markers for
+work that must remain running through an MCP disconnect. Assertions wait for the
+state they need; CI does not retry failed tests to obtain a green result. If a
+runner loses Docker or PHP crashes, inspect the failing step and retained evidence
+as an environment/runtime failure before labelling it a test flake.
+
 ## Runner selection
 
 The repository variable `CI_RUNNER_MODE` selects execution:
@@ -58,7 +91,7 @@ The repository variable `CI_RUNNER_MODE` selects execution:
 | `local` | Registered self-hosted runner |
 
 Any other value fails runner selection. The same jobs run in either mode.
-The self-hosted PHP setup requires Linux/X64. Runners need Python, Git, Docker and
+The self-hosted PHP setup requires Linux/X64. Runners need Python 3.12+, Git, Docker and
 the download/archive tools used by [php-runtime](actions/php-runtime/action.yml).
 That action supplies temporary pinned PHP and installs Composer when absent,
 without replacing global PHP. Select runner mode as an operator choice.
@@ -69,7 +102,7 @@ From the repository root, use the relevant checks:
 
 ```sh
 python3 -m unittest discover -s .github/tests -v
-python3 -m unittest discover -s devtools/tests -v
+python3 -m unittest discover -s devtools/tests -v --durations 10
 uv tool run --from ruff==0.16.8 ruff check devtools .github/ci.py .github/tests
 ```
 

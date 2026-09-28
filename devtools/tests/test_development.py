@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 import test_workspaces
-from support import Client, until
+from support import Client, held_check, until
 
 from devtools.api import API
 from devtools.development import Development
@@ -34,11 +34,18 @@ class DevelopmentTests(unittest.TestCase):
         return root
 
     def test_checks_complete_after_client_disconnect_and_route_evidence(self):
-        self.configure({"fixture": [sys.executable, "-c", "import time; time.sleep(0.7); print('measured')"]})
+        argv, started, release = held_check(self.root)
+        self.configure({"fixture": argv})
         client = Client(self.state, "coder")
-        receipt = client.tool("work_check", {})
-        self.assertIn(receipt["state"], {"queued", "running"})
-        client.close()
+        try:
+            receipt = client.tool("work_check", {})
+            self.assertIn(receipt["state"], {"queued", "running"})
+            until(started.exists)
+            client.close()
+            self.assertEqual("running", self.api.operations.inspect()["operations"][0]["state"])
+        finally:
+            release.touch()
+            client.close()
         result = until(
             lambda: next((r for r in self.api.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )

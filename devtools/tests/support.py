@@ -114,6 +114,21 @@ def until(predicate, timeout=5):
     raise AssertionError("Expected observation did not arrive before timeout")
 
 
+def held_check(directory):
+    """A check that cannot complete until the test releases it after disconnect."""
+    started, release = Path(directory) / "check-started", Path(directory) / "check-release"
+    program = (
+        "import sys, time\nfrom pathlib import Path\n"
+        "Path(sys.argv[1]).touch()\n"
+        "deadline = time.monotonic() + 15\n"
+        "while not Path(sys.argv[2]).exists():\n"
+        "    if time.monotonic() >= deadline: raise TimeoutError('Test did not release the check')\n"
+        "    time.sleep(0.01)\n"
+        "print('measured check completed')\n"
+    )
+    return [sys.executable, "-c", program, str(started), str(release)], started, release
+
+
 def require_tmux():
     """CI must run real terminals; constrained local containers may explicitly skip."""
     binary = shutil.which("tmux")

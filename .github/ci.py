@@ -23,6 +23,7 @@ def select(paths):
         matches = {
             job for job, patterns in RULES["jobs"].items()
             if any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+            and not any(fnmatch.fnmatchcase(path, pattern) for pattern in RULES.get("exclude", {}).get(job, []))
         }
         selected.update(matches or JOBS)
     return selected
