@@ -175,6 +175,18 @@ class NativeProtocolTests(unittest.TestCase):
                 }
                 client = Client(state, "owner", env=env, operator=True)
                 try:
+                    if harness == "codex":
+                        from devtools.terminals import command
+
+                        command(state, "new-session", "-d", "-s", "environment-seed", "--", "sleep", "30")
+                        stale = root / "stale-python"
+                        stale.mkdir()
+                        marker = root / "stale-imported"
+                        (stale / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').write('stale')\n")
+                        for name, value in {"PYTHONHOME": str(stale), "PYTHONPATH": str(stale),
+                                            "LD_PRELOAD": "/missing/stale.so", "LD_LIBRARY_PATH": str(stale),
+                                            "LD_TRACE_LOADED_OBJECTS": "1"}.items():
+                            command(state, "set-environment", "-g", name, value)
                     order = client.invoke(
                         "work_order_create", title="Protocol test", objective="Live work", done_when="Received"
                     )
@@ -188,10 +200,12 @@ class NativeProtocolTests(unittest.TestCase):
                     )
                     started = client.invoke("session_start", member="worker")
                     self.assertEqual("running", started["requested"])
+                    if harness == "codex":
+                        self.assertFalse(marker.exists())
                     self.assertTrue(client.invoke("terminal_status", member="worker")["exists"])
                     until(lambda: store.member("worker")["state"] == "idle")
                     original_id = store.member("worker")["native_id"]
-                    runtime = store.events(kind="runtime_observed", actor="worker")["events"]
+                    runtime = until(lambda: store.events(kind="runtime_observed", actor="worker")["events"])
                     self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
                     first = client.invoke(
@@ -235,5 +249,7 @@ class NativeProtocolTests(unittest.TestCase):
                         until(lambda: store.member("worker")["state"] in {"stopped", "failed"}, timeout=8)
                     finally:
                         client.close()
+                        if harness == "codex":
+                            command(state, "kill-session", "-t", "=environment-seed", check=False)
                         retain_native(state, harness)
                 self.assertEqual("stopped", store.member("worker")["state"])

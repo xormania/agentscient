@@ -106,6 +106,55 @@ class SessionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not available"):
             xo.call("restart_xo", {"reason": "Cannot replace my own superior"})
 
+    def test_external_reconnect_after_native_exit_preserves_context_and_generation_fences(self):
+        self.bind()
+        self.co.call("work_report", {"text": "Decision before handover", "kind": "progress"})
+        first = self.store.begin_session("owner", os.getpid())
+        old_native = Client(self.state, "owner", generation=first)
+        self.addCleanup(old_native.close)
+        old_unversioned = Client(self.state, "owner")
+        self.addCleanup(old_unversioned.close)
+        self.store.session("owner", generation=first, state="stopped", desired="stopped", pid=None)
+        for client in (old_native, old_unversioned):
+            with self.assertRaisesRegex(ValueError, "stopped or been replaced"):
+                client.tool("onboard", {})
+        with self.assertRaisesRegex(ValueError, "stopped or been replaced"):
+            Client(self.state, "owner", generation=first)
+
+        external = Client(self.state, "owner")
+        self.addCleanup(external.close)
+        self.assertIn("Decision before handover", json.dumps(external.tool("onboard", {})))
+        external.tool("work_report", {"text": "Decision from external CO", "kind": "progress"})
+        second = self.store.begin_session("owner", os.getpid())
+        with self.assertRaisesRegex(ValueError, "stopped or been replaced"):
+            external.tool("work_report", {"text": "Stale external decision", "kind": "progress"})
+        current = Client(self.state, "owner", generation=second)
+        self.addCleanup(current.close)
+        context = json.dumps(current.tool("onboard", {}))
+        self.assertIn("Decision from external CO", context)
+        self.assertNotIn("Stale external decision", context)
+        rows = [json.loads(line) for line in (self.state / "telemetry/owner.jsonl").read_text().splitlines()]
+        frames = [row for row in rows if row["component"] == "mcp" and row["kind"] in {"mcp_in", "mcp_out"}]
+        self.assertTrue(frames)
+        self.assertTrue(all("connection_generation" in row["context"] for row in frames))
+
+    def test_stopping_generation_cannot_claim_the_replacement_recovery_direction(self):
+        xo = self.bind()
+        first = self.store.begin_session(xo.member, os.getpid())
+        original = self.store.take_delivery(xo.member, scoped=True, generation=first)
+        self.assertIsNotNone(original)
+        self.store.acknowledge(xo.member, original["id"])
+        self.co.call("restart_xo", {"reason": "Switch to the available vendor"})
+        # The old delivery loop may already have observed desired=running before
+        # restart_xo commits the stop and queues the replacement's direction.
+        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
+        self.store.session(xo.member, generation=first, state="stopped", pid=None)
+        second = self.store.begin_session(xo.member, os.getpid())
+        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
+        recovery = self.store.take_delivery(xo.member, scoped=True, generation=second)
+        self.assertIn("Recover your existing work and team", recovery["body"])
+        self.assertIn("Switch to the available vendor", recovery["body"])
+
     def test_private_generation_profiles_do_not_rebind_old_native_clients(self):
         self.bind()
         first = self.store.begin_session("owner", os.getpid())

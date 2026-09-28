@@ -365,7 +365,7 @@ class Native:
             while not self.rpc.dead.is_set() and self.store.member(self.member)["desired"] == "running":
                 if self.harness == "grok":
                     self.grok_activity()
-                message = self.store.take_delivery(self.member, scoped=True)
+                message = self.store.take_delivery(self.member, scoped=True, generation=self.generation)
                 if message:
                     await self.deliver(message)
                 else:

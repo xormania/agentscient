@@ -237,7 +237,7 @@ class Store:
         finally:
             connection.close()
 
-    def initialize(self, members):
+    def initialize(self, members, *, runtime=False):
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
@@ -248,7 +248,8 @@ class Store:
                 if self.directory == root or self.directory.is_relative_to(root):
                     raise ValueError("Keep live state outside the managed source worktree.")
                 old = db.execute("SELECT * FROM members WHERE name=?", (name,)).fetchone()
-                if old and (old["harness"] != member["harness"] or old["workspace"] != str(root)):
+                managed_runtime = runtime and member["harness"] != "external" and old and old["harness"] != "external"
+                if old and ((old["harness"] != member["harness"] and not managed_runtime) or old["workspace"] != str(root)):
                     raise ValueError(f"Member {name} already has a different harness or worktree.")
                 db.execute(
                     "INSERT OR IGNORE INTO members(name,harness,workspace,updated) VALUES (?,?,?,?)",
@@ -463,9 +464,13 @@ class Store:
             )
         return {"message": message, "acknowledged": True}
 
-    def take_delivery(self, member, *, scoped=False):
+    def take_delivery(self, member, *, scoped=False, generation=UNSET):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if generation is not UNSET:
+                current = db.execute("SELECT generation,desired FROM members WHERE name=?", (member,)).fetchone()
+                if not current or current["generation"] != generation or current["desired"] != "running":
+                    return None
             clause, args = "1", ()
             if scoped:
                 from .control import binding, scope_sql

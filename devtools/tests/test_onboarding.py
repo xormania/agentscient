@@ -81,3 +81,46 @@ class MateSkillTests(unittest.TestCase):
         self.assertIn("resources:read", call.call_args.args[1])
         with self.assertRaises(ValueError):
             Development(self.store, "coder").inspect("mate_resource", resource="file:///private")
+
+    def test_onboarding_and_skill_reads_keep_the_binding_captured_before_a_rebind(self):
+        self.configure()
+        scope = self.api.control.snapshot()
+        expected = self.api.call("onboard", {})
+
+        def rebind(role):
+            self.api.control.bind("coder", role, scope["work_order"], scope["job"], "xo")
+
+        captured = self.api.call("onboard", {}, on_context=lambda: rebind("docs"))
+        self.assertEqual("coder", captured["role"])
+        self.assertEqual("coder", captured["context"]["role"])
+        self.assertEqual(expected["tools"], captured["tools"])
+        self.assertEqual(expected["skills"], captured["skills"])
+        subsequent = self.api.call("onboard", {})
+        self.assertEqual("docs", subsequent["role"])
+        self.assertNotIn("framework_generate", subsequent["tools"])
+        self.assertEqual(4, len(subsequent["skills"]))
+
+        rebind("coder")
+        name = "mate-symfony-profiler-debugging"
+        skill = self.api.call("skill_read", {"name": name}, on_context=lambda: rebind("docs"))
+        self.assertEqual(name, skill["name"])
+        with self.assertRaisesRegex(ValueError, "current onboard catalog"):
+            self.api.call("skill_read", {"name": name})
+
+    def test_adapter_changes_are_versioned_in_the_catalog_and_delivery_events(self):
+        self.configure()
+        name = "mate-symfony-profiler-debugging"
+        before = self.api.call("onboard", {})
+        original = self.api.call("skill_read", {"name": name})
+        with patch("devtools.onboarding.ADAPTER", "Revised MCP syntax and restrictions"):
+            after = self.api.call("onboard", {})
+            changed = self.api.call("skill_read", {"name": name})
+        self.assertEqual(original["sha256"], changed["sha256"])
+        self.assertNotEqual(original["guidance_sha256"], changed["guidance_sha256"])
+        self.assertNotEqual(before["revision"], after["revision"])
+        self.assertEqual(before["skills"][:2], after["skills"][:2])
+        catalog_entry = next(row for row in after["skills"] if row["name"] == name)
+        self.assertEqual(changed["guidance_sha256"], catalog_entry["guidance_sha256"])
+        events = self.store.events(kind="skill_loaded")["events"]
+        self.assertEqual([original["guidance_sha256"], changed["guidance_sha256"]],
+                         [row["data"]["guidance_sha256"] for row in events])

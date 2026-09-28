@@ -24,14 +24,18 @@ def lock(store, member, *, exclusive=False):
 class Lease:
     def __init__(self, store, member, generation=None, *, operator=False):
         self.store, self.member, self.operator = store, member, operator
-        self.generation = generation if generation is not None else store.member(member)["generation"]
+        current = store.member(member)
+        self.generation = generation if generation is not None else current["generation"]
+        # A fresh exported connection can resume an external seat after native exit.
+        # It still captures the generation, so the next native start fences it out.
+        self.external = generation is None and current["harness"] == "external" and current["desired"] == "stopped"
 
     def check(self):
         if self.operator:
             return
         current = self.store.member(self.member)
         if current["generation"] != self.generation or (
-            self.generation is not None and current["desired"] != "running"
+            self.generation is not None and current["desired"] != "running" and not self.external
         ):
             raise ValueError("This session has stopped or been replaced. Connect the current session.")
 
