@@ -69,6 +69,11 @@ profile reconnects cannot act in a replacement session. A new generation waits
 for an in-flight MCP/provider call to finish; launching while a call is active
 returns a retryable error. The old native process must exit before replacement.
 The separate Serena gateway enforces the same session boundary.
+After native shutdown, a fresh external connection from the exported `connection`
+configuration can resume the same external CO seat without a generation argument.
+It keeps the durable work and captures the last generation as a boundary: the next
+native launch invalidates it. Connections opened before shutdown and connections
+that explicitly carry the stopped native generation remain blocked.
 
 ## Evidence and limits
 

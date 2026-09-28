@@ -78,7 +78,7 @@ def configuration(directory, member):
     store = Store(directory)
     team = team_config(store.directory)
     rows = team["members"]
-    store.initialize(rows)
+    store.initialize(rows, runtime=team.get("runtime", False))
     selected = next((row for row in rows if row["name"] == member), None)
     if selected is None and not team.get("runtime"):
         raise ValueError("Member is not configured in team.json")
@@ -161,6 +161,7 @@ def _start(directory, member, binding_revision):
     argv += ["--launch-id", launch_id]
     if binding_revision is not None:
         argv += ["--binding-revision", str(binding_revision)]
+    argv = [sys.executable, "-I", "-S", str(ENTRY.with_name("bootstrap.py")), str(snapshot), *argv]
     from .terminals import start as start_terminal
 
     try:
@@ -195,11 +196,6 @@ def agent(directory, member, binding_revision=None, launch_id=None):
             raise ValueError("Launch snapshot belongs to another member")
         config = saved["config"]
         snapshot.unlink()
-        # tmux servers outlive their creator and otherwise retain an old login environment.
-        terminal_env = {key: os.environ[key] for key in ("TERM", "TMUX", "TMUX_PANE") if key in os.environ}
-        os.environ.clear()
-        os.environ.update(saved["environment"])
-        os.environ.update(terminal_env)
     else:
         config = configuration(directory, member)
     control = Control(store, member)

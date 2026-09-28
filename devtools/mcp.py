@@ -20,20 +20,22 @@ def serve(directory, member, channel=False, operator=False, generation=None):
     initialized = threading.Event()
     stopped = threading.Event()
     tool_names = [row["name"] for row in api.tools()]
-    trace = Trace(
-        directory,
-        member,
-        component="mcp",
-        context=lambda: {
-            **context(api.store, member),
-            "connection_generation": lease.generation,
-        },
-    )
+    incoming_sequence = outgoing_sequence = 0
 
-    def write(packet):
-        trace.record("mcp_out", packet)
+    def trace_context():
+        return {**context(api.store, member), "connection_generation": lease.generation}
+
+    trace = Trace(directory, member, component="mcp", context=trace_context)
+
+    def write(packet, frame_context=None):
+        nonlocal outgoing_sequence
         encoded = json.dumps({"jsonrpc": "2.0", **packet}, ensure_ascii=False)
         with output_lock:
+            outgoing_sequence += 1
+            trace.record("mcp_out", packet, frame_context={
+                **(frame_context if frame_context is not None else trace_context()),
+                "wire_sequence": outgoing_sequence,
+            })
             sys.stdout.write(encoded + "\n")
             sys.stdout.flush()
 
@@ -61,28 +63,55 @@ def serve(directory, member, channel=False, operator=False, generation=None):
                         "content": render(message) if operator else api.control.render(message),
                         "meta": {"message_id": str(message["id"]), "sender_id": message["sender"]},
                     },
-                }
+                },
+                {**trace_context(), "work_order": message["work_order"],
+                 "job": message["job"], "scope_source": "message"},
             )
             api.store.delivered(member, message["id"], message["attempt"], transport="claude/channel")
         except Exception as error:
             api.store.delivered(member, message["id"], message["attempt"], error=str(error)[:1000])
             stopped.set()
 
-    def handle(packet):
+    def handle(packet, received_context):
         try:
             with lease.hold():
-                handle_current(packet)
+                handle_current(packet, received_context)
         except ValueError as error:
+            rejected_context = dict(received_context)
+            if packet["method"] == "tools/call":
+                rejected_context.update(work_order=None, job=None, scope_source="unresolved",
+                                        request_sequence=received_context["wire_sequence"])
+                trace.record("mcp_in", packet, frame_context=rejected_context)
             if packet.get("id") is not None:
-                write({"id": packet["id"], "error": {"code": -32602, "message": str(error)}})
+                write({"id": packet["id"], "error": {"code": -32602, "message": str(error)}}, rejected_context)
 
-    def handle_current(packet):
+    def handle_current(packet, received_context):
         ident, method = packet.get("id"), packet.get("method")
+        frame_context = None if method == "tools/call" else received_context
+
+        def capture_context(resolved=True):
+            nonlocal frame_context
+            frame_context = {
+                **(trace_context() if resolved else received_context),
+                "request_sequence": received_context["wire_sequence"],
+                "wire_sequence": received_context["wire_sequence"],
+            }
+            if not resolved:
+                frame_context.update(work_order=None, job=None, scope_source="unresolved")
+            trace.record("mcp_in", packet, frame_context=frame_context)
+
+        def reply(response):
+            if frame_context is None:
+                capture_context(False)
+            write(response, frame_context)
+
         if method == "notifications/initialized":
             initialized.set()
             api.store.event(member, "mcp_ready", channel=channel)
             return
         if ident is None:
+            if frame_context is None:
+                capture_context(False)
             return
         try:
             if method == "initialize":
@@ -112,16 +141,16 @@ def serve(directory, member, channel=False, operator=False, generation=None):
             elif method == "tools/call":
                 params = packet.get("params", {})
                 try:
-                    value = api.call(params["name"], params.get("arguments", {}))
+                    value = api.call(params["name"], params.get("arguments", {}), on_context=capture_context)
                     result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
                 except Exception as error:
                     result = {"isError": True, "content": [{"type": "text", "text": str(error)[:2000]}]}
             else:
-                write({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
+                reply({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
                 return
-            write({"id": ident, "result": result})
+            reply({"id": ident, "result": result})
         except Exception as error:
-            write({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
+            reply({"id": ident, "error": {"code": -32602, "message": str(error)[:2000]}})
 
     def watches():
         initialized.wait()
@@ -180,11 +209,14 @@ def serve(directory, member, channel=False, operator=False, generation=None):
                         break
                     continue
                 if packet["method"] == "tools/call":
-                    trace.record("mcp_in", packet)
-                    pool.submit(handle, packet)
+                    incoming_sequence += 1
+                    received = {**trace_context(), "wire_sequence": incoming_sequence}
+                    pool.submit(handle, packet, received)
                 else:
-                    trace.record("mcp_in", packet)
-                    handle(packet)
+                    incoming_sequence += 1
+                    received = {**trace_context(), "wire_sequence": incoming_sequence}
+                    trace.record("mcp_in", packet, frame_context=received)
+                    handle(packet, received)
         finally:
             stopped.set()
             initialized.set()
