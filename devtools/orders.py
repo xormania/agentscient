@@ -210,7 +210,7 @@ class Orders:
             cursor, existing = None, False
             while True:
                 row = provider.pr_threads(context, thread=thread, cursor=cursor)["thread"]
-                existing |= any(marker in c["body"] for c in row["comments"]["nodes"])
+                existing |= any(c["viewerDidAuthor"] and marker in c["body"] for c in row["comments"]["nodes"])
                 pages = row["comments"]["pageInfo"]
                 if existing or not pages["hasNextPage"]:
                     break

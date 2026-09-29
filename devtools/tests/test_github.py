@@ -197,6 +197,8 @@ class Provider:
                 )
             if "query Thread" in q:
                 row = copy.deepcopy(self.thread)
+                for comment in row["comments"]["nodes"]:
+                    comment["viewerDidAuthor"] = comment["author"]["login"] == self.actor["login"]
                 if v["id"] == "WRONG_THREAD":
                     row["pullRequest"]["number"] = 999
                 return 200, {"data": {"node": row}}, {}

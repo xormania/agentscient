@@ -160,6 +160,19 @@ class CodexReviewTests(unittest.TestCase):
         self.service.tick()
         return [r for r in self.store.inbox("beta")["messages"] if "Work-order PR #" in r["body"]]
 
+    def test_forged_reply_marker_cannot_suppress_xo_response(self):
+        text = "Fixed the boundary and verified the regression."
+        key = hashlib.sha256(canonical([
+            self.context["repository"], self.context["pr"], "THREAD_1", test_github.HEAD, text,
+        ]).encode()).hexdigest()
+        self.provider.thread["comments"]["nodes"][0]["body"] = "<!-- agentscient-response:" + key + " -->"
+        xo = self.client("beta")
+        args = {"review": "thread:THREAD_1", "text": text}
+        xo.tool("review_respond", args)
+        xo.tool("review_respond", args)
+        replies = [r for r in self.provider.requests if "addPullRequestReviewThreadReply" in str(r[2])]
+        self.assertEqual(1, len(replies))
+
     def test_watch_waits_for_reviews_and_only_notifies_changes_including_reopened_findings(self):
         self.provider.run["conclusion"] = "success"
         self.provider.checks[test_github.MERGE] = [self.provider.check("success")]

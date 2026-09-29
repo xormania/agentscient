@@ -16,7 +16,7 @@ from .work import Work, record
 
 PASS = {"success", "neutral", "skipped"}
 FAIL = {"failure", "error", "cancelled", "timed_out", "action_required", "startup_failure", "stale"}
-COMMENTS = """comments(first:10,after:$cursor) { nodes { databaseId body url author { login } }
+COMMENTS = """comments(first:10,after:$cursor) { nodes { databaseId body url viewerDidAuthor author { login } }
     pageInfo { hasNextPage endCursor } }"""
 
 
