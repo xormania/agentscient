@@ -11,11 +11,13 @@ import urllib.error
 import urllib.request
 
 from .github_http import NoRedirect
+from .jev_config import load
 
-MODEL = "jev-1.13.0"
+DEFAULTS = load()
+MODEL = DEFAULTS["model"]
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
-MAX_REQUEST = 28000
-MAX_RESPONSE = 128 * 1024
+MAX_REQUEST = DEFAULTS["transport"]["max_request_bytes"]
+MAX_RESPONSE = DEFAULTS["transport"]["max_response_bytes"]
 
 
 def number(value, low=0, high=1):
@@ -54,6 +56,11 @@ def checked_response(value, questions, model):
             raise ValueError("Jev returned an invalid choice or score.")
         checked[name] = {"type": kind, "choice" if kind == "choice" else "score": selected,
                          "probabilities": probabilities, "confidence": answer["confidence"]}
+        if kind == "score":
+            legend = {str(i): label for i, label in enumerate(question["criteria"])}
+            if answer.get("legend") != legend:
+                raise ValueError("Jev returned an invalid score legend.")
+            checked[name]["legend"] = legend
     usage = value.get("usage")
     if not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0
                                           for k in ("input_tokens", "output_tokens")):
@@ -63,24 +70,27 @@ def checked_response(value, questions, model):
 
 
 class Jev:
+    def __init__(self, settings=None):
+        self.settings = settings or load()["transport"]
+
     def evaluate(self, state, questions, model=MODEL):
         payload = json.dumps({"model": model, "state": state, "questions": questions},
                              ensure_ascii=False, allow_nan=False).encode()
-        if len(payload) > MAX_REQUEST:
+        if len(payload) > self.settings["max_request_bytes"]:
             raise ValueError("Assessment exceeds the Jev input budget; use fewer candidates or smaller ranges.")
         key = os.environ.get("TYPESAFE_API_KEY", "")
         if not key or any(c.isspace() for c in key):
             raise ValueError("The operator must set TYPESAFE_API_KEY for the dev-lane service.")
         opener = urllib.request.build_opener(NoRedirect())
-        for attempt in range(2):
+        for attempt in range(self.settings["max_attempts"]):
             request = urllib.request.Request(ENDPOINT, data=payload, method="POST", headers={
                 "Authorization": "Bearer " + key, "Content-Type": "application/json",
                 "Accept": "application/json", "User-Agent": "Agentscient-MCP",
             })
             try:
-                with opener.open(request, timeout=8) as response:
-                    body = response.read(MAX_RESPONSE + 1)
-                if len(body) > MAX_RESPONSE:
+                with opener.open(request, timeout=self.settings["timeout"]) as response:
+                    body = response.read(self.settings["max_response_bytes"] + 1)
+                if len(body) > self.settings["max_response_bytes"]:
                     raise ValueError("Jev response exceeds the evaluation size limit.")
                 try:
                     value = json.loads(body)
@@ -89,14 +99,15 @@ class Jev:
                 return checked_response(value, questions, model)
             except urllib.error.HTTPError as error:
                 status = error.code
-                retry = error.headers.get("Retry-After", "0.25") if error.headers else "0.25"
+                fallback = self.settings["retry_delay"] * 2 ** attempt
+                retry = error.headers.get("Retry-After", str(fallback)) if error.headers else str(fallback)
                 error.close()
                 try:
                     delay = float(retry)
                 except ValueError:
-                    delay = 3  # A dated/long retry belongs to a later explicit request.
-                if not attempt and status in {429, 529} and number(delay, 0, 2):
-                    time.sleep(max(0.25, delay))
+                    delay = float("inf")  # A dated/long retry belongs to a later explicit request.
+                if attempt + 1 < self.settings["max_attempts"] and status in {429, 529} and number(delay, 0, self.settings["max_retry_delay"]):
+                    time.sleep(min(self.settings["max_retry_delay"], max(fallback, delay)))
                     continue
                 raise ValueError(f"Jev is unavailable (HTTP {status}); use normal inspection or try later.") from None
             except (OSError, urllib.error.URLError, http.client.HTTPException):

@@ -156,6 +156,12 @@ def serve(directory, member, channel=False, operator=False, generation=None):
 
     def watches():
         initialized.wait()
+        from .watcher import resume
+
+        try:
+            resume(api.store)
+        except Exception as error:
+            api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
         while not stopped.wait(1):
             try:
                 with lease.hold():
@@ -170,7 +176,6 @@ def serve(directory, member, channel=False, operator=False, generation=None):
             if current != tool_names:
                 write({"method": "notifications/tools/list_changed"})
                 tool_names = current
-            api.github.tick()
         except Exception as error:
             api.store.event(member, "github_watch_error", error=api.github.http.clean(str(error))[:1000])
         try:

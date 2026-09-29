@@ -15,6 +15,17 @@ from pathlib import Path
 ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 
 
+def require_process_identity():
+    from devtools import processes
+
+    try:
+        processes.boot_id()
+    except RuntimeError as error:
+        if os.environ.get("AGENTSCIENT_REQUIRE_TMUX") == "1":
+            raise
+        raise unittest.SkipTest(str(error)) from error
+
+
 class Client:
     """A real stdio MCP client, including concurrent requests and notifications."""
 

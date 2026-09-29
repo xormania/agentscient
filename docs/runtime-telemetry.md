@@ -39,6 +39,11 @@ Optional Jev calls emit `jev_evaluation` events in the same work scope. These
 record the purpose, input fingerprint, model, elapsed time, cache reuse and
 retained evidence. Provider usage appears on fresh successful evaluations;
 cache hits have `usage: null` and should not be counted as fresh consumption.
+The referenced artifact includes the exact sanitized TypeSafe request, response,
+binding and operator policy. `jev_feedback` connects an evaluation to a decision
+update, and an outcome update to that decision. Feedback labels and report text
+record the officer's assessment separately from Jev's probabilities. Recording a
+decision does not allocate, revise or accept work; normal command tools do that.
 The response retains the original evaluation's usage. Advice is recorded
 separately from subsequent agent decisions and measured outcomes; a recommendation
 does not establish that the agent followed it or that it improved the result.

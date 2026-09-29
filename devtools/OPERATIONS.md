@@ -58,6 +58,7 @@ harness or starting workspace in place; use a new member name for that change.
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
 | `jev` | Optional `{}` enables the two on-demand Jev advice tools; absent by default. |
 | `jev.model` | Pinned TypeSafe model version; defaults to `jev-1.13.0`. Moving aliases are rejected. |
+| `jev.policy_file` | Operator-owned JSON policy, absolute or relative to the team state directory; defaults to the shipped `devtools/jev.json`. |
 | `jev.profile_evidence` | Optional map from configured runtime profile names (fixed teams: member names) to dated performance evidence. Include task family, harness/model/reasoning, result and source references. |
 
 Each work order and job owns its worktree and Composer install. Managed startup
@@ -87,14 +88,23 @@ retained evidence through their normal work scope. Profile recommendations do no
 change `roles.json`, `vendors.json`, or allocation order. Use the existing runtime
 policy controls when acting on a recommendation that requires a different profile.
 
-Requests have a 28,000-byte serialized input budget. Narrow oversized batches;
+Copy `devtools/jev.json` to an operator-owned file and set `jev.policy_file` to tune
+the model, bounded transport settings and versioned scope rubric. The existing
+`jev.model` setting overrides the policy model. Increment the rubric version when
+changing its criteria. Both content and version invalidate cached evaluations.
+Agent arguments cannot replace this rubric or select transport settings.
+
+Requests default to a 28,000-byte serialized input budget. Narrow oversized batches;
 the service never silently drops requested sources. The transport uses an
 eight-second socket timeout, disallows redirects, and makes at most one short
 retry for HTTP 429/529. Longer backoff is left to a later explicit call. Response
 models, answer types, options, distributions and usage are checked before use.
 Provider errors return a sanitized failure and do not block ordinary work tools.
 
-The existing artifact catalogue retains successful evaluations and their rubrics.
+The existing artifact catalogue retains each successful evaluation's exact
+sanitized request, response, binding and policy snapshot. Source ranges, including
+uncommitted text, remain replayable after edits or worktree retirement. Routine
+MCP replies omit that input text; read the evidence reference to inspect it.
 The cache key covers the caller's work binding, input content, source identities,
 questions, rubric version and pinned model. Identical concurrent requests share
 the evaluation using the existing service-lock mechanism. There is no separate
@@ -102,6 +112,15 @@ result database, queue or cache service. `jev_evaluation` events record elapsed
 time, model, fingerprint, evidence and provider usage; cache-hit events have
 `usage: null` because they made no provider call. The response's usage describes
 the original evaluation and must not be added again on cache hits.
+
+Use `work_assess(proposal=..., sources=...)` for a joint mission assessment. The
+default rubric distinguishes required work, separate improvements and unclear
+scope, and assesses coordination needs. It does not create work or change authority.
+Command roles link a decision through `work_report.evaluation`; later outcome
+reports reference that decision. These use existing reports/artifacts and emit
+`jev_feedback`, with operator-defined labels for later analysis. A decision using
+an evaluation from a changed binding is rejected; historical outcomes remain
+linkable. Existing team databases upgrade in place without discarding reports.
 
 Use [normal MCP examples](../docs/control-plane-roles-and-tools.md#jev-advice) to
 try a representative assignment and source/diagnostic assessment. Compare useful
@@ -111,6 +130,9 @@ integration; actual Jev accuracy and savings require this authenticated evaluati
 
 References: [TypeSafe API](https://docs.typesafe.ai/api),
 [model versions and limits](https://docs.typesafe.ai/models).
+Wire fixtures were checked against these sources on 2026-09-29, including Score
+`legend`, probability maps, fractional scores and usage fields. No fixture result
+is an authenticated judgment-quality measurement.
 
 ### Branches and worktree lifetime
 
@@ -445,8 +467,50 @@ run ID or completion. Find the actual run in `ci_status` after it appears.
 existing message service. It retains the original work binding across selection
 changes and MCP restarts. A changed PR head produces `superseded`; completion or
 timeout ends the watch. Repeating the call renews the watch. `ci_watch_stop` stops
-this member's watch without cancelling CI. Polling resumes while this member's MCP
-server is connected; stored notifications remain readable in `message_inbox`.
+this member's watch without cancelling CI. One background observer per state
+directory polls independently of agent/MCP sessions; stored notifications remain
+readable in `message_inbox`. Registering a watch starts the observer automatically.
+Opening a new MCP connection resumes pending watches after an observer restart.
+
+Integrated work-order submission also requests `@codex review` and
+`@codex security review`, once per review kind and submitted commit. Job PRs retain
+their existing CI observation. The combined watch remains active after CI or
+reviews finish, so reopened findings are reported, until the PR closes, its head
+changes, or the 24-hour watch expires. XO submits again after integrating fixes
+to validate the new head and request fresh reviews. `conclude` reads GitHub again
+and requires both reviews on the exact current commit with no unresolved threads.
+
+Completion is read from the authenticated Codex bot's review-summary comment.
+Abbreviated commit IDs are resolved through GitHub. Missing, changed or ambiguous
+summary formats remain pending; silence and reactions do not establish success.
+The repository must have both Codex review features enabled for the identity
+posting the requests. A lost request response is reconciled from its retained
+comment marker before another request is considered. If no remote receipt is
+visible, the uncertain request remains explicit for operator inspection.
+
+The observer reuses `github_watches`, the GitHub transport and durable messages.
+It polls at `github.poll_seconds` (default 30, minimum 15) without model calls,
+honors rate-limit retry times, and atomically records changed observations with
+their notifications. CO/XO receive work-order notices through the existing work
+context and live-message delivery paths. Agents use `work_submit`, `monitor` and
+`review_respond`; they do not manage processes or GitHub API calls.
+
+For operator diagnostics only:
+
+```sh
+python3 devtools/run.py watch --state /absolute/private/state --action status
+python3 devtools/run.py watch --state /absolute/private/state --action start
+python3 devtools/run.py watch --state /absolute/private/state --action stop
+```
+
+`stop` preserves watches and messages. A subsequent `start`, watch registration,
+or MCP connection resumes pending work. `--action run` runs in the foreground for
+an operator's service supervisor. The detached process survives agent shutdown;
+its singleton lock and existing Linux process identity checks prevent duplicate
+observers and signalling a reused PID. Operator diagnostics are in `watcher.log`
+and the existing event store. After updating dev-lane code, restart the observer
+to load the new implementation. No webhook endpoint or additional service framework
+is required.
 
 `ci_artifact_save` retains the downloaded ZIP by default or a named `entry` as a
 report. It verifies GitHub's digest when available and uses the existing managed

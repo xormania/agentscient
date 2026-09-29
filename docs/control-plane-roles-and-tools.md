@@ -45,7 +45,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
-| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`; with development enabled: `work_check` | None |
+| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
@@ -66,6 +66,29 @@ catalog, even by guessing a backing capability's name.
 ## Shared context, reports and guidance
 
 ### Jev advice
+
+For a consistent mission assessment, supply a proposal and optional evidence:
+
+```json
+{"name":"work_assess","arguments":{"proposal":"Add response caching while implementing the required JSON service","sources":[{"path":"src/Service/Example.php"}]}}
+```
+
+This uses the operator's versioned rubric and considers the brief, proposal and
+all sources together. Source-by-source questions remain available with `sources`
+and `questions`; do not combine custom questions with `proposal`.
+
+Command roles record their chosen action and rationale using ordinary reports:
+
+```json
+{"name":"work_report","arguments":{"kind":"recommendation","text":"Keep caching as a separate finding; finish the current JSON behavior.","evaluation":{"reference":"artifact:12","stage":"decision","label":"deferred"}}}
+{"name":"work_report","arguments":{"kind":"result","text":"The agreed JSON behavior passed; caching remained a separate finding.","evaluation":{"reference":"artifact:12","stage":"outcome","decision":"update:34","label":"useful"}}}
+```
+
+Use the actual returned references. Decision/outcome links are retained and
+validated against the current work scope. Reports record choices; `orchestrate`
+and `steer` enact assignment changes. A finding does not become an assignment by
+being reported or assessed. Your current brief still determines completion.
+
 
 XO can use `assignment_advise` before `orchestrate` to compare up to four proposed
 jobs against the current objective, active jobs, capacity and available configured
@@ -351,7 +374,7 @@ before acceptance. CI changes are delivered to the worker and its current superv
 | Tool | Outcome |
 | --- | --- |
 | `review_record` | Audit records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
-| `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. |
+| `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. XO supplies a work-order thread reference from `monitor(section="feedback")` and can set `resolve:true` after addressing the finding. |
 
 The service retains and routes findings/responses to the job participants and XO.
 GitHub receives a COMMENT review; a local `ready` conclusion does not fabricate a
@@ -383,10 +406,18 @@ inspection; cleanup reports its status without blocking other work. Messages,
 checkpoints, assessments, PR references and artifacts remain available.
 
 When every job is done or cancelled, XO uses `work_submit(summary)` to validate
-and submit the combined result. CO inspects it with `monitor(section="review")`,
-then calls `conclude(assessment)` to deliver the passing outcome and release the
+and submit the combined result. Both Codex Code Review and Security Review are
+requested for that commit. Review and CI changes arrive as scoped notifications.
+XO inspects findings with `monitor(section="feedback")`, coordinates fixes through
+jobs, and uses `review_respond(text, review, resolve=true)` to explain and resolve
+addressed threads. After integrating fixes, XO submits again for reviews of the new
+commit. Missing or stale reviews remain pending; a clean CI result alone is not
+review completion. Job PRs do not request these additional reviews.
+
+CO inspects the combined outcome with `monitor(section="review")`, then calls
+`conclude(assessment)` after CI and both current reviews pass and findings are
+addressed. Delivery verifies the current result and releases the
 remaining team. The integration workspace retires after this final merge and
 shutdown. Report-only work with no source changes can conclude without a PR.
 The next authorized `direct` creates a new work order. Submission, contribution
 acceptance and delivery of the overall outcome remain distinct observations.
-

@@ -16,7 +16,7 @@ from .work import Work, record
 
 PASS = {"success", "neutral", "skipped"}
 FAIL = {"failure", "error", "cancelled", "timed_out", "action_required", "startup_failure", "stale"}
-COMMENTS = """comments(first:10,after:$cursor) { nodes { databaseId body url author { login } }
+COMMENTS = """comments(first:10,after:$cursor) { nodes { databaseId body url viewerDidAuthor author { login } }
     pageInfo { hasNextPage endCursor } }"""
 
 
@@ -435,7 +435,9 @@ class GitHub:
         result = self.http.graphql(
             """query Threads($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
             repository(owner:$owner,name:$repo) { pullRequest(number:$number) { reviewThreads(first:20,after:$cursor) {
-                nodes { id isResolved isOutdated path line comments(first:1) { nodes { databaseId body url author { login } } } }
+                nodes { id isResolved isOutdated path line
+                    comments(first:1) { nodes { databaseId body url updatedAt author { login } } }
+                    latest: comments(last:1) { totalCount nodes { databaseId body url updatedAt author { login } } } }
                 pageInfo { hasNextPage endCursor } } } } }""",
             owner=owner,
             repo=repo,
@@ -443,6 +445,12 @@ class GitHub:
             cursor=cursor,
         )["repository"]["pullRequest"]["reviewThreads"]
         for row in result["nodes"]:
+            # Keep feedback bounded while exposing new replies and their update signal.
+            latest = row.pop("latest")
+            row["comments"]["totalCount"] = latest["totalCount"]
+            row["comments"]["nodes"] = list({
+                comment["databaseId"]: comment for comment in row["comments"]["nodes"] + latest["nodes"]
+            }.values())
             for comment in row["comments"]["nodes"]:
                 comment["body"] = comment["body"][:1500]
         return {
@@ -500,7 +508,7 @@ class GitHub:
             raise ValueError("Choose a run from ci_status and supply its run ID.")
         return self.http.request("GET", context["root"] + f"/actions/runs/{run}")
 
-    def ci_status(self, context, run=None, page=1, _pr=None):
+    def ci_status(self, context, run=None, page=1, _pr=None, _observe=False):
         if run is not None:
             row = self._run(context, run)
             return {"state": state_of([row]), "runs": [short_run(row)]}
@@ -544,7 +552,7 @@ class GitHub:
         offset = (page - 1) * 20
         state = "pending" if active_runs else state_of(effective)
         self._unchanged(context, pr)
-        return {
+        result = {
             "revision": head,
             "tested_revision": effective[0]["revision"] if effective else None,
             "state": state,
@@ -556,6 +564,12 @@ class GitHub:
             "next_run_page": page + 1 if offset + 20 < len(runs) else None,
             "note": "Observed checks; GitHub decides which requirements block merging.",
         }
+        if _observe:
+            # Watches need changes across all checks/runs, including outside the agent's preview page.
+            result["_observation"] = hashlib.sha256(canonical([
+                sorted(all_checks, key=canonical), sorted(runs.values(), key=canonical),
+            ]).encode()).hexdigest()
+        return result
 
     def ci_failures(self, context, run, check=None, attempt=None, page=1, log_offset=None, annotation_page=1):
         row = self._run(context, run)
@@ -768,24 +782,33 @@ class GitHub:
             "next_entry_offset": entry_offset + 50 if entry_offset + 50 < len(entries) else None,
         }
 
-    def ci_watch(self, context, run=None, timeout=3600):
+    def ci_watch(self, context, run=None, timeout=3600, *, reviews=False):
+        from .watcher import start
+
         revision = self._run(context, run)["head_sha"] if run is not None else self._pr(context)["head"]["sha"]
         now = time.time()
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            old = db.execute(
-                "SELECT id FROM github_watches WHERE member=? AND repository=? AND pr IS ? AND run IS ? AND revision=?",
-                (self.member, context["repository"], context["pr"], run, revision),
-            ).fetchone()
+            if reviews:
+                old = db.execute(
+                    "SELECT id FROM github_watches WHERE work_order=? AND job IS NULL AND repository=? "
+                    "AND pr=? AND run IS NULL AND revision=? ORDER BY (member=?) DESC LIMIT 1",
+                    (context["work_order"], context["repository"], context["pr"], revision, self.member),
+                ).fetchone()
+            else:
+                old = db.execute(
+                    "SELECT id FROM github_watches WHERE member=? AND repository=? AND pr IS ? AND run IS ? AND revision=?",
+                    (self.member, context["repository"], context["pr"], run, revision),
+                ).fetchone()
             if old:
                 ident = old[0]
                 db.execute(
-                    "UPDATE github_watches SET state='active',work_order=?,job=?,expires=?,next_poll=?,poll_pid=NULL,updated=? WHERE id=?",
-                    (context["work_order"], context["job"], now + timeout, now, stamp(), ident),
+                    "UPDATE github_watches SET state='active',work_order=?,job=?,expires=?,next_poll=?,poll_pid=NULL,updated=?,reviews=max(reviews,?),member=? WHERE id=?",
+                    (context["work_order"], context["job"], now + timeout, now, stamp(), int(reviews), self.member, ident),
                 )
             else:
                 ident = db.execute(
-                    "INSERT INTO github_watches(member,work_order,job,repository,pr,run,revision,expires,next_poll,updated) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO github_watches(member,work_order,job,repository,pr,run,revision,expires,next_poll,updated,reviews) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         self.member,
                         context["work_order"],
@@ -797,9 +820,21 @@ class GitHub:
                         now + timeout,
                         now,
                         stamp(),
+                        int(reviews),
                     ),
                 ).lastrowid
+            if reviews:
+                db.execute(
+                    "UPDATE github_watches SET state='stopped' WHERE id!=? AND work_order=? AND job IS NULL "
+                    "AND repository=? AND pr=? AND run IS NULL AND state='active'",
+                    (ident, context["work_order"], context["repository"], context["pr"]),
+                )
         self._event(context, "ci_watched", watch=ident, run=run, revision=revision)
+        try:
+            start(self.store)
+        except Exception as error:
+            self._event(context, "watch_start_failed", error=self.http.clean(str(error))[:1000])
+            raise RuntimeError("PR tracking could not start. Ask the operator to inspect the tracking service.") from error
         return {
             "watch": ident,
             "revision": revision,
@@ -841,12 +876,29 @@ class GitHub:
             db.execute("UPDATE github_watches SET next_poll=?,poll_pid=? WHERE id=?", (lease, os.getpid(), watch["id"]))
         context = {key: watch[key] for key in ("work_order", "job", "repository", "pr")}
         context.update(work={}, root="/repos/" + watch["repository"])
-        terminal, retry_at = False, 0
+        terminal, retry_at, findings = False, 0, None
         try:
             if now >= watch["expires"]:
                 result, terminal = {"state": "expired", "revision": watch["revision"]}, True
             elif watch["run"] is None and self._pr(context)["head"]["sha"] != watch["revision"]:
                 result, terminal = {"state": "superseded", "revision": watch["revision"]}, True
+            elif watch["reviews"]:
+                from .codex_reviews import CodexReviews
+
+                pr = self._pr(context)
+                if pr["state"] == "closed":
+                    result, terminal = {"state": "closed", "revision": watch["revision"]}, True
+                else:
+                    tracker = CodexReviews(self)
+                    review = tracker.status(context, watch["revision"])
+                    ci = self.ci_status(context, _pr=pr, _observe=True)
+                    findings = [tracker.findings, ci["_observation"]]
+                    result = {
+                        "state": "ci_failed" if ci["state"] == "failed" else review["state"]
+                        if review["state"] != "ready" else "ready" if ci["state"] == "passed" else "pending",
+                        "revision": watch["revision"], "ci": ci["state"], "reviews": review["reviews"],
+                        "unresolved": review["unresolved"],
+                    }
             else:
                 result = self.ci_status(context, run=watch["run"])
                 terminal = result["state"] in {"passed", "failed"}
@@ -858,49 +910,57 @@ class GitHub:
                 "revision": watch["revision"],
             }
         result = self.http.clean(result)
-        signature = hashlib.sha256(canonical(result).encode()).hexdigest()
-        # Stop/reselect requests can occur while the network read is running; respect their newer state.
-        with self.store.connect() as db:
-            row = db.execute("SELECT state,next_poll FROM github_watches WHERE id=?", (watch["id"],)).fetchone()
-            if row["state"] != "active" or row["next_poll"] != lease:
-                return
-        if signature != watch["signature"]:
-            body = (
-                f"GitHub CI watch {watch['id']} for {watch['repository']}: {result['state']}.\n"
-                + canonical(result)[:10000]
-            )
-            from .control import binding, includes
+        from .control import binding, includes
 
-            with self.store.connect() as db:
-                db.execute("BEGIN IMMEDIATE")
-                current = db.execute("SELECT state,next_poll FROM github_watches WHERE id=?", (watch["id"],)).fetchone()
-                if current["state"] != "active" or current["next_poll"] != lease:
-                    return
+        with self.store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute("SELECT * FROM github_watches WHERE id=?", (watch["id"],)).fetchone()
+            if current["state"] != "active" or current["next_poll"] != lease:
+                return
+            if watch["reviews"]:
+                recipients = {r[0] for r in db.execute(
+                    "SELECT member FROM member_bindings WHERE work_order=? AND job IS NULL AND role IN ('co','xo')",
+                    (watch["work_order"],),
+                )}
+            else:
                 recipients = {self.member}
                 scope = binding(db, self.member)
                 if includes(scope, watch["work_order"], watch["job"]) and scope["reports_to"]:
                     parent = binding(db, scope["reports_to"])
                     if includes(parent, watch["work_order"], watch["job"]):
                         recipients.add(parent["member"])
+            signature = hashlib.sha256(canonical([result, findings, sorted(recipients)]).encode()).hexdigest()
+            sequence = current["sequence"]
+            if signature != current["signature"]:
+                sequence += 1
+                body = (
+                    f"{'Work-order PR #' + str(watch['pr']) if watch['reviews'] else 'GitHub CI'}: {result['state']}.\n"
+                    + canonical(result)[:1500]
+                    + ('\nUse monitor(section="feedback") for reviews or monitor(section="ci") for CI. '
+                       'After integrating fixes, work_submit requests fresh reviews.' if watch["reviews"] else '')
+                )
                 for recipient in recipients:
                     self.store._send(
                         db,
                         self.member,
                         recipient,
                         body,
-                        key=f"github-watch-{watch['id']}-{signature}-{recipient}",
+                        key=f"github-watch-{watch['id']}-{sequence}-{recipient}",
                         work_order=watch["work_order"],
                         job=watch["job"],
                     )
-            self._event(
-                context, "ci_watch_update", watch=watch["id"], state=result["state"], revision=watch["revision"]
-            )
-        with self.store.connect() as db:
+                self.store._event(db, self.member, "github_ci_watch_update", {
+                    "work_order": watch["work_order"], "job": watch["job"], "watch": watch["id"],
+                    "state": result["state"], "revision": watch["revision"],
+                })
+            # Commit the observation with its notifications. A restart is quiet,
+            # but a later return to the same state is a new transition.
             db.execute(
-                "UPDATE github_watches SET state=?,signature=?,next_poll=?,poll_pid=NULL,updated=? WHERE id=? AND state='active' AND next_poll=?",
+                "UPDATE github_watches SET state=?,signature=?,sequence=?,next_poll=?,poll_pid=NULL,updated=? WHERE id=? AND state='active' AND next_poll=?",
                 (
                     "finished" if terminal else "active",
                     signature,
+                    sequence,
                     max(retry_at, time.time() + max(15, self.config.get("poll_seconds", 30))),
                     stamp(),
                     watch["id"],

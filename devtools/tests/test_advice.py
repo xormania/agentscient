@@ -14,8 +14,9 @@ from test_commands import responsibility
 
 from devtools.api import API
 from devtools.jev import MAX_RESPONSE, MODEL, Jev, checked_response
+from devtools.jev_config import load as load_policy
 from devtools.runtime import defaults
-from devtools.store import canonical, stamp
+from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 
 
 def answer(state, questions, model=MODEL):
@@ -30,6 +31,9 @@ def answer(state, questions, model=MODEL):
             answers[name] = {"type": kind, "confidence": 0.9,
                              "probabilities": {key: float(key == selected) for key in options},
                              "choice" if kind == "choice" else "score": selected if kind == "choice" else 0}
+            if kind == "score":
+                answers[name]["legend"] = dict(enumerate(question["criteria"]))
+                answers[name]["legend"] = {str(k): v for k, v in answers[name]["legend"].items()}
     return {"model": model, "answers": answers, "usage": {"input_tokens": 600, "output_tokens": 40}}
 
 
@@ -253,6 +257,100 @@ class AdviceTests(unittest.TestCase):
         self.assertTrue(self.xo.call("assignment_advise", {"work": [responsibility()]})["cache_hit"])
         self.assertIsNone(result["recommendations"][0]["runtime"]["profile"])
 
+    def retained(self, result):
+        return json.loads(self.api.artifacts.read(int(result["evidence"].split(":")[1]), limit=256 * 1024)["content"])
+
+    def test_replay_preserves_exact_sanitized_request_after_source_changes(self):
+        root = test_workspaces.WorkspaceTests.prepared(self)
+        (root / "src/Example.php").write_text("Uncommitted behavior; Bearer private-demo-key")
+        result = self.assess()
+        (root / "src/Example.php").write_text("Replacement behavior")
+        saved = self.retained(result)
+        state, questions, model = self.requests[-1]
+        self.assertEqual({"state": state, "questions": questions, "model": model}, saved["request"])
+        self.assertIn("Uncommitted behavior", json.dumps(saved))
+        self.assertNotIn("private-demo-key", json.dumps(saved))
+        current = self.api.control.snapshot()
+        self.assertEqual({key: current[key] for key in saved["binding"]}, saved["binding"])
+        self.assertNotIn("request", result)
+
+    def test_scope_assessment_combines_sources_with_configured_rubric_and_invalidates_cache(self):
+        root = test_workspaces.WorkspaceTests.prepared(self)
+        (root / "src/Other.php").write_text("Other evidence")
+        args = {"proposal": "Add logging while implementing the JSON response", "sources": [
+            {"path": "src/Example.php"}, {"path": "src/Other.php"}]}
+        first = self.api.call("work_assess", args)
+        self.assertEqual("scope", first["purpose"])
+        state, questions, _ = self.requests[-1]
+        self.assertEqual(2, len(state["sources"]))
+        self.assertEqual(load_policy()["scope"]["questions"], questions)
+        self.assertTrue(self.api.call("work_assess", args)["cache_hit"])
+        policy = load_policy()
+        policy["scope"]["version"] += 1
+        policy["scope"]["questions"]["scope"]["instructions"] += " Logging may be a separate proposal."
+        (self.state / "custom-jev.json").write_text(json.dumps(policy))
+        self.configure({"policy_file": "custom-jev.json"})
+        changed = self.api.call("work_assess", args)
+        self.assertNotEqual(first["fingerprint"], changed["fingerprint"])
+        self.assertEqual(2, self.retained(changed)["policy"]["scope"]["version"])
+        for bad in ({}, {"proposal": "x", "questions": [{"name": "x", "instructions": "x"}]}):
+            with self.assertRaises(ValueError):
+                self.api.call("work_assess", bad)
+
+    def test_feedback_links_decision_outcome_and_retries_without_changing_assignments(self):
+        result = self.api.call("work_assess", {"proposal": "Add logging"})
+        before = self.api.control.snapshot()
+        args = {"kind": "recommendation", "text": "Keep logging as a separate proposal.",
+                "evaluation": {"reference": result["evidence"], "stage": "decision", "label": "deferred"}}
+        decision = self.xo.call("work_report", args)
+        self.assertTrue(self.xo.call("work_report", args)["reused"])
+        outcome = self.xo.call("work_report", {"kind": "result", "text": "JSON service complete; no extra logging.",
+            "evaluation": {"reference": result["evidence"], "stage": "outcome", "decision": decision["reference"], "label": "useful"}})
+        read = self.xo.call("work_context", {"reference": outcome["reference"]})
+        self.assertEqual(decision["reference"], read["evaluation"]["decision"])
+        self.assertEqual(before, self.api.control.snapshot())
+        self.assertEqual(2, len(self.store.events(kind="jev_feedback")["events"]))
+        with self.assertRaisesRegex(ValueError, "Command roles"):
+            self.api.call("work_report", args)
+
+    def test_feedback_rejects_stale_unregistered_and_mismatched_evaluations(self):
+        first = self.api.call("work_assess", {"proposal": "Add logging"})
+        args = {"text": "Decision", "evaluation": {"reference": first["evidence"], "stage": "decision"}}
+        decision = self.xo.call("work_report", args)
+        second = self.api.call("work_assess", {"proposal": "Add caching"})
+        with self.assertRaisesRegex(ValueError, "same evaluation"):
+            self.xo.call("work_report", {"text": "Outcome", "evaluation": {
+                "reference": second["evidence"], "stage": "outcome", "decision": decision["reference"]}})
+        self.xo.call("steer", {"action": "guide", "work": "Feature", "objective": "Different requirement"})
+        with self.assertRaisesRegex(ValueError, "changed assignment"):
+            self.xo.call("work_report", args | {"text": "New decision based on stale evidence"})
+        fake = self.api.artifacts.save("fake.json", content=json.dumps(self.retained(first)))
+        with self.assertRaisesRegex(ValueError, "recorded Jev"):
+            self.xo.call("work_report", {"text": "Fake", "evaluation": {
+                "reference": f"artifact:{fake['artifact']['id']}", "stage": "decision"}})
+
+    def test_existing_database_upgrade_preserves_reports_and_retry_identity(self):
+        args = {"text": "Existing report"}
+        report = self.api.call("work_report", args)
+        with self.store.connect() as db:
+            db.execute("ALTER TABLE work_updates DROP COLUMN evaluation")
+            db.execute("PRAGMA user_version=9")
+        upgraded = Store(self.state)
+        with upgraded.connect() as db:
+            self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
+        retry = API(self.state, "coder").call("work_report", args)
+        self.assertEqual(report["reference"], retry["reference"])
+        self.assertTrue(retry["reused"])
+
+    def test_invalid_operator_policy_fails_before_provider(self):
+        policy = load_policy()
+        policy["transport"]["timeout"] = float("nan")
+        (self.state / "bad.json").write_text(json.dumps(policy))
+        self.configure({"policy_file": "bad.json"})
+        with self.assertRaisesRegex(ValueError, "transport"):
+            self.api.call("work_assess", {"proposal": "Add logging"})
+        self.assertFalse(self.requests)
+
 
 class AdviceReviewTests(unittest.TestCase):
     setUp_base = test_workspaces.WorkspaceTests.setUp
@@ -300,6 +398,24 @@ class JevTransportTests(unittest.TestCase):
         self.assertEqual("Bearer test-secret-never-log", request.get_header("Authorization"))
         self.assertEqual(8, self.opener.open.call_args.kwargs["timeout"])
         self.assertEqual(0.8, result["answers"]["q"]["noul"])
+
+    def test_documented_score_wire_format_and_configured_timeout(self):
+        questions = {"frustration": {"type": "score", "instructions": "How frustrated?",
+                                     "criteria": ["Calm", "Frustrated", "Very angry"]}}
+        value = {"model": MODEL, "answers": {"frustration": {
+            "type": "score", "score": 1.05, "legend": {"0": "Calm", "1": "Frustrated", "2": "Very angry"},
+            "probabilities": {"0": 0.0, "1": 0.95, "2": 0.05}, "confidence": 0.92}},
+            "usage": {"input_tokens": 304, "output_tokens": 18}}
+        self.opener.open.return_value = self.response(value)
+        settings = load_policy()["transport"] | {"timeout": 3}
+        response = Jev(settings).evaluate("Help! My payouts have been failing for 3 days.", questions)
+        self.assertEqual(value, response)
+        self.assertEqual(3, self.opener.open.call_args.kwargs["timeout"])
+        wire = json.loads(self.opener.open.call_args.args[0].data)
+        self.assertEqual({"state", "model", "questions"}, wire.keys())
+        value["answers"]["frustration"].pop("legend")
+        with self.assertRaisesRegex(ValueError, "legend"):
+            checked_response(value, questions, MODEL)
 
     def test_rate_limit_retry_is_bounded_and_error_body_never_leaks(self):
         limited = urllib.error.HTTPError("url", 429, "secret", {"Retry-After": "0.5"}, io.BytesIO(b"secret input"))

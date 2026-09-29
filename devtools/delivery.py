@@ -27,8 +27,9 @@ def capabilities(spec):
         ),
         spec(
             "review_respond",
-            "Respond to the current job's review with explanation or evidence; retain and route it in the original context.",
-            {"text": text, "review": {"type": "string", "pattern": "review:[1-9][0-9]*"}},
+            "Respond with explanation or evidence. XO can address a work-order thread returned by monitor and resolve it after fixing or explaining the finding.",
+            {"text": text, "review": {"type": "string", "pattern": "review:[1-9][0-9]*|thread:[A-Za-z0-9_=-]+"},
+             "resolve": {"type": "boolean", "description": "Resolve the addressed work-order thread after replying."}},
             ("text",),
         ),
     ]
@@ -185,7 +186,9 @@ class Delivery:
         with self.spaces.use():
             return self._publish(work, self.inspected(work["id"]), conclusion, summary)
 
-    def respond(self, text, review=None):
+    def respond(self, text, review=None, resolve=False):
+        if resolve or review and not review.startswith("review:"):
+            raise ValueError("Job responses use review references; XO handles work-order threads.")
         scope, work = self.scope(role=EDITORS)
         if scope["paused"]:
             raise ValueError("Work is paused.")

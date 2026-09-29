@@ -30,6 +30,16 @@ def capabilities(spec):
     report = {
         "text": text,
         "responding_to": {**reference, "description": "Optional reference from context or a live message to answer."},
+        "evaluation": {
+            "type": "object", "additionalProperties": False, "required": ["reference", "stage"],
+            "description": "Link a command decision or later outcome to retained Jev evidence. Reporting does not change assignments.",
+            "properties": {
+                "reference": {**reference, "pattern": "^artifact:[1-9][0-9]*$"},
+                "stage": {"type": "string", "enum": ["decision", "outcome"]},
+                "decision": {**reference, "pattern": "^update:[1-9][0-9]*$"},
+                "label": {"type": "string", "minLength": 1, "maxLength": 100},
+            },
+        },
         "evidence": {
             "type": "object",
             "properties": {"name": {**text, "maxLength": 240}, "content": {"type": "string", "maxLength": 6000}},
@@ -245,6 +255,8 @@ class Control:
         }
         if row["artifact"]:
             result["evidence"] = f"artifact:{row['artifact']}"
+        if row["evaluation"]:
+            result["evaluation"] = json.loads(row["evaluation"])
         if preview:
             result["truncated"] = len(row["text"]) > 600
         return result
@@ -403,17 +415,49 @@ class Control:
             raise ValueError("Reporting relationship needs an updated work binding; current work was not changed")
         return recipient, order, job, reply
 
-    def report(self, text, kind="progress", responding_to=None, evidence=None):
+    def _evaluation(self, db, scope, evaluation):
+        if not evaluation:
+            return
+        from .commands import ROLE_TOOLS
+
+        reference = evaluation["reference"]
+        _, artifact = self._reference(db, scope, reference)
+        if not db.execute("SELECT 1 FROM events WHERE kind='jev_evaluation' AND work_order=? "
+                          "AND json_extract(data,'$.evidence')=?", (scope["work_order"], reference)).fetchone():
+            raise ValueError("Reference is not a recorded Jev evaluation.")
+        if evaluation["stage"] == "decision":
+            if scope["role"] not in ROLE_TOOLS or evaluation.get("decision"):
+                raise ValueError("Command roles record decisions; outcome reports link an existing decision.")
+            if binding(db, self.member) != scope or scope["paused"]:
+                raise ValueError("Your assignment changed or is paused; refresh before recording a decision.")
+            saved = json.loads(self.artifacts.read(artifact["id"], limit=256 * 1024)["content"])
+            previous = saved.get("binding")
+            current = binding(db, previous["member"]) if previous else None
+            if not current or any(current.get(key) != value for key, value in previous.items()):
+                raise ValueError("Evaluation belongs to a changed assignment; request a fresh assessment.")
+        else:
+            if not evaluation.get("decision"):
+                raise ValueError("An outcome needs the decision update reference.")
+            _, decision = self._reference(db, scope, evaluation["decision"])
+            linked = json.loads(decision.get("evaluation") or "{}")
+            if linked.get("reference") != reference or linked.get("stage") != "decision":
+                raise ValueError("Outcome and decision must reference the same evaluation.")
+
+    def report(self, text, kind="progress", responding_to=None, evidence=None, evaluation=None):
         scope = self.current()
         if not scope:
             raise ValueError("No active role and work binding")
-        fingerprint = hashlib.sha256(canonical([scope, kind, text, responding_to, evidence]).encode()).hexdigest()
+        payload = [scope, kind, text, responding_to, evidence]
+        if evaluation:
+            payload.append(evaluation)
+        fingerprint = hashlib.sha256(canonical(payload).encode()).hexdigest()
         with self.store.connect() as db:
             old = db.execute(
                 "SELECT * FROM work_updates WHERE actor=? AND request_key=?", (self.member, fingerprint)
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            self._evaluation(db, scope, evaluation)
             destination = self._destination(db, scope, responding_to)
         recipient, order, job, reply = destination
         saved = None
@@ -428,12 +472,14 @@ class Control:
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            self._evaluation(db, scope, evaluation)
             # Recheck the recipient inside the transaction; sending and recording are atomic.
             self._destination(db, scope, responding_to)
             ident = db.execute(
-                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created) "
-                "VALUES (?,?,?,?,?,?,?,?,?)",
-                (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp()),
+                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp(),
+                 canonical(evaluation) if evaluation else None),
             ).lastrowid
             if saved:
                 Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
@@ -457,6 +503,9 @@ class Control:
             self.store._event(
                 db, self.member, "work_reported", {"update": ident, "kind": kind, "work_order": order, "job": job}
             )
+            if evaluation:
+                self.store._event(db, self.member, "jev_feedback", {**evaluation, "update": f"update:{ident}",
+                                                                 "work_order": order, "job": job})
             return self._receipt(db, db.execute("SELECT * FROM work_updates WHERE id=?", (ident,)).fetchone())
 
     @staticmethod
@@ -507,4 +556,3 @@ class Control:
             "This message does not change your current role or work.\n"
             + ("Context changed. " + self._context_notice(brief) if changed else "")
         )
-

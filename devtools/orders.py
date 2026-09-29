@@ -6,8 +6,9 @@ import hashlib
 import io
 
 from .artifacts import Artifacts
+from .codex_reviews import CodexReviews
 from .github import GitHub
-from .store import stamp
+from .store import canonical, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
 
@@ -137,13 +138,16 @@ class Orders:
         opened = provider.pr_open(context, base=workspace["target"], summary=body, draft=False)
         if opened["pr"]["revision"] != revision:
             raise ValueError("The PR changed during publication. Inspect and validate its current revision.")
+        watch = provider.ci_watch(context, reviews=True, timeout=86400)
+        reviews = CodexReviews(provider).request(context, revision)
         self.spaces.control.report("Submitted integrated work: " + opened["pr"]["url"], kind="result")
         return {
             "state": "submitted",
             "pr": opened["pr"]["url"],
             "validation": validation,
             "evidence": "artifact:" + str(evidence),
-            "ci": provider.ci_watch(context),
+            "ci": watch,
+            "reviews": reviews,
         }
 
     @staticmethod
@@ -163,15 +167,20 @@ class Orders:
             if section in {"ci", "feedback"}:
                 from .feedback import packet, retain
 
+                result = packet(provider, context, section, page, offset)
+                if section == "feedback":
+                    result["codex"] = CodexReviews(provider).status(context, result["revision"], page=page)
+                    result["next_page"] = result["next_page"] or result["codex"]["next_page"]
                 return retain(
                     self.store,
                     self.member,
                     {"work_order": work["id"], "id": None},
                     section,
-                    packet(provider, context, section, page, offset),
+                    result,
                 )
             result = provider.pr_get(context)
             revision = result["pr"]["revision"]
+            result["codex"] = CodexReviews(provider).status(context, revision)
             result["changes"] = provider.pr_diff(context, revision=revision, path=path, offset=offset or 0, page=page)
             self.scope()
             with self.store.connect() as db:
@@ -181,6 +190,42 @@ class Orders:
                     (self.member, work["id"], revision, stamp()),
                 )
             return result
+
+    def respond(self, text, review=None, resolve=False):
+        scope = self.scope("xo")
+        if scope["paused"]:
+            raise ValueError("Work is paused.")
+        if not review or not review.startswith("thread:"):
+            raise ValueError("Choose a thread reference from monitor(section=\"feedback\").")
+        with self.spaces.lock(self.spaces.scope_lock(scope)):
+            provider = GitHub(self.store, self.member)
+            context = provider._context(job=None)
+            pr = provider._pr(context)
+            if pr["state"] != "open":
+                raise ValueError("The work-order PR is closed.")
+            thread = review.removeprefix("thread:")
+            key = hashlib.sha256(canonical([context["repository"], context["pr"], thread,
+                                           pr["head"]["sha"], text]).encode()).hexdigest()
+            marker = "<!-- agentscient-response:" + key + " -->"
+            cursor, existing = None, False
+            while True:
+                row = provider.pr_threads(context, thread=thread, cursor=cursor)["thread"]
+                existing |= any(c["viewerDidAuthor"] and marker in c["body"] for c in row["comments"]["nodes"])
+                pages = row["comments"]["pageInfo"]
+                if existing or not pages["hasNextPage"]:
+                    break
+                cursor = pages["endCursor"]
+            self.spaces.scope(write=True)
+            provider._unchanged(context, pr)
+            if not existing:
+                provider.pr_threads(context, thread=thread, action="reply",
+                                    body=marker + f"\nAt `{pr['head']['sha']}`:\n\n" + text)
+            provider._unchanged(context, pr)
+            self.spaces.scope(write=True)
+            if resolve:
+                provider.pr_threads(context, thread=thread, action="resolve")
+            receipt = self.spaces.control.report(f"PR {review}: {text}", kind="result")
+            return {"review": review, "resolved": resolve or row["isResolved"], "evidence": receipt["reference"]}
 
     def finish(self, scope):
         """Called under the work-order lock by CO's existing conclude outcome."""
@@ -230,6 +275,7 @@ class Orders:
             raise ValueError("The work-order PR changed after inspection. Monitor it again.")
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
+        CodexReviews(provider).require_ready(context, revision)
         self.scope("co")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:
