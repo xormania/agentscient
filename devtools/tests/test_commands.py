@@ -222,6 +222,12 @@ class CommandTests(unittest.TestCase):
         self.assertIn("Sibling secret", json.dumps(self.co.call("monitor", {})))
         with self.assertRaises(ValueError):
             self.xo.call("steer", {"action": "pause", "work": "Sibling secret"})
+        with self.store.connect() as db:
+            source = db.execute("SELECT result_update FROM work_plans WHERE work_order=?", (order,)).fetchone()[0]
+        definitions = [{key: value for key, value in responsibility(name).items() if key != "role"}
+                       for name in ("Implementation", "Sibling secret")]
+        with self.assertRaisesRegex(ValueError, "another command team"):
+            self.xo.call("plan_adopt", {"plan": f"update:{source}", "jobs": definitions})
         for name, args in (
             ("direct", GOAL),
             ("monitor", {}),

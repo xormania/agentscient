@@ -141,6 +141,8 @@ class Planning:
         payload, brief = canonical(definitions), canonical(mission(db, order["id"]))
         previous = db.execute("SELECT * FROM work_plans WHERE work_order=? AND revision=?",
                               (order["id"], order["plan_revision"])).fetchone()
+        if previous and previous["adopted_by"] != self.member:
+            raise ValueError("This work-order plan belongs to another command team.")
         if previous and previous["result_update"] == int(plan.split(":")[1]) and previous["jobs"] == payload and previous["mission"] == brief:
             return self._receipt(db, order["id"])
         _, result = self.control._reference(db, scope, plan)
@@ -152,7 +154,10 @@ class Planning:
                 or json.loads(result["mission"]) != json.loads(brief)):
             raise ValueError("Use the XO planner's current retained result for this work-order context.")
         existing = {row["title"].casefold(): dict(row) for row in db.execute("SELECT * FROM jobs WHERE work_order=?", (order["id"],))}
-        omitted = [row["title"] for name, row in existing.items() if name not in by_name and row["status"] not in {"done", "cancelled"}]
+        if any(name in existing and not self.commands._owns_job(db, scope, existing[name]) for name in by_name):
+            raise ValueError("A proposed job belongs to another command team.")
+        omitted = [row["title"] for name, row in existing.items() if name not in by_name and row["status"] not in {"done", "cancelled"}
+                   and self.commands._owns_job(db, scope, row)]
         if omitted:
             raise ValueError("Explicitly cancel omitted unfinished jobs before adopting this plan: " + ", ".join(omitted))
         revision = order["plan_revision"] + 1
