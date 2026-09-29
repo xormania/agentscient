@@ -277,7 +277,7 @@ class Advice:
             policy, _, revision = load(self.store.directory)
             for role in roles:
                 profiles = {}
-                for name in policy["roles"][role]:
+                for name in policy["roles"].get(role, []):
                     try:
                         row = resolve(self.store.directory, role, profile=name)
                     except ValueError:

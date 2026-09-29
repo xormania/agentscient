@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import io
 import json
@@ -32,9 +33,9 @@ def capabilities(spec):
     return [
         spec(
             "framework_inspect",
-            "Inspect installed basic Makers or call an installed Mate diagnostic in your job workspace. Results are retained and delivered automatically.",
+            "Inspect installed Makers, Mate diagnostics, packages or operator-approved Symfony Console introspection in your job workspace. Results are retained and delivered automatically.",
             {
-                "kind": {"type": "string", "enum": ["makers", "mate", "mate_resource", "packages"]},
+                "kind": {"type": "string", "enum": ["makers", "mate", "mate_resource", "packages", "console"]},
                 "name": name,
                 "parameters": values,
                 "resource": {"type": "string", "maxLength": 240,
@@ -208,6 +209,29 @@ class Development:
                             if r["name"].startswith("make:")
                         ]
                     }
+            elif kind == "console":
+                from .assignments import policy
+
+                patterns = policy(self.store, project_config(self.store))["inspection_commands"]
+                installed = self._json(root, ["php", "bin/console", "list", "--format=json", "--no-interaction"])["commands"]
+                commands = {row["name"]: row for row in installed
+                            if any(fnmatch.fnmatchcase(row["name"], pattern) for pattern in patterns)}
+                if name is None:
+                    if parameters is not None:
+                        raise ValueError("Name an installed inspection command before supplying parameters.")
+                    value = {"commands": [{"name": key, "description": row["description"]} for key, row in commands.items()]}
+                else:
+                    if name not in commands:
+                        raise ValueError("Choose an installed command allowed by inspection_commands.")
+                    metadata = self._json(root, ["php", "bin/console", "help", name, "--format=json", "--no-interaction"])
+                    if metadata["name"] != name:
+                        raise ValueError("Installed command metadata changed; inspect again.")
+                    if parameters is None:
+                        value = metadata
+                    else:
+                        if set(parameters) - {"arguments", "options"} or any(not isinstance(v, dict) for v in parameters.values()):
+                            raise ValueError("Console parameters accept named arguments and options objects.")
+                        value = self.run(root, self.maker_argv(metadata, parameters.get("arguments", {}), parameters.get("options", {})))
             elif kind == "mate_resource":
                 value = self._json(root, ["vendor/bin/mate", "resources:read", resource, "--format=json"])
             elif kind == "packages":
@@ -291,6 +315,10 @@ class Development:
         return argv
 
     def generate(self, maker, arguments=None, options=None):
+        from .assignments import policy
+
+        if maker in policy(self.store, project_config(self.store))["denied_makers"]:
+            raise ValueError("Managed agents use maintained Makers; they cannot generate or modify Makers.")
         with self.workspaces.use(write=True) as (scope, workspace):
             if scope["role"] not in {"coder", "test_writer"}:
                 raise ValueError("This role cannot generate Symfony code.")
@@ -348,4 +376,3 @@ class Development:
     def check(self, check=None):
         with self.workspaces.use() as (_, workspace):
             return self.checks(workspace["root"], check)
-

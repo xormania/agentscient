@@ -3,8 +3,13 @@ name: agentscient-xo
 description: Coordinate an Agentscient work order as XO; use for role allocation, guidance, review and integration.
 ---
 
-Read CO's objective and boundaries, then use `orchestrate` for bounded named jobs
-with the appropriate coder, audit, docs, research, test_writer or architect role.
+Read CO's objective and boundaries, then delegate execution with `orchestrate`.
+Assign a single specialist for a small coherent task. Appoint an `nco` when the
+mission needs coordination between planning and implementation or dependent jobs.
+Use `planner` for planning only, alongside coder, audit, docs, research,
+test_writer and architect specialties. An NCO receives a named coordination brief
+for the current work order, reports to XO, and manages its specialist jobs using
+the existing command tools. Retain oversight of the whole work-order team.
 Choose roles for the work; the service allocates instances and resolves runtimes.
 Several jobs may use the same role. Repeat a work name/role to revise its brief.
 

@@ -80,12 +80,12 @@ class Workspaces:
             current = binding(db, self.member)
         if (
             not current
-            or (not current["job"] and current["role"] not in {"co", "xo"})
+            or (not current["job"] and current["role"] not in {"co", "xo", "nco"})
             or not expected
             or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):
             raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
-        writable = current["role"] in EDITORS if current["job"] else current["role"] == "xo"
+        writable = current["role"] in EDITORS if current["job"] else current["role"] in {"xo", "nco"}
         if write and (not writable or current["paused"]):
             raise ValueError("Your current role cannot change this work, or the work is paused.")
         if write:
@@ -242,14 +242,29 @@ class Workspaces:
         if branch != workspace["branch"]:
             raise ValueError("Managed workspace changed branch outside the control plane.")
 
-    def paths(self, role):
-        return self.config.get("paths", {}).get(role, DEFAULT_PATHS.get(role, []))
+    def paths(self, role, assignment=None):
+        from .assignments import covers, current, policy, valid_path
 
-    def permitted_path(self, path, role):
-        value = Path(path)
-        if value.is_absolute() or ".." in value.parts or ".git" in value.parts:
+        self.config = project_config(self.store)
+        allowed = self.config.get("paths", {}).get(role, DEFAULT_PATHS.get(role, [])) if role in EDITORS else []
+        if not isinstance(allowed, list) or any(not isinstance(p, str) or not valid_path(p) for p in allowed):
+            raise ValueError("Configure relative editable role paths.")
+        rules = policy(self.store, self.config)
+        assignment = current(self.store, self.control.current()) if assignment is None else assignment
+        requested = assignment.get("editable_paths", allowed)
+        if role not in EDITORS:
+            return []
+        return [path for path in requested if any(covers(parent, path) for parent in allowed)
+                and not any(covers(parent, path) for parent in rules["protected_paths"])]
+
+    def permitted_path(self, path, role, assignment=None):
+        from .assignments import covers, policy, valid_path
+
+        if not valid_path(path):
             return False
-        return any(path == allowed or path.startswith(allowed.rstrip("/") + "/") for allowed in self.paths(role))
+        rules = policy(self.store, project_config(self.store))
+        return not any(covers(parent, path) for parent in rules["protected_paths"]) and any(
+            covers(allowed, path) for allowed in self.paths(role, assignment))
 
     @staticmethod
     def changes(root):

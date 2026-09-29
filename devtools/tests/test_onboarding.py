@@ -21,7 +21,7 @@ class OnboardingTests(unittest.TestCase):
             member = "owner" if role == "co" else "xo" if role == "xo" else "coder"
             api = API(self.state, member)
             if role not in {"co", "xo"}:
-                api.control.bind(member, role, self.order, self.job, "xo")
+                api.control.bind(member, role, self.order, None if role == "nco" else self.job, "xo")
             value = api.call("onboard", {})
             self.assertEqual(role, value["role"])
             self.assertEqual(role, value["context"]["role"])
@@ -30,13 +30,13 @@ class OnboardingTests(unittest.TestCase):
             skill = api.call("skill_read", {"name": value["skills"][1]["name"]})
             self.assertEqual(value["role_instructions"], skill["content"])
             texts.add(value["role_instructions"])
-            if role not in {"co", "xo"}:
+            if role not in {"co", "xo", "nco"}:
                 self.assertNotIn("SECRET SIBLING", json.dumps(value))
                 with self.assertRaises(ValueError):
                     api.call("skill_read", {"name": "agentscient-co"})
-        self.assertEqual(8, len(texts))
-        self.assertEqual(8, len(self.store.events(kind="onboarding_delivered", limit=50)["events"]))
-        self.assertEqual(8, len(self.store.events(kind="skill_loaded", limit=50)["events"]))
+        self.assertEqual(len(ROLES), len(texts))
+        self.assertEqual(len(ROLES), len(self.store.events(kind="onboarding_delivered", limit=50)["events"]))
+        self.assertEqual(len(ROLES), len(self.store.events(kind="skill_loaded", limit=50)["events"]))
 
     def test_role_change_and_revocation_refresh_onboarding_without_harness_dependence(self):
         api = API(self.state, "coder")
