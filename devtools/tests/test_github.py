@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, until
+from support import Client, require_process_identity, until
 
 from devtools.github import GitHub
 from devtools.github_http import GitHubError, GitHubHTTP
@@ -192,6 +192,10 @@ class Provider:
                     self.pr["draft"] = mutation == "convertPullRequestToDraft"
                     return 200, {"data": {mutation: {"pullRequest": {"id": "PR_7"}}}}, {}
             if "addPullRequestReviewThreadReply" in q:
+                self.thread["comments"]["nodes"].append({
+                    "databaseId": 13, "body": v["body"], "url": self.pr["html_url"] + "#discussion_r13",
+                    "author": {"login": "operator"},
+                })
                 return (
                     200,
                     {
@@ -257,6 +261,10 @@ class Provider:
             self.pr.update(merged=True, state="closed")
             return 200, {"merged": True, "sha": MERGE, "message": "Merged"}, {}
         if path.startswith(root + "/commits/"):
+            if len(path.removeprefix(root + "/commits/").split("/")) == 1:
+                short = path.rsplit("/", 1)[1]
+                matches = {sha for sha in (HEAD, MERGE, self.pr["head"]["sha"]) if sha.startswith(short)}
+                return (200, {"sha": matches.pop()}, {}) if len(matches) == 1 else (422, {"message": "Ambiguous commit"}, {})
             revision = path.split("/")[-2]
             if path.endswith("/check-runs"):
                 rows = self.checks.get(revision, [])
@@ -358,6 +366,14 @@ class GitHubTests(unittest.TestCase):
         threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
         self.provider.url = "http://127.0.0.1:" + str(self.server.server_port)
         self.http = GitHubHTTP(api_root=self.provider.url, credential=lambda: "fixture-credential")
+        from devtools import watcher
+
+        self.addCleanup(watcher.stop, self.store)
+        # Direct provider tests drive ticks themselves. MCP process tests use the
+        # real daemon, with only its HTTP transport supplied by github_fixture.
+        mocked_start = patch("devtools.watcher.start", return_value={"running": False})
+        mocked_start.start()
+        self.addCleanup(mocked_start.stop)
 
     def client(self, member="alpha"):
         env = {**os.environ, "FIXTURE_GITHUB_ROOT": self.provider.url}
@@ -531,6 +547,7 @@ class GitHubTests(unittest.TestCase):
             client.invoke("ci_artifact_save", artifact=90)
 
     def test_watch_survives_restart_and_retains_original_work(self):
+        require_process_identity()
         client = self.client()
         order, job = self.work(client)
         client.invoke("pr_open")
@@ -538,6 +555,11 @@ class GitHubTests(unittest.TestCase):
         watch = client.invoke("ci_watch", run=10)["watch"]
         until(lambda: self.store.inbox("alpha")["messages"])
         client.close()
+        from devtools import watcher
+
+        observer = watcher.status(self.store)
+        self.assertTrue(observer["running"])
+        self.assertNotEqual(client.process.pid, observer["pid"])
         service = GitHub(self.store, "alpha", http=self.http)
         with self.store.connect() as db:
             db.execute("UPDATE members SET selected_work_order=NULL,selected_job=NULL WHERE name='alpha'")
@@ -547,10 +569,11 @@ class GitHubTests(unittest.TestCase):
                 (time.time() + 600, client.process.pid, watch),
             )
         self.provider.run.update(status="completed", conclusion="success")
-        restarted = self.client()
         messages = until(lambda: rows if len(rows := self.store.inbox("alpha")["messages"]) >= 2 else None)
         self.assertEqual((order, job), (messages[-1]["work_order"], messages[-1]["job"]))
         self.assertIn("passed", messages[-1]["body"])
+        restarted = self.client()
+        self.assertEqual(observer["pid"], watcher.status(self.store)["pid"])
         service.tick()
         self.assertEqual(2, len(self.store.inbox("alpha")["messages"]))
         restarted.invoke("job_select", job=job)
@@ -610,7 +633,7 @@ class GitHubTests(unittest.TestCase):
         self.assertEqual(order, report["work"][0]["work_order"])
         self.assertEqual([], report["sources"])
         with self.store.connect() as db:
-            self.assertEqual(8, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(9, db.execute("PRAGMA user_version").fetchone()[0])
 
 
 if __name__ == "__main__":

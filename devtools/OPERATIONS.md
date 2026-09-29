@@ -394,8 +394,50 @@ run ID or completion. Find the actual run in `ci_status` after it appears.
 existing message service. It retains the original work binding across selection
 changes and MCP restarts. A changed PR head produces `superseded`; completion or
 timeout ends the watch. Repeating the call renews the watch. `ci_watch_stop` stops
-this member's watch without cancelling CI. Polling resumes while this member's MCP
-server is connected; stored notifications remain readable in `message_inbox`.
+this member's watch without cancelling CI. One background observer per state
+directory polls independently of agent/MCP sessions; stored notifications remain
+readable in `message_inbox`. Registering a watch starts the observer automatically.
+Opening a new MCP connection resumes pending watches after an observer restart.
+
+Integrated work-order submission also requests `@codex review` and
+`@codex security review`, once per review kind and submitted commit. Job PRs retain
+their existing CI observation. The combined watch remains active after CI or
+reviews finish, so reopened findings are reported, until the PR closes, its head
+changes, or the 24-hour watch expires. XO submits again after integrating fixes
+to validate the new head and request fresh reviews. `conclude` reads GitHub again
+and requires both reviews on the exact current commit with no unresolved threads.
+
+Completion is read from the authenticated Codex bot's review-summary comment.
+Abbreviated commit IDs are resolved through GitHub. Missing, changed or ambiguous
+summary formats remain pending; silence and reactions do not establish success.
+The repository must have both Codex review features enabled for the identity
+posting the requests. A lost request response is reconciled from its retained
+comment marker before another request is considered. If no remote receipt is
+visible, the uncertain request remains explicit for operator inspection.
+
+The observer reuses `github_watches`, the GitHub transport and durable messages.
+It polls at `github.poll_seconds` (default 30, minimum 15) without model calls,
+honors rate-limit retry times, and atomically records changed observations with
+their notifications. CO/XO receive work-order notices through the existing work
+context and live-message delivery paths. Agents use `work_submit`, `monitor` and
+`review_respond`; they do not manage processes or GitHub API calls.
+
+For operator diagnostics only:
+
+```sh
+python3 devtools/run.py watch --state /absolute/private/state --action status
+python3 devtools/run.py watch --state /absolute/private/state --action start
+python3 devtools/run.py watch --state /absolute/private/state --action stop
+```
+
+`stop` preserves watches and messages. A subsequent `start`, watch registration,
+or MCP connection resumes pending work. `--action run` runs in the foreground for
+an operator's service supervisor. The detached process survives agent shutdown;
+its singleton lock and existing Linux process identity checks prevent duplicate
+observers and signalling a reused PID. Operator diagnostics are in `watcher.log`
+and the existing event store. After updating dev-lane code, restart the observer
+to load the new implementation. No webhook endpoint or additional service framework
+is required.
 
 `ci_artifact_save` retains the downloaded ZIP by default or a named `entry` as a
 report. It verifies GitHub's digest when available and uses the existing managed

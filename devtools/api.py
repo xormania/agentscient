@@ -423,7 +423,7 @@ class API:
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
         if scope and not scope["job"] and role == "xo" and project_config(self.store):
-            common |= {"work_inspect", "work_refresh", "work_submit"}
+            common |= {"work_inspect", "work_refresh", "work_submit", "review_respond"}
             if development_configured(self.store):
                 common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
@@ -549,6 +549,10 @@ class API:
         if name == "review_record":
             return self.delivery.review(**args)
         if name == "review_respond":
+            if not self.control.current()["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).respond(**args)
             return self.delivery.respond(**args)
         if name in ACTIONS and development_configured(self.store):
             return self.operations.start(name, args)
