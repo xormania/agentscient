@@ -131,8 +131,9 @@ Require the following evidence without prescribing how agents solve the job:
 - The result is checkpointed and submitted with retained evidence. Audit, when
   assigned, reviews that revision; findings and responses arrive through MCP.
 - XO inspects and accepts each passing contribution, then submits the combined
-  result with `work_submit`. CO inspects that delivery and concludes after CI
-  passes. Turnover preserves history and permits another job; merged worktrees
+  result with `work_submit`. XO addresses the returned Codex review findings. CO
+  inspects that delivery and concludes after CI and both current Codex reviews
+  pass. Turnover preserves history and permits another job; merged worktrees
   retire after shutdown.
 - Native shell/edit attempts are denied; observed usage is reported honestly.
   A stopped/restarted session is a new conversation, not claimed transcript recovery.

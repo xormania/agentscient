@@ -86,7 +86,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 8:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 9:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -131,6 +131,7 @@ class Store:
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
+                "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
                     "paused": "INTEGER NOT NULL DEFAULT 0",
                     "launch_pending": "INTEGER NOT NULL DEFAULT 0",
@@ -224,7 +225,10 @@ class Store:
                 "CREATE UNIQUE INDEX IF NOT EXISTS active_order_operation ON operations(work_order) "
                 "WHERE job IS NULL AND state IN ('queued','running')"
             )
-            db.execute("PRAGMA user_version=8")
+            db.execute("""CREATE TABLE IF NOT EXISTS codex_requests (
+                repository TEXT NOT NULL, pr INTEGER NOT NULL, revision TEXT NOT NULL, kind TEXT NOT NULL,
+                state TEXT NOT NULL, url TEXT, PRIMARY KEY(repository,pr,revision,kind))""")
+            db.execute("PRAGMA user_version=9")
 
     @contextmanager
     def connect(self):

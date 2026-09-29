@@ -286,7 +286,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual("Prior progress", upgraded.call("work_context", {"reference": update["reference"]})["text"])
         self.assertFalse(upgraded.control.snapshot()["paused"])
         with self.store.connect() as db:
-            self.assertEqual(8, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(9, db.execute("PRAGMA user_version").fetchone()[0])
             self.assertTrue(all(row[0] == "peer" for row in db.execute("SELECT category FROM messages")))
 
 

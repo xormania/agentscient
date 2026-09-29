@@ -7,7 +7,7 @@ from pathlib import Path
 
 def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from devtools import github, run
+    from devtools import github, run, watcher
     from devtools.github_http import GitHubHTTP
 
     class FixtureHTTP(GitHubHTTP):
@@ -17,6 +17,7 @@ def main():
             )
 
     github.GitHubHTTP = FixtureHTTP
+    watcher.ENTRY = Path(__file__).resolve()
     return run.main()
 
 
