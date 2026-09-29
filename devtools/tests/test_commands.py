@@ -131,6 +131,28 @@ class CommandTests(unittest.TestCase):
         unicode_job = responsibility() | {key: "🦁" * 800 for key in ("objective", "done_when", "constraints")}
         client.tool("orchestrate", {"work": [unicode_job | {"name": str(i)} for i in range(3)]})
 
+    def test_large_brief_is_loaded_on_demand_and_not_repeated_in_direction(self):
+        coder = self.team([responsibility() | {"objective": "J" * 800}])
+        self.co.call("direct", GOAL | {"objective": "W" * 2000, "done_when": "D" * 2000,
+                                      "constraints": "C" * 2000})
+        startup = coder.instructions()
+        self.assertNotIn("W" * 100, startup)
+        packet = coder.call("onboard", {})
+        self.assertEqual("W" * 2000, packet["context"]["work"]["objective"])
+        for direction in ("Inspect the adapter", "Check the boundary"):
+            self.xo.call("steer", {"action": "guide", "work": "Implementation", "direction": direction})
+            message = self.store.take_delivery("coder", scoped=True)
+            rendered = coder.control.render(message)
+            self.assertIn("Apply the current direction", rendered)
+            self.assertEqual(direction, coder.call("work_context", {})["responsibility"])
+            self.assertIn("work_context", rendered)
+            self.assertNotIn("W" * 100, rendered)
+            self.assertNotIn("brief", json.loads(message["body"]))
+            self.assertLess(len(rendered), 700)
+        # A fresh transport can recover everything through the same MCP tools.
+        resumed = self.client("coder")
+        self.assertEqual(packet["context"]["work"], resumed.tool("onboard", {})["context"]["work"])
+
     def test_steering_updates_only_affected_brief_and_keeps_reporting_chain(self):
         coder = self.team([responsibility(), responsibility("Audit", "audit")])
         audit = API(self.state, "audit")
@@ -157,11 +179,15 @@ class CommandTests(unittest.TestCase):
         message = self.store.take_delivery("coder", scoped=True)
         self.assertEqual("xo", message["sender"])
         rendered = coder.control.render(message)
-        self.assertIn("New shared boundary", rendered)
+        self.assertNotIn("New shared boundary", rendered)
+        self.assertIn("work_context", rendered)
+        self.assertIn("New shared boundary", json.dumps(coder.call("work_context", {})))
         self.assertNotIn("PRIVATE CO DISCUSSION", rendered)
         delayed = coder.control.render(old_direction)
         self.assertIn("Earlier direction was superseded", delayed)
-        self.assertIn("New shared boundary", delayed)
+        self.assertNotIn("New shared boundary", delayed)
+        self.assertIn("work_context", delayed)
+        self.assertNotIn("Prioritize the existing adapter", delayed)
         coder.call("work_report", {"text": "Boundary received", "responding_to": f"message:{message['id']}"})
         self.assertTrue(self.store.inbox("xo")["messages"])
         with self.assertRaises(ValueError):
@@ -266,3 +292,4 @@ class CommandTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
