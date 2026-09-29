@@ -7,7 +7,10 @@ Inspect installed schemas through `framework_inspect(kind="mate", name=<diagnost
 Execute by adding `parameters`. Locate candidates with `name="symfony-services"`
 and parameters such as `{"query":"MailerInterface","limit":10}` or
 `{"tag":"kernel.event_listener","limit":10}`. Narrow a truncated list.
-Read one exact returned id with `name="symfony-service-detail"` and `{"id":<id>}`.
+In multi-kernel projects, results are grouped by context. Select the relevant returned
+context and carry it into subsequent list/detail calls; the same id can exist in
+different containers. Read one exact returned id with `name="symfony-service-detail"`
+and `parameters={"id":<id>,"context":<selected context>}`. Omit `context` when none is returned.
 
 Interpret the compiled definition:
 - Wrong implementation: query the interface, then inspect its alias id; aliases resolve
