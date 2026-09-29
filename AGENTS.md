@@ -19,8 +19,12 @@ authorized for maintainers building or repairing the dev-lane itself.
 The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
-connection. CO uses `direct`/`monitor`/`conclude`; XO uses
-`orchestrate`/`monitor`/`steer` to coordinate live collaborators.
+connection. CO uses `direct`/`monitor`/`conclude`; XO and a delegated NCO use
+`orchestrate`/`monitor`/`steer` to coordinate live collaborators. A planner only
+investigates and reports a plan. XO delegates small tasks to a specialist and can
+appoint NCO for planning, implementation and verification across dependent jobs.
+Local agents invoke maintained Makers through MCP; they never author or modify
+Makers. Extra improvements can be reported without becoming assignments.
 Command services bind work and configured collaborators, supply current briefs,
 and retain live direction. Managed workspace/Git outcomes and installed Maker/Mate
 capabilities are provided through MCP. Use installed Maker metadata, generate through

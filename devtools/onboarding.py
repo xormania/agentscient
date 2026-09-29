@@ -20,6 +20,14 @@ ROLES = {
         "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence.",
         "agentscient-coder",
     ),
+    "nco": (
+        "Coordinate planning and bounded implementation within XO's delegated mission; manage verification and completion, and report changes of mission to XO.",
+        "agentscient-nco",
+    ),
+    "planner": (
+        "Inspect the application and existing capabilities, then report an implementation plan with boundaries, dependencies and completion criteria. Planning does not change source or coordinate execution.",
+        "agentscient-planner",
+    ),
     "audit": (
         "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source.",
         "agentscient-audit",
@@ -153,4 +161,3 @@ class Onboarding:
             guidance_sha256=skill["guidance_sha256"], source=skill["source"]
         )
         return skill
-

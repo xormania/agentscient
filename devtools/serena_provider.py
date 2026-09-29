@@ -23,7 +23,7 @@ from .telemetry import Trace, context
 from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "serena"
-ROLES = {"coder", "audit", "docs", "research", "test_writer", "architect"}
+ROLES = {"coder", "audit", "docs", "research", "test_writer", "architect", "planner"}
 TOOL = {
     "name": "serena_repl",
     "description": "Use Serena v2's persistent Python REPL for your current job. The service supplies the session and workspace. Start with s.info() or s.info('lsp', 'edit') for current facade documentation. Variables persist between calls. Source writes are limited to your role's mounted paths; Git, checks, Maker and delivery belong to the control-plane tools.",
@@ -57,6 +57,33 @@ def mount(source, target, readonly=False):
     return ["--mount", f"type=bind,src={source},dst={target}" + (",readonly" if readonly else "")]
 
 
+def writable_paths(root, editable, protected):
+    """Split directory mounts around protected descendants without creating them."""
+    from .assignments import covers
+
+    result = set()
+
+    def include(value):
+        value = Path(value).as_posix()
+        if any(covers(path, value) for path in protected):
+            return
+        source = root / value
+        if source.resolve() != source or not source.resolve().is_relative_to(root):
+            raise ValueError("Editable mount escapes the managed workspace.")
+        if not source.exists():
+            return
+        if any(covers(value, path) for path in protected):
+            if source.is_dir():
+                for child in sorted(source.iterdir()):
+                    include(child.relative_to(root).as_posix())
+        else:
+            result.add(value)
+
+    for value in editable:
+        include(value)
+    return sorted(result)
+
+
 class Serena:
     def __init__(self, directory, member, generation=None):
         self.store, self.member = Store(directory), member
@@ -70,6 +97,7 @@ class Serena:
         self.session = uuid.uuid4().hex[:8]
         self.signature = None
         self.workspace_root = None
+        self.mount_layout = None
         self.paused = False
         self.log = None
         self.mutex = threading.RLock()
@@ -77,6 +105,9 @@ class Serena:
         atexit.register(self.close)
 
     def scope(self):
+        from .assignments import current as assignment_for
+        from .assignments import policy
+
         self.session_lease.check()
         current = self.control.snapshot()
         if not enabled(self.store, current):
@@ -85,13 +116,18 @@ class Serena:
             raise ValueError("This work is paused. Use the control plane for reports or guidance.")
         identity = tuple(current[k] for k in ("job", "work_order", "role", "reports_to"))
         config = project_config(self.store)
-        signature = (identity, json.dumps({key: config.get(key) for key in ("serena", "paths")}, sort_keys=True))
+        assignment = assignment_for(self.store, current)
+        signature = (identity, json.dumps({"config": {key: config.get(key) for key in ("serena", "paths")},
+                                         "assignment": assignment, "policy": policy(self.store, config)}, sort_keys=True))
         if self.signature is not None and self.signature != signature:
             self.close()
             raise ValueError("The role or workspace changed. Reconnect Serena for the current responsibility.")
         return current, signature
 
     def command(self, scope, workspace):
+        from .assignments import covers, policy
+        from .assignments import current as assignment_for
+
         config = project_config(self.store)["serena"]
         image = config["image"]
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:@-]+", image):
@@ -104,7 +140,9 @@ class Serena:
         project_state.mkdir(exist_ok=True)
         private = self.store.directory / "providers" / self.member / self.container
         private.mkdir(mode=0o700, parents=True, exist_ok=True)
-        (private / "project.yml").write_text(
+        provider_state = private / "serena"
+        provider_state.mkdir(mode=0o700, exist_ok=True)
+        (provider_state / "project.yml").write_text(
             "project_name: managed-job\nlanguage_servers: [php_phpactor]\nread_only: "
             + ("false" if scope["role"] in EDITORS else "true")
             + "\nignored_paths: [devtools, .git, var]\n"
@@ -132,24 +170,86 @@ class Serena:
             "--workdir",
             "/workspace",
         ]
-        argv += mount(root, "/workspace", readonly=True)
-        argv += mount(private, "/workspace/.serena")
-        if scope["role"] in EDITORS:
-            for value in self.spaces.paths(scope["role"]):
-                path = Path(value)
-                if path.is_absolute() or not path.parts or any(p in {".", "..", ".git", ".serena"} for p in path.parts):
-                    raise ValueError(
-                        "Editable container paths must be relative project paths, excluding Git and provider state."
-                    )
-                source = root / path
-                if source.resolve() != source or not source.resolve().is_relative_to(root):
-                    raise ValueError("Editable mount escapes the managed workspace.")
-                if not source.exists():
-                    if source.suffix:
-                        continue
+        assignment = assignment_for(self.store, scope)
+        rules = policy(self.store, project_config(self.store))
+        editable = self.spaces.paths(scope["role"])
+        # Explicit missing paths are files unless the assignment ends in '/'.
+        # Never manufacture default optional files just by starting inspection.
+        for value in sorted(editable, key=lambda value: (len(Path(value).parts), value)):
+            source = root / value
+            if source.resolve() != source or not source.resolve().is_relative_to(root):
+                raise ValueError("Editable mount escapes the managed workspace.")
+            if value.endswith("/") and source.exists() and not source.is_dir():
+                raise ValueError("An editable directory path names an existing file.")
+            if not source.exists():
+                if any(covers(value, path) for path in rules["protected_paths"]):
+                    continue  # A missing protected ancestor remains read-only.
+                if value.endswith("/"):
                     source.mkdir(parents=True)
-                argv += mount(source, "/workspace/" + path.as_posix())
-        return [*argv, image]
+                elif "editable_paths" in assignment:
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    source.touch(exist_ok=False)
+        writable = writable_paths(root, editable, rules["protected_paths"])
+        if "context_paths" in assignment:
+            view = private / "view"
+            view.mkdir(exist_ok=True)
+            (view / ".serena").mkdir(exist_ok=True)
+            selected = {Path(value).as_posix() for value in
+                        assignment["context_paths"] + assignment.get("editable_paths", [])}
+            for value in sorted(selected, key=lambda value: (len(Path(value).parts), value)):
+                source = root / value
+                if source.resolve() != source or not source.resolve().is_relative_to(root):
+                    raise ValueError("Context mount escapes the managed workspace.")
+                if not source.exists():
+                    continue
+                target = view / value
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if source.is_dir():
+                    target.mkdir(exist_ok=True)
+                else:
+                    target.touch()
+            argv += mount(view, "/workspace", readonly=True)
+            for value in sorted(selected, key=lambda value: (len(Path(value).parts), value)):
+                source = root / value
+                if source.exists():
+                    argv += mount(source, "/workspace/" + value, readonly=True)
+        else:
+            argv += mount(root, "/workspace", readonly=True)
+        argv += mount(provider_state, "/workspace/.serena")
+        for value in writable:
+            argv += mount(root / value, "/workspace/" + value)
+        # Context and edit paths can overlap; Docker needs one final mount per destination.
+        flags, mounts, index = [], {}, 0
+        while index < len(argv):
+            if argv[index] == "--mount":
+                value = argv[index + 1]
+                target = next(part[4:] for part in value.split(",") if part.startswith("dst="))
+                mounts[target] = value
+                index += 2
+            else:
+                flags.append(argv[index])
+                index += 1
+        for target in sorted(mounts, key=lambda path: (len(Path(path).parts), path)):
+            flags += ["--mount", mounts[target]]
+        self.mount_layout = self.layout(scope, workspace)
+        return [*flags, image]
+
+    def layout(self, scope, workspace):
+        from .assignments import current as assignment_for
+        from .assignments import policy
+
+        assignment = assignment_for(self.store, scope)
+        root = Path(workspace["root"])
+        editable = self.spaces.paths(scope["role"])
+        writable = writable_paths(root, editable, policy(self.store, project_config(self.store))["protected_paths"])
+        paths = {Path(value).as_posix() for value in assignment.get("context_paths", []) + editable + writable}
+        result = []
+        for path in sorted(paths):
+            source = root / path
+            info = source.stat() if source.exists() else None
+            # File bind mounts keep the old inode when Git/Maker replaces a file.
+            result.append((path, (info.st_dev, info.st_ino, source.is_dir()) if info else None))
+        return result
 
     def reader(self, process, packets):
         try:
@@ -275,6 +375,9 @@ class Serena:
         self.deadline = time.monotonic() + 100
         with self.spaces.use(write=scope["role"] in EDITORS) as (_, workspace):
             self.scope()
+            if self.process is not None and self.mount_layout is not None and self.mount_layout != self.layout(scope, workspace):
+                self.close()
+                raise ValueError("Workspace paths changed after generation or refresh. Repeat the call to start a current Serena view.")
             if self.process is not None and self.workspace_root != workspace["root"]:
                 self.close()
                 raise ValueError(

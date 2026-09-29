@@ -112,6 +112,11 @@ def main():
             assert "make:command" in {row["name"] for row in makers}, makers
             metadata = completed(coder, "framework_inspect", {"kind": "makers", "name": "make:command"})["result"]
             assert "name" in metadata["definition"]["arguments"], metadata
+            console = completed(coder, "framework_inspect", {"kind": "console"})["result"]["commands"]
+            assert "debug:container" in {row["name"] for row in console}, console
+            services = completed(coder, "framework_inspect", {"kind": "console", "name": "debug:container", "parameters": {"arguments": {"name": "kernel"}}})["result"]
+            assert services["exit_code"] == 0, services
+            report["introspection"] = services
             generated = completed(
                 coder, "framework_generate", {"maker": "make:command", "arguments": {"name": "app:fixture-command"}}
             )["result"]
@@ -148,6 +153,7 @@ def main():
                         "accepted": [
                             "isolated dependency install",
                             "installed Maker metadata",
+                            "installed Symfony Console introspection",
                             "attribute command generation",
                             "autoconfigured command execution",
                             "Mate server-info",
@@ -176,4 +182,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

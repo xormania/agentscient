@@ -25,7 +25,7 @@ class Operations:
             action not in ACTIONS
             or not scope
             or scope["paused"]
-            or (not scope["job"] and (scope["role"] != "xo" or action not in {"work_check", "work_submit"}))
+            or (not scope["job"] and (scope["role"] not in {"xo", "nco"} or action not in {"work_check", "work_submit"}))
         ):
             raise ValueError("This operation requires active work in the corresponding role.")
         payload = canonical(arguments)

@@ -28,3 +28,7 @@ After a new native session, recover decisions, open questions, recent activity a
 evidence through MCP. Do not claim to remember a previous vendor's private transcript.
 Report measured results and what remains unverified; absent telemetry is unknown.
 
+An additional improvement can be reported without becoming an assignment. Keep
+findings distinct from the current completion criteria. Use maintained Makers
+through MCP; local agents do not create or modify Makers. Complete the bounded
+assignment and report its result before undertaking separately proposed work.

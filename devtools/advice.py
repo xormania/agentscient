@@ -50,7 +50,7 @@ def capabilities(spec):
                 "objective": text, "done_when": text, "constraints": text}}
     return [
         spec("assignment_advise",
-             "XO: assess up to four proposed jobs before orchestrate. Compare overlap, parallelism and configured runtime fit. Returns advice and evidence; does not allocate or change runtime policy.",
+             "XO/NCO: assess up to four proposed responsibilities before orchestrate. Compare overlap, parallelism and configured runtime fit. Returns advice and evidence; does not allocate or change runtime policy.",
              {"work": {"type": "array", "minItems": 1, "maxItems": 4, "items": work},
               "priorities": text,
               "evidence": {"type": "array", "maxItems": 4, "items": reference}}, ("work",), readonly=True),
@@ -110,7 +110,7 @@ class Advice:
 
     def brief(self):
         value = self.control.work_context()
-        return {key: value[key] for key in ("role", "context_revision", "responsibility", "work", "job", "development", "assignment") if key in value}
+        return {key: value[key] for key in ("role", "context_revision", "responsibility", "work", "job", "development", "assignment", "delegation") if key in value}
 
     def evidence(self, reference, offset=0, limit=2000):
         with self.store.connect() as db:
@@ -291,7 +291,7 @@ class Advice:
             policy, _, revision = load(self.store.directory)
             for role in roles:
                 profiles = {}
-                for name in policy["roles"][role]:
+                for name in policy["roles"].get(role, []):
                     try:
                         row = resolve(self.store.directory, role, profile=name)
                     except ValueError:
@@ -365,6 +365,6 @@ class Advice:
                 "runtime": {**runtime, "profile": choices.get(runtime["choice"]), "candidates": choices,
                             "configured_default": runtimes[job["role"]]["configured_default"]},
             })
-        result["next"] = ("XO chooses jobs through orchestrate. Runtime recommendations describe the proposed role; "
+        result["next"] = ("XO/NCO chooses work through orchestrate. Runtime recommendations describe the proposed role; "
                           "orchestrate still follows operator policy. Use guidance_request for a policy change.")
         return result

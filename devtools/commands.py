@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import ExitStack
 
 from . import launch
 from .control import BRIEF_FIELDS, ROLES, Control, binding
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLE_TOOLS = {"co": {"direct", "monitor", "conclude", "restart_xo"}, "xo": {"orchestrate", "monitor", "steer"}}
+ROLE_TOOLS = {"co": {"direct", "monitor", "conclude", "restart_xo"},
+              "xo": {"orchestrate", "monitor", "steer"}, "nco": {"orchestrate", "monitor", "steer"}}
 
 
 def capabilities(spec):
@@ -32,7 +34,7 @@ def capabilities(spec):
         ),
         spec(
             "orchestrate",
-            "XO: organize named work and live collaborators. Records, slot allocation, briefs and startup are automatic.",
+            "XO/NCO: organize named work and live collaborators. XO may delegate coordination to NCO. Records, allocation and startup are automatic.",
             {
                 "work": {
                     "type": "array",
@@ -42,7 +44,11 @@ def capabilities(spec):
                         "type": "object",
                         "properties": {
                             "name": name,
-                            "role": {"type": "string", "enum": [r for r in ROLES if r not in ROLE_TOOLS]},
+                            "role": {"type": "string", "enum": [r for r in ROLES if r not in {"co", "xo"}]},
+                            "plan": {"type": "string", "pattern": "^update:[1-9][0-9]*$", "maxLength": 80},
+                            "editable_paths": {"type": "array", "maxItems": 30, "items": {**name, "maxLength": 300},
+                                               "description": "Assigned files or directories within role paths. Missing paths are files; end a new directory path with '/'. List new files explicitly when their parent contains protected paths."},
+                            "context_paths": {"type": "array", "maxItems": 30, "items": {**name, "maxLength": 300}},
                             **{key: {**value, "maxLength": 800} for key, value in goal.items()},
                         },
                         "required": ["name", "role", "objective", "done_when", "constraints"],
@@ -54,7 +60,7 @@ def capabilities(spec):
         ),
         spec(
             "monitor",
-            "CO/XO: read scoped progress, blockers, observed sessions, recent measured usage and available capacity.",
+            "CO/XO/NCO: read scoped progress, blockers, observed sessions, recent measured usage and available capacity.",
             {
                 "offset": {"type": "integer", "minimum": 0},
                 "work": {**name, "description": "Optional named job to inspect its current review packet and CI."},
@@ -74,13 +80,13 @@ def capabilities(spec):
         ),
         spec(
             "steer",
-            "XO: guide collaborators, revise a named brief, or accept/cancel a named job with an assessment.",
+            "XO/NCO: guide collaborators, revise a named brief, or accept/cancel a named job with an assessment.",
             {
                 "action": {"type": "string", "enum": ["guide", "pause", "resume", "stop", "replace", "accept", "cancel"]},
                 "work": {**name, "description": "A name supplied to orchestrate; omit to address your team."},
                 "role": {
                     "type": "string",
-                    "enum": [r for r in ROLES if r not in ROLE_TOOLS],
+                    "enum": [r for r in ROLES if r not in {"co", "xo"}],
                     "description": "Optional collaborator role when a job has both a producer and auditor.",
                 },
                 "direction": text,
@@ -99,6 +105,14 @@ def capabilities(spec):
 
 def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+def coordination_brief(scope):
+    try:
+        value = json.loads(scope["brief"])
+        return value if isinstance(value, dict) else {}
+    except ValueError:
+        return {}
 
 
 class Commands:
@@ -261,7 +275,18 @@ class Commands:
         from .workspaces import Workspaces
 
         scope = self.control.current()
-        with Workspaces(self.store, self.member).lock("order-" + str(scope["work_order"]), timeout=1):
+        spaces = Workspaces(self.store, self.member)
+        with spaces.lock("order-" + str(scope["work_order"]), timeout=1), ExitStack() as locks:
+            # Match the workspace lock order used by delivery: order, then jobs,
+            # then the database transaction. Never revoke mounts during an edit.
+            keys = {"orchestrate:" + digest([scope["work_order"], item["name"].strip().casefold()]) for item in work}
+            with self.store.connect() as db:
+                jobs = [row["id"] for row in db.execute(
+                    "SELECT id,request_key FROM jobs WHERE work_order=? AND created_by=? ORDER BY id",
+                    (scope["work_order"], self.member),
+                ) if row["request_key"] in keys]
+            for job in jobs:
+                locks.enter_context(spaces.lock("job-" + str(job)))
             return self._orchestrate(work)
 
     def _orchestrate(self, work):
@@ -276,16 +301,29 @@ class Commands:
         results = []
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            scope = self._scope(db, {"xo"})
+            scope = self._scope(db, {"xo", "nco"})
             if scope["paused"]:
                 raise ValueError("Your work is paused. Report or request guidance before expanding it.")
             for item, name in zip(work, names, strict=True):
+                if item["role"] == "nco":
+                    results.append(self._coordinate(db, scope, config, item))
+                    continue
                 key = "orchestrate:" + digest([scope["work_order"], name])
                 old = db.execute(
                     "SELECT * FROM jobs WHERE created_by=? AND request_key=?", (self.member, key)
                 ).fetchone()
+                collision = db.execute("SELECT id FROM jobs WHERE work_order=? AND lower(title)=? AND created_by!=?",
+                                       (scope["work_order"], name, self.member)).fetchone()
+                if collision:
+                    raise ValueError("That work name belongs to another coordinator; use its reporting relationship.")
                 fields = {key: item[key] for key in ("objective", "done_when", "constraints")}
                 changed = old and any(old[key] != value for key, value in fields.items())
+                from .assignments import prepare
+
+                if item["role"] == "audit" and any(key in item for key in ("plan", "editable_paths", "context_paths")):
+                    raise ValueError("An auditor uses the producer's assignment and submitted snapshot.")
+                assignment = prepare(db, self.control, scope, item, json.loads(old["assignment"]) if old else {}) if item["role"] != "audit" else (old["assignment"] if old else "{}")
+                changed = changed or old and old["assignment"] != assignment
                 if old:
                     job = old["id"]
                     if old["status"] in {"done", "cancelled"}:
@@ -302,6 +340,11 @@ class Commands:
                         work_order=scope["work_order"],
                         select=False,
                     )["job"]["id"]
+                if item["role"] != "audit":
+                    db.execute("UPDATE jobs SET assignment=? WHERE id=?", (assignment, job))
+                    plan = json.loads(assignment).get("plan")
+                    if plan:
+                        self.work.attach(db, scope["work_order"], job, "artifact", plan["evidence"].split(":")[1], label="Implementation plan")
                 existing = db.execute("SELECT * FROM member_bindings WHERE job=?", (job,)).fetchall()
                 if any(row["reports_to"] != self.member for row in existing):
                     raise ValueError("This work has another reporting arrangement; request guidance.")
@@ -341,6 +384,28 @@ class Commands:
                 results.append({**self._participant(db, target, config), "direction": direction})
         return {"work": results}
 
+    def _coordinate(self, db, scope, config, item):
+        if scope["role"] != "xo":
+            raise ValueError("XO appoints the NCO; NCO delegates specialist jobs.")
+        if any(key in item for key in ("plan", "editable_paths", "context_paths")):
+            raise ValueError("NCO receives a coordination brief; assign workspace boundaries to specialist jobs.")
+        existing = [row for row in self._descendants(db, scope) if row["role"] == "nco"]
+        if len(existing) > 1:
+            raise ValueError("Resolve duplicate NCO bindings before delegating coordination.")
+        prior = existing[0] if existing else None
+        fields = coordination_brief(prior) if prior else {}
+        fields.update({key: item[key] for key in ("name", "objective", "done_when", "constraints")})
+        brief = canonical(fields)
+        slot = self._slot(db, config, existing=prior, role="nco")
+        target = self.control.bind_in(db, slot["name"], "nco", scope["work_order"], reports_to=self.member, brief=brief)
+        if prior and prior["brief"] != brief:
+            for child in self._descendants(db, target):
+                self._touch(db, child["member"])
+                self._direction(db, binding(db, child["member"]), "The delegated mission changed. Refresh context before continuing.")
+        self._start_intent(db, target, slot)
+        sent = self._direction(db, target, "Coordinate planning and bounded implementation within this mission; report scope changes to XO.")
+        return {**self._participant(db, target, config), "direction": sent}
+
     def restart_xo(self, reason):
         config = self._config()
         with self.store.connect() as db:
@@ -376,7 +441,7 @@ class Commands:
                     "Name one job and supply its acceptance assessment or cancellation reason as direction."
                 )
             with self.store.connect() as db:
-                scope = self._scope(db, {"xo"})
+                scope = self._scope(db, {"xo", "nco"})
                 job = self._named_job(db, scope, work)
             from .delivery import Delivery
 
@@ -391,7 +456,7 @@ class Commands:
         results = []
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            scope = self._scope(db, {"xo"})
+            scope = self._scope(db, {"xo", "nco"})
             targets = self._descendants(db, scope)
             if role:
                 targets = [row for row in targets if row["role"] == role]
@@ -401,20 +466,45 @@ class Commands:
                 targets = [
                     row
                     for row in targets
-                    if row["job"] and record(db, "jobs", row["job"])["title"].casefold() == work.strip().casefold()
+                    if (record(db, "jobs", row["job"])["title"] if row["job"] else
+                        coordination_brief(row).get("name", "") if row["role"] == "nco" else "").casefold() == work.strip().casefold()
                 ]
                 if not targets:
                     raise ValueError("Name a responsibility in your current team.")
+                # Pausing/stopping or changing a delegated mission affects its entire team.
+                for target in list(targets):
+                    if target["role"] == "nco" and (fields or action in {"pause", "resume", "stop"}):
+                        targets.extend(row for row in self._descendants(db, target) if row not in targets)
             if not targets:
                 raise ValueError("No collaborators are bound to this responsibility yet.")
+            changed_jobs = set()
+            delegated_fields = bool(fields and any(row["role"] == "nco" for row in targets))
+            delegated_change = bool(fields and any(row["role"] == "nco" and any(
+                coordination_brief(row).get(key) != value for key, value in fields.items()
+            ) for row in targets))
             for target in targets:
                 changed = False
-                if fields:
+                if fields and target["role"] == "nco":
+                    previous = coordination_brief(target)
+                    changed = any(previous.get(key) != value for key, value in fields.items())
+                    previous.update(fields)
+                    db.execute("UPDATE member_bindings SET brief=? WHERE member=?", (canonical(previous), target["member"]))
+                    target = binding(db, target["member"])
+                elif fields and not delegated_fields:
                     old = record(db, "jobs", target["job"])
                     changed = any(old[key] != value for key, value in fields.items())
                     self.work.update_in(db, "jobs", scope["work_order"], target["job"], **fields)
+                    if changed:
+                        changed_jobs.add(target["job"])
+                changed = changed or target["job"] in changed_jobs or delegated_change
                 paused = 1 if action in {"pause", "stop"} else 0 if action in {"resume", "replace"} else target["paused"]
-                brief = direction if direction is not None else target["brief"]
+                if target["role"] == "nco":
+                    value = coordination_brief(target)
+                    if direction is not None:
+                        value["direction"] = direction
+                    brief = canonical(value)
+                else:
+                    brief = direction if direction is not None else target["brief"]
                 if changed or paused != target["paused"] or brief != target["brief"] or action == "replace":
                     db.execute(
                         "UPDATE member_bindings SET paused=?,brief=? WHERE member=?", (paused, brief, target["member"])
@@ -480,7 +570,7 @@ class Commands:
                 observed_usage.update(observation=None, preview=encoded[:3000], truncated=True)
         return {
             "role": scope["role"],
-            "work": job["title"] if job else "work-order coordination",
+            "work": job["title"] if job else coordination_brief(scope).get("name", "work-order coordination"),
             "work_state": "paused" if current["paused"] else "active",
             "status": job["status"] if job else record(db, "work_orders", scope["work_order"])["status"],
             "blocker": job["blocker"] if job else "",
@@ -496,12 +586,19 @@ class Commands:
         }
 
     @staticmethod
+    def _owns_job(db, scope, job):
+        owners = {scope["member"]}
+        if scope["role"] == "xo":
+            owners.update(row["member"] for row in Commands._descendants(db, scope) if row["role"] == "nco")
+        return scope["role"] == "co" or job["created_by"] in owners
+
+    @staticmethod
     def _named_job(db, scope, name):
         rows = [
             dict(row)
             for row in db.execute("SELECT * FROM jobs WHERE work_order=?", (scope["work_order"],))
             if row["title"].casefold() == name.strip().casefold()
-            and (scope["role"] == "co" or row["created_by"] == scope["member"])
+            and Commands._owns_job(db, scope, row)
         ]
         if len(rows) != 1:
             raise ValueError("Name a unique responsibility in your current work order.")
@@ -588,7 +685,7 @@ class Commands:
                 [
                     dict(row)
                     for row in db.execute("SELECT * FROM jobs WHERE work_order=? ORDER BY id", (scope["work_order"],))
-                    if scope["role"] == "co" or row["created_by"] == self.member
+                    if self._owns_job(db, scope, row)
                 ]
                 if scope
                 else []
@@ -688,4 +785,3 @@ class Commands:
                         "command_launch_failed",
                         {"error": detail, "work_order": current["work_order"], "job": current["job"]},
                     )
-
