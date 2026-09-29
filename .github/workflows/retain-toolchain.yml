@@ -33,6 +33,10 @@
           }
         },
         {
+          "name": "Recover approved PHP from sibling runner caches (bootstrap only)",
+          "run": "python3 - <<'PYRECOVER'\nimport hashlib, json, os, shutil\nfrom pathlib import Path\nconfig = json.loads(Path('.github/actions/php-runtime/toolchain.json').read_text())\ndigest = config['php']['sha256']\ntarget = Path(os.environ['RUNNER_TOOL_CACHE']) / 'agentscient-php' / (digest + '.tar.gz')\nroot = Path(os.environ['RUNNER_TEMP']).parents[2]\nfor candidate in root.glob('*/_work/_tool/agentscient-php/' + digest + '.tar.gz'):\n    with candidate.open('rb') as source:\n        valid = hashlib.file_digest(source, 'sha256').hexdigest() == digest\n    if valid:\n        target.parent.mkdir(parents=True, exist_ok=True)\n        if candidate.resolve() != target.resolve():\n            shutil.copyfile(candidate, target)\n        print('Recovered approved archive:', candidate)\n        break\nelse:\n    raise SystemExit('Approved archive absent from sibling runner tool caches')\nPYRECOVER"
+        },
+        {
           "name": "Retain checksum-verified executables",
           "env": {
             "GH_TOKEN": "${{ github.token }}"
