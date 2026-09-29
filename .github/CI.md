@@ -70,7 +70,7 @@ delta, so cancelling an earlier push could discard its selected coverage.
 | --- | --- | --- |
 | Ruff downloads | pip's existing local cache | `setup-python` pip cache, keyed by [requirements-ci.txt](requirements-ci.txt). |
 | Composer package downloads | Composer's existing local cache | GitHub cache keyed by OS, architecture and `composer.lock`, with a platform fallback. |
-| Pinned PHP archive | `RUNNER_TOOL_CACHE/agentscient-php`, keyed and verified by SHA-256 on every use; extracted into a fresh job directory. | Managed by `setup-php`. |
+| Pinned PHP and Composer executables | `RUNNER_TOOL_CACHE/agentscient-php` and `agentscient-composer`, keyed and verified by SHA-256 on every use. | The same verified installer; fresh runners download from the retained release. |
 | Serena Docker layers | Existing Docker builder cache | Buildx with the GitHub Actions layer cache. |
 
 Only downloaded dependencies and build layers are cached. Each job still installs
@@ -99,10 +99,52 @@ The repository variable `CI_RUNNER_MODE` selects execution:
 | `local` | Registered self-hosted runner |
 
 Any other value fails runner selection. The same jobs run in either mode.
-The self-hosted PHP setup requires Linux/X64. Runners need Python 3.12+, Git, Docker and
+The shared PHP setup requires Linux/X64 on both runner types. Runners need Python 3.12+, Git, Docker and
 the download/archive tools used by [php-runtime](actions/php-runtime/action.yml).
-That action supplies temporary pinned PHP and installs Composer when absent,
-without replacing global PHP. Select runner mode as an operator choice.
+That action supplies temporary pinned PHP and Composer, regardless of global
+installations. Composer invokes the PHP beside it; global executables are not
+changed. Select runner mode as an operator choice.
+
+## Retained PHP and Composer executables
+
+[toolchain.json](actions/php-runtime/toolchain.json) pins PHP 8.5.11, Composer
+2.10.3, their SHA-256 digests, asset names and the dedicated GitHub Release tag.
+Both PHP jobs install the same binaries through the shared action. PHP retains
+the previously approved archive digest; a changed upstream file is not accepted.
+Composer no longer uses a floating installer or whichever version is on the runner.
+
+Normal installation downloads only from the retained release in this repository,
+using the job's `contents: read` token for private asset access. Upstream URLs are
+provenance and inputs to explicit publication, never installation fallbacks.
+Credentials are excluded from redirected asset-storage requests. A valid warm
+cache needs no release request. Missing/corrupt entries are downloaded, checked
+and atomically published to the cache before isolated job installation.
+
+[Retain CI toolchain](workflows/retain-toolchain.yml) is an operator-only manual
+workflow, separate from pull-request CI. Its publication job alone has
+`contents: write`. It reuses a verified runtime cache or verifies upstream input,
+creates a draft release, uploads missing assets, reads both back into an empty
+directory and verifies their digests before publication. An interrupted draft can
+resume; existing assets are never replaced. It then verifies a cold installation
+on the selected runner and GitHub-hosted Ubuntu using read-only asset access in
+the hosted verification job. This is a toolchain release, not a product release,
+and does not advance `master` or mark itself as the latest product release.
+
+For an upgrade, review new versions/digests and choose a **new release tag** in
+`toolchain.json`; publish and pass cold verification before merging the consumer
+change. Run the manual workflow from the reviewed ref once the workflow is
+available on the default branch, or run `toolchain.py publish` in an authorized
+operator Actions job. The first publication recovered the original pinned PHP
+archive from an existing runner cache. Never solve an upstream mismatch by
+silently adopting the new bytes or repacking an executable to guess its checksum.
+
+GitHub release immutability is a repository setting; the initial retained release
+is not platform-locked. The publisher never overwrites assets, and installations
+always enforce the independently reviewed digests, including on cache hits.
+Enable immutable releases before publishing future toolchain tags if a platform
+lock is desired. This does not require AWS/S3. Composer dependency archives remain
+in the existing package-download caches; dependency installation and update
+metadata discovery still use their configured upstream repositories.
 
 ## Local verification
 
@@ -187,3 +229,4 @@ bypass merely to satisfy a review count.
 References: [creating rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository),
 [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets),
 [required status checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
+
