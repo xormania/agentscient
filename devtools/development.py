@@ -236,7 +236,7 @@ class Development:
                         raise ValueError("Name the installed Mate diagnostic to call.")
                     value = {
                         "tools": [
-                            {"name": name, "description": row.get("description"), "parameters": row.get("input_schema")}
+                            {"name": name, "description": row.get("description")}
                             for name, row in tools.items()
                         ]
                     }
@@ -348,3 +348,4 @@ class Development:
     def check(self, check=None):
         with self.workspaces.use() as (_, workspace):
             return self.checks(workspace["root"], check)
+
