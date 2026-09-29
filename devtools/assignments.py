@@ -9,13 +9,14 @@ from .work import record
 
 def valid_path(value):
     path = PurePosixPath(value)
-    return bool(value and path.parts and value == path.as_posix() and not path.is_absolute()
+    return bool(value and path.parts and value in {path.as_posix(), path.as_posix() + "/"} and not path.is_absolute()
                 and not any(part in {".", "..", ".git", ".serena"} or part.startswith(".env") for part in path.parts)
                 and not any(c in value for c in ("\\", "\0", "\n", "\r", ",")))
 
 
 def covers(parent, path):
-    return path == parent or path.startswith(parent.rstrip("/") + "/")
+    parent, path = parent.rstrip("/"), path.rstrip("/")
+    return path == parent or path.startswith(parent + "/")
 
 
 def policy(store, project):
@@ -59,7 +60,7 @@ def prepare(db, control, scope, item, existing=None):
         if key not in item:
             continue
         paths = item[key]
-        if len(set(paths)) != len(paths) or any(not valid_path(p) for p in paths):
+        if len({p.rstrip("/") for p in paths}) != len(paths) or any(not valid_path(p) for p in paths):
             raise ValueError("Assignment paths must be distinct relative project paths.")
         if key == "editable_paths" and any(
             not spaces.permitted_path(path, item["role"], assignment={}) for path in paths

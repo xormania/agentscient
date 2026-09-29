@@ -54,7 +54,11 @@ def main(curated=False):
             "target": "dev",
             "repository": "example/fixture",
             "serena": {"image": image},
+            "assignment_policy": "assignment-policy.json",
         }
+        policy = json.loads((REPO / "devtools/assignment-policy.json").read_text())
+        policy["protected_paths"] += ["src/Maker/PlannedMaker.php", "src/Reserved.php", "src/FutureMaker/"]
+        (state / "assignment-policy.json").write_text(json.dumps(policy))
         (state / "team.json").write_text(json.dumps(config))
         API(state, "owner").call(
             "direct",
@@ -76,7 +80,8 @@ def main(curated=False):
                         "objective": "Inspect and edit",
                         "done_when": "Evidence",
                         "constraints": "Source only",
-                        **({"editable_paths": ["src/Example.php"], "context_paths": ["src/Example.php"]} if curated else {}),
+                        **({"editable_paths": ["src/Example.php", "src/NewService.php", "src/NOTICE", "src/NewDirectory/"],
+                            "context_paths": ["src/Example.php"]} if curated else {}),
                     }
                 ]
             },
@@ -86,13 +91,18 @@ def main(curated=False):
             assert {r["name"] for r in client.call("tools/list")["tools"]} == {"serena_repl"}
             assert "42" in repl(client, "answer = 42; answer")
             assert "42" in repl(client, "answer")
+            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
+            assert not (workspace / "src/Maker/PlannedMaker.php").exists()
+            assert not (workspace / "src/Reserved.php").exists()
+            assert not (workspace / "src/FutureMaker").exists()
+            if not curated:
+                assert not git(workspace, "status", "--porcelain").stdout, "Inspection manufactured source changes"
             documentation = repl(client, "s.info('lsp.get_symbols_overview', 'edit.replace_content')")
             assert "get_symbols_overview" in documentation, documentation
             symbols = repl(client, "s.lsp.get_symbols_overview('src/Example.php', depth=1)")
             assert "Example" in symbols and "greeting" in symbols, symbols
             edited = repl(client, "s.edit.replace_content('src/Example.php', 'hello', 'welcome', 'literal')")
             assert "Error" not in edited, edited
-            workspace = Path(API(state, "coder").workspaces.ensure()["root"])
             assert "welcome" in (workspace / "src/Example.php").read_text(), edited
             blocked = repl(
                 client,
@@ -106,9 +116,22 @@ def main(curated=False):
             )
             assert "True" in blocked, blocked
             assert (workspace / "src/Maker/FixtureMaker.php").read_text() == "<?php // Maintainer-owned Maker\n"
+            for path in ("src/Maker/PlannedMaker.php", "src/Reserved.php", "src/FutureMaker"):
+                blocked = repl(client, "protected = False\ntry:\n Path(" + repr("/workspace/" + path)
+                               + ").write_text('wrong')\nexcept OSError:\n protected = True\nprotected")
+                assert "True" in blocked, blocked
+                assert not (workspace / path).exists()
             assert "False" in repl(client, "Path('/workspace/.serena/view').exists()")
             if curated:
                 assert "False" in repl(client, "Path('/workspace/src/Unrelated.php').exists()")
+                for path, content in (("src/NewService.php", "<?php // New assigned service"),
+                                      ("src/NOTICE", "Extensionless file"),
+                                      ("src/NewDirectory/Child.php", "<?php // New assigned directory")):
+                    repl(client, "Path(" + repr("/workspace/" + path) + ").write_text(" + repr(content) + ")")
+                    assert (workspace / path).read_text() == content
+                blocked = repl(client, "blocked = False\ntry:\n Path('/workspace/src/Unassigned.php').write_text('wrong')\nexcept OSError:\n blocked = True\nblocked")
+                assert "True" in blocked, blocked
+                assert not (workspace / "src/Unassigned.php").exists()
             assert "False" in repl(client, "Path('/var/run/docker.sock').exists()")
             xo.call("steer", {"action": "pause", "work": "Serena example"})
             response = client.call("tools/call", {"name": "serena_repl", "arguments": {"code": "answer"}})
@@ -153,6 +176,8 @@ def main(curated=False):
                             "Serena edit facade",
                             "protected source mount",
                             "maintainer-owned Maker protection",
+                            "absent protected paths stay absent and unwritable",
+                            "assigned new files, extensionless files and directories" if curated else "clean inspection startup",
                             "curated file mounts and refresh" if curated else "operator role paths",
                             "no Docker socket",
                             "live pause/resume",

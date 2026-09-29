@@ -21,23 +21,23 @@ from .work import Work, record
 EDITORS = {"coder", "docs", "test_writer", "architect"}
 DEFAULT_PATHS = {
     "coder": [
-        "src",
-        "config",
-        "packages",
-        "tests",
-        "templates",
-        "assets",
-        "translations",
-        "public",
-        "migrations",
+        "src/",
+        "config/",
+        "packages/",
+        "tests/",
+        "templates/",
+        "assets/",
+        "translations/",
+        "public/",
+        "migrations/",
         "composer.json",
         "composer.lock",
         "symfony.lock",
         "phpunit.dist.xml",
     ],
-    "test_writer": ["tests", "phpunit.dist.xml"],
-    "docs": ["docs", "README.md"],
-    "architect": ["docs"],
+    "test_writer": ["tests/", "phpunit.dist.xml"],
+    "docs": ["docs/", "README.md"],
+    "architect": ["docs/"],
 }
 
 

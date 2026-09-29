@@ -57,6 +57,33 @@ def mount(source, target, readonly=False):
     return ["--mount", f"type=bind,src={source},dst={target}" + (",readonly" if readonly else "")]
 
 
+def writable_paths(root, editable, protected):
+    """Split directory mounts around protected descendants without creating them."""
+    from .assignments import covers
+
+    result = set()
+
+    def include(value):
+        value = Path(value).as_posix()
+        if any(covers(path, value) for path in protected):
+            return
+        source = root / value
+        if source.resolve() != source or not source.resolve().is_relative_to(root):
+            raise ValueError("Editable mount escapes the managed workspace.")
+        if not source.exists():
+            return
+        if any(covers(value, path) for path in protected):
+            if source.is_dir():
+                for child in sorted(source.iterdir()):
+                    include(child.relative_to(root).as_posix())
+        else:
+            result.add(value)
+
+    for value in editable:
+        include(value)
+    return sorted(result)
+
+
 class Serena:
     def __init__(self, directory, member, generation=None):
         self.store, self.member = Store(directory), member
@@ -146,11 +173,29 @@ class Serena:
         assignment = assignment_for(self.store, scope)
         rules = policy(self.store, project_config(self.store))
         editable = self.spaces.paths(scope["role"])
+        # Explicit missing paths are files unless the assignment ends in '/'.
+        # Never manufacture default optional files just by starting inspection.
+        for value in sorted(editable, key=lambda value: (len(Path(value).parts), value)):
+            source = root / value
+            if source.resolve() != source or not source.resolve().is_relative_to(root):
+                raise ValueError("Editable mount escapes the managed workspace.")
+            if value.endswith("/") and source.exists() and not source.is_dir():
+                raise ValueError("An editable directory path names an existing file.")
+            if not source.exists():
+                if any(covers(value, path) for path in rules["protected_paths"]):
+                    continue  # A missing protected ancestor remains read-only.
+                if value.endswith("/"):
+                    source.mkdir(parents=True)
+                elif "editable_paths" in assignment:
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    source.touch(exist_ok=False)
+        writable = writable_paths(root, editable, rules["protected_paths"])
         if "context_paths" in assignment:
             view = private / "view"
             view.mkdir(exist_ok=True)
             (view / ".serena").mkdir(exist_ok=True)
-            selected = set(assignment["context_paths"]) | set(assignment.get("editable_paths", []))
+            selected = {Path(value).as_posix() for value in
+                        assignment["context_paths"] + assignment.get("editable_paths", [])}
             for value in sorted(selected, key=lambda value: (len(Path(value).parts), value)):
                 source = root / value
                 if source.resolve() != source or not source.resolve().is_relative_to(root):
@@ -171,32 +216,8 @@ class Serena:
         else:
             argv += mount(root, "/workspace", readonly=True)
         argv += mount(provider_state, "/workspace/.serena")
-        if scope["role"] in EDITORS:
-            for value in editable:
-                path = Path(value)
-                if path.is_absolute() or not path.parts or any(p in {".", "..", ".git", ".serena"} for p in path.parts):
-                    raise ValueError(
-                        "Editable container paths must be relative project paths, excluding Git and provider state."
-                    )
-                source = root / path
-                if source.resolve() != source or not source.resolve().is_relative_to(root):
-                    raise ValueError("Editable mount escapes the managed workspace.")
-                if not source.exists():
-                    if source.suffix:
-                        continue
-                    source.mkdir(parents=True)
-                argv += mount(source, "/workspace/" + path.as_posix())
-            # Read-only overlays also protect Maker directories below a broad role mount.
-            for value in rules["protected_paths"]:
-                if not any(covers(parent, value) for parent in editable):
-                    continue
-                source = root / value
-                if source.resolve() != source:
-                    raise ValueError("Protected mount must not be a symlink.")
-                if not source.exists():
-                    source.parent.mkdir(parents=True, exist_ok=True)
-                    source.touch() if source.suffix else source.mkdir()
-                argv += mount(source, "/workspace/" + value, readonly=True)
+        for value in writable:
+            argv += mount(root / value, "/workspace/" + value)
         # Context and edit paths can overlap; Docker needs one final mount per destination.
         flags, mounts, index = [], {}, 0
         while index < len(argv):
@@ -215,10 +236,13 @@ class Serena:
 
     def layout(self, scope, workspace):
         from .assignments import current as assignment_for
+        from .assignments import policy
 
         assignment = assignment_for(self.store, scope)
-        paths = set(assignment.get("context_paths", [])) | set(self.spaces.paths(scope["role"]))
         root = Path(workspace["root"])
+        editable = self.spaces.paths(scope["role"])
+        writable = writable_paths(root, editable, policy(self.store, project_config(self.store))["protected_paths"])
+        paths = {Path(value).as_posix() for value in assignment.get("context_paths", []) + editable + writable}
         result = []
         for path in sorted(paths):
             source = root / path

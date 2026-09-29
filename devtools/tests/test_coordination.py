@@ -9,11 +9,13 @@ from test_commands import responsibility
 
 from devtools.advice import Advice
 from devtools.api import API
+from devtools.assignments import covers, policy, valid_path
 from devtools.development import Development
 from devtools.operations import Operations
 from devtools.runtime import defaults, load, resolve
 from devtools.serena_provider import Serena
 from devtools.store import SCHEMA_VERSION, Store
+from devtools.workspaces import git
 
 
 class CoordinationTests(unittest.TestCase):
@@ -157,8 +159,22 @@ class CoordinationTests(unittest.TestCase):
         self.api.call("work_inspect", {})
         root = Path(self.api.workspaces.ensure()["root"])
         provider = Serena(self.state, self.api.member)
+        rules = policy(self.store, {})
+        rules["protected_paths"] += ["src/Maker/PlannedMaker.php", "src/Reserved.php"]
+        (self.state / "assignment-policy.json").write_text(json.dumps(rules))
+        team = json.loads((self.state / "team.json").read_text())
+        team["project"]["assignment_policy"] = "assignment-policy.json"
+        (self.state / "team.json").write_text(json.dumps(team))
         args = provider.command(self.api.control.snapshot(), self.api.workspaces.ensure())
-        self.assertIn(f"type=bind,src={root}/src/Maker,dst=/workspace/src/Maker,readonly", args)
+        self.assertFalse((root / "src/Maker").exists())
+        self.assertFalse((root / "src/Reserved.php").exists())
+        self.assertEqual(b"", git(root, "status", "--porcelain").stdout)
+        self.assertIn(f"type=bind,src={root},dst=/workspace,readonly", args)
+        self.assertIn(f"type=bind,src={root}/src/Example.php,dst=/workspace/src/Example.php", args)
+        self.assertNotIn(f"type=bind,src={root}/src,dst=/workspace/src", args)
+        (root / "src/Example.php").write_text("Allowed edit")
+        self.api.call("work_save", {"note": "Save without phantom protected files"})
+        (root / "src/Maker").mkdir()
         (root / "src/Maker/Forbidden.php").write_text("Maker code")
         with self.assertRaisesRegex(ValueError, "outside this role"):
             self.api.call("work_save", {"note": "Change a Maker"})
@@ -215,8 +231,47 @@ class CoordinationTests(unittest.TestCase):
         missing.unlink()
         provider.command(scope, workspace)
         previous = provider.mount_layout
-        missing.write_text("<?php // Generated")
+        self.assertTrue(missing.is_file())
+        replacement.write_text("<?php // Generated")
+        replacement.replace(missing)
         self.assertNotEqual(previous, provider.layout(scope, workspace))
+
+    def test_new_assigned_files_and_explicit_directories_are_writable(self):
+        _, result = self.plan()
+        coder, item = self.implementation(result)
+        paths = ["src/NewService.php", "src/NOTICE", "src/NewDirectory/"]
+        self.nco.call("orchestrate", {"work": [item | {"editable_paths": paths}]})
+        workspace = coder.workspaces.ensure()
+        root = Path(workspace["root"])
+        provider = Serena(self.state, coder.member)
+        args = provider.command(coder.control.snapshot(), workspace)
+        for path in paths:
+            normalized = path.rstrip("/")
+            self.assertIn(f"type=bind,src={root}/{normalized},dst=/workspace/{normalized}", args)
+            self.assertEqual(path.endswith("/"), (root / path).is_dir())
+        self.assertNotIn(f"type=bind,src={root}/src,dst=/workspace/src", args)
+        (root / paths[0]).write_text("<?php // Assigned service")
+        (root / paths[1]).write_text("Extensionless file")
+        (root / paths[2] / "Child.php").write_text("<?php // Assigned directory")
+        coder.call("work_save", {"note": "Create assigned files"})
+        self.assertTrue(covers("src/", "src/NOTICE"))
+        for path in ("src//", "src/../", "src/./", "/src/", "src/.env/", "src/.git/"):
+            self.assertFalse(valid_path(path), path)
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            self.nco.call("orchestrate", {"work": [item | {"editable_paths": ["src/NewDirectory", "src/NewDirectory/"]}]})
+
+    def test_generation_adds_a_writable_child_without_unprotecting_its_parent(self):
+        provider = Serena(self.state, self.api.member)
+        workspace = self.api.workspaces.ensure()
+        scope = self.api.control.snapshot()
+        provider.command(scope, workspace)
+        before = provider.mount_layout
+        root = Path(workspace["root"])
+        (root / "src/Generated.php").write_text("<?php // Generated through MCP")
+        self.assertNotEqual(before, provider.layout(scope, workspace))
+        args = provider.command(scope, workspace)
+        self.assertIn(f"type=bind,src={root}/src/Generated.php,dst=/workspace/src/Generated.php", args)
+        self.assertNotIn(f"type=bind,src={root}/src,dst=/workspace/src", args)
 
     def test_nco_can_read_own_and_child_operations_but_not_sibling_diagnostics(self):
         self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})

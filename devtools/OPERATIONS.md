@@ -89,6 +89,17 @@ and template locations to `protected_paths`. Role path configuration remains the
 upper bound for job `editable_paths`; assignment fields cannot widen it. The
 default blocks `make:maker` and protects `src/Maker`, `templates/maker` and dev-lane
 source. Agents still discover and invoke other installed Makers through MCP.
+Existing directories are recognized by their filesystem type. For missing edit
+paths, a trailing slash declares a directory (`src/NewFeature/`); other explicit
+paths declare files, including extensionless files (`src/NOTICE`). Serena prepares
+only those assigned files, without widening the assignment to their parent.
+Use the trailing slash for missing directories in operator role paths as well.
+
+Directories containing protected descendants remain read-only; their allowed
+existing children receive writable mounts. This also protects absent Maker paths
+without inventing checkout files. To add a new sibling directly in such a
+directory, list its exact path in the assignment or generate it through the
+maintained Maker. Serena refreshes its mounts after generation or Git replacement.
 
 `context_paths` selects the source presented to Serena when supplied in an
 assignment; explicit edit paths use the policy's read-context defaults unless
