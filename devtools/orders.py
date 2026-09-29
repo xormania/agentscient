@@ -18,8 +18,8 @@ class Orders:
         self.store, self.member = store, member
         self.spaces = Workspaces(store, member)
 
-    def ensure_in(self, ident):
-        """Prepare once under the repository lock; callers already checked their binding."""
+    def ensure_in(self, ident, *, refresh=False):
+        """Prepare under the repository lock; refreshing also requires the order lock."""
         from .retirement import register
 
         with self.store.connect() as db:
@@ -29,6 +29,8 @@ class Orders:
         if old:
             workspace = {**dict(old), "job": None}
             self.spaces._verify(workspace, checkout)
+            if refresh:
+                self._sync_in(workspace)
             return workspace
         if work["status"] in {"done", "cancelled"}:
             raise ValueError("This work order is finished.")
@@ -78,11 +80,15 @@ class Orders:
             raise ValueError("Role assignments remain active. Have their coordinator complete or explicitly cancel them first.")
 
     def sync(self, workspace):
+        with self.spaces.lock("repository"):
+            return self._sync_in(workspace)
+
+    def _sync_in(self, workspace):
+        """Refresh while the caller holds the order and repository locks."""
         self.spaces._verify(workspace, self.spaces.checkout())
         if self.spaces.changes(workspace["root"]):
             raise ValueError("The integration workspace has unexpected changes. They were preserved for inspection.")
-        with self.spaces.lock("repository"):
-            revision = self.spaces.upstream(workspace["branch"])
+        revision = self.spaces.upstream(workspace["branch"])
         git(workspace["root"], "merge", "--ff-only", revision)
         if git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip() != revision:
             raise ValueError("The integration workspace has unexpected local commits; preserved for inspection.")

@@ -175,6 +175,40 @@ class StructureTests(unittest.TestCase):
         self.xo.call("steer", {"action": "accept", "work": "Alpha", "direction": "Dependency accepted"})
         self.assign(beta, "research", "Beta")
 
+    def test_replanning_resumes_one_nco_before_refreshing_its_specialists(self):
+        definitions = [job("Alpha"), job("Beta")]
+        _, old_plan = adopt_plan(self.xo, definitions)
+        alpha = self.assign(self.xo, "nco", "Alpha")
+        beta = self.assign(self.xo, "nco", "Beta")
+        coder = self.assign(alpha, "coder", "Alpha")
+        _, new_plan = adopt_plan(self.xo, definitions)
+        self.assertNotEqual(old_plan["reference"], new_plan["reference"])
+
+        resumed = self.xo.call("steer", {"action": "resume", "work": "Alpha", "role": "nco"})
+        self.assertEqual(["nco"], [row["role"] for row in resumed["work"]])
+        self.assertFalse(alpha.control.snapshot()["paused"])
+        self.assertTrue(beta.control.snapshot()["paused"])
+        self.assertTrue(coder.control.snapshot()["paused"])
+        with self.assertRaisesRegex(ValueError, "job plan changed"):
+            alpha.call("steer", {"action": "resume", "work": "Alpha", "assignment": "coder"})
+        alpha.call("orchestrate", {"work": [{"name": "coder", "job": "Alpha", "role": "coder"}]})
+        self.assertEqual(new_plan["reference"], coder.call("work_context", {})["assignment"]["plan"]["reference"])
+        alpha.call("steer", {"action": "resume", "work": "Alpha", "assignment": "coder"})
+        self.assertFalse(coder.control.snapshot()["paused"])
+
+        # Pausing/stopping an NCO still stops its team, while an unfiltered
+        # job resume restarts both the coordinator and its current specialists.
+        self.xo.call("steer", {"action": "pause", "work": "Alpha", "role": "nco"})
+        self.assertTrue(coder.control.snapshot()["paused"])
+        resumed = self.xo.call("steer", {"action": "resume", "work": "Alpha"})
+        self.assertEqual({"nco", "coder"}, {row["role"] for row in resumed["work"]})
+        self.assertFalse(alpha.control.snapshot()["paused"])
+        self.assertFalse(coder.control.snapshot()["paused"])
+        self.xo.call("steer", {"action": "stop", "work": "Alpha", "role": "nco"})
+        self.assertTrue(alpha.control.snapshot()["paused"])
+        self.assertTrue(coder.control.snapshot()["paused"])
+        self.assertTrue(beta.control.snapshot()["paused"])
+
     def test_real_stdio_exposes_plan_contract_and_rejects_git_parameters(self):
         client = Client(self.state, "xo")
         self.addCleanup(client.close)

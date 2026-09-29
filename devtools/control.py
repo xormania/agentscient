@@ -245,6 +245,8 @@ class Control:
             allowed = bool(scope and scope["work_order"] == row["work_order"] and (
                 (scope["job"] is not None and scope["job"] == row["job"])
                 or (scope["job"] is None and scope["role"] in {"co", "xo"})
+                or (scope["job"] is None and scope["role"] == "planner"
+                    and row["job"] is None and row["member"] == self.member)
                 or (scope["job"] is None and scope["role"] == "nco" and (
                     row["member"] == self.member or row["job"] is not None and
                     record(db, "jobs", row["job"])["created_by"] == self.member

@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from .artifacts import Artifacts
@@ -169,6 +169,13 @@ class Workspaces:
 
     def ensure(self):
         scope = self.scope()
+        # The planner inspects the current integrated result. Keep its refresh
+        # serialized with XO's integration operations, without moving job views.
+        with self.lock(self.scope_lock(scope)) if scope["role"] == "planner" else nullcontext():
+            self.scope()
+            return self._prepare(scope)
+
+    def _prepare(self, scope):
         with self.lock("repository"):
             workspace = self._ensure(scope)
             if scope["role"] == "audit":
@@ -182,7 +189,7 @@ class Workspaces:
         from .retirement import register
 
         if not scope["job"]:
-            return Orders(self.store, self.member).ensure_in(scope["work_order"])
+            return Orders(self.store, self.member).ensure_in(scope["work_order"], refresh=scope["role"] == "planner")
         checkout = self.checkout()
         with self.store.connect() as db:
             old = db.execute("SELECT * FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
@@ -326,6 +333,13 @@ class Workspaces:
     @contextmanager
     def use(self, write=False):
         scope = self.scope(write)
+        if scope["role"] == "planner":
+            with self.lock(self.scope_lock(scope)):
+                self.scope(write)
+                workspace = self._prepare(scope)
+                self._verify(workspace, self.checkout())
+                yield scope, workspace
+            return
         workspace = self.ensure()
         with self.lock(self.scope_lock(scope)):
             self.scope(write)

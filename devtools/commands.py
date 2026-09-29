@@ -389,8 +389,10 @@ class Commands:
                 if not targets:
                     raise ValueError("Name a responsibility in your current team.")
                 # Pausing/stopping or changing a delegated mission affects its entire team.
+                # An explicit NCO resume lets the coordinator refresh its paused
+                # specialists before restarting them under the revised plan.
                 for target in list(targets):
-                    if target["role"] == "nco" and (fields or action in {"pause", "resume", "stop"}):
+                    if target["role"] == "nco" and (fields or action in {"pause", "stop"} or action == "resume" and not role):
                         targets.extend(row for row in self._descendants(db, target) if row not in targets)
             if not targets:
                 raise ValueError("No collaborators are bound to this responsibility yet.")

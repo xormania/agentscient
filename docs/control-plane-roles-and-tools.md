@@ -278,6 +278,8 @@ Use actual returned references and paths. Adoption completes the planning
 assignment and releases its session for reuse. There is no separate planning job.
 The service rejects superseded results and plans for changed work-order context.
 Specialists receive the adopted plan reference, readable evidence and job brief.
+Planner source inspections automatically synchronize the work-order workspace
+with accepted contributions before reading it.
 
 For a multi-job plan, XO assigns `role="nco"` with a `job` for each job. Each NCO
 then assigns specialists only to that job. Job `dependencies` name other jobs in
@@ -297,9 +299,12 @@ Replanning preserves job identities, assignments, evidence and delivery history.
 XO may revise the breakdown using the same adopted source while the work-order
 context is unchanged; changed context requires a fresh planner result. Omitted
 unfinished jobs must be explicitly cancelled. Revisions pause existing job teams;
-refresh assignments with `orchestrate` when the plan source changes, then resume
-them after the correct coordinator is in place. A change between one and multiple
-jobs transfers the existing team without resetting its work.
+for a multi-job plan, XO resumes each coordinator with
+`steer(action="resume", work=..., role="nco")`, leaving its specialists paused.
+The job's coordinator refreshes assignments with `orchestrate` when the plan
+source changes, then resumes them. XO performs this refresh directly for a one-job
+plan. A change between one and multiple jobs transfers the existing team without
+resetting its work.
 
 Explicit edit paths must fit both the job scope and the operator's role policy,
 and exclude protected Maker source. Assignment changes serialize with active

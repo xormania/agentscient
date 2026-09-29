@@ -110,7 +110,8 @@ class Advice:
 
     def brief(self):
         value = self.control.work_context()
-        return {key: value[key] for key in ("role", "context_revision", "responsibility", "work", "job", "development", "assignment", "delegation") if key in value}
+        return {key: value[key] for key in ("role", "context_revision", "responsibility", "role_assignment", "context",
+                                          "work", "job", "development", "assignment", "delegation") if key in value}
 
     def evidence(self, reference, offset=0, limit=2000):
         with self.store.connect() as db:
