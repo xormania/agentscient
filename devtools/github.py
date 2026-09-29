@@ -508,7 +508,7 @@ class GitHub:
             raise ValueError("Choose a run from ci_status and supply its run ID.")
         return self.http.request("GET", context["root"] + f"/actions/runs/{run}")
 
-    def ci_status(self, context, run=None, page=1, _pr=None):
+    def ci_status(self, context, run=None, page=1, _pr=None, _observe=False):
         if run is not None:
             row = self._run(context, run)
             return {"state": state_of([row]), "runs": [short_run(row)]}
@@ -552,7 +552,7 @@ class GitHub:
         offset = (page - 1) * 20
         state = "pending" if active_runs else state_of(effective)
         self._unchanged(context, pr)
-        return {
+        result = {
             "revision": head,
             "tested_revision": effective[0]["revision"] if effective else None,
             "state": state,
@@ -564,6 +564,12 @@ class GitHub:
             "next_run_page": page + 1 if offset + 20 < len(runs) else None,
             "note": "Observed checks; GitHub decides which requirements block merging.",
         }
+        if _observe:
+            # Watches need changes across all checks/runs, including outside the agent's preview page.
+            result["_observation"] = hashlib.sha256(canonical([
+                sorted(all_checks, key=canonical), sorted(runs.values(), key=canonical),
+            ]).encode()).hexdigest()
+        return result
 
     def ci_failures(self, context, run, check=None, attempt=None, page=1, log_offset=None, annotation_page=1):
         row = self._run(context, run)
@@ -885,8 +891,8 @@ class GitHub:
                 else:
                     tracker = CodexReviews(self)
                     review = tracker.status(context, watch["revision"])
-                    findings = tracker.findings
-                    ci = self.ci_status(context, _pr=pr)
+                    ci = self.ci_status(context, _pr=pr, _observe=True)
+                    findings = [tracker.findings, ci["_observation"]]
                     result = {
                         "state": "ci_failed" if ci["state"] == "failed" else review["state"]
                         if review["state"] != "ready" else "ready" if ci["state"] == "passed" else "pending",

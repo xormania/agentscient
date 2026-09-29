@@ -123,6 +123,15 @@ class CodexReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "changed"):
                 self.reviews.require_ready(self.context, test_github.HEAD)
 
+    def test_ambiguous_review_commit_remains_inspectable_through_monitor(self):
+        self.summary()
+        # The fixture contains two distinct commits matching the bot's displayed prefix.
+        self.provider.pr["head"]["sha"] = "a" * 7 + "c" * 33
+        result = self.client("beta").tool("monitor", {"section": "feedback"})["delivery"]["codex"]
+        self.assertEqual("pending", result["state"])
+        self.assertTrue(all(row == {"state": "unknown", "revision": None} for row in result["reviews"].values()))
+        self.assertEqual(1, len(result["threads"]))
+
     def test_xo_reads_replies_and_resolves_through_existing_mcp_tools(self):
         self.summary()
         self.provider.thread["isResolved"] = False
@@ -183,6 +192,24 @@ class CodexReviewTests(unittest.TestCase):
             self.assertIn("unavailable", self.tick()[-1]["body"])
         with self.store.connect() as db:
             self.assertEqual(9999999999, db.execute("SELECT next_poll FROM github_watches").fetchone()[0])
+
+    def test_combined_watch_notifies_ci_reruns_and_changes_beyond_the_preview(self):
+        self.summary()
+        self.provider.checks[test_github.MERGE] = [
+            {**self.provider.check("failure"), "id": number} for number in range(200, 225)
+        ]
+        self.service.ci_watch(self.context, reviews=True)
+        self.assertEqual(1, len(self.tick()))
+        self.provider.run["run_attempt"] = 2
+        self.assertEqual(2, len(self.tick()))
+        self.assertEqual(2, len(self.tick()))
+        self.provider.run["id"] += 1
+        self.assertEqual(3, len(self.tick()))
+        self.provider.checks[test_github.MERGE][-1]["id"] = 999
+        messages = self.tick()
+        self.assertEqual(4, len(messages))
+        self.assertTrue(all("ci_failed" in row["body"] for row in messages))
+        self.assertEqual(4, len(self.tick()))
 
     def test_new_thread_reply_notifies_and_is_visible_through_monitor(self):
         self.summary()

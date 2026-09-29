@@ -116,7 +116,14 @@ class CodexReviews:
             # Resolve GitHub's abbreviated display to a full SHA; prefix matching
             # alone can credit the wrong commit, and ambiguity must remain unknown.
             if short not in resolved:
-                resolved[short] = self.github.http.request("GET", context["root"] + "/commits/" + short)["sha"]
+                try:
+                    resolved[short] = self.github.http.request("GET", context["root"] + "/commits/" + short)["sha"]
+                except GitHubError as error:
+                    if error.status not in {404, 422}:
+                        raise
+                    resolved[short] = None
+            if resolved[short] is None:
+                continue
             reviews[kind] = {"state": state[1].lower(), "revision": resolved[short]}
             if resolved[short] != revision:
                 reviews[kind]["state"] = "stale"
