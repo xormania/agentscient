@@ -163,6 +163,29 @@ class CodexReviewTests(unittest.TestCase):
         with self.store.connect() as db:
             self.assertEqual(9999999999, db.execute("SELECT next_poll FROM github_watches").fetchone()[0])
 
+    def test_new_thread_reply_notifies_and_is_visible_through_monitor(self):
+        self.summary()
+        self.provider.thread["isResolved"] = False
+        self.service.ci_watch(self.context, reviews=True)
+        self.assertEqual(1, len(self.tick()))
+        comments = self.provider.thread["comments"]["nodes"]
+        comments.extend({
+            **comments[0], "databaseId": number, "body": f"Follow-up {number}",
+            "updatedAt": "2026-09-29T01:00:00Z",
+        } for number in range(13, 25))
+        self.assertEqual(2, len(self.tick()))
+        self.assertEqual(2, len(self.tick()))
+        xo = self.client("beta")
+        thread = xo.tool("monitor", {"section": "feedback"})["delivery"]["codex"]["threads"][0]
+        self.assertEqual(13, thread["comment_count"])
+        self.assertEqual(["Please fix this", "Follow-up 24"], [row["body"] for row in thread["comments"]])
+        # Even an edit beyond the preview must notify: updatedAt participates in the fingerprint.
+        comments[-1]["body"] = "x" * 1500 + "First ending"
+        self.assertEqual(3, len(self.tick()))
+        comments[-1].update(body="x" * 1500 + "Revised ending", updatedAt="2026-09-29T01:01:00Z")
+        self.assertEqual(4, len(self.tick()))
+        self.assertEqual(4, len(self.tick()))
+
 
 if __name__ == "__main__":
     unittest.main()

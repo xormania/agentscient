@@ -151,6 +151,12 @@ class OrderTests(unittest.TestCase):
         self.order_provider.lose_merge_reply = True
         with self.assertRaises(ConnectionError):
             self.co.call("conclude", {"assessment": "Ready"})
+        self.reviews.require_ready.side_effect = ValueError("Both Codex reviews must complete")
+        with self.assertRaisesRegex(ValueError, "Codex"):
+            self.co.call("conclude", {"assessment": "Ready"})
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM order_deliveries").fetchone()[0])
+        self.reviews.require_ready.side_effect = None
         self.assertEqual("done", self.co.call("conclude", {"assessment": "Ready"})["outcome"])
 
     def test_review_fix_updates_same_job_pr_before_both_merge_stages(self):

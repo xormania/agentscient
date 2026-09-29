@@ -166,6 +166,11 @@ class Provider:
                     {},
                 )
             if "query Threads" in q:
+                row = copy.deepcopy(self.thread)
+                comments = row["comments"]["nodes"]
+                row["comments"] = {"nodes": comments[:1]}
+                if "latest: comments(last:1)" in q:
+                    row["latest"] = {"totalCount": len(comments), "nodes": comments[-1:]}
                 return (
                     200,
                     {
@@ -173,7 +178,7 @@ class Provider:
                             "repository": {
                                 "pullRequest": {
                                     "reviewThreads": {
-                                        "nodes": [self.thread],
+                                        "nodes": [row],
                                         "pageInfo": {"hasNextPage": False, "endCursor": None},
                                     }
                                 }

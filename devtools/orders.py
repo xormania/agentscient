@@ -275,8 +275,7 @@ class Orders:
             raise ValueError("The work-order PR changed after inspection. Monitor it again.")
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
-        if current["pr"]["state"] != "merged":
-            CodexReviews(provider).require_ready(context, revision)
+        CodexReviews(provider).require_ready(context, revision)
         self.scope("co")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:

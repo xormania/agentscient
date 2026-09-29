@@ -115,7 +115,7 @@ class CodexReviews:
                 break
         unresolved = sum(not thread["isResolved"] for thread in threads)
         self.findings = hashlib.sha256(canonical([
-            [row["id"], row["comments"]["nodes"]] for row in threads if not row["isResolved"]
+            [row["id"], row["comments"]] for row in threads if not row["isResolved"]
         ]).encode()).hexdigest()
         complete = all(row["state"] == "completed" and row["revision"] == revision for row in reviews.values())
         failed = any(row["state"] in {"failed", "cancelled", "canceled"} for row in reviews.values())
@@ -127,7 +127,8 @@ class CodexReviews:
             "reviews": reviews, "unresolved": unresolved, "summary": summary.get("html_url"),
             "threads": [
                 {"reference": "thread:" + row["id"], "resolved": row["isResolved"], "outdated": row["isOutdated"],
-                 "path": row["path"], "line": row["line"], "comments": row["comments"]["nodes"]}
+                 "path": row["path"], "line": row["line"], "comments": row["comments"]["nodes"],
+                 "comment_count": row["comments"]["totalCount"]}
                 for row in threads[start:start + 10]
             ],
             "next_page": page + 1 if start + 10 < len(threads) else None,

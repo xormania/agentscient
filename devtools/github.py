@@ -435,7 +435,9 @@ class GitHub:
         result = self.http.graphql(
             """query Threads($owner:String!,$repo:String!,$number:Int!,$cursor:String) {
             repository(owner:$owner,name:$repo) { pullRequest(number:$number) { reviewThreads(first:20,after:$cursor) {
-                nodes { id isResolved isOutdated path line comments(first:1) { nodes { databaseId body url author { login } } } }
+                nodes { id isResolved isOutdated path line
+                    comments(first:1) { nodes { databaseId body url updatedAt author { login } } }
+                    latest: comments(last:1) { totalCount nodes { databaseId body url updatedAt author { login } } } }
                 pageInfo { hasNextPage endCursor } } } } }""",
             owner=owner,
             repo=repo,
@@ -443,6 +445,12 @@ class GitHub:
             cursor=cursor,
         )["repository"]["pullRequest"]["reviewThreads"]
         for row in result["nodes"]:
+            # Keep feedback bounded while exposing new replies and their update signal.
+            latest = row.pop("latest")
+            row["comments"]["totalCount"] = latest["totalCount"]
+            row["comments"]["nodes"] = list({
+                comment["databaseId"]: comment for comment in row["comments"]["nodes"] + latest["nodes"]
+            }.values())
             for comment in row["comments"]["nodes"]:
                 comment["body"] = comment["body"][:1500]
         return {
