@@ -214,6 +214,12 @@ class Control:
         elif kind == "update":
             sql, args = update_sql(scope, self.member)
             allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND " + sql, (int(ident), *args)).fetchone()
+        elif kind == "operation" and row:
+            # Parent briefs are shared by includes(); operation diagnostics are not.
+            allowed = bool(scope and scope["work_order"] == row["work_order"] and (
+                (scope["job"] is not None and scope["job"] == row["job"])
+                or (scope["job"] is None and scope["role"] in {"co", "xo"})
+            ))
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
             if kind == "message":
@@ -492,4 +498,3 @@ class Control:
             "This message does not change your current role or work.\n"
             + ("Updated brief:\n" + json.dumps(brief, ensure_ascii=False) if changed else "")
         )
-
