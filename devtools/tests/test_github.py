@@ -28,6 +28,7 @@ class Provider:
 
     def __init__(self):
         self.requests, self.comments, self.reviews = [], [], []
+        self.actor = {"id": 9, "login": "operator"}
         self.inline = []
         self.exists = False
         self.logs_missing = False
@@ -149,6 +150,13 @@ class Provider:
             )
         if path == "/graphql":
             q, v = body["query"], body["variables"]
+            if "query RequestComment" in q:
+                comment = next((row for row in self.comments if row.get("node_id") == v["id"]), None)
+                node = None if comment is None else {
+                    "viewerDidAuthor": (comment.get("user") or {}).get("id") == self.actor["id"],
+                    "body": comment["body"], "url": comment["html_url"],
+                }
+                return 200, {"data": {"node": node}}, {}
             if "query Overview" in q:
                 return (
                     200,
@@ -251,6 +259,8 @@ class Provider:
             if method == "POST":
                 result = {
                     "id": 40 + len(self.comments),
+                    "node_id": f"IC_{40 + len(self.comments)}",
+                    "user": dict(self.actor),
                     "html_url": self.pr["html_url"] + "#comment",
                     "issue_url": self.url + root + "/issues/7",
                     **body,

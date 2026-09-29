@@ -42,9 +42,9 @@ class CodexReviews:
                     ).fetchone()
                 if row["state"] == "requested":
                     continue
-                existing = next((r for r in comments if marker in (r.get("body") or "")), None)
+                existing = self._request_url(comments, marker, command)
                 if existing:
-                    url = existing["html_url"]
+                    url = existing
                 elif row["state"] == "uncertain":
                     raise ValueError("Codex request outcome is uncertain. Inspect the PR before repeating the request.")
                 else:
@@ -72,6 +72,20 @@ class CodexReviews:
                     )
             self.github._unchanged(context, pr)
         return {"revision": revision, "state": "requested", "kinds": list(KINDS)}
+
+    def _request_url(self, comments, marker, command):
+        for row in comments:
+            if marker not in (row.get("body") or "") or not row.get("node_id"):
+                continue
+            # GitHub checks authorship against the authenticated identity, including App credentials.
+            comment = self.github.http.graphql(
+                "query RequestComment($id:ID!) { node(id:$id) { ... on IssueComment { viewerDidAuthor body url } } }",
+                id=row["node_id"],
+            )["node"]
+            if (comment and comment["viewerDidAuthor"] and marker in comment["body"]
+                    and comment["body"].startswith(command + "\n")):
+                return comment["url"]
+        return None
 
     def status(self, context, revision, page=1):
         pr = self.github._pr(context)

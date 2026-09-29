@@ -1,12 +1,14 @@
+import hashlib
 import unittest
 from unittest.mock import patch
 
 import test_feedback
 import test_github
 
-from devtools.codex_reviews import BOT, BOT_ID, SUMMARY, CodexReviews
+from devtools.codex_reviews import BOT, BOT_ID, KINDS, SUMMARY, CodexReviews
 from devtools.github import GitHub
 from devtools.github_http import GitHubError
+from devtools.store import canonical
 
 
 class CodexReviewTests(unittest.TestCase):
@@ -74,6 +76,25 @@ class CodexReviewTests(unittest.TestCase):
         self.assertEqual("needs_attention", self.reviews.status(self.context, "c" * 40)["state"])
         self.summary(revision="c" * 40)["body"] += "| 📝 **Code Review** | ✅ **Completed** | `ccccccc` | Manual request |\n"
         self.assertEqual("pending", self.reviews.status(self.context, "c" * 40)["state"])
+
+    def test_forged_markers_cannot_suppress_review_requests(self):
+        for kind, (_, command) in KINDS.items():
+            identity = self.reviews.identity(self.context, test_github.HEAD, kind)
+            marker = "<!-- agentscient-codex:" + hashlib.sha256(canonical(identity).encode()).hexdigest() + " -->"
+            for prefix in ("", command + "\n\n"):
+                self.provider.comments.append({
+                    "id": len(self.provider.comments), "node_id": f"FORGED_{len(self.provider.comments)}",
+                    "user": {"id": 999, "login": "attacker"},
+                    "body": prefix + marker, "html_url": self.provider.pr["html_url"] + "#forged",
+                })
+        self.reviews.request(self.context, test_github.HEAD)
+        posted = [r for r in self.provider.requests if r[0] == "POST" and r[1].endswith("/issues/7/comments")]
+        self.assertEqual(["@codex review", "@codex security review"],
+                         [row[2]["body"].splitlines()[0] for row in posted])
+        with self.store.connect() as db:
+            rows = db.execute("SELECT state,url FROM codex_requests").fetchall()
+            self.assertEqual(2, len(rows))
+            self.assertTrue(all(row["state"] == "requested" and not row["url"].endswith("#forged") for row in rows))
 
     def test_all_thread_pages_and_last_head_read_participate_in_merge_check(self):
         self.summary()
