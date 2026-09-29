@@ -78,9 +78,13 @@ class Workspaces:
         expected = self.control.current()
         with self.store.connect() as db:
             current = binding(db, self.member)
+            if current and write:
+                from .planning import execution_current
+
+                execution_current(db, current)
         if (
             not current
-            or (not current["job"] and current["role"] not in {"co", "xo", "nco"})
+            or (not current["job"] and current["role"] not in {"co", "xo", "nco", "planner"})
             or not expected
             or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):

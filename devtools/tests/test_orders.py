@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_delivery
-from support import Client, held_check, until
+from support import Client, adopt_plan, fixture_work, held_check, until
 
 from devtools.api import API
 from devtools.github import GitHub, short_pr
@@ -102,6 +102,12 @@ class OrderTests(unittest.TestCase):
         self.cleanup.tick()
 
     def test_job_integrates_before_final_pr_and_cleanup_keeps_evidence(self):
+        adopt_plan(self.xo, [{"name": "Feature", "objective": "Feature", "done_when": "Works", "constraints": "Product only"}])
+        self.xo.call("steer", {"action": "resume", "work": "Feature"})
+        result = self.api.call("work_report", {"kind": "result", "text": "Checked implementation is submitted"})
+        self.xo.call("steer", {"action": "complete", "work": "Feature", "assignment": "Feature", "direction": "Implementation checked"})
+        self.assertIsNone(self.api.control.snapshot())
+        self.assertEqual(result["reference"], self.xo.call("monitor", {})["assignments"][-1]["result"])
         self.assertEqual(self.checkout.parent / "wt-ag", self.workspace.parent)
         self.assertEqual(self.integration["branch"], self.managed["target"])
         self.assertEqual(self.initial, self.integration["base_revision"])
@@ -360,20 +366,7 @@ class OrderTests(unittest.TestCase):
             self.accept()
         self.cleanup.tick()
         self.assertFalse(self.workspace.exists())
-        self.xo.call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Next",
-                        "role": "coder",
-                        "objective": "Continue",
-                        "done_when": "Done",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        fixture_work(self.xo, [{"name": "Next", "role": "coder", "objective": "Continue", "done_when": "Done", "constraints": "Product only"}])
         new_root = self.api.workspaces.ensure()["root"]
         self.assertEqual(squashed, git(new_root, "rev-parse", "HEAD").stdout.decode().strip())
         self.assertNotEqual(self.head, squashed)
@@ -381,4 +374,3 @@ class OrderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

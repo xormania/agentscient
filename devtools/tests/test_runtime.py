@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from support import adopt_plan
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -67,6 +68,8 @@ class RuntimeTests(unittest.TestCase):
 
     def test_dynamic_multiple_instances_normal_tools_hide_runtime_and_capacity_is_atomic(self):
         xo = self.xo()
+        for name in ("One", "Two", "Three", "Four"):
+            xo.work.job_create(title=name, objective="Runtime fixture", done_when="Bound", work_order=xo.control.snapshot()["work_order"])
         xo.call("orchestrate", {"work": [responsibility("One"), responsibility("Two")]})
         report = xo.call("monitor", {})
         self.assertEqual(["coder", "coder"], [row["role"] for row in report["collaborators"]])
@@ -83,7 +86,7 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "capacity"):
             xo.call("orchestrate", {"work": [responsibility("Three"), responsibility("Four")]})
         with self.store.connect() as db:
-            self.assertEqual(2, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+            self.assertEqual(4, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(4, db.execute("SELECT count(*) FROM members").fetchone()[0])
 
     def test_running_session_retains_snapshot_after_vendor_disabled(self):
@@ -116,6 +119,7 @@ class RuntimeTests(unittest.TestCase):
         initialize(state, self.workspace, ["owner:external", "chief:codex", "worker:claude"], co="owner")
         co, xo = API(state, "owner"), API(state, "chief")
         co.call("direct", GOAL)
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
         xo.call("orchestrate", {"work": [responsibility()]})
         before = API(state, "worker").control.snapshot()
         co.store.begin_session("worker", os.getpid())

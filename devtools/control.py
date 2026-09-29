@@ -124,8 +124,9 @@ def evidence_sql(scope, member):
     return (
         "(NOT EXISTS (SELECT 1 FROM work_updates u WHERE u.artifact=a.id) OR EXISTS "
         "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + ") OR EXISTS "
-        "(SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.evidence')='artifact:'||a.id))",
-        (*args, scope["job"] if scope else None),
+        "(SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.evidence')='artifact:'||a.id) OR EXISTS "
+        "(SELECT 1 FROM work_orders w,json_each(w.context) c WHERE w.id=? AND c.value='artifact:'||a.id))",
+        (*args, scope["job"] if scope else None, scope["work_order"] if scope else None),
     )
 
 
@@ -171,10 +172,10 @@ class Control:
                 raise ValueError("Bind the reporting member to a covering work scope first")
             if role == "xo" and superior["role"] != "co":
                 raise ValueError("XO reports to CO")
-            if role == "nco" and (superior["role"] != "xo" or job is not None):
-                raise ValueError("NCO coordinates the work order and reports to XO")
-            if role == "planner" and (superior["role"] not in {"xo", "nco"} or job is None):
-                raise ValueError("Planner needs a job reporting to XO or NCO")
+            if role == "nco" and (superior["role"] != "xo" or job is None):
+                raise ValueError("NCO coordinates one job and reports to XO")
+            if role == "planner" and (superior["role"] != "xo" or job is not None):
+                raise ValueError("Planner works at work-order scope and reports only to XO")
         ancestor, seen = reports_to, {member}
         while ancestor is not None:
             if ancestor in seen:
@@ -191,7 +192,7 @@ class Control:
             "INSERT INTO member_bindings(member,role,work_order,job,reports_to,brief,revision,updated) "
             "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(member) DO UPDATE SET role=excluded.role,"
             "work_order=excluded.work_order,job=excluded.job,reports_to=excluded.reports_to,brief=excluded.brief,"
-            "revision=excluded.revision,updated=excluded.updated,launch_pending=0,launch_error=NULL",
+            "revision=excluded.revision,updated=excluded.updated,launch_pending=0,launch_error=NULL,assignment_id=NULL",
             (member, *fields, revision, stamp()),
         )
         # Existing operational services inherit the same scope; agent calls cannot select another one.
@@ -320,9 +321,22 @@ class Control:
                     "responsibility": scope["brief"],
                     "work": self._summary(record(db, "work_orders", scope["work_order"])),
                 }
+                order = record(db, "work_orders", scope["work_order"])
+                result["context"] = json.loads(order["context"])
+                result["plan_revision"] = order["plan_revision"]
+                if scope.get("assignment_id"):
+                    assigned = record(db, "role_assignments", scope["assignment_id"])
+                    result["role_assignment"] = {"name": assigned["name"], "role": assigned["role"], **json.loads(assigned["brief"])}
+                    result["assignment"] = json.loads(assigned["details"])
                 if scope["job"]:
-                    result["job"] = self._summary(record(db, "jobs", scope["job"]))
-                    result["assignment"] = json.loads(record(db, "jobs", scope["job"])["assignment"])
+                    job = record(db, "jobs", scope["job"])
+                    result["job"] = self._summary(job)
+                    result["dependencies"] = [{"name": record(db, "jobs", ident)["title"], "status": record(db, "jobs", ident)["status"]}
+                                              for ident in json.loads(job["dependencies"])]
+                    result.setdefault("assignment", json.loads(job["assignment"]))
+                    from .assignments import bounded
+
+                    result["assignment"] = bounded(result["assignment"], json.loads(job["assignment"]))
                     from .workspaces import Workspaces, project_config
 
                     if project_config(self.store):
@@ -501,7 +515,7 @@ class Control:
             self._destination(db, scope, responding_to)
             from .assignments import snapshot
 
-            mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints")}
+            mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints", "context")}
             parent = binding(db, scope["reports_to"])
             if parent and parent["role"] == "nco":
                 mission["delegation"] = {"member": parent["member"], "brief": parent["brief"]}

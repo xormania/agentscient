@@ -419,7 +419,7 @@ class API:
             common.add("work_assess")
             if role in {"xo", "nco"}:
                 common.add("assignment_advise")
-        if scope and scope["job"] and project_config(self.store):
+        if scope and (scope["job"] or role == "planner") and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
                 common |= WORKSPACE_TOOLS

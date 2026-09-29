@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client  # noqa: E402
+from support import Client, adopt_plan  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.development import DEFAULT_CHECKS, Development  # noqa: E402
@@ -88,6 +88,8 @@ def main():
                     "constraints": "Disposable workspace only",
                 },
             )
+            adopt_plan(API(state, "xo"), [{"name": "Exercise Symfony", "objective": "Generate with native Makers",
+                                          "done_when": "Attributes and autoconfiguration work", "constraints": "No handwritten replacement generator"}])
             xo.tool(
                 "orchestrate",
                 {

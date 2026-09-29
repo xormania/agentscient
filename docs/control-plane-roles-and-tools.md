@@ -7,18 +7,21 @@ Each line in a tool example is a separate MCP call.
 
 ## Responsibilities and context
 
-**CO is the session the person works with directly.** It holds the broader intent,
-sets the authorized objective and boundaries, and assesses the overall outcome.
-**XO reports to CO** and organizes, monitors and steers live collaborators.
-XO delegates a small task to a specialist or appoints **NCO** to coordinate
-planning, implementation and verification. **Planner only plans**; NCO handles
-execution and escalates mission changes to XO.
+**CO is the session the person works with directly.** It hands XO the authorized
+objective, boundaries and prepared scope/specification context, then assesses the
+overall outcome. **XO commissions a planner** to propose jobs and adopts the plan.
+A plan with **one job is simple**: XO coordinates its specialists directly. For
+**multiple jobs**, XO appoints one **NCO per job** and coordinates dependencies
+between jobs. NCO manages specialists and verification within its job, reports
+readiness to XO, and asks XO for planning or scope changes. **Only XO accepts jobs.**
+Planner investigates and reports to XO without editing source or directing execution.
 Specialists receive the context and capabilities needed for their responsibility.
 
 | Concept | Meaning |
 | --- | --- |
 | Work order | The numbered overall effort and integrated result: objective, completion criteria, boundaries, decisions and evidence. |
-| Job | A bounded contribution to a work order; its source changes are delivered through one PR into that work order. |
+| Job | A planned outcome with scope, requirements, completion criteria and dependencies; its source changes are delivered through one PR into the work order. |
+| Role assignment | One specialist's bounded contribution to a job, with its own brief and retained result. Several assignments can contribute to the same job. The work-order planner has an assignment without a job. |
 | Role | The tools and default editable paths available to a participant. |
 | Work binding | The work to which that role's calls and context apply. |
 | Reporting relationship | Where findings, questions, results and guidance go. |
@@ -48,9 +51,9 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
-| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
-| NCO (`nco`) | `orchestrate`, `monitor`, `steer` for its delegated jobs; with a project: `work_inspect`; with development enabled: `work_check`. Reports to XO, which refreshes, submits and handles review responses for the integrated result. Cannot appoint another NCO. | None |
-| Planner (`planner`) | Shared and specialist inspection/reporting tools; retained plan required for a result | Read-only source |
+| XO | `plan_adopt`, `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
+| NCO (`nco`) | `orchestrate`, `monitor`, `steer` within its one job; with a project: `work_inspect`; with development enabled: `work_check`. Completes specialist assignments and reports readiness to XO. Cannot commission planners/NCOs, accept jobs or submit the integrated result. | None |
+| Planner (`planner`) | Shared and specialist inspection/reporting tools at work-order scope; retained plan required for a result to XO | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
@@ -59,7 +62,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Architect (`architect`) | Editing tools | `docs/`; other source read-only |
 
 Serena is a separate provider, enabled by `project.serena.image`. It exposes
-`serena_repl` to configured specialist jobs. The operator can customize editing
+`serena_repl` to configured specialists and the work-order planner. The operator can customize editing
 paths. The current research profile covers repository material, supplied sources
 and retained evidence; a general external web-search provider is not configured.
 
@@ -193,47 +196,55 @@ which they started; subsequent calls use the current binding.
 
 | Role / tool | Outcome |
 | --- | --- |
-| CO — `direct` | Establish or revise the current objective, completion criteria and boundaries; bind XO and deliver its brief. |
-| CO/XO — `monitor` | Read scoped progress, capacity and cleanup status; inspect named work or the combined delivery. |
+| CO — `direct` | Establish or revise the objective, completion criteria, boundaries and shared context references; bind XO and deliver its brief. |
+| CO/XO/NCO — `monitor` | Read scoped progress, assignments and cleanup status. CO/XO can inspect the combined delivery; NCO sees its job. |
 | CO — `conclude` | Deliver the inspected, passing integrated result, retain the assessment and release the team. |
 | CO — `restart_xo` | Replace XO's conversation using current runtime policy while retaining its work and team. |
-| XO — `orchestrate` | Create/update named responsibilities, bind suitable configured collaborators and start their live sessions. |
-| XO — `steer` | Guide, pause, resume, stop or replace collaborators; revise a named brief or accept/cancel a named job. |
+| XO — `plan_adopt` | Adopt a retained planner result and the complete job breakdown, or revise the existing plan. |
+| XO/NCO — `orchestrate` | Create/update role assignments within their authority, bind configured collaborators and start their sessions. XO also commissions planners and job NCOs. |
+| XO/NCO — `steer` | Guide, pause, resume, stop or replace collaborators; revise a role brief or complete/cancel a role assignment. Only XO accepts/cancels jobs. |
 
 `direct` requires `title`, `objective`, `done_when` and `constraints`. Its first call
 creates the work order and claims an available XO slot. Later calls revise that
 work order and deliver the affected briefs. CO remains the person's existing session.
+To pass prepared documents, retain them as evidence with CO's `work_report`, then
+call `direct` with `context` containing the returned `artifact:` references. The
+service shares those documents with the team; unrelated evidence stays scoped.
+Omitting `context` on a later call preserves it; an empty list clears it.
 
-`orchestrate.work` contains up to four responsibilities per call, each with `name`,
-`role`, `objective`, `done_when` and `constraints`. Repeating a name and role updates
-the same job/collaborator. Names are case-insensitive within the work order.
-One producer and an optional auditor can share the job name with distinct briefs.
-The auditor's brief does not overwrite the producer's completion criteria.
+`orchestrate.work` contains up to four assignments per call. Each has `name` and
+`role`; execution assignments also name their adopted `job`. Brief fields
+`objective`, `done_when` and `constraints` default to the job or existing assignment.
+A planner has no job and requires all three fields. Repeating a name and role in
+the same job updates the same assignment/collaborator. Names are case-insensitive;
+use a new assignment name after completion. Several roles may share a job without
+overwriting its completion criteria.
 
 Runtime choices belong to the operator's [role and vendor policy](shared-runtime-config.md).
 Neither tool takes harness/model/reasoning selectors. The service allocates role
 instances and starts [owned tmux terminals](tmux-control.md). Existing collaborators
-keep their launch settings. Failed allocation batches roll back jobs, bindings and messages.
+keep their launch settings. Failed allocation batches roll back assignments, bindings and messages.
 
 The following illustrates an authorized product job, not a request to implement it:
 
 ```json
 {"name":"direct","arguments":{"title":"Project summary","objective":"Provide a basic project summary command","done_when":"The command and tests meet the agreed behavior","constraints":"Use native Symfony capabilities; keep devtools unchanged"}}
-{"name":"orchestrate","arguments":{"work":[{"name":"Summary command","role":"coder","objective":"Implement the agreed summary command","done_when":"Generated command, behavior tests and checks pass","constraints":"Use installed Makers and attributes; product paths only"}]}}
-{"name":"steer","arguments":{"action":"guide","work":"Summary command","direction":"Inspect installed services before adding another one"}}
+{"name":"orchestrate","arguments":{"work":[{"name":"Plan summary command","role":"planner","objective":"Inspect the supplied scope and propose bounded jobs","done_when":"The plan describes requirements, dependencies and verification","constraints":"Use existing Symfony capabilities; planning only"}]}}
 {"name":"monitor","arguments":{}}
 ```
 
 `monitor` returns bounded collaborator and job listings. Continue with the returned
-`next_offset` or `next_job_offset` as `offset`. CO sees its work-order team; XO sees
-its descendants and jobs. Usage is the latest raw observation, not an invented cost
+`next_offset`, `next_job_offset` or `next_assignment_offset` as `offset`. CO sees its
+work-order team; XO sees its descendants and jobs; NCO sees its job and specialists.
+Completed assignments and their results remain visible after sessions are released.
+Usage is the latest raw observation, not an invented cost
 or an additive total. Missing usage stays unknown.
 The default `section="overview"` shows progress. With a named `work`, the default
 shows its review packet. Omit `work` and select `section="review"`, `"ci"` or
-`"feedback"` to inspect the integrated work-order delivery.
+`"feedback"` to inspect the integrated work-order delivery (CO/XO) or bound job (NCO).
 
-For live steering, omit `work` to address the team or name a responsibility. An
-optional `role` filter selects its producer or auditor. `guide` retains direction;
+For live steering, omit `work` to address the team or name a job. Optional
+`assignment` and `role` filters select a contribution. `guide` retains direction;
 `pause` retains the conversation and prevents new work actions; `resume` clears the
 pause and starts a stopped session if needed. `stop` requests orderly shutdown and
 preserves the unfinished job and binding. Pause is not a native mid-token interrupt.
@@ -243,40 +254,59 @@ include a reason in `direction`. CO can do the same for XO using `restart_xo`.
 See [session handover](session-handover.md) for switching the user-facing CO and
 the retained context and generation boundaries.
 
-A named producer brief can revise `objective`, `done_when` or `constraints`; it does
-not rewrite CO's work-order objective. Commands recheck scope when committing.
+A role brief can revise `objective`, `done_when` or `constraints`; it does not
+rewrite the job or CO's objective. XO changes job scope through `plan_adopt`.
+Commands recheck scope when committing.
 Pending startup survives MCP restart and is serviced while a team MCP server is
 connected. Startup failures are retained and sent to the supervisor; `direct`
 retries XO startup, and `steer(action="resume")` retries a collaborator.
 
 ## Planning and bounded handoffs
 
-XO can assign `role="nco"` through `orchestrate`, giving it a named coordination
-brief. This uses a work-order binding; it does not create a code job for NCO. NCO
-then uses the same command tools for specialist jobs. Its mission changes go to
-XO. Changing or pausing the delegated mission updates the descendant bindings.
-
-For discovery, assign a `planner` job. Planner uses Serena, installed Maker/Mate
-metadata, Symfony Console introspection and checks, then records a result with
-plan evidence. It has no generation, editing, publication or delegation tools.
-The coordinator reads the result and artifact and accepts the named planning job
-through `steer`. Implementation references that exact accepted update:
+XO commissions the work-order planner using the preceding example. Planner uses
+Serena, installed Maker/Mate metadata, Symfony Console introspection and checks,
+then records a `work_report(kind="result")` with plan evidence. It has no
+generation, editing, publication or delegation tools. XO reads the result and
+artifact, then adopts the complete job list (up to twenty jobs). For example:
 
 ```json
-{"name":"orchestrate","arguments":{"work":[{"name":"Implement JSON probe","role":"coder","objective":"Implement the approved JSON behavior using the maintained Maker","done_when":"The planned MCP invocation and checks pass","constraints":"Preserve generated structure; report extra improvements separately","plan":"update:21","editable_paths":["src/Service/Probe.php","tests/Service/ProbeTest.php"],"context_paths":["composer.json","composer.lock","vendor","config"]}]}}
+{"name":"plan_adopt","arguments":{"plan":"update:21","jobs":[{"name":"Summary command","objective":"Implement the agreed summary command","done_when":"Generated command, behavior tests and checks pass","constraints":"Use installed Makers and attributes; product paths only","editable_paths":["src/Command/SummaryCommand.php","tests/Command/SummaryCommandTest.php"]}]}}
+{"name":"orchestrate","arguments":{"work":[{"name":"Implement command","job":"Summary command","role":"coder"}]}}
 ```
 
-Use actual returned references and paths from the plan. The service rejects
-unaccepted results, superseded results and plans for changed missions. The
-implementation brief includes the plan and readable evidence. Explicit edit paths
-must fit the operator's role policy and exclude protected Maker source. Assignment
-changes serialize with active workspace operations. Changed views require a new
-Serena connection; a file replaced by generation or Git resets its mounted view.
+Use actual returned references and paths. Adoption completes the planning
+assignment and releases its session for reuse. There is no separate planning job.
+The service rejects superseded results and plans for changed work-order context.
+Specialists receive the adopted plan reference, readable evidence and job brief.
 
-NCO coordinates dependent jobs, reviews current evidence, accepts its completed
-jobs and submits the combined result to XO. XO retains oversight and CO retains
-final work-order acceptance. An additional improvement may be reported without
-becoming an assignment. Jev advice can inform that decision and retain its outcome.
+For a multi-job plan, XO assigns `role="nco"` with a `job` for each job. Each NCO
+then assigns specialists only to that job. Job `dependencies` name other jobs in
+the same plan; execution waits until those jobs are accepted. Only XO can request
+more planning or change the job list. NCO raises gaps through `guidance_request`.
+
+Each job has one workspace. Editing assignments take turns; read-only roles and
+separate jobs can run concurrently. The coordinator inspects a specialist's current
+result, then uses `steer(action="complete", work=..., assignment=..., direction=...)`
+to retain the contribution and release the session. An editor saves remaining
+changes first. Cancellation also names the assignment and requires a reason.
+NCO completes its specialists and reports the checked job ready. XO inspects
+current evidence/review, accepts the job with `steer(action="accept", work=...,
+direction=...)`, and submits the integrated outcome for CO to assess and conclude.
+
+Replanning preserves job identities, assignments, evidence and delivery history.
+XO may revise the breakdown using the same adopted source while the work-order
+context is unchanged; changed context requires a fresh planner result. Omitted
+unfinished jobs must be explicitly cancelled. Revisions pause existing job teams;
+refresh assignments with `orchestrate` when the plan source changes, then resume
+them after the correct coordinator is in place. A change between one and multiple
+jobs transfers the existing team without resetting its work.
+
+Explicit edit paths must fit both the job scope and the operator's role policy,
+and exclude protected Maker source. Assignment changes serialize with active
+workspace operations. Changed views require a new Serena connection; a file
+replaced by generation or Git resets its mounted view. Extra improvements can be
+reported without becoming assignments. Role-skill refinements and additional Jev
+use are separate follow-up work.
 
 ## Workspaces and Git
 

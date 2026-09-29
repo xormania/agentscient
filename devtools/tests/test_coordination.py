@@ -4,215 +4,41 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_workspaces
-from support import Client
+from support import adopt_plan
 from test_commands import responsibility
 
-from devtools.advice import Advice
 from devtools.api import API
 from devtools.assignments import covers, policy, valid_path
 from devtools.development import Development
-from devtools.operations import Operations
-from devtools.orders import Orders
 from devtools.runtime import defaults, load, resolve
 from devtools.serena_provider import Serena
 from devtools.store import SCHEMA_VERSION, Store
 from devtools.workspaces import git
 
 
-class CoordinationTests(unittest.TestCase):
+class AssignmentBoundaryTests(unittest.TestCase):
     def setUp(self):
         test_workspaces.WorkspaceTests.setUp(self)
         team = json.loads((self.state / "team.json").read_text())
-        team["members"] += [{"name": f"slot{i}", "harness": "external", "workspace": str(self.checkout)} for i in range(6)]
+        team["members"] += [{"name": f"slot{i}", "harness": "external", "workspace": str(self.checkout)} for i in range(4)]
         team["project"].update(serena={"image": "agentscient-serena:fixture"}, development={})
         (self.state / "team.json").write_text(json.dumps(team))
-        self.xo = API(self.state, "xo")
-        self.xo.call("orchestrate", {"work": [responsibility("Coordinate", "nco")]})
-        self.nco = self.by_role("nco")
+        self.coordinator = API(self.state, "xo")
 
     def by_role(self, role):
         with self.store.connect() as db:
             name = db.execute("SELECT member FROM member_bindings WHERE role=?", (role,)).fetchone()[0]
         return API(self.state, name)
 
-    def plan(self, accept=True):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
-        planner = self.by_role("planner")
-        result = planner.call("work_report", {"kind": "result", "text": "Plan ready", "evidence": {
-            "name": "plan.md", "content": "Use the maintained Maker. Edit src/Example.php. JSON response and checks complete the job."}})
-        if accept:
-            self.nco.call("steer", {"action": "accept", "work": "Plan", "direction": "Plan inspected and fits the mission"})
-        return planner, result
+    def plan(self):
+        _, report = adopt_plan(self.coordinator, [{"name": "Feature", "objective": "Feature", "done_when": "Works", "constraints": "Product only"}])
+        return None, report
 
     def implementation(self, result):
-        item = responsibility("Implement") | {"plan": result["reference"], "editable_paths": ["src/Example.php"],
-                                                "context_paths": ["README.md"]}
-        self.nco.call("orchestrate", {"work": [item]})
-        with self.store.connect() as db:
-            name = db.execute("SELECT member FROM member_bindings WHERE role='coder' AND reports_to=?", (self.nco.member,)).fetchone()[0]
-        return API(self.state, name), item
-
-    def test_real_mcp_nco_planner_handoff_and_scoped_plan_evidence(self):
-        client = Client(self.state, self.nco.member)
-        self.addCleanup(client.close)
-        self.assertEqual("nco", client.tool("onboard", {})["role"])
-        planner, result = self.plan()
-        coder, _ = self.implementation(result)
-        context = coder.call("work_context", {})
-        self.assertEqual("routed to nco", context["guidance"])
-        self.assertEqual(["src/Example.php"], context["development"]["editable_paths"])
-        self.assertEqual(result["reference"], context["assignment"]["plan"]["reference"])
-        self.assertEqual(context["delegation"], Advice(self.store, coder.member).brief()["delegation"])
-        evidence = coder.call("work_context", {"reference": context["assignment"]["plan"]["evidence"]})
-        self.assertIn("maintained Maker", evidence["content"])
-        self.assertEqual("Plan ready", coder.call("work_context", {"reference": result["reference"]})["text"])
-        jobs = {r["title"] for r in self.xo.call("monitor", {})["jobs"]}
-        self.assertEqual({"Feature", "Plan", "Implement"}, jobs)
-        with self.assertRaises(ValueError):
-            self.api.call("work_context", {"reference": result["evidence"]})
-        self.assertEqual("routed to xo", self.nco.call("work_context", {})["guidance"])
-
-    def test_planner_inspects_but_cannot_implement_or_allocate(self):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
-        planner = self.by_role("planner")
-        tools = {row["name"] for row in planner.tools()}
-        self.assertTrue({"framework_inspect", "work_check", "work_report"} <= tools)
-        for tool, args in [("orchestrate", {"work": [responsibility()]}),
-                           ("framework_generate", {"maker": "make:command"}),
-                           ("work_save", {"note": "Implement"})]:
-            with self.assertRaisesRegex(ValueError, "not available"):
-                planner.call(tool, args)
-        planner.call("work_inspect", {})
-        provider = Serena(self.state, planner.member)
-        args = provider.command(planner.control.snapshot(), planner.workspaces.ensure())
-        writable = [args[i + 1] for i, token in enumerate(args[:-1]) if token == "--mount" and not args[i + 1].endswith(",readonly")]
-        self.assertEqual(1, len(writable))
-        self.assertTrue(writable[0].endswith("dst=/workspace/.serena"))
-        with self.assertRaisesRegex(ValueError, "plan evidence"):
-            planner.call("work_report", {"kind": "result", "text": "Done"})
-
-    def test_stale_plan_result_cannot_be_accepted_and_only_accepted_result_can_be_used(self):
-        planner, first = self.plan(accept=False)
-        self.nco.call("steer", {"action": "guide", "work": "Plan", "done_when": "Different criteria"})
-        with self.assertRaisesRegex(ValueError, "current retained result"):
-            self.nco.call("steer", {"action": "accept", "work": "Plan", "direction": "Use old plan"})
-        second = planner.call("work_report", {"kind": "result", "text": "Revised plan", "evidence": {
-            "name": "plan.md", "content": "Plan for the revised completion criteria"}})
-        self.nco.call("steer", {"action": "accept", "work": "Plan", "direction": "Use revised plan"})
-        with self.assertRaisesRegex(ValueError, "accept the planner"):
-            self.implementation(first)
-        self.implementation(second)
-
-    def test_changed_mission_invalidates_accepted_plan(self):
-        _, result = self.plan()
-        self.xo.call("steer", {"action": "guide", "work": "Coordinate", "objective": "A different mission"})
-        with self.assertRaisesRegex(ValueError, "mission changed"):
-            self.implementation(result)
-
-    def test_nco_cannot_create_another_nco_or_take_sibling_jobs_and_batches_rollback(self):
-        with self.assertRaisesRegex(ValueError, "XO appoints"):
-            self.nco.call("orchestrate", {"work": [responsibility("New"), responsibility("Recursive", "nco")]})
-        self.assertFalse(self.nco.call("monitor", {})["jobs"])
-        for action in ("accept", "cancel"):
-            with self.assertRaisesRegex(ValueError, "unique responsibility"):
-                self.nco.call("steer", {"action": action, "work": "Feature", "direction": "Take another team"})
-        with self.assertRaisesRegex(ValueError, "another coordinator"):
-            self.nco.call("orchestrate", {"work": [responsibility("Feature")]})
-
-    def test_nco_cannot_publish_refresh_or_respond_to_integrated_work(self):
-        actions = {"work_submit": {"summary": "Publish before XO handoff"},
-                   "work_refresh": {}, "review_respond": {"text": "Resolve before XO handoff", "review": "thread:1"}}
-        for development in (True, False):
-            if not development:
-                path = self.state / "team.json"
-                config = json.loads(path.read_text())
-                del config["project"]["development"]
-                path.write_text(json.dumps(config))
-            nco, xo = API(self.state, self.nco.member), API(self.state, self.xo.member)
-            tools = {row["name"] for row in nco.tools()}
-            self.assertTrue({"orchestrate", "monitor", "steer", "work_inspect"} <= tools)
-            self.assertEqual(development, "work_check" in tools)
-            self.assertTrue(actions.keys() <= {row["name"] for row in xo.tools()})
-            for action, arguments in actions.items():
-                with self.subTest(development=development, action=action):
-                    self.assertNotIn(action, tools)
-                    with self.assertRaisesRegex(ValueError, "not available"):
-                        nco.call(action, arguments)
-
-    def test_nco_integration_service_guards_reject_before_side_effects(self):
-        with patch.object(Operations, "launch") as launch:
-            with self.assertRaisesRegex(ValueError, "corresponding role"):
-                self.nco.operations.start("work_submit", {"summary": "Bypass tool discovery"})
-            launch.assert_not_called()
-        for method, arguments in ((self.nco.workspaces.refresh, {}),
-                                  (self.nco.workspaces.submit, {"summary": "Bypass API"})):
-            with self.subTest(method=method.__name__), self.assertRaisesRegex(ValueError, "cannot change"):
-                method(**arguments)
-        orders = Orders(self.store, self.nco.member)
-        with self.assertRaisesRegex(ValueError, "command role"):
-            orders.submit(self.nco.control.snapshot(), {}, "Bypass workspace service")
-        with self.assertRaisesRegex(ValueError, "command role"):
-            orders.respond("Bypass API", review="thread:1", resolve=True)
-        self.assertEqual("xo", Orders(self.store, self.xo.member).scope("xo")["role"])
-        self.assertEqual("xo", self.xo.workspaces.scope(write=True)["role"])
-        with self.store.connect() as db:
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM operations").fetchone()[0])
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM order_workspaces").fetchone()[0])
-
-    def test_nco_context_only_exposes_delegated_reports_and_evidence(self):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
-        planner = self.by_role("planner")
-
-        def report(api, label, **arguments):
-            return api.call("work_report", {"text": label, "evidence": {
-                "name": label + ".txt", "content": label + " evidence"}, **arguments})
-
-        sibling = report(self.api, "SIBLING PRIVATE")
-        command = report(self.xo, "COMMAND PRIVATE")
-        child = report(planner, "Delegated finding")
-        own = report(self.nco, "Delegation question")
-        answer = report(self.xo, "XO guidance", responding_to=own["reference"])
-        raw_child = "artifact:" + str(planner.artifacts.save(
-            "delegated-check.txt", content="Delegated check output")["artifact"]["id"])
-        raw_sibling = "artifact:" + str(self.api.artifacts.save(
-            "SIBLING PRIVATE check.txt", content="SIBLING PRIVATE check output")["artifact"]["id"])
-        visible = (child, own, answer)
-        client = Client(self.state, self.nco.member)
-        self.addCleanup(client.close)
-        for section in ("brief", "activity", "messages", "evidence"):
-            with self.subTest(section=section):
-                self.assertNotIn("PRIVATE", json.dumps(client.tool("work_context", {"section": section})))
-        self.assertEqual({row["reference"] for row in visible}, {
-            row["reference"] for row in client.tool("work_context", {"section": "activity"})["activity"]})
-        self.assertEqual({row["evidence"] for row in visible} | {raw_child}, {
-            row["reference"] for row in client.tool("work_context", {"section": "evidence"})["evidence"]})
-        for receipt in visible:
-            self.assertEqual(receipt["reference"], client.tool("work_context", {
-                "reference": receipt["reference"]})["reference"])
-            self.assertIn("evidence", client.tool("work_context", {"reference": receipt["evidence"]})["content"])
-        self.assertEqual("Delegated check output", client.tool("work_context", {"reference": raw_child})["content"])
-        for reference in (sibling["reference"], sibling["evidence"], command["reference"], command["evidence"], raw_sibling):
-            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, "not available"):
-                client.tool("work_context", {"reference": reference})
-            for member in ("co", "xo"):
-                self.assertEqual(reference, API(self.state, member).call("work_context", {"reference": reference})["reference"])
-        with self.assertRaisesRegex(ValueError, "not available"):
-            client.tool("work_report", {"text": "Reply outside delegation", "responding_to": sibling["reference"]})
-
-    def test_pause_resume_reaches_descendants_and_brief_changes_invalidate_all_job_bindings(self):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner"), responsibility("Plan", "audit")]})
-        old = {role: self.by_role(role).control.snapshot() for role in ("planner", "audit")}
-        self.xo.call("steer", {"action": "pause", "work": "Coordinate"})
-        self.assertTrue(self.nco.control.snapshot()["paused"])
-        for role in old:
-            self.assertTrue(self.by_role(role).control.snapshot()["paused"])
-        with self.assertRaisesRegex(ValueError, "paused"):
-            self.nco.call("orchestrate", {"work": [responsibility("More")]})
-        self.xo.call("steer", {"action": "resume", "work": "Coordinate"})
-        before = {role: self.by_role(role).control.snapshot()["revision"] for role in old}
-        self.nco.call("steer", {"action": "guide", "work": "Plan", "constraints": "Updated bounds"})
-        for role in old:
-            self.assertGreater(self.by_role(role).control.snapshot()["revision"], before[role])
+        item = responsibility("Feature") | {"plan": result["reference"], "editable_paths": ["src/Example.php"], "context_paths": ["README.md"]}
+        self.coordinator.call("orchestrate", {"work": [item]})
+        self.coordinator.call("steer", {"action": "resume", "work": "Feature"})
+        return self.by_role("coder"), item
 
     def test_curated_serena_mounts_and_changed_assignment_restart_view(self):
         _, result = self.plan()
@@ -232,9 +58,27 @@ class CoordinationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside this role"):
             coder.call("work_save", {"note": "Extra change"})
         provider.signature = signature
-        self.nco.call("orchestrate", {"work": [item | {"editable_paths": ["src/Other.php"]}]})
+        self.coordinator.call("orchestrate", {"work": [item | {"editable_paths": ["src/Other.php"]}]})
         with self.assertRaisesRegex(ValueError, "Reconnect"):
             provider.scope()
+
+    def test_replan_narrows_existing_editor_and_invalidates_previous_mounts(self):
+        _, report = self.plan()
+        coder, _ = self.implementation(report)
+        root = Path(coder.workspaces.ensure()["root"])
+        provider = Serena(self.state, coder.member)
+        _, signature = provider.scope()
+        provider.signature = signature
+        self.coordinator.call("plan_adopt", {"plan": report["reference"], "jobs": [{
+            "name": "Feature", "objective": "Feature", "done_when": "Works", "constraints": "Product only",
+            "editable_paths": ["src/Narrow.php"]}]})
+        with self.assertRaisesRegex(ValueError, "paused|Reconnect"):
+            provider.scope()
+        self.coordinator.call("steer", {"action": "resume", "work": "Feature"})
+        self.assertEqual([], coder.call("work_context", {})["development"]["editable_paths"])
+        (root / "src/Example.php").write_text("Old wider permission must not survive")
+        with self.assertRaisesRegex(ValueError, "outside this role"):
+            coder.call("work_save", {"note": "Try the old assignment"})
 
     def test_maker_protection_and_operator_policy_are_reused(self):
         self.api.call("work_inspect", {})
@@ -263,31 +107,16 @@ class CoordinationTests(unittest.TestCase):
             Development(self.store, self.api.member).generate("make:maker")
         prepare.assert_not_called()
         with self.assertRaisesRegex(ValueError, "exclude Makers"):
-            self.nco.call("orchestrate", {"work": [responsibility("Edit maker") | {"editable_paths": ["src/Maker"]}]})
+            self.coordinator.call("orchestrate", {"work": [responsibility("Feature") | {"editable_paths": ["src/Maker"]}]})
 
     def test_assignment_changes_wait_for_active_workspace_operations(self):
         _, result = self.plan()
         coder, item = self.implementation(result)
         before = coder.control.snapshot()
         with coder.workspaces.lock("job-" + str(before["job"])), self.assertRaisesRegex(ValueError, "Another operation"):
-            self.nco.call("orchestrate", {"work": [item | {"editable_paths": ["src/Other.php"]}]})
+            self.coordinator.call("orchestrate", {"work": [item | {"editable_paths": ["src/Other.php"]}]})
         self.assertEqual(before, coder.control.snapshot())
         self.assertEqual(["src/Example.php"], coder.call("work_context", {})["assignment"]["editable_paths"])
-
-    def test_repeated_coordination_keeps_direction_and_current_plan(self):
-        self.xo.call("steer", {"action": "guide", "work": "Coordinate", "direction": "Report the outcome to XO"})
-        _, result = self.plan()
-        before = self.nco.control.snapshot()
-        self.xo.call("orchestrate", {"work": [responsibility("Coordinate", "nco")]})
-        self.assertEqual(before, self.nco.control.snapshot())
-        self.implementation(result)
-        self.nco.call("steer", {"action": "guide", "work": "Implement", "objective": "Implement the approved JSON behavior"})
-        coder = next(row for row in self.nco.call("monitor", {})["jobs"] if row["title"] == "Implement")
-        self.xo.call("steer", {"action": "guide", "work": "Coordinate", "objective": responsibility()["objective"]})
-        self.assertEqual(before, self.nco.control.snapshot())
-        self.assertEqual(coder, next(row for row in self.nco.call("monitor", {})["jobs"] if row["title"] == "Implement"))
-        with self.store.connect() as db:
-            self.assertEqual("Implement the approved JSON behavior", db.execute("SELECT objective FROM jobs WHERE title='Implement'").fetchone()[0])
 
     def test_replaced_file_and_new_generated_file_invalidate_curated_mounts(self):
         _, result = self.plan()
@@ -321,7 +150,7 @@ class CoordinationTests(unittest.TestCase):
         _, result = self.plan()
         coder, item = self.implementation(result)
         paths = ["src/NewService.php", "src/NOTICE", "src/NewDirectory/"]
-        self.nco.call("orchestrate", {"work": [item | {"editable_paths": paths}]})
+        self.coordinator.call("orchestrate", {"work": [item | {"editable_paths": paths}]})
         workspace = coder.workspaces.ensure()
         root = Path(workspace["root"])
         provider = Serena(self.state, coder.member)
@@ -339,7 +168,7 @@ class CoordinationTests(unittest.TestCase):
         for path in ("src//", "src/../", "src/./", "/src/", "src/.env/", "src/.git/"):
             self.assertFalse(valid_path(path), path)
         with self.assertRaisesRegex(ValueError, "distinct"):
-            self.nco.call("orchestrate", {"work": [item | {"editable_paths": ["src/NewDirectory", "src/NewDirectory/"]}]})
+            self.coordinator.call("orchestrate", {"work": [item | {"editable_paths": ["src/NewDirectory", "src/NewDirectory/"]}]})
 
     def test_generation_adds_a_writable_child_without_unprotecting_its_parent(self):
         provider = Serena(self.state, self.api.member)
@@ -354,19 +183,6 @@ class CoordinationTests(unittest.TestCase):
         self.assertIn(f"type=bind,src={root}/src/Generated.php,dst=/workspace/src/Generated.php", args)
         self.assertNotIn(f"type=bind,src={root}/src,dst=/workspace/src", args)
 
-    def test_nco_can_read_own_and_child_operations_but_not_sibling_diagnostics(self):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
-        planner = self.by_role("planner")
-        with patch.object(Operations, "launch"):
-            own = Operations(self.store, self.nco.member).start("work_check", {})
-            child = Operations(self.store, planner.member).start("framework_inspect", {"kind": "makers"})
-            sibling = Operations(self.store, self.api.member).start("framework_inspect", {"kind": "makers"})
-        for value in (own, child):
-            content = self.nco.call("work_context", {"reference": value["reference"]})["content"]
-            self.assertEqual(value["reference"], json.loads(content)["reference"])
-        with self.assertRaisesRegex(ValueError, "not available"):
-            self.nco.call("work_context", {"reference": sibling["reference"]})
-
     def test_existing_role_policy_remains_usable_without_implicitly_enabling_new_roles(self):
         defaults(self.state)
         path = self.state / "roles.json"
@@ -379,8 +195,8 @@ class CoordinationTests(unittest.TestCase):
             resolve(self.state, "planner")
 
     def test_upgrade_from_jev_state_preserves_reports_and_bindings(self):
-        before = self.nco.call("work_report", {"text": "Coordination state"})
-        scope = self.nco.control.snapshot()
+        before = self.coordinator.call("work_report", {"text": "Coordination state"})
+        scope = self.coordinator.control.snapshot()
         with self.store.connect() as db:
             db.execute("ALTER TABLE jobs DROP COLUMN assignment")
             db.execute("ALTER TABLE work_updates DROP COLUMN binding")
@@ -390,13 +206,13 @@ class CoordinationTests(unittest.TestCase):
         store = Store(self.state)
         with store.connect() as db:
             self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
-        self.assertEqual(scope, self.nco.control.snapshot())
-        retry = self.nco.call("work_report", {"text": "Coordination state"})
+        self.assertEqual(scope, self.coordinator.control.snapshot())
+        retry = self.coordinator.call("work_report", {"text": "Coordination state"})
         self.assertEqual(before["reference"], retry["reference"])
         self.assertTrue(retry["reused"])
 
     def test_native_introspection_uses_installed_console_metadata_and_operator_policy(self):
-        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
+        self.coordinator.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
         planner = self.by_role("planner")
         # Symfony Console 8.1 JsonDescriptor: command list plus named argument/option maps.
         command = {"name": "debug:container", "description": "Display current services", "usage": [], "help": "Inspect services", "hidden": False,

@@ -76,12 +76,20 @@ availability through `vendors.json`. New initialization includes both roles;
 upgrading an existing file does not choose their profiles implicitly. Fixed teams
 reuse idle configured slots as before.
 
-An NCO needs its own live slot in addition to XO and the current specialist.
-Planner and coder can reuse a slot after the planning job is accepted and its
-session stops. XO can appoint one NCO for its current work order; NCO creates
-specialist jobs and reports to XO. Small tasks can go directly from XO to a
-specialist. These are roles over the existing command services, not another
-scheduler or independent work-order hierarchy.
+XO commissions the work-order planner and adopts its job list. One job is
+coordinated directly by XO; multiple jobs each have a job-bound NCO. Each active
+NCO needs a live slot in addition to XO and its specialists. Planner and specialist
+can reuse a slot after plan adoption completes the planning assignment and its
+session stops. NCO assigns specialists within its job and reports readiness to XO;
+only XO commissions planning, changes job scope and accepts jobs. Runtime allocation
+and session lifecycle remain in the existing command services.
+
+A job is an outcome, with several retained role assignments if needed. One active
+editor uses its workspace at a time; readers and separate jobs can overlap.
+Completing a role assignment releases its session without accepting the job or
+discarding results. CO can attach prepared specification/scope documents through
+the work-order's explicit shared context references. Agents never choose worktree
+paths, branch names or PR targets; MCP services retain those responsibilities.
 
 Copy `devtools/assignment-policy.json` to customize paths and inspection policy;
 set `project.assignment_policy` to that file. Add project-specific Maker source
@@ -108,9 +116,14 @@ Console and validation services. This is a curated editing view and a path-level
 write boundary. It does not enforce individual generated method bodies or freeze
 PHP signatures within an editable file. Plans and review carry those obligations.
 
-SQLite upgrades preserve bindings, reports and retry identities. Newly accepted
-planning jobs retain the exact result update; legacy or superseded reports do not
-silently become approved plans. See the [handoff example](../docs/control-plane-roles-and-tools.md#planning-and-bounded-handoffs).
+SQLite upgrades add plan history, shared context and role assignments while
+preserving existing jobs, bindings, reports and delivery history. Existing bound
+jobs remain recoverable; new jobs require an adopted plan. Adoption can bring
+existing jobs into the new structure, materialize their role assignments and pause
+their sessions for a deliberate handoff. XO reuses an old work-order NCO for a
+specific job or takes over a single-job team. The exact adopted result is retained;
+legacy or superseded reports do not silently become approved plans. See the
+[handoff example](../docs/control-plane-roles-and-tools.md#planning-and-bounded-handoffs).
 
 ### Optional Jev setup
 

@@ -19,10 +19,14 @@ authorized for maintainers building or repairing the dev-lane itself.
 The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
-connection. CO uses `direct`/`monitor`/`conclude`; XO and a delegated NCO use
-`orchestrate`/`monitor`/`steer` to coordinate live collaborators. A planner only
-investigates and reports a plan. XO delegates small tasks to a specialist and can
-appoint NCO for planning, implementation and verification across dependent jobs.
+connection. CO supplies the work-order objective, boundaries and prepared context
+through `direct`, monitors progress and concludes the integrated outcome. XO
+commissions the work-order planner and adopts its job breakdown through
+`plan_adopt`. A one-job plan is simple: XO coordinates that job's role assignments
+directly. For multiple jobs, XO appoints one NCO per job and owns dependencies
+between jobs. NCO coordinates specialists within its job and requests planning or
+scope changes through XO; only XO commissions planners and accepts jobs. A planner
+investigates and reports a plan without editing source or coordinating execution.
 Local agents invoke maintained Makers through MCP; they never author or modify
 Makers. Extra improvements can be reported without becoming assignments.
 Command services bind work and configured collaborators, supply current briefs,
@@ -36,7 +40,7 @@ after inspecting its current review packet with `monitor`. Normal GitHub rules a
 Work orders integrate bounded jobs through their PRs. XO submits the combined
 result with `work_submit`; CO inspects it with `monitor(section="review")` and
 delivers the checked outcome with `conclude`. Agents use task-facing MCP tools;
-the services handle workspace lifetime, branch/PR routing, storage and
+the services handle session allocation, workspace lifetime, branch naming/PR routing, storage and
 record association internally.
 
 Make changes on an owned branch based on `dev`, test the affected behavior, and

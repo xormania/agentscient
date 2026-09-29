@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_workspaces
+from support import fixture_work
 
 from devtools.api import API
 from devtools.github import GitHub, short_pr
@@ -209,20 +210,7 @@ class DeliveryTests(unittest.TestCase):
             ],
         )
         self.assertEqual(1, len(self.provider.merges))
-        self.xo.call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Follow-up",
-                        "role": "coder",
-                        "objective": "Continue",
-                        "done_when": "Result",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        fixture_work(self.xo, [{"name": "Follow-up", "role": "coder", "objective": "Continue", "done_when": "Done", "constraints": "Product only"}])
         new_root = Path(self.api.workspaces.ensure()["root"])
         self.assertNotEqual(self.workspace, new_root)
         self.assertEqual("Delivered implementation\n", (new_root / "src/Example.php").read_text())

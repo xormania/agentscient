@@ -15,8 +15,8 @@ def record(db, table, ident):
     if not row:
         raise ValueError("Choose an existing work order or job, or create one first.")
     result = dict(row)
-    del result["request_key"]
-    del result["request_payload"]
+    result.pop("request_key", None)
+    result.pop("request_payload", None)
     return result
 
 

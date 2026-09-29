@@ -74,6 +74,8 @@ class Orders:
             "SELECT 1 FROM jobs WHERE work_order=? AND status NOT IN ('done','cancelled')", (ident,)
         ).fetchone():
             raise ValueError("Jobs remain unfinished. Have XO accept or explicitly cancel them first.")
+        if db.execute("SELECT 1 FROM role_assignments WHERE work_order=? AND status='active'", (ident,)).fetchone():
+            raise ValueError("Role assignments remain active. Have their coordinator complete or explicitly cancel them first.")
 
     def sync(self, workspace):
         self.spaces._verify(workspace, self.spaces.checkout())

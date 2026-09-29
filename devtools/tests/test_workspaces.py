@@ -46,20 +46,13 @@ class WorkspaceTests(unittest.TestCase):
             "direct",
             {"title": "Local work", "objective": "Implement", "done_when": "Delivered", "constraints": "Product only"},
         )
-        API(self.state, "xo").call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Feature",
-                        "role": "coder",
-                        "objective": "Feature",
-                        "done_when": "Works",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        # Workspace tests start at an existing trusted job. Command/plan creation
+        # is exercised through normal MCP in test_commands and test_coordination.
+        xo = API(self.state, "xo")
+        order = xo.control.snapshot()["work_order"]
+        job = xo.work.job_create(title="Feature", objective="Feature", done_when="Works", constraints="Product only",
+                                 work_order=order)["job"]["id"]
+        xo.control.bind("coder", "coder", order, job, "xo")
         self.api = API(self.state, "coder")
         self.store = Store(self.state)
 

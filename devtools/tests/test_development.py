@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 import test_workspaces
-from support import Client, held_check, until
+from support import Client, fixture_work, held_check, until
 
 from devtools.api import API
 from devtools.development import Development
@@ -138,9 +138,9 @@ class DevelopmentTests(unittest.TestCase):
             self.assertEqual(payload, json.loads("".join(parts))["result"])
         with self.assertRaises(ValueError):
             self.api.call("work_report", {"text": "Reply", "responding_to": refs[0]})
-        API(self.state, "xo").call("orchestrate", {"work": [
+        fixture_work(API(self.state, "xo"), [
             {"name": "Other", "role": "docs", "objective": "Other", "done_when": "Done", "constraints": "Docs"}
-        ]})
+        ])
         with self.assertRaisesRegex(ValueError, "not available"):
             API(self.state, "docs").call("work_context", {"reference": refs[0]})
 

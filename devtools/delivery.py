@@ -104,7 +104,7 @@ class Delivery:
             raise ValueError("This outcome requires the current work binding.")
         if role is not None and scope["role"] not in role:
             raise ValueError("This role cannot perform that outcome.")
-        if scope["role"] == "nco" and work["created_by"] != self.member:
+        if scope["role"] == "nco" and scope["job"] != work["id"]:
             raise ValueError("NCO manages its assigned team; use XO for other responsibilities.")
         return scope, work
 
@@ -284,12 +284,12 @@ class Delivery:
         return receipt
 
     def finish_job(self, job, assessment, *, cancel=False):
-        scope, _ = self.scope(job, role={"xo", "nco"})
+        scope, _ = self.scope(job, role={"xo"})
         with self.spaces.lock("order-" + str(scope["work_order"])):
             return self._finish_job(job, assessment, cancel=cancel)
 
     def _finish_job(self, job, assessment, *, cancel=False):
-        scope, work = self.scope(job, role={"xo", "nco"})
+        scope, work = self.scope(job, role={"xo"})
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.spaces.lock("job-" + str(job)):
@@ -307,6 +307,19 @@ class Delivery:
                 ).fetchone()
                 workspace = db.execute("SELECT * FROM job_workspaces WHERE job=?", (job,)).fetchone()
                 report = self._current_result(db, job)
+                planned = record(db, "work_orders", scope["work_order"])["plan_revision"] > 0
+                if planned and not cancel:
+                    from .planning import Planning, current_plan, current_result
+
+                    plan = current_plan(db, scope["work_order"])
+                    Planning.dependencies(db, work)
+                    if db.execute("SELECT 1 FROM role_assignments WHERE job=? AND status='active'", (job,)).fetchone():
+                        raise ValueError("Complete this job's role assignments before XO accepts the result.")
+                    nco = db.execute("SELECT * FROM member_bindings WHERE job=? AND role='nco'", (job,)).fetchone()
+                    if len(json.loads(plan["jobs"])) > 1 and not nco:
+                        raise ValueError("XO must appoint this job's NCO before accepting a multi-job plan contribution.")
+                    if nco and not current_result(db, dict(nco)):
+                        raise ValueError("The NCO must report the checked job ready for XO acceptance.")
             if active:
                 raise ValueError("A development operation is still active. Its result will be delivered automatically.")
             revision, merge_commit = None, None
@@ -333,7 +346,7 @@ class Delivery:
                     )
                 if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
                     raise ValueError("CI has not passed for the current PR revision.")
-                self.scope(job, role={"xo", "nco"})
+                self.scope(job, role={"xo"})
                 merged = self.github.pr_merge(context, revision=revision)
                 if not merged["merged"]:
                     return {"work": work["title"], "outcome": "not_merged", "provider": merged}
@@ -370,6 +383,8 @@ class Delivery:
                 members = [r["member"] for r in db.execute("SELECT member FROM member_bindings WHERE job=?", (job,))]
                 for member in members:
                     self.release(db, member)
+                if cancel:
+                    db.execute("UPDATE role_assignments SET status='cancelled',updated=? WHERE job=? AND status='active'", (stamp(), job))
                 self.store._event(
                     db,
                     self.member,
@@ -408,10 +423,13 @@ class Delivery:
             if producer["role"] == "planner" and not row["artifact"]:
                 continue
             return dict(row)
-        return None
+        retained = db.execute("SELECT u.* FROM role_assignments a JOIN work_updates u ON u.id=a.result_update "
+                              "WHERE a.job=? AND a.status='done' ORDER BY u.id DESC LIMIT 1", (job,)).fetchone()
+        return dict(retained) if retained else None
 
     @staticmethod
     def release(db, member):
+        db.execute("UPDATE messages SET delivery='superseded' WHERE recipient=? AND category='direction' AND delivery='queued'", (member,))
         db.execute(
             "UPDATE members SET desired='stopped',selected_work_order=NULL,selected_job=NULL WHERE name=?", (member,)
         )

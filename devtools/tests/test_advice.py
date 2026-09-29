@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import test_delivery
 import test_workspaces
-from support import Client
+from support import Client, fixture_work
 from test_commands import responsibility
 
 from devtools.api import API
@@ -184,7 +184,7 @@ class AdviceTests(unittest.TestCase):
         own = self.api.artifacts.save("diagnostic.txt", content="retained diagnostic")
         ref = "artifact:" + str(own["artifact"]["id"])
         self.assess(sources=[{"reference": ref}])
-        self.xo.call("orchestrate", {"work": [responsibility("Other", "docs")]})
+        fixture_work(self.xo, [responsibility("Other", "docs")])
         foreign = API(self.state, "docs").artifacts.save("private.txt", content="other job evidence")
         with self.assertRaisesRegex(ValueError, "not available"):
             self.assess(sources=[{"reference": "artifact:" + str(foreign["artifact"]["id"])}])

@@ -21,7 +21,7 @@ class OnboardingTests(unittest.TestCase):
             member = "owner" if role == "co" else "xo" if role == "xo" else "coder"
             api = API(self.state, member)
             if role not in {"co", "xo"}:
-                api.control.bind(member, role, self.order, None if role == "nco" else self.job, "xo")
+                api.control.bind(member, role, self.order, None if role == "planner" else self.job, "xo")
             value = api.call("onboard", {})
             self.assertEqual(role, value["role"])
             self.assertEqual(role, value["context"]["role"])

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, retain_native
+from support import ENTRY, Client, fixture_work, retain_native
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -77,7 +77,10 @@ class SessionTests(unittest.TestCase):
         xo = self.bind()
         roles = [role for role in ROLES if role not in {"co", "xo"}]
         for role in roles:
-            xo.call("orchestrate", {"work": [responsibility(("coder" if role == "audit" else role) + " work", role)]})
+            if role == "planner":
+                xo.call("orchestrate", {"work": [responsibility("planner work", role)]})
+            else:
+                fixture_work(xo, [responsibility(("coder" if role == "audit" else role) + " work", role)])
         before = {row["name"]: Control(self.store, row["name"]).snapshot() for row in self.store.members()}
         vendor_path = self.state / "vendors.json"
         vendors = json.loads(vendor_path.read_text())

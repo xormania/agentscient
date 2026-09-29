@@ -59,15 +59,40 @@ class Fixture:
             )
             if not result["success"]:
                 raise ValueError(result)
-            return result
-        return await self.mcp.request("tools/call", {"name": capability, "arguments": args})
+            return json.loads(result["contentItems"][0]["text"])
+        result = await self.mcp.request("tools/call", {"name": capability, "arguments": args})
+        if result.get("isError"):
+            raise ValueError(result)
+        return json.loads(result["content"][0]["text"])
 
     async def accept(self, text, hold):
         if not self.onboarded:
-            await self.tool("onboard", {})
-            await self.tool("skill_read", {"name": "agentscient-xo" if self.command else "agentscient-coder"})
+            onboard = await self.tool("onboard", {})
+            self.role = onboard["role"]
+            self.planned = bool(onboard["context"]["plan_revision"])
+            await self.tool("skill_read", {"name": "agentscient-" + self.role.replace("_", "-")})
             self.onboarded = True
         ident = int(re.search(r"Live message #(\d+)", text)[1])
+        if self.role == "planner":
+            await self.tool("work_report", {"kind": "result", "text": "Fixture plan ready", "evidence": {
+                "name": "fixture-plan.md", "content": "One job: demonstrate the live command path using a coder."}})
+            return
+        if self.command and "result: Fixture plan ready" in text and not self.planned:
+            reference = re.search(r"Reference: (update:\d+)", text)[1]
+            await self.tool("plan_adopt", {"plan": reference, "jobs": [{"name": "Fixture implementation",
+                "objective": "Demonstrate the live command path", "done_when": "Direction received", "constraints": "Protocol fixture only"}]})
+            self.planned = True
+            # The planner's native process is stopped asynchronously before its
+            # fixed slot can be reused by the implementation role.
+            for attempt in range(100):
+                try:
+                    await self.tool("orchestrate", {"work": [{"name": "Fixture implementation", "role": "coder"}]})
+                    return
+                except ValueError as error:
+                    if "No available" not in str(error):
+                        raise
+                    await asyncio.sleep(0.05)
+            raise AssertionError("Planner slot did not become reusable")
         if self.harness == "codex":
             self.write({"method": "turn/started", "params": {"threadId": self.session, "turn": {"id": "held-turn"}}})
             self.write(
@@ -100,8 +125,8 @@ class Fixture:
                 {
                     "work": [
                         {
-                            "name": "Fixture implementation",
-                            "role": "coder",
+                            "name": "Fixture implementation" if self.planned else "Fixture planning",
+                            "role": "coder" if self.planned else "planner",
                             "objective": "Demonstrate the live command path",
                             "done_when": "Direction received",
                             "constraints": "Protocol fixture only",
@@ -128,7 +153,7 @@ class Fixture:
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
                 expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
-                assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
+                assert names == expected | ({"plan_adopt", "orchestrate", "monitor", "steer"} if self.command else set())
                 result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]

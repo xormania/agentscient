@@ -17,8 +17,8 @@ understood it. Onboarding does not create work or invent an acceptance gate.
 | --- | --- | --- |
 | CO | User intent, authorized objectives, user decisions, integrated acceptance | `agentscient-co` |
 | XO | Named jobs, role allocation, guidance, review and integration | `agentscient-xo` |
-| NCO | Delegated planning, bounded implementation, verification and completion | `agentscient-nco` |
-| Planner | Application discovery, capability reuse and an evidence-backed implementation plan | `agentscient-planner` |
+| NCO | Specialist coordination and verification within one job; readiness reported to XO | `agentscient-nco` |
+| Planner | Work-order discovery and an evidence-backed job breakdown for XO | `agentscient-planner` |
 | Coder | Scoped source changes, installed framework capabilities, validation | `agentscient-coder` |
 | Audit | Immutable revision review, reproducible findings, independent assessment | `agentscient-audit` |
 | Doc | Accurate documentation, examples, reader needs and limits | `agentscient-docs` |
