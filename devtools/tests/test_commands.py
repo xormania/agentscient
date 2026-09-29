@@ -12,7 +12,7 @@ from support import Client, until
 from devtools.api import API
 from devtools.control import Control
 from devtools.launch import initialize, start
-from devtools.store import Store
+from devtools.store import SCHEMA_VERSION, Store
 from devtools.work import Work
 
 GOAL = dict(
@@ -286,7 +286,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual("Prior progress", upgraded.call("work_context", {"reference": update["reference"]})["text"])
         self.assertFalse(upgraded.control.snapshot()["paused"])
         with self.store.connect() as db:
-            self.assertEqual(9, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
             self.assertTrue(all(row[0] == "peer" for row in db.execute("SELECT category FROM messages")))
 
 

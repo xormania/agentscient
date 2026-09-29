@@ -18,7 +18,7 @@ from support import Client, require_process_identity, until
 from devtools.github import GitHub
 from devtools.github_http import GitHubError, GitHubHTTP
 from devtools.launch import initialize
-from devtools.store import Store
+from devtools.store import SCHEMA_VERSION, Store
 
 HEAD, MERGE = "a" * 40, "b" * 40
 
@@ -650,7 +650,7 @@ class GitHubTests(unittest.TestCase):
         self.assertEqual(order, report["work"][0]["work_order"])
         self.assertEqual([], report["sources"])
         with self.store.connect() as db:
-            self.assertEqual(9, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
 
 
 if __name__ == "__main__":

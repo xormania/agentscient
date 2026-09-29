@@ -14,6 +14,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
+SCHEMA_VERSION = 10
 
 
 def stamp():
@@ -86,7 +87,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 9:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -131,6 +132,7 @@ class Store:
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
+                "work_updates": {"evaluation": "TEXT"},
                 "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
                     "paused": "INTEGER NOT NULL DEFAULT 0",
@@ -228,7 +230,7 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS codex_requests (
                 repository TEXT NOT NULL, pr INTEGER NOT NULL, revision TEXT NOT NULL, kind TEXT NOT NULL,
                 state TEXT NOT NULL, url TEXT, PRIMARY KEY(repository,pr,revision,kind))""")
-            db.execute("PRAGMA user_version=9")
+            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     @contextmanager
     def connect(self):
