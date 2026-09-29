@@ -69,7 +69,7 @@
         },
         {
           "name": "Lint live support",
-          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/ci.py .github/tests",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/*.py .github/tests",
           "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
         }
       ]
@@ -101,9 +101,35 @@
           "name": "Verify live MCP and transport protocols",
           "env": {
             "AGENTSCIENT_REQUIRE_TMUX": "1",
-            "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence"
+            "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence",
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
           },
-          "run": "python3 -m unittest discover -s devtools/tests -v --durations 10"
+          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 -m unittest discover -s devtools/tests -v --durations 10 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
+          "id": "verify",
+          "shell": "bash"
+        },
+        {
+          "name": "Diagnose failed check with Jev",
+          "if": "${{ failure() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "timeout-minutes": 2,
+          "env": {
+            "TYPESAFE_API_KEY": "${{ secrets.TYPESAFE_API_KEY }}",
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          },
+          "run": "python3 .github/ci_jev.py --job live-mcp --log \"$JEV_CI_DIR/command.log\" --output \"$JEV_CI_DIR/assessment\" --evidence \"${{ runner.temp }}/runtime-evidence\""
+        },
+        {
+          "name": "Retain Jev diagnosis",
+          "if": "${{ always() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "jev-ci-live-mcp-${{ github.run_id }}-${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
+            "if-no-files-found": "warn",
+            "retention-days": 7
+          }
         },
         {
           "name": "Retain runtime fixture evidence",
@@ -145,7 +171,35 @@
         },
         {
           "name": "Exercise Maker/Mate through normal MCP",
-          "run": "python3 devtools/integration/symfony.py --evidence-dir var/ci/maker-mate > var/ci/maker-mate/development-tools.json"
+          "run": "mkdir -p \"$JEV_CI_DIR\"\nset +e\npython3 devtools/integration/symfony.py --evidence-dir var/ci/maker-mate > var/ci/maker-mate/development-tools.json 2> \"$JEV_CI_DIR/command.log\"\ncommand_status=$?\ncat \"$JEV_CI_DIR/command.log\" >&2\nexit \"$command_status\"",
+          "id": "verify",
+          "shell": "bash",
+          "env": {
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          }
+        },
+        {
+          "name": "Diagnose failed check with Jev",
+          "if": "${{ failure() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "timeout-minutes": 2,
+          "env": {
+            "TYPESAFE_API_KEY": "${{ secrets.TYPESAFE_API_KEY }}",
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          },
+          "run": "python3 .github/ci_jev.py --job maker-mate --log \"$JEV_CI_DIR/command.log\" --output \"$JEV_CI_DIR/assessment\" --evidence \"var/ci/maker-mate\""
+        },
+        {
+          "name": "Retain Jev diagnosis",
+          "if": "${{ always() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "jev-ci-maker-mate-${{ github.run_id }}-${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
+            "if-no-files-found": "warn",
+            "retention-days": 7
+          }
         },
         {
           "name": "Retain Maker/Mate integration evidence",
@@ -209,7 +263,35 @@
         },
         {
           "name": "Verify real Serena REPL and workspace boundary",
-          "run": "python3 devtools/integration/serena.py"
+          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 devtools/integration/serena.py 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
+          "id": "verify",
+          "shell": "bash",
+          "env": {
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          }
+        },
+        {
+          "name": "Diagnose failed check with Jev",
+          "if": "${{ failure() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "timeout-minutes": 2,
+          "env": {
+            "TYPESAFE_API_KEY": "${{ secrets.TYPESAFE_API_KEY }}",
+            "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          },
+          "run": "python3 .github/ci_jev.py --job serena --log \"$JEV_CI_DIR/command.log\" --output \"$JEV_CI_DIR/assessment\""
+        },
+        {
+          "name": "Retain Jev diagnosis",
+          "if": "${{ always() && steps.verify.outcome == 'failure' }}",
+          "continue-on-error": true,
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "jev-ci-serena-${{ github.run_id }}-${{ github.run_attempt }}",
+            "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
+            "if-no-files-found": "warn",
+            "retention-days": 7
+          }
         },
         {
           "name": "Remove this run's image tag",
