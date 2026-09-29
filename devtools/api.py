@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import time
 
+from .advice import Advice
+from .advice import capabilities as advice_capabilities
+from .advice import configured as advice_configured
 from .artifacts import Artifacts
 from .commands import ROLE_TOOLS, Commands
 from .commands import capabilities as command_capabilities
@@ -343,6 +346,7 @@ TOOLS += [
 WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", "work_submit"}
 TOOLS += development_capabilities(spec)
 TOOLS += delivery_capabilities(spec)
+TOOLS += advice_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -411,6 +415,10 @@ class API:
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
         if role:
             common |= {"onboard", "skill_read"}
+        if scope and advice_configured(self.store):
+            common.add("work_assess")
+            if role == "xo":
+                common.add("assignment_advise")
         if scope and scope["job"] and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
@@ -526,6 +534,9 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {"assignment_advise", "work_assess"}:
+            advice = Advice(self.store, self.member)
+            return advice.assignment(**args) if name == "assignment_advise" else advice.assess(**args)
         if name in {"onboard", "skill_read"}:
             from .onboarding import Onboarding
 

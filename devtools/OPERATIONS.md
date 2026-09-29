@@ -56,10 +56,61 @@ harness or starting workspace in place; use a new member name for that change.
 | `development.check_timeout` | Timeout in seconds for each check; default 600. |
 | `serena.image` | Locally built separate Serena provider image. |
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
+| `jev` | Optional `{}` enables the two on-demand Jev advice tools; absent by default. |
+| `jev.model` | Pinned TypeSafe model version; defaults to `jev-1.13.0`. Moving aliases are rejected. |
+| `jev.profile_evidence` | Optional map from configured runtime profile names (fixed teams: member names) to dated performance evidence. Include task family, harness/model/reasoning, result and source references. |
 
 Each work order and job owns its worktree and Composer install. Managed startup
 selects it automatically. Dependency installation refreshes when Composer metadata
 changes. Do not share a vendor-directory symlink across worktrees.
+
+### Optional Jev setup
+
+Add `"jev": {"model": "jev-1.13.0"}` inside the existing `project` object in the
+private `team.json`. Set `TYPESAFE_API_KEY` in the environment of the process
+launching the dev-lane services, then reconnect/restart those services so they
+inherit it. Keep the key out of repository files, tool arguments and team JSON.
+No new Python package, PHP dependency or Serena network access is required.
+
+Enabling this integration permits the host service to send the selected task
+context, source ranges, diagnostics and configured profile evidence to
+`https://api.typesafe.ai/v1/systemone`. The shared credential filter runs before
+transmission, but does not detect every secret in arbitrary source text. Only
+explicit advice calls contact TypeSafe; there is no background repository scan.
+
+`assignment_advise` uses configured roles and available installed profiles. Fixed
+teams use their idle configured members. Unknown model/reasoning settings and
+missing performance evidence are reported as unknown; public benchmarks are not
+downloaded or invented. `profile_evidence` can contain brief descriptions or
+structured records with provenance and dates. Agents can additionally select
+retained evidence through their normal work scope. Profile recommendations do not
+change `roles.json`, `vendors.json`, or allocation order. Use the existing runtime
+policy controls when acting on a recommendation that requires a different profile.
+
+Requests have a 28,000-byte serialized input budget. Narrow oversized batches;
+the service never silently drops requested sources. The transport uses an
+eight-second socket timeout, disallows redirects, and makes at most one short
+retry for HTTP 429/529. Longer backoff is left to a later explicit call. Response
+models, answer types, options, distributions and usage are checked before use.
+Provider errors return a sanitized failure and do not block ordinary work tools.
+
+The existing artifact catalogue retains successful evaluations and their rubrics.
+The cache key covers the caller's work binding, input content, source identities,
+questions, rubric version and pinned model. Identical concurrent requests share
+the evaluation using the existing service-lock mechanism. There is no separate
+result database, queue or cache service. `jev_evaluation` events record elapsed
+time, model, fingerprint, evidence and provider usage; cache-hit events have
+`usage: null` because they made no provider call. The response's usage describes
+the original evaluation and must not be added again on cache hits.
+
+Use [normal MCP examples](../docs/control-plane-roles-and-tools.md#jev-advice) to
+try a representative assignment and source/diagnostic assessment. Compare useful
+file discovery, missed relevant sources, assignment corrections, agent consumption
+and completion time against the existing workflow. Fixture tests verify the
+integration; actual Jev accuracy and savings require this authenticated evaluation.
+
+References: [TypeSafe API](https://docs.typesafe.ai/api),
+[model versions and limits](https://docs.typesafe.ai/models).
 
 ### Branches and worktree lifetime
 

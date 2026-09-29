@@ -21,6 +21,7 @@ and `packages/` is the prod-lane.
 | **Serena MCP** (`serena`) | Source navigation and edits through the v2 REPL, bound automatically to the current specialist's workspace and paths. |
 | **Native harness adapters** | Keep Codex, Claude and Grok conversations alive and carry live messages through their native protocols. |
 | **SQLite and managed storage** | Retain work, state, messages, observations and artifact associations; store artifact payloads separately. |
+| **Optional Jev advice** | XO assignment advice and scoped source/diagnostic assessment through two on-demand MCP tools, using the existing artifacts and telemetry. |
 
 CO is the session the person works with. XO receives the objective and organizes
 live collaborators from the configured slots. Work-order numbers bind the overall
@@ -55,6 +56,7 @@ explains REPL lifetime and workspace isolation.
 | `work.py`, `store.py`, `artifacts.py`, `telemetry.py` | Work records, SQLite state, artifacts and measured observations |
 | `workspaces.py`, `orders.py`, `retirement.py`, `github.py`, `delivery.py`, `feedback.py` | Job/work-order integration, worktree retirement, PR/CI, review, acceptance and diagnostics |
 | `development.py`, `operations.py`, `serena_provider.py` | Installed framework tools, retained long operations and the separate REPL gateway |
+| `advice.py`, `jev.py` | Optional work-scoped assessment and the bounded TypeSafe HTTP client |
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |
 

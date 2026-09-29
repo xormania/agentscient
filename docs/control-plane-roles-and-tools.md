@@ -34,6 +34,9 @@ role or work authority.
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
+When the operator configures `project.jev`, bound roles also get **`work_assess`**
+and XO gets **`assignment_advise`**. These are optional, on-demand advice tools;
+ordinary inspection, coordination and delivery remain available if Jev is unavailable.
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -61,6 +64,60 @@ Member names alone confer no role. Normal connections cannot invoke the operator
 catalog, even by guessing a backing capability's name.
 
 ## Shared context, reports and guidance
+
+### Jev advice
+
+XO can use `assignment_advise` before `orchestrate` to compare up to four proposed
+jobs against the current objective, active jobs, capacity and available configured
+runtimes. Supply the same job fields used by `orchestrate`, optional priorities,
+and optional retained `artifact:`/`operation:` evidence references. The service
+supplies current context; do not paste the work-order history into the request.
+
+```json
+{"name":"assignment_advise","arguments":{"work":[{"name":"Recovery","role":"coder","objective":"Repair recovery using the existing session service","done_when":"The recovery regression passes","constraints":"Preserve unrelated sessions"}],"priorities":"Avoid duplicating existing work; prefer demonstrated recovery experience"}}
+```
+
+Each recommendation contains a role choice, overlap and parallel-readiness
+probabilities, and a runtime-profile choice with an explicit unknown option.
+Runtime advice concerns the **proposed** role. Missing performance evidence stays
+unknown. XO decides how to act; the call does not allocate a collaborator, change a
+brief, or alter runtime policy. `orchestrate` still selects from the operator's
+ordered preferences. A different runtime recommendation can inform a policy-change
+request through the existing `guidance_request` reporting path.
+
+`work_assess` answers up to four typed questions over up to eight candidate sources
+in one evaluation. Each source names exactly one relative workspace `path` or an
+accessible `artifact:`/`operation:` reference. The service reads it; the agent
+receives answers and source locations without the raw source text. Use Serena to
+find candidate paths and inspect or edit the relevant source afterward. Auditors
+use their submitted review snapshot. CO can assess retained evidence; workspace
+source assessment is available to XO and specialists.
+
+```json
+{"name":"work_assess","arguments":{"sources":[{"path":"src/SessionService.php"},{"reference":"artifact:12"}],"questions":[{"name":"recovery","instructions":"Does this describe recovery after a supervisor crash?"}]}}
+```
+
+Questions default to `noul` (a yes probability). Set `type` to `choice` and supply
+2–16 distinct `options`, or to `score` and supply 2–10 ordered descriptive `levels`.
+Choice and Score include the distribution and confidence. A high score is advice,
+not proof of correctness or completeness.
+
+Sources default to 2,000 units with an optional `limit` up to 8,000 and `offset`.
+Units are bytes for files/artifacts and characters for operation results, matching
+their existing read conventions. Each result includes `partial`, `next_offset`,
+and a content/range digest; files also include the workspace revision. Follow the
+returned offset to assess the next range. **A negative result on a partial range
+does not establish absence in the whole file.** Binary sources, symlinks, Git and
+Serena state, and `.env*` paths are excluded from hosted source assessment.
+
+Identical requests over the same scoped inputs reuse the retained assessment.
+Changed source ranges, questions, work context, model or runtime evidence cause a
+new evaluation. The returned `evidence` can be read through `work_context` for the
+full rubric and typed results. Recommendations do not trigger extra agent messages.
+An input-budget error means the request needs fewer sources or smaller ranges.
+On provider failure, continue with normal inspection or retry explicitly later.
+
+### Reports and routed guidance
 
 | Tool | Use |
 | --- | --- |

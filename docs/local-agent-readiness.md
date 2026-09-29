@@ -71,6 +71,12 @@ Existing fixed-member teams remain supported. Shared runtime teams set optional
 For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
 
+For optional XO assignment advice and source/diagnostic assessment, configure
+`project.jev` and `TYPESAFE_API_KEY` as described in
+[Jev setup](../devtools/OPERATIONS.md#optional-jev-setup). This is separate from
+native harness authentication. The tools make no Jev requests until an agent
+explicitly calls them; normal development does not require this integration.
+
 Check the setup and launch the native CO using current role/vendor policy:
 
 ```sh
