@@ -29,11 +29,12 @@ def completed(client, tool, arguments):
     deadline = time.monotonic() + 700
     while value["state"] in {"queued", "running"} and time.monotonic() < deadline:
         time.sleep(0.2)
-        value = next(
-            row
-            for row in client.tool("work_inspect", {"section": "operations"})["operations"]
-            if row["reference"] == reference
-        )
+        parts, offset = [], 0
+        while offset is not None:
+            page = client.tool("work_context", {"reference": reference, "offset": offset})
+            parts.append(page["content"])
+            offset = page["next_offset"]
+        value = json.loads("".join(parts))
     assert value["state"] == "completed", value
     return value["result"]
 
@@ -111,6 +112,11 @@ def main():
             assert "make:command" in {row["name"] for row in makers}, makers
             metadata = completed(coder, "framework_inspect", {"kind": "makers", "name": "make:command"})["result"]
             assert "name" in metadata["definition"]["arguments"], metadata
+            console = completed(coder, "framework_inspect", {"kind": "console"})["result"]["commands"]
+            assert "debug:container" in {row["name"] for row in console}, console
+            services = completed(coder, "framework_inspect", {"kind": "console", "name": "debug:container", "parameters": {"arguments": {"name": "kernel"}}})["result"]
+            assert services["exit_code"] == 0, services
+            report["introspection"] = services
             generated = completed(
                 coder, "framework_generate", {"maker": "make:command", "arguments": {"name": "app:fixture-command"}}
             )["result"]
@@ -147,6 +153,7 @@ def main():
                         "accepted": [
                             "isolated dependency install",
                             "installed Maker metadata",
+                            "installed Symfony Console introspection",
                             "attribute command generation",
                             "autoconfigured command execution",
                             "Mate server-info",

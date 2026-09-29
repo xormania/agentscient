@@ -27,7 +27,8 @@ def command(directory, member, config, private, server):
     """Build native CLI arguments without accepting arbitrary command fragments."""
     instructions = API(directory, member).instructions()
     prompt = (
-        "Call onboard, load your role skill, and recover current work and reports before asking the user what is next."
+        "Call onboard; it supplies the shared and role instructions. Read only relevant skills not marked loaded. "
+        "Recover current work and reports before asking the user what is next."
     )
     harness = config["harness"]
     argv, native_id = [config["binary"]], None

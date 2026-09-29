@@ -11,7 +11,7 @@ from .artifacts import Artifacts
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect")
+ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect", "nco", "planner")
 REQUEST_BINDING = ContextVar("control_binding", default=None)
 BRIEF_FIELDS = ("title", "objective", "done_when", "constraints", "status", "next_action", "blocker")
 INSTRUCTIONS = (
@@ -30,6 +30,16 @@ def capabilities(spec):
     report = {
         "text": text,
         "responding_to": {**reference, "description": "Optional reference from context or a live message to answer."},
+        "evaluation": {
+            "type": "object", "additionalProperties": False, "required": ["reference", "stage"],
+            "description": "Link a command decision or later outcome to retained Jev evidence. Reporting does not change assignments.",
+            "properties": {
+                "reference": {**reference, "pattern": "^artifact:[1-9][0-9]*$"},
+                "stage": {"type": "string", "enum": ["decision", "outcome"]},
+                "decision": {**reference, "pattern": "^update:[1-9][0-9]*$"},
+                "label": {"type": "string", "minLength": 1, "maxLength": 100},
+            },
+        },
         "evidence": {
             "type": "object",
             "properties": {"name": {**text, "maxLength": 240}, "content": {"type": "string", "maxLength": 6000}},
@@ -43,7 +53,8 @@ def capabilities(spec):
             "Read your supplied brief, scoped activity, or evidence. No work or repository identifiers are needed.",
             {
                 "section": {"type": "string", "enum": ["brief", "activity", "messages", "evidence"]},
-                "reference": reference,
+                "reference": {**reference, "pattern": "^(message|update|artifact|operation):[1-9][0-9]*$",
+                              "description": "Read a returned reference; follow next_offset for complete evidence/results."},
                 "after": {"type": "integer", "minimum": 0},
                 "offset": {"type": "integer", "minimum": 0},
             },
@@ -80,6 +91,14 @@ def scope_sql(scope, alias=""):
     prefix = alias + "." if alias else ""
     if not scope:
         return "0", ()
+    if scope["role"] == "nco" and scope["job"] is None:
+        # Reuse command ownership for reports, artifact links and live delivery.
+        # Work-order conversations still require participant authorization in update_sql.
+        return (
+            f"{prefix}work_order=? AND ({prefix}job IS NULL OR "
+            f"{prefix}job IN (SELECT id FROM jobs WHERE created_by=?))",
+            (scope["work_order"], scope["member"]),
+        )
     return (
         f"{prefix}work_order=?" + (f" AND ({prefix}job IS NULL OR {prefix}job=?)" if scope["job"] else ""),
         (scope["work_order"], *((scope["job"],) if scope["job"] else ())),
@@ -104,8 +123,9 @@ def evidence_sql(scope, member):
     clause, args = update_sql(scope, member, "u")
     return (
         "(NOT EXISTS (SELECT 1 FROM work_updates u WHERE u.artifact=a.id) OR EXISTS "
-        "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + "))",
-        args,
+        "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + ") OR EXISTS "
+        "(SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.evidence')='artifact:'||a.id))",
+        (*args, scope["job"] if scope else None),
     )
 
 
@@ -151,6 +171,10 @@ class Control:
                 raise ValueError("Bind the reporting member to a covering work scope first")
             if role == "xo" and superior["role"] != "co":
                 raise ValueError("XO reports to CO")
+            if role == "nco" and (superior["role"] != "xo" or job is not None):
+                raise ValueError("NCO coordinates the work order and reports to XO")
+            if role == "planner" and (superior["role"] not in {"xo", "nco"} or job is None):
+                raise ValueError("Planner needs a job reporting to XO or NCO")
         ancestor, seen = reports_to, {member}
         while ancestor is not None:
             if ancestor in seen:
@@ -197,7 +221,7 @@ class Control:
 
     def _reference(self, db, scope, reference):
         kind, ident = reference.split(":", 1)
-        table = {"message": "messages", "update": "work_updates", "artifact": "artifacts"}[kind]
+        table = {"message": "messages", "update": "work_updates", "artifact": "artifacts", "operation": "operations"}[kind]
         row = db.execute(f"SELECT * FROM {table} WHERE id=?", (int(ident),)).fetchone()
         if kind == "artifact":
             sql, args = scope_sql(scope)
@@ -212,7 +236,19 @@ class Control:
             ).fetchone()
         elif kind == "update":
             sql, args = update_sql(scope, self.member)
-            allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND " + sql, (int(ident), *args)).fetchone()
+            allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND (" + sql +
+                                 " OR EXISTS (SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.reference')=?))",
+                                 (int(ident), *args, scope["job"] if scope else None, reference)).fetchone()
+        elif kind == "operation" and row:
+            # Parent briefs are shared by includes(); operation diagnostics are not.
+            allowed = bool(scope and scope["work_order"] == row["work_order"] and (
+                (scope["job"] is not None and scope["job"] == row["job"])
+                or (scope["job"] is None and scope["role"] in {"co", "xo"})
+                or (scope["job"] is None and scope["role"] == "nco" and (
+                    row["member"] == self.member or row["job"] is not None and
+                    record(db, "jobs", row["job"])["created_by"] == self.member
+                ))
+            ))
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
             if kind == "message":
@@ -238,6 +274,8 @@ class Control:
         }
         if row["artifact"]:
             result["evidence"] = f"artifact:{row['artifact']}"
+        if row["evaluation"]:
+            result["evaluation"] = json.loads(row["evaluation"])
         if preview:
             result["truncated"] = len(row["text"]) > 600
         return result
@@ -254,6 +292,16 @@ class Control:
         with self.store.connect() as db:
             if reference:
                 kind, row = self._reference(db, scope, reference)
+                if kind == "operation":
+                    from .operations import Operations
+
+                    content = json.dumps(Operations.public(row), ensure_ascii=False)
+                    if offset > len(content):
+                        raise ValueError("The read offset is beyond the operation result.")
+                    return {
+                        "reference": reference, "content": content[offset:offset + 8000], "encoding": "utf8",
+                        "next_offset": offset + 8000 if offset + 8000 < len(content) else None,
+                    }
                 if kind == "update":
                     return self._update(row)
                 if kind == "message":
@@ -274,6 +322,7 @@ class Control:
                 }
                 if scope["job"]:
                     result["job"] = self._summary(record(db, "jobs", scope["job"]))
+                    result["assignment"] = json.loads(record(db, "jobs", scope["job"])["assignment"])
                     from .workspaces import Workspaces, project_config
 
                     if project_config(self.store):
@@ -286,6 +335,8 @@ class Control:
                             "serena_repl": serena_enabled(self.store, scope),
                         }
                 parent = binding(db, scope["reports_to"])
+                if parent and parent["role"] == "nco":
+                    result["delegation"] = {"role": "nco", "responsibility": parent["brief"], "revision": parent["revision"]}
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"
                 sql, args = update_sql(scope, self.member)
                 rows = db.execute("SELECT * FROM work_updates WHERE " + sql + " ORDER BY id DESC LIMIT 5", args)
@@ -386,17 +437,51 @@ class Control:
             raise ValueError("Reporting relationship needs an updated work binding; current work was not changed")
         return recipient, order, job, reply
 
-    def report(self, text, kind="progress", responding_to=None, evidence=None):
+    def _evaluation(self, db, scope, evaluation):
+        if not evaluation:
+            return
+        from .commands import ROLE_TOOLS
+
+        reference = evaluation["reference"]
+        _, artifact = self._reference(db, scope, reference)
+        if not db.execute("SELECT 1 FROM events WHERE kind='jev_evaluation' AND work_order=? "
+                          "AND json_extract(data,'$.evidence')=?", (scope["work_order"], reference)).fetchone():
+            raise ValueError("Reference is not a recorded Jev evaluation.")
+        if evaluation["stage"] == "decision":
+            if scope["role"] not in ROLE_TOOLS or evaluation.get("decision"):
+                raise ValueError("Command roles record decisions; outcome reports link an existing decision.")
+            if binding(db, self.member) != scope or scope["paused"]:
+                raise ValueError("Your assignment changed or is paused; refresh before recording a decision.")
+            saved = json.loads(self.artifacts.read(artifact["id"], limit=256 * 1024)["content"])
+            previous = saved.get("binding")
+            current = binding(db, previous["member"]) if previous else None
+            if not current or any(current.get(key) != value for key, value in previous.items()):
+                raise ValueError("Evaluation belongs to a changed assignment; request a fresh assessment.")
+        else:
+            if not evaluation.get("decision"):
+                raise ValueError("An outcome needs the decision update reference.")
+            _, decision = self._reference(db, scope, evaluation["decision"])
+            linked = json.loads(decision.get("evaluation") or "{}")
+            if linked.get("reference") != reference or linked.get("stage") != "decision":
+                raise ValueError("Outcome and decision must reference the same evaluation.")
+
+    def report(self, text, kind="progress", responding_to=None, evidence=None, evaluation=None):
         scope = self.current()
         if not scope:
             raise ValueError("No active role and work binding")
-        fingerprint = hashlib.sha256(canonical([scope, kind, text, responding_to, evidence]).encode()).hexdigest()
+        if scope["role"] == "planner" and kind == "result" and not evidence:
+            raise ValueError("A planner result needs retained plan evidence.")
+        payload = [scope, kind, text, responding_to, evidence]
+        if evaluation:
+            payload.append(evaluation)
+        fingerprint = hashlib.sha256(canonical(payload).encode()).hexdigest()
         with self.store.connect() as db:
             old = db.execute(
                 "SELECT * FROM work_updates WHERE actor=? AND request_key=?", (self.member, fingerprint)
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            self._evaluation(db, scope, evaluation)
             destination = self._destination(db, scope, responding_to)
         recipient, order, job, reply = destination
         saved = None
@@ -411,12 +496,20 @@ class Control:
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            self._evaluation(db, scope, evaluation)
             # Recheck the recipient inside the transaction; sending and recording are atomic.
             self._destination(db, scope, responding_to)
+            from .assignments import snapshot
+
+            mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints")}
+            parent = binding(db, scope["reports_to"])
+            if parent and parent["role"] == "nco":
+                mission["delegation"] = {"member": parent["member"], "brief": parent["brief"]}
             ident = db.execute(
-                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created) "
-                "VALUES (?,?,?,?,?,?,?,?,?)",
-                (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp()),
+                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation,binding,mission) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp(),
+                 canonical(evaluation) if evaluation else None, canonical(snapshot(scope)), canonical(mission)),
             ).lastrowid
             if saved:
                 Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
@@ -440,6 +533,9 @@ class Control:
             self.store._event(
                 db, self.member, "work_reported", {"update": ident, "kind": kind, "work_order": order, "job": job}
             )
+            if evaluation:
+                self.store._event(db, self.member, "jev_feedback", {**evaluation, "update": f"update:{ident}",
+                                                                 "work_order": order, "job": job})
             return self._receipt(db, db.execute("SELECT * FROM work_updates WHERE id=?", (ident,)).fetchone())
 
     @staticmethod
@@ -451,11 +547,20 @@ class Control:
             result["evidence"] = f"artifact:{row['artifact']}"
         return result
 
+    @staticmethod
+    def _context_notice(brief):
+        value = {k: brief[k] for k in ("role", "work_state", "context_revision", "state", "guidance") if k in brief}
+        return (
+            "Current context: " + json.dumps(value, ensure_ascii=False) + "\n"
+            "Call onboard in a new session or after a role change. "
+            "Otherwise refresh work_context when context changes, before acting on direction."
+        )
+
     def instructions(self, brief=None):
         brief = self.work_context() if brief is None else brief
         with self._brief_lock:
             self._last_brief = canonical({k: v for k, v in brief.items() if k not in {"recent_activity", "incoming"}})
-        return INSTRUCTIONS + "\nYour current brief:\n" + json.dumps(brief, ensure_ascii=False)
+        return INSTRUCTIONS + "\n" + self._context_notice(brief)
 
     def render(self, message):
         brief = {k: v for k, v in self.work_context().items() if k not in {"recent_activity", "incoming"}}
@@ -472,12 +577,12 @@ class Control:
             )
             return (
                 f"Live message #{message['id']} — control-plane direction (message:{message['id']}):\n"
-                f"{direction}\nCurrent brief:\n{json.dumps(brief, ensure_ascii=False)}\n"
+                f"{direction}\n{self._context_notice(brief)}\n"
                 "Use work_report or guidance_request as needed. Your current brief governs work."
             )
         return (
             f"Live message #{message['id']} from {message['sender']} (message:{message['id']}):\n"
             f"{message['body']}\n\nUse work_report to respond or guidance_request for help. "
             "This message does not change your current role or work.\n"
-            + ("Updated brief:\n" + json.dumps(brief, ensure_ascii=False) if changed else "")
+            + ("Context changed. " + self._context_notice(brief) if changed else "")
         )

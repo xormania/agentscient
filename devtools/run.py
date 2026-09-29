@@ -34,14 +34,18 @@ def main():
         "connection",
         "evidence",
         "co",
+        "watch",
     ):
         command = commands.add_parser(name)
         command.add_argument("--state", required=True, help="Private state directory outside source worktrees")
-        if name not in {"init", "status", "doctor", "connection", "evidence", "co"}:
+        if name not in {"init", "status", "doctor", "connection", "evidence", "co", "watch"}:
             command.add_argument("--member", required=True)
         if name in {"mcp", "hook", "serena"}:
             command.add_argument("--generation", help=argparse.SUPPRESS)
-        if name == "co":
+        if name == "watch":
+            command.add_argument("--action", choices=("start", "stop", "status", "run"), default="status")
+            command.add_argument("--detach", action="store_true", help=argparse.SUPPRESS)
+        elif name == "co":
             command.add_argument("--profile", help="Select one configured CO profile; default uses availability order")
             command.add_argument("--model", help="Override the model for this CO session")
             command.add_argument("--reasoning", help="Override native reasoning effort for this CO session")
@@ -71,7 +75,7 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
-            command.add_argument("--launch-id", help=argparse.SUPPRESS)
+            command.add_argument("--launch-fd", type=int, help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
@@ -80,7 +84,14 @@ def main():
             command.add_argument("--harness", required=True, choices=("codex", "claude", "grok"))
     args = parser.parse_args()
     try:
-        if args.command == "co":
+        if args.command == "watch":
+            from devtools import watcher
+
+            if args.action == "run":
+                watcher.run(args.state, args.detach)
+                return 0
+            result = getattr(watcher, args.action)(Store(args.state))
+        elif args.command == "co":
             from devtools.console import run
 
             return run(args.state, args.profile, args.model, args.reasoning)
@@ -122,13 +133,12 @@ def main():
             serena_serve(args.state, args.member, args.generation)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision, args.launch_id)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)
         elif args.command == "stop":
-            Store(args.state).session(args.member, desired="stopped")
-            result = {"member": args.member, "requested": "stopped"}
+            result = launch.stop(args.state, args.member)
         elif args.command == "status":
             result = {"members": Store(args.state).members()}
         elif args.command == "send":

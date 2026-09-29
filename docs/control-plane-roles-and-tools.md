@@ -10,6 +10,9 @@ Each line in a tool example is a separate MCP call.
 **CO is the session the person works with directly.** It holds the broader intent,
 sets the authorized objective and boundaries, and assesses the overall outcome.
 **XO reports to CO** and organizes, monitors and steers live collaborators.
+XO delegates a small task to a specialist or appoints **NCO** to coordinate
+planning, implementation and verification. **Planner only plans**; NCO handles
+execution and escalates mission changes to XO.
 Specialists receive the context and capabilities needed for their responsibility.
 
 | Concept | Meaning |
@@ -34,6 +37,9 @@ role or work authority.
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
+When the operator configures `project.jev`, bound roles also get **`work_assess`**
+and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
+ordinary inspection, coordination and delivery remain available if Jev is unavailable.
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -42,7 +48,9 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
-| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`; with development enabled: `work_check` | None |
+| XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
+| NCO (`nco`) | `orchestrate`, `monitor`, `steer` for its delegated jobs; with a project: `work_inspect`; with development enabled: `work_check`. Reports to XO, which refreshes, submits and handles review responses for the integrated result. Cannot appoint another NCO. | None |
+| Planner (`planner`) | Shared and specialist inspection/reporting tools; retained plan required for a result | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
@@ -62,16 +70,95 @@ catalog, even by guessing a backing capability's name.
 
 ## Shared context, reports and guidance
 
+### Jev advice
+
+For a consistent mission assessment, supply a proposal and optional evidence:
+
+```json
+{"name":"work_assess","arguments":{"proposal":"Add response caching while implementing the required JSON service","sources":[{"path":"src/Service/Example.php"}]}}
+```
+
+This uses the operator's versioned rubric and considers the brief, proposal and
+all sources together. Source-by-source questions remain available with `sources`
+and `questions`; do not combine custom questions with `proposal`.
+
+Command roles record their chosen action and rationale using ordinary reports:
+
+```json
+{"name":"work_report","arguments":{"kind":"recommendation","text":"Keep caching as a separate finding; finish the current JSON behavior.","evaluation":{"reference":"artifact:12","stage":"decision","label":"deferred"}}}
+{"name":"work_report","arguments":{"kind":"result","text":"The agreed JSON behavior passed; caching remained a separate finding.","evaluation":{"reference":"artifact:12","stage":"outcome","decision":"update:34","label":"useful"}}}
+```
+
+Use the actual returned references. Decision/outcome links are retained and
+validated against the current work scope. Reports record choices; `orchestrate`
+and `steer` enact assignment changes. A finding does not become an assignment by
+being reported or assessed. Your current brief still determines completion.
+
+
+XO can use `assignment_advise` before `orchestrate` to compare up to four proposed
+jobs against the current objective, active jobs, capacity and available configured
+runtimes. Supply the same job fields used by `orchestrate`, optional priorities,
+and optional retained `artifact:`/`operation:` evidence references. The service
+supplies current context; do not paste the work-order history into the request.
+
+```json
+{"name":"assignment_advise","arguments":{"work":[{"name":"Recovery","role":"coder","objective":"Repair recovery using the existing session service","done_when":"The recovery regression passes","constraints":"Preserve unrelated sessions"}],"priorities":"Avoid duplicating existing work; prefer demonstrated recovery experience"}}
+```
+
+Each recommendation contains a role choice, overlap and parallel-readiness
+probabilities, and a runtime-profile choice with an explicit unknown option.
+Runtime advice concerns the **proposed** role. Missing performance evidence stays
+unknown. XO decides how to act; the call does not allocate a collaborator, change a
+brief, or alter runtime policy. `orchestrate` still selects from the operator's
+ordered preferences. A different runtime recommendation can inform a policy-change
+request through the existing `guidance_request` reporting path.
+
+`work_assess` answers up to four typed questions over up to eight candidate sources
+in one evaluation. Each source names exactly one relative workspace `path` or an
+accessible `artifact:`/`operation:` reference. The service reads it; the agent
+receives answers and source locations without the raw source text. Use Serena to
+find candidate paths and inspect or edit the relevant source afterward. Auditors
+use their submitted review snapshot. CO can assess retained evidence; workspace
+source assessment is available to XO and specialists.
+
+```json
+{"name":"work_assess","arguments":{"sources":[{"path":"src/SessionService.php"},{"reference":"artifact:12"}],"questions":[{"name":"recovery","instructions":"Does this describe recovery after a supervisor crash?"}]}}
+```
+
+Questions default to `noul` (a yes probability). Set `type` to `choice` and supply
+2–16 distinct `options`, or to `score` and supply 2–10 ordered descriptive `levels`.
+Choice and Score include the distribution and confidence. A high score is advice,
+not proof of correctness or completeness.
+
+Sources default to 2,000 units with an optional `limit` up to 8,000 and `offset`.
+Units are bytes for files/artifacts and characters for operation results, matching
+their existing read conventions. Each result includes `partial`, `next_offset`,
+and a content/range digest; files also include the workspace revision. Follow the
+returned offset to assess the next range. **A negative result on a partial range
+does not establish absence in the whole file.** Binary sources, symlinks, Git and
+Serena state, and `.env*` paths are excluded from hosted source assessment.
+
+Identical requests over the same scoped inputs reuse the retained assessment.
+Changed source ranges, questions, work context, model or runtime evidence cause a
+new evaluation. The returned `evidence` can be read through `work_context` for the
+full rubric and typed results. Recommendations do not trigger extra agent messages.
+An input-budget error means the request needs fewer sources or smaller ranges.
+On provider failure, continue with normal inspection or retry explicitly later.
+
+### Reports and routed guidance
+
 | Tool | Use |
 | --- | --- |
 | `work_context` | Read the supplied brief, scoped activity, incoming messages or evidence. |
 | `work_report` | Retain and route progress, findings, blockers, recommendations or results, optionally with evidence. |
 | `guidance_request` | Route a question or request for assistance through the reporting relationship. |
 
-The MCP initialization includes the current brief. Managed Codex and Claude also
-receive it in startup instructions; Grok receives MCP instructions and context with
-its first live delivery. Changed briefs accompany subsequent live delivery.
-Unchanged briefs and the CO's whole conversation are not copied into every message.
+MCP and native startup instructions identify the role/current context and direct
+the agent to `onboard`, which supplies the complete brief once. Live direction
+contains the current context revision and a refresh instruction, without copying
+the work-order/job text. Read `work_context` before acting on changed direction;
+use `onboard` for a new conversation or role change. Recovery uses these same tools.
+Superseded direction is identified and never replayed as current guidance.
 
 ```json
 {"name":"work_context","arguments":{}}
@@ -82,8 +169,10 @@ Unchanged briefs and the CO's whole conversation are not copied into every messa
 
 `work_context.section` accepts `brief`, `activity`, `messages` or `evidence`.
 Continue listings with the returned `next_after` as `after`. A returned `reference`
-retrieves an update/message or a bounded artifact read; continue artifact reads
-with `next_offset` as `offset`.
+retrieves an update/message or a bounded artifact/operation read; continue reads
+with `next_offset` as `offset`. Operation pages contain JSON text; concatenate their
+`content` fields to recover the complete result. Workers and their covering command
+roles can read an operation reference; unrelated jobs cannot.
 
 Reports and guidance accept `responding_to` with an update/message reference.
 The service routes the response in its original work context. Responding to an
@@ -160,6 +249,35 @@ Pending startup survives MCP restart and is serviced while a team MCP server is
 connected. Startup failures are retained and sent to the supervisor; `direct`
 retries XO startup, and `steer(action="resume")` retries a collaborator.
 
+## Planning and bounded handoffs
+
+XO can assign `role="nco"` through `orchestrate`, giving it a named coordination
+brief. This uses a work-order binding; it does not create a code job for NCO. NCO
+then uses the same command tools for specialist jobs. Its mission changes go to
+XO. Changing or pausing the delegated mission updates the descendant bindings.
+
+For discovery, assign a `planner` job. Planner uses Serena, installed Maker/Mate
+metadata, Symfony Console introspection and checks, then records a result with
+plan evidence. It has no generation, editing, publication or delegation tools.
+The coordinator reads the result and artifact and accepts the named planning job
+through `steer`. Implementation references that exact accepted update:
+
+```json
+{"name":"orchestrate","arguments":{"work":[{"name":"Implement JSON probe","role":"coder","objective":"Implement the approved JSON behavior using the maintained Maker","done_when":"The planned MCP invocation and checks pass","constraints":"Preserve generated structure; report extra improvements separately","plan":"update:21","editable_paths":["src/Service/Probe.php","tests/Service/ProbeTest.php"],"context_paths":["composer.json","composer.lock","vendor","config"]}]}}
+```
+
+Use actual returned references and paths from the plan. The service rejects
+unaccepted results, superseded results and plans for changed missions. The
+implementation brief includes the plan and readable evidence. Explicit edit paths
+must fit the operator's role policy and exclude protected Maker source. Assignment
+changes serialize with active workspace operations. Changed views require a new
+Serena connection; a file replaced by generation or Git resets its mounted view.
+
+NCO coordinates dependent jobs, reviews current evidence, accepts its completed
+jobs and submits the combined result to XO. XO retains oversight and CO retains
+final work-order acceptance. An additional improvement may be reported without
+becoming an assignment. Jev advice can inform that decision and retain its outcome.
+
 ## Workspaces and Git
 
 The service prepares an integration workspace for each work order and a separate
@@ -183,7 +301,9 @@ required checks still apply. Branch names and PR targets remain service-managed.
 
 `work_inspect` defaults to `overview`. Use `section="changes"` with optional `path`
 and `offset` for bounded local diffs. `section="operations"` reads retained long
-operation status. Delivery sections are described below.
+operation summaries, without diagnostic bodies. Continue with `next_offset` as
+`offset`; this cursor remains stable when new operations finish. Read one returned
+`operation:N` reference through `work_context` for detail. Delivery sections are described below.
 
 Default coder paths cover `src`, `config`, `packages`, `tests`, `templates`,
 `assets`, `translations`, `public`, `migrations`, Composer/Symfony lockfiles and
@@ -203,7 +323,7 @@ enables them; each worktree owns its locked Composer installation.
 
 | Tool | Outcome |
 | --- | --- |
-| `framework_inspect` | Discover installed Maker metadata, or inspect/call an installed Mate diagnostic. |
+| `framework_inspect` | Discover installed Maker metadata, Mate diagnostics, package versions, profiler resources or allowed Symfony Console introspection. |
 | `framework_generate` | Run an installed basic Maker with structured arguments and options. |
 | `work_check` | Run a named configured check or the full configured suite, with retained evidence. |
 
@@ -211,6 +331,7 @@ enables them; each worktree owns its locked Composer installation.
 {"name":"framework_inspect","arguments":{"kind":"makers","name":"make:command"}}
 {"name":"framework_generate","arguments":{"maker":"make:command","arguments":{"name":"app:example"}}}
 {"name":"framework_inspect","arguments":{"kind":"mate","name":"server-info","parameters":{}}}
+{"name":"framework_inspect","arguments":{"kind":"console","name":"debug:container","parameters":{}}}
 {"name":"work_check","arguments":{}}
 ```
 
@@ -218,6 +339,11 @@ Omit `name` to list Makers or Mate tools. For a named Mate tool, omit `parameter
 to inspect its schema; supply an object, including `{}`, to call it. Maker inputs
 come from installed Console metadata. Symfony performs the generation using its
 current attributes and conventions. Test writers can generate through `make:test`.
+For `kind="console"`, omit `name` to discover installed, operator-approved commands;
+omit `parameters` to inspect a name's metadata, or pass an object with optional
+`arguments` and `options` to run it. The default policy allows `about`, `debug:*`
+and `router:match`, exposing the diagnostics of the installed Symfony bundles.
+Local agents cannot invoke `make:maker` or edit protected Maker source/templates.
 A Maker needing an additional bundle or interactive answers reports its actual
 failure and preserves partial changes for inspection.
 
@@ -227,8 +353,10 @@ commands and Composer plugins run as the local service user. The tool interface 
 not provide OS containment for application code.
 
 Framework inspection, generation, checks and configured submission return retained
-operation receipts promptly. Completion and evidence are delivered to the original
-worker and supervisor while their scope still covers that work. Workers survive
+operation receipts promptly. Compact completion notices (including failed-check
+counts) and evidence references are delivered to the original worker and supervisor
+while their scope still covers that work. Full results remain available through
+`work_context(reference="operation:N")`. Workers survive
 an MCP disconnect. An identical active call reuses its receipt; a lost worker becomes
 `uncertain` without automatically replaying external effects. Pausing prevents new
 processes; an already-running command finishes or reaches its timeout.
@@ -236,8 +364,8 @@ processes; an already-running command finishes or reaches its timeout.
 ## Serena v2 REPL
 
 Serena is the separate source-navigation/editing provider. Managed Codex, Claude
-and Grok sessions attach it automatically for configured specialist jobs. CO and
-XO do not receive it. External specialist clients can attach the gateway described
+and Grok sessions attach it automatically for configured specialist jobs. CO,
+XO and NCO do not receive it. External specialist clients can attach the gateway described
 in [operator setup](../devtools/OPERATIONS.md#external-specialist-connections).
 
 ```json
@@ -253,8 +381,10 @@ The beta source revision and PHPactor dependency are pinned in the
 
 The REPL executes unrestricted Python inside its container. The container has no
 runtime network, host home/credentials, control-plane database or Docker socket.
-Source is mounted read-only with only the editing role's paths writable; audit and
-research source stay read-only. Provider configuration/cache/memories have a separate
+Source is mounted read-only with only the editing role's assigned paths writable;
+audit, research and planner source stay read-only. Explicit job context paths curate
+the visible project. Protected Maker directories stay read-only beneath broader
+editing paths. Provider configuration/cache/memories have a separate
 private mount. Writable aliases/symlinks are rejected.
 
 Each call holds the job lock. The container pauses before releasing it and resumes
@@ -286,7 +416,7 @@ before acceptance. CI changes are delivered to the worker and its current superv
 | Tool | Outcome |
 | --- | --- |
 | `review_record` | Audit records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
-| `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. |
+| `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. XO supplies a work-order thread reference from `monitor(section="feedback")` and can set `resolve:true` after addressing the finding. |
 
 The service retains and routes findings/responses to the job participants and XO.
 GitHub receives a COMMENT review; a local `ready` conclusion does not fabricate a
@@ -318,8 +448,17 @@ inspection; cleanup reports its status without blocking other work. Messages,
 checkpoints, assessments, PR references and artifacts remain available.
 
 When every job is done or cancelled, XO uses `work_submit(summary)` to validate
-and submit the combined result. CO inspects it with `monitor(section="review")`,
-then calls `conclude(assessment)` to deliver the passing outcome and release the
+and submit the combined result. Both Codex Code Review and Security Review are
+requested for that commit. Review and CI changes arrive as scoped notifications.
+XO inspects findings with `monitor(section="feedback")`, coordinates fixes through
+jobs, and uses `review_respond(text, review, resolve=true)` to explain and resolve
+addressed threads. After integrating fixes, XO submits again for reviews of the new
+commit. Missing or stale reviews remain pending; a clean CI result alone is not
+review completion. Job PRs do not request these additional reviews.
+
+CO inspects the combined outcome with `monitor(section="review")`, then calls
+`conclude(assessment)` after CI and both current reviews pass and findings are
+addressed. Delivery verifies the current result and releases the
 remaining team. The integration workspace retires after this final merge and
 shutdown. Report-only work with no source changes can conclude without a PR.
 The next authorized `direct` creates a new work order. Submission, contribution

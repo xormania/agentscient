@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import time
 
+from .advice import Advice
+from .advice import capabilities as advice_capabilities
+from .advice import configured as advice_configured
 from .artifacts import Artifacts
 from .commands import ROLE_TOOLS, Commands
 from .commands import capabilities as command_capabilities
@@ -132,7 +135,7 @@ CAPABILITIES = [
     ),
     spec(
         "session_stop",
-        "Request an orderly stop of a configured live member; its records survive.",
+        "Stop a configured managed member, escalating after a bounded grace period; records survive.",
         {"member": NAME},
         ("member",),
     ),
@@ -343,6 +346,7 @@ TOOLS += [
 WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", "work_submit"}
 TOOLS += development_capabilities(spec)
 TOOLS += delivery_capabilities(spec)
+TOOLS += advice_capabilities(spec)
 
 
 def validate(value, schema, path="arguments"):
@@ -411,6 +415,10 @@ class API:
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
         if role:
             common |= {"onboard", "skill_read"}
+        if scope and advice_configured(self.store):
+            common.add("work_assess")
+            if role in {"xo", "nco"}:
+                common.add("assignment_advise")
         if scope and scope["job"] and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
@@ -422,8 +430,10 @@ class API:
                 common |= {"framework_inspect", "work_check"}
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
-        if scope and not scope["job"] and role == "xo" and project_config(self.store):
-            common |= {"work_inspect", "work_refresh", "work_submit"}
+        if scope and not scope["job"] and role in {"xo", "nco"} and project_config(self.store):
+            common.add("work_inspect")
+            if role == "xo":
+                common |= {"work_refresh", "work_submit", "review_respond"}
             if development_configured(self.store):
                 common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
@@ -526,6 +536,9 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name in {"assignment_advise", "work_assess"}:
+            advice = Advice(self.store, self.member)
+            return advice.assignment(**args) if name == "assignment_advise" else advice.assess(**args)
         if name in {"onboard", "skill_read"}:
             from .onboarding import Onboarding
 
@@ -549,11 +562,15 @@ class API:
         if name == "review_record":
             return self.delivery.review(**args)
         if name == "review_respond":
+            if not self.control.current()["job"]:
+                from .orders import Orders
+
+                return Orders(self.store, self.member).respond(**args)
             return self.delivery.respond(**args)
         if name in ACTIONS and development_configured(self.store):
             return self.operations.start(name, args)
         if name == "work_inspect" and args.get("section") == "operations":
-            return self.operations.inspect()
+            return self.operations.inspect(offset=args.get("offset", 0))
         if name in WORKSPACE_TOOLS:
             return getattr(self.workspaces, name.removeprefix("work_"))(**args)
         if name in {tool for names in ROLE_TOOLS.values() for tool in names}:
@@ -603,8 +620,9 @@ class API:
             result["observed"] = bool(result["events"])
             return result
         if name == "session_stop":
-            self.store.session(args["member"], desired="stopped")
-            return {"member": args["member"], "requested": "stopped"}
+            from .launch import stop
+
+            return stop(self.store.directory, args["member"])
         if name == "session_start":
             from .launch import start
 

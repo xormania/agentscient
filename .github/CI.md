@@ -70,7 +70,7 @@ delta, so cancelling an earlier push could discard its selected coverage.
 | --- | --- | --- |
 | Ruff downloads | pip's existing local cache | `setup-python` pip cache, keyed by [requirements-ci.txt](requirements-ci.txt). |
 | Composer package downloads | Composer's existing local cache | GitHub cache keyed by OS, architecture and `composer.lock`, with a platform fallback. |
-| Pinned PHP archive | `RUNNER_TOOL_CACHE/agentscient-php`, keyed and verified by SHA-256 on every use; extracted into a fresh job directory. | Managed by `setup-php`. |
+| Pinned PHP and Composer executables | `RUNNER_TOOL_CACHE/agentscient-php` and `agentscient-composer`, keyed and verified by SHA-256 on every use. | The same verified installer; fresh runners download from the retained release. |
 | Serena Docker layers | Existing Docker builder cache | Buildx with the GitHub Actions layer cache. |
 
 Only downloaded dependencies and build layers are cached. Each job still installs
@@ -89,6 +89,67 @@ state they need; CI does not retry failed tests to obtain a green result. If a
 runner loses Docker or PHP crashes, inspect the failing step and retained evidence
 as an environment/runtime failure before labelling it a test flake.
 
+## Optional Jev failure diagnosis
+
+The failed test/integration command in `live-mcp`, `maker-mate` and `serena`
+can run two advisory Jev questions on its runner: classify the likely failure
+cause and select a useful excerpt from the captured log. The original command
+exit status and required `lane` result are preserved. No test is retried,
+skipped, accepted or repaired by a diagnosis. Setup/build failures and cancelled
+or timed-out jobs are outside this initial command-capture coverage.
+
+Create the repository Actions secret **`TYPESAFE_API_KEY`** under **Settings →
+Secrets and variables → Actions → New repository secret**. The workflow passes
+it only to the diagnostic step, on either runner type. No key belongs in the
+checkout or JSON configuration. Fork/Dependabot runs without this secret retain
+an unavailable assessment. Successful checks make no Jev calls.
+
+[jev-ci.json](jev-ci.json) owns enablement, the failure categories and questions,
+confidence threshold, log matching and bounded evidence selection. It references
+[the shared Jev policy](../devtools/jev.json) for the pinned model and transport
+settings, using the same client and credential filter as the MCP advice tools.
+The initial confidence threshold is a configurable presentation threshold, not
+a measured accuracy guarantee. Low confidence becomes `unknown` or no selected
+excerpt; the original probabilities remain in the artifact.
+
+Logs stay on the runner during collection. The client sends bounded, redacted
+candidate windows and allowlisted `check-*.json`, `result.json` and
+`php-runtime.json` evidence, plus bounded recent events from retained fixture
+`telemetry/*.jsonl`, to TypeSafe. Fixture paths stay attached to those events;
+the rubric distinguishes intentional fixture errors from the actual failed check.
+Early error windows and late failures both get candidates. Logs exceeding
+`limits.log_bytes` split that retained byte budget between the head and tail.
+The omitted middle is scanned in bounded chunks only to count line endings,
+so tail excerpts keep their original line numbers. Cut boundary lines are
+dropped before redaction, and excerpts never join across the omitted gap.
+Truncation and omitted candidates/files are recorded;
+symlinks and unreadable/oversized JSON documents are excluded. JSONL traces use
+a bounded tail window instead of loading the full trace. The shared filter
+redacts known environment credentials, sensitive JSON fields and bearer strings;
+it cannot identify every possible secret in arbitrary log text.
+
+Each assessment is tied to the tested `GITHUB_SHA`, run, attempt and job. The
+seven-day `jev-ci-<job>-<run>-<attempt>` artifact contains the exact sanitized
+request, validated response, both policy snapshots, input fingerprint, provider
+usage and elapsed time, plus a short Markdown summary. This provides replayable
+inputs for later comparison with confirmed diagnoses. There is no persistent
+answer cache or automatic accuracy labeling in this change.
+
+The selected excerpt is literal redacted log text with original line numbers.
+It appears in a job warning annotation and step summary; existing CI feedback
+can retrieve the annotation. The default excerpt cap fits its 1,500-character
+annotation preview; larger configured excerpts remain complete in the artifact.
+Raw capture files are not included in the new Jev
+artifact. Existing runtime and integration evidence retention stays in place.
+Provider errors, invalid responses, missing logs or missing credentials are
+reported as unavailable; diagnosis/upload steps are advisory even if they fail.
+
+Offline `.github/tests` exercise the actual workflow capture commands and shared
+HTTP client's documented Choice wire format. Fixtures establish wiring and
+failure preservation, not live diagnostic accuracy. An authenticated failed run
+is needed to assess the latter. See the [TypeSafe API](https://docs.typesafe.ai/api)
+and [pinned models](https://docs.typesafe.ai/models), checked on 2026-09-29.
+
 ## Runner selection
 
 The repository variable `CI_RUNNER_MODE` selects execution:
@@ -99,10 +160,52 @@ The repository variable `CI_RUNNER_MODE` selects execution:
 | `local` | Registered self-hosted runner |
 
 Any other value fails runner selection. The same jobs run in either mode.
-The self-hosted PHP setup requires Linux/X64. Runners need Python 3.12+, Git, Docker and
+The shared PHP setup requires Linux/X64 on both runner types. Runners need Python 3.12+, Git, Docker and
 the download/archive tools used by [php-runtime](actions/php-runtime/action.yml).
-That action supplies temporary pinned PHP and installs Composer when absent,
-without replacing global PHP. Select runner mode as an operator choice.
+That action supplies temporary pinned PHP and Composer, regardless of global
+installations. Composer invokes the PHP beside it; global executables are not
+changed. Select runner mode as an operator choice.
+
+## Retained PHP and Composer executables
+
+[toolchain.json](actions/php-runtime/toolchain.json) pins PHP 8.5.11, Composer
+2.10.3, their SHA-256 digests, asset names and the dedicated GitHub Release tag.
+Both PHP jobs install the same binaries through the shared action. PHP retains
+the previously approved archive digest; a changed upstream file is not accepted.
+Composer no longer uses a floating installer or whichever version is on the runner.
+
+Normal installation downloads only from the retained release in this repository,
+using the job's `contents: read` token for private asset access. Upstream URLs are
+provenance and inputs to explicit publication, never installation fallbacks.
+Credentials are excluded from redirected asset-storage requests. A valid warm
+cache needs no release request. Missing/corrupt entries are downloaded, checked
+and atomically published to the cache before isolated job installation.
+
+[Retain CI toolchain](workflows/retain-toolchain.yml) is an operator-only manual
+workflow, separate from pull-request CI. Its publication job alone has
+`contents: write`. It reuses a verified runtime cache or verifies upstream input,
+creates a draft release, uploads missing assets, reads both back into an empty
+directory and verifies their digests before publication. An interrupted draft can
+resume; existing assets are never replaced. It then verifies a cold installation
+on the selected runner and GitHub-hosted Ubuntu using read-only asset access in
+the hosted verification job. This is a toolchain release, not a product release,
+and does not advance `master` or mark itself as the latest product release.
+
+For an upgrade, review new versions/digests and choose a **new release tag** in
+`toolchain.json`; publish and pass cold verification before merging the consumer
+change. Run the manual workflow from the reviewed ref once the workflow is
+available on the default branch, or run `toolchain.py publish` in an authorized
+operator Actions job. The first publication recovered the original pinned PHP
+archive from an existing runner cache. Never solve an upstream mismatch by
+silently adopting the new bytes or repacking an executable to guess its checksum.
+
+GitHub release immutability is a repository setting; the initial retained release
+is not platform-locked. The publisher never overwrites assets, and installations
+always enforce the independently reviewed digests, including on cache hits.
+Enable immutable releases before publishing future toolchain tags if a platform
+lock is desired. This does not require AWS/S3. Composer dependency archives remain
+in the existing package-download caches; dependency installation and update
+metadata discovery still use their configured upstream repositories.
 
 ## Local verification
 
@@ -111,7 +214,7 @@ From the repository root, use the relevant checks:
 ```sh
 python3 -m unittest discover -s .github/tests -v
 python3 -m unittest discover -s devtools/tests -v --durations 10
-uv tool run --from ruff==0.16.8 ruff check devtools .github/ci.py .github/tests
+uv tool run --from ruff==0.16.8 ruff check devtools .github/*.py .github/tests
 ```
 
 The Ruff command uses `uv`; an installed Ruff matching the workflow pin also works.

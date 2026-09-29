@@ -50,8 +50,9 @@ def load(directory):
     profiles, roles, vendors = policy["profiles"], policy["roles"], availability["vendors"]
     if not isinstance(profiles, dict) or not profiles or not isinstance(vendors, dict):
         raise ValueError("profiles and vendors must be objects")
-    if not isinstance(roles, dict) or set(roles) != set(ROLES):
-        raise ValueError("Configure all eight roles: " + ", ".join(ROLES))
+    required = set(ROLES) - {"nco", "planner"}
+    if not isinstance(roles, dict) or not required <= set(roles) or set(roles) - set(ROLES):
+        raise ValueError("Configure all eight roles from existing policy; optional NCO/planner preferences enable delegation: " + ", ".join(ROLES))
     for vendor, row in vendors.items():
         if not isinstance(row, dict) or set(row) - {"available", "reason", "reset_at"}:
             raise ValueError("Unknown vendor availability field")
@@ -84,6 +85,8 @@ def load(directory):
 
 def resolve(directory, role, *, installed=True, profile=None):
     policy, availability, revision = load(directory)
+    if role not in policy["roles"]:
+        raise ValueError(f"Configure {role} preferences in roles.json before assigning that role.")
     if profile is not None and profile not in policy["roles"][role]:
         raise ValueError("Select a profile from this role's configured preferences")
     skipped = []

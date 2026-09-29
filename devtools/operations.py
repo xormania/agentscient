@@ -25,7 +25,8 @@ class Operations:
             action not in ACTIONS
             or not scope
             or scope["paused"]
-            or (not scope["job"] and (scope["role"] != "xo" or action not in {"work_check", "work_submit"}))
+            or (not scope["job"] and (scope["role"] not in {"xo", "nco"} or action not in {"work_check", "work_submit"}))
+            or (not scope["job"] and action == "work_submit" and scope["role"] != "xo")
         ):
             raise ValueError("This operation requires active work in the corresponding role.")
         payload = canonical(arguments)
@@ -104,6 +105,37 @@ class Operations:
             "updated": row["updated"],
         }
 
+    @classmethod
+    def summary(cls, row):
+        """Keep live notices small; the existing operation/evidence reads retain detail."""
+        value = cls.public(row)
+        result = value.pop("result")
+        if value["error"]:
+            value["error"] = value["error"][:500]
+        if isinstance(result, dict):
+            for key in ("passed", "revision", "evidence", "checkpoint", "pr"):
+                if key in result:
+                    value[key] = result[key]
+            if "state" in result:
+                value["outcome"] = result["state"]
+            if result.get("message"):
+                value["message"] = result["message"][:500]
+            validation = result.get("validation") or result
+            if isinstance(validation.get("checks"), list):
+                checks = validation["checks"]
+                value["passed"] = validation["passed"]
+                value["checks"] = {"total": len(checks), "failed": sum(r["exit_code"] != 0 for r in checks)}
+                value["checks"]["evidence"] = [
+                    {"check": r["check"], "reference": r["evidence"]} for r in checks if r.get("evidence")
+                ]
+                value["uncommitted"] = len(validation.get("uncommitted", []))
+            generated = result.get("result")
+            if isinstance(generated, dict) and "exit_code" in generated:
+                value["exit_code"] = generated["exit_code"]
+                value["outside_role_paths"] = len(generated.get("outside_role_paths", []))
+        value["details"] = 'Use work_context(reference=<this reference>); follow next_offset for the complete result.'
+        return value
+
     def get(self, ident):
         scope = self.control.current()
         with self.store.connect() as db:
@@ -115,17 +147,16 @@ class Operations:
                 raise ValueError("Operation is not in your current work.")
             return self.public(row)
 
-    def inspect(self):
+    def inspect(self, offset=0):
         scope = self.control.current()
         with self.store.connect() as db:
+            rows = db.execute(
+                "SELECT * FROM operations WHERE work_order=? AND job IS ? AND (?=0 OR id<?) ORDER BY id DESC LIMIT 11",
+                (scope["work_order"], scope["job"], offset, offset),
+            ).fetchall()
             return {
-                "operations": [
-                    self.public(row)
-                    for row in db.execute(
-                        "SELECT * FROM operations WHERE work_order=? AND job IS ? ORDER BY id DESC LIMIT 10",
-                        (scope["work_order"], scope["job"]),
-                    )
-                ]
+                "operations": [self.summary(row) for row in rows[:10]],
+                "next_offset": rows[9]["id"] if len(rows) > 10 else None,
             }
 
     def tick(self):
@@ -203,15 +234,8 @@ def execute(directory, member, ident):
                             "UPDATE operations SET state=?,result=?,error=?,updated=? WHERE id=?",
                             (state, canonical(result) if result is not None else None, error, stamp(), ident),
                         )
-                        body = canonical(
-                            {
-                                "operation": "operation:" + str(ident),
-                                "action": row["action"],
-                                "state": state,
-                                "result": result,
-                                "error": error,
-                            }
-                        )
+                        completed = db.execute("SELECT * FROM operations WHERE id=?", (ident,)).fetchone()
+                        body = canonical(Operations.summary(completed))
                         # Deliver to the original worker and supervisor only while their current scope still includes this job.
                         for recipient in {member, scope["reports_to"]} - {None}:
                             now = binding(db, recipient)
@@ -220,7 +244,7 @@ def execute(directory, member, ident):
                                     db,
                                     member,
                                     recipient,
-                                    body[:18000],
+                                    body,
                                     key="operation:" + str(ident) + ":" + recipient,
                                     work_order=scope["work_order"],
                                     job=scope["job"],

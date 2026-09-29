@@ -58,7 +58,9 @@ class ControlTests(unittest.TestCase):
             ["work_context", "work_report", "guidance_request", "onboard", "skill_read"],
             [r["name"] for r in coder.call("tools/list")["tools"]]
         )
-        self.assertIn("Implement contract", coder.initialization["instructions"])
+        self.assertNotIn("Implement contract", coder.initialization["instructions"])
+        self.assertIn("Call onboard", coder.initialization["instructions"])
+        self.assertIn("Implement contract", json.dumps(coder.tool("onboard", {})))
         self.assertNotIn("SECRET SIBLING", coder.initialization["instructions"])
         context = coder.tool("work_context", {})
         self.assertEqual("coder", context["role"])
@@ -78,6 +80,54 @@ class ControlTests(unittest.TestCase):
         self.assertEqual("awaiting_binding", idle.tool("work_context", {})["state"])
         with self.assertRaises(ValueError):
             idle.tool("work_report", {"text": "No scope"})
+
+    def test_operation_references_require_matching_jobs_or_covering_command_scope(self):
+        def retain(member):
+            scope = Control(self.store, member).snapshot()
+            with self.store.connect() as db:
+                ident = db.execute(
+                    "INSERT INTO operations(member,work_order,job,binding,action,arguments,state,result,created,updated) "
+                    "VALUES (?,?,?,?,?,?,'completed',?,'fixture','fixture')",
+                    (member, scope["work_order"], scope["job"], json.dumps(scope), "work_check", "{}",
+                     json.dumps({"diagnostic": member})),
+                ).lastrowid
+            return f"operation:{ident}"
+
+        parent, own, sibling = (retain(member) for member in ("xo", "coder", "audit"))
+        clients = {member: self.client(member) for member in ("owner", "xo", "coder", "audit", "idle")}
+
+        def read(member, reference, allowed):
+            with self.subTest(member=member, reference=reference, allowed=allowed):
+                if allowed:
+                    page = clients[member].tool("work_context", {"reference": reference})
+                    self.assertEqual(reference, json.loads(page["content"])["reference"])
+                else:
+                    with self.assertRaisesRegex(ValueError, "not available"):
+                        clients[member].tool("work_context", {"reference": reference})
+
+        for reference in (parent, own, sibling):
+            read("coder", reference, reference == own)
+            read("audit", reference, reference == sibling)
+            read("owner", reference, True)
+            read("xo", reference, True)
+        control = Control(self.store, "owner")
+        control.bind("audit", "audit", self.order, self.job, "xo")
+        read("audit", own, True)  # Another role assigned to the same job can inspect its result.
+        control.bind("idle", "research", self.order, reports_to="xo")
+        for reference in (parent, own, sibling):
+            read("idle", reference, False)  # No job is not command authority.
+        control.bind("xo", "xo", self.order, self.job, "owner")
+        for reference in (parent, own, sibling):
+            read("xo", reference, reference == own)  # A job-scoped XO does not cover its parent or siblings.
+        foreign = self.operator.invoke(
+            "work_order_create", title="Other order", objective="Separate", done_when="Independent"
+        )["work_order"]["id"]
+        control.bind("owner", "co", foreign)
+        control.bind("xo", "xo", foreign, reports_to="owner")
+        for member in ("owner", "xo"):
+            for reference in (parent, own, sibling):
+                read(member, reference, False)
+        read("coder", "operation:999999", False)
 
     def test_routed_reports_evidence_retries_and_guidance_response_survive_restart(self):
         coder, xo = self.client("coder"), self.client("xo")
@@ -132,7 +182,7 @@ class ControlTests(unittest.TestCase):
         self.assertIn("Visible", packet["params"]["content"])
         self.assertNotIn("Hidden", packet["params"]["content"])
         self.assertEqual(str(message["id"]), packet["params"]["meta"]["message_id"])
-        # The initialized brief is not repeated for every ordinary live message.
+        # Ordinary live messages do not repeat the brief.
         self.assertNotIn("Updated brief", packet["params"]["content"])
         self.operator.invoke("member_unbind", member="coder")
         until(lambda: any(p["method"] == "notifications/tools/list_changed" for p in coder.notifications))
@@ -233,3 +283,4 @@ class ControlTests(unittest.TestCase):
         ):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 self.operator.invoke("member_bind", **args)
+

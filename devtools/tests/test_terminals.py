@@ -1,13 +1,19 @@
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
 import unittest
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from support import require_tmux
+
 from devtools import terminals
+from devtools.bootstrap import send
 
 
 class TerminalTests(unittest.TestCase):
@@ -35,7 +41,8 @@ class TerminalTests(unittest.TestCase):
 
     def test_collision_cannot_kill_existing_terminal_and_missing_tmux_fails(self):
         store = Mock(directory="/private/team")
-        with patch("devtools.terminals.command", return_value=Mock(returncode=0)) as command:
+        with (patch("devtools.terminals.command", return_value=Mock(returncode=0)) as command,
+              patch("devtools.terminals.status", return_value={"panes": [{"pid": 123, "dead": False}]})):
             with self.assertRaisesRegex(ValueError, "already has"):
                 terminals.start(store, "coder", ["/python"], "/work")
             self.assertEqual(1, command.call_count)
@@ -43,7 +50,8 @@ class TerminalTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Install tmux"):
                 terminals.start(store, "coder", ["/python"], "/work")
 
-    def test_snapshot_environment_is_applied_before_the_application_interpreter_starts(self):
+    def test_socket_environment_is_applied_before_application_imports_without_a_secret_file(self):
+        require_tmux()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             stale, wanted = root / "stale", root / "wanted"
@@ -52,19 +60,32 @@ class TerminalTests(unittest.TestCase):
             marker = root / "stale-imported"
             (stale / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').write('stale')\n")
             (wanted / "selected_module.py").write_text("VALUE = 'current-launch'\n")
-            snapshot = root / "launch.json"
             intended = {**os.environ, "PYTHONPATH": str(wanted), "TEST_API_KEY": "private-snapshot-secret"}
             intended.pop("PYTHONHOME", None)
-            snapshot.write_text(json.dumps({"environment": intended}))
             bootstrap = Path(__file__).resolve().parents[1] / "bootstrap.py"
             application = "import json,os,selected_module; print(json.dumps([selected_module.VALUE,os.environ['TMUX_PANE'],os.environ['TEST_API_KEY']]))"
-            argv = [sys.executable, "-I", "-S", str(bootstrap), str(snapshot), sys.executable, "-c", application]
             bad = {**os.environ, "PYTHONHOME": str(stale), "PYTHONPATH": str(stale), "TMUX_PANE": "%42"}
             # Exercise both isolated Python and the exact environment overrides
             # tmux supplies: some loader flags trigger even with an empty value.
             for environment in (bad, {**bad, **dict.fromkeys(terminals.BOOTSTRAP_UNSET, "")}):
-                result = subprocess.run(argv, env=environment, capture_output=True, text=True, timeout=10)
+                address = "agentscient-test-" + uuid.uuid4().hex
+                argv = [sys.executable, "-I", "-S", str(bootstrap), address, sys.executable, "-c", application]
+                with socket.socket(socket.AF_UNIX) as listener, ThreadPoolExecutor(max_workers=1) as pool:
+                    listener.bind("\0" + address)
+                    listener.listen(1)
+                    listener.settimeout(5)
+
+                    def handoff():
+                        stream, _ = listener.accept()
+                        with stream:
+                            send(stream, intended)
+
+                    transfer = pool.submit(handoff)
+                    result = subprocess.run(argv, env=environment, capture_output=True, text=True, timeout=10)
+                    transfer.result()
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertEqual(["current-launch", "%42", "private-snapshot-secret"], json.loads(result.stdout))
                 self.assertFalse(marker.exists())
             self.assertNotIn("private-snapshot-secret", " ".join(argv))
+            self.assertFalse(any("private-snapshot-secret" in path.read_text()
+                                 for path in root.rglob('*') if path.is_file() and path.suffix == '.json'))

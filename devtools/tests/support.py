@@ -4,13 +4,26 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import unittest
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 ENTRY = Path(__file__).resolve().parents[1] / "run.py"
+
+
+def require_process_identity():
+    from devtools import processes
+
+    try:
+        processes.boot_id()
+    except RuntimeError as error:
+        if os.environ.get("AGENTSCIENT_REQUIRE_TMUX") == "1":
+            raise
+        raise unittest.SkipTest(str(error)) from error
 
 
 class Client:
@@ -144,6 +157,26 @@ def require_tmux():
     if os.environ.get("AGENTSCIENT_REQUIRE_TMUX") == "1":
         raise RuntimeError("Real tmux acceptance required: " + reason)
     raise unittest.SkipTest("Real tmux unavailable: " + reason)
+
+
+@contextmanager
+def terminal_team():
+    """Always reap the actual fixture team's socket, including assertion failures."""
+    from devtools import launch, terminals
+    from devtools.store import Store
+
+    with tempfile.TemporaryDirectory() as temporary:
+        state = Path(temporary) / "state"
+        try:
+            yield temporary
+        finally:
+            try:
+                if (state / "live.sqlite3").exists():
+                    for row in Store(state).members():
+                        if row["harness"] != "external":
+                            launch.stop(state, row["name"], grace=0)
+            finally:
+                terminals.command(state, "kill-server", check=False)
 
 
 def retain_native(state, label):

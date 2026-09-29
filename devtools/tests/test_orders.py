@@ -60,8 +60,8 @@ class OrderTests(unittest.TestCase):
                 self.real._bind(context, Provider.pr)
                 return {"pr": short_pr(Provider.pr)}
 
-            def ci_watch(self, context):
-                return {"state": "watching"}
+            def ci_watch(self, context, **kwargs):
+                return {"state": "watching", "revision": Provider.pr["head"]["sha"]}
 
             def pr_get(self, context):
                 return {"pr": short_pr(Provider.pr), "ci": {"state": Provider.ci}}
@@ -84,6 +84,13 @@ class OrderTests(unittest.TestCase):
         mock = patch("devtools.orders.GitHub", Provider)
         mock.start()
         self.addCleanup(mock.stop)
+        # GitHub wire behavior is exercised by test_codex_reviews; this fixture
+        # isolates work-order integration, inspected-head checks and cleanup.
+        reviews = patch("devtools.orders.CodexReviews")
+        self.reviews = reviews.start().return_value
+        self.reviews.request.return_value = {"state": "requested"}
+        self.reviews.status.return_value = {"state": "ready"}
+        self.addCleanup(reviews.stop)
 
     def accept(self):
         self.xo.call("monitor", {"work": "Feature"})
@@ -119,7 +126,14 @@ class OrderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "CI"):
             self.co.call("conclude", {"assessment": "Ready"})
         self.order_provider.ci = "passed"
+        self.reviews.require_ready.side_effect = ValueError("Both Codex reviews must complete")
+        with self.assertRaisesRegex(ValueError, "Codex"):
+            self.co.call("conclude", {"assessment": "Ready"})
+        self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
+        self.reviews.require_ready.side_effect = None
         self.co.call("conclude", {"assessment": "Combined outcome verified"})
+        self.reviews.request.assert_called_once()
+        self.assertEqual(self.head, self.reviews.require_ready.call_args.args[1])
         self.retry_cleanup()
         self.assertEqual(self.head, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
         self.assertFalse(Path(self.integration["root"]).exists())
@@ -137,6 +151,12 @@ class OrderTests(unittest.TestCase):
         self.order_provider.lose_merge_reply = True
         with self.assertRaises(ConnectionError):
             self.co.call("conclude", {"assessment": "Ready"})
+        self.reviews.require_ready.side_effect = ValueError("Both Codex reviews must complete")
+        with self.assertRaisesRegex(ValueError, "Codex"):
+            self.co.call("conclude", {"assessment": "Ready"})
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM order_deliveries").fetchone()[0])
+        self.reviews.require_ready.side_effect = None
         self.assertEqual("done", self.co.call("conclude", {"assessment": "Ready"})["outcome"])
 
     def test_review_fix_updates_same_job_pr_before_both_merge_stages(self):
@@ -318,6 +338,7 @@ class OrderTests(unittest.TestCase):
         result = until(
             lambda: next((r for r in self.xo.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )
+        result = json.loads(self.xo.call("work_context", {"reference": result["reference"]})["content"])
         self.assertTrue(result["result"]["passed"])
         with self.store.connect() as db:
             operation = db.execute("SELECT job,work_order FROM operations WHERE id>77").fetchone()
@@ -360,3 +381,4 @@ class OrderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

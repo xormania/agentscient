@@ -93,7 +93,8 @@ class RuntimeTests(unittest.TestCase):
         self.store.session(xo.member, generation=generation, state="idle")
         self.vendor("openai", False)
         self.vendor("xai", True)
-        self.assertTrue(start(self.state, xo.member)["already_running"])
+        with patch("devtools.processes.owned", return_value=[{"pid": os.getpid()}]):
+            self.assertTrue(start(self.state, xo.member)["already_running"])
         self.assertEqual(generation, self.store.member(xo.member)["generation"])
         self.assertEqual("codex", self.store.member(xo.member)["harness"])
         self.store.session(xo.member, generation=generation, state="stopped", pid=None)
@@ -134,7 +135,8 @@ class RuntimeTests(unittest.TestCase):
             async def run(self):
                 assert self.harness == "grok"
 
-        with patch("devtools.native.Native", Native), patch("devtools.launch.signal.signal"):
+        with (patch("devtools.native.Native", Native), patch("devtools.launch.signal.signal"),
+              patch("devtools.processes.register")):
             agent(state, "worker")
         self.assertEqual("grok", co.store.member("worker")["harness"])
         self.assertEqual("claude", team["members"][2]["harness"])

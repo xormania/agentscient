@@ -21,7 +21,7 @@ class OnboardingTests(unittest.TestCase):
             member = "owner" if role == "co" else "xo" if role == "xo" else "coder"
             api = API(self.state, member)
             if role not in {"co", "xo"}:
-                api.control.bind(member, role, self.order, self.job, "xo")
+                api.control.bind(member, role, self.order, None if role == "nco" else self.job, "xo")
             value = api.call("onboard", {})
             self.assertEqual(role, value["role"])
             self.assertEqual(role, value["context"]["role"])
@@ -30,13 +30,13 @@ class OnboardingTests(unittest.TestCase):
             skill = api.call("skill_read", {"name": value["skills"][1]["name"]})
             self.assertEqual(value["role_instructions"], skill["content"])
             texts.add(value["role_instructions"])
-            if role not in {"co", "xo"}:
+            if role not in {"co", "xo", "nco"}:
                 self.assertNotIn("SECRET SIBLING", json.dumps(value))
                 with self.assertRaises(ValueError):
                     api.call("skill_read", {"name": "agentscient-co"})
-        self.assertEqual(8, len(texts))
-        self.assertEqual(8, len(self.store.events(kind="onboarding_delivered", limit=50)["events"]))
-        self.assertEqual(8, len(self.store.events(kind="skill_loaded", limit=50)["events"]))
+        self.assertEqual(len(ROLES), len(texts))
+        self.assertEqual(len(ROLES), len(self.store.events(kind="onboarding_delivered", limit=50)["events"]))
+        self.assertEqual(len(ROLES), len(self.store.events(kind="skill_loaded", limit=50)["events"]))
 
     def test_role_change_and_revocation_refresh_onboarding_without_harness_dependence(self):
         api = API(self.state, "coder")
@@ -75,7 +75,8 @@ class MateSkillTests(unittest.TestCase):
         value = self.api.call("onboard", {})
         self.assertEqual(8, len(value["skills"]))
         skill = self.api.call("skill_read", {"name": "mate-symfony-profiler-debugging"})
-        self.assertIn("mate_resource", skill["mcp_adapter"])
+        self.assertIn("mate_resource", skill["content"])
+        self.assertNotIn("mcp_adapter", skill)
         with patch.object(Development, "_json", return_value={"collectors": []}) as call:
             Development(self.store, "coder").inspect("mate_resource", resource="symfony-profiler://profile/abc123")
         self.assertIn("resources:read", call.call_args.args[1])
@@ -107,20 +108,38 @@ class MateSkillTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "current onboard catalog"):
             self.api.call("skill_read", {"name": name})
 
-    def test_adapter_changes_are_versioned_in_the_catalog_and_delivery_events(self):
+    def test_catalog_is_compact_and_source_changes_remain_versioned(self):
         self.configure()
-        name = "mate-symfony-profiler-debugging"
         before = self.api.call("onboard", {})
+        self.assertEqual([True, True] + [False] * 6, [s["loaded"] for s in before["skills"]])
+        self.assertLess(len(json.dumps(before["skills"])), 2300)
+        self.assertNotIn("source", before["skills"][0])
+        self.assertNotIn(before["shared"], Onboarding(self.api).startup())
+        for name in MATE:
+            skill = self.api.call("skill_read", {"name": name})
+            self.assertIn("framework_inspect", skill["content"])
+            self.assertNotIn("vendor/bin/mate", skill["content"])
+            self.assertNotIn("composer show", skill["content"])
+            self.assertNotIn("bin/console", skill["content"])
+            self.assertEqual(64, len(skill["sha256"]))
+        name = MATE[0]
         original = self.api.call("skill_read", {"name": name})
-        with patch("devtools.onboarding.ADAPTER", "Revised MCP syntax and restrictions"):
+        def revised(request):
+            value = document(request)
+            return value | {"content": value["content"] + " Revised guidance."} if request == name else value
+        with patch("devtools.onboarding.document", side_effect=revised):
             after = self.api.call("onboard", {})
             changed = self.api.call("skill_read", {"name": name})
-        self.assertEqual(original["sha256"], changed["sha256"])
         self.assertNotEqual(original["guidance_sha256"], changed["guidance_sha256"])
         self.assertNotEqual(before["revision"], after["revision"])
-        self.assertEqual(before["skills"][:2], after["skills"][:2])
-        catalog_entry = next(row for row in after["skills"] if row["name"] == name)
-        self.assertEqual(changed["guidance_sha256"], catalog_entry["guidance_sha256"])
         events = self.store.events(kind="skill_loaded")["events"]
-        self.assertEqual([original["guidance_sha256"], changed["guidance_sha256"]],
-                         [row["data"]["guidance_sha256"] for row in events])
+        self.assertEqual(changed["guidance_sha256"], events[-1]["data"]["guidance_sha256"])
+
+    def test_mate_discovery_lists_names_but_named_inspection_retains_schema(self):
+        self.configure()
+        schema = {"name": "server-info", "description": "Runtime facts", "input_schema": {"type": "object"}}
+        with patch.object(Development, "_json", return_value={"tools": {"server-info": schema}}):
+            listing = Development(self.store, "coder").inspect("mate")["result"]
+            self.assertEqual([{"name": "server-info", "description": "Runtime facts"}], listing["tools"])
+            detail = Development(self.store, "coder").inspect("mate", name="server-info")["result"]
+            self.assertEqual(schema, detail)

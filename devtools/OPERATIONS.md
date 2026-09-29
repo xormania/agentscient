@@ -50,16 +50,136 @@ harness or starting workspace in place; use a new member name for that change.
 | `fetch` | Defaults to true; set false explicitly for an offline local target. |
 | `identity` | Optional commit identity with `name` and `email`; otherwise use Git's configured identity. |
 | `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [workspaces.py](workspaces.py). |
+| `assignment_policy` | Operator-owned JSON file, absolute or relative to team state; defaults to [assignment-policy.json](assignment-policy.json). Configures protected source, default read context, denied Makers and allowed Console introspection commands. |
 | `development` | `{}` enables installed Makers/Mate and default validation. |
 | `development.php`, `development.composer` | Optional installed binaries. An absolute PHP path adds its directory to PATH for CLI tools. |
 | `development.checks` | Optional map of check names to fixed argv arrays; agents supply a name, never argv. Defaults are container/YAML lint and PHPUnit. |
 | `development.check_timeout` | Timeout in seconds for each check; default 600. |
 | `serena.image` | Locally built separate Serena provider image. |
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
+| `jev` | Optional `{}` enables the two on-demand Jev advice tools; absent by default. |
+| `jev.model` | Pinned TypeSafe model version; defaults to `jev-1.13.0`. Moving aliases are rejected. |
+| `jev.policy_file` | Operator-owned JSON policy, absolute or relative to the team state directory; defaults to the shipped `devtools/jev.json`. |
+| `jev.profile_evidence` | Optional map from configured runtime profile names (fixed teams: member names) to dated performance evidence. Include task family, harness/model/reasoning, result and source references. |
 
 Each work order and job owns its worktree and Composer install. Managed startup
 selects it automatically. Dependency installation refreshes when Composer metadata
 changes. Do not share a vendor-directory symlink across worktrees.
+
+### Planning and NCO setup
+
+Existing teams and eight-role runtime policies keep working. To enable the new
+roles with runtime allocation, add `nco` and `planner` preference arrays to the
+existing `roles` object in `roles.json`, using profile names already configured in
+that file. Choose their model/reasoning through those profiles and vendor
+availability through `vendors.json`. New initialization includes both roles;
+upgrading an existing file does not choose their profiles implicitly. Fixed teams
+reuse idle configured slots as before.
+
+An NCO needs its own live slot in addition to XO and the current specialist.
+Planner and coder can reuse a slot after the planning job is accepted and its
+session stops. XO can appoint one NCO for its current work order; NCO creates
+specialist jobs and reports to XO. Small tasks can go directly from XO to a
+specialist. These are roles over the existing command services, not another
+scheduler or independent work-order hierarchy.
+
+Copy `devtools/assignment-policy.json` to customize paths and inspection policy;
+set `project.assignment_policy` to that file. Add project-specific Maker source
+and template locations to `protected_paths`. Role path configuration remains the
+upper bound for job `editable_paths`; assignment fields cannot widen it. The
+default blocks `make:maker` and protects `src/Maker`, `templates/maker` and dev-lane
+source. Agents still discover and invoke other installed Makers through MCP.
+Existing directories are recognized by their filesystem type. For missing edit
+paths, a trailing slash declares a directory (`src/NewFeature/`); other explicit
+paths declare files, including extensionless files (`src/NOTICE`). Serena prepares
+only those assigned files, without widening the assignment to their parent.
+Use the trailing slash for missing directories in operator role paths as well.
+
+Directories containing protected descendants remain read-only; their allowed
+existing children receive writable mounts. This also protects absent Maker paths
+without inventing checkout files. To add a new sibling directly in such a
+directory, list its exact path in the assignment or generate it through the
+maintained Maker. Serena refreshes its mounts after generation or Git replacement.
+
+`context_paths` selects the source presented to Serena when supplied in an
+assignment; explicit edit paths use the policy's read-context defaults unless
+overridden. The full backing worktree remains available to native Maker, Mate,
+Console and validation services. This is a curated editing view and a path-level
+write boundary. It does not enforce individual generated method bodies or freeze
+PHP signatures within an editable file. Plans and review carry those obligations.
+
+SQLite upgrades preserve bindings, reports and retry identities. Newly accepted
+planning jobs retain the exact result update; legacy or superseded reports do not
+silently become approved plans. See the [handoff example](../docs/control-plane-roles-and-tools.md#planning-and-bounded-handoffs).
+
+### Optional Jev setup
+
+Add `"jev": {"model": "jev-1.13.0"}` inside the existing `project` object in the
+private `team.json`. Set `TYPESAFE_API_KEY` in the environment of the process
+launching the dev-lane services, then reconnect/restart those services so they
+inherit it. Keep the key out of repository files, tool arguments and team JSON.
+No new Python package, PHP dependency or Serena network access is required.
+
+Enabling this integration permits the host service to send the selected task
+context, source ranges, diagnostics and configured profile evidence to
+`https://api.typesafe.ai/v1/systemone`. The shared credential filter runs before
+transmission, but does not detect every secret in arbitrary source text. Only
+explicit advice calls contact TypeSafe; there is no background repository scan.
+
+`assignment_advise` uses configured roles and available installed profiles. Fixed
+teams use their idle configured members. Unknown model/reasoning settings and
+missing performance evidence are reported as unknown; public benchmarks are not
+downloaded or invented. `profile_evidence` can contain brief descriptions or
+structured records with provenance and dates. Agents can additionally select
+retained evidence through their normal work scope. Profile recommendations do not
+change `roles.json`, `vendors.json`, or allocation order. Use the existing runtime
+policy controls when acting on a recommendation that requires a different profile.
+
+Copy `devtools/jev.json` to an operator-owned file and set `jev.policy_file` to tune
+the model, bounded transport settings and versioned scope rubric. The existing
+`jev.model` setting overrides the policy model. Increment the rubric version when
+changing its criteria. Both content and version invalidate cached evaluations.
+Agent arguments cannot replace this rubric or select transport settings.
+
+Requests default to a 28,000-byte serialized input budget. Narrow oversized batches;
+the service never silently drops requested sources. The transport uses an
+eight-second socket timeout, disallows redirects, and makes at most one short
+retry for HTTP 429/529. Longer backoff is left to a later explicit call. Response
+models, answer types, options, distributions and usage are checked before use.
+Provider errors return a sanitized failure and do not block ordinary work tools.
+
+The existing artifact catalogue retains each successful evaluation's exact
+sanitized request, response, binding and policy snapshot. Source ranges, including
+uncommitted text, remain replayable after edits or worktree retirement. Routine
+MCP replies omit that input text; read the evidence reference to inspect it.
+The cache key covers the caller's work binding, input content, source identities,
+questions, rubric version and pinned model. Identical concurrent requests share
+the evaluation using the existing service-lock mechanism. There is no separate
+result database, queue or cache service. `jev_evaluation` events record elapsed
+time, model, fingerprint, evidence and provider usage; cache-hit events have
+`usage: null` because they made no provider call. The response's usage describes
+the original evaluation and must not be added again on cache hits.
+
+Use `work_assess(proposal=..., sources=...)` for a joint mission assessment. The
+default rubric distinguishes required work, separate improvements and unclear
+scope, and assesses coordination needs. It does not create work or change authority.
+Command roles link a decision through `work_report.evaluation`; later outcome
+reports reference that decision. These use existing reports/artifacts and emit
+`jev_feedback`, with operator-defined labels for later analysis. A decision using
+an evaluation from a changed binding is rejected; historical outcomes remain
+linkable. Existing team databases upgrade in place without discarding reports.
+
+Use [normal MCP examples](../docs/control-plane-roles-and-tools.md#jev-advice) to
+try a representative assignment and source/diagnostic assessment. Compare useful
+file discovery, missed relevant sources, assignment corrections, agent consumption
+and completion time against the existing workflow. Fixture tests verify the
+integration; actual Jev accuracy and savings require this authenticated evaluation.
+
+References: [TypeSafe API](https://docs.typesafe.ai/api),
+[model versions and limits](https://docs.typesafe.ai/models).
+Wire fixtures were checked against these sources on 2026-09-29, including Score
+`legend`, probability maps, fractional scores and usage fields. No fixture result
+is an authenticated judgment-quality measurement.
 
 ### Branches and worktree lifetime
 
@@ -138,7 +258,7 @@ All commands run from the repository root and take `--state`:
 | `status` | Read configured members and observed session state. |
 | `start --member NAME` | Start an already-bound managed member. |
 | `agent --member NAME` | Run an already-bound member in the current terminal. |
-| `stop --member NAME` | Request managed-session shutdown. |
+| `stop --member NAME` | Stop a managed session with bounded escalation and terminal cleanup. |
 
 `mcp` and `serena` are stdio provider entry points. `hook` and `operation` are
 internal launch targets. The compatibility `send` command is an operator aid;
@@ -226,7 +346,7 @@ Managed agents use the outcome tools in the [role/tool reference](../docs/contro
 | --- | --- |
 | `member_bind`, `member_unbind` | Configure or remove a trusted role/work/reporting binding |
 | `peers` | Configured members, observed state, and actual native conversation IDs |
-| `session_start`, `session_stop` | Start a configured member or request that it stops |
+| `session_start`, `session_stop` | Start a configured member or stop it with bounded escalation and owned-terminal recovery |
 | `message_send` | Send a durable message with an idempotency key |
 | `message_inbox`, `message_wait` | Read or briefly wait for incoming messages |
 | `message_ack`, `message_retry` | Acknowledge reception or explicitly retry uncertain delivery |
@@ -394,8 +514,50 @@ run ID or completion. Find the actual run in `ci_status` after it appears.
 existing message service. It retains the original work binding across selection
 changes and MCP restarts. A changed PR head produces `superseded`; completion or
 timeout ends the watch. Repeating the call renews the watch. `ci_watch_stop` stops
-this member's watch without cancelling CI. Polling resumes while this member's MCP
-server is connected; stored notifications remain readable in `message_inbox`.
+this member's watch without cancelling CI. One background observer per state
+directory polls independently of agent/MCP sessions; stored notifications remain
+readable in `message_inbox`. Registering a watch starts the observer automatically.
+Opening a new MCP connection resumes pending watches after an observer restart.
+
+Integrated work-order submission also requests `@codex review` and
+`@codex security review`, once per review kind and submitted commit. Job PRs retain
+their existing CI observation. The combined watch remains active after CI or
+reviews finish, so reopened findings are reported, until the PR closes, its head
+changes, or the 24-hour watch expires. XO submits again after integrating fixes
+to validate the new head and request fresh reviews. `conclude` reads GitHub again
+and requires both reviews on the exact current commit with no unresolved threads.
+
+Completion is read from the authenticated Codex bot's review-summary comment.
+Abbreviated commit IDs are resolved through GitHub. Missing, changed or ambiguous
+summary formats remain pending; silence and reactions do not establish success.
+The repository must have both Codex review features enabled for the identity
+posting the requests. A lost request response is reconciled from its retained
+comment marker before another request is considered. If no remote receipt is
+visible, the uncertain request remains explicit for operator inspection.
+
+The observer reuses `github_watches`, the GitHub transport and durable messages.
+It polls at `github.poll_seconds` (default 30, minimum 15) without model calls,
+honors rate-limit retry times, and atomically records changed observations with
+their notifications. CO/XO receive work-order notices through the existing work
+context and live-message delivery paths. Agents use `work_submit`, `monitor` and
+`review_respond`; they do not manage processes or GitHub API calls.
+
+For operator diagnostics only:
+
+```sh
+python3 devtools/run.py watch --state /absolute/private/state --action status
+python3 devtools/run.py watch --state /absolute/private/state --action start
+python3 devtools/run.py watch --state /absolute/private/state --action stop
+```
+
+`stop` preserves watches and messages. A subsequent `start`, watch registration,
+or MCP connection resumes pending work. `--action run` runs in the foreground for
+an operator's service supervisor. The detached process survives agent shutdown;
+its singleton lock and existing Linux process identity checks prevent duplicate
+observers and signalling a reused PID. Operator diagnostics are in `watcher.log`
+and the existing event store. After updating dev-lane code, restart the observer
+to load the new implementation. No webhook endpoint or additional service framework
+is required.
 
 `ci_artifact_save` retains the downloaded ZIP by default or a named `entry` as a
 report. It verifies GitHub's digest when available and uses the existing managed

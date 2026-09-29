@@ -1,6 +1,6 @@
 ---
 name: agentscient-context
-description: Establish shared work context in an Agentscient managed session; use at startup, after handover, and when role or work changes.
+description: Establish shared work context in an Agentscient managed session; use at startup, after handover, or after a role change.
 ---
 
 Follow the user's authorized objective and current service-supplied role and scope.
@@ -21,7 +21,14 @@ The service supplies workspaces, branches, PRs, recipients and artifact storage.
 Runtime policy supplies harness/model/reasoning; these settings do not change your
 responsibility. Do not retune them or request native shell access to complete work.
 
-After a role or work revision changes, refresh `onboard` and the current brief.
+After a role change, refresh `onboard`. For other work/context changes, read
+`work_context`; do not reload unchanged role skills. The onboarding response already
+contains the shared and role instructions, so do not read those skills again.
 After a new native session, recover decisions, open questions, recent activity and
 evidence through MCP. Do not claim to remember a previous vendor's private transcript.
 Report measured results and what remains unverified; absent telemetry is unknown.
+
+An additional improvement can be reported without becoming an assignment. Keep
+findings distinct from the current completion criteria. Use maintained Makers
+through MCP; local agents do not create or modify Makers. Complete the bounded
+assignment and report its result before undertaking separately proposed work.

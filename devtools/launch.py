@@ -6,6 +6,8 @@ import json
 import os
 import shutil
 import signal
+import socket
+import struct
 import sys
 import time
 import uuid
@@ -14,6 +16,8 @@ from pathlib import Path
 from .store import Store, identifier
 
 HARNESSES = {"codex", "claude", "grok", "external"}
+STARTUP_TIMEOUT = 10
+STOP_GRACE = 5
 
 
 def initialize(directory, workspace, members, co=None, project=None, runtime=False):
@@ -120,14 +124,9 @@ def start(directory, member, *, binding_revision=None):
             scope = Control(store, member).snapshot()
             if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
                 return {"superseded": True}
-            current = store.member(member)
-            if current["pid"] and current["desired"] == "stopped":
-                try:
-                    os.kill(current["pid"], 0)
-                except ProcessLookupError:
-                    pass
-                else:
-                    return {"waiting_for_stop": True}
+        current = store.member(member)
+        if current["generation"] and current["desired"] == "stopped":
+            _stop(store, member)
         result = _start(directory, member, binding_revision)
         if binding_revision is not None and result.get("already_running"):
             with store.connect() as db:
@@ -139,73 +138,152 @@ def start(directory, member, *, binding_revision=None):
 
 
 def _start(directory, member, binding_revision):
+    from .bootstrap import receive, send
     from .profiles import ENTRY
+    from .terminals import start as start_terminal
 
     store = Store(directory)
     current = store.member(member)
-    previous_generation = current["generation"]
     if current["state"] in {"starting", "idle", "active"} and current["pid"]:
-        try:
-            os.kill(current["pid"], 0)
-        except ProcessLookupError:
-            pass
-        else:
+        from . import processes, terminals
+
+        owned = processes.owned(store, member, current["generation"])
+        running = any(row["pid"] == current["pid"] for row in owned)
+        if not running:
+            running = any(row["pid"] == current["pid"] and not row["dead"]
+                          for row in terminals.status(store, member)["panes"])
+        if running:
             return {"member": member, "already_running": True, "session": current}
     config = configuration(directory, member)
-    from .profiles import write_json
-
-    launch_id = "launch-" + uuid.uuid4().hex
-    snapshot = store.directory / "launches" / (launch_id + ".json")
-    write_json(snapshot, {"member": member, "config": config, "environment": dict(os.environ)})
+    launch_id = "agentscient-launch-" + uuid.uuid4().hex
     argv = [sys.executable, str(ENTRY), "agent", "--state", str(store.directory), "--member", member]
-    argv += ["--launch-id", launch_id]
     if binding_revision is not None:
         argv += ["--binding-revision", str(binding_revision)]
-    argv = [sys.executable, "-I", "-S", str(ENTRY.with_name("bootstrap.py")), str(snapshot), *argv]
-    from .terminals import start as start_terminal
-
-    try:
+    argv = [sys.executable, "-I", "-S", str(ENTRY.with_name("bootstrap.py")), launch_id, *argv]
+    with socket.socket(socket.AF_UNIX) as listener:
+        listener.bind("\0" + launch_id)
+        listener.listen(1)
+        listener.settimeout(STARTUP_TIMEOUT)
         detail = start_terminal(store, member, argv, config["workspace"])
-    except Exception:
-        snapshot.unlink(missing_ok=True)
-        raise
-    store.event(member, "launch_requested", **detail)
-    # Return observed startup, not a fabricated ready acknowledgement.
-    deadline = time.monotonic() + 2
-    while time.monotonic() < deadline:
-        current = store.member(member)
-        if current["generation"] != previous_generation:
-            break
-        time.sleep(0.05)
+        store.event(member, "launch_requested", **detail)
+        deadline = time.monotonic() + STARTUP_TIMEOUT
+        try:
+            while True:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("Launch registration deadline expired")
+                listener.settimeout(max(0.001, deadline - time.monotonic()))
+                stream, _ = listener.accept()
+                with stream:
+                    _, uid, _ = struct.unpack("3i", stream.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                    if uid != os.getuid():
+                        continue
+                    stream.settimeout(max(0.001, deadline - time.monotonic()))
+                    send(stream, dict(os.environ))
+                    send(stream, {"member": member, "config": config})
+                    registered = receive(stream)
+                    break
+        except Exception as error:
+            # Closing the handoff fences late bootstrap processes. Reap the
+            # terminal too, so timeout cannot leave an unreported running agent.
+            _stop(store, member, grace=0)
+            store.session(member, state="failed", detail={"error": "Launch registration failed; launch was stopped"})
+            raise RuntimeError("Managed process registration failed; launch was stopped. Inspect monitor and retry.") from error
     current = store.member(member)
-    if current["generation"] == previous_generation:
-        raise RuntimeError("Managed process did not establish a session; inspect monitor and retry with resume.")
-    if current["generation"] != previous_generation and current["state"] == "failed":
+    if registered.get("generation") != current["generation"]:
+        raise RuntimeError("Launch registration was superseded")
+    if current["state"] == "failed":
         raise RuntimeError(current["detail"].get("error", "Native startup failed"))
     return {"member": member, "requested": "running", **detail, "session": current}
 
 
-def agent(directory, member, binding_revision=None, launch_id=None):
+def stop(directory, member, *, grace=STOP_GRACE, expected_generation=None):
+    store = Store(directory)
+    locks = store.directory / "launch-locks"
+    locks.mkdir(exist_ok=True, mode=0o700)
+    with (locks / (identifier(member) + ".lock")).open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        current = store.member(member)
+        if expected_generation is not None and (
+            current["generation"] != expected_generation or current["desired"] != "stopped"
+        ):
+            return {"superseded": True}
+        return _stop(store, member, grace=grace)
+
+
+def _stop(store, member, *, grace=STOP_GRACE):
+    from . import processes, terminals
+
+    current = store.member(member)
+    generation = current["generation"]
+    store.session(member, generation=generation, desired="stopped")
+    if current["harness"] == "external":
+        return {"member": member, "requested": "stopped"}
+    records = {}
+
+    def observe():
+        for row in processes.owned(store, member, generation):
+            records[row["pid"]] = row
+        terminal = terminals.status(store, member)
+        for pane in terminal["panes"]:
+            if not pane["dead"] and (row := processes.identity(pane["pid"])):
+                records[row["pid"]] = row
+        for row in processes.family(records.values()) if records else []:
+            records[row["pid"]] = row
+        return processes.alive(records.values()), terminal["exists"]
+
+    deadline = time.monotonic() + grace
+    remaining, terminal_exists = observe()
+    while (remaining or terminal_exists) and time.monotonic() < deadline:
+        time.sleep(0.05)
+        remaining, terminal_exists = observe()
+    forced = bool(remaining or terminal_exists)
+    if forced:
+        processes.signal_owned(remaining, signal.SIGTERM)
+        processes.signal_owned(remaining, signal.SIGCONT)
+        deadline = time.monotonic() + 1
+        while remaining and time.monotonic() < deadline:
+            time.sleep(0.05)
+            remaining, _ = observe()
+        processes.signal_owned(remaining, signal.SIGKILL)
+        terminals.stop(store, member)
+        deadline = time.monotonic() + 1
+        while processes.alive(records.values()) and time.monotonic() < deadline:
+            time.sleep(0.05)
+    if processes.alive(records.values()):
+        raise RuntimeError("Managed processes are still stopping; inspect monitor before restarting")
+    store.session(member, generation=generation, state="stopped", desired="stopped", pid=None)
+    store.event(member, "session_stop_completed", generation=generation, forced=forced)
+    return {"member": member, "requested": "stopped", "stopped": True, "forced": forced}
+
+
+def agent(directory, member, binding_revision=None, launch_fd=None):
+    from .bootstrap import receive, send
     from .control import REQUEST_BINDING, Control
+    from .processes import register
 
     store = Store(directory)
-    if launch_id:
-        snapshot = store.directory / "launches" / (identifier(launch_id) + ".json")
-        saved = json.loads(snapshot.read_text())
-        if saved["member"] != member:
-            raise ValueError("Launch snapshot belongs to another member")
-        config = saved["config"]
-        snapshot.unlink()
-    else:
-        config = configuration(directory, member)
+    handoff = socket.socket(fileno=launch_fd) if launch_fd is not None else None
+    try:
+        if handoff:
+            handoff.settimeout(STARTUP_TIMEOUT)
+            saved = receive(handoff)
+            if saved["member"] != member:
+                raise ValueError("Launch handoff belongs to another member")
+            config = saved["config"]
+        else:
+            config = configuration(directory, member)
+        generation = store.begin_session(
+            member, os.getpid(), binding_revision=binding_revision,
+            settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider")},
+        )
+        register(store, member, generation, os.getpid())
+        if handoff:
+            send(handoff, {"generation": generation})
+    finally:
+        if handoff:
+            handoff.close()
     control = Control(store, member)
     origin = control.snapshot()
-    generation = store.begin_session(
-        member,
-        os.getpid(),
-        binding_revision=binding_revision,
-        settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider")},
-    )
     with store.connect() as db:
         db.execute("UPDATE members SET harness=? WHERE name=?", (config["harness"], member))
     if config.get("selection"):

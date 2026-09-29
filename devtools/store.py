@@ -14,6 +14,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
+SCHEMA_VERSION = 11
 
 
 def stamp():
@@ -86,7 +87,7 @@ class Store:
     def upgrade(self):
         """Add work tracking to existing teams without rebuilding their state."""
         with self.connect() as db:
-            if db.execute("PRAGMA user_version").fetchone()[0] >= 8:
+            if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
                 return
             db.execute("BEGIN IMMEDIATE")
             for statement in WORK_SCHEMA:
@@ -131,6 +132,9 @@ class Store:
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
+                "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT"},
+                "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'"},
+                "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
                     "paused": "INTEGER NOT NULL DEFAULT 0",
                     "launch_pending": "INTEGER NOT NULL DEFAULT 0",
@@ -180,6 +184,8 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS deliveries (
                 job INTEGER PRIMARY KEY REFERENCES jobs(id), accepted_by TEXT NOT NULL REFERENCES members(name),
                 revision TEXT, merge_commit TEXT, assessment TEXT NOT NULL, outcome TEXT NOT NULL, created TEXT NOT NULL)""")
+            if "result_update" not in {row["name"] for row in db.execute("PRAGMA table_info(deliveries)")}:
+                db.execute("ALTER TABLE deliveries ADD COLUMN result_update INTEGER REFERENCES work_updates(id)")
             db.execute("""CREATE TABLE IF NOT EXISTS order_workspaces (
                 work_order INTEGER PRIMARY KEY REFERENCES work_orders(id), root TEXT NOT NULL UNIQUE,
                 branch TEXT NOT NULL, target TEXT NOT NULL, base_revision TEXT NOT NULL)""")
@@ -224,7 +230,10 @@ class Store:
                 "CREATE UNIQUE INDEX IF NOT EXISTS active_order_operation ON operations(work_order) "
                 "WHERE job IS NULL AND state IN ('queued','running')"
             )
-            db.execute("PRAGMA user_version=8")
+            db.execute("""CREATE TABLE IF NOT EXISTS codex_requests (
+                repository TEXT NOT NULL, pr INTEGER NOT NULL, revision TEXT NOT NULL, kind TEXT NOT NULL,
+                state TEXT NOT NULL, url TEXT, PRIMARY KEY(repository,pr,revision,kind))""")
+            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     @contextmanager
     def connect(self):
