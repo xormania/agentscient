@@ -5,12 +5,12 @@ role determines responsibilities, tools, work/source boundaries, reporting and
 skills. Harness/model/reasoning choices do not change that content or authority.
 
 At startup, after handover or after a role change, call `onboard`. For other work
-changes, refresh `work_context` without reloading unchanged role guidance. It returns
-the shared essentials, customized role instructions, current brief, available tool
+changes, refresh `work_context` without reloading unchanged role guidance. Onboarding
+returns the shared essentials, customized role instructions, current brief, available tool
 names and a compact skill catalog. Entries marked `loaded` are already included;
 use `skill_read(name)` only for a relevant entry whose body you still need. Full
-source provenance and hashes remain in skill reads and telemetry. These reads and their exact revisions are recorded
-in telemetry. A delivery record means the content was supplied, not proof a model
+source provenance and hashes remain in skill reads, and exact delivered revisions
+are recorded in telemetry. A delivery record means the content was supplied, not proof a model
 understood it. Onboarding does not create work or invent an acceptance gate.
 
 | Role | Customized focus | Role skill |
@@ -56,4 +56,3 @@ grant another role, expand writable paths, select another work order or bypass
 review requirements. Missing source/search/setup capabilities are reported through
 the existing guidance path. Operator initialization and local authenticated
 acceptance are described in [local readiness](local-agent-readiness.md).
-
