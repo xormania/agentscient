@@ -227,8 +227,10 @@ commands and Composer plugins run as the local service user. The tool interface 
 not provide OS containment for application code.
 
 Framework inspection, generation, checks and configured submission return retained
-operation receipts promptly. Completion and evidence are delivered to the original
-worker and supervisor while their scope still covers that work. Workers survive
+operation receipts promptly. Compact completion notices (including failed-check
+counts) and evidence references are delivered to the original worker and supervisor
+while their scope still covers that work. Full results remain available through
+`work_inspect(section="operations")`. Workers survive
 an MCP disconnect. An identical active call reuses its receipt; a lost worker becomes
 `uncertain` without automatically replaying external effects. Pausing prevents new
 processes; an already-running command finishes or reaches its timeout.
@@ -324,3 +326,4 @@ remaining team. The integration workspace retires after this final merge and
 shutdown. Report-only work with no source changes can conclude without a PR.
 The next authorized `direct` creates a new work order. Submission, contribution
 acceptance and delivery of the overall outcome remain distinct observations.
+
