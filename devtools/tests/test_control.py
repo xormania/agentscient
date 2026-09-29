@@ -279,8 +279,8 @@ class ControlTests(unittest.TestCase):
             dict(member="coder", role="xo", job=self.job, reports_to="audit"),
             dict(member="xo", role="architect", work_order=self.order, reports_to="coder"),
             dict(member="owner", role="co", work_order=self.order, reports_to="xo"),
+            dict(member="owner", role="co", job=self.job),
             dict(member="coder", role="invalid", job=self.job, reports_to="xo"),
         ):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 self.operator.invoke("member_bind", **args)
-

@@ -201,7 +201,7 @@ class AdviceTests(unittest.TestCase):
                 self.assess(sources=[{"path": path}])
         self.assertEqual([], self.requests)
 
-    def test_scope_checked_before_evidence_is_sent_and_co_cannot_read_source(self):
+    def test_scope_checked_before_evidence_is_sent_and_co_cannot_assess(self):
         own = self.api.artifacts.save("diagnostic.txt", content="retained diagnostic")
         ref = "artifact:" + str(own["artifact"]["id"])
         self.assess(sources=[{"reference": ref}])
@@ -210,10 +210,17 @@ class AdviceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not available"):
             self.assess(sources=[{"reference": "artifact:" + str(foreign["artifact"]["id"])}])
         co = API(self.state, "co")
-        with self.assertRaisesRegex(ValueError, "retained evidence"):
-            self.assess(api=co)
-        self.assess(sources=[{"reference": ref}], api=co)
-        self.assertEqual(2, len(self.requests))
+        self.assertNotIn("work_assess", {row["name"] for row in co.tools()})
+        for sources in ([{"path": "src/Example.php"}], [{"reference": ref}]):
+            with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, "not available"):
+                self.assess(sources=sources, api=co)
+        from devtools.advice import Advice
+
+        with self.assertRaisesRegex(ValueError, "CO relays"):
+            Advice(self.store, "co").assess(sources=[{"reference": ref}], questions=[{"name": "fit", "instructions": "Fit?"}])
+        with self.assertRaisesRegex(ValueError, "does not evaluate"):
+            co.control.report("Accept it", evaluation={"reference": ref, "stage": "decision"})
+        self.assertEqual(1, len(self.requests))
 
     def test_operation_evidence_uses_existing_scoped_reads_and_reports_partial(self):
         scope = self.api.control.snapshot()

@@ -8,7 +8,9 @@ import io
 import json
 import os
 import re
+import shutil
 import signal
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -71,9 +73,15 @@ class Development:
         self.workspaces = Workspaces(store, member)
         self.config = project_config(store).get("development", {})
 
+    def execution_scope(self):
+        scope = self.workspaces.scope()
+        if scope["role"] == "co":
+            raise ValueError("CO hands work to XO; this role cannot execute application development processes.")
+        return scope
+
     def run(self, root, argv, *, timeout=120):
         """Only callers in this module construct commands; the MCP accepts no argv."""
-        if self.workspaces.scope()["paused"]:
+        if self.execution_scope()["paused"]:
             raise ValueError("This work is paused; no new development process was started.")
         argv = [self.config.get("php", "php") if x == "php" and i == 0 else x for i, x in enumerate(argv)]
         env = {
@@ -125,6 +133,7 @@ class Development:
         return result
 
     def prepare(self, root):
+        self.execution_scope()
         root = Path(root)
         lock = root / "composer.lock"
         if not lock.is_file():
@@ -169,6 +178,7 @@ class Development:
             ) from None
 
     def inspect(self, kind, name=None, parameters=None, resource=None, package=None):
+        self.execution_scope()
         if kind == "packages":
             if name or parameters is not None or resource or not package or not re.fullmatch(
                 r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.*-]+", package
@@ -324,18 +334,163 @@ class Development:
                 raise ValueError("This role cannot generate Symfony code.")
             if scope["role"] == "test_writer" and maker != "make:test":
                 raise ValueError("Test writers use the installed make:test Maker.")
-            root = workspace["root"]
-            self.prepare(root)
-            metadata = self._json(root, ["php", "bin/console", "help", maker, "--format=json", "--no-interaction"])
-            if metadata["name"] != maker or not maker.startswith("make:"):
-                raise ValueError("Choose an installed Symfony Maker.")
-            self.workspaces.scope(write=True)
-            result = self.run(root, self.maker_argv(metadata, arguments or {}, options or {}))
+            root = Path(workspace["root"])
+            before = self._files(root)
+            with tempfile.TemporaryDirectory(prefix="agentscient-maker-") as temporary:
+                staged = Path(temporary) / "project"
+                shutil.copytree(root, staged, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+                self._isolate_links(root, staged, before)
+                if self._files(staged) != before:
+                    raise ValueError("The project changed while preparing generation; no generated changes were applied.")
+                # Compiled Symfony containers may retain the producer's absolute
+                # project_dir. Build a fresh cache for the isolated project.
+                if (staged / "var").is_symlink():
+                    raise ValueError("Generation cannot use a Symfony cache beneath a project symlink.")
+                cache = staged / "var/cache"
+                if cache.is_symlink() or cache.is_file():
+                    cache.unlink()
+                elif cache.is_dir():
+                    shutil.rmtree(cache)
+                self.prepare(staged)
+                metadata = self._json(staged, ["php", "bin/console", "help", maker, "--format=json", "--no-interaction"])
+                if metadata["name"] != maker or not maker.startswith("make:"):
+                    raise ValueError("Choose an installed Symfony Maker.")
+                self.workspaces.scope(write=True)
+                result = self.run(staged, self.maker_argv(metadata, arguments or {}, options or {}))
+                after = self._files(staged)
+                changed = sorted(path for path in before.keys() | after.keys() if before.get(path) != after.get(path))
+                # Composer and Console may write ignored dependencies/cache in
+                # staging. They are discarded, never copied into the workspace.
+                ignored = set()
+                if changed:
+                    checked = git(root, "check-ignore", "--stdin", "-z", check=False,
+                                  input=("\0".join(changed) + "\0").encode(), env={"GIT_LITERAL_PATHSPECS": "0"})
+                    if checked.returncode not in {0, 1}:
+                        raise ValueError("Cannot establish ignored runtime paths; no generated changes were applied.")
+                    ignored = set(checked.stdout.decode().split("\0"))
+                changed = [path for path in changed if path not in ignored]
+                if self._files(root) != before:
+                    raise ValueError("The workspace changed during generation; no generated changes were applied.")
+                # Job locks serialize source writers. This transaction also
+                # orders binding revocation against the final source effects.
+                with self.store.connect() as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    self.workspaces.scope(write=True)
+                    denied = [path for path in changed if not self.workspaces.permitted_path(path, scope["role"])]
+                    if denied:
+                        raise ValueError("Maker would change paths outside this role's configured paths: "
+                                         + ", ".join(denied[:10]) + ". No generated changes were applied; request guidance.")
+                    if any((before.get(path) or after.get(path))[0] != "file"
+                           or after.get(path, ("file",))[0] != "file" for path in changed):
+                        raise ValueError("Makers can generate regular project files only; no generated changes were applied.")
+                    self._promote(root, staged, changed, before, Path(temporary) / "backup")
             result["changes"] = self.workspaces.changes(root)
-            result["outside_role_paths"] = [
-                r["path"] for r in result["changes"] if not self.workspaces.permitted_path(r["path"], scope["role"])
-            ]
+            result["outside_role_paths"] = []
             return self.result("maker-result.json", result)
+
+    @staticmethod
+    def _files(root):
+        """Snapshot file contents/modes without following project symlinks."""
+        files = {}
+        for directory, folders, names in os.walk(root, followlinks=False):
+            folders[:] = [name for name in folders if name != ".git"]
+            for name in names + [name for name in folders if (Path(directory) / name).is_symlink()]:
+                if name == ".git":
+                    continue
+                path = Path(directory) / name
+                mode = path.lstat().st_mode
+                key = path.relative_to(root).as_posix()
+                if stat.S_ISLNK(mode):
+                    target = path.resolve()
+                    value = ("link", stat.S_IMODE(mode),
+                             target.relative_to(root).as_posix() if target.is_relative_to(root) else str(target))
+                elif stat.S_ISREG(mode):
+                    digest = hashlib.sha256()
+                    with path.open("rb") as stream:
+                        for block in iter(lambda: stream.read(1024 * 1024), b""):
+                            digest.update(block)
+                    value = ("file", stat.S_IMODE(mode), digest.hexdigest())
+                else:
+                    raise ValueError("Generation needs regular project files; no generated changes were applied.")
+                files[key] = value
+        return files
+
+    @staticmethod
+    def _isolate_links(root, staged, before):
+        for path, value in before.items():
+            if value[0] != "link":
+                continue
+            target = (root / path).resolve()
+            if not target.is_relative_to(root) or ".git" in target.relative_to(root).parts:
+                raise ValueError("Generation cannot use symlinks outside the project or into Git metadata.")
+            link = staged / path
+            link.unlink()
+            link.symlink_to(os.path.relpath(staged / target.relative_to(root), link.parent))
+
+    @staticmethod
+    def _promote(root, staged, paths, before, backup):
+        """Preflight every destination and roll back a failed file promotion."""
+        for path in paths:
+            target = root / path
+            if target.is_dir():
+                raise ValueError("Generation cannot replace project directories; no generated changes were applied.")
+            for parent in target.parents:
+                if parent == root:
+                    break
+                if parent.is_symlink() or (parent.exists() and not parent.is_dir()):
+                    raise ValueError("Generation cannot write through symlinks or replace parent files.")
+            if path in before:
+                saved = backup / path
+                saved.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(target, saved)
+        touched, created = [], []
+
+        def replace(source, target):
+            with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as stream:
+                temporary = Path(stream.name)
+            try:
+                shutil.copy2(source, temporary)
+                os.replace(temporary, target)
+            finally:
+                temporary.unlink(missing_ok=True)
+
+        try:
+            for path in paths:
+                target, source = root / path, staged / path
+                if not source.exists():
+                    target.unlink()
+                    touched.append(path)
+                    continue
+                parents = []
+                parent = target.parent
+                while not parent.exists():
+                    parents.append(parent)
+                    parent = parent.parent
+                for parent in reversed(parents):
+                    parent.mkdir()
+                    created.append(parent)
+                replace(source, target)
+                touched.append(path)
+        except BaseException as failure:
+            unrestored = []
+            for path in reversed(touched):
+                try:
+                    target = root / path
+                    if path in before:
+                        replace(backup / path, target)
+                    else:
+                        target.unlink(missing_ok=True)
+                except Exception:
+                    unrestored.append(path)
+            for parent in reversed(created):
+                try:
+                    parent.rmdir()
+                except OSError:
+                    unrestored.append(parent.relative_to(root).as_posix())
+            if unrestored:
+                raise ValueError("Maker promotion failed and some generated changes could not be rolled back: "
+                                 + ", ".join(unrestored[:10]) + ". Inspect the preserved workspace before retrying.") from failure
+            raise
 
     def result(self, name, value):
         evidence = self.evidence(name, value)
@@ -347,6 +502,7 @@ class Development:
         }
 
     def checks(self, root, check=None):
+        self.execution_scope()
         self.prepare(root)
         checks = self.config.get("checks", DEFAULT_CHECKS)
         if not checks or check is not None and check not in checks:
@@ -374,5 +530,6 @@ class Development:
         }
 
     def check(self, check=None):
+        self.execution_scope()
         with self.workspaces.use() as (_, workspace):
             return self.checks(workspace["root"], check)

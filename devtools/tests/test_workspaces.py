@@ -60,6 +60,20 @@ class WorkspaceTests(unittest.TestCase):
         self.api.call("work_inspect", {})
         return Path(self.api.workspaces.ensure()["root"])
 
+    def test_co_conversation_uses_the_stable_checkout_without_creating_an_order_worktree(self):
+        co = API(self.state, "co")
+        workspace = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), workspace["root"])
+        with self.store.connect() as db:
+            self.assertIsNone(db.execute("SELECT 1 FROM order_workspaces").fetchone())
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET status='done' WHERE id=?", (co.control.snapshot()["work_order"],))
+        self.assertEqual(str(self.checkout), co.workspaces.ensure()["root"])
+        git(self.checkout, "checkout", "--detach", "HEAD")
+        detached = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), detached["root"])
+        self.assertIsNone(detached["branch"])
+
     def test_job_prepares_owned_worktree_and_normal_mcp_checkpoint(self):
         client = Client(self.state, "coder")
         self.addCleanup(client.close)

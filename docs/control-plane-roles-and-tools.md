@@ -7,13 +7,15 @@ Each line in a tool example is a separate MCP call.
 
 ## Responsibilities and context
 
-**CO is the session the person works with directly.** It hands XO the authorized
-objective, boundaries and prepared scope/specification context, then assesses the
-overall outcome. **XO commissions a planner** to propose jobs and adopts the plan.
+**CO is xor's interface.** It relays xor's instructions, boundaries and prepared
+scope/specification context to XO, and system messages back to xor. It does not
+assess, coordinate, execute or accept work. **XO commissions a planner** to propose
+jobs and adopts the plan.
 A plan with **one job is simple**: XO coordinates its specialists directly. For
 **multiple jobs**, XO appoints one **NCO per job** and coordinates dependencies
 between jobs. NCO manages specialists and verification within its job, reports
-readiness to XO, and asks XO for planning or scope changes. **Only XO accepts jobs.**
+readiness to XO, and asks XO for planning or scope changes. **XO accepts jobs and
+the integrated work-order result**, retaining superior steering over its team.
 Planner investigates and reports to XO without editing source or directing execution.
 Specialists receive the context and capabilities needed for their responsibility.
 
@@ -30,17 +32,20 @@ The services supply repository, workspace, branch, target, PR and artifact conte
 Agents name responsibilities and request outcomes. Returned evidence/checkpoint
 references identify information; they do not retarget the caller's work.
 
-CO resolves questions requiring broader intent. XO handles coordination and
+CO relays questions requiring xor's intent and returns xor's answer. XO handles coordination and
 execution decisions within the brief. Specialists investigate and act within their
 responsibilities, asking for guidance when needed. A message does not grant new
-role or work authority.
+role or work authority. Every collaborator runs in a standalone managed native
+session. Agentscient owns session creation and coordination; harness-native
+subagents are not used. Model, harness, reasoning and skills do not widen the
+service-enforced role or work boundary.
 
 ## Role catalog
 
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
-When the operator configures `project.jev`, bound roles also get **`work_assess`**
+When the operator configures `project.jev`, bound roles other than CO get **`work_assess`**
 and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
 ordinary inspection, coordination and delivery remain available if Jev is unavailable.
 With a project configured, specialists also get **`work_inspect`**. Enabling
@@ -50,8 +55,8 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
-| CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
-| XO | `plan_adopt`, `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
+| CO | `direct`, overview-only `monitor`; relays xor's context and system messages | None |
+| XO | `plan_adopt`, `orchestrate`, `monitor`, `steer`, `conclude`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
 | NCO (`nco`) | `orchestrate`, `monitor`, `steer` within its one job; with a project: `work_inspect`; with development enabled: `work_check`. Completes specialist assignments and reports readiness to XO. Cannot commission planners/NCOs, accept jobs or submit the integrated result. | None |
 | Planner (`planner`) | Shared and specialist inspection/reporting tools at work-order scope; retained plan required for a result to XO | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
@@ -85,7 +90,7 @@ This uses the operator's versioned rubric and considers the brief, proposal and
 all sources together. Source-by-source questions remain available with `sources`
 and `questions`; do not combine custom questions with `proposal`.
 
-Command roles record their chosen action and rationale using ordinary reports:
+XO/NCO record their chosen action and rationale using ordinary reports:
 
 ```json
 {"name":"work_report","arguments":{"kind":"recommendation","text":"Keep caching as a separate finding; finish the current JSON behavior.","evaluation":{"reference":"artifact:12","stage":"decision","label":"deferred"}}}
@@ -121,8 +126,8 @@ in one evaluation. Each source names exactly one relative workspace `path` or an
 accessible `artifact:`/`operation:` reference. The service reads it; the agent
 receives answers and source locations without the raw source text. Use Serena to
 find candidate paths and inspect or edit the relevant source afterward. Auditors
-use their submitted review snapshot. CO can assess retained evidence; workspace
-source assessment is available to XO and specialists.
+use their submitted review snapshot. CO has no assessment tool; assessment is
+available to XO, NCO and specialists within their current scope.
 
 ```json
 {"name":"work_assess","arguments":{"sources":[{"path":"src/SessionService.php"},{"reference":"artifact:12"}],"questions":[{"name":"recovery","instructions":"Does this describe recovery after a supervisor crash?"}]}}
@@ -178,14 +183,17 @@ with `next_offset` as `offset`. Operation pages contain JSON text; concatenate t
 roles can read an operation reference; unrelated jobs cannot.
 
 Reports and guidance accept `responding_to` with an update/message reference.
-The service routes the response in its original work context. Responding to an
+The service routes execution-role responses in their original work context. CO's
+reports always relay to XO, including when `responding_to` identifies accessible
+specialist evidence; CO cannot use a reply to direct a specialist. Responding to an
 incoming message also acknowledges it. Agents do not choose recipient IDs or
 perform a separate acknowledgement step.
 
 Reports, evidence associations and outbound messages commit together. Identical
 contents and binding reuse the report on retry. A failed evidence publication can
 leave an unlinked blob for reuse; it does not expose a partially published report.
-CO reports without a recipient are retained as `recorded_for_user`.
+CO retains xor's instructions and context through reports to XO; XO reports system
+outcomes through CO for relay to xor.
 
 A specialist reads its job and shared work-order material. Command-level private
 reports and evidence stay with the relevant participants. Scope checks apply to
@@ -196,17 +204,18 @@ which they started; subsequent calls use the current binding.
 
 | Role / tool | Outcome |
 | --- | --- |
-| CO — `direct` | Establish or revise the objective, completion criteria, boundaries and shared context references; bind XO and deliver its brief. |
-| CO/XO/NCO — `monitor` | Read scoped progress, assignments and cleanup status. CO/XO can inspect the combined delivery; NCO sees its job. |
-| CO — `conclude` | Deliver the inspected, passing integrated result, retain the assessment and release the team. |
-| CO — `restart_xo` | Replace XO's conversation using current runtime policy while retaining its work and team. |
+| CO — `direct` | Relay xor's authorized objective, completion criteria, boundaries and shared context references; bind XO and deliver its brief. |
+| CO/XO/NCO — `monitor` | CO reads overview status for relay to xor. XO inspects progress and the combined delivery; NCO sees its job. |
+| XO — `conclude` | Accept and deliver the inspected, passing integrated result, retain the assessment and release the execution team; CO remains available to xor. |
 | XO — `plan_adopt` | Adopt a retained planner result and the complete job breakdown, or revise the existing plan. |
 | XO/NCO — `orchestrate` | Create/update role assignments within their authority, bind configured collaborators and start their sessions. XO also commissions planners and job NCOs. |
 | XO/NCO — `steer` | Guide, pause, resume, stop or replace collaborators; revise a role brief or complete/cancel a role assignment. Only XO accepts/cancels jobs. |
 
 `direct` requires `title`, `objective`, `done_when` and `constraints`. Its first call
 creates the work order and claims an available XO slot. Later calls revise that
-work order and deliver the affected briefs. CO remains the person's existing session.
+work order and deliver the revised instructions to XO. Changed context invalidates
+older plans and assignments; XO coordinates the execution team's response. CO
+remains xor's existing session and does not choose or revise the objective itself.
 To pass prepared documents, retain them as evidence with CO's `work_report`, then
 call `direct` with `context` containing the returned `artifact:` references. The
 service shares those documents with the team; unrelated evidence stays scoped.
@@ -240,8 +249,10 @@ Completed assignments and their results remain visible after sessions are releas
 Usage is the latest raw observation, not an invented cost
 or an additive total. Missing usage stays unknown.
 The default `section="overview"` shows progress. With a named `work`, the default
-shows its review packet. Omit `work` and select `section="review"`, `"ci"` or
-`"feedback"` to inspect the integrated work-order delivery (CO/XO) or bound job (NCO).
+shows its review packet for XO/NCO. CO can read only the default overview, without
+a named `work` or review/CI/feedback selector. XO may omit `work` and select
+`section="review"`, `"ci"` or `"feedback"` to inspect the integrated work-order
+delivery; NCO uses those sections for its bound job.
 
 For live steering, omit `work` to address the team or name a job. Optional
 `assignment` and `role` filters select a contribution. `guide` retains direction;
@@ -250,12 +261,15 @@ pause and starts a stopped session if needed. `stop` requests orderly shutdown a
 preserves the unfinished job and binding. Pause is not a native mid-token interrupt.
 Stopping/restarting creates a new native conversation.
 `replace` requests shutdown and a fresh conversation using current vendor policy;
-include a reason in `direction`. CO can do the same for XO using `restart_xo`.
+include a reason in `direction`. XO replacement belongs to trusted operator
+repair; CO cannot request session replacement through managed tools.
 See [session handover](session-handover.md) for switching the user-facing CO and
 the retained context and generation boundaries.
 
 A role brief can revise `objective`, `done_when` or `constraints`; it does not
-rewrite the job or CO's objective. XO changes job scope through `plan_adopt`.
+rewrite the job or xor's objective. XO changes job scope through `plan_adopt`.
+XO retains superior steering authority over NCOs and their specialists; the job's
+NCO normally assigns and completes its specialists, while XO accepts the job.
 Commands recheck scope when committing.
 Pending startup survives MCP restart and is serviced while a team MCP server is
 connected. Startup failures are retained and sent to the supervisor; `direct`
@@ -293,7 +307,8 @@ to retain the contribution and release the session. An editor saves remaining
 changes first. Cancellation also names the assignment and requires a reason.
 NCO completes its specialists and reports the checked job ready. XO inspects
 current evidence/review, accepts the job with `steer(action="accept", work=...,
-direction=...)`, and submits the integrated outcome for CO to assess and conclude.
+direction=...)`, submits the integrated outcome and concludes it after verification.
+CO relays the system's outcome to xor.
 
 Replanning preserves job identities, assignments, evidence and delivery history.
 XO may revise the breakdown using the same adopted source while the work-order
@@ -431,7 +446,7 @@ Force-killed providers can require operator cleanup of a leftover container.
 
 ## Review, CI and external feedback
 
-XO can add `role="audit"` to the producer's named job. Audit uses a detached snapshot
+The job's coordinator can add `role="audit"` to the producer's named job. Audit uses a detached snapshot
 of the submitted revision, or the current checkpoint before submission. Producer
 edits cannot silently change that view. `work_inspect(section="review")` refreshes
 the snapshot and returns the PR, CI, findings and changed files.
@@ -444,7 +459,7 @@ the snapshot and returns the PR, CI, findings and changed files.
 
 Diagnostics retain a full packet as scoped evidence and return a small preview.
 Read its reference through `work_context`. Missing or expired logs are explicit.
-CO/XO use the same sections through `monitor(work="Job name", section="ci")`
+XO/NCO use the same sections through `monitor(work="Job name", section="ci")`
 or `section="feedback"`. Neither diagnostic section replaces review inspection
 before acceptance. CI changes are delivered to the worker and its current supervisor.
 
@@ -491,10 +506,11 @@ addressed threads. After integrating fixes, XO submits again for reviews of the 
 commit. Missing or stale reviews remain pending; a clean CI result alone is not
 review completion. Job PRs do not request these additional reviews.
 
-CO inspects the combined outcome with `monitor(section="review")`, then calls
+XO inspects the combined outcome with `monitor(section="review")`, then calls
 `conclude(assessment)` after CI and both current reviews pass and findings are
 addressed. Delivery verifies the current result and releases the
-remaining team. The integration workspace retires after this final merge and
+remaining execution team and reports the outcome to CO. CO stays available to
+relay messages to xor. The integration workspace retires after this final merge and
 shutdown. Report-only work with no source changes can conclude without a PR.
 The next authorized `direct` creates a new work order. Submission, contribution
 acceptance and delivery of the overall outcome remain distinct observations.

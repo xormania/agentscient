@@ -104,6 +104,8 @@ class Delivery:
             raise ValueError("This outcome requires the current work binding.")
         if role is not None and scope["role"] not in role:
             raise ValueError("This role cannot perform that outcome.")
+        if scope["role"] == "co":
+            raise ValueError("CO relays overview status; job delivery belongs to the execution roles.")
         if scope["role"] == "nco" and scope["job"] != work["id"]:
             raise ValueError("NCO manages its assigned team; use XO for other responsibilities.")
         return scope, work

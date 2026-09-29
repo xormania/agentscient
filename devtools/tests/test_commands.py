@@ -75,7 +75,7 @@ class CommandTests(unittest.TestCase):
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "onboard", "skill_read"},
+            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))

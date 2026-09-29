@@ -11,8 +11,9 @@ from .control import BRIEF_FIELDS, ROLES, Control, binding
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLE_TOOLS = {"co": {"direct", "monitor", "conclude", "restart_xo"},
-              "xo": {"plan_adopt", "orchestrate", "monitor", "steer"}, "nco": {"orchestrate", "monitor", "steer"}}
+ROLE_TOOLS = {"co": {"direct", "monitor"},
+              "xo": {"plan_adopt", "orchestrate", "monitor", "steer", "conclude"},
+              "nco": {"orchestrate", "monitor", "steer"}}
 
 
 def capabilities(spec):
@@ -24,17 +25,11 @@ def capabilities(spec):
     return [
         spec(
             "direct",
-            "CO: establish or revise the current objective and boundaries; bind XO and deliver relevant briefs.",
+            "CO: relay the owner's objective, boundaries and prepared context to XO; sessions are managed automatically.",
             {"title": name, **goal, "context": {"type": "array", "maxItems": 20,
              "items": {"type": "string", "pattern": "^artifact:[1-9][0-9]*$", "maxLength": 80},
              "description": "Retained specification or research artifacts to share as work-order context."}},
             ("title", "objective", "done_when", "constraints"),
-        ),
-        spec(
-            "restart_xo",
-            "CO: replace the XO conversation using current runtime policy; retain its work, team and reports.",
-            {"reason": text},
-            ("reason",),
         ),
         spec(
             "orchestrate",
@@ -65,7 +60,7 @@ def capabilities(spec):
         ),
         spec(
             "monitor",
-            "CO/XO/NCO: read scoped progress, blockers, observed sessions, recent measured usage and available capacity.",
+            "Read scoped progress, blockers, observed sessions, usage and capacity. CO relays overview status; XO/NCO inspect delivery reviews and diagnostics.",
             {
                 "offset": {"type": "integer", "minimum": 0},
                 "work": {**name, "description": "Optional named job to inspect its current review packet and CI."},
@@ -102,7 +97,7 @@ def capabilities(spec):
         ),
         spec(
             "conclude",
-            "CO: deliver the inspected, checked work-order result and release its team; retain all history.",
+            "XO: accept the inspected, checked integrated result, deliver its outcome to CO and release the execution team; retain all history.",
             {"assessment": text},
             ("assessment",),
         ),
@@ -205,7 +200,7 @@ class Commands:
         key = "direction:" + digest([
             scope["member"], scope["work_order"], scope["job"], scope["role"], scope.get("assignment_id"), scope["revision"], body
         ])
-        sender = scope["reports_to"] or self.member
+        sender = self.member
         exists = db.execute("SELECT id FROM messages WHERE sender=? AND request_key=?", (sender, key)).fetchone()
         message = self.store._send(
             db, sender, scope["member"], body, key=key, work_order=scope["work_order"], job=scope["job"]
@@ -243,6 +238,10 @@ class Commands:
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             scope = self._scope(db, {"co"}, bootstrap=True)
+            if scope and record(db, "work_orders", scope["work_order"])["status"] in {"done", "cancelled"}:
+                # CO remains connected to relay the completed outcome. A new owner
+                # objective starts a new order rather than rewriting its history.
+                scope = None
             fields = dict(title=title, objective=objective, done_when=done_when, constraints=constraints)
             if context is not None:
                 if not scope and context:
@@ -280,10 +279,6 @@ class Commands:
             xo = binding(db, xo["member"])
             self._start_intent(db, xo, slot)
             sent = self._direction(db, xo, "Carry out the current objective within its boundaries.")
-            if changed:
-                for row in self._descendants(db, scope):
-                    if row["member"] != xo["member"]:
-                        self._direction(db, row, "The work-order brief has changed. Apply it to your responsibility.")
             return {"work": title, "xo": self._participant(db, xo, config), "direction": sent}
 
     def orchestrate(self, work):
@@ -314,28 +309,7 @@ class Commands:
         return Planning(self).assign(work)
 
     def restart_xo(self, reason):
-        config = self._config()
-        with self.store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
-            scope = self._scope(db, {"co"})
-            target = db.execute(
-                "SELECT member FROM member_bindings WHERE reports_to=? AND work_order=? AND role='xo'",
-                (self.member, scope["work_order"]),
-            ).fetchone()
-            if not target:
-                raise ValueError("No XO is assigned; use direct to establish the responsibility.")
-            member = target["member"]
-            db.execute("UPDATE members SET desired='stopped' WHERE name=?", (member,))
-            db.execute("UPDATE member_bindings SET paused=0 WHERE member=?", (member,))
-            self._touch(db, member)
-            target = binding(db, member)
-            slot = self._slot(db, config, existing=target)
-            if slot["harness"] == "external":
-                raise ValueError("This XO is external; its operator must reconnect it.")
-            self._start_intent(db, target, slot)
-            sent = self._direction(db, target, "Recover your existing work and team after session replacement. " + reason)
-            self.store._event(db, self.member, "session_replacement_requested", {"member": member, "role": "xo", "reason": reason})
-            return {"xo": self._participant(db, target, config), "direction": sent}
+        raise ValueError("XO session repair requires the trusted operator's session tools.")
 
     def steer(self, action, work=None, direction=None, role=None, assignment=None, **fields):
         from .planning import Planning, execution_current, writer_available
@@ -555,7 +529,7 @@ class Commands:
         from .workspaces import Workspaces
 
         with self.store.connect() as db:
-            scope = self._scope(db, {"co"})
+            scope = self._scope(db, {"xo"})
         with Workspaces(self.store, self.member).lock("order-" + str(scope["work_order"])):
             delivery = Orders(self.store, self.member).finish(scope)
             return self._conclude(assessment, delivery)
@@ -567,7 +541,7 @@ class Commands:
 
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            scope = self._scope(db, {"co"})
+            scope = self._scope(db, {"xo"})
             Orders.settled(db, scope["work_order"])
             Work(self.store, self.member).update_in(
                 db, "work_orders", scope["work_order"], None, status="done", next_action="", blocker=""
@@ -578,6 +552,13 @@ class Commands:
             )
             if delivery.get("merge_commit"):
                 queue(db, scope["work_order"], None, delivery["revision"])
+            recipient = binding(db, scope["reports_to"])
+            if recipient and recipient["role"] == "co" and recipient["work_order"] == scope["work_order"]:
+                self.store._send(
+                    db, self.member, recipient["member"], "Work-order outcome: done\n" + assessment,
+                    key="order-concluded:" + str(scope["work_order"]),
+                    work_order=scope["work_order"], job=None,
+                )
             for row in [*self._descendants(db, scope), scope]:
                 Delivery.release(db, row["member"])
             self.store._event(
@@ -587,11 +568,13 @@ class Commands:
             "outcome": "done",
             "assessment": assessment,
             "history": "retained",
-            "next": "Use direct when the user authorizes another objective.",
+            "next": "CO relays the outcome to the owner and uses direct for the next authorized objective.",
         }
 
     def monitor(self, offset=None, work=None, path=None, page=1, section="overview"):
         scope = self.control.current()
+        if self.role(scope) == "co" and (work or section != "overview" or path is not None or page != 1):
+            raise ValueError("CO relays overview status; delivery inspection belongs to XO and job coordinators.")
         if not work and section != "overview" and scope and scope["role"] == "nco" and scope["job"]:
             with self.store.connect() as db:
                 work = record(db, "jobs", scope["job"])["title"]

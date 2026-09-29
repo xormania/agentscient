@@ -34,9 +34,12 @@ an existing team. A complete project setup has this shape (replace local paths):
 ```
 
 Member names identify reusable slots. CO is the configured external user-facing
-session; XO assigns specialist roles when it organizes work. At least two other
+interface: it relays xor's instructions/context to XO and system messages back to
+xor. XO owns planning, execution, coordination and acceptance. At least two other
 slots support XO and a producer. A third allows concurrent audit. Multiple slots
 can use the same installed harness. External slots connect their own MCP clients.
+Each collaborator is a standalone managed native session. Agentscient owns its
+creation and coordination; harness-native subagents are not used.
 
 Each managed slot accepts optional `model` and `reasoning` strings and a `binary`
 path. Model selection is not hardcoded. Active sessions keep their startup settings;
@@ -212,8 +215,9 @@ path of that branch. The work-order ruleset includes `work-order/*` and excludes
 The initial remote publication contains the development revision. Each job starts
 from the latest remote work-order branch and submits its PR into that branch.
 XO acceptance merges the contribution; XO's `work_submit` validates the combined
-workspace and opens its PR into `project.target`. CO's `monitor(section="review")`
-and `conclude` inspect and deliver that final result under normal GitHub rules.
+workspace and opens its PR into `project.target`. XO's `monitor(section="review")`
+and `conclude` inspect, accept and deliver that final result under normal GitHub
+rules. CO remains xor's interface and relays the system outcome.
 The service never directly pushes new source commits into the integration branch.
 
 Review fixes use the existing job workspace and `work_submit` again. The service
@@ -432,7 +436,7 @@ An in-flight MCP call keeps its original context if another call changes selecti
 clears both. Selection persists across MCP process restarts. Records remain after
 branches disappear and PRs merge. Work-tracking tools store references; GitHub
 tools retrieve current provider state. Managed Git outcomes are described in the [role/tool reference](../docs/control-plane-roles-and-tools.md#workspaces-and-git).
-The operator API can edit status (`open`, `in_progress`, `blocked`, `done`, `cancelled`) directly. Normal agent completion uses XO acceptance and CO conclusion.
+The operator API can edit status (`open`, `in_progress`, `blocked`, `done`, `cancelled`) directly. Normal agent completion uses XO job acceptance and XO work-order conclusion.
 Closing jobs does not automatically close their work order. Optional creation
 `key` values let a caller retry without creating duplicate records.
 

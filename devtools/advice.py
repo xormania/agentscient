@@ -104,6 +104,8 @@ class Advice:
             current = binding(db, self.member)
         if not configured(self.store) or not scope or scope != current or scope["paused"]:
             raise ValueError("Jev assessment requires configured, active current work.")
+        if scope["role"] == "co":
+            raise ValueError("CO relays owner context and system outcomes; work assessment belongs to the execution roles.")
         if xo and scope["role"] not in {"xo", "nco"}:
             raise ValueError("Assignment advice is available to XO and NCO.")
         return scope
@@ -224,7 +226,7 @@ class Advice:
         return {**result, "evidence": reference, "cache_hit": bool(row), "note": NOTE}
 
     def assess(self, sources=None, questions=None, proposal=None):
-        scope = self.scope()
+        self.scope()
         sources, questions = sources or [], questions or []
         if proposal is not None and questions or proposal is None and (not sources or not questions):
             raise ValueError("Supply either a proposal for the configured scope rubric, or sources and questions.")
@@ -250,8 +252,6 @@ class Advice:
         material = [None] * len(sources)
         paths = [i for i, source in enumerate(sources) if "path" in source]
         if paths:
-            if scope["role"] == "co":
-                raise ValueError("CO assesses retained evidence; workspace source belongs to XO and specialists.")
             with Workspaces(self.store, self.member).use() as (_, workspace):
                 revision = git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip()
                 for i in paths:

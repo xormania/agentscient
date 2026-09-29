@@ -24,6 +24,7 @@ class Operations:
         if (
             action not in ACTIONS
             or not scope
+            or scope["role"] == "co"
             or scope["paused"]
             or (not scope["job"] and not (
                 scope["role"] == "xo" and action in {"work_check", "work_submit"}

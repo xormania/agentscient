@@ -9,11 +9,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".agents/skills"
 ROLES = {
     "co": (
-        "Hand the user's objective, boundaries and prepared scope/specification context to XO; assess the integrated result and keep the user informed.",
+        "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work.",
         "agentscient-co",
     ),
     "xo": (
-        "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, accept jobs and integrate the result for CO.",
+        "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor.",
         "agentscient-xo",
     ),
     "coder": (
@@ -120,6 +120,7 @@ class Onboarding:
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
             "It supplies the complete shared/role instructions and current brief. "
             "For subsequent work/context changes refresh work_context. "
+            "Use this standalone managed conversation; Agentscient owns subordinate sessions and assignments. "
             "Read only relevant skills not already supplied by onboard. Your role: " + role + "."
         )
 

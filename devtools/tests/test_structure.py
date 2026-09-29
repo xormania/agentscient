@@ -257,16 +257,18 @@ class StructureTests(unittest.TestCase):
         self.assertIsNone(alpha.control.snapshot())
         self.assertEqual({"Alpha", "Beta"}, {row["title"] for row in self.xo.call("monitor", {})["jobs"]})
 
-    def test_co_cannot_conclude_with_active_planning_and_planner_is_read_only(self):
+    def test_only_xo_concludes_after_planning_and_planner_is_read_only(self):
         self.xo.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
         planner = self.member("planner")
         self.assertIsNone(planner.control.snapshot()["job"])
         forbidden = {"orchestrate", "steer", "plan_adopt", "framework_generate", "work_save", "work_submit"}
         self.assertFalse(forbidden & {tool["name"] for tool in planner.tools()})
-        with self.assertRaisesRegex(ValueError, "assignments remain active"):
+        with self.assertRaisesRegex(ValueError, "not available"):
             self.co.call("conclude", {"assessment": "Premature completion"})
+        with self.assertRaisesRegex(ValueError, "assignments remain active"):
+            self.xo.call("conclude", {"assessment": "Premature completion"})
         self.xo.call("steer", {"action": "cancel", "assignment": "Plan", "direction": "User withdrew planning"})
-        self.assertEqual("done", self.co.call("conclude", {"assessment": "No work remaining"})["outcome"])
+        self.assertEqual("done", self.xo.call("conclude", {"assessment": "No work remaining"})["outcome"])
 
 
 if __name__ == "__main__":

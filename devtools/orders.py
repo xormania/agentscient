@@ -66,7 +66,7 @@ class Orders:
 
     def scope(self, role=None):
         scope = self.spaces.scope()
-        if scope["job"] or role and scope["role"] != role:
+        if scope["job"] or scope["role"] not in {"xo", "planner"} or role and scope["role"] != role:
             raise ValueError("This outcome requires the current work-order command role.")
         return scope
 
@@ -104,7 +104,7 @@ class Orders:
         if not git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
             return {
                 "state": "no_changes",
-                "message": "No source change to publish; CO can conclude the retained results.",
+                "message": "No source change to publish; XO can conclude the retained results.",
             }
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
@@ -112,7 +112,7 @@ class Orders:
             pr = provider._pr(context)
             self.match(pr["head"]["ref"], pr["base"]["ref"], workspace)
             if pr.get("merged") or pr["state"] == "closed":
-                return {"state": "closed", "message": "CO must inspect the published result before concluding."}
+                return {"state": "closed", "message": "XO must inspect the published result before concluding."}
         validation = Development(self.store, self.member).checks(workspace["root"]) if configured(self.store) else None
         if validation and (not validation["passed"] or validation["uncommitted"]):
             return {"state": "needs_attention", "validation": validation}
@@ -236,8 +236,8 @@ class Orders:
             return {"review": review, "resolved": resolve or row["isResolved"], "evidence": receipt["reference"]}
 
     def finish(self, scope):
-        """Called under the work-order lock by CO's existing conclude outcome."""
-        self.scope("co")
+        """Called under the work-order lock by XO's conclude outcome."""
+        self.scope("xo")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.store.connect() as db:
@@ -260,7 +260,7 @@ class Orders:
         if not work["pull_request"]:
             self.sync(workspace)
             if git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
-                raise ValueError("XO must submit the integrated work before CO can conclude it.")
+                raise ValueError("XO must submit the integrated work before concluding it.")
             return {}
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
@@ -284,7 +284,7 @@ class Orders:
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
         CodexReviews(provider).require_ready(context, revision)
-        self.scope("co")
+        self.scope("xo")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:
             raise ValueError("GitHub did not merge the work-order PR. Inspect its current review and CI.")

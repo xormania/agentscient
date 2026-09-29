@@ -415,11 +415,11 @@ class API:
         common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
         if role:
             common |= {"onboard", "skill_read"}
-        if scope and advice_configured(self.store):
+        if scope and role != "co" and advice_configured(self.store):
             common.add("work_assess")
             if role in {"xo", "nco"}:
                 common.add("assignment_advise")
-        if scope and (scope["job"] or role == "planner") and project_config(self.store):
+        if scope and role != "co" and (scope["job"] or role == "planner") and project_config(self.store):
             common.add("work_inspect")
             if role in EDITORS:
                 common |= WORKSPACE_TOOLS
