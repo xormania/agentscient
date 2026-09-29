@@ -318,6 +318,7 @@ class OrderTests(unittest.TestCase):
         result = until(
             lambda: next((r for r in self.xo.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )
+        result = json.loads(self.xo.call("work_context", {"reference": result["reference"]})["content"])
         self.assertTrue(result["result"]["passed"])
         with self.store.connect() as db:
             operation = db.execute("SELECT job,work_order FROM operations WHERE id>77").fetchone()
@@ -360,3 +361,4 @@ class OrderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

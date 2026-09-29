@@ -132,7 +132,7 @@ class Operations:
             if isinstance(generated, dict) and "exit_code" in generated:
                 value["exit_code"] = generated["exit_code"]
                 value["outside_role_paths"] = len(generated.get("outside_role_paths", []))
-        value["details"] = 'Use work_inspect(section="operations") for retained results; work_context reads evidence references.'
+        value["details"] = 'Use work_context(reference=<this reference>); follow next_offset for the complete result.'
         return value
 
     def get(self, ident):
@@ -146,17 +146,16 @@ class Operations:
                 raise ValueError("Operation is not in your current work.")
             return self.public(row)
 
-    def inspect(self):
+    def inspect(self, offset=0):
         scope = self.control.current()
         with self.store.connect() as db:
+            rows = db.execute(
+                "SELECT * FROM operations WHERE work_order=? AND job IS ? AND (?=0 OR id<?) ORDER BY id DESC LIMIT 11",
+                (scope["work_order"], scope["job"], offset, offset),
+            ).fetchall()
             return {
-                "operations": [
-                    self.public(row)
-                    for row in db.execute(
-                        "SELECT * FROM operations WHERE work_order=? AND job IS ? ORDER BY id DESC LIMIT 10",
-                        (scope["work_order"], scope["job"]),
-                    )
-                ]
+                "operations": [self.summary(row) for row in rows[:10]],
+                "next_offset": rows[9]["id"] if len(rows) > 10 else None,
             }
 
     def tick(self):

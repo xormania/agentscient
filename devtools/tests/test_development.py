@@ -49,6 +49,7 @@ class DevelopmentTests(unittest.TestCase):
         result = until(
             lambda: next((r for r in self.api.operations.inspect()["operations"] if r["state"] == "completed"), None)
         )
+        result = json.loads(self.api.call("work_context", {"reference": result["reference"]})["content"])
         self.assertTrue(result["result"]["passed"])
         evidence = self.api.call("work_context", {"reference": result["result"]["checks"][0]["evidence"]})
         self.assertIn("measured", evidence["content"])
@@ -104,6 +105,44 @@ class DevelopmentTests(unittest.TestCase):
         self.assertEqual("failed", notice["state"])
         self.assertEqual(500, len(notice["error"]))
         self.assertEqual(2000, len(self.api.operations.get(ident)["error"]))
+
+    def test_history_summaries_page_stably_and_full_results_remain_scoped(self):
+        self.configure()
+        scope = self.api.control.current()
+        payload = {"preview": "diagnostic 🦉" * 2500, "result": None, "evidence": "artifact:1"}
+        def retain():
+            with self.store.connect() as db:
+                return db.execute(
+                    "INSERT INTO operations(member,work_order,job,binding,action,arguments,state,result,created,updated) "
+                    "VALUES (?,?,?,?,?,?,'completed',?,'fixture','fixture')",
+                    ("coder", scope["work_order"], scope["job"], json.dumps(scope), "framework_inspect", "{}",
+                     json.dumps(payload)),
+                ).lastrowid
+        ids = [retain() for _ in range(12)]
+        first = self.api.call("work_inspect", {"section": "operations"})
+        self.assertEqual(10, len(first["operations"]))
+        self.assertNotIn("diagnostic", json.dumps(first))
+        self.assertLess(len(json.dumps(first)), 7000)
+        retain()  # New completions must not shift the continuation cursor.
+        second = self.api.call("work_inspect", {"section": "operations", "offset": first["next_offset"]})
+        refs = [r["reference"] for r in first["operations"] + second["operations"]]
+        self.assertEqual([f"operation:{i}" for i in reversed(ids)], refs)
+        self.assertIsNone(second["next_offset"])
+        for api in (self.api, API(self.state, "xo")):
+            parts, offset = [], 0
+            while offset is not None:
+                page = api.call("work_context", {"reference": refs[0], "offset": offset})
+                self.assertLessEqual(len(page["content"]), 8000)
+                parts.append(page["content"])
+                offset = page["next_offset"]
+            self.assertEqual(payload, json.loads("".join(parts))["result"])
+        with self.assertRaises(ValueError):
+            self.api.call("work_report", {"text": "Reply", "responding_to": refs[0]})
+        API(self.state, "xo").call("orchestrate", {"work": [
+            {"name": "Other", "role": "docs", "objective": "Other", "done_when": "Done", "constraints": "Docs"}
+        ]})
+        with self.assertRaisesRegex(ValueError, "not available"):
+            API(self.state, "docs").call("work_context", {"reference": refs[0]})
 
     def test_active_retry_reuses_operation_and_worker_rechecks_binding(self):
         self.configure()
