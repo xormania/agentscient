@@ -89,6 +89,63 @@ state they need; CI does not retry failed tests to obtain a green result. If a
 runner loses Docker or PHP crashes, inspect the failing step and retained evidence
 as an environment/runtime failure before labelling it a test flake.
 
+## Optional Jev failure diagnosis
+
+The failed test/integration command in `live-mcp`, `maker-mate` and `serena`
+can run two advisory Jev questions on its runner: classify the likely failure
+cause and select a useful excerpt from the captured log. The original command
+exit status and required `lane` result are preserved. No test is retried,
+skipped, accepted or repaired by a diagnosis. Setup/build failures and cancelled
+or timed-out jobs are outside this initial command-capture coverage.
+
+Create the repository Actions secret **`TYPESAFE_API_KEY`** under **Settings →
+Secrets and variables → Actions → New repository secret**. The workflow passes
+it only to the diagnostic step, on either runner type. No key belongs in the
+checkout or JSON configuration. Fork/Dependabot runs without this secret retain
+an unavailable assessment. Successful checks make no Jev calls.
+
+[jev-ci.json](jev-ci.json) owns enablement, the failure categories and questions,
+confidence threshold, log matching and bounded evidence selection. It references
+[the shared Jev policy](../devtools/jev.json) for the pinned model and transport
+settings, using the same client and credential filter as the MCP advice tools.
+The initial confidence threshold is a configurable presentation threshold, not
+a measured accuracy guarantee. Low confidence becomes `unknown` or no selected
+excerpt; the original probabilities remain in the artifact.
+
+Logs stay on the runner during collection. The client sends bounded, redacted
+candidate windows and allowlisted `check-*.json`, `result.json` and
+`php-runtime.json` evidence, plus bounded recent events from retained fixture
+`telemetry/*.jsonl`, to TypeSafe. Fixture paths stay attached to those events;
+the rubric distinguishes intentional fixture errors from the actual failed check.
+Early error windows and late failures
+both get candidates. Truncation and omitted candidates/files are recorded;
+symlinks and unreadable/oversized JSON documents are excluded. JSONL traces use
+a bounded tail window instead of loading the full trace. The shared filter
+redacts known environment credentials, sensitive JSON fields and bearer strings;
+it cannot identify every possible secret in arbitrary log text.
+
+Each assessment is tied to the tested `GITHUB_SHA`, run, attempt and job. The
+seven-day `jev-ci-<job>-<run>-<attempt>` artifact contains the exact sanitized
+request, validated response, both policy snapshots, input fingerprint, provider
+usage and elapsed time, plus a short Markdown summary. This provides replayable
+inputs for later comparison with confirmed diagnoses. There is no persistent
+answer cache or automatic accuracy labeling in this change.
+
+The selected excerpt is literal redacted log text with original line numbers.
+It appears in a job warning annotation and step summary; existing CI feedback
+can retrieve the annotation. The default excerpt cap fits its 1,500-character
+annotation preview; larger configured excerpts remain complete in the artifact.
+Raw capture files are not included in the new Jev
+artifact. Existing runtime and integration evidence retention stays in place.
+Provider errors, invalid responses, missing logs or missing credentials are
+reported as unavailable; diagnosis/upload steps are advisory even if they fail.
+
+Offline `.github/tests` exercise the actual workflow capture commands and shared
+HTTP client's documented Choice wire format. Fixtures establish wiring and
+failure preservation, not live diagnostic accuracy. An authenticated failed run
+is needed to assess the latter. See the [TypeSafe API](https://docs.typesafe.ai/api)
+and [pinned models](https://docs.typesafe.ai/models), checked on 2026-09-29.
+
 ## Runner selection
 
 The repository variable `CI_RUNNER_MODE` selects execution:
@@ -111,7 +168,7 @@ From the repository root, use the relevant checks:
 ```sh
 python3 -m unittest discover -s .github/tests -v
 python3 -m unittest discover -s devtools/tests -v --durations 10
-uv tool run --from ruff==0.16.8 ruff check devtools .github/ci.py .github/tests
+uv tool run --from ruff==0.16.8 ruff check devtools .github/*.py .github/tests
 ```
 
 The Ruff command uses `uv`; an installed Ruff matching the workflow pin also works.
