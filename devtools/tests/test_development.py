@@ -55,7 +55,10 @@ class DevelopmentTests(unittest.TestCase):
         self.assertIn("measured", evidence["content"])
         for member in ("coder", "xo"):
             messages = self.store.inbox(member)["messages"]
-            self.assertTrue(any('"state":"completed"' in row["body"] for row in messages))
+            notice = next(json.loads(row["body"]) for row in messages if '"state":"completed"' in row["body"])
+            reference = notice["checks"]["evidence"][0]["reference"]
+            evidence = API(self.state, member).call("work_context", {"reference": reference})
+            self.assertIn("measured", evidence["content"])
 
     def test_completion_notices_preserve_outcomes_without_replaying_output(self):
         self.configure()
@@ -75,6 +78,7 @@ class DevelopmentTests(unittest.TestCase):
                 self.assertEqual(receipt["reference"], notice["reference"])
                 self.assertEqual(not failed, notice["passed"])
                 self.assertEqual(int(failed), notice["checks"]["failed"])
+                self.assertEqual([{"check": "fixture", "reference": "artifact:1"}], notice["checks"]["evidence"])
                 self.assertNotIn("UNIQUE DIAGNOSTIC", json.dumps(notice))
                 self.assertLess(len(json.dumps(notice)), 1000)
         with patch.object(Operations, "launch"):
@@ -92,6 +96,7 @@ class DevelopmentTests(unittest.TestCase):
         self.assertEqual("needs_attention", notice["outcome"])
         self.assertFalse(notice["passed"])
         self.assertEqual(1, notice["checks"]["failed"])
+        self.assertEqual([{"check": "fixture", "reference": "artifact:1"}], notice["checks"]["evidence"])
         with patch.object(Operations, "launch"), patch.object(Development, "check", side_effect=ValueError("failure " * 400)):
             receipt = self.api.call("work_check", {})
             ident = int(receipt["reference"].split(":")[1])
@@ -227,4 +232,3 @@ class DevelopmentTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -124,6 +124,9 @@ class Operations:
                 checks = validation["checks"]
                 value["passed"] = validation["passed"]
                 value["checks"] = {"total": len(checks), "failed": sum(r["exit_code"] != 0 for r in checks)}
+                value["checks"]["evidence"] = [
+                    {"check": r["check"], "reference": r["evidence"]} for r in checks if r.get("evidence")
+                ]
                 value["uncommitted"] = len(validation.get("uncommitted", []))
             generated = result.get("result")
             if isinstance(generated, dict) and "exit_code" in generated:
@@ -262,4 +265,3 @@ def execute(directory, member, ident):
     except ValueError as error:
         if not str(error).startswith("Another operation"):
             raise
-
