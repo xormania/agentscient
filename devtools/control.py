@@ -91,6 +91,14 @@ def scope_sql(scope, alias=""):
     prefix = alias + "." if alias else ""
     if not scope:
         return "0", ()
+    if scope["role"] == "nco" and scope["job"] is None:
+        # Reuse command ownership for reports, artifact links and live delivery.
+        # Work-order conversations still require participant authorization in update_sql.
+        return (
+            f"{prefix}work_order=? AND ({prefix}job IS NULL OR "
+            f"{prefix}job IN (SELECT id FROM jobs WHERE created_by=?))",
+            (scope["work_order"], scope["member"]),
+        )
     return (
         f"{prefix}work_order=?" + (f" AND ({prefix}job IS NULL OR {prefix}job=?)" if scope["job"] else ""),
         (scope["work_order"], *((scope["job"],) if scope["job"] else ())),

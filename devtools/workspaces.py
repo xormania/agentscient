@@ -85,7 +85,7 @@ class Workspaces:
             or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):
             raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
-        writable = current["role"] in EDITORS if current["job"] else current["role"] in {"xo", "nco"}
+        writable = current["role"] in EDITORS if current["job"] else current["role"] == "xo"
         if write and (not writable or current["paused"]):
             raise ValueError("Your current role cannot change this work, or the work is paused.")
         if write:

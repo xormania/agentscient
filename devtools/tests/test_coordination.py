@@ -12,6 +12,7 @@ from devtools.api import API
 from devtools.assignments import covers, policy, valid_path
 from devtools.development import Development
 from devtools.operations import Operations
+from devtools.orders import Orders
 from devtools.runtime import defaults, load, resolve
 from devtools.serena_provider import Serena
 from devtools.store import SCHEMA_VERSION, Store
@@ -117,6 +118,86 @@ class CoordinationTests(unittest.TestCase):
                 self.nco.call("steer", {"action": action, "work": "Feature", "direction": "Take another team"})
         with self.assertRaisesRegex(ValueError, "another coordinator"):
             self.nco.call("orchestrate", {"work": [responsibility("Feature")]})
+
+    def test_nco_cannot_publish_refresh_or_respond_to_integrated_work(self):
+        actions = {"work_submit": {"summary": "Publish before XO handoff"},
+                   "work_refresh": {}, "review_respond": {"text": "Resolve before XO handoff", "review": "thread:1"}}
+        for development in (True, False):
+            if not development:
+                path = self.state / "team.json"
+                config = json.loads(path.read_text())
+                del config["project"]["development"]
+                path.write_text(json.dumps(config))
+            nco, xo = API(self.state, self.nco.member), API(self.state, self.xo.member)
+            tools = {row["name"] for row in nco.tools()}
+            self.assertTrue({"orchestrate", "monitor", "steer", "work_inspect"} <= tools)
+            self.assertEqual(development, "work_check" in tools)
+            self.assertTrue(actions.keys() <= {row["name"] for row in xo.tools()})
+            for action, arguments in actions.items():
+                with self.subTest(development=development, action=action):
+                    self.assertNotIn(action, tools)
+                    with self.assertRaisesRegex(ValueError, "not available"):
+                        nco.call(action, arguments)
+
+    def test_nco_integration_service_guards_reject_before_side_effects(self):
+        with patch.object(Operations, "launch") as launch:
+            with self.assertRaisesRegex(ValueError, "corresponding role"):
+                self.nco.operations.start("work_submit", {"summary": "Bypass tool discovery"})
+            launch.assert_not_called()
+        for method, arguments in ((self.nco.workspaces.refresh, {}),
+                                  (self.nco.workspaces.submit, {"summary": "Bypass API"})):
+            with self.subTest(method=method.__name__), self.assertRaisesRegex(ValueError, "cannot change"):
+                method(**arguments)
+        orders = Orders(self.store, self.nco.member)
+        with self.assertRaisesRegex(ValueError, "command role"):
+            orders.submit(self.nco.control.snapshot(), {}, "Bypass workspace service")
+        with self.assertRaisesRegex(ValueError, "command role"):
+            orders.respond("Bypass API", review="thread:1", resolve=True)
+        self.assertEqual("xo", Orders(self.store, self.xo.member).scope("xo")["role"])
+        self.assertEqual("xo", self.xo.workspaces.scope(write=True)["role"])
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM operations").fetchone()[0])
+            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM order_workspaces").fetchone()[0])
+
+    def test_nco_context_only_exposes_delegated_reports_and_evidence(self):
+        self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
+        planner = self.by_role("planner")
+
+        def report(api, label, **arguments):
+            return api.call("work_report", {"text": label, "evidence": {
+                "name": label + ".txt", "content": label + " evidence"}, **arguments})
+
+        sibling = report(self.api, "SIBLING PRIVATE")
+        command = report(self.xo, "COMMAND PRIVATE")
+        child = report(planner, "Delegated finding")
+        own = report(self.nco, "Delegation question")
+        answer = report(self.xo, "XO guidance", responding_to=own["reference"])
+        raw_child = "artifact:" + str(planner.artifacts.save(
+            "delegated-check.txt", content="Delegated check output")["artifact"]["id"])
+        raw_sibling = "artifact:" + str(self.api.artifacts.save(
+            "SIBLING PRIVATE check.txt", content="SIBLING PRIVATE check output")["artifact"]["id"])
+        visible = (child, own, answer)
+        client = Client(self.state, self.nco.member)
+        self.addCleanup(client.close)
+        for section in ("brief", "activity", "messages", "evidence"):
+            with self.subTest(section=section):
+                self.assertNotIn("PRIVATE", json.dumps(client.tool("work_context", {"section": section})))
+        self.assertEqual({row["reference"] for row in visible}, {
+            row["reference"] for row in client.tool("work_context", {"section": "activity"})["activity"]})
+        self.assertEqual({row["evidence"] for row in visible} | {raw_child}, {
+            row["reference"] for row in client.tool("work_context", {"section": "evidence"})["evidence"]})
+        for receipt in visible:
+            self.assertEqual(receipt["reference"], client.tool("work_context", {
+                "reference": receipt["reference"]})["reference"])
+            self.assertIn("evidence", client.tool("work_context", {"reference": receipt["evidence"]})["content"])
+        self.assertEqual("Delegated check output", client.tool("work_context", {"reference": raw_child})["content"])
+        for reference in (sibling["reference"], sibling["evidence"], command["reference"], command["evidence"], raw_sibling):
+            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, "not available"):
+                client.tool("work_context", {"reference": reference})
+            for member in ("co", "xo"):
+                self.assertEqual(reference, API(self.state, member).call("work_context", {"reference": reference})["reference"])
+        with self.assertRaisesRegex(ValueError, "not available"):
+            client.tool("work_report", {"text": "Reply outside delegation", "responding_to": sibling["reference"]})
 
     def test_pause_resume_reaches_descendants_and_brief_changes_invalidate_all_job_bindings(self):
         self.nco.call("orchestrate", {"work": [responsibility("Plan", "planner"), responsibility("Plan", "audit")]})

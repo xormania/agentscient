@@ -64,7 +64,7 @@ class Orders:
 
     def scope(self, role=None):
         scope = self.spaces.scope()
-        if scope["job"] or role and scope["role"] not in ({"xo", "nco"} if role == "xo" else {role}):
+        if scope["job"] or role and scope["role"] != role:
             raise ValueError("This outcome requires the current work-order command role.")
         return scope
 
