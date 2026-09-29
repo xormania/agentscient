@@ -1,15 +1,7 @@
 {
   "name": "Retain CI toolchain",
   "on": {
-    "workflow_dispatch": {},
-    "push": {
-      "branches": [
-        "work-order/php-toolchain-job-retain"
-      ],
-      "paths": [
-        ".github/workflows/retain-toolchain.yml"
-      ]
-    }
+    "workflow_dispatch": {}
   },
   "permissions": {
     "contents": "read"
