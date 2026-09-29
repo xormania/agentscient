@@ -5,6 +5,8 @@ import socket
 import unittest
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from threading import Event
 from unittest.mock import MagicMock, patch
 
 import test_delivery
@@ -17,6 +19,7 @@ from devtools.jev import MAX_RESPONSE, MODEL, Jev, checked_response
 from devtools.jev_config import load as load_policy
 from devtools.runtime import defaults
 from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
+from devtools.workspaces import Workspaces
 
 
 def answer(state, questions, model=MODEL):
@@ -131,6 +134,38 @@ class AdviceTests(unittest.TestCase):
         events = self.store.events(kind="jev_evaluation")["events"]
         self.assertEqual(1, sum(r["data"].get("cache_hit", False) for r in events))
         self.assertIsNone(events[1]["data"]["usage"])
+
+    def test_concurrent_cache_wait_covers_configured_retries(self):
+        policy = load_policy()
+        policy["transport"].update(timeout=60, max_attempts=3, max_retry_delay=5)
+        (self.state / "slow-jev.json").write_text(json.dumps(policy))
+        self.configure({"policy_file": "slow-jev.json"})
+        evaluating, waiting = Event(), Event()
+        original_lock = Workspaces.lock
+
+        @contextmanager
+        def checked_lock(spaces, name, timeout=0):
+            if name.startswith("jev-"):
+                self.assertGreaterEqual(timeout, 190)  # Three 60s attempts and two 5s backoffs.
+                if evaluating.is_set():
+                    waiting.set()
+            with original_lock(spaces, name, timeout):
+                yield
+
+        def evaluate(state, questions, model):
+            evaluating.set()
+            self.assertTrue(waiting.wait(5), "Second request did not wait for the in-flight evaluation")
+            return answer(state, questions, model)
+
+        self.provider.side_effect = evaluate
+        with patch.object(Workspaces, "lock", checked_lock), ThreadPoolExecutor(max_workers=2) as pool:
+            first = pool.submit(self.api.call, "work_assess", {"proposal": "Add logging"})
+            self.assertTrue(evaluating.wait(5))
+            second = pool.submit(API(self.state, "coder").call, "work_assess", {"proposal": "Add logging"})
+            results = [first.result(), second.result()]
+        self.assertEqual(1, self.provider.call_count)
+        self.assertEqual(results[0]["evidence"], results[1]["evidence"])
+        self.assertEqual([False, True], [result["cache_hit"] for result in results])
 
     def test_sources_reject_escape_symlinks_environment_and_nonregular_files(self):
         root = test_workspaces.WorkspaceTests.prepared(self)
@@ -296,6 +331,36 @@ class AdviceTests(unittest.TestCase):
         for bad in ({}, {"proposal": "x", "questions": [{"name": "x", "instructions": "x"}]}):
             with self.assertRaises(ValueError):
                 self.api.call("work_assess", bad)
+
+    def test_sensitive_rubric_identifiers_preserve_schema_and_scrub_text(self):
+        policy = load_policy()
+        secret = "private-rubric-secret"
+        policy["scope"]["questions"] = {
+            "password": {"type": "noul", "instructions": "Check " + secret},
+            "api_key": {"type": "choice", "instructions": "Select a credential category",
+                        "criteria": {"password": "Check Bearer secret-token", "token": secret}},
+            "access_token": {"type": "score", "instructions": "Assess handling",
+                             "criteria": ["Absent", "Includes " + secret]},
+        }
+        (self.state / "rubric.json").write_text(json.dumps(policy))
+        self.configure({"policy_file": "rubric.json"})
+        with patch.dict(os.environ, {"TYPESAFE_API_KEY": secret}):
+            result = self.api.call("work_assess", {"proposal": "Check credential handling"})
+            cached = self.api.call("work_assess", {"proposal": "Check credential handling"})
+        state, questions, model = self.requests[-1]
+        self.assertEqual({"password", "api_key", "access_token"}, questions.keys())
+        self.assertEqual("noul", questions["password"]["type"])
+        self.assertEqual({"password", "token"}, questions["api_key"]["criteria"].keys())
+        self.assertEqual("[REDACTED]", questions["api_key"]["criteria"]["token"])
+        checked_response(answer(state, questions, model), questions, model)
+        saved = self.retained(result)
+        self.assertEqual(questions, saved["request"]["questions"])
+        self.assertEqual(questions, saved["policy"]["scope"]["questions"])
+        self.assertNotIn(secret, json.dumps(saved))
+        self.assertNotIn("secret-token", json.dumps(saved))
+        self.assertEqual(result["evidence"], cached["evidence"])
+        self.assertTrue(cached["cache_hit"])
+        self.assertEqual(1, self.provider.call_count)
 
     def test_feedback_links_decision_outcome_and_retries_without_changing_assignments(self):
         result = self.api.call("work_assess", {"proposal": "Add logging"})

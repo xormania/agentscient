@@ -21,7 +21,7 @@ from .telemetry import clean
 from .workspaces import Workspaces, git, project_config
 
 SPECIALISTS = [role for role in ROLES if role not in {"co", "xo"}]
-VERSION = 2
+VERSION = 3
 NOTE = "Advisory assessment of the supplied evidence; inspect uncertainty and source ranges before acting."
 
 
@@ -64,6 +64,15 @@ def capabilities(spec):
 
 def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+def clean_questions(value):
+    """Rubric keys are schema identifiers, not credential-bearing field names."""
+    if isinstance(value, dict):
+        return {key: clean_questions(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [clean_questions(item) for item in value]
+    return clean(value)
 
 
 def excerpt(data, offset, limit):
@@ -166,9 +175,13 @@ class Advice:
         policy = policy or load_policy(self.store.directory, config)
         model = policy["model"]
         # Reuse the common credential filter before any third-party request or retained result.
-        state, questions = clean(state), clean(questions)
+        state, questions = clean(state), clean_questions(questions)
         fingerprint = digest([VERSION, scope, model, purpose, state, questions, sources, policy])
-        with Workspaces(self.store, self.member).lock("jev-" + fingerprint, timeout=20):
+        transport = policy["transport"]
+        # Cover every allowed attempt/backoff, plus one timeout for retaining the result.
+        wait = transport["timeout"] * (transport["max_attempts"] + 1)
+        wait += transport["max_retry_delay"] * (transport["max_attempts"] - 1)
+        with Workspaces(self.store, self.member).lock("jev-" + fingerprint, timeout=wait):
             return self.retained(purpose, scope, model, state, questions, sources, fingerprint, policy)
 
     def retained(self, purpose, scope, model, state, questions, sources, fingerprint, policy):
@@ -194,7 +207,8 @@ class Advice:
             result = {**response, "sources": sources, "questions": questions, "question_version": VERSION,
                       "evaluated_at": stamp(), "fingerprint": fingerprint, "purpose": purpose,
                       "binding": {key: scope[key] for key in ("member", "role", "work_order", "job", "reports_to", "revision", "paused", "updated")},
-                      "policy": clean(policy),
+                      "policy": {**clean(policy), "scope": {**policy["scope"],
+                                 "questions": clean_questions(policy["scope"]["questions"])}},
                       "request": {"model": model, "state": state, "questions": questions}}
             saved = self.artifacts.ingest(name, io.BytesIO(canonical(result).encode()), "application/json",
                                           work_order=scope["work_order"], job=scope["job"])
