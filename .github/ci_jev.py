@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import html
 import json
@@ -72,36 +73,79 @@ def clipped(text, limit):
     return data[:limit].decode("utf-8", errors="ignore"), len(data) > limit
 
 
-def read_regular(path, limit, *, tail=False):
+@contextlib.contextmanager
+def regular_file(path):
     """Never follow an evidence symlink or block on a pipe/device."""
     descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor, "rb") as source:
         info = os.fstat(source.fileno())
         if not stat.S_ISREG(info.st_mode):
             raise ValueError("Expected a regular evidence file.")
-        if tail and info.st_size > limit:
+        yield source, info.st_size
+
+
+def read_regular(path, limit, *, tail=False):
+    with regular_file(path) as (source, size):
+        if tail and size > limit:
             source.seek(-limit, os.SEEK_END)
         data = source.read(limit + 1)
-        if tail and info.st_size > limit:
+        if tail and size > limit:
             # The first record may start before this byte window.
             return data.partition(b"\n")[2].decode("utf-8", errors="replace"), True
     return data[:limit].decode("utf-8", errors="replace"), len(data) > limit
 
 
+def log_regions(path, limit):
+    """Retain complete LF-delimited lines from both ends within one byte budget."""
+    with regular_file(path) as (source, size):
+        partial = size > limit
+        if not partial:
+            regions = [(1, source.read(limit))]
+        else:
+            head = source.read(limit // 2)
+            tail_bytes = limit - len(head)
+            remaining = size - tail_bytes - len(head)
+            newlines = head.count(b"\n")
+            previous = head[-1:]
+            # Count the omitted middle in bounded chunks, without retaining it,
+            # so tail excerpts still name their actual source lines.
+            while remaining:
+                block = source.read(min(limit, remaining))
+                if not block:
+                    raise ValueError("Log changed during collection.")
+                remaining -= len(block)
+                newlines += block.count(b"\n")
+                previous = block[-1:]
+            tail = source.read(tail_bytes)
+            if len(tail) != tail_bytes:
+                raise ValueError("Log changed during collection.")
+            if previous != b"\n":
+                _, separator, tail = tail.partition(b"\n")
+                newlines += bool(separator)
+            # Never scrub or publish a cut line: it may contain half a credential.
+            head = head[:head.rfind(b"\n") + 1]
+            regions = [(1, head), (newlines + 1, tail)]
+    return [(first, [clean(line.decode("utf-8", errors="replace").removesuffix("\r"))
+                     for line in data.removesuffix(b"\n").split(b"\n")])
+            for first, data in regions if data], partial
+
+
 def collect(log, evidence, config):
     limits = config["limits"]
-    text, partial = read_regular(log, limits["log_bytes"])
-    # Scrub complete lines before truncating; keep their original line numbers.
-    lines = [clean(line) for line in text.splitlines()]
+    regions, partial = log_regions(log, limits["log_bytes"])
     pattern = re.compile(config["error_pattern"])
     starts = []
-    for index, line in enumerate(lines):
-        if pattern.search(line):
-            start = max(0, index - limits["before_lines"])
-            if not starts or start >= starts[-1] + limits["excerpt_lines"]:
-                starts.append(start)
-    if lines and not starts:
-        starts = [max(0, len(lines) - limits["excerpt_lines"])]
+    for first_line, lines in regions:
+        local_starts = []
+        for index, line in enumerate(lines):
+            if pattern.search(line):
+                start = max(0, index - limits["before_lines"])
+                if not local_starts or start >= local_starts[-1] + limits["excerpt_lines"]:
+                    local_starts.append(start)
+        if lines and not local_starts:
+            local_starts = [max(0, len(lines) - limits["excerpt_lines"])]
+        # Keep regions separate; an excerpt must not bridge an omitted gap.
+        starts.extend((first_line, lines, start) for start in local_starts)
     # Preserve early causes as well as late failures when there are many matches.
     total = len(starts)
     maximum = limits["candidates"]
@@ -109,10 +153,10 @@ def collect(log, evidence, config):
         first = (maximum + 1) // 2
         starts = starts[:first] + (starts[-(maximum - first):] if maximum > first else [])
     candidates = []
-    for index, start in enumerate(starts):
+    for index, (first_line, lines, start) in enumerate(starts):
         excerpt, cut = clipped("\n".join(lines[start:start + limits["excerpt_lines"]]), limits["excerpt_bytes"])
-        candidates.append({"id": "excerpt_" + str(index), "line_start": start + 1,
-                           "line_end": start + max(1, len(excerpt.splitlines())), "text": excerpt,
+        candidates.append({"id": "excerpt_" + str(index), "line_start": first_line + start,
+                           "line_end": first_line + start + excerpt.count("\n"), "text": excerpt,
                            "partial": cut})
     records, omitted = [], 0
     if evidence and evidence.is_dir() and not evidence.is_symlink():
@@ -144,7 +188,7 @@ def collect(log, evidence, config):
                 continue
             records.append({"path": str(relative), "text": content, "partial": truncated,
                             "selection": "latest_events" if is_trace else "document"})
-    return {"log": {"name": log.name, "partial": partial, "read_lines": len(lines),
+    return {"log": {"name": log.name, "partial": partial, "read_lines": sum(len(lines) for _, lines in regions),
                     "omitted_candidates": total - len(candidates)},
             "candidates": candidates, "runtime_evidence": records, "omitted_evidence_files": omitted}
 

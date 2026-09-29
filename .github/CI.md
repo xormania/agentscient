@@ -117,8 +117,12 @@ candidate windows and allowlisted `check-*.json`, `result.json` and
 `php-runtime.json` evidence, plus bounded recent events from retained fixture
 `telemetry/*.jsonl`, to TypeSafe. Fixture paths stay attached to those events;
 the rubric distinguishes intentional fixture errors from the actual failed check.
-Early error windows and late failures
-both get candidates. Truncation and omitted candidates/files are recorded;
+Early error windows and late failures both get candidates. Logs exceeding
+`limits.log_bytes` split that retained byte budget between the head and tail.
+The omitted middle is scanned in bounded chunks only to count line endings,
+so tail excerpts keep their original line numbers. Cut boundary lines are
+dropped before redaction, and excerpts never join across the omitted gap.
+Truncation and omitted candidates/files are recorded;
 symlinks and unreadable/oversized JSON documents are excluded. JSONL traces use
 a bounded tail window instead of loading the full trace. The shared filter
 redacts known environment credentials, sensitive JSON fields and bearer strings;

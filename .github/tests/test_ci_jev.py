@@ -173,6 +173,55 @@ class DiagnosisTests(unittest.TestCase):
         self.assertGreater(state["log"]["omitted_candidates"], 12)
         self.assertGreaterEqual(len(state["candidates"]), 1)
 
+    def test_oversized_logs_keep_early_and_final_failures_at_original_line_numbers(self):
+        self.config["limits"]["excerpt_lines"] = 8
+        for budget in (1000, self.config["limits"]["log_bytes"]):
+            with self.subTest(budget=budget):
+                original = ["ERROR: early failure"] + ["ordinary progress " + "x" * 60] * (budget // 60)
+                original += ["ERROR: final failure"]
+                self.log.write_text("\n".join(original) + "\n")
+                self.config["limits"]["log_bytes"] = budget
+                state = triage.collect(self.log, self.evidence, self.config)
+                self.assertTrue(state["log"]["partial"])
+                self.assertLess(state["log"]["read_lines"], len(original))
+                excerpts = state["candidates"]
+                self.assertTrue(any("early failure" in c["text"] for c in excerpts))
+                self.assertTrue(any("final failure" in c["text"] for c in excerpts))
+                for candidate in excerpts:
+                    self.assertEqual("\n".join(original[candidate["line_start"] - 1:candidate["line_end"]]),
+                                     candidate["text"])
+
+    def test_oversized_log_tail_fallback_handles_byte_boundaries_and_unterminated_lines(self):
+        self.config["limits"]["log_bytes"] = 1000
+        for newline in (b"\n", b"\r\n"):
+            for last_newline in (b"", newline):
+                # Exercise a tail starting at a line boundary and inside UTF-8 text.
+                for padding in range(12):
+                    with self.subTest(newline=newline, last_newline=last_newline, padding=padding):
+                        original = ["progress 語" + "x" * padding] * 120 + ["final status: incomplete"]
+                        self.log.write_bytes(newline.join(line.encode() for line in original) + last_newline)
+                        state = triage.collect(self.log, self.evidence, self.config)
+                        last = state["candidates"][-1]
+                        self.assertIn("final status: incomplete", last["text"])
+                        self.assertEqual(len(original), last["line_end"])
+                        for candidate in state["candidates"]:
+                            self.assertEqual("\n".join(original[candidate["line_start"] - 1:candidate["line_end"]]),
+                                             candidate["text"])
+
+    def test_oversized_log_windows_drop_cut_lines_and_never_join_across_the_gap(self):
+        self.config["limits"]["log_bytes"] = 1000
+        original = ["ERROR: first cause", "Bearer " + "private" * 1000,
+                    "ERROR: final cause fixture-key-never-publish"]
+        self.log.write_text("\n".join(original))
+        state = triage.collect(self.log, self.evidence, self.config)
+        candidates = state["candidates"]
+        self.assertEqual([(1, 1), (3, 3)], [(c["line_start"], c["line_end"]) for c in candidates])
+        self.assertEqual(2, state["log"]["read_lines"])
+        self.assertIn("first cause", candidates[0]["text"])
+        self.assertIn("final cause", candidates[1]["text"])
+        self.assertNotIn("private", json.dumps(state))
+        self.assertNotIn("fixture-key-never-publish", json.dumps(state))
+
     def test_retained_runtime_trace_uses_actual_jsonl_shape_and_latest_bounded_events(self):
         telemetry = self.evidence / "fixture/telemetry"
         telemetry.mkdir(parents=True)
