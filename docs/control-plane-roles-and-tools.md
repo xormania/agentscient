@@ -49,7 +49,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
 | XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
-| NCO (`nco`) | Same execution tools as XO, scoped to its specialist jobs; reports to XO and cannot appoint another NCO | None |
+| NCO (`nco`) | `orchestrate`, `monitor`, `steer` for its delegated jobs; with a project: `work_inspect`; with development enabled: `work_check`. Reports to XO, which refreshes, submits and handles review responses for the integrated result. Cannot appoint another NCO. | None |
 | Planner (`planner`) | Shared and specialist inspection/reporting tools; retained plan required for a result | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |

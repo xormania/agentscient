@@ -431,7 +431,9 @@ class API:
                 if role in {"coder", "test_writer"}:
                     common.add("framework_generate")
         if scope and not scope["job"] and role in {"xo", "nco"} and project_config(self.store):
-            common |= {"work_inspect", "work_refresh", "work_submit", "review_respond"}
+            common.add("work_inspect")
+            if role == "xo":
+                common |= {"work_refresh", "work_submit", "review_respond"}
             if development_configured(self.store):
                 common.add("work_check")
         allowed = common | ROLE_TOOLS.get(role, set())
