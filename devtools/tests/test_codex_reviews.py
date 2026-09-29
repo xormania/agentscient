@@ -175,16 +175,18 @@ class CodexReviewTests(unittest.TestCase):
         } for number in range(13, 25))
         self.assertEqual(2, len(self.tick()))
         self.assertEqual(2, len(self.tick()))
+        # Even an edit beyond the preview must notify: updatedAt participates in the fingerprint.
+        preview = "Follow-up 24\n" + "x" * 1500
+        comments[-1]["body"] = preview + "First ending"
+        self.assertEqual(3, len(self.tick()))
+        comments[-1].update(body=preview + "Revised ending", updatedAt="2026-09-29T01:01:00Z")
+        self.assertEqual(4, len(self.tick()))
+        self.assertEqual(4, len(self.tick()))
+        # Opening MCP resumes the real watcher on Linux; finish manual polling before that.
         xo = self.client("beta")
         thread = xo.tool("monitor", {"section": "feedback"})["delivery"]["codex"]["threads"][0]
         self.assertEqual(13, thread["comment_count"])
-        self.assertEqual(["Please fix this", "Follow-up 24"], [row["body"] for row in thread["comments"]])
-        # Even an edit beyond the preview must notify: updatedAt participates in the fingerprint.
-        comments[-1]["body"] = "x" * 1500 + "First ending"
-        self.assertEqual(3, len(self.tick()))
-        comments[-1].update(body="x" * 1500 + "Revised ending", updatedAt="2026-09-29T01:01:00Z")
-        self.assertEqual(4, len(self.tick()))
-        self.assertEqual(4, len(self.tick()))
+        self.assertEqual(["Please fix this", preview[:1500]], [row["body"] for row in thread["comments"]])
 
 
 if __name__ == "__main__":
