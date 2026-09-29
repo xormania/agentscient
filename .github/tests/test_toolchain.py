@@ -140,6 +140,20 @@ class ToolchainTests(unittest.TestCase):
             toolchain.publish(self.config, self.paths)
         self.assertEqual(events, ["POST", "GET", "verify", "verify", "PATCH"])
 
+    def test_draft_lookup_pages_when_the_published_tag_endpoint_returns_404(self):
+        unrelated = {"tag_name": "other", "draft": False}
+        draft = {**self.release, "draft": True, "tag_name": self.config["tag"]}
+        with patch.object(toolchain, "api", side_effect=[[unrelated] * 100, [draft]]) as api:
+            self.assertEqual(toolchain.get_draft(self.config), draft)
+            self.assertTrue(api.call_args.args[0].endswith("page=2"))
+        missing = urllib.error.HTTPError("https://api.github.com/fixture", 404, "missing", {}, None)
+        with patch.object(toolchain, "get_release", side_effect=missing), \
+                patch.object(toolchain, "get_draft", return_value=draft), \
+                patch.object(toolchain, "api", side_effect=[draft, self.release]) as api, \
+                patch.object(toolchain, "request", side_effect=self.response):
+            toolchain.publish(self.config, self.paths)
+            self.assertEqual([c.kwargs.get("method", "GET") for c in api.call_args_list], ["GET", "PATCH"])
+
     def test_bad_release_readback_never_publishes(self):
         with patch.object(toolchain, "get_release", return_value={**self.release, "draft": True}), \
                 patch.object(toolchain, "api", return_value={**self.release, "draft": True}) as api, \
@@ -151,6 +165,7 @@ class ToolchainTests(unittest.TestCase):
     def test_bad_source_never_creates_a_release(self):
         missing = urllib.error.HTTPError("https://api.github.com/fixture", 404, "missing", {}, None)
         with patch.object(toolchain, "get_release", side_effect=missing), \
+                patch.object(toolchain, "get_draft", return_value=None), \
                 patch.object(toolchain, "request", return_value=io.BytesIO(b"new bytes")), \
                 patch.object(toolchain, "api") as api:
             with self.assertRaisesRegex(ValueError, "Checksum mismatch"):

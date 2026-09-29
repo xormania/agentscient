@@ -97,6 +97,22 @@ def get_release(config):
     return api(release_url(config) + "/tags/" + urllib.parse.quote(config["tag"], safe=""))
 
 
+def get_draft(config):
+    # The tag endpoint promises published releases. Authenticated listing also
+    # exposes drafts, including interrupted uploads whose tag does not yet exist.
+    page = 1
+    while True:
+        releases = api(release_url(config) + f"?per_page=100&page={page}")
+        matches = [item for item in releases if item["tag_name"] == config["tag"]]
+        if len(matches) > 1:
+            raise ValueError("Multiple releases use the configured toolchain tag")
+        if matches:
+            return matches[0]
+        if len(releases) < 100:
+            return None
+        page += 1
+
+
 def asset_urls(config, release):
     assets = {item["name"]: item for item in release["assets"]}
     result = {}
@@ -149,7 +165,7 @@ def publish(config, paths):
     except urllib.error.HTTPError as error:
         if error.code != 404:
             raise
-        release = None
+        release = get_draft(config)
     if release is None:
         # Recover only the original approved PHP bytes. A changed upstream archive fails.
         for key in paths:
