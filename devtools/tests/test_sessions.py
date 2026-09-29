@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, fixture_work, retain_native
+from support import ENTRY, Client, fixture_work, retain_native, until
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -45,11 +45,21 @@ class SessionTests(unittest.TestCase):
         return API(self.state, member)
 
     def test_generation_fences_existing_and_reconnecting_clients_and_hooks(self):
+        def start_after_calls_finish():
+            # The MCP response can arrive just before its request lease exits.
+            # Honor the service's retry contract without weakening the in-flight check.
+            try:
+                return self.store.begin_session("owner", os.getpid())
+            except ValueError as error:
+                if "call in flight" not in str(error):
+                    raise
+                return None
+
         self.bind()
         self.co.call("work_report", {"text": "Preserve this decision", "kind": "progress"})
         old = Client(self.state, "owner")
         self.addCleanup(old.close)
-        first = self.store.begin_session("owner", os.getpid())
+        first = until(start_after_calls_finish)
         with self.assertRaisesRegex(ValueError, "replaced"):
             old.tool("direct", GOAL)
         current = Client(self.state, "owner", generation=first)
@@ -59,7 +69,7 @@ class SessionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "in flight"):
                 self.store.begin_session("owner", os.getpid())
         self.store.session("owner", generation=first, state="stopped", desired="stopped", pid=None)
-        second = self.store.begin_session("owner", os.getpid())
+        second = until(start_after_calls_finish)
         self.assertNotEqual(first, second)
         with self.assertRaisesRegex(ValueError, "replaced"):
             current.tool("work_report", {"text": "Stale decision", "kind": "progress"})

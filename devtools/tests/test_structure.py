@@ -221,6 +221,7 @@ class StructureTests(unittest.TestCase):
         self.xo.call("plan_adopt", {"plan": report["reference"], "jobs": [job("Alpha")]})
         self.assertEqual("xo", coder.control.snapshot()["reports_to"])
         self.assertIsNone(alpha.control.snapshot())
+        self.assertEqual({"Alpha", "Beta"}, {row["title"] for row in self.xo.call("monitor", {})["jobs"]})
 
     def test_co_cannot_conclude_with_active_planning_and_planner_is_read_only(self):
         self.xo.call("orchestrate", {"work": [responsibility("Plan", "planner")]})

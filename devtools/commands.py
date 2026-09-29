@@ -521,18 +521,11 @@ class Commands:
     def _owns_job(db, scope, job):
         if scope["work_order"] != job["work_order"]:
             return False
+        if scope["role"] in {"co", "xo"}:
+            return True
         if scope["role"] == "nco":
             return scope["job"] == job["id"]
-        owners = {scope["member"]}
-        if scope["role"] == "xo":
-            owners.update(row["member"] for row in Commands._descendants(db, scope) if row["role"] == "nco")
-            adopted = db.execute("SELECT 1 FROM work_plans p JOIN work_orders w ON w.id=p.work_order, json_each(p.jobs) j "
-                                 "WHERE p.work_order=? AND p.revision=w.plan_revision AND p.adopted_by=? "
-                                 "AND lower(json_extract(j.value,'$.name'))=lower(?)",
-                                 (scope["work_order"], scope["member"], job["title"])).fetchone()
-            if adopted:
-                return True
-        return scope["role"] == "co" or job["created_by"] in owners
+        return False
 
     @staticmethod
     def _named_job(db, scope, name):

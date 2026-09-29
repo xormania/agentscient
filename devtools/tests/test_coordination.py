@@ -80,6 +80,16 @@ class AssignmentBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside this role"):
             coder.call("work_save", {"note": "Try the old assignment"})
 
+    def test_default_planned_scope_does_not_materialize_policy_paths(self):
+        self.plan()
+        self.coordinator.call("orchestrate", {"work": [responsibility("Feature")]})
+        self.coordinator.call("steer", {"action": "resume", "work": "Feature"})
+        coder = self.by_role("coder")
+        workspace = coder.workspaces.ensure()
+        provider = Serena(self.state, coder.member)
+        provider.command(coder.control.snapshot(), workspace)
+        self.assertEqual(b"", git(workspace["root"], "status", "--porcelain").stdout)
+
     def test_maker_protection_and_operator_policy_are_reused(self):
         self.api.call("work_inspect", {})
         root = Path(self.api.workspaces.ensure()["root"])

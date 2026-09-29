@@ -116,7 +116,7 @@ def prepare(db, control, scope, item, existing=None):
                 raise ValueError("The delegated mission changed after planning; request a current plan.")
         value["plan"] = {"reference": reference, "evidence": f"artifact:{update['artifact']}",
                          "author": update["actor"], "binding": plan_scope}
-    if "plan" in value and "editable_paths" not in value and item["role"] in {"coder", "docs", "test_writer", "architect"}:
+    if "plan" in value and value["plan"].get("binding", {}).get("job") is not None and "editable_paths" not in value and item["role"] in {"coder", "docs", "test_writer", "architect"}:
         raise ValueError("A planned implementation needs explicit editable_paths.")
     if "editable_paths" in value and "context_paths" not in value:
         value["context_paths"] = list(rules["context_paths"])

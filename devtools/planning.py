@@ -286,9 +286,9 @@ class Planning:
             if adopted and item.get("plan", adopted) != adopted:
                 raise ValueError("Use this job's currently adopted plan.")
             proposed = {**item, **({"plan": adopted} if adopted else {})}
-            if role in EDITORS and "editable_paths" not in proposed:
+            if role in EDITORS and "editable_paths" not in proposed and ("editable_paths" in details or "editable_paths" in job_details):
                 allowed = Workspaces(self.store, self.member)
-                proposed["editable_paths"] = [p for p in details.get("editable_paths", job_details.get("editable_paths", allowed.paths(role, assignment={})))
+                proposed["editable_paths"] = [p for p in details.get("editable_paths", job_details.get("editable_paths", []))
                                                 if allowed.permitted_path(p, role, assignment={})]
             if "context_paths" not in proposed and "context_paths" in job_details:
                 proposed["context_paths"] = job_details["context_paths"]
