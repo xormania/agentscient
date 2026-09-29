@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -103,6 +104,8 @@ class Delivery:
             raise ValueError("This outcome requires the current work binding.")
         if role is not None and scope["role"] not in role:
             raise ValueError("This role cannot perform that outcome.")
+        if scope["role"] == "nco" and work["created_by"] != self.member:
+            raise ValueError("NCO manages its assigned team; use XO for other responsibilities.")
         return scope, work
 
     def inspect(self, job=None, path=None, offset=None, page=1, section="review"):
@@ -281,12 +284,12 @@ class Delivery:
         return receipt
 
     def finish_job(self, job, assessment, *, cancel=False):
-        scope, _ = self.scope(job, role={"xo"})
+        scope, _ = self.scope(job, role={"xo", "nco"})
         with self.spaces.lock("order-" + str(scope["work_order"])):
             return self._finish_job(job, assessment, cancel=cancel)
 
     def _finish_job(self, job, assessment, *, cancel=False):
-        scope, work = self.scope(job, role={"xo"})
+        scope, work = self.scope(job, role={"xo", "nco"})
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.spaces.lock("job-" + str(job)):
@@ -303,7 +306,7 @@ class Delivery:
                     "SELECT 1 FROM operations WHERE job=? AND state IN ('queued','running')", (job,)
                 ).fetchone()
                 workspace = db.execute("SELECT * FROM job_workspaces WHERE job=?", (job,)).fetchone()
-                report = db.execute("SELECT 1 FROM work_updates WHERE job=? AND kind='result'", (job,)).fetchone()
+                report = self._current_result(db, job)
             if active:
                 raise ValueError("A development operation is still active. Its result will be delivered automatically.")
             revision, merge_commit = None, None
@@ -330,7 +333,7 @@ class Delivery:
                     )
                 if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
                     raise ValueError("CI has not passed for the current PR revision.")
-                self.scope(job, role={"xo"})
+                self.scope(job, role={"xo", "nco"})
                 merged = self.github.pr_merge(context, revision=revision)
                 if not merged["merged"]:
                     return {"work": work["title"], "outcome": "not_merged", "provider": merged}
@@ -342,19 +345,23 @@ class Delivery:
                 ):
                     raise ValueError("This job has code changes that must be submitted through its PR.")
                 if not report:
-                    raise ValueError("A non-code job needs a retained result report before acceptance.")
+                    raise ValueError("A non-code job needs a current retained result report before acceptance.")
             outcome = "cancelled" if cancel else "done"
             with self.store.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 current = binding(db, self.member)
                 if not current or any(current[k] != scope[k] for k in SCOPE_FIELDS):
                     raise ValueError("Command scope changed. Inspect the provider result before retrying finalization.")
+                if not cancel and not work["pull_request"]:
+                    latest = self._current_result(db, job)
+                    if not latest or latest["id"] != report["id"]:
+                        raise ValueError("The result changed during acceptance; inspect the current report.")
                 Work(self.store, self.member).update_in(
                     db, "jobs", scope["work_order"], job, status=outcome, next_action="", blocker=""
                 )
                 db.execute(
-                    "INSERT INTO deliveries(job,accepted_by,revision,merge_commit,assessment,outcome,created) VALUES (?,?,?,?,?,?,?)",
-                    (job, self.member, revision, merge_commit, assessment, outcome, stamp()),
+                    "INSERT INTO deliveries(job,accepted_by,revision,merge_commit,assessment,outcome,created,result_update) VALUES (?,?,?,?,?,?,?,?)",
+                    (job, self.member, revision, merge_commit, assessment, outcome, stamp(), report["id"] if report and not cancel and not work["pull_request"] else None),
                 )
                 if merge_commit:
                     from .retirement import queue
@@ -384,6 +391,24 @@ class Delivery:
                 "sessions": "stop requested; slots become reusable after shutdown",
                 "pr": work["pull_request"] or None,
             }
+
+    @staticmethod
+    def _current_result(db, job):
+        from .assignments import snapshot
+
+        for row in db.execute("SELECT * FROM work_updates WHERE job=? AND kind='result' ORDER BY id DESC", (job,)):
+            producer = binding(db, row["actor"])
+            if not producer or producer["job"] != job or producer["role"] == "audit":
+                continue
+            if row["binding"]:
+                if json.loads(row["binding"]) != snapshot(producer):
+                    continue
+            elif row["binding_revision"] != producer["revision"] or producer["role"] == "planner":
+                continue
+            if producer["role"] == "planner" and not row["artifact"]:
+                continue
+            return dict(row)
+        return None
 
     @staticmethod
     def release(db, member):

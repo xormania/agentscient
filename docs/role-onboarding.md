@@ -17,6 +17,8 @@ understood it. Onboarding does not create work or invent an acceptance gate.
 | --- | --- | --- |
 | CO | User intent, authorized objectives, user decisions, integrated acceptance | `agentscient-co` |
 | XO | Named jobs, role allocation, guidance, review and integration | `agentscient-xo` |
+| NCO | Delegated planning, bounded implementation, verification and completion | `agentscient-nco` |
+| Planner | Application discovery, capability reuse and an evidence-backed implementation plan | `agentscient-planner` |
 | Coder | Scoped source changes, installed framework capabilities, validation | `agentscient-coder` |
 | Audit | Immutable revision review, reproducible findings, independent assessment | `agentscient-audit` |
 | Doc | Accurate documentation, examples, reader needs and limits | `agentscient-docs` |
@@ -32,8 +34,8 @@ An in-flight response keeps its captured role binding for its context, tools and
 catalog, so a concurrent rebind takes effect on the next request.
 
 When installed development tools are enabled for the bound job, the catalog also
-includes relevant existing Mate skills. Coder, Audit, Research and Test Writer get
-all six; Doc and Architect get system information and service inspection. CO/XO
+includes relevant existing Mate skills. Coder, Audit, Research, Planner and Test Writer get
+all six; Doc and Architect get system information and service inspection. CO/XO/NCO
 get their coordination skills and use specialist reports for application diagnostics.
 Repository Mate skill guidance uses `framework_inspect` directly, with focused
 parameters and diagnostic interpretation. It does not append a second CLI adapter.

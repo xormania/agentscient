@@ -10,6 +10,9 @@ Each line in a tool example is a separate MCP call.
 **CO is the session the person works with directly.** It holds the broader intent,
 sets the authorized objective and boundaries, and assesses the overall outcome.
 **XO reports to CO** and organizes, monitors and steers live collaborators.
+XO delegates a small task to a specialist or appoints **NCO** to coordinate
+planning, implementation and verification. **Planner only plans**; NCO handles
+execution and escalates mission changes to XO.
 Specialists receive the context and capabilities needed for their responsibility.
 
 | Concept | Meaning |
@@ -35,7 +38,7 @@ Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, 
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
 When the operator configures `project.jev`, bound roles also get **`work_assess`**
-and XO gets **`assignment_advise`**. These are optional, on-demand advice tools;
+and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
 ordinary inspection, coordination and delivery remain available if Jev is unavailable.
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
@@ -46,6 +49,8 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | --- | --- | --- |
 | CO | `direct`, `monitor`, `conclude`, `restart_xo` | None |
 | XO | `orchestrate`, `monitor`, `steer`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
+| NCO (`nco`) | Same execution tools as XO, scoped to its specialist jobs; reports to XO and cannot appoint another NCO | None |
+| Planner (`planner`) | Shared and specialist inspection/reporting tools; retained plan required for a result | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
@@ -244,6 +249,35 @@ Pending startup survives MCP restart and is serviced while a team MCP server is
 connected. Startup failures are retained and sent to the supervisor; `direct`
 retries XO startup, and `steer(action="resume")` retries a collaborator.
 
+## Planning and bounded handoffs
+
+XO can assign `role="nco"` through `orchestrate`, giving it a named coordination
+brief. This uses a work-order binding; it does not create a code job for NCO. NCO
+then uses the same command tools for specialist jobs. Its mission changes go to
+XO. Changing or pausing the delegated mission updates the descendant bindings.
+
+For discovery, assign a `planner` job. Planner uses Serena, installed Maker/Mate
+metadata, Symfony Console introspection and checks, then records a result with
+plan evidence. It has no generation, editing, publication or delegation tools.
+The coordinator reads the result and artifact and accepts the named planning job
+through `steer`. Implementation references that exact accepted update:
+
+```json
+{"name":"orchestrate","arguments":{"work":[{"name":"Implement JSON probe","role":"coder","objective":"Implement the approved JSON behavior using the maintained Maker","done_when":"The planned MCP invocation and checks pass","constraints":"Preserve generated structure; report extra improvements separately","plan":"update:21","editable_paths":["src/Service/Probe.php","tests/Service/ProbeTest.php"],"context_paths":["composer.json","composer.lock","vendor","config"]}]}}
+```
+
+Use actual returned references and paths from the plan. The service rejects
+unaccepted results, superseded results and plans for changed missions. The
+implementation brief includes the plan and readable evidence. Explicit edit paths
+must fit the operator's role policy and exclude protected Maker source. Assignment
+changes serialize with active workspace operations. Changed views require a new
+Serena connection; a file replaced by generation or Git resets its mounted view.
+
+NCO coordinates dependent jobs, reviews current evidence, accepts its completed
+jobs and submits the combined result to XO. XO retains oversight and CO retains
+final work-order acceptance. An additional improvement may be reported without
+becoming an assignment. Jev advice can inform that decision and retain its outcome.
+
 ## Workspaces and Git
 
 The service prepares an integration workspace for each work order and a separate
@@ -289,7 +323,7 @@ enables them; each worktree owns its locked Composer installation.
 
 | Tool | Outcome |
 | --- | --- |
-| `framework_inspect` | Discover installed Maker metadata, or inspect/call an installed Mate diagnostic. |
+| `framework_inspect` | Discover installed Maker metadata, Mate diagnostics, package versions, profiler resources or allowed Symfony Console introspection. |
 | `framework_generate` | Run an installed basic Maker with structured arguments and options. |
 | `work_check` | Run a named configured check or the full configured suite, with retained evidence. |
 
@@ -297,6 +331,7 @@ enables them; each worktree owns its locked Composer installation.
 {"name":"framework_inspect","arguments":{"kind":"makers","name":"make:command"}}
 {"name":"framework_generate","arguments":{"maker":"make:command","arguments":{"name":"app:example"}}}
 {"name":"framework_inspect","arguments":{"kind":"mate","name":"server-info","parameters":{}}}
+{"name":"framework_inspect","arguments":{"kind":"console","name":"debug:container","parameters":{}}}
 {"name":"work_check","arguments":{}}
 ```
 
@@ -304,6 +339,11 @@ Omit `name` to list Makers or Mate tools. For a named Mate tool, omit `parameter
 to inspect its schema; supply an object, including `{}`, to call it. Maker inputs
 come from installed Console metadata. Symfony performs the generation using its
 current attributes and conventions. Test writers can generate through `make:test`.
+For `kind="console"`, omit `name` to discover installed, operator-approved commands;
+omit `parameters` to inspect a name's metadata, or pass an object with optional
+`arguments` and `options` to run it. The default policy allows `about`, `debug:*`
+and `router:match`, exposing the diagnostics of the installed Symfony bundles.
+Local agents cannot invoke `make:maker` or edit protected Maker source/templates.
 A Maker needing an additional bundle or interactive answers reports its actual
 failure and preserves partial changes for inspection.
 
@@ -324,8 +364,8 @@ processes; an already-running command finishes or reaches its timeout.
 ## Serena v2 REPL
 
 Serena is the separate source-navigation/editing provider. Managed Codex, Claude
-and Grok sessions attach it automatically for configured specialist jobs. CO and
-XO do not receive it. External specialist clients can attach the gateway described
+and Grok sessions attach it automatically for configured specialist jobs. CO,
+XO and NCO do not receive it. External specialist clients can attach the gateway described
 in [operator setup](../devtools/OPERATIONS.md#external-specialist-connections).
 
 ```json
@@ -341,8 +381,10 @@ The beta source revision and PHPactor dependency are pinned in the
 
 The REPL executes unrestricted Python inside its container. The container has no
 runtime network, host home/credentials, control-plane database or Docker socket.
-Source is mounted read-only with only the editing role's paths writable; audit and
-research source stay read-only. Provider configuration/cache/memories have a separate
+Source is mounted read-only with only the editing role's assigned paths writable;
+audit, research and planner source stay read-only. Explicit job context paths curate
+the visible project. Protected Maker directories stay read-only beneath broader
+editing paths. Provider configuration/cache/memories have a separate
 private mount. Writable aliases/symlinks are rejected.
 
 Each call holds the job lock. The container pauses before releasing it and resumes

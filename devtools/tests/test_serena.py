@@ -29,7 +29,8 @@ class SerenaTests(unittest.TestCase):
         self.assertIn("--cap-drop=ALL", args)
         mounts = [args[i + 1] for i, value in enumerate(args[:-1]) if value == "--mount"]
         self.assertIn(f"type=bind,src={root},dst=/workspace,readonly", mounts)
-        self.assertIn(f"type=bind,src={root}/src,dst=/workspace/src", mounts)
+        self.assertIn(f"type=bind,src={root}/src/Example.php,dst=/workspace/src/Example.php", mounts)
+        self.assertNotIn(f"type=bind,src={root}/src,dst=/workspace/src", mounts)
         self.assertFalse(any("docker.sock" in x or "dst=/workspace/devtools" in x or "dst=/root" in x for x in mounts))
         self.assertFalse(enabled(self.store, API(self.state, "xo").control.snapshot()))
 

@@ -50,6 +50,7 @@ harness or starting workspace in place; use a new member name for that change.
 | `fetch` | Defaults to true; set false explicitly for an offline local target. |
 | `identity` | Optional commit identity with `name` and `email`; otherwise use Git's configured identity. |
 | `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [workspaces.py](workspaces.py). |
+| `assignment_policy` | Operator-owned JSON file, absolute or relative to team state; defaults to [assignment-policy.json](assignment-policy.json). Configures protected source, default read context, denied Makers and allowed Console introspection commands. |
 | `development` | `{}` enables installed Makers/Mate and default validation. |
 | `development.php`, `development.composer` | Optional installed binaries. An absolute PHP path adds its directory to PATH for CLI tools. |
 | `development.checks` | Optional map of check names to fixed argv arrays; agents supply a name, never argv. Defaults are container/YAML lint and PHPUnit. |
@@ -64,6 +65,52 @@ harness or starting workspace in place; use a new member name for that change.
 Each work order and job owns its worktree and Composer install. Managed startup
 selects it automatically. Dependency installation refreshes when Composer metadata
 changes. Do not share a vendor-directory symlink across worktrees.
+
+### Planning and NCO setup
+
+Existing teams and eight-role runtime policies keep working. To enable the new
+roles with runtime allocation, add `nco` and `planner` preference arrays to the
+existing `roles` object in `roles.json`, using profile names already configured in
+that file. Choose their model/reasoning through those profiles and vendor
+availability through `vendors.json`. New initialization includes both roles;
+upgrading an existing file does not choose their profiles implicitly. Fixed teams
+reuse idle configured slots as before.
+
+An NCO needs its own live slot in addition to XO and the current specialist.
+Planner and coder can reuse a slot after the planning job is accepted and its
+session stops. XO can appoint one NCO for its current work order; NCO creates
+specialist jobs and reports to XO. Small tasks can go directly from XO to a
+specialist. These are roles over the existing command services, not another
+scheduler or independent work-order hierarchy.
+
+Copy `devtools/assignment-policy.json` to customize paths and inspection policy;
+set `project.assignment_policy` to that file. Add project-specific Maker source
+and template locations to `protected_paths`. Role path configuration remains the
+upper bound for job `editable_paths`; assignment fields cannot widen it. The
+default blocks `make:maker` and protects `src/Maker`, `templates/maker` and dev-lane
+source. Agents still discover and invoke other installed Makers through MCP.
+Existing directories are recognized by their filesystem type. For missing edit
+paths, a trailing slash declares a directory (`src/NewFeature/`); other explicit
+paths declare files, including extensionless files (`src/NOTICE`). Serena prepares
+only those assigned files, without widening the assignment to their parent.
+Use the trailing slash for missing directories in operator role paths as well.
+
+Directories containing protected descendants remain read-only; their allowed
+existing children receive writable mounts. This also protects absent Maker paths
+without inventing checkout files. To add a new sibling directly in such a
+directory, list its exact path in the assignment or generate it through the
+maintained Maker. Serena refreshes its mounts after generation or Git replacement.
+
+`context_paths` selects the source presented to Serena when supplied in an
+assignment; explicit edit paths use the policy's read-context defaults unless
+overridden. The full backing worktree remains available to native Maker, Mate,
+Console and validation services. This is a curated editing view and a path-level
+write boundary. It does not enforce individual generated method bodies or freeze
+PHP signatures within an editable file. Plans and review carry those obligations.
+
+SQLite upgrades preserve bindings, reports and retry identities. Newly accepted
+planning jobs retain the exact result update; legacy or superseded reports do not
+silently become approved plans. See the [handoff example](../docs/control-plane-roles-and-tools.md#planning-and-bounded-handoffs).
 
 ### Optional Jev setup
 

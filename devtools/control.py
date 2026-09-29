@@ -11,7 +11,7 @@ from .artifacts import Artifacts
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect")
+ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect", "nco", "planner")
 REQUEST_BINDING = ContextVar("control_binding", default=None)
 BRIEF_FIELDS = ("title", "objective", "done_when", "constraints", "status", "next_action", "blocker")
 INSTRUCTIONS = (
@@ -115,8 +115,9 @@ def evidence_sql(scope, member):
     clause, args = update_sql(scope, member, "u")
     return (
         "(NOT EXISTS (SELECT 1 FROM work_updates u WHERE u.artifact=a.id) OR EXISTS "
-        "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + "))",
-        args,
+        "(SELECT 1 FROM work_updates u WHERE u.artifact=a.id AND " + clause + ") OR EXISTS "
+        "(SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.evidence')='artifact:'||a.id))",
+        (*args, scope["job"] if scope else None),
     )
 
 
@@ -162,6 +163,10 @@ class Control:
                 raise ValueError("Bind the reporting member to a covering work scope first")
             if role == "xo" and superior["role"] != "co":
                 raise ValueError("XO reports to CO")
+            if role == "nco" and (superior["role"] != "xo" or job is not None):
+                raise ValueError("NCO coordinates the work order and reports to XO")
+            if role == "planner" and (superior["role"] not in {"xo", "nco"} or job is None):
+                raise ValueError("Planner needs a job reporting to XO or NCO")
         ancestor, seen = reports_to, {member}
         while ancestor is not None:
             if ancestor in seen:
@@ -223,12 +228,18 @@ class Control:
             ).fetchone()
         elif kind == "update":
             sql, args = update_sql(scope, self.member)
-            allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND " + sql, (int(ident), *args)).fetchone()
+            allowed = db.execute("SELECT 1 FROM work_updates WHERE id=? AND (" + sql +
+                                 " OR EXISTS (SELECT 1 FROM jobs j WHERE j.id=? AND json_extract(j.assignment,'$.plan.reference')=?))",
+                                 (int(ident), *args, scope["job"] if scope else None, reference)).fetchone()
         elif kind == "operation" and row:
             # Parent briefs are shared by includes(); operation diagnostics are not.
             allowed = bool(scope and scope["work_order"] == row["work_order"] and (
                 (scope["job"] is not None and scope["job"] == row["job"])
                 or (scope["job"] is None and scope["role"] in {"co", "xo"})
+                or (scope["job"] is None and scope["role"] == "nco" and (
+                    row["member"] == self.member or row["job"] is not None and
+                    record(db, "jobs", row["job"])["created_by"] == self.member
+                ))
             ))
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
@@ -303,6 +314,7 @@ class Control:
                 }
                 if scope["job"]:
                     result["job"] = self._summary(record(db, "jobs", scope["job"]))
+                    result["assignment"] = json.loads(record(db, "jobs", scope["job"])["assignment"])
                     from .workspaces import Workspaces, project_config
 
                     if project_config(self.store):
@@ -315,6 +327,8 @@ class Control:
                             "serena_repl": serena_enabled(self.store, scope),
                         }
                 parent = binding(db, scope["reports_to"])
+                if parent and parent["role"] == "nco":
+                    result["delegation"] = {"role": "nco", "responsibility": parent["brief"], "revision": parent["revision"]}
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"
                 sql, args = update_sql(scope, self.member)
                 rows = db.execute("SELECT * FROM work_updates WHERE " + sql + " ORDER BY id DESC LIMIT 5", args)
@@ -447,6 +461,8 @@ class Control:
         scope = self.current()
         if not scope:
             raise ValueError("No active role and work binding")
+        if scope["role"] == "planner" and kind == "result" and not evidence:
+            raise ValueError("A planner result needs retained plan evidence.")
         payload = [scope, kind, text, responding_to, evidence]
         if evaluation:
             payload.append(evaluation)
@@ -475,11 +491,17 @@ class Control:
             self._evaluation(db, scope, evaluation)
             # Recheck the recipient inside the transaction; sending and recording are atomic.
             self._destination(db, scope, responding_to)
+            from .assignments import snapshot
+
+            mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints")}
+            parent = binding(db, scope["reports_to"])
+            if parent and parent["role"] == "nco":
+                mission["delegation"] = {"member": parent["member"], "brief": parent["brief"]}
             ident = db.execute(
-                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation,binding,mission) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp(),
-                 canonical(evaluation) if evaluation else None),
+                 canonical(evaluation) if evaluation else None, canonical(snapshot(scope)), canonical(mission)),
             ).lastrowid
             if saved:
                 Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
