@@ -7,6 +7,7 @@ import test_workspaces
 from support import Client
 from test_commands import responsibility
 
+from devtools.advice import Advice
 from devtools.api import API
 from devtools.development import Development
 from devtools.operations import Operations
@@ -58,6 +59,7 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual("routed to nco", context["guidance"])
         self.assertEqual(["src/Example.php"], context["development"]["editable_paths"])
         self.assertEqual(result["reference"], context["assignment"]["plan"]["reference"])
+        self.assertEqual(context["delegation"], Advice(self.store, coder.member).brief()["delegation"])
         evidence = coder.call("work_context", {"reference": context["assignment"]["plan"]["evidence"]})
         self.assertIn("maintained Maker", evidence["content"])
         self.assertEqual("Plan ready", coder.call("work_context", {"reference": result["reference"]})["text"])
