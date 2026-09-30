@@ -13,6 +13,7 @@ import signal
 import stat
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 from .artifacts import Artifacts
@@ -177,6 +178,45 @@ class Development:
                 "Installed command did not return valid JSON metadata: " + result["output"][:600]
             ) from None
 
+    @contextmanager
+    def diagnostic_root(self, root):
+        """Planner subprocesses own a disposable project and independent Git data."""
+        scope = self.execution_scope()
+        if scope["paused"]:
+            raise ValueError("This work is paused; no new development process was started.")
+        root = Path(root)
+        if scope["role"] != "planner":
+            yield root
+            return
+        before = self._files(root)
+        with tempfile.TemporaryDirectory(prefix="agentscient-diagnostics-") as temporary:
+            staged = Path(temporary) / "project"
+            # A copied worktree .git file would still address the producer's
+            # index/refs. The Git transport creates independent objects too.
+            git(root, "clone", "--no-local", "--no-checkout", "--", str(root), str(staged))
+            git(staged, "remote", "remove", "origin")
+            git(staged, "read-tree", "HEAD")
+            shutil.copytree(root, staged, dirs_exist_ok=True, symlinks=True,
+                            ignore=shutil.ignore_patterns(".git"))
+            self._isolate_links(root, staged, before)
+            if self._files(staged) != before or self._files(root) != before:
+                raise ValueError("The project changed while preparing diagnostics; no diagnostic process was started.")
+            # Retain profiler data for Mate resources, but never load a compiled
+            # container that still embeds the producer's absolute project path.
+            profiles = []
+            cache = staged / "var/cache"
+            if not (staged / "var").is_symlink() and not cache.is_symlink():
+                for index, profile in enumerate(cache.glob("*/profiler")):
+                    if profile.is_dir() and not profile.is_symlink():
+                        saved = Path(temporary) / ("profiler-" + str(index))
+                        profile.rename(saved)
+                        profiles.append((profile, saved))
+            self._fresh_cache(staged)
+            for profile, saved in profiles:
+                profile.parent.mkdir(parents=True, exist_ok=True)
+                saved.rename(profile)
+            yield staged
+
     def inspect(self, kind, name=None, parameters=None, resource=None, package=None):
         self.execution_scope()
         if kind == "packages":
@@ -193,8 +233,7 @@ class Development:
                 raise ValueError("Supply only a profiler resource URI returned by Mate")
         elif resource:
             raise ValueError("resource is only available for kind mate_resource")
-        with self.workspaces.use() as (_, workspace):
-            root = workspace["root"]
+        with self.workspaces.use() as (_, workspace), self.diagnostic_root(workspace["root"]) as root:
             self.prepare(root)
             if kind == "makers":
                 if parameters:
@@ -342,15 +381,7 @@ class Development:
                 self._isolate_links(root, staged, before)
                 if self._files(staged) != before:
                     raise ValueError("The project changed while preparing generation; no generated changes were applied.")
-                # Compiled Symfony containers may retain the producer's absolute
-                # project_dir. Build a fresh cache for the isolated project.
-                if (staged / "var").is_symlink():
-                    raise ValueError("Generation cannot use a Symfony cache beneath a project symlink.")
-                cache = staged / "var/cache"
-                if cache.is_symlink() or cache.is_file():
-                    cache.unlink()
-                elif cache.is_dir():
-                    shutil.rmtree(cache)
+                self._fresh_cache(staged)
                 self.prepare(staged)
                 metadata = self._json(staged, ["php", "bin/console", "help", maker, "--format=json", "--no-interaction"])
                 if metadata["name"] != maker or not maker.startswith("make:"):
@@ -414,6 +445,16 @@ class Development:
                     raise ValueError("Generation needs regular project files; no generated changes were applied.")
                 files[key] = value
         return files
+
+    @staticmethod
+    def _fresh_cache(staged):
+        if (staged / "var").is_symlink():
+            raise ValueError("Development cannot use a Symfony cache beneath a project symlink.")
+        cache = staged / "var/cache"
+        if cache.is_symlink() or cache.is_file():
+            cache.unlink()
+        elif cache.is_dir():
+            shutil.rmtree(cache)
 
     @staticmethod
     def _isolate_links(root, staged, before):
@@ -503,30 +544,32 @@ class Development:
 
     def checks(self, root, check=None):
         self.execution_scope()
-        self.prepare(root)
-        checks = self.config.get("checks", DEFAULT_CHECKS)
-        if not checks or check is not None and check not in checks:
-            raise ValueError("Choose a configured check: " + ", ".join(checks))
+        source = root
         results = []
-        for name, argv in checks.items():
-            if check is not None and check != name:
-                continue
-            self.workspaces.scope()
-            result = self.run(root, argv, timeout=self.config.get("check_timeout", 600))
-            results.append(
-                {
-                    "check": name,
-                    "exit_code": result["exit_code"],
-                    **({"signal": result["signal"]} if "signal" in result else {}),
-                    "output": result["output"][-2500:],
-                    "evidence": self.evidence("check-" + name + ".json", result),
-                }
-            )
+        with self.diagnostic_root(root) as root:
+            self.prepare(root)
+            checks = self.config.get("checks", DEFAULT_CHECKS)
+            if not checks or check is not None and check not in checks:
+                raise ValueError("Choose a configured check: " + ", ".join(checks))
+            for name, argv in checks.items():
+                if check is not None and check != name:
+                    continue
+                self.workspaces.scope()
+                result = self.run(root, argv, timeout=self.config.get("check_timeout", 600))
+                results.append(
+                    {
+                        "check": name,
+                        "exit_code": result["exit_code"],
+                        **({"signal": result["signal"]} if "signal" in result else {}),
+                        "output": result["output"][-2500:],
+                        "evidence": self.evidence("check-" + name + ".json", result),
+                    }
+                )
         return {
             "passed": all(row["exit_code"] == 0 for row in results),
             "checks": results,
-            "revision": git(root, "rev-parse", "HEAD").stdout.decode().strip(),
-            "uncommitted": self.workspaces.changes(root),
+            "revision": git(source, "rev-parse", "HEAD").stdout.decode().strip(),
+            "uncommitted": self.workspaces.changes(source),
         }
 
     def check(self, check=None):
