@@ -153,7 +153,7 @@ class Fixture:
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
                 expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
-                assert names == expected | ({"plan_adopt", "orchestrate", "monitor", "steer"} if self.command else set())
+                assert names == expected | ({"plan_adopt", "orchestrate", "monitor", "steer", "conclude"} if self.command else set())
                 result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]
