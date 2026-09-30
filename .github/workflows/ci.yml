@@ -6,11 +6,6 @@
         "opened",
         "reopened",
         "synchronize"
-      ],
-      "branches": [
-        "dev",
-        "master",
-        "work-order/*"
       ]
     },
     "push": {

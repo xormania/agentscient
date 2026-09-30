@@ -16,6 +16,16 @@ SPEC.loader.exec_module(ci)
 
 
 class RoutingTests(unittest.TestCase):
+    def test_pull_requests_include_stacked_bases_without_widening_push_or_permissions(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        pull_request = workflow["on"]["pull_request"]
+        self.assertNotIn("branches", pull_request)
+        self.assertNotIn("branches-ignore", pull_request)
+        self.assertEqual(["opened", "reopened", "synchronize"], pull_request["types"])
+        self.assertEqual({"branches": ["dev", "master"]}, workflow["on"]["push"])
+        self.assertEqual({"contents": "read"}, workflow["permissions"])
+        self.assertNotIn("pull_request_target", workflow["on"])
+
     def test_component_boundaries(self):
         dev = {"live-mcp", "maker-mate", "serena"}
         product = {"symfony", "maker-mate"}
@@ -115,6 +125,30 @@ class GitRangeTests(unittest.TestCase):
         paths = ci.changed_paths("pull_request", {"pull_request": {"base": {"sha": base}}}, head, self.root)
         self.assertEqual(paths, ["devtools/change.py"])
         self.assertNotIn("symfony", ci.select(paths))
+
+    def test_stacked_pr_compares_its_parent_and_uses_the_same_required_gate(self):
+        self.git("checkout", "-b", "codex/command-structure")
+        self.write("devtools/commands.py")
+        base = self.commit()
+        self.git("checkout", "-b", "codex/role-packages")
+        self.write("devtools/role-packages.cue")
+        self.commit()
+        self.git("checkout", "codex/command-structure")
+        self.git("merge", "--no-ff", "codex/role-packages", "-m", "stacked PR merge")
+        head = self.git("rev-parse", "HEAD")
+        event = {"pull_request": {"base": {"ref": "codex/command-structure", "sha": base}}}
+        paths = ci.changed_paths("pull_request", event, head, self.root)
+        self.assertEqual(["devtools/role-packages.cue"], paths)
+        selected = ci.select(paths)
+        self.assertEqual({"live-mcp", "maker-mate", "serena"}, selected)
+        outputs = {job: "true" if job in selected else "false" for job in ci.JOBS}
+        needs = {"changes": {"result": "success", "outputs": outputs}}
+        needs.update({job: {"result": "success" if job in selected else "skipped"} for job in ci.JOBS})
+        with contextlib.redirect_stdout(io.StringIO()):
+            ci.gate(needs)
+            needs["live-mcp"]["result"] = "skipped"
+            with self.assertRaises(ValueError):
+                ci.gate(needs)
 
     def test_push_and_merge_group_include_all_commits_deletions_and_rename_sides(self):
         self.git("mv", "src/old.php", "README-moved.md")

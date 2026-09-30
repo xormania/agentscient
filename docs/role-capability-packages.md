@@ -71,6 +71,9 @@ value. The Python loader checks raw field presence, supported shapes, skill
 references, hook invariants and source/export correspondence. The MCP registry
 rejects unknown tool references at startup. CI repeats CUE validation, export-drift
 checks and rejection controls in the existing dev-lane configuration job.
+Pull-request CI runs for every base branch, including an unmerged parent in a
+stack. The change selector still compares against that parent and selects the
+affected suites; the required `lane` check keeps the same completion rules.
 
 Deploy the matching source and generated export together, then restart control
 services and managed sessions to load package changes consistently. Packages are
