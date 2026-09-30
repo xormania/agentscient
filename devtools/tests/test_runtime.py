@@ -63,8 +63,28 @@ class RuntimeTests(unittest.TestCase):
         policy = json.loads((self.state / "roles.json").read_text())
         del policy["roles"]["architect"]
         self.write("roles", policy)
-        with self.assertRaisesRegex(ValueError, "all eight roles"):
+        load(self.state)
+        with self.assertRaisesRegex(ValueError, "Configure architect preferences"):
+            resolve(self.state, "architect")
+
+    def test_runtime_subset_missing_requested_role_and_unknown_identity(self):
+        original = json.loads((self.state / "roles.json").read_text())
+        self.assertEqual(set(ROLES), set(original["roles"]))
+        policy = json.loads(json.dumps(original))
+        policy["roles"]["test-writer"] = policy["roles"]["test_writer"]
+        self.write("roles", policy)
+        with self.assertRaisesRegex(ValueError, "unknown catalog roles: test-writer"):
             load(self.state)
+        self.write("roles", original)
+        xo = self.xo()
+        before = xo.control.snapshot()
+        original["roles"] = {"xo": original["roles"]["xo"]}
+        self.write("roles", original)
+        load(self.state)
+        self.assertEqual("xo", resolve(self.state, "xo")["selection"]["role"])
+        with self.assertRaisesRegex(ValueError, "Configure planner preferences"):
+            resolve(self.state, "planner")
+        self.assertEqual(before, xo.control.snapshot())
 
     def test_dynamic_multiple_instances_normal_tools_hide_runtime_and_capacity_is_atomic(self):
         xo = self.xo()

@@ -42,12 +42,21 @@ service-enforced role or work boundary.
 
 ## Role catalog
 
+The table describes the shipped behavior packages. Configured role names and their
+number come from the registry. Coordinators receive their available names and
+responsibilities in `onboard.assignable_roles`; use those names in tool calls.
+
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
-When the operator configures `project.jev`, bound roles other than CO get **`work_assess`**
+When the operator enables `features.advice` in the resolved configuration, bound roles other than CO get **`work_assess`**
 and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
-ordinary inspection, coordination and delivery remain available if Jev is unavailable.
+inspection, coordination and reporting remain available if Jev is unavailable.
+Filtering and completion assessment have independent feature switches and role/job
+policies. Filtering can omit clearly irrelevant background from routine briefs.
+Enabled completion assessment checks retained proof and blocks uncertain results.
+Its default unavailable-provider policy blocks completion; the operator may explicitly
+select mechanical-only fallback, which is retained as skipped assessment. Repair and reporting remain available. See [scoped guidance and proof boundaries](../devtools/OPERATIONS.md#scoped-guidance-and-proof-boundaries).
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -121,7 +130,7 @@ brief, or alter runtime policy. `orchestrate` still selects from the operator's
 ordered preferences. A different runtime recommendation can inform a policy-change
 request through the existing `guidance_request` reporting path.
 
-`work_assess` answers up to four typed questions over up to eight candidate sources
+`work_assess` answers typed questions over candidate sources within the configured role/job budgets
 in one evaluation. Each source names exactly one relative workspace `path` or an
 accessible `artifact:`/`operation:` reference. The service reads it; the agent
 receives answers and source locations without the raw source text. Use Serena to
@@ -137,6 +146,9 @@ Questions default to `noul` (a yes probability). Set `type` to `choice` and supp
 2–16 distinct `options`, or to `score` and supply 2–10 ordered descriptive `levels`.
 Choice and Score include the distribution and confidence. A high score is advice,
 not proof of correctness or completeness.
+Instructions and explicit `criteria` can also contain structured JSON; Noul
+criteria use `true` and `false`, Choice uses named options, and Score uses ordered
+levels. Existing `options` and `levels` aliases remain supported.
 
 Sources default to 2,000 units with an optional `limit` up to 8,000 and `offset`.
 Units are bytes for files/artifacts and characters for operation results, matching
@@ -325,8 +337,9 @@ Explicit edit paths must fit both the job scope and the operator's role policy,
 and exclude protected Maker source. Assignment changes serialize with active
 workspace operations. Changed views require a new Serena connection; a file
 replaced by generation or Git resets its mounted view. Extra improvements can be
-reported without becoming assignments. Role-skill refinements and additional Jev
-use are separate follow-up work.
+reported without becoming assignments. Diagnostics supply a relevant permitted
+role or framework skill directly. Completion is assessed against the current
+assignment, job or owner goal, with source context and provenance handled by the service.
 
 ## Workspaces and Git
 
@@ -406,7 +419,9 @@ Framework inspection, generation, checks and configured submission return retain
 operation receipts promptly. Compact completion notices (including failed-check
 counts) and evidence references are delivered to the original worker and supervisor
 while their scope still covers that work. Full results remain available through
-`work_context(reference="operation:N")`. Workers survive
+`work_context(reference="operation:N")`.
+The worker's failure notice also includes its permitted recovery skill; supervisors
+receive the outcome without another role's skill instructions. Workers survive
 an MCP disconnect. An identical active call reuses its receipt; a lost worker becomes
 `uncertain` without automatically replaying external effects. Pausing prevents new
 processes; an already-running command finishes or reaches its timeout.

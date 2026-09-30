@@ -78,12 +78,12 @@ class ReadinessTests(unittest.TestCase):
             patch("devtools.readiness.probe", side_effect=probe),
             patch("devtools.readiness.platform", return_value="Locked platform satisfied"),
             patch("devtools.readiness.shutil.which", return_value="/fixture/codex"),
-            patch("devtools.readiness.codex_capability", return_value={"status": "supported"}),
+            patch("devtools.compat.codex_capability", return_value={"status": "supported"}),
         ):
             result = readiness.doctor(self.state)
             self.assertEqual("preflight_passed", result["status"], result)
             self.assertEqual("not established by preflight", result["authenticated_acceptance"])
-            with patch("devtools.readiness.codex_capability", return_value={"status": "unsupported"}):
+            with patch("devtools.compat.codex_capability", return_value={"status": "unsupported"}):
                 blocked = readiness.doctor(self.state)
             self.assertEqual("blocked", blocked["status"])
             self.assertEqual("failed", next(c for c in blocked["checks"] if c["name"] == "codex binary")["status"])
@@ -107,6 +107,97 @@ class ReadinessTests(unittest.TestCase):
         (self.state / "team.json").write_text(json.dumps(config))
         with patch("devtools.readiness.shutil.which", return_value=None):
             self.assertEqual("blocked", readiness.doctor(self.state)["status"])
+
+    def assessment_configuration(self, overlay):
+        team = json.loads((self.state / "team.json").read_text())
+        team["project"]["configuration_file"] = "configuration.json"
+        (self.state / "team.json").write_text(json.dumps(team))
+        (self.state / "configuration.json").write_text(json.dumps({"version": 1, **overlay}))
+
+    def quiet_doctor(self):
+        with (
+            patch("devtools.readiness.platform", return_value="Locked platform satisfied"),
+            patch("devtools.readiness.probe", side_effect=FileNotFoundError("Dependency unavailable")),
+            patch("devtools.readiness.shutil.which", return_value=None),
+        ):
+            return readiness.doctor(self.state)
+
+    def test_config_inspection_is_readonly_scoped_and_never_reads_the_key(self):
+        job = self.api.control.snapshot()["job"]
+        self.assessment_configuration({
+            "project": {"connection": {"credential": {"file": "unread-key"}},
+                        "filtering": {"threshold": 0.1}},
+            "roles": {"coder": {"filtering": {"threshold": 0.4}}},
+            "jobs": {str(job): {"filtering": {"threshold": 0.7}}},
+        })
+        database = (self.state / "live.sqlite3").read_bytes()
+        with (
+            patch("devtools.readiness.read_credential", side_effect=AssertionError("Must not read key")),
+            patch("devtools.store.Store.upgrade", side_effect=AssertionError("Must not upgrade state")),
+        ):
+            settings = readiness.config(self.state, role="coder", job=job)
+        self.assertEqual(0.7, settings["filtering"]["threshold"])
+        self.assertEqual({"role": "coder", "job": job}, settings["selection"])
+        self.assertEqual({"file": str(self.state / "unread-key")}, settings["connection"]["credential"])
+        self.assertEqual(64, len(settings["revision"]))
+        self.assertEqual(database, (self.state / "live.sqlite3").read_bytes())
+
+    def test_config_cli_reports_effective_settings_and_invalid_selectors(self):
+        self.assessment_configuration({"project": {"connection": {"credential": {"file": "absent-key"}}}})
+        command = [sys.executable, str(readiness.ENTRY), "config", "--state", str(self.state)]
+        result = subprocess.run(command + ["--role", "coder"], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("coder", json.loads(result.stdout)["selection"]["role"])
+        invalid = subprocess.run(command + ["--role", "missing_role"], capture_output=True, text=True)
+        self.assertEqual(2, invalid.returncode)
+        self.assertIn("Unknown configuration role", invalid.stderr)
+        self.assertFalse((self.state / "absent-key").exists())
+
+    def test_config_inspection_redacts_secret_text_but_preserves_source_reference(self):
+        self.assessment_configuration({"project": {
+            "filtering": {"failure_message": "Never expose fixture-secret-123456"},
+            "connection": {"credential": {"env": "LOCAL_JEV_KEY"}},
+        }})
+        with patch.dict(os.environ, {"TEST_PASSWORD": "fixture-secret-123456"}):
+            result = readiness.config(self.state)
+        self.assertNotIn("fixture-secret-123456", json.dumps(result))
+        self.assertEqual({"env": "LOCAL_JEV_KEY"}, result["connection"]["credential"])
+
+    def test_doctor_checks_enabled_role_credentials_locally_without_provider_call(self):
+        key = self.state / "local.key"
+        key.write_text("fixture-local-key-123456\n")
+        key.chmod(0o600)
+        self.assessment_configuration({"roles": {"research": {
+            "features": {"filtering": True}, "connection": {"credential": {"file": "local.key"}},
+        }}})
+        with patch("devtools.advice.Jev.evaluate") as provider:
+            ready = self.quiet_doctor()
+        provider.assert_not_called()
+        credential = next(item for item in ready["checks"] if item["name"] == "Jev credential")
+        self.assertEqual("passed", credential["status"], ready)
+        self.assertEqual(1, credential["detail"]["sources_checked"])
+        self.assertNotIn("fixture-local-key-123456", json.dumps(ready))
+        key.unlink()
+        missing = self.quiet_doctor()
+        self.assertEqual("failed", next(item for item in missing["checks"] if item["name"] == "Jev credential")["status"])
+        self.assertEqual("blocked", missing["status"])
+
+    def test_doctor_disabled_features_do_not_require_or_read_a_key(self):
+        self.assessment_configuration({"project": {"connection": {"credential": {"file": "absent-key"}}}})
+        with patch("devtools.readiness.read_credential") as read:
+            result = self.quiet_doctor()
+        read.assert_not_called()
+        self.assertEqual("not_checked", next(item for item in result["checks"] if item["name"] == "Jev credential")["status"])
+
+    def test_doctor_reports_legacy_configuration_as_migration_error(self):
+        team = json.loads((self.state / "team.json").read_text())
+        team["project"]["jev"] = {}
+        (self.state / "team.json").write_text(json.dumps(team))
+        result = self.quiet_doctor()
+        check = next(item for item in result["checks"] if item["name"] == "assessment configuration")
+        self.assertEqual("failed", check["status"])
+        self.assertIn("project.configuration_file", check["detail"])
+        self.assertEqual("blocked", result["status"])
 
     def test_platform_probe_uses_locked_real_platform_and_reports_missing_extensions(self):
         result = subprocess.CompletedProcess([], 2, json.dumps([{"name": "ext-mbstring", "status": "missing"}]), "")

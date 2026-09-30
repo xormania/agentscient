@@ -1,23 +1,37 @@
-"""Bounded TypeSafe evaluations. Credentials and HTTP destinations are never MCP inputs."""
+"""Provider evaluations selected through the trusted operator adapter manifest.
+
+Evaluation factories accept (transport, connection) and return an object with
+evaluate(state, questions, model). Results use the checked_response contract;
+provider-specific wire formats and model names belong to the adapter. Missing
+credentials and transport outages raise JevUnavailable; malformed policy and
+responses remain ValueError. Credentials and destinations are never MCP inputs.
+"""
 
 from __future__ import annotations
 
 import http.client
 import json
 import math
-import os
+import re
 import time
 import urllib.error
 import urllib.request
 
+from .adapters import factory
+from .configuration import defaults, validate_connection
+from .credentials import CredentialUnavailable, read_credential
 from .github_http import NoRedirect
-from .jev_config import load
+from .jev_config import clean_questions, validate_questions
+from .telemetry import clean
 
-DEFAULTS = load()
+DEFAULTS = defaults()
 MODEL = DEFAULTS["model"]
-ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 MAX_REQUEST = DEFAULTS["transport"]["max_request_bytes"]
 MAX_RESPONSE = DEFAULTS["transport"]["max_response_bytes"]
+
+
+class JevUnavailable(ValueError):
+    """Credentials or provider transport are unavailable; no evaluation was obtained."""
 
 
 def number(value, low=0, high=1):
@@ -69,21 +83,30 @@ def checked_response(value, questions, model):
             "usage": {k: usage[k] for k in ("input_tokens", "output_tokens")}}
 
 
-class Jev:
-    def __init__(self, settings=None):
-        self.settings = settings or load()["transport"]
+class TypeSafeAdapter:
+    """The TypeSafe wire protocol, selected by its registered adapter name."""
+
+    def __init__(self, settings, connection):
+        self.settings, self.connection = settings, connection
 
     def evaluate(self, state, questions, model=MODEL):
+        if not isinstance(model, str) or not re.fullmatch(r"jev-[0-9]+\.[0-9]+\.[0-9]+", model):
+            raise ValueError("The TypeSafe adapter requires a pinned Jev model version, for example jev-1.13.0.")
+        validate_questions(questions)
+        try:
+            key = read_credential(self.connection["credential"])
+        except CredentialUnavailable as error:
+            raise JevUnavailable(str(error)) from None
+        state = clean(state, secrets=(key,))
+        questions = clean_questions(questions, secrets=(key,))
+        validate_questions(questions)
         payload = json.dumps({"model": model, "state": state, "questions": questions},
                              ensure_ascii=False, allow_nan=False).encode()
         if len(payload) > self.settings["max_request_bytes"]:
             raise ValueError("Assessment exceeds the Jev input budget; use fewer candidates or smaller ranges.")
-        key = os.environ.get("TYPESAFE_API_KEY", "")
-        if not key or any(c.isspace() for c in key):
-            raise ValueError("The operator must set TYPESAFE_API_KEY for the dev-lane service.")
         opener = urllib.request.build_opener(NoRedirect())
         for attempt in range(self.settings["max_attempts"]):
-            request = urllib.request.Request(ENDPOINT, data=payload, method="POST", headers={
+            request = urllib.request.Request(self.connection["endpoint"], data=payload, method="POST", headers={
                 "Authorization": "Bearer " + key, "Content-Type": "application/json",
                 "Accept": "application/json", "User-Agent": "Agentscient-MCP",
             })
@@ -106,9 +129,27 @@ class Jev:
                     delay = float(retry)
                 except ValueError:
                     delay = float("inf")  # A dated/long retry belongs to a later explicit request.
-                if attempt + 1 < self.settings["max_attempts"] and status in {429, 529} and number(delay, 0, self.settings["max_retry_delay"]):
+                if (attempt + 1 < self.settings["max_attempts"] and status in self.settings["retry_statuses"]
+                        and number(delay, 0, self.settings["max_retry_delay"])):
                     time.sleep(min(self.settings["max_retry_delay"], max(fallback, delay)))
                     continue
-                raise ValueError(f"Jev is unavailable (HTTP {status}); use normal inspection or try later.") from None
+                raise JevUnavailable(f"Jev is unavailable (HTTP {status}); use normal inspection or try later.") from None
             except (OSError, urllib.error.URLError, http.client.HTTPException):
-                raise ValueError("Jev could not be reached; use normal inspection or try later.") from None
+                raise JevUnavailable("Jev could not be reached; use normal inspection or try later.") from None
+
+
+class Jev:
+    """Evaluate through the operator-selected, installed provider adapter."""
+
+    def __init__(self, settings=None, connection=None):
+        policy = defaults()
+        self.settings = policy["transport"] if settings is None else settings
+        self.connection = validate_connection(policy["connection"] if connection is None else connection)
+        self.model = policy["model"]
+        adapter = factory("evaluation", self.connection["adapter"])
+        self.adapter = adapter(self.settings, self.connection)
+        if not callable(getattr(self.adapter, "evaluate", None)):
+            raise ValueError("Evaluation adapters must provide evaluate(state, questions, model).")
+
+    def evaluate(self, state, questions, model=None):
+        return self.adapter.evaluate(state, questions, self.model if model is None else model)

@@ -4,6 +4,9 @@ description: Establish shared work context in an Agentscient managed session; us
 ---
 
 Follow the user's authorized objective and current service-supplied role and scope.
+CO, XO, NCO and planner describe responsibilities, not fixed role identifiers.
+When assigning work, use `onboard.assignable_roles` and the current tool schema
+to select configured names. Do not infer a role identifier from a skill name.
 Use MCP tools for actions. Native shell, filesystem tools, terminal keystrokes and
 operator capabilities are not part of the managed role surface.
 
@@ -32,6 +35,20 @@ contains the shared and role instructions, so do not read those skills again.
 After a new native session, recover decisions, open questions, recent activity and
 evidence through MCP. Do not claim to remember a previous vendor's private transcript.
 Report measured results and what remains unverified; absent telemetry is unknown.
+
+Diagnostics may supply a relevant permitted skill directly with the next action.
+Use that supplied method for the concrete failure; do not read the same skill again.
+Successful calls need no recovery ritual. A supplied method does not expand your
+authority. The routine brief may omit unrelated background; required instructions,
+errors, evidence and decisions remain available through the supplied tools.
+
+For each completion requirement, report the expected behavior, the observation
+which tests it, and the measured result. Retain supporting evidence through
+`work_report`; storage and provenance are automatic. Separate observations from
+claims and state missing verification. Finishing plan steps, saving code or a
+successful tool call alone does not establish that the owner's goal is met.
+When semantic completion assessment is enabled, the service checks current evidence
+against all required criteria. Address the specific unmet requirement; a model assessment cannot override a failed check.
 
 Execution roles can report an additional improvement without creating an
 assignment. Keep findings distinct from the current completion criteria. Use

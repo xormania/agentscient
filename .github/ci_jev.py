@@ -17,8 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from devtools.configuration import defaults  # noqa: E402
+from devtools.credentials import CredentialUnavailable, read_credential  # noqa: E402
 from devtools.jev import Jev, checked_response, number  # noqa: E402
-from devtools.jev_config import load as load_jev  # noqa: E402
 from devtools.telemetry import clean  # noqa: E402
 
 DEFAULT = Path(__file__).with_name("jev-ci.json")
@@ -31,7 +32,7 @@ def encode(value):
 
 def load_config(path):
     value = json.loads(path.read_text())
-    required = {"version", "enabled", "jev_policy", "min_confidence", "limits", "error_pattern",
+    required = {"version", "enabled", "min_confidence", "limits", "error_pattern",
                 "evidence_patterns", "failure_question", "excerpt_instructions"}
     if not isinstance(value, dict) or value.keys() != required or value["version"] != 1:
         raise ValueError("Unsupported CI Jev policy.")
@@ -64,7 +65,8 @@ def load_config(path):
     for text in (question["instructions"], value["excerpt_instructions"]):
         if not isinstance(text, str) or not 1 <= len(text) <= 2000:
             raise ValueError("CI questions need bounded instructions.")
-    policy = load_jev(path.parent, {"policy_file": value["jev_policy"]})
+    shared = defaults()
+    policy = {key: shared[key] for key in ("model", "transport", "connection")}
     return value, policy
 
 
@@ -217,6 +219,7 @@ def request_for(state, config, policy):
 
 def assess(log, evidence, job, config_path=DEFAULT, client=None):
     started = time.monotonic()
+    secrets = ()
     result = {"version": 1, "status": "unavailable", "note": NOTE, "job": job,
               "context": {key: os.environ.get(key, "") for key in
                           ("GITHUB_REPOSITORY", "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")}}
@@ -226,10 +229,13 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         if not config["enabled"]:
             result.update(status="disabled", reason="disabled_by_configuration")
             return result
-        if not os.environ.get("TYPESAFE_API_KEY"):
-            result["reason"] = "missing_TYPESAFE_API_KEY"
+        try:
+            secrets = (read_credential(policy["connection"]["credential"]),)
+        except CredentialUnavailable:
+            result["reason"] = "missing_credential"
             return result
-        state = collect(log, evidence, config)
+        config = clean(config, secrets=secrets)
+        state = clean(collect(log, evidence, config), secrets=secrets)
         state["job"] = job
         if not state["candidates"]:
             result["reason"] = "no_log_evidence"
@@ -237,7 +243,7 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         request = request_for(state, config, policy)
         result["request"] = request
         result["input_sha256"] = hashlib.sha256(encode({"request": request, "policy": result["policy"]})).hexdigest()
-        provider = client or Jev(policy["transport"])
+        provider = client or Jev(policy["transport"], policy["connection"])
         response = provider.evaluate(state, request["questions"], policy["model"])
         response = checked_response(response, request["questions"], policy["model"])
         answers = response["answers"]
@@ -253,6 +259,10 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         result["error_type"] = type(error).__name__
     finally:
         result["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        # File credentials and arbitrarily named env credentials have no global env marker.
+        sanitized = clean(result, secrets=secrets)
+        result.clear()
+        result.update(sanitized)
     return result
 
 

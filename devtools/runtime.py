@@ -5,26 +5,27 @@ import json
 import shutil
 from pathlib import Path
 
-from .control import ROLES
-from .role_packages import catalog, runtime_profile
+from .adapters import names as adapter_names
+from .adapters import registry as adapter_registry
+from .harnesses import get as harness_adapter
+from .role_packages import catalog, names_for_adapter, runtime_profile
 from .store import canonical, stamp
-
-HARNESSES = {"claude", "codex", "grok"}
 
 
 def defaults(directory):
     from .profiles import write_json
 
     directory = Path(directory)
-    choices = ["codex", "claude", "grok"]
-    vendors = {"codex": "openai", "claude": "anthropic", "grok": "xai"}
+    choices = list(adapter_names("harness"))
+    vendors = {name: harness_adapter(name).vendor for name in choices}
     write_json(
         directory / "roles.json",
         {
             "version": 1,
             "max_sessions": 12,
             "profiles": {h: {"harness": h, "vendor": v, "model": None, "reasoning": None} for h, v in vendors.items()},
-            "roles": {role: choices for role in ROLES},
+            "roles": {role: list(package["runtime"]["harnesses"])
+                      for role, package in catalog()["roles"].items()},
         },
     )
     write_json(
@@ -51,9 +52,11 @@ def load(directory):
     profiles, roles, vendors = policy["profiles"], policy["roles"], availability["vendors"]
     if not isinstance(profiles, dict) or not profiles or not isinstance(vendors, dict):
         raise ValueError("profiles and vendors must be objects")
-    required = set(ROLES) - {"nco", "planner"}
-    if not isinstance(roles, dict) or not required <= set(roles) or set(roles) - set(ROLES):
-        raise ValueError("Configure all eight roles from existing policy; optional NCO/planner preferences enable delegation: " + ", ".join(ROLES))
+    if not isinstance(roles, dict) or not roles:
+        raise ValueError("roles.json needs a nonempty map of configured role preferences")
+    unknown = set(roles) - set(catalog()["roles"])
+    if unknown:
+        raise ValueError("roles.json references unknown catalog roles: " + ", ".join(sorted(map(str, unknown))))
     for vendor, row in vendors.items():
         if not isinstance(row, dict) or set(row) - {"available", "reason", "reset_at"}:
             raise ValueError("Unknown vendor availability field")
@@ -64,13 +67,13 @@ def load(directory):
     for name, row in profiles.items():
         if not isinstance(row, dict) or set(row) - {"harness", "vendor", "model", "reasoning", "binary", "provider"}:
             raise ValueError("Unknown runtime profile field")
-        if row.get("harness") not in HARNESSES or row.get("vendor") not in vendors:
+        if row.get("harness") not in adapter_names("harness") or row.get("vendor") not in vendors:
             raise ValueError("Every profile needs a supported harness and a declared vendor")
         for key in ("model", "reasoning", "binary", "provider"):
             if row.get(key) is not None and (not isinstance(row[key], str) or not row[key] or "\0" in row[key]):
                 raise ValueError(f"{name}.{key} must be a nonempty string or null")
-        if row.get("provider") and row["harness"] != "codex":
-            raise ValueError("provider is supported only for Codex profiles")
+        if row.get("provider") and not harness_adapter(row["harness"]).supports_provider:
+            raise ValueError("provider is not supported by this harness adapter")
     for role, choices in roles.items():
         if (
             not isinstance(choices, list)
@@ -82,7 +85,7 @@ def load(directory):
             raise ValueError("Duplicate runtime preference")
         for choice in choices:
             runtime_profile(role, profiles[choice])
-    revision = hashlib.sha256(canonical([policy, availability, catalog()]).encode()).hexdigest()
+    revision = hashlib.sha256(canonical([policy, availability, catalog(), adapter_registry()]).encode()).hexdigest()
     return policy, availability, revision
 
 
@@ -123,7 +126,11 @@ def allocate(store, db, config, role, existing=None):
     if existing:
         return dict(db.execute("SELECT * FROM members WHERE name=?", (existing["member"],)).fetchone())
     policy, _, _ = load(store.directory)
-    count = db.execute("SELECT count(*) FROM member_bindings WHERE role!='co'").fetchone()[0]
+    interfaces = names_for_adapter("co")
+    query = "SELECT count(*) FROM member_bindings"
+    if interfaces:
+        query += " WHERE role NOT IN (" + ",".join("?" for _ in interfaces) + ")"
+    count = db.execute(query, interfaces).fetchone()[0]
     if count >= policy["max_sessions"]:
         raise ValueError("No available collaborator capacity; stop/release finished work or ask the operator.")
     selected = resolve(store.directory, role)
@@ -152,7 +159,7 @@ def allocate(store, db, config, role, existing=None):
 def status(store):
     policy, vendors, revision = load(store.directory)
     choices = {}
-    for role in ROLES:
+    for role in catalog()["roles"]:
         try:
             choices[role] = resolve(store.directory, role)
         except ValueError as error:

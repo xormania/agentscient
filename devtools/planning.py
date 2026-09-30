@@ -8,6 +8,7 @@ from contextlib import ExitStack
 from .assignments import covers, prepare, snapshot, valid_path
 from .control import binding
 from .delivery import Delivery
+from .role_packages import adapter, names_for_adapter
 from .store import canonical, stamp
 from .work import record
 from .workspaces import EDITORS, Workspaces, git
@@ -71,7 +72,7 @@ def execution_current(db, scope):
         return
     plan = current_plan(db, order["id"])
     job = record(db, "jobs", scope["job"])
-    if scope["role"] == "nco":
+    if adapter(scope["role"]) == "nco":
         return
     Planning.dependencies(db, job)
     if scope.get("assignment_id"):
@@ -81,7 +82,7 @@ def execution_current(db, scope):
             raise ValueError("The job plan changed; refresh this role assignment with orchestrate before resuming execution.")
         parent = binding(db, scope["reports_to"])
         expected = "xo" if len(json.loads(plan["jobs"])) == 1 else "nco"
-        if not parent or parent["role"] != expected:
+        if not parent or adapter(parent["role"]) != expected:
             raise ValueError("XO must establish the job's coordinator for the current plan before execution resumes.")
 
 
@@ -101,10 +102,23 @@ class Planning:
             for ident in ids:
                 locks.enter_context(spaces.lock("job-" + str(ident)))
             with self.store.connect() as db:
+                _, proposed = self.control._reference(db, scope, plan)
+                author = binding(db, proposed["actor"])
+                assigned = (dict(record(db, "role_assignments", author["assignment_id"]))
+                            if author and author.get("assignment_id") and adapter(author["role"]) == "planner"
+                            and author["reports_to"] == self.member and author["job"] is None else None)
+            gate = None
+            if assigned:
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require("assignment", assignment=assigned)
+            with self.store.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 scope = self.commands._scope(db, {"xo"})
                 if scope["paused"]:
                     raise ValueError("Work is paused.")
+                if gate:
+                    Completion(self.store, self.member).verify(gate)
                 return self._adopt(db, scope, plan, jobs)
 
     def _adopt(self, db, scope, plan, jobs):
@@ -149,7 +163,7 @@ class Planning:
         _, result = self.control._reference(db, scope, plan)
         author = binding(db, result["actor"])
         accepted_source = previous and previous["result_update"] == result["id"] and previous["mission"] == brief
-        if not accepted_source and (result["kind"] != "result" or not result["artifact"] or not author or author["role"] != "planner"
+        if not accepted_source and (result["kind"] != "result" or not result["artifact"] or not author or adapter(author["role"]) != "planner"
                 or author["job"] is not None or author["reports_to"] != self.member
                 or not current_result(db, author) or current_result(db, author)["id"] != result["id"]
                 or json.loads(result["mission"]) != json.loads(brief)):
@@ -185,7 +199,7 @@ class Planning:
             # Existing sessions keep their history. A changed plan invalidates old
             # operation bindings and pauses execution until the coordinator refreshes it.
             for member in list(db.execute("SELECT * FROM member_bindings WHERE job=?", (ident,))):
-                if member["role"] != "nco" and not member["assignment_id"]:
+                if adapter(member["role"]) != "nco" and not member["assignment_id"]:
                     assigned = db.execute("INSERT INTO role_assignments(work_order,job,name,role,brief,details,created_by,created,updated) VALUES (?,?,?,?,?,?,?,?,?)",
                                           (order["id"], ident, item["name"], member["role"], canonical(fields), canonical(details),
                                            self.member, stamp(), stamp())).lastrowid
@@ -202,7 +216,7 @@ class Planning:
         db.execute("UPDATE work_orders SET plan_revision=? WHERE id=?", (revision, order["id"]))
         if len(definitions) == 1:
             ident = next(iter(identities.values()))
-            for nco in list(db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role='nco' AND (job=? OR job IS NULL)", (order["id"], ident))):
+            for nco in list(db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND job=?", (order["id"], canonical(names_for_adapter("nco")), ident))):
                 for child in list(db.execute("SELECT member FROM member_bindings WHERE reports_to=?", (nco["member"],))):
                     db.execute("UPDATE member_bindings SET reports_to=? WHERE member=?", (self.member, child["member"]))
                     self.commands._touch(db, child["member"])
@@ -236,14 +250,14 @@ class Planning:
     def _assign(self, db, scope, config, item):
         role = item["role"]
         job = None
-        if role == "planner":
-            if scope["role"] != "xo" or item.get("job"):
+        if adapter(role) == "planner":
+            if adapter(scope["role"]) != "xo" or item.get("job"):
                 raise ValueError("Only XO commissions the work-order planner; NCO requests planning through XO.")
             if any(key in item for key in ("plan", "editable_paths")):
                 raise ValueError("The planner inspects and reports; it has no editable assignment or implementation plan.")
-            if db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role='planner' AND "
-                          "coalesce(assignment_id,0) NOT IN (SELECT id FROM role_assignments WHERE name=? COLLATE NOCASE AND role='planner' AND job IS NULL)",
-                          (scope["work_order"], item["name"].strip())).fetchone():
+            if db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND "
+                          "coalesce(assignment_id,0) NOT IN (SELECT id FROM role_assignments WHERE name=? COLLATE NOCASE AND role=? AND job IS NULL)",
+                          (scope["work_order"], canonical(names_for_adapter("planner")), item["name"].strip(), role)).fetchone():
                 raise ValueError("Revise or complete the existing work-order planning assignment first.")
         else:
             order = record(db, "work_orders", scope["work_order"])
@@ -256,18 +270,18 @@ class Planning:
                 raise
             if job["status"] in {"done", "cancelled"}:
                 raise ValueError("That job is finished; adopt a new job for additional work.")
-            multi = len(json.loads(plan["jobs"])) > 1 if plan else scope["role"] == "nco"
-            if role == "nco":
-                if scope["role"] != "xo":
+            multi = len(json.loads(plan["jobs"])) > 1 if plan else adapter(scope["role"]) == "nco"
+            if adapter(role) == "nco":
+                if adapter(scope["role"]) != "xo":
                     raise ValueError("XO appoints NCOs; NCO cannot appoint another coordinator.")
                 if not multi:
                     raise ValueError("XO coordinates the single job directly.")
-                return self._appoint(db, scope, config, job)
-            if multi and scope["role"] != "nco":
+                return self._appoint(db, scope, config, job, role)
+            if multi and adapter(scope["role"]) != "nco":
                 raise ValueError("Each job in a multi-job plan is coordinated by its NCO.")
-            if not multi and scope["role"] != "xo":
+            if not multi and adapter(scope["role"]) != "xo":
                 raise ValueError("XO coordinates the single job directly.")
-            if scope["role"] == "nco" and scope["job"] != job["id"]:
+            if adapter(scope["role"]) == "nco" and scope["job"] != job["id"]:
                 raise ValueError("NCO can assign specialists only within its own job.")
             self.dependencies(db, job)
         prior_assignment = db.execute("SELECT * FROM role_assignments WHERE work_order=? AND job IS ? AND name=? COLLATE NOCASE AND role=?",
@@ -323,29 +337,22 @@ class Planning:
         db.execute("UPDATE member_bindings SET assignment_id=? WHERE member=?", (ident, target["member"]))
         if changed:
             self.commands._touch(db, target["member"])
-        if scope["role"] == "nco" and (changed or not prior_assignment):
+        if adapter(scope["role"]) == "nco" and (changed or not prior_assignment):
             self.commands._touch(db, scope["member"])
         target = binding(db, target["member"])
         self.commands._start_intent(db, target, slot)
         direction = self.commands._direction(db, target, "Carry out your role assignment within the supplied context and job boundaries.")
         return {**self.commands._participant(db, target, config), "assignment": item["name"].strip(), "direction": direction}
 
-    def _appoint(self, db, scope, config, job):
-        prior = db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role='nco' AND job=?",
-                           (scope["work_order"], job["id"])).fetchone()
-        if not prior:
-            prior = db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role='nco' AND job IS NULL AND reports_to=? ORDER BY member LIMIT 1",
-                               (scope["work_order"], self.member)).fetchone()
+    def _appoint(self, db, scope, config, job, role):
+        prior = db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND job=?",
+                           (scope["work_order"], canonical(names_for_adapter("nco")), job["id"])).fetchone()
         prior = dict(prior) if prior else None
-        slot = self.commands._slot(db, config, existing=prior, role="nco")
-        target = self.control.bind_in(db, slot["name"], "nco", scope["work_order"], job["id"], self.member,
-                                     prior["brief"] if prior and prior["job"] else "")
-        if prior and prior["job"] is None:
-            for child in list(db.execute("SELECT member FROM member_bindings WHERE reports_to=? AND job!=?", (prior["member"], job["id"]))):
-                db.execute("UPDATE member_bindings SET reports_to=? WHERE member=?", (self.member, child["member"]))
-                self.commands._touch(db, child["member"])
+        slot = self.commands._slot(db, config, existing=prior, role=role)
+        target = self.control.bind_in(db, slot["name"], role, scope["work_order"], job["id"], self.member,
+                                     prior["brief"] if prior else "")
         # Transfer an existing single-job team without changing assignments or evidence.
-        for child in list(db.execute("SELECT * FROM member_bindings WHERE job=? AND role!='nco'", (job["id"],))):
+        for child in list(db.execute("SELECT * FROM member_bindings WHERE job=? AND role NOT IN (SELECT value FROM json_each(?))", (job["id"], canonical(names_for_adapter("nco"))))):
             if child["reports_to"] != target["member"]:
                 db.execute("UPDATE member_bindings SET reports_to=? WHERE member=?", (target["member"], child["member"]))
                 self.commands._touch(db, child["member"])
@@ -379,7 +386,6 @@ class Planning:
             for ident in ids:
                 locks.enter_context(spaces.lock("job-" + str(ident)))
             with self.store.connect() as db:
-                db.execute("BEGIN IMMEDIATE")
                 scope = self.commands._scope(db, {"xo", "nco"})
                 if scope["paused"]:
                     raise ValueError("Work is paused.")
@@ -392,25 +398,49 @@ class Planning:
                     # A repeated completion can return the retained outcome after its session is released.
                     rows = [dict(r) for r in db.execute("SELECT * FROM role_assignments WHERE work_order=? AND name=? COLLATE NOCASE AND status!='active'",
                                                        (scope["work_order"], assignment))
-                            if (not role or r["role"] == role) and (scope["role"] == "xo" or r["job"] == scope["job"])
+                            if (not role or r["role"] == role) and (adapter(scope["role"]) == "xo" or r["job"] == scope["job"])
                             and (not work or (record(db, "jobs", r["job"])["title"] if r["job"] else r["name"]).casefold() == work.casefold())]
                     if len(rows) == 1:
                         return {"assignment": rows[0]["name"], "outcome": rows[0]["status"], "retained": True}
                     raise ValueError("Name one role assignment in your team.")
                 target = targets[0]
-                if scope["role"] == "xo" and target["job"] and target["reports_to"] != self.member:
+                if adapter(scope["role"]) == "xo" and target["job"] and target["reports_to"] != self.member:
                     raise ValueError("The job's NCO completes its specialist assignments; XO accepts the job.")
                 result = current_result(db, target)
                 if not cancel and not result:
                     raise ValueError("A role assignment needs a current retained result before completion.")
                 if db.execute("SELECT 1 FROM operations WHERE member=? AND state IN ('queued','running')", (target["member"],)).fetchone():
                     raise ValueError("The assignment still has an active operation.")
+                revision = None
                 if target["role"] in EDITORS and not cancel:
                     workspace = db.execute("SELECT * FROM job_workspaces WHERE job=?", (target["job"],)).fetchone()
                     if workspace and (spaces.changes(workspace["root"]) or git(workspace["root"], "diff", "--cached", "--quiet", check=False).returncode):
                         raise ValueError("Save the editor's remaining changes before completing its role assignment.")
+                    if workspace:
+                        revision = git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip()
+                assigned = dict(record(db, "role_assignments", target["assignment_id"]))
+            gate = None
+            if not cancel:
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require("assignment", job=target["job"], assignment=assigned, revision=revision)
+            with self.store.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                if self.commands._scope(db, {"xo", "nco"}) != scope or binding(db, target["member"]) != target:
+                    raise ValueError("The assignment changed during completion; inspect its current result.")
+                latest = current_result(db, target)
+                if not cancel and (not latest or latest["id"] != result["id"]):
+                    raise ValueError("The result changed during completion; inspect its current proof.")
+                if dict(record(db, "role_assignments", assigned["id"])) != assigned:
+                    raise ValueError("The assignment requirements changed during completion.")
+                if db.execute("SELECT 1 FROM operations WHERE member=? AND state IN ('queued','running')", (target["member"],)).fetchone():
+                    raise ValueError("The assignment still has an active operation.")
+                if gate:
+                    Completion(self.store, self.member).verify(gate)
+                if revision and (spaces.changes(workspace["root"]) or git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip() != revision):
+                    raise ValueError("The source changed during completion; retain current proof before completing it.")
                 self._complete(db, target, result, cancel)
-                if scope["role"] == "nco":
+                if adapter(scope["role"]) == "nco":
                     self.commands._touch(db, scope["member"])
                 self.store._event(db, self.member, "assignment_completed", {"work_order": scope["work_order"], "job": target["job"],
                                  "assignment": target["assignment_id"], "assessment": assessment, "cancelled": cancel})

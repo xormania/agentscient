@@ -5,14 +5,11 @@ import json
 import re
 from pathlib import Path
 
-from .role_packages import catalog, descriptor
+from .role_packages import adapter, catalog, descriptor
 from .role_packages import role as role_package
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".agents/skills"
-ROLES = {name: (package["responsibility"], package["skills"]["role"])
-         for name, package in catalog()["roles"].items()}
-MATE = tuple(catalog()["framework_skills"])
 
 
 
@@ -54,25 +51,25 @@ class Onboarding:
 
     def catalog(self):
         role = self.role()
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             return []
         skills = role_package(role)["skills"]
         names = [skills["shared"], skills["role"]]
         tools = {row["name"] for row in self.api.tools()}
         if "framework_inspect" in tools:
             names += skills["framework"]
-        catalog = []
+        entries = []
         for name in names:
             skill = document(name)
             skill["guidance_sha256"] = hashlib.sha256(
                 json.dumps(skill, sort_keys=True, separators=(",", ":")).encode()
             ).hexdigest()
-            catalog.append(skill)
-        return catalog
+            entries.append(skill)
+        return entries
 
     def startup(self):
         role = self.role()
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             return "Await an authorized role binding; work_context shows your current state."
         return (
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
@@ -84,33 +81,42 @@ class Onboarding:
 
     def onboard(self):
         role = self.role()
-        catalog = self.catalog()
-        if not catalog:
+        skills = self.catalog()
+        if not skills:
             raise ValueError("Await an authorized role binding")
         tools = [row["name"] for row in self.api.tools()]
         package = descriptor(role)
-        revision = hashlib.sha256(json.dumps([package, [(r["name"], r["guidance_sha256"]) for r in catalog]]).encode()).hexdigest()
         value = {
             "role": role,
-            "responsibility": ROLES[role][0],
+            "responsibility": role_package(role)["responsibility"],
             "package": package,
-            "revision": revision,
-            "shared": catalog[0]["content"],
-            "role_instructions": catalog[1]["content"],
+            "shared": skills[0]["content"],
+            "role_instructions": skills[1]["content"],
             "context": self.api.invoke("work_context", {}),
             "tools": tools,
             "skills": [
                 {"name": row["name"], "description": row["description"], "loaded": index < 2}
-                for index, row in enumerate(catalog)
+                for index, row in enumerate(skills)
             ],
         }
+        if "orchestrate" in tools:
+            excluded = {"co", "xo", "nco", "planner"} if adapter(role) == "nco" else {"co", "xo"}
+            value["assignable_roles"] = [
+                {"name": name, "responsibility": package["responsibility"]}
+                for name, package in catalog()["roles"].items() if adapter(name) not in excluded
+            ]
+        revision = hashlib.sha256(json.dumps(
+            [package, [(row["name"], row["guidance_sha256"]) for row in skills],
+             tools, value.get("assignable_roles", [])], sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()
+        value["revision"] = revision
         self.api.store.event(
             self.api.member,
             "onboarding_delivered",
             role=role,
             revision=revision,
             package=package,
-            skills=[row["name"] for row in catalog],
+            skills=[row["name"] for row in skills],
         )
         return value
 

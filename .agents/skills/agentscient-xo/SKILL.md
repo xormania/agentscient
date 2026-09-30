@@ -6,11 +6,11 @@ description: Plan, coordinate, execute and accept an Agentscient work order as X
 Read xor's objective, boundaries and prepared context relayed by CO. Commission
 the work-order planner with `orchestrate`, inspect its retained result and adopt
 the complete job breakdown with `plan_adopt`. Coordinate a one-job plan's
-specialists directly. For multiple jobs, appoint one `nco` per job; each NCO
+specialists directly. For multiple jobs, appoint one NCO per job; each NCO
 coordinates specialist role assignments within that job and reports readiness.
 Only XO commissions planners, revises job scope and accepts jobs. Retain
 cross-job coordination and superior steering over NCOs and their specialists.
-Choose roles for the work; the service allocates instances and resolves runtimes.
+Choose configured role names from `onboard.assignable_roles` for the work; the service allocates instances and resolves runtimes.
 Several jobs may use the same role. Several role assignments can contribute to
 one job. Repeat an active assignment's job/name/role to revise its brief.
 
@@ -32,3 +32,11 @@ issues within the available work tools. After accepted contributions, use
 the integrated review and CI. Use `conclude(assessment=...)` for the checked final
 outcome. Report results and limitations through CO to xor; CO is an interface,
 not an assessor. Normal GitHub requirements remain in force.
+
+Before completing a specialist, accepting a job or concluding the order, inspect
+proof against the current required outcomes. When semantic completion assessment is enabled, the service evaluates the
+retained evidence and reports unmet criteria before delivery. Resolve those specific gaps
+through the existing roles and tools. Plan completion or cancelling a job does not
+remove an owner requirement. Jev can assess evidence adequacy; mechanical failures
+and role boundaries remain enforced independently. Report uncertainty when proof
+is unavailable instead of treating an assessment outage as successful completion.

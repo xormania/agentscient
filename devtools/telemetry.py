@@ -15,13 +15,19 @@ SENSITIVE = re.compile(
 )
 
 
-def clean(value):
+def clean(value, *, secrets=()):
     """Apply the same credential filter to events, hooks and wire captures."""
-    secrets = [v for k, v in os.environ.items() if SENSITIVE.search(k) and len(v) >= 8]
+    secrets = sorted({v for k, v in os.environ.items() if SENSITIVE.search(k) and len(v) >= 8}
+                     | {v for v in secrets if isinstance(v, str) and v}, key=len, reverse=True)
+
+    def redact_text(text):
+        for secret in secrets:
+            text = text.replace(secret, "[REDACTED]")
+        return text
 
     def scrub(item):
         if isinstance(item, dict):
-            return {key: "[REDACTED]" if SENSITIVE.search(key) else scrub(v) for key, v in item.items()}
+            return {redact_text(key): "[REDACTED]" if SENSITIVE.search(key) else scrub(v) for key, v in item.items()}
         if isinstance(item, (list, tuple)):
             return [scrub(v) for v in item]
         if isinstance(item, str):
@@ -32,8 +38,7 @@ def clean(value):
                 decoded = None
             if isinstance(decoded, (dict, list)):
                 item = json.dumps(scrub(decoded), ensure_ascii=False)
-            for secret in secrets:
-                item = item.replace(secret, "[REDACTED]")
+            item = redact_text(item)
             return re.sub(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [REDACTED]", item)
         return item
 

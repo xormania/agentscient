@@ -8,7 +8,7 @@ import io
 from .artifacts import Artifacts
 from .codex_reviews import CodexReviews
 from .github import GitHub
-from .role_packages import require_capability
+from .role_packages import adapter, require_capability
 from .store import canonical, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
@@ -67,7 +67,7 @@ class Orders:
 
     def scope(self, role=None):
         scope = self.spaces.scope()
-        if scope["job"] or scope["role"] not in {"xo", "planner"} or role and scope["role"] != role:
+        if scope["job"] or adapter(scope["role"]) not in {"xo", "planner"} or role and adapter(scope["role"]) != role:
             raise ValueError("This outcome requires the current work-order command role.")
         return scope
 
@@ -258,13 +258,17 @@ class Orders:
                 (self.member, scope["work_order"]),
             ).fetchone()
         if not workspace:
-            return {}
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         workspace = dict(workspace)
         if not work["pull_request"]:
             self.sync(workspace)
             if git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
                 raise ValueError("XO must submit the integrated work before concluding it.")
-            return {}
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
         current = provider.pr_get(context)
@@ -287,8 +291,16 @@ class Orders:
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
         CodexReviews(provider).require_ready(context, revision)
+        from .completion import Completion
+
+        gate = Completion(self.store, self.member).require(
+            "work_order", revision=revision,
+            mechanical={"ci": {"passed": current["ci"]["state"] == "passed", "revision": revision},
+                        "workspace": {"clean": True, "revision": revision}},
+        )
+        Completion(self.store, self.member).verify(gate)
         self.scope("xo")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:
             raise ValueError("GitHub did not merge the work-order PR. Inspect its current review and CI.")
-        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"]}
+        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"], "_completion": gate}

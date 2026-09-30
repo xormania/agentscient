@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .artifacts import Artifacts
+from .role_packages import adapter
 from .workspaces import Workspaces, git, project_config
 
 DEFAULT_CHECKS = {
@@ -76,7 +77,7 @@ class Development:
 
     def execution_scope(self):
         scope = self.workspaces.scope()
-        if scope["role"] == "co":
+        if adapter(scope["role"]) == "co":
             raise ValueError("CO hands work to XO; this role cannot execute application development processes.")
         return scope
 
@@ -192,7 +193,7 @@ class Development:
         if scope["paused"]:
             raise ValueError("This work is paused; no new development process was started.")
         root = Path(root)
-        if scope["role"] != "planner":
+        if adapter(scope["role"]) != "planner":
             yield root
             return
         before = self._files(root)
@@ -377,9 +378,9 @@ class Development:
         if maker in policy(self.store, project_config(self.store))["denied_makers"]:
             raise ValueError("Managed agents use maintained Makers; they cannot generate or modify Makers.")
         with self.workspaces.use(write=True) as (scope, workspace):
-            if scope["role"] not in {"coder", "test_writer"}:
+            if adapter(scope["role"]) not in {"coder", "test_writer"}:
                 raise ValueError("This role cannot generate Symfony code.")
-            if scope["role"] == "test_writer" and maker != "make:test":
+            if adapter(scope["role"]) == "test_writer" and maker != "make:test":
                 raise ValueError("Test writers use the installed make:test Maker.")
             root = Path(workspace["root"])
             before = self._files(root)
@@ -564,13 +565,19 @@ class Development:
                     continue
                 self.workspaces.scope()
                 result = self.run(root, argv, timeout=self.config.get("check_timeout", 600))
+                # Retain what was measured with its output, so a passing exit code
+                # cannot be mistaken for proof of an unrelated goal.
+                from .telemetry import clean
+
+                measurement = {**result, "check": name, "argv": clean(argv),
+                               "source_revision": git(source, "rev-parse", "HEAD").stdout.decode().strip()}
                 results.append(
                     {
                         "check": name,
                         "exit_code": result["exit_code"],
                         **({"signal": result["signal"]} if "signal" in result else {}),
                         "output": result["output"][-2500:],
-                        "evidence": self.evidence("check-" + name + ".json", result),
+                        "evidence": self.evidence("check-" + name + ".json", measurement),
                     }
                 )
         return {

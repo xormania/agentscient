@@ -223,39 +223,26 @@ class StructureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 client.tool("orchestrate", {"work": [{"name": "Code", "job": "Feature", "role": "coder", forbidden: "agent-choice"}]})
 
-    def test_legacy_work_order_nco_and_job_history_survive_plan_adoption(self):
-        fixture_work(self.xo, [responsibility("Alpha", "coder"), responsibility("Beta", "research")])
-        coder, researcher = self.member("coder", "Alpha"), self.member("research", "Beta")
+    def test_unsupported_jobless_coordinator_requires_explicit_repair_and_retains_history(self):
+        fixture_work(self.xo, [responsibility("Alpha", "coder")])
+        coder = self.member("coder", "Alpha")
         before = coder.control.snapshot()
+        retained = coder.call("work_report", {"text": "Existing work", "evidence": {"name": "history.md", "content": "Keep the evidence"}})
         self.xo.control.bind("slot8", "nco", before["work_order"], before["job"], "xo")
         with self.store.connect() as db:
             db.execute("UPDATE member_bindings SET job=NULL WHERE member='slot8'")
-            db.execute("UPDATE member_bindings SET reports_to='slot8' WHERE role IN ('coder','research')")
-            db.execute("UPDATE jobs SET created_by='slot8'")
-            db.execute("DROP TABLE work_plans")
-            db.execute("DROP TABLE role_assignments")
-            db.execute("ALTER TABLE member_bindings DROP COLUMN assignment_id")
-            db.execute("ALTER TABLE work_orders DROP COLUMN context")
-            db.execute("ALTER TABLE work_orders DROP COLUMN plan_revision")
-            db.execute("ALTER TABLE jobs DROP COLUMN dependencies")
-            db.execute("PRAGMA user_version=11")
+            db.execute("PRAGMA user_version=12")
+            saved = dict(db.execute("SELECT * FROM member_bindings WHERE member='slot8'").fetchone())
+        with self.assertRaisesRegex(ValueError, "Rebind or retire"):
+            Store(self.state)
+        with self.store.connect() as db:
+            self.assertEqual(12, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(saved, dict(db.execute("SELECT * FROM member_bindings WHERE member='slot8'").fetchone()))
+            self.assertEqual(1, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+        # The trusted existing handle can repair the exact binding explicitly.
+        self.xo.control.bind("slot8", "nco", before["work_order"], before["job"], "xo")
         self.store = Store(self.state)
-        retained = coder.call("work_report", {"text": "Existing work", "evidence": {"name": "history.md", "content": "Keep the evidence"}})
-        adopted, report = adopt_plan(self.xo, [job("Alpha"), job("Beta")])
-        self.assertEqual("nco_per_job", adopted["coordination"])
-        alpha = self.assign(self.xo, "nco", "Alpha")
-        beta = self.assign(self.xo, "nco", "Beta")
-        self.assertEqual("slot8", alpha.member)
-        self.assertEqual(before["job"], coder.control.snapshot()["job"])
-        self.assertTrue(coder.control.snapshot()["assignment_id"])
-        self.assertEqual(alpha.member, coder.control.snapshot()["reports_to"])
-        self.assertEqual(beta.member, researcher.control.snapshot()["reports_to"])
-        self.assertEqual("Keep the evidence", alpha.call("work_context", {"reference": retained["evidence"]})["content"])
-        self.xo.call("steer", {"action": "cancel", "work": "Beta", "direction": "No longer needed"})
-        self.xo.call("plan_adopt", {"plan": report["reference"], "jobs": [job("Alpha")]})
-        self.assertEqual("xo", coder.control.snapshot()["reports_to"])
-        self.assertIsNone(alpha.control.snapshot())
-        self.assertEqual({"Alpha", "Beta"}, {row["title"] for row in self.xo.call("monitor", {})["jobs"]})
+        self.assertEqual("Keep the evidence", coder.call("work_context", {"reference": retained["evidence"]})["content"])
 
     def test_only_xo_concludes_after_planning_and_planner_is_read_only(self):
         self.xo.call("orchestrate", {"work": [responsibility("Plan", "planner")]})

@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from .control import REQUEST_BINDING, Control, binding
-from .role_packages import require_capability
+from .role_packages import adapter, require_capability
 from .store import Store, canonical, stamp
 
 ACTIONS = {"framework_inspect", "framework_generate", "work_check", "work_submit"}
@@ -25,12 +25,12 @@ class Operations:
         if (
             action not in ACTIONS
             or not scope
-            or scope["role"] == "co"
+            or adapter(scope["role"]) == "co"
             or scope["paused"]
             or (not scope["job"] and not (
-                scope["role"] == "xo" and action in {"work_check", "work_submit"}
-                or scope["role"] == "planner" and action in {"framework_inspect", "work_check"}))
-            or (scope["role"] in {"nco", "planner", "research", "audit"} and action in {"framework_generate", "work_submit"})
+                adapter(scope["role"]) == "xo" and action in {"work_check", "work_submit"}
+                or adapter(scope["role"]) == "planner" and action in {"framework_inspect", "work_check"}))
+            or (adapter(scope["role"]) in {"nco", "planner", "research", "audit"} and action in {"framework_generate", "work_submit"})
         ):
             raise ValueError("This operation requires active work in the corresponding role.")
         require_capability(scope["role"], action)
@@ -233,6 +233,11 @@ def execute(directory, member, ident):
                         from .github_http import GitHubHTTP
 
                         error = GitHubHTTP().clean(str(failure))[:2000]
+                    from .diagnostics import deliver_guidance
+
+                    guidance = deliver_guidance(store, member, row["action"], result=result, error=error)
+                    if guidance:
+                        result = {**(result if isinstance(result, dict) else {}), "diagnostic_guidance": guidance}
                     with store.connect() as db:
                         db.execute("BEGIN IMMEDIATE")
                         state = "failed" if error else "completed"
@@ -246,11 +251,14 @@ def execute(directory, member, ident):
                         for recipient in {member, scope["reports_to"]} - {None}:
                             now = binding(db, recipient)
                             if now and now["work_order"] == scope["work_order"] and now["job"] in {None, scope["job"]}:
+                                # The worker's method belongs to its role. Supervisors receive
+                                # the outcome, without another role's skill instructions.
+                                notice = canonical({**Operations.summary(completed), "diagnostic_guidance": guidance}) if recipient == member and guidance else body
                                 store._send(
                                     db,
                                     member,
                                     recipient,
-                                    body,
+                                    notice,
                                     key="operation:" + str(ident) + ":" + recipient,
                                     work_order=scope["work_order"],
                                     job=scope["job"],

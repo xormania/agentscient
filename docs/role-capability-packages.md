@@ -8,6 +8,7 @@ Symfony. Package files are trusted repository configuration, never agent inputs.
 
 | Package field | Used by |
 | --- | --- |
+| `behavior` | Installed role adapter semantics, independent of the role's configured identity |
 | `responsibility`, `skills` | Shared and role onboarding plus relevant installed skill references |
 | `runtime` | Permitted harnesses, model/reasoning defaults and optional allowlists |
 | `hooks` | Private harness profiles using the shared MCP-only gate and lifecycle observations |
@@ -24,9 +25,20 @@ current role catalog early; they do not replace those service checks. Serena is
 included only for an eligible current workspace binding. Agent creation and Git
 operations, including branch names, remain behind MCP.
 
-CO's package supplies the interface tools and instructions; it has no assessment,
-execution, coordination or acceptance tools. XO, NCO, planner and specialist
-packages preserve the existing command boundaries. Native delegation remains
+The catalog is a map of configured role identities, with no required role count
+or fixed identity list. Each package selects a registered `role` adapter from
+`devtools/adapters.json`; the adapter supplies implemented behavior and workspace
+permission ceilings. Several role identities may share a behavior. The catalog's
+`defaults` map selects an identity when a workflow needs a behavior automatically;
+without a default, exactly one matching identity must exist. An unavailable or
+ambiguous behavior fails when requested.
+
+The supplied `co` behavior supplies interface tools and instructions; it has no
+assessment, execution, coordination or acceptance tools. The supplied coordination,
+planning and specialist adapters preserve their command boundaries regardless of
+the configured role names. A new adapter is an installed implementation referenced
+by the trusted manifest; changing a role name or URL cannot implement new behavior.
+Native delegation remains
 explicitly disabled. Skills and execution options do not expand command authority.
 
 ## Operator runtime configuration
@@ -34,8 +46,9 @@ explicitly disabled. Skills and execution options do not expand command authorit
 The generated repository file **`devtools/role-packages.json`** is separate from
 the existing private **`<state>/roles.json`** and **`<state>/vendors.json`**. Those
 operator files keep their current format: ordered profile choices by role,
-availability, custom model/reasoning strings, binary paths and Codex providers.
-Existing fixed teams and runtime policies continue to work.
+availability, custom model/reasoning strings, binary paths and providers supported
+by the selected harness adapter. Runtime preferences may cover a nonempty subset
+of catalog roles; a missing requested role has no implicit preferences.
 
 Package model/reasoning defaults and allowlists are initially `null`: configured
 operator choices and native inherited defaults retain their existing behavior.
@@ -49,7 +62,7 @@ that ceiling are rejected before promotion, recovery or checkpointing; widening
 a role requires a reviewed package change. Job and assignment paths narrow the
 result further.
 
-`onboard` includes the package role, version and content revision. Private native
+`onboard` includes the package role, behavior, version and content/adapter revision. Private native
 profiles record the package and binding revision. Session startup telemetry records
 the selected package alongside its execution settings. Running sessions retain
 their startup model/harness settings; changing runtime preferences applies to a
@@ -67,8 +80,9 @@ AGENTSCIENT_CUE=cue PYTHONPATH=devtools/tests:. python3 -m unittest devtools.tes
 ```
 
 Generation vets the entire CUE source before exporting its concrete `packages`
-value. The Python loader checks raw field presence, supported shapes, skill
-references, hook invariants and source/export correspondence. The MCP registry
+value. The Python loader checks raw field presence, supported shapes, installed
+adapter contracts, role defaults, skill references, behavior permission ceilings,
+hook invariants and source/export correspondence. The MCP registry
 rejects unknown tool references at startup. CI repeats CUE validation, export-drift
 checks and rejection controls in the existing dev-lane configuration job.
 Pull-request CI runs for every base branch, including an unmerged parent in a
@@ -76,6 +90,8 @@ stack. The change selector still compares against that parent and selects the
 affected suites; the required `lane` check keeps the same completion rules.
 
 Deploy the matching source and generated export together, then restart control
-services and managed sessions to load package changes consistently. Packages are
-cached per service process; this change does not introduce policy hot reload.
-Current job/revision/role authorization is still checked on each MCP call.
+services and managed sessions to load package changes consistently. Validated
+catalog reads are cached by source, export and adapter-manifest contents, so changed
+files are revalidated. Current job/revision/role authorization uses the current
+catalog on each MCP call. A running native session retains its launch settings and
+native tool surface; restart it to use expanded native capabilities.

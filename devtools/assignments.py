@@ -3,6 +3,8 @@
 import json
 from pathlib import Path, PurePosixPath
 
+from .role_packages import adapter
+from .role_packages import role as role_package
 from .store import canonical
 from .work import record
 
@@ -90,7 +92,7 @@ def prepare(db, control, scope, item, existing=None):
     if reference:
         kind, update = control._reference(db, scope, reference)
         plan_scope = json.loads(update.get("binding") or "{}") if kind == "update" else {}
-        if kind != "update" or update["kind"] != "result" or plan_scope.get("role") != "planner" or not update["artifact"]:
+        if kind != "update" or update["kind"] != "result" or (not plan_scope.get("role") or adapter(plan_scope["role"]) != "planner") or not update["artifact"]:
             raise ValueError("Use a planner's retained result update with plan evidence.")
         if update["job"] is None:
             from .planning import current_plan
@@ -112,11 +114,11 @@ def prepare(db, control, scope, item, existing=None):
             from .control import binding
 
             parent = binding(db, delegation["member"])
-            if not parent or parent["role"] != "nco" or parent["work_order"] != scope["work_order"] or parent["brief"] != delegation["brief"]:
+            if not parent or adapter(parent["role"]) != "nco" or parent["work_order"] != scope["work_order"] or parent["brief"] != delegation["brief"]:
                 raise ValueError("The delegated mission changed after planning; request a current plan.")
         value["plan"] = {"reference": reference, "evidence": f"artifact:{update['artifact']}",
                          "author": update["actor"], "binding": plan_scope}
-    if "plan" in value and value["plan"].get("binding", {}).get("job") is not None and "editable_paths" not in value and item["role"] in {"coder", "docs", "test_writer", "architect"}:
+    if "plan" in value and value["plan"].get("binding", {}).get("job") is not None and "editable_paths" not in value and role_package(item["role"])["workspace"]["editor"]:
         raise ValueError("A planned implementation needs explicit editable_paths.")
     if "editable_paths" in value and "context_paths" not in value:
         value["context_paths"] = list(rules["context_paths"])

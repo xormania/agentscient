@@ -7,7 +7,8 @@ native binaries, and enable their vendors. From WSL/Linux/macOS, start the CO:
 python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
-This uses the first available profile in the `co` preference list. An operator can
+This selects the configured default role for CO behavior, then uses the first
+available profile in that role's preference list. An operator can
 choose a configured CO profile and override model or reasoning for this launch:
 
 ```sh
@@ -40,7 +41,7 @@ does not write back to the operator's global credential file.
 3. Run `co` again, optionally choosing another profile. The replacement loads
    `onboard` and `work_context` for the same logical CO and current work.
 
-CO may switch among Claude, Codex and Grok. The existing XO and specialists keep
+CO may switch among its configured harness adapters. The existing XO and specialists keep
 their conversations. Native transcript, private reasoning and REPL variables do
 not migrate. Unreported private decisions cannot be reconstructed by the service.
 Codex/Grok interactive CO clients read new team reports through `work_context`

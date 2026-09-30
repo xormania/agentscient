@@ -8,7 +8,8 @@ import test_development
 from devtools.api import API
 from devtools.control import ROLES
 from devtools.development import Development
-from devtools.onboarding import MATE, Onboarding, document
+from devtools.onboarding import Onboarding, document
+from devtools.role_packages import catalog
 
 
 class OnboardingTests(unittest.TestCase):
@@ -54,6 +55,40 @@ class OnboardingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not available"):
             api.call("onboard", {})
 
+    def test_coordinator_revision_tracks_presented_candidate_responsibility_and_identity(self):
+        api = API(self.state, "xo")
+        configured = catalog()
+        with patch("devtools.role_packages._catalog", return_value=configured):
+            original = api.call("onboard", {})
+            configured["roles"]["research"]["responsibility"] = "Investigate the configured candidate's bounded question"
+            revised = api.call("onboard", {})
+            self.assertEqual(original["package"], revised["package"])
+            self.assertEqual(original["skills"], revised["skills"])
+            self.assertEqual(original["tools"], revised["tools"])
+            self.assertNotEqual(original["revision"], revised["revision"])
+            self.assertEqual(configured["roles"]["research"]["responsibility"],
+                             next(row["responsibility"] for row in revised["assignable_roles"] if row["name"] == "research"))
+            configured["roles"]["investigator"] = configured["roles"].pop("research")
+            configured["defaults"]["research"] = "investigator"
+            renamed = api.call("onboard", {})
+            self.assertNotEqual(revised["revision"], renamed["revision"])
+            self.assertIn("investigator", {row["name"] for row in renamed["assignable_roles"]})
+            self.assertNotIn("research", {row["name"] for row in renamed["assignable_roles"]})
+
+    def test_onboarding_revision_tracks_presented_tools_without_hashing_current_context(self):
+        api = API(self.state, "xo")
+        original = api.call("onboard", {})
+        tools = [row for row in api.tools() if row["name"] != "conclude"]
+        with patch.object(api, "tools", return_value=tools):
+            revised = api.call("onboard", {})
+        self.assertNotIn("conclude", revised["tools"])
+        self.assertEqual(original["package"], revised["package"])
+        self.assertNotEqual(original["revision"], revised["revision"])
+        with patch.object(api, "invoke", return_value={**original["context"], "temporary_context": "Changed brief"}):
+            contextual = Onboarding(api).onboard()
+        self.assertNotEqual(original["context"], contextual["context"])
+        self.assertEqual(original["revision"], contextual["revision"])
+
     def test_command_guidance_matches_interface_planning_and_job_authority(self):
         co = API(self.state, "owner").call("onboard", {})
         self.assertIn("xor's interface", co["responsibility"])
@@ -68,7 +103,7 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("plan_adopt", xo["tools"])
         self.assertIn("conclude", xo["tools"])
         self.assertIn("one-job plan", xo["role_instructions"])
-        self.assertIn("one `nco` per job", xo["role_instructions"])
+        self.assertIn("one NCO per job", xo["role_instructions"])
         self.assertIn("superior steering", xo["role_instructions"])
 
         api = API(self.state, "coder")
@@ -85,7 +120,7 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("do not use harness-native subagents", planner["shared"])
 
     def test_catalog_has_valid_shared_skills_and_cannot_escape_source_tree(self):
-        for name in MATE:
+        for name in catalog()["framework_skills"]:
             self.assertEqual(64, len(document(name)["sha256"]))
         with self.assertRaises(ValueError):
             document("../../AGENTS")
@@ -145,14 +180,14 @@ class MateSkillTests(unittest.TestCase):
         self.assertLess(len(json.dumps(before["skills"])), 2300)
         self.assertNotIn("source", before["skills"][0])
         self.assertNotIn(before["shared"], Onboarding(self.api).startup())
-        for name in MATE:
+        for name in catalog()["framework_skills"]:
             skill = self.api.call("skill_read", {"name": name})
             self.assertIn("framework_inspect", skill["content"])
             self.assertNotIn("vendor/bin/mate", skill["content"])
             self.assertNotIn("composer show", skill["content"])
             self.assertNotIn("bin/console", skill["content"])
             self.assertEqual(64, len(skill["sha256"]))
-        name = MATE[0]
+        name = catalog()["framework_skills"][0]
         original = self.api.call("skill_read", {"name": name})
         def revised(request):
             value = document(request)

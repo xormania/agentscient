@@ -58,6 +58,9 @@ the service chooses their branches and PR routing. The owner controls releases t
 operations. [Local setup](docs/local-agent-readiness.md) and the
 [operator reference](devtools/OPERATIONS.md) cover installation and repair.
 
+The generated Mate CLI instructions below apply to maintainers and backing services.
+Managed agents access those capabilities through their role-bound MCP tools.
+
 <!-- BEGIN AI_MATE_INSTRUCTIONS -->
 AI Mate: project diagnostic tools, exposed through the `vendor/bin/mate` CLI.
 

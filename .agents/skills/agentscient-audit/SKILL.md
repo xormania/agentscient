@@ -14,3 +14,9 @@ Record the assessment with `review_record` for the inspected revision. If it cha
 refresh the packet and assess the new revision. An approval requires actual review;
 successful CI alone is insufficient. Route blockers/questions through the supplied
 reporting relationship. XO handles job acceptance and integration.
+
+Test the completion claim against each required outcome, including a plausible
+counterexample and relevant successful neighbor behavior. Evidence from a different
+revision or scope cannot establish the submitted result. A producer's report is a
+claim to inspect, not proof by itself. Identify the smallest verification or source
+change that resolves a demonstrated gap; avoid expanding review into optional work.
