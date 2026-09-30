@@ -233,6 +233,11 @@ def execute(directory, member, ident):
                         from .github_http import GitHubHTTP
 
                         error = GitHubHTTP().clean(str(failure))[:2000]
+                    from .diagnostics import deliver_guidance
+
+                    guidance = deliver_guidance(store, member, row["action"], result=result, error=error)
+                    if guidance:
+                        result = {**(result if isinstance(result, dict) else {}), "diagnostic_guidance": guidance}
                     with store.connect() as db:
                         db.execute("BEGIN IMMEDIATE")
                         state = "failed" if error else "completed"
@@ -246,11 +251,14 @@ def execute(directory, member, ident):
                         for recipient in {member, scope["reports_to"]} - {None}:
                             now = binding(db, recipient)
                             if now and now["work_order"] == scope["work_order"] and now["job"] in {None, scope["job"]}:
+                                # The worker's method belongs to its role. Supervisors receive
+                                # the outcome, without another role's skill instructions.
+                                notice = canonical({**Operations.summary(completed), "diagnostic_guidance": guidance}) if recipient == member and guidance else body
                                 store._send(
                                     db,
                                     member,
                                     recipient,
-                                    body,
+                                    notice,
                                     key="operation:" + str(ident) + ":" + recipient,
                                     work_order=scope["work_order"],
                                     job=scope["job"],

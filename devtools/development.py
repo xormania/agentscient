@@ -564,13 +564,19 @@ class Development:
                     continue
                 self.workspaces.scope()
                 result = self.run(root, argv, timeout=self.config.get("check_timeout", 600))
+                # Retain what was measured with its output, so a passing exit code
+                # cannot be mistaken for proof of an unrelated goal.
+                from .telemetry import clean
+
+                measurement = {**result, "check": name, "argv": clean(argv),
+                               "source_revision": git(source, "rev-parse", "HEAD").stdout.decode().strip()}
                 results.append(
                     {
                         "check": name,
                         "exit_code": result["exit_code"],
                         **({"signal": result["signal"]} if "signal" in result else {}),
                         "output": result["output"][-2500:],
-                        "evidence": self.evidence("check-" + name + ".json", result),
+                        "evidence": self.evidence("check-" + name + ".json", measurement),
                     }
                 )
         return {

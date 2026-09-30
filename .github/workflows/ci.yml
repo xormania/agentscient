@@ -81,7 +81,7 @@
           "env": {
             "AGENTSCIENT_CUE": "cue"
           },
-          "run": "python3 -m devtools.role_packages --check\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages -v"
+          "run": "python3 -m devtools.role_packages --check\npython3 -m devtools.completion --check\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages -v"
         }
       ]
     },

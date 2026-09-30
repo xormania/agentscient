@@ -101,10 +101,23 @@ class Planning:
             for ident in ids:
                 locks.enter_context(spaces.lock("job-" + str(ident)))
             with self.store.connect() as db:
+                _, proposed = self.control._reference(db, scope, plan)
+                author = binding(db, proposed["actor"])
+                assigned = (dict(record(db, "role_assignments", author["assignment_id"]))
+                            if author and author.get("assignment_id") and author["role"] == "planner"
+                            and author["reports_to"] == self.member and author["job"] is None else None)
+            gate = None
+            if assigned:
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require("assignment", assignment=assigned)
+            with self.store.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 scope = self.commands._scope(db, {"xo"})
                 if scope["paused"]:
                     raise ValueError("Work is paused.")
+                if gate:
+                    Completion(self.store, self.member).verify(gate)
                 return self._adopt(db, scope, plan, jobs)
 
     def _adopt(self, db, scope, plan, jobs):
@@ -379,7 +392,6 @@ class Planning:
             for ident in ids:
                 locks.enter_context(spaces.lock("job-" + str(ident)))
             with self.store.connect() as db:
-                db.execute("BEGIN IMMEDIATE")
                 scope = self.commands._scope(db, {"xo", "nco"})
                 if scope["paused"]:
                     raise ValueError("Work is paused.")
@@ -405,10 +417,34 @@ class Planning:
                     raise ValueError("A role assignment needs a current retained result before completion.")
                 if db.execute("SELECT 1 FROM operations WHERE member=? AND state IN ('queued','running')", (target["member"],)).fetchone():
                     raise ValueError("The assignment still has an active operation.")
+                revision = None
                 if target["role"] in EDITORS and not cancel:
                     workspace = db.execute("SELECT * FROM job_workspaces WHERE job=?", (target["job"],)).fetchone()
                     if workspace and (spaces.changes(workspace["root"]) or git(workspace["root"], "diff", "--cached", "--quiet", check=False).returncode):
                         raise ValueError("Save the editor's remaining changes before completing its role assignment.")
+                    if workspace:
+                        revision = git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip()
+                assigned = dict(record(db, "role_assignments", target["assignment_id"]))
+            gate = None
+            if not cancel:
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require("assignment", job=target["job"], assignment=assigned, revision=revision)
+            with self.store.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                if self.commands._scope(db, {"xo", "nco"}) != scope or binding(db, target["member"]) != target:
+                    raise ValueError("The assignment changed during completion; inspect its current result.")
+                latest = current_result(db, target)
+                if not cancel and (not latest or latest["id"] != result["id"]):
+                    raise ValueError("The result changed during completion; inspect its current proof.")
+                if dict(record(db, "role_assignments", assigned["id"])) != assigned:
+                    raise ValueError("The assignment requirements changed during completion.")
+                if db.execute("SELECT 1 FROM operations WHERE member=? AND state IN ('queued','running')", (target["member"],)).fetchone():
+                    raise ValueError("The assignment still has an active operation.")
+                if gate:
+                    Completion(self.store, self.member).verify(gate)
+                if revision and (spaces.changes(workspace["root"]) or git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip() != revision):
+                    raise ValueError("The source changed during completion; retain current proof before completing it.")
                 self._complete(db, target, result, cancel)
                 if scope["role"] == "nco":
                     self.commands._touch(db, scope["member"])

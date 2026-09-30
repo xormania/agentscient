@@ -72,7 +72,9 @@ class DevelopmentTests(unittest.TestCase):
                 receipt = self.api.call("work_check", {})
                 ident = int(receipt["reference"].split(":")[1])
                 execute(self.state, "coder", ident)
-            self.assertEqual(result, self.api.operations.get(ident)["result"])
+            retained = self.api.operations.get(ident)["result"]
+            self.assertEqual(result, {key: value for key, value in retained.items() if key != "diagnostic_guidance"})
+            self.assertEqual(failed, "diagnostic_guidance" in retained)
             for member in ("coder", "xo"):
                 notice = json.loads(self.store.inbox(member)["messages"][-1]["body"])
                 self.assertEqual(receipt["reference"], notice["reference"])
@@ -80,7 +82,8 @@ class DevelopmentTests(unittest.TestCase):
                 self.assertEqual(int(failed), notice["checks"]["failed"])
                 self.assertEqual([{"check": "fixture", "reference": "artifact:1"}], notice["checks"]["evidence"])
                 self.assertNotIn("UNIQUE DIAGNOSTIC", json.dumps(notice))
-                self.assertLess(len(json.dumps(notice)), 1000)
+                self.assertEqual(failed and member == "coder", "diagnostic_guidance" in notice)
+                self.assertLess(len(json.dumps(notice)), 4000 if member == "coder" else 1000)
         with patch.object(Operations, "launch"):
             receipt = self.api.call("work_check", {})
             ident = int(receipt["reference"].split(":")[1])

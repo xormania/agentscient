@@ -258,13 +258,17 @@ class Orders:
                 (self.member, scope["work_order"]),
             ).fetchone()
         if not workspace:
-            return {}
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         workspace = dict(workspace)
         if not work["pull_request"]:
             self.sync(workspace)
             if git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
                 raise ValueError("XO must submit the integrated work before concluding it.")
-            return {}
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
         current = provider.pr_get(context)
@@ -287,8 +291,16 @@ class Orders:
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
         CodexReviews(provider).require_ready(context, revision)
+        from .completion import Completion
+
+        gate = Completion(self.store, self.member).require(
+            "work_order", revision=revision,
+            mechanical={"ci": {"passed": current["ci"]["state"] == "passed", "revision": revision},
+                        "workspace": {"clean": True, "revision": revision}},
+        )
+        Completion(self.store, self.member).verify(gate)
         self.scope("xo")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:
             raise ValueError("GitHub did not merge the work-order PR. Inspect its current review and CI.")
-        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"]}
+        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"], "_completion": gate}

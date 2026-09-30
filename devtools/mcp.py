@@ -147,6 +147,8 @@ def serve(directory, member, channel=False, operator=False, generation=None):
                     result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
                 except Exception as error:
                     result = {"isError": True, "content": [{"type": "text", "text": str(error)[:2000]}]}
+                    if getattr(error, "diagnostic_guidance", None):
+                        result["content"].append({"type": "text", "text": json.dumps(error.diagnostic_guidance, ensure_ascii=False)})
             else:
                 reply({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
                 return

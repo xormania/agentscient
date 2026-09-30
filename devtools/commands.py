@@ -554,6 +554,10 @@ class Commands:
             db.execute("BEGIN IMMEDIATE")
             scope = self._scope(db, {"xo"})
             Orders.settled(db, scope["work_order"])
+            if delivery.get("_completion"):
+                from .completion import Completion
+
+                Completion(self.store, self.member).verify(delivery["_completion"])
             Work(self.store, self.member).update_in(
                 db, "work_orders", scope["work_order"], None, status="done", next_action="", blocker=""
             )

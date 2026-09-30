@@ -329,7 +329,7 @@ class Delivery:
                         raise ValueError("The NCO must report the checked job ready for XO acceptance.")
             if active:
                 raise ValueError("A development operation is still active. Its result will be delivered automatically.")
-            revision, merge_commit = None, None
+            revision, merge_commit, gate = None, None, None
             if not cancel and work["pull_request"]:
                 revision = self.inspected(job)
                 context = self.github._context(job=job)
@@ -353,6 +353,14 @@ class Delivery:
                     )
                 if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
                     raise ValueError("CI has not passed for the current PR revision.")
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require(
+                    "job", job=job, revision=revision,
+                    mechanical={"ci": {"passed": current["ci"]["state"] == "passed", "revision": revision},
+                                "workspace": {"clean": True, "revision": revision}},
+                )
+                Completion(self.store, self.member).verify(gate)
                 self.scope(job, role={"xo"})
                 merged = self.github.pr_merge(context, revision=revision)
                 if not merged["merged"]:
@@ -366,12 +374,17 @@ class Delivery:
                     raise ValueError("This job has code changes that must be submitted through its PR.")
                 if not report:
                     raise ValueError("A non-code job needs a current retained result report before acceptance.")
+                from .completion import Completion
+
+                gate = Completion(self.store, self.member).require("job", job=job)
             outcome = "cancelled" if cancel else "done"
             with self.store.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 current = binding(db, self.member)
                 if not current or any(current[k] != scope[k] for k in SCOPE_FIELDS):
                     raise ValueError("Command scope changed. Inspect the provider result before retrying finalization.")
+                if gate:
+                    Completion(self.store, self.member).verify(gate)
                 if not cancel and not work["pull_request"]:
                     latest = self._current_result(db, job)
                     if not latest or latest["id"] != report["id"]:

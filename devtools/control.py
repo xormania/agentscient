@@ -284,7 +284,7 @@ class Control:
             result["truncated"] = len(row["text"]) > 600
         return result
 
-    def work_context(self, section="brief", reference=None, after=0, offset=0):
+    def work_context(self, section="brief", reference=None, after=0, offset=0, *, project=True):
         scope = self.current()
         if not scope:
             if reference:
@@ -368,6 +368,10 @@ class Control:
                         (self.member, *args),
                     )
                 ]
+                if project:
+                    from .diagnostics import project_context
+
+                    return project_context(self.store, self.member, result)
                 return result
             elif section == "messages":
                 sql, args = scope_sql(scope)
@@ -514,6 +518,26 @@ class Control:
             if linked.get("reference") != reference or linked.get("stage") != "decision":
                 raise ValueError("Outcome and decision must reference the same evaluation.")
 
+    def _proof_capture(self, scope):
+        """Capture source context internally; this does not certify a measurement."""
+        from .workspaces import Workspaces, git
+
+        with self.store.connect() as db:
+            if scope["job"]:
+                workspace = db.execute("SELECT root FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
+            else:
+                workspace = db.execute("SELECT root FROM order_workspaces WHERE work_order=?", (scope["work_order"],)).fetchone()
+        if not workspace:
+            return None
+        try:
+            return {"source_revision": git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip(),
+                    "workspace_clean": not bool(Workspaces(self.store, self.member).changes(workspace["root"])),
+                    "revision_kind": "report_capture"}
+        except (OSError, ValueError):
+            # Reporting remains available during workspace recovery; missing source
+            # provenance cannot satisfy a gate requiring current code evidence.
+            return None
+
     def report(self, text, kind="progress", responding_to=None, evidence=None, evaluation=None):
         scope = self.current()
         if not scope:
@@ -521,6 +545,9 @@ class Control:
         if scope["role"] == "planner" and kind == "result" and not evidence:
             raise ValueError("A planner result needs retained plan evidence.")
         payload = [scope, kind, text, responding_to, evidence]
+        captured = self._proof_capture(scope) if kind == "result" and evidence and scope["role"] != "audit" else None
+        if captured:
+            payload.append(captured)
         if evaluation:
             payload.append(evaluation)
         fingerprint = hashlib.sha256(canonical(payload).encode()).hexdigest()
@@ -538,6 +565,8 @@ class Control:
             # Publish bytes privately first; the visible link commits with its report
             # and audience. A failed report cannot expose private evidence.
             saved = self.artifacts.save(**evidence, work_order=None, job=None)["artifact"]["id"]
+            if captured and self._proof_capture(scope) != captured:
+                raise ValueError("The source changed while retaining proof; report the current result again.")
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             old = db.execute(
@@ -562,6 +591,10 @@ class Control:
             ).lastrowid
             if saved:
                 Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
+                if captured:
+                    provenance = {"provider": "work_report", "reference": "update:" + str(ident), **captured}
+                    db.execute("INSERT OR IGNORE INTO artifact_sources(artifact,provider,reference,metadata) VALUES (?,?,?,?)",
+                               (saved, provenance["provider"], provenance["reference"], canonical(provenance)))
             if recipient:
                 body = f"{kind}: {text}\nReference: update:{ident}"
                 if responding_to and scope["role"] in {"co", "planner"}:

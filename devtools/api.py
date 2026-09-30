@@ -511,6 +511,10 @@ class API:
                 error=str(error)[:1000],
                 seconds=round(time.monotonic() - started, 6),
             )
+            if not self.operator:
+                from .diagnostics import deliver_guidance
+
+                error.diagnostic_guidance = deliver_guidance(self.store, self.member, capability, error=error)
             raise
         self.store.event(
             self.member,
@@ -526,6 +530,12 @@ class API:
                 else {}
             ),
         )
+        if not self.operator and capability not in ACTIONS:
+            from .diagnostics import deliver_guidance
+
+            guidance = deliver_guidance(self.store, self.member, capability, result=result)
+            if guidance and isinstance(result, dict):
+                result = {**result, "diagnostic_guidance": guidance}
         return result
 
     def invoke(self, name, args):

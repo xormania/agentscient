@@ -147,8 +147,9 @@ No new Python package, PHP dependency or Serena network access is required.
 Enabling this integration permits the host service to send the selected task
 context, source ranges, diagnostics and configured profile evidence to
 `https://api.typesafe.ai/v1/systemone`. The shared credential filter runs before
-transmission, but does not detect every secret in arbitrary source text. Only
-explicit advice calls contact TypeSafe; there is no background repository scan.
+transmission, but does not detect every secret in arbitrary source text. In addition
+to explicit advice calls, routine brief reads can assess scoped background reports,
+and completion attempts assess retained proof. There is no background repository scan.
 
 `assignment_advise` uses configured roles and available installed profiles. Fixed
 teams use their idle configured members. Unknown model/reasoning settings and
@@ -170,7 +171,9 @@ the service never silently drops requested sources. The transport uses an
 eight-second socket timeout, disallows redirects, and makes at most one short
 retry for HTTP 429/529. Longer backoff is left to a later explicit call. Response
 models, answer types, options, distributions and usage are checked before use.
-Provider errors return a sanitized failure and do not block ordinary work tools.
+Provider errors return a sanitized failure. Relevance filtering preserves the full
+brief when assessment is unavailable; enabled completion assessment blocks completion
+until proof can be evaluated. Inspection, reporting and correction remain available.
 
 The existing artifact catalogue retains each successful evaluation's exact
 sanitized request, response, binding and policy snapshot. Source ranges, including
@@ -198,6 +201,55 @@ try a representative assignment and source/diagnostic assessment. Compare useful
 file discovery, missed relevant sources, assignment corrections, agent consumption
 and completion time against the existing workflow. Fixture tests verify the
 integration; actual Jev accuracy and savings require this authenticated evaluation.
+
+### Scoped guidance and proof boundaries
+
+Failed control-plane calls, failed retained development checks and Serena errors
+carry a relevant permitted skill body and next action. The service supplies this
+guidance directly; agents do not need a separate skill-read call to receive it.
+Successful calls remain quiet. Native hooks keep their existing role/tool checks
+and telemetry; they do not make network calls or decide completion.
+
+With Jev configured, brief reads can omit clearly unrelated background reports
+whose role/job relevance Noul is below 0.2. Owner objectives, constraints, current
+assignments, incoming messages, failures, blockers and evidence-bearing reports
+remain present. Raw reports stay in the existing store and authorized reference
+reads return them in full. Completion uses its own unfiltered proof collection.
+
+Completion assessment is enabled by default for projects with `project.jev`.
+`"completion": false` inside that object explicitly preserves the earlier
+mechanical completion behavior. Projects without Jev retain that behavior too.
+The additional gate runs before planner adoption, specialist completion, job
+acceptance and XO work-order conclusion. Cancellation releases a contribution;
+it does not certify that the owner's goal has been achieved.
+
+`completion-policy.cue` defines the three boundary rules and independent required
+judgments for the objective, completion conditions and constraints. Each judgment
+must reach the configured threshold; scores are never averaged. The service
+rejects failed measurements, missing proof and stale revisions before allowing
+Jev to assess adequacy. Producer reports are claims; their retained artifacts or
+measurement output provide the material to inspect. Uncertain or unavailable
+assessment blocks completion and identifies what needs verification. Jev cannot
+override CI, permissions, review requirements or workspace checks.
+
+The runtime reads the generated `completion-policy.json`; no CUE binary is needed
+in an agent session. CI validates the CUE source and export. To change the policy,
+copy the CUE/JSON pair into operator-owned storage and set
+`jev.completion_policy_file` to the JSON path. The adjacent `.cue` file must match
+the export's recorded source hash. For the repository policy, use
+`python3 -m devtools.completion --write` and verify with `--check`.
+
+Existing events distinguish inline guidance delivery, explicit skill reads,
+context projection, completion assessment and completion refusal. Exact sanitized
+Jev inputs, outputs, scope, policy, usage and timing remain existing artifacts and
+`jev_evaluation` events. Delivery or reading does not establish that an agent used
+the method or that its work succeeded; later decisions and outcomes use the
+existing `work_report.evaluation` feedback path. Tests use isolated temporary state.
+
+Result reports capture an existing managed workspace's source revision internally;
+this labels the report's context and does not certify its measurement. Configured
+check artifacts retain the command definition with observed output. Agents supply
+proof through their ordinary report/check tools, without entering source hashes.
 
 References: [TypeSafe API](https://docs.typesafe.ai/api),
 [model versions and limits](https://docs.typesafe.ai/models).

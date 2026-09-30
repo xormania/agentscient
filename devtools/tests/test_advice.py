@@ -110,6 +110,8 @@ class AdviceTests(unittest.TestCase):
             self.assess(sources=[{"path": "src/Example.php", "offset": 2}])
 
     def test_planned_role_scope_and_shared_context_are_supplied_to_jev(self):
+        # This fixture isolates on-demand advice; completion is tested separately.
+        self.configure({"completion": False})
         co = API(self.state, "co")
         document = co.call("work_report", {"text": "Prepared specification", "evidence": {
             "name": "scope.md", "content": "Preserve the existing endpoint behavior"}})

@@ -32,3 +32,11 @@ issues within the available work tools. After accepted contributions, use
 the integrated review and CI. Use `conclude(assessment=...)` for the checked final
 outcome. Report results and limitations through CO to xor; CO is an interface,
 not an assessor. Normal GitHub requirements remain in force.
+
+Before completing a specialist, accepting a job or concluding the order, inspect
+proof against the current required outcomes. The service evaluates the retained
+evidence and reports unmet criteria before delivery. Resolve those specific gaps
+through the existing roles and tools. Plan completion or cancelling a job does not
+remove an owner requirement. Jev can assess evidence adequacy; mechanical failures
+and role boundaries remain enforced independently. Report uncertainty when proof
+is unavailable instead of treating an assessment outage as successful completion.

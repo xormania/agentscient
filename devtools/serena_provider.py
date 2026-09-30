@@ -350,7 +350,18 @@ class Serena:
             scope, signature = self.scope()
             token = REQUEST_BINDING.set((self.member, scope))
             try:
-                return self._call(arguments, scope, signature)
+                result = self._call(arguments, scope, signature)
+                from .diagnostics import deliver_guidance
+
+                guidance = deliver_guidance(self.store, self.member, "serena_repl", result=result)
+                if guidance:
+                    result["content"].append({"type": "text", "text": json.dumps(guidance, ensure_ascii=False)})
+                return result
+            except Exception as error:
+                from .diagnostics import deliver_guidance
+
+                error.diagnostic_guidance = deliver_guidance(self.store, self.member, "serena_repl", error=error)
+                raise
             finally:
                 REQUEST_BINDING.reset(token)
 
@@ -520,6 +531,8 @@ def serve(directory, member, generation=None):
                     if method == "tools/call"
                     else {"id": ident, "error": {"code": -32602, "message": str(error)[:1800]}}
                 )
+                if method == "tools/call" and getattr(error, "diagnostic_guidance", None):
+                    response["result"]["content"].append({"type": "text", "text": json.dumps(error.diagnostic_guidance, ensure_ascii=False)})
             trace.record("mcp_out", response)
             print(json.dumps({"jsonrpc": "2.0", **response}), flush=True)
     finally:

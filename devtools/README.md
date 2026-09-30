@@ -22,7 +22,7 @@ and `packages/` is the prod-lane.
 | **Serena MCP** (`serena`) | Source navigation and edits through the v2 REPL, bound automatically to the current specialist's workspace and paths. |
 | **Native harness adapters** | Keep Codex, Claude and Grok conversations alive and carry live messages through their native protocols. |
 | **SQLite and managed storage** | Retain work, state, messages, observations and artifact associations; store artifact payloads separately. |
-| **Optional Jev advice** | XO/NCO assignment advice and scoped execution-role source/diagnostic assessment through two on-demand MCP tools, using the existing artifacts and telemetry. |
+| **Jev assessment** | When configured, role/job relevance filtering and proof-backed completion assessment, plus on-demand assignment and source advice, using the existing artifacts and telemetry. |
 
 CO is xor's interface: it relays xor's instructions and prepared context to XO,
 and system messages back to xor. XO owns planning, execution, coordination and
@@ -65,6 +65,7 @@ explains REPL lifetime and workspace isolation.
 | `workspaces.py`, `orders.py`, `retirement.py`, `github.py`, `delivery.py`, `feedback.py` | Job/work-order integration, worktree retirement, PR/CI, review, acceptance and diagnostics |
 | `development.py`, `operations.py`, `serena_provider.py` | Installed framework tools, retained long operations and the separate REPL gateway |
 | `advice.py`, `jev.py` | Optional work-scoped assessment and the bounded TypeSafe HTTP client |
+| `diagnostics.py`, `completion.py`, `completion-policy.cue` | Inline permitted skill guidance, scoped context projection and validated proof boundaries |
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |
 

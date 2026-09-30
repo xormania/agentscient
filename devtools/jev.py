@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 
 from .github_http import NoRedirect
-from .jev_config import load
+from .jev_config import load, validate_questions
 
 DEFAULTS = load()
 MODEL = DEFAULTS["model"]
@@ -74,6 +74,7 @@ class Jev:
         self.settings = settings or load()["transport"]
 
     def evaluate(self, state, questions, model=MODEL):
+        validate_questions(questions)
         payload = json.dumps({"model": model, "state": state, "questions": questions},
                              ensure_ascii=False, allow_nan=False).encode()
         if len(payload) > self.settings["max_request_bytes"]:
