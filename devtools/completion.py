@@ -36,8 +36,10 @@ class Completion:
         """Resolve only trusted role/job identities, including disabled gate receipts."""
         scope = self.control.current()
         with self.store.connect() as db:
-            if not scope or scope != binding(db, self.member) or scope["paused"] or adapter(scope["role"]) not in {"xo", "nco"}:
+            if not scope or scope != binding(db, self.member) or adapter(scope["role"]) not in {"xo", "nco"}:
                 raise Failure("Completion requires the current active execution officer.", category="not_permitted", reason="scope_not_permitted")
+            if scope["paused"]:
+                raise Failure("Completion cannot proceed while this work is paused.", category="not_ready", reason="work_paused")
             if boundary == "assignment":
                 ident = assignment["id"] if isinstance(assignment, dict) else assignment
                 assigned = record(db, "role_assignments", ident)
@@ -58,8 +60,10 @@ class Completion:
     def collect(self, boundary, job, assignment, revision, mechanical):
         scope = self.control.current()
         with self.store.connect() as db:
-            if not scope or scope != binding(db, self.member) or scope["paused"] or adapter(scope["role"]) not in {"xo", "nco"}:
+            if not scope or scope != binding(db, self.member) or adapter(scope["role"]) not in {"xo", "nco"}:
                 raise Failure("Completion requires the current active execution officer.", category="not_permitted", reason="scope_not_permitted")
+            if scope["paused"]:
+                raise Failure("Completion cannot proceed while this work is paused.", category="not_ready", reason="work_paused")
             order = record(db, "work_orders", scope["work_order"])
             team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
             if boundary == "work_order" and db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND member!=?", (order["id"], canonical(names_for_adapter("xo")), self.member)).fetchone():

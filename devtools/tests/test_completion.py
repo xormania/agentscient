@@ -98,6 +98,46 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual(str(blocked.exception), event["reason"])
         self.assertEqual(failure_info(blocked.exception), event["failure"])
 
+    def test_paused_completion_is_not_ready_for_current_coordinators(self):
+        self.xo.control.bind("docs", "nco", self.order, self.job, "xo")
+        with self.store.connect() as db:
+            db.execute("UPDATE member_bindings SET paused=1 WHERE member IN ('xo','docs')")
+        for member in ("xo", "docs"):
+            gate = Completion(self.store, member)
+            for enabled in (True, False):
+                self.configure({"features": {"completion": enabled}})
+                for method in ("settings", "collect", "require"):
+                    with self.subTest(member=member, enabled=enabled, method=method):
+                        arguments = {"boundary": "job", "job": self.job}
+                        if method == "collect":
+                            arguments.update(assignment=None, revision=None, mechanical=None)
+                        with self.assertRaisesRegex(Failure, "paused") as blocked:
+                            getattr(gate, method)(**arguments)
+                        self.assertEqual({"category": "not_ready", "reason": "work_paused", "details": {}}, failure_info(blocked.exception))
+        with self.store.connect() as db:
+            db.execute("UPDATE member_bindings SET paused=0 WHERE member IN ('xo','docs')")
+        for member in ("xo", "docs"):
+            self.assertEqual("disabled", Completion(self.store, member).require("job", job=self.job)["state"])
+        self.assertEqual([], self.requests)
+
+    def test_pause_does_not_mask_invalid_completion_bindings(self):
+        with self.store.connect() as db:
+            db.execute("UPDATE member_bindings SET paused=1")
+        stale = {**self.gate.control.current(), "revision": -1}
+        cases = (("xo", stale), ("coder", self.api.control.current()), ("docs", None))
+        for member, scope in cases:
+            gate = Completion(self.store, member)
+            with patch.object(gate.control, "current", return_value=scope):
+                for method in ("settings", "collect", "require"):
+                    with self.subTest(member=member, method=method):
+                        arguments = {"boundary": "job", "job": self.job}
+                        if method == "collect":
+                            arguments.update(assignment=None, revision=None, mechanical=None)
+                        with self.assertRaises(Failure) as blocked:
+                            getattr(gate, method)(**arguments)
+                        self.assertEqual({"category": "not_permitted", "reason": "scope_not_permitted", "details": {}}, failure_info(blocked.exception))
+        self.assertEqual([], self.requests)
+
     def test_assignment_uses_its_original_brief_and_full_owner_boundaries(self):
         assignment = self.assignment()
         self.report()
