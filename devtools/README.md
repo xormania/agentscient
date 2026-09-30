@@ -9,6 +9,7 @@ and `packages/` is the prod-lane.
 | Need | Guide |
 | --- | --- |
 | First installation and local acceptance | [Local setup and readiness](../docs/local-agent-readiness.md) |
+| Role packages, execution options and enforced ceilings | [Role capability packages](../docs/role-capability-packages.md) |
 | Normal CO, XO and specialist work | [Roles and tools](../docs/control-plane-roles-and-tools.md) |
 | Team configuration, credentials, native sessions, storage or repair | [Operator reference](OPERATIONS.md) |
 | Development checks and integration tests | [CI guide](../.github/CI.md) |
@@ -58,6 +59,7 @@ explains REPL lifetime and workspace isolation.
 | Files | Responsibility |
 | --- | --- |
 | `api.py`, `mcp.py`, `control.py`, `commands.py` | MCP surface, role/context enforcement and CO/XO outcomes |
+| `role_packages.py`, `role-packages.cue`, `role-packages.json` | Validated role definitions and runtime projections |
 | `launch.py`, `native.py`, `profiles.py`, `compat.py` | Persistent native sessions, private profiles and protocol checks |
 | `work.py`, `store.py`, `artifacts.py`, `telemetry.py` | Work records, SQLite state, artifacts and measured observations |
 | `workspaces.py`, `orders.py`, `retirement.py`, `github.py`, `delivery.py`, `feedback.py` | Job/work-order integration, worktree retirement, PR/CI, review, acceptance and diagnostics |

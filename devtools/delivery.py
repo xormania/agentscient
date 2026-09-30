@@ -10,6 +10,7 @@ from pathlib import Path
 from .control import Control, binding, includes
 from .github import GitHub
 from .github_http import GitHubError
+from .role_packages import require_capability
 from .store import canonical, stamp
 from .work import Work, record
 from .workspaces import EDITORS, Workspaces, git
@@ -112,6 +113,7 @@ class Delivery:
 
     def inspect(self, job=None, path=None, offset=None, page=1, section="review"):
         scope, work = self.scope(job)
+        require_capability(scope["role"], "work_inspect")
         with self.spaces.lock("job-" + str(work["id"])):
             if section in {"ci", "feedback"}:
                 if path is not None:
@@ -186,6 +188,7 @@ class Delivery:
 
     def review(self, conclusion, summary):
         scope, work = self.scope(role={"audit"})
+        require_capability(scope["role"], "review_record")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.spaces.use():
@@ -195,6 +198,7 @@ class Delivery:
         if resolve or review and not review.startswith("review:"):
             raise ValueError("Job responses use review references; XO handles work-order threads.")
         scope, work = self.scope(role=EDITORS)
+        require_capability(scope["role"], "review_respond")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.spaces.use():
@@ -292,6 +296,7 @@ class Delivery:
 
     def _finish_job(self, job, assessment, *, cancel=False):
         scope, work = self.scope(job, role={"xo"})
+        require_capability(scope["role"], "steer")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.spaces.lock("job-" + str(job)):

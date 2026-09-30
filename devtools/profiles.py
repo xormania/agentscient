@@ -9,7 +9,9 @@ import sys
 import tomllib
 from pathlib import Path
 
-from .api import SERVER, TOOLS, validate
+from .api import API, SERVER, TOOLS, validate
+from .role_packages import HOOK_EVENTS, descriptor
+from .role_packages import role as role_package
 from .serena_provider import SERVER as SERENA_SERVER
 from .serena_provider import TOOL as SERENA_TOOL
 from .serena_provider import enabled as serena_enabled
@@ -70,7 +72,7 @@ def retain_login(directory, member, harness, generation):
                    {"source_sha256": origin["source_sha256"], "auth": (private / "auth.json").read_text()})
 
 
-def permitted(harness, tool, arguments):
+def permitted(harness, tool, arguments, *, catalogue=None):
     if (not isinstance(harness, str) or harness not in {"codex", "claude", "grok"}
             or not isinstance(tool, str) or not isinstance(arguments, dict)):
         return False
@@ -86,7 +88,8 @@ def permitted(harness, tool, arguments):
         tool, arguments = arguments["tool_name"], arguments["tool_input"]
         if not isinstance(tool, str) or not isinstance(arguments, dict):
             return False
-    for provider, row in [(SERVER, row) for row in TOOLS] + [(SERENA_SERVER, SERENA_TOOL)]:
+    catalogue = {SERVER: TOOLS, SERENA_SERVER: [SERENA_TOOL]} if catalogue is None else catalogue
+    for provider, row in [(provider, row) for provider, rows in catalogue.items() for row in rows]:
         names = {f"mcp__{provider}__{row['name']}", f"{provider}__{row['name']}"}
         if harness == "codex":
             names.add(row["name"])
@@ -99,16 +102,34 @@ def permitted(harness, tool, arguments):
     return False
 
 
+def tool_catalogue(directory, member):
+    """Read the live trusted binding; the native launch catalog is not authority."""
+    api = API(directory, member)
+    scope = api.control.snapshot()
+    result = {SERVER: api._tools(scope)}
+    if serena_enabled(api.store, scope):
+        result[SERENA_SERVER] = [SERENA_TOOL]
+    return result
+
+
 def prepare(directory, member, harness):
     """Keep global settings untouched; reuse only the selected native login files."""
     directory = Path(directory).resolve()
     from .store import Store
 
-    generation = Store(directory).member(member)["generation"]
+    store = Store(directory)
+    api = API(directory, member)
+    scope = api.control.snapshot()
+    package = role_package(scope["role"]) if scope else None
+    if package and harness not in package["runtime"]["harnesses"]:
+        raise ValueError("This role package does not permit the selected harness")
+    generation = store.member(member)["generation"]
     private = directory / "profiles" / member
     if generation:
         private /= generation
     private.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if package:
+        write_json(private / "role-package.json", {**descriptor(scope["role"]), "binding_revision": scope["revision"]})
     env = os.environ.copy()
     # Grok gets a private HOME below; the server still uses the operator's GitHub OAuth session.
     env.setdefault("GH_CONFIG_DIR", str(Path(env.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "gh"))
@@ -134,7 +155,7 @@ def prepare(directory, member, harness):
                 "hooks": [{"type": "command", "command": hook, "timeout": 10}],
             }
         ]
-        for name in ("PreToolUse", "PostToolUse", "SessionStart", "Stop")
+        for name in (package["hooks"]["events"] if package else HOOK_EVENTS)
     }
     server = {"command": sys.executable,
               "args": [str(ENTRY), "mcp", "--state", str(directory), "--member", member, *lease_args]}
@@ -225,7 +246,7 @@ def _hook(directory, member, harness, payload):
     tool = payload.get("tool_name", payload.get("toolName"))
     arguments = payload.get("tool_input", payload.get("toolInput", {}))
     if event == "PreToolUse":
-        allowed = permitted(harness, tool, arguments)
+        allowed = permitted(harness, tool, arguments, catalogue=tool_catalogue(directory, member))
         if harness == "claude":
             current = store.member(member)
             if current["desired"] == "running" and current["state"] == "idle":

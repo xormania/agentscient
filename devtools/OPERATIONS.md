@@ -52,7 +52,7 @@ harness or starting workspace in place; use a new member name for that change.
 | `workspaces` | Managed worktree parent; defaults to `../wt-ag/` beside `project.checkout`, outside source and private state. Explicit configuration is preserved. |
 | `fetch` | Defaults to true; set false explicitly for an offline local target. |
 | `identity` | Optional commit identity with `name` and `email`; otherwise use Git's configured identity. |
-| `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [workspaces.py](workspaces.py). |
+| `paths` | Optional map of editing roles to allowed repository-relative paths. Defaults are defined in [role-packages.cue](role-packages.cue). |
 | `assignment_policy` | Operator-owned JSON file, absolute or relative to team state; defaults to [assignment-policy.json](assignment-policy.json). Configures protected source, default read context, denied Makers and allowed Console introspection commands. |
 | `development` | `{}` enables installed Makers/Mate and default validation. |
 | `development.php`, `development.composer` | Optional installed binaries. An absolute PHP path adds its directory to PATH for CLI tools. |
@@ -68,6 +68,14 @@ harness or starting workspace in place; use a new member name for that change.
 Each work order and job owns its worktree and Composer install. Managed startup
 selects it automatically. Dependency installation refreshes when Composer metadata
 changes. Do not share a vendor-directory symlink across worktrees.
+
+### Role capability packages
+
+[Role packages](../docs/role-capability-packages.md) define each role's MCP ceiling,
+skill references, private hooks, workspace eligibility and execution options.
+Operator `roles.json`/`vendors.json` and fixed-team settings retain their current
+format. Configured profiles must fit the package; models and reasoning levels are
+not hardcoded. Maintain the CUE definition and checked-in JSON export together.
 
 ### Planning and NCO setup
 

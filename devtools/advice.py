@@ -16,6 +16,7 @@ from .commands import Commands
 from .control import ROLES, Control, binding
 from .jev import Jev
 from .jev_config import load as load_policy
+from .role_packages import require_capability
 from .store import canonical, stamp
 from .telemetry import clean
 from .workspaces import Workspaces, git, project_config
@@ -108,6 +109,7 @@ class Advice:
             raise ValueError("CO relays owner context and system outcomes; work assessment belongs to the execution roles.")
         if xo and scope["role"] not in {"xo", "nco"}:
             raise ValueError("Assignment advice is available to XO and NCO.")
+        require_capability(scope["role"], "assignment_advise" if xo else "work_assess")
         return scope
 
     def brief(self):

@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from .control import ROLES
+from .role_packages import catalog, runtime_profile
 from .store import canonical, stamp
 
 HARNESSES = {"claude", "codex", "grok"}
@@ -79,7 +80,9 @@ def load(directory):
             raise ValueError(f"{role} needs an ordered nonempty list of known profiles")
         if len(set(choices)) != len(choices):
             raise ValueError("Duplicate runtime preference")
-    revision = hashlib.sha256(canonical([policy, availability]).encode()).hexdigest()
+        for choice in choices:
+            runtime_profile(role, profiles[choice])
+    revision = hashlib.sha256(canonical([policy, availability, catalog()]).encode()).hexdigest()
     return policy, availability, revision
 
 
@@ -103,7 +106,7 @@ def resolve(directory, role, *, installed=True, profile=None):
             skipped.append({"profile": name, "vendor": profile["vendor"], "reason": reason})
             continue
         return {
-            **profile,
+            **runtime_profile(role, profile),
             "binary": binary,
             "selection": {
                 "role": role,

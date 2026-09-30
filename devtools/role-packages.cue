@@ -1,0 +1,432 @@
+// Maintainer-owned capability packages. Runtime profiles remain operator-owned.
+package rolepackages
+
+import "list"
+
+#Text: string & !="" & !~"\\x00"
+#Strings: [...#Text] & list.UniqueItems()
+#Harness: "codex" | "claude" | "grok"
+#Option: {
+	default: *null | #Text
+	allowed: *null | ([#Text, ...#Text] & list.UniqueItems())
+	if allowed != null && default != null {default: or(allowed)}
+}
+#Runtime: {
+	harnesses: *["codex", "claude", "grok"] | ([#Harness, ...#Harness] & list.UniqueItems())
+	model:     #Option
+	reasoning: #Option
+	profiles:  "operator"
+}
+#Hooks: {
+	events: ["PreToolUse", "PostToolUse", "SessionStart", "Stop"]
+	policy:            "mcp_only"
+	native_delegation: false
+}
+#Capabilities: {
+	bound: ["work_context", "work_report", "guidance_request"]
+	session: ["onboard", "skill_read"]
+	command: *[] | #Strings
+	advice: *[] | #Strings
+	job: *[] | #Strings
+	job_framework: *[] | #Strings
+	work_order: *[] | #Strings
+	work_order_framework: *[] | #Strings
+}
+#Role: {
+	version:        1
+	responsibility: #Text
+	skills: {
+		shared: *"agentscient-context" | #Text
+		role:   #Text
+		framework: *[] | #Strings
+	}
+	runtime: #Runtime
+	hooks:   #Hooks
+	mcp:     #Capabilities
+	workspace: {
+		editor: *false | bool
+		paths: *[] | #Strings
+		serena: *false | bool
+		if !editor {paths: []}
+		if editor {paths: [#Text, ...#Text]}
+	}
+}
+
+// Role identity also constrains capability configuration.
+#ReadRole: #Role & {workspace: editor: false}
+#InterfaceRole: #ReadRole & {
+	skills: framework: []
+	workspace: serena: false
+	mcp: {
+		command: ["direct", "monitor"]
+		advice: []
+		job: []
+		job_framework: []
+		work_order: []
+		work_order_framework: []
+	}
+}
+#Catalog: {
+	version:          1
+	framework_skills: #Strings
+	roles: {
+		co:          #InterfaceRole
+		xo:          #ReadRole
+		coder:       #Role
+		audit:       #ReadRole
+		docs:        #Role
+		research:    #ReadRole
+		test_writer: #Role
+		architect:   #Role
+		nco:         #ReadRole
+		planner:     #ReadRole
+	}
+}
+
+packages: #Catalog & {
+	version: 1
+	framework_skills: ["mate-system-information", "mate-php-environment-check", "mate-symfony-service-inspection", "mate-symfony-request-triage", "mate-symfony-profiler-debugging", "mate-symfony-dotenv-diagnostics"]
+	roles: {
+		co: {
+			"responsibility": "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work."
+			"skills": {
+				"role": "agentscient-co"
+			}
+			"mcp": {
+				"command": [
+					"direct",
+					"monitor",
+				]
+			}
+		}
+		xo: {
+			"responsibility": "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor."
+			"skills": {
+				"role": "agentscient-xo"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"command": [
+					"conclude",
+					"monitor",
+					"orchestrate",
+					"plan_adopt",
+					"steer",
+				]
+				"advice": [
+					"work_assess",
+					"assignment_advise",
+				]
+				"job": [
+					"work_inspect"
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+				"work_order": [
+					"work_inspect",
+					"work_refresh",
+					"work_submit",
+					"review_respond",
+				]
+				"work_order_framework": [
+					"work_check"
+				]
+			}
+		}
+		coder: {
+			"responsibility": "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence."
+			"skills": {
+				"role": "agentscient-coder"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect",
+					"work_save",
+					"work_refresh",
+					"work_recover",
+					"work_submit",
+					"review_respond",
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+					"framework_generate",
+				]
+			}
+			"workspace": {
+				"editor": true
+				"paths": [
+					"src/",
+					"config/",
+					"packages/",
+					"tests/",
+					"templates/",
+					"assets/",
+					"translations/",
+					"public/",
+					"migrations/",
+					"composer.json",
+					"composer.lock",
+					"symfony.lock",
+					"phpunit.dist.xml",
+				]
+				"serena": true
+			}
+		}
+		audit: {
+			"responsibility": "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source."
+			"skills": {
+				"role": "agentscient-audit"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect",
+					"review_record",
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+			}
+			"workspace": {
+				"serena": true
+			}
+		}
+		docs: {
+			"responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations."
+			"skills": {
+				"role": "agentscient-docs"
+				"framework": [
+					"mate-system-information",
+					"mate-symfony-service-inspection",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect",
+					"work_save",
+					"work_refresh",
+					"work_recover",
+					"work_submit",
+					"review_respond",
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+			}
+			"workspace": {
+				"editor": true
+				"paths": [
+					"docs/",
+					"README.md",
+				]
+				"serena": true
+			}
+		}
+		research: {
+			"responsibility": "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits."
+			"skills": {
+				"role": "agentscient-research"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect"
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+			}
+			"workspace": {
+				"serena": true
+			}
+		}
+		test_writer: {
+			"responsibility": "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths."
+			"skills": {
+				"role": "agentscient-test-writer"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect",
+					"work_save",
+					"work_refresh",
+					"work_recover",
+					"work_submit",
+					"review_respond",
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+					"framework_generate",
+				]
+			}
+			"workspace": {
+				"editor": true
+				"paths": [
+					"tests/",
+					"phpunit.dist.xml",
+				]
+				"serena": true
+			}
+		}
+		architect: {
+			"responsibility": "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope."
+			"skills": {
+				"role": "agentscient-architect"
+				"framework": [
+					"mate-system-information",
+					"mate-symfony-service-inspection",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect",
+					"work_save",
+					"work_refresh",
+					"work_recover",
+					"work_submit",
+					"review_respond",
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+			}
+			"workspace": {
+				"editor": true
+				"paths": [
+					"docs/"
+				]
+				"serena": true
+			}
+		}
+		nco: {
+			"responsibility": "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs."
+			"skills": {
+				"role": "agentscient-nco"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"command": [
+					"monitor",
+					"orchestrate",
+					"steer",
+				]
+				"advice": [
+					"work_assess",
+					"assignment_advise",
+				]
+				"job": [
+					"work_inspect"
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+				"work_order": [
+					"work_inspect"
+				]
+				"work_order_framework": [
+					"work_check"
+				]
+			}
+		}
+		planner: {
+			"responsibility": "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution."
+			"skills": {
+				"role": "agentscient-planner"
+				"framework": [
+					"mate-system-information",
+					"mate-php-environment-check",
+					"mate-symfony-service-inspection",
+					"mate-symfony-request-triage",
+					"mate-symfony-profiler-debugging",
+					"mate-symfony-dotenv-diagnostics",
+				]
+			}
+			"mcp": {
+				"advice": [
+					"work_assess"
+				]
+				"job": [
+					"work_inspect"
+				]
+				"job_framework": [
+					"framework_inspect",
+					"work_check",
+				]
+			}
+			"workspace": {
+				"serena": true
+			}
+		}
+	}
+}

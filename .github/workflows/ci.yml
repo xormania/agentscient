@@ -6,11 +6,6 @@
         "opened",
         "reopened",
         "synchronize"
-      ],
-      "branches": [
-        "dev",
-        "master",
-        "work-order/*"
       ]
     },
     "push": {
@@ -71,6 +66,22 @@
           "name": "Lint live support",
           "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/*.py .github/tests",
           "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
+        },
+        {
+          "name": "Prepare CUE for role-package validation",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}",
+          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
+          "with": {
+            "version": "v0.17.1"
+          }
+        },
+        {
+          "name": "Validate role packages and generated export",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}",
+          "env": {
+            "AGENTSCIENT_CUE": "cue"
+          },
+          "run": "python3 -m devtools.role_packages --check\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages -v"
         }
       ]
     },

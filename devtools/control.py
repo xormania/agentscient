@@ -8,10 +8,11 @@ import threading
 from contextvars import ContextVar
 
 from .artifacts import Artifacts
+from .role_packages import catalog
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLES = ("co", "xo", "coder", "audit", "docs", "research", "test_writer", "architect", "nco", "planner")
+ROLES = tuple(catalog()["roles"])
 REQUEST_BINDING = ContextVar("control_binding", default=None)
 BRIEF_FIELDS = ("title", "objective", "done_when", "constraints", "status", "next_action", "blocker")
 INSTRUCTIONS = (
