@@ -36,6 +36,7 @@ class NativeProtocolTests(unittest.TestCase):
             env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / ".codex"), "GROK_HOME": str(home / ".grok")}
             store = Store(state)
             co = Client(state, "owner", env=env)
+            operator = Client(state, "owner", env=env, operator=True)
             stale = None
             try:
                 co.tool("direct", {"title": "Replace XO", "objective": "Retain the team across vendor turnover",
@@ -49,7 +50,14 @@ class NativeProtocolTests(unittest.TestCase):
                 stale = Client(state, chief, env=env, generation=before["generation"])
                 vendors["vendors"]["openai"]["available"] = False
                 (state / "vendors.json").write_text(json.dumps(vendors))
-                co.tool("restart_xo", {"reason": "Vendor quota unavailable; recover current team"})
+                with self.assertRaisesRegex(ValueError, "not available"):
+                    co.tool("restart_xo", {"reason": "Vendor quota unavailable; recover current team"})
+                self.assertEqual(before["generation"], store.member(chief)["generation"])
+                operator.invoke("session_stop", member=chief)
+                operator.invoke("session_start", member=chief)
+                operator.invoke("message_send", to=chief, work_order=binding["work_order"],
+                                body="Operator repaired this transport; recover your retained work context",
+                                key="operator-repair")
                 until(lambda: store.member(chief)["generation"] != before["generation"], timeout=15)
                 until(lambda: store.member(chief)["state"] in {"idle", "active"}, timeout=8)
                 self.assertEqual("grok", store.member(chief)["harness"])
@@ -69,6 +77,7 @@ class NativeProtocolTests(unittest.TestCase):
                 until(lambda: all(row["state"] in {"stopped", "failed"} for row in store.members()), timeout=10)
                 if stale:
                     stale.close()
+                operator.close()
                 co.close()
                 retain_native(state, "xo-vendor-replacement")
 

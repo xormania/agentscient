@@ -12,7 +12,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client, until  # noqa: E402
+from support import Client, adopt_plan, until  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
@@ -70,6 +70,7 @@ def main(curated=False):
             },
         )
         xo = API(state, "xo")
+        adopt_plan(xo, [{"name": "Serena example", "objective": "Inspect and edit", "done_when": "Evidence", "constraints": "Source only"}])
         xo.call(
             "orchestrate",
             {

@@ -21,7 +21,7 @@ class OnboardingTests(unittest.TestCase):
             member = "owner" if role == "co" else "xo" if role == "xo" else "coder"
             api = API(self.state, member)
             if role not in {"co", "xo"}:
-                api.control.bind(member, role, self.order, None if role == "nco" else self.job, "xo")
+                api.control.bind(member, role, self.order, None if role == "planner" else self.job, "xo")
             value = api.call("onboard", {})
             self.assertEqual(role, value["role"])
             self.assertEqual(role, value["context"]["role"])
@@ -53,6 +53,36 @@ class OnboardingTests(unittest.TestCase):
         api.control.unbind("coder")
         with self.assertRaisesRegex(ValueError, "not available"):
             api.call("onboard", {})
+
+    def test_command_guidance_matches_interface_planning_and_job_authority(self):
+        co = API(self.state, "owner").call("onboard", {})
+        self.assertIn("xor's interface", co["responsibility"])
+        self.assertIn("Relay xor's authorized objective", co["role_instructions"])
+        self.assertIn("direct", co["tools"])
+        self.assertIn("monitor", co["tools"])
+        self.assertFalse({"conclude", "restart_xo", "work_assess", "steer", "orchestrate"} & set(co["tools"]))
+        self.assertNotIn("`conclude", co["role_instructions"])
+        self.assertNotIn("`restart_xo", co["role_instructions"])
+
+        xo = API(self.state, "xo").call("onboard", {})
+        self.assertIn("plan_adopt", xo["tools"])
+        self.assertIn("conclude", xo["tools"])
+        self.assertIn("one-job plan", xo["role_instructions"])
+        self.assertIn("one `nco` per job", xo["role_instructions"])
+        self.assertIn("superior steering", xo["role_instructions"])
+
+        api = API(self.state, "coder")
+        api.control.bind("coder", "nco", self.order, self.job, "xo")
+        nco = api.call("onboard", {})
+        self.assertIn("one assigned job", nco["role_instructions"])
+        self.assertIn("do not commission a planner or another NCO", nco["role_instructions"])
+        self.assertNotIn("conclude", nco["tools"])
+        api.control.bind("coder", "planner", self.order, None, "xo")
+        planner = api.call("onboard", {})
+        self.assertIn("Propose jobs", planner["role_instructions"])
+        self.assertIn("XO's `plan_adopt`", planner["role_instructions"])
+        self.assertFalse({"plan_adopt", "steer", "orchestrate"} & set(planner["tools"]))
+        self.assertIn("do not use harness-native subagents", planner["shared"])
 
     def test_catalog_has_valid_shared_skills_and_cannot_escape_source_tree(self):
         for name in MATE:

@@ -15,6 +15,41 @@ from pathlib import Path
 ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 
 
+def adopt_plan(xo, jobs):
+    """Exercise the actual planner handoff while arranging a command fixture."""
+    from devtools.api import API
+
+    revision = xo.call("work_context", {})["plan_revision"]
+    assignment = {"name": f"Planning {revision + 1}", "role": "planner", "objective": "Inspect and plan the requested jobs",
+                  "done_when": "Job requirements and verification are defined", "constraints": "Planning only"}
+    xo.call("orchestrate", {"work": [assignment]})
+    with xo.store.connect() as db:
+        member = db.execute("SELECT member FROM member_bindings WHERE role='planner' AND reports_to=?", (xo.member,)).fetchone()[0]
+    planner = API(xo.store.directory, member)
+    report = planner.call("work_report", {"kind": "result", "text": "Proposed job breakdown", "evidence": {
+        "name": "plan.md", "content": json.dumps(jobs)}})
+    adopted = xo.call("plan_adopt", {"plan": report["reference"], "jobs": jobs})
+    return adopted, report
+
+
+def fixture_work(coordinator, work):
+    """Trusted existing work for provider/session tests, independent of planning."""
+    from devtools.work import Work
+
+    config = coordinator.commands._config()
+    with coordinator.store.connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        scope = coordinator.control.current()
+        for item in work:
+            old = db.execute("SELECT * FROM jobs WHERE work_order=? AND title=?", (scope["work_order"], item["name"])).fetchone()
+            job = old["id"] if old else Work(coordinator.store, coordinator.member).create_in(
+                db, "jobs", title=item["name"], objective=item["objective"], done_when=item["done_when"],
+                constraints=item["constraints"], work_order=scope["work_order"], select=False)["job"]["id"]
+            prior = db.execute("SELECT * FROM member_bindings WHERE job=? AND role=?", (job, item["role"])).fetchone()
+            slot = coordinator.commands._slot(db, config, existing=dict(prior) if prior else None, role=item["role"])
+            coordinator.control.bind_in(db, slot["name"], item["role"], scope["work_order"], job, coordinator.member)
+
+
 def require_process_identity():
     from devtools import processes
 

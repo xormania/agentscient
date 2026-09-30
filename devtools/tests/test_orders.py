@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_delivery
-from support import Client, held_check, until
+from support import Client, adopt_plan, fixture_work, held_check, until
 
 from devtools.api import API
 from devtools.github import GitHub, short_pr
@@ -102,6 +102,12 @@ class OrderTests(unittest.TestCase):
         self.cleanup.tick()
 
     def test_job_integrates_before_final_pr_and_cleanup_keeps_evidence(self):
+        adopt_plan(self.xo, [{"name": "Feature", "objective": "Feature", "done_when": "Works", "constraints": "Product only"}])
+        self.xo.call("steer", {"action": "resume", "work": "Feature"})
+        result = self.api.call("work_report", {"kind": "result", "text": "Checked implementation is submitted"})
+        self.xo.call("steer", {"action": "complete", "work": "Feature", "assignment": "Feature", "direction": "Implementation checked"})
+        self.assertIsNone(self.api.control.snapshot())
+        self.assertEqual(result["reference"], self.xo.call("monitor", {})["assignments"][-1]["result"])
         self.assertEqual(self.checkout.parent / "wt-ag", self.workspace.parent)
         self.assertEqual(self.integration["branch"], self.managed["target"])
         self.assertEqual(self.initial, self.integration["base_revision"])
@@ -120,18 +126,18 @@ class OrderTests(unittest.TestCase):
         result = self.xo.call("work_submit", {"summary": "The complete outcome"})
         self.assertEqual("submitted", result["state"])
         with self.assertRaisesRegex(ValueError, "Monitor"):
-            self.co.call("conclude", {"assessment": "Ready"})
-        self.co.call("monitor", {"section": "review"})
+            self.xo.call("conclude", {"assessment": "Ready"})
+        self.xo.call("monitor", {"section": "review"})
         self.order_provider.ci = "pending"
         with self.assertRaisesRegex(ValueError, "CI"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.order_provider.ci = "passed"
         self.reviews.require_ready.side_effect = ValueError("Both Codex reviews must complete")
         with self.assertRaisesRegex(ValueError, "Codex"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
         self.reviews.require_ready.side_effect = None
-        self.co.call("conclude", {"assessment": "Combined outcome verified"})
+        self.xo.call("conclude", {"assessment": "Combined outcome verified"})
         self.reviews.request.assert_called_once()
         self.assertEqual(self.head, self.reviews.require_ready.call_args.args[1])
         self.retry_cleanup()
@@ -147,17 +153,52 @@ class OrderTests(unittest.TestCase):
     def test_lost_merge_response_reconciles_after_remote_branch_deletion(self):
         self.accept()
         self.xo.call("work_submit", {"summary": "Integrated result"})
-        self.co.call("monitor", {"section": "review"})
+        self.xo.call("monitor", {"section": "review"})
         self.order_provider.lose_merge_reply = True
         with self.assertRaises(ConnectionError):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.reviews.require_ready.side_effect = ValueError("Both Codex reviews must complete")
         with self.assertRaisesRegex(ValueError, "Codex"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         with self.store.connect() as db:
             self.assertEqual(0, db.execute("SELECT count(*) FROM order_deliveries").fetchone()[0])
         self.reviews.require_ready.side_effect = None
-        self.assertEqual("done", self.co.call("conclude", {"assessment": "Ready"})["outcome"])
+        self.assertEqual("done", self.xo.call("conclude", {"assessment": "Ready"})["outcome"])
+
+    def test_final_cleanup_preserves_running_co_interface_and_completed_context(self):
+        self.accept()
+        self.xo.call("work_submit", {"summary": "Integrated result"})
+        self.xo.call("monitor", {"section": "review"})
+        self.store.session("co", state="active", desired="running", pid=123)
+        before = self.store.member("co")
+        self.xo.call("conclude", {"assessment": "Combined outcome verified"})
+        with self.store.connect() as db:
+            sessions = json.loads(db.execute("SELECT sessions FROM managed_worktrees WHERE job IS NULL").fetchone()[0])
+        self.assertNotIn("co", sessions)
+        self.cleanup.tick()
+        self.assertFalse(Path(self.integration["root"]).exists())
+        self.assertEqual(before, self.store.member("co"))
+        self.assertEqual("done", self.co.call("work_context", {})["work"]["status"])
+        self.assertIn("Combined outcome verified", json.dumps(self.co.call("work_context", {"section": "messages"})))
+        self.assertIsNone(self.xo.control.snapshot())
+
+    def test_planner_can_inspect_integrated_work_without_acceptance_authority(self):
+        self.accept()
+        self.xo.call("work_submit", {"summary": "Integrated result"})
+        self.xo.call("orchestrate", {"work": [{"name": "Follow-up planning", "role": "planner",
+                                              "objective": "Inspect the integrated result",
+                                              "done_when": "A follow-up plan is reported", "constraints": "Read only"}]})
+        with self.store.connect() as db:
+            member = db.execute("SELECT member FROM member_bindings WHERE role='planner'").fetchone()[0]
+        planner = API(self.state, member)
+        result = planner.call("work_inspect", {"section": "review"})
+        self.assertEqual(self.head, result["pr"]["revision"])
+        with self.assertRaisesRegex(ValueError, "not available"):
+            planner.call("conclude", {"assessment": "Accept it"})
+        with self.assertRaises(ValueError):
+            planner.commands.conclude("Accept it")
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM order_deliveries").fetchone()[0])
 
     def test_review_fix_updates_same_job_pr_before_both_merge_stages(self):
         branch = self.managed["branch"]
@@ -203,8 +244,8 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
 
         self.xo.call("work_submit", {"summary": "Integrated reviewed contribution"})
-        self.co.call("monitor", {"section": "review"})
-        self.co.call("conclude", {"assessment": "Combined result verified"})
+        self.xo.call("monitor", {"section": "review"})
+        self.xo.call("conclude", {"assessment": "Combined result verified"})
         self.cleanup.tick()
         self.assertEqual(revised, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
         self.assertFalse(self.workspace.exists())
@@ -213,22 +254,22 @@ class OrderTests(unittest.TestCase):
     def test_final_delivery_rejects_changed_target_revision_and_dirty_integration(self):
         self.accept()
         self.xo.call("work_submit", {"summary": "Integrated result"})
-        self.co.call("monitor", {"section": "review"})
+        self.xo.call("monitor", {"section": "review"})
         self.order_provider.pr["base"]["ref"] = "master"
         with self.assertRaisesRegex(ValueError, "target"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.order_provider.pr["base"]["ref"] = "dev"
         self.order_provider.pr["head"]["sha"] = "a" * 40
         with self.assertRaisesRegex(ValueError, "Monitor"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.order_provider.pr["head"]["sha"] = self.head
         (Path(self.integration["root"]) / "unexpected.txt").write_text("preserve")
         with self.assertRaisesRegex(ValueError, "unexpected"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         git(self.integration["root"], "add", "unexpected.txt")
         git(self.integration["root"], "commit", "-m", "Unexpected local commit")
         with self.assertRaisesRegex(ValueError, "unexpected local commits"):
-            self.co.call("conclude", {"assessment": "Ready"})
+            self.xo.call("conclude", {"assessment": "Ready"})
         self.assertEqual(self.initial, git(self.remote, "rev-parse", "dev").stdout.decode().strip())
 
     def test_cleanup_waits_for_processes_providers_and_lease_and_preserves_untracked(self):
@@ -360,20 +401,7 @@ class OrderTests(unittest.TestCase):
             self.accept()
         self.cleanup.tick()
         self.assertFalse(self.workspace.exists())
-        self.xo.call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Next",
-                        "role": "coder",
-                        "objective": "Continue",
-                        "done_when": "Done",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        fixture_work(self.xo, [{"name": "Next", "role": "coder", "objective": "Continue", "done_when": "Done", "constraints": "Product only"}])
         new_root = self.api.workspaces.ensure()["root"]
         self.assertEqual(squashed, git(new_root, "rev-parse", "HEAD").stdout.decode().strip())
         self.assertNotEqual(self.head, squashed)
@@ -381,4 +409,3 @@ class OrderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

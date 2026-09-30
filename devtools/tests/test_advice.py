@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import test_delivery
 import test_workspaces
-from support import Client
+from support import Client, adopt_plan, fixture_work
 from test_commands import responsibility
 
 from devtools.api import API
@@ -109,6 +109,27 @@ class AdviceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "character boundary"):
             self.assess(sources=[{"path": "src/Example.php", "offset": 2}])
 
+    def test_planned_role_scope_and_shared_context_are_supplied_to_jev(self):
+        co = API(self.state, "co")
+        document = co.call("work_report", {"text": "Prepared specification", "evidence": {
+            "name": "scope.md", "content": "Preserve the existing endpoint behavior"}})
+        order = co.call("work_context", {})["work"]
+        co.call("direct", {**{key: order[key] for key in ("title", "objective", "done_when", "constraints")},
+                           "context": [document["evidence"]]})
+        adopt_plan(self.xo, [{"name": "Feature", "objective": "Deliver the feature", "done_when": "Feature works",
+                             "constraints": "Product changes only"}])
+        assignment = {"name": "Feature", "job": "Feature", "role": "coder",
+                      "objective": "Implement signed receipts", "done_when": "Receipt signatures validate",
+                      "constraints": "Do not modify other endpoints"}
+        self.xo.call("orchestrate", {"work": [assignment]})
+        self.xo.call("steer", {"action": "resume", "work": "Feature", "assignment": "Feature"})
+        self.api.call("work_assess", {"proposal": "Add signed receipts"})
+        brief = self.requests[-1][0]["brief"]
+        self.assertEqual({key: assignment[key] for key in ("name", "role", "objective", "done_when", "constraints")},
+                         brief["role_assignment"])
+        self.assertEqual([document["evidence"]], brief["context"])
+        self.assertNotEqual(brief["job"]["objective"], brief["role_assignment"]["objective"])
+
     def test_identical_concurrent_evidence_requests_reuse_one_evaluation(self):
         evidence = self.api.artifacts.save("shared.txt", content="same diagnostic")
         sources = [{"reference": "artifact:" + str(evidence["artifact"]["id"])}]
@@ -180,19 +201,26 @@ class AdviceTests(unittest.TestCase):
                 self.assess(sources=[{"path": path}])
         self.assertEqual([], self.requests)
 
-    def test_scope_checked_before_evidence_is_sent_and_co_cannot_read_source(self):
+    def test_scope_checked_before_evidence_is_sent_and_co_cannot_assess(self):
         own = self.api.artifacts.save("diagnostic.txt", content="retained diagnostic")
         ref = "artifact:" + str(own["artifact"]["id"])
         self.assess(sources=[{"reference": ref}])
-        self.xo.call("orchestrate", {"work": [responsibility("Other", "docs")]})
+        fixture_work(self.xo, [responsibility("Other", "docs")])
         foreign = API(self.state, "docs").artifacts.save("private.txt", content="other job evidence")
         with self.assertRaisesRegex(ValueError, "not available"):
             self.assess(sources=[{"reference": "artifact:" + str(foreign["artifact"]["id"])}])
         co = API(self.state, "co")
-        with self.assertRaisesRegex(ValueError, "retained evidence"):
-            self.assess(api=co)
-        self.assess(sources=[{"reference": ref}], api=co)
-        self.assertEqual(2, len(self.requests))
+        self.assertNotIn("work_assess", {row["name"] for row in co.tools()})
+        for sources in ([{"path": "src/Example.php"}], [{"reference": ref}]):
+            with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, "not available"):
+                self.assess(sources=sources, api=co)
+        from devtools.advice import Advice
+
+        with self.assertRaisesRegex(ValueError, "CO relays"):
+            Advice(self.store, "co").assess(sources=[{"reference": ref}], questions=[{"name": "fit", "instructions": "Fit?"}])
+        with self.assertRaisesRegex(ValueError, "does not evaluate"):
+            co.control.report("Accept it", evaluation={"reference": ref, "stage": "decision"})
+        self.assertEqual(1, len(self.requests))
 
     def test_operation_evidence_uses_existing_scoped_reads_and_reports_partial(self):
         scope = self.api.control.snapshot()

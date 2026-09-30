@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, retain_native
+from support import ENTRY, Client, fixture_work, retain_native, until
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -45,11 +45,21 @@ class SessionTests(unittest.TestCase):
         return API(self.state, member)
 
     def test_generation_fences_existing_and_reconnecting_clients_and_hooks(self):
+        def start_after_calls_finish():
+            # The MCP response can arrive just before its request lease exits.
+            # Honor the service's retry contract without weakening the in-flight check.
+            try:
+                return self.store.begin_session("owner", os.getpid())
+            except ValueError as error:
+                if "call in flight" not in str(error):
+                    raise
+                return None
+
         self.bind()
         self.co.call("work_report", {"text": "Preserve this decision", "kind": "progress"})
         old = Client(self.state, "owner")
         self.addCleanup(old.close)
-        first = self.store.begin_session("owner", os.getpid())
+        first = until(start_after_calls_finish)
         with self.assertRaisesRegex(ValueError, "replaced"):
             old.tool("direct", GOAL)
         current = Client(self.state, "owner", generation=first)
@@ -59,7 +69,7 @@ class SessionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "in flight"):
                 self.store.begin_session("owner", os.getpid())
         self.store.session("owner", generation=first, state="stopped", desired="stopped", pid=None)
-        second = self.store.begin_session("owner", os.getpid())
+        second = until(start_after_calls_finish)
         self.assertNotEqual(first, second)
         with self.assertRaisesRegex(ValueError, "replaced"):
             current.tool("work_report", {"text": "Stale decision", "kind": "progress"})
@@ -73,11 +83,14 @@ class SessionTests(unittest.TestCase):
         self.assertIn("Preserve this decision", json.dumps(context))
         self.assertNotIn("Stale decision", json.dumps(context))
 
-    def test_all_roles_keep_bindings_on_replacement_and_use_current_vendor_policy(self):
+    def test_subordinates_keep_bindings_on_replacement_and_use_current_vendor_policy(self):
         xo = self.bind()
         roles = [role for role in ROLES if role not in {"co", "xo"}]
         for role in roles:
-            xo.call("orchestrate", {"work": [responsibility(("coder" if role == "audit" else role) + " work", role)]})
+            if role == "planner":
+                xo.call("orchestrate", {"work": [responsibility("planner work", role)]})
+            else:
+                fixture_work(xo, [responsibility(("coder" if role == "audit" else role) + " work", role)])
         before = {row["name"]: Control(self.store, row["name"]).snapshot() for row in self.store.members()}
         vendor_path = self.state / "vendors.json"
         vendors = json.loads(vendor_path.read_text())
@@ -95,12 +108,13 @@ class SessionTests(unittest.TestCase):
                     "direction": "Recover on available vendor",
                 },
             )
-        self.co.call("restart_xo", {"reason": "Recover coordination on available vendor"})
+        with self.assertRaisesRegex(ValueError, "not available"):
+            self.co.call("restart_xo", {"reason": "Recover coordination on available vendor"})
         for member, original in before.items():
             current = Control(self.store, member).snapshot()
             for key in ("role", "work_order", "job", "reports_to"):
                 self.assertEqual(original[key], current[key])
-            if member != "owner":
+            if member not in {"owner", xo.member}:
                 self.assertEqual(1, current["launch_pending"])
                 self.assertEqual("claude", configuration(self.state, member)["harness"])
         with self.assertRaisesRegex(ValueError, "not available"):
@@ -140,20 +154,24 @@ class SessionTests(unittest.TestCase):
 
     def test_stopping_generation_cannot_claim_the_replacement_recovery_direction(self):
         xo = self.bind()
-        first = self.store.begin_session(xo.member, os.getpid())
-        original = self.store.take_delivery(xo.member, scoped=True, generation=first)
+        fixture_work(xo, [responsibility("Build", "coder")])
+        with self.store.connect() as db:
+            worker = db.execute("SELECT member FROM member_bindings WHERE role='coder'").fetchone()[0]
+        xo.call("steer", {"action": "guide", "work": "Build", "direction": "Continue the assigned implementation"})
+        first = self.store.begin_session(worker, os.getpid())
+        original = self.store.take_delivery(worker, scoped=True, generation=first)
         self.assertIsNotNone(original)
-        self.store.acknowledge(xo.member, original["id"])
-        self.co.call("restart_xo", {"reason": "Switch to the available vendor"})
+        self.store.acknowledge(worker, original["id"])
+        xo.call("steer", {"action": "replace", "work": "Build", "direction": "Switch to the available vendor"})
         # The old delivery loop may already have observed desired=running before
-        # restart_xo commits the stop and queues the replacement's direction.
-        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
-        self.store.session(xo.member, generation=first, state="stopped", pid=None)
-        second = self.store.begin_session(xo.member, os.getpid())
-        self.assertIsNone(self.store.take_delivery(xo.member, scoped=True, generation=first))
-        recovery = self.store.take_delivery(xo.member, scoped=True, generation=second)
-        self.assertIn("Recover your existing work and team", recovery["body"])
-        self.assertIn("Switch to the available vendor", recovery["body"])
+        # Replacement commits the stop and queues the new session's direction.
+        self.assertIsNone(self.store.take_delivery(worker, scoped=True, generation=first))
+        self.store.session(worker, generation=first, state="stopped", pid=None)
+        second = self.store.begin_session(worker, os.getpid())
+        self.assertIsNone(self.store.take_delivery(worker, scoped=True, generation=first))
+        recovery = self.store.take_delivery(worker, scoped=True, generation=second)
+        self.assertIn("Recover the existing brief, reports and evidence", recovery["body"])
+        self.assertEqual("Switch to the available vendor", Control(self.store, worker).snapshot()["brief"])
 
     def test_private_generation_profiles_do_not_rebind_old_native_clients(self):
         self.bind()

@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, until
+from support import Client, adopt_plan, until
 
 from devtools.api import API
 from devtools.control import Control
@@ -58,7 +58,10 @@ class CommandTests(unittest.TestCase):
     def team(self, work=None):
         self.co.call("direct", GOAL)
         self.xo = API(self.state, "xo")
-        self.xo.call("orchestrate", {"work": work or [responsibility()]})
+        work = work or [responsibility()]
+        name = work[0]["name"]
+        adopt_plan(self.xo, [{"name": name, **{key: work[0][key] for key in ("objective", "done_when", "constraints")}}])
+        self.xo.call("orchestrate", {"work": [dict(item, job=name) for item in work]})
         return API(self.state, "coder")
 
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
@@ -72,7 +75,7 @@ class CommandTests(unittest.TestCase):
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer", "onboard", "skill_read"},
+            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))
@@ -91,6 +94,9 @@ class CommandTests(unittest.TestCase):
         first = self.co.call("direct", GOAL)
         self.assertEqual(first, API(self.state, "owner").call("direct", GOAL))
         xo = API(self.state, "xo")
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda _: xo.call("orchestrate", {"work": [responsibility()]}), range(2)))
         self.assertEqual(results[0], results[1])
@@ -98,25 +104,28 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(1, db.execute("SELECT count(*) FROM work_orders").fetchone()[0])
             self.assertEqual(1, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(3, db.execute("SELECT count(*) FROM member_bindings").fetchone()[0])
-            self.assertEqual(2, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(messages + 1, db.execute("SELECT count(*) FROM messages").fetchone()[0])
         self.assertIsNone(xo.control.snapshot()["job"])
         self.assertIsNone(self.store.member("xo")["selected_job"])
         self.assertIsNone(xo.call("monitor", {})["collaborators"][0]["latest_usage"])
         changed = responsibility() | {"done_when": "Updated completion condition"}
         xo.call("orchestrate", {"work": [changed]})
         coder = API(self.state, "coder")
-        self.assertEqual(changed["done_when"], coder.call("work_context", {})["job"]["done_when"])
+        self.assertEqual(changed["done_when"], coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(1, len(Work(self.store, "xo").job_list()["jobs"]))
 
     def test_failed_batch_rolls_back_work_and_claims_and_inputs_are_bounded(self):
         self.co.call("direct", GOAL)
         xo = API(self.state, "xo")
-        with self.assertRaisesRegex(ValueError, "No available"):
-            xo.call("orchestrate", {"work": [responsibility(str(i)) for i in range(4)]})
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
         with self.store.connect() as db:
-            self.assertEqual(0, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+        with self.assertRaisesRegex(ValueError, "No available"):
+            xo.call("orchestrate", {"work": [responsibility(str(i), "research") | {"job": "Implementation"} for i in range(4)]})
+        with self.store.connect() as db:
+            self.assertEqual(1, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(2, db.execute("SELECT count(*) FROM member_bindings").fetchone()[0])
-            self.assertEqual(1, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
         for payload in (
             {"work": []},
             {"work": [responsibility(), responsibility()]},
@@ -128,8 +137,8 @@ class CommandTests(unittest.TestCase):
             xo.call("orchestrate", {"work": [responsibility() | {"selection": {"model": "unconfigured"}}]})
         # Worst-case Unicode input stays within the real stdio frame limit.
         client = self.client("xo")
-        unicode_job = responsibility() | {key: "🦁" * 800 for key in ("objective", "done_when", "constraints")}
-        client.tool("orchestrate", {"work": [unicode_job | {"name": str(i)} for i in range(3)]})
+        unicode_job = responsibility(role="research") | {key: "🦁" * 800 for key in ("objective", "done_when", "constraints")}
+        client.tool("orchestrate", {"work": [unicode_job | {"name": str(i), "job": "Implementation"} for i in range(3)]})
 
     def test_large_brief_is_loaded_on_demand_and_not_repeated_in_direction(self):
         coder = self.team([responsibility() | {"objective": "J" * 800}])
@@ -160,6 +169,7 @@ class CommandTests(unittest.TestCase):
         args = dict(
             action="guide",
             work="Implementation",
+            assignment="Implementation",
             direction="Prioritize the existing adapter",
             done_when="Adapter behavior verified",
         )
@@ -167,7 +177,7 @@ class CommandTests(unittest.TestCase):
         with self.store.connect() as db:
             old_direction = dict(db.execute("SELECT * FROM messages ORDER BY id DESC LIMIT 1").fetchone())
         self.assertEqual(first, self.xo.call("steer", args))
-        self.assertEqual("Adapter behavior verified", coder.call("work_context", {})["job"]["done_when"])
+        self.assertEqual("Adapter behavior verified", coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(prior, audit.call("work_context", {}))
         self.xo.call("steer", {"action": "pause", "work": "Implementation"})
         self.assertEqual("paused", coder.call("work_context", {})["work_state"])
@@ -212,6 +222,12 @@ class CommandTests(unittest.TestCase):
         self.assertIn("Sibling secret", json.dumps(self.co.call("monitor", {})))
         with self.assertRaises(ValueError):
             self.xo.call("steer", {"action": "pause", "work": "Sibling secret"})
+        with self.store.connect() as db:
+            source = db.execute("SELECT result_update FROM work_plans WHERE work_order=?", (order,)).fetchone()[0]
+        definitions = [{key: value for key, value in responsibility(name).items() if key != "role"}
+                       for name in ("Implementation", "Sibling secret")]
+        with self.assertRaisesRegex(ValueError, "another command team"):
+            self.xo.call("plan_adopt", {"plan": f"update:{source}", "jobs": definitions})
         for name, args in (
             ("direct", GOAL),
             ("monitor", {}),
@@ -292,4 +308,3 @@ class CommandTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from .artifacts import Artifacts
@@ -46,12 +46,14 @@ def project_config(store):
     return json.loads(path.read_text()).get("project", {}) if path.is_file() else {}
 
 
-def git(root, *args, check=True, timeout=60, env=None):
+def git(root, *args, check=True, timeout=60, env=None, input=None):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    environment.update(GIT_TERMINAL_PROMPT="0", GIT_PAGER="cat", GIT_LITERAL_PATHSPECS="1", LC_ALL="C", **(env or {}))
+    environment.update(GIT_TERMINAL_PROMPT="0", GIT_PAGER="cat", GIT_LITERAL_PATHSPECS="1", LC_ALL="C")
+    environment.update(env or {})
     result = subprocess.run(
         ["git", "-C", str(root), "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args],
         capture_output=True,
+        input=input,
         timeout=timeout,
         env=environment,
     )
@@ -78,9 +80,13 @@ class Workspaces:
         expected = self.control.current()
         with self.store.connect() as db:
             current = binding(db, self.member)
+            if current and write:
+                from .planning import execution_current
+
+                execution_current(db, current)
         if (
             not current
-            or (not current["job"] and current["role"] not in {"co", "xo", "nco"})
+            or (not current["job"] and current["role"] not in {"co", "xo", "nco", "planner"})
             or not expected
             or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):
@@ -165,6 +171,13 @@ class Workspaces:
 
     def ensure(self):
         scope = self.scope()
+        # The planner inspects the current integrated result. Keep its refresh
+        # serialized with XO's integration operations, without moving job views.
+        with self.lock(self.scope_lock(scope)) if scope["role"] == "planner" else nullcontext():
+            self.scope()
+            return self._prepare(scope)
+
+    def _prepare(self, scope):
         with self.lock("repository"):
             workspace = self._ensure(scope)
             if scope["role"] == "audit":
@@ -177,8 +190,16 @@ class Workspaces:
         from .orders import Orders
         from .retirement import register
 
+        if scope["role"] == "co":
+            # The CO's persistent conversation outlives an integrated order.
+            # Its native cwd must not keep a disposable worktree in use.
+            checkout = self.checkout()
+            return dict(job=None, root=str(checkout), target=self.target(),
+                        branch=git(checkout, "symbolic-ref", "--quiet", "--short", "HEAD", check=False)
+                        .stdout.decode().strip() or None,
+                        base_revision=git(checkout, "rev-parse", "HEAD").stdout.decode().strip())
         if not scope["job"]:
-            return Orders(self.store, self.member).ensure_in(scope["work_order"])
+            return Orders(self.store, self.member).ensure_in(scope["work_order"], refresh=scope["role"] == "planner")
         checkout = self.checkout()
         with self.store.connect() as db:
             old = db.execute("SELECT * FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
@@ -322,6 +343,13 @@ class Workspaces:
     @contextmanager
     def use(self, write=False):
         scope = self.scope(write)
+        if scope["role"] == "planner":
+            with self.lock(self.scope_lock(scope)):
+                self.scope(write)
+                workspace = self._prepare(scope)
+                self._verify(workspace, self.checkout())
+                yield scope, workspace
+            return
         workspace = self.ensure()
         with self.lock(self.scope_lock(scope)):
             self.scope(write)
@@ -499,8 +527,36 @@ class Workspaces:
                 ).fetchone()
             if not known:
                 raise ValueError("Choose a checkpoint from this job's history.")
+            root = workspace["root"]
+            # Include both ends of renames and untracked work which _save would
+            # preserve first. Validate before saving: a rejected recovery must
+            # not change source, the index, history or checkpoint records.
+            paths = set(git(root, "diff", "--no-renames", "--name-only", "-z", revision, "--")
+                        .stdout.decode().split("\0")) - {""}
+            paths.update(path for item in self.changes(root)
+                         for path in (item["path"], item.get("previous_path")) if path)
+            denied = sorted(path for path in paths if not self.permitted_path(path, scope["role"]))
+            if denied:
+                raise ValueError("Recovery would change paths outside this role's configured paths: "
+                                 + ", ".join(denied[:10]) + ". Nothing was changed; request guidance.")
+            for path in paths:
+                parent = Path(root) / path
+                while parent != Path(root):
+                    if parent.is_symlink():
+                        raise ValueError("Recovery cannot replace or write through project symlinks.")
+                    parent = parent.parent
+            if paths:
+                for entry in git(root, "ls-tree", "-rz", revision, "--", *sorted(paths)).stdout.decode().split("\0"):
+                    if entry and entry.split(" ", 1)[0] not in {"100644", "100755"}:
+                        raise ValueError("Recovery restores regular project files only.")
             preserved = self._save(scope, workspace, "Preserve work before recovery: " + reason)
-            git(workspace["root"], "restore", "--source=" + revision, "--staged", "--worktree", "--", ".")
+            with self.store.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                self.scope(write=True)
+                if any(not self.permitted_path(path, scope["role"]) for path in paths):
+                    raise ValueError("Recovery scope changed; no checkpoint files were restored. Request guidance.")
+                if paths:
+                    git(root, "restore", "--source=" + revision, "--staged", "--worktree", "--", *sorted(paths))
             restored = self._save(scope, workspace, "Recover checkpoint: " + reason)
             return {"restored": restored, "preserved": preserved}
 

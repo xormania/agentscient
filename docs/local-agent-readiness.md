@@ -13,11 +13,11 @@ team. For normal agent usage, see the [roles and tools](control-plane-roles-and-
 | --- | --- | --- |
 | Foundation | Use the committed Composer lock: PHP `^8.5.11`, Symfony `8.1.*`, Maker, Mate and MCP Bundle. Keep service attributes, autowiring and autoconfiguration. | Installed Makers generate the native implementation; generated attribute commands register and execute. CI verifies this. |
 | Operator setup | Linux/macOS or WSL, Python 3.11+, Git identity and remote access, locked PHP platform, Composer, Docker, selected authenticated harness binaries. All managed harness sessions need tmux. | Team configuration, private state, project binding and pinned Serena image exist. `doctor --online` passes its available checks. |
-| Command and context | External CO plus available XO/producer slots; add another slot for concurrent audit. Normal MCP connections only. | CO directs; XO organizes/steers; each collaborator receives its brief and role tools. Unbound members cannot act on arbitrary work. |
+| Command and context | External CO plus available XO/planner/specialist slots; add an NCO per job for a multi-job plan. Normal MCP connections only. | CO relays xor's instructions; XO plans, organizes and steers; each collaborator receives its brief and role tools. Unbound members cannot act on arbitrary work. |
 | Source work | Job worktree supplied automatically; Serena is separate and restricted to the role's paths. Makers/Mate run through control-plane tools. | Navigation, a persistent REPL value, an allowed edit, installed generation and validation are observed in the bound worktree. Protected paths remain protected. |
 | Live coordination | Native conversations stay alive while work proceeds. Reports, evidence and guidance retain their job association. | A live clarification and response are observed with the same native conversation ID; queued messages alone do not establish receipt. |
 | Delivery | Save/check/submit through outcome tools; audit the submitted snapshot when needed; inspect before acceptance. | PR/CI/evidence are associated automatically. Changed revisions or dirty work block acceptance. Normal GitHub requirements apply. |
-| Turnover | XO accepts jobs into their work order and submits the combined result; CO inspects and concludes it. | Job and final PRs are checked separately. Merged worktrees retire after shutdown; history and evidence remain. |
+| Turnover | XO accepts jobs, submits the combined result, inspects it and concludes the work order; CO relays the outcome to xor. | Job and final PRs are checked separately. Merged worktrees retire after shutdown; history and evidence remain. |
 | Authenticated local acceptance | Run the selected installed harnesses with their real accounts through a bounded, authorized job. | The operator inspects actual native/tool evidence, artifact results, PR and CI. Record the tested revision and harness versions. This stage remains a local check. |
 
 ## One-time operator setup
@@ -108,11 +108,15 @@ Each session calls `onboard` to receive its customized responsibilities, current
 tools and shared skill catalog. Use `skill_read` for relevant task guidance; see
 [role onboarding](role-onboarding.md).
 
-The CO client uses `direct` to state the objective, completion criteria and
-boundaries. That binds XO; XO uses `orchestrate` to create named responsibilities
-and start live collaborators. Each receives its brief, role-scoped tools and job
+The CO client uses `direct` to relay xor's objective, completion criteria,
+boundaries and prepared specification/context. CO does not assess, coordinate,
+execute or accept work. That binds XO; XO commissions a planner with `orchestrate`
+and adopts the job list with `plan_adopt`. It coordinates one job directly or
+appoints one NCO per job for multiple jobs. Each collaborator receives its brief, role-scoped tools and job
 workspace automatically. Native managed profiles also attach the separate Serena
 provider when configured. Agents do not assemble connections or select branches.
+All collaborators use standalone managed conversations; Agentscient creates and
+coordinates them instead of harness-native subagents.
 
 Use the [role/tool reference](control-plane-roles-and-tools.md) for the actual
 catalog, source paths, retained operations, review and acceptance behavior.
@@ -137,9 +141,9 @@ Require the following evidence without prescribing how agents solve the job:
 - The result is checkpointed and submitted with retained evidence. Audit, when
   assigned, reviews that revision; findings and responses arrive through MCP.
 - XO inspects and accepts each passing contribution, then submits the combined
-  result with `work_submit`. XO addresses the returned Codex review findings. CO
+  result with `work_submit`. XO addresses the returned Codex review findings,
   inspects that delivery and concludes after CI and both current Codex reviews
-  pass. Turnover preserves history and permits another job; merged worktrees
+  pass. CO relays the outcome to xor. Turnover preserves history and permits another job; merged worktrees
   retire after shutdown.
 - Native shell/edit attempts are denied; observed usage is reported honestly.
   A stopped/restarted session is a new conversation, not claimed transcript recovery.

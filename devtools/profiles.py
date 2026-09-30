@@ -71,7 +71,8 @@ def retain_login(directory, member, harness, generation):
 
 
 def permitted(harness, tool, arguments):
-    if not isinstance(tool, str) or not isinstance(arguments, dict):
+    if (not isinstance(harness, str) or harness not in {"codex", "claude", "grok"}
+            or not isinstance(tool, str) or not isinstance(arguments, dict)):
         return False
     if tool in {
         "codex": {"update_plan", "request_user_input"},
@@ -168,8 +169,16 @@ def prepare(directory, member, harness):
         original = Path(os.environ.get("GROK_HOME", str(Path.home() / ".grok")))
         restore_login(private, original, harness)
         write_json(private / "hooks" / "agentscient-live.json", {"hooks": groups})
-        (private / "config.toml").write_text("mcp_servers = {}\n")
-        env.update(HOME=str(private), GROK_HOME=str(private), GROK_CONFIG_DIR=str(private))
+        # Native child sessions and workflows bypass the command service's
+        # role/job bindings. Disable them in the private configuration and
+        # override inherited feature switches before the ACP process starts.
+        settings = {"mcp_servers": {}, "subagents": {"enabled": False},
+                    "workflows": {"enabled": False}, "goal": {"enabled": False}}
+        (private / "config.toml").write_text(
+            "\n".join(f"{key} = {toml(value)}" for key, value in settings.items()) + "\n"
+        )
+        env.update(HOME=str(private), GROK_HOME=str(private), GROK_CONFIG_DIR=str(private),
+                   GROK_SUBAGENTS="0", GROK_WORKFLOWS="0", GROK_GOAL="0")
     else:
         raise ValueError("Supported harnesses: codex, claude, grok")
     return private, env, server

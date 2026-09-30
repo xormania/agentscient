@@ -24,7 +24,7 @@ native defaults. Ordinary agent MCP tools do not accept these runtime choices.
 
 The launcher opens the native interactive terminal with a private profile and
 the common MCP server. Project files are accessed through role tools. The CO calls
-`onboard` and `skill_read`, then directs XO; XO creates managed tmux sessions for
+`onboard` and `skill_read`, then relays xor's instructions to XO; XO creates managed tmux sessions for
 the specialist roles. Claude may show its native development-channel consent.
 Normal native authentication and consent remain in force.
 Refreshed Codex/Grok login data is retained privately for the same member and
@@ -52,7 +52,7 @@ active for launch intents and background observation.
 
 | Controller | Action | Preserved |
 | --- | --- | --- |
-| CO | `restart_xo(reason=...)` | XO work, specialist team, reporting chain, evidence |
+| Operator | Replace XO through trusted repair tools | XO work, specialist team, reporting chain, evidence |
 | XO | `steer(action="replace", work=..., role=..., direction=...)` | Named specialist's role, job, workspace, history and evidence |
 | XO | `steer(action="pause" / "resume")` | A still-running native conversation |
 

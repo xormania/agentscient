@@ -14,7 +14,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 
 def stamp():
@@ -133,18 +133,21 @@ class Store:
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
                 "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT"},
-                "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'"},
+                "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'", "dependencies": "TEXT NOT NULL DEFAULT '[]'"},
                 "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
                     "paused": "INTEGER NOT NULL DEFAULT 0",
                     "launch_pending": "INTEGER NOT NULL DEFAULT 0",
                     "launch_error": "TEXT",
+                    "assignment_id": "INTEGER",
                 },
                 "messages": {"category": "TEXT NOT NULL DEFAULT 'peer'"},
                 "work_orders": {
                     "repository": "TEXT NOT NULL DEFAULT ''",
                     "branch": "TEXT NOT NULL DEFAULT ''",
                     "pull_request": "TEXT NOT NULL DEFAULT ''",
+                    "context": "TEXT NOT NULL DEFAULT '[]'",
+                    "plan_revision": "INTEGER NOT NULL DEFAULT 0",
                 },
             }
             for table, fields in additions.items():
@@ -233,6 +236,20 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS codex_requests (
                 repository TEXT NOT NULL, pr INTEGER NOT NULL, revision TEXT NOT NULL, kind TEXT NOT NULL,
                 state TEXT NOT NULL, url TEXT, PRIMARY KEY(repository,pr,revision,kind))""")
+            db.execute("""CREATE TABLE IF NOT EXISTS role_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), name TEXT NOT NULL, role TEXT NOT NULL,
+                brief TEXT NOT NULL, details TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'active',
+                revision INTEGER NOT NULL DEFAULT 1, result_update INTEGER REFERENCES work_updates(id),
+                created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS assignment_identity "
+                       "ON role_assignments(work_order,coalesce(job,0),name COLLATE NOCASE,role)")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS job_nco ON member_bindings(job) WHERE role='nco' AND job IS NOT NULL")
+            db.execute("""CREATE TABLE IF NOT EXISTS work_plans (
+                work_order INTEGER NOT NULL REFERENCES work_orders(id), revision INTEGER NOT NULL,
+                result_update INTEGER NOT NULL REFERENCES work_updates(id), jobs TEXT NOT NULL,
+                mission TEXT NOT NULL, adopted_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL,
+                PRIMARY KEY(work_order,revision))""")
             db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     @contextmanager

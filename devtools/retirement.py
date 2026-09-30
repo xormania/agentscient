@@ -45,11 +45,13 @@ def register(db, workspace, work_order):
 
 
 def queue(db, work_order, job, revision):
+    # CO stays connected through its stable interface checkout after delivery;
+    # only execution conversations can hold this managed worktree open.
     sessions = {
         row["name"]: row["generation"]
         for row in db.execute(
             "SELECT m.name,m.generation FROM members m JOIN member_bindings b ON b.member=m.name "
-            "WHERE b.work_order=? AND b.job IS ?",
+            "WHERE b.work_order=? AND b.job IS ? AND b.role!='co'",
             (work_order, job),
         )
     }
@@ -122,7 +124,7 @@ class Retirement:
             if not delivery or not delivery["merge_commit"]:
                 raise ValueError("No retained merge result; workspace preserved.")
             if db.execute(
-                "SELECT 1 FROM member_bindings WHERE work_order=? AND job IS ?", (row["work_order"], row["job"])
+                "SELECT 1 FROM member_bindings WHERE work_order=? AND job IS ? AND role!='co'", (row["work_order"], row["job"])
             ).fetchone():
                 raise ValueError("Collaborators are still bound to this work.")
             if db.execute(

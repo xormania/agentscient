@@ -21,10 +21,12 @@ and `packages/` is the prod-lane.
 | **Serena MCP** (`serena`) | Source navigation and edits through the v2 REPL, bound automatically to the current specialist's workspace and paths. |
 | **Native harness adapters** | Keep Codex, Claude and Grok conversations alive and carry live messages through their native protocols. |
 | **SQLite and managed storage** | Retain work, state, messages, observations and artifact associations; store artifact payloads separately. |
-| **Optional Jev advice** | XO assignment advice and scoped source/diagnostic assessment through two on-demand MCP tools, using the existing artifacts and telemetry. |
+| **Optional Jev advice** | XO/NCO assignment advice and scoped execution-role source/diagnostic assessment through two on-demand MCP tools, using the existing artifacts and telemetry. |
 
-CO is the session the person works with. XO receives the objective and organizes
-live collaborators from the configured slots. Work-order numbers bind the overall
+CO is xor's interface: it relays xor's instructions and prepared context to XO,
+and system messages back to xor. XO owns planning, execution, coordination and
+acceptance. It commissions a planner, coordinates a one-job plan directly, or
+appoints one NCO per job for a multi-job plan. Work-order numbers bind the overall
 effort; jobs hold bounded responsibilities and their delivery evidence. Agents use
 outcome tools while the services manage repository and provider details.
 
@@ -33,6 +35,10 @@ the backing GitHub catalog or a shell. The separate operator connection is for
 setup and repair; it is not attached to managed agents. Live conversation is the
 coordination mechanism. XO allocates responsibilities and routes guidance through
 each collaborator's work binding.
+
+Each collaborator is a standalone managed native session. Agentscient creates and
+coordinates those sessions; harness-native subagents are not used. Model, harness
+and reasoning choices do not widen the service-enforced role or work authority.
 
 ## Runtime
 

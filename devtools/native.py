@@ -158,7 +158,7 @@ class Native:
             result = await self.rpc.request("thread/start", params)
             self.session = result["thread"]["id"]
         else:
-            argv = [binary, "--no-auto-update"]
+            argv = [binary, "--no-auto-update", "--no-subagents"]
             if self.config.get("model"):
                 argv += ["--model", self.config["model"]]
             if self.config.get("reasoning"):
@@ -418,6 +418,8 @@ def claude(directory, member, config, generation):
         "server:" + SERVER,
         "--tools",
         "",
+        "--disallowedTools",
+        "Agent,Task",
         "--allowedTools",
         ",".join(
             ["mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()]

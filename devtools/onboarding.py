@@ -9,11 +9,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".agents/skills"
 ROLES = {
     "co": (
-        "Translate the user's intent into an authorized objective and boundaries; direct XO, assess the integrated result, and keep the user informed.",
+        "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work.",
         "agentscient-co",
     ),
     "xo": (
-        "Organize named work across the specialist roles, route guidance, inspect evidence and integrate accepted contributions for CO.",
+        "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor.",
         "agentscient-xo",
     ),
     "coder": (
@@ -21,11 +21,11 @@ ROLES = {
         "agentscient-coder",
     ),
     "nco": (
-        "Coordinate planning and bounded implementation within XO's delegated mission; manage verification and completion, and report changes of mission to XO.",
+        "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs.",
         "agentscient-nco",
     ),
     "planner": (
-        "Inspect the application and existing capabilities, then report an implementation plan with boundaries, dependencies and completion criteria. Planning does not change source or coordinate execution.",
+        "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution.",
         "agentscient-planner",
     ),
     "audit": (
@@ -120,6 +120,7 @@ class Onboarding:
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
             "It supplies the complete shared/role instructions and current brief. "
             "For subsequent work/context changes refresh work_context. "
+            "Use this standalone managed conversation; Agentscient owns subordinate sessions and assignments. "
             "Read only relevant skills not already supplied by onboard. Your role: " + role + "."
         )
 

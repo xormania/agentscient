@@ -38,7 +38,7 @@ TOOL = {
 
 def enabled(store, scope):
     return bool(
-        scope and scope["job"] and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
+        scope and (scope["job"] or scope["role"] == "planner") and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
     )
 
 
@@ -114,6 +114,8 @@ class Serena:
             raise ValueError("Serena is not configured for your current job and role.")
         if current["paused"]:
             raise ValueError("This work is paused. Use the control plane for reports or guidance.")
+        if current["role"] in EDITORS:
+            self.spaces.scope(write=True)
         identity = tuple(current[k] for k in ("job", "work_order", "role", "reports_to"))
         config = project_config(self.store)
         assignment = assignment_for(self.store, current)

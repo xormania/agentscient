@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_github
-from support import Client
+from support import Client, fixture_work
 
 from devtools.api import API
 from devtools.github import GitHub
@@ -35,27 +35,10 @@ class FeedbackTests(unittest.TestCase):
                 "constraints": "MCP only",
             },
         )
-        API(self.directory, "beta").call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Feature",
-                        "role": "coder",
-                        "objective": "Feature",
-                        "done_when": "Tested",
-                        "constraints": "Product",
-                    },
-                    {
-                        "name": "Separate",
-                        "role": "docs",
-                        "objective": "Docs",
-                        "done_when": "Documented",
-                        "constraints": "Docs",
-                    },
-                ]
-            },
-        )
+        fixture_work(API(self.directory, "beta"), [
+            {"name": "Feature", "role": "coder", "objective": "Feature", "done_when": "Tested", "constraints": "Product"},
+            {"name": "Separate", "role": "docs", "objective": "Docs", "done_when": "Documented", "constraints": "Docs"},
+        ])
         self.api = API(self.directory, "producer")
         self.job = self.api.control.snapshot()["job"]
         self.order = self.api.control.snapshot()["work_order"]

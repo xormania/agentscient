@@ -46,26 +46,33 @@ class WorkspaceTests(unittest.TestCase):
             "direct",
             {"title": "Local work", "objective": "Implement", "done_when": "Delivered", "constraints": "Product only"},
         )
-        API(self.state, "xo").call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Feature",
-                        "role": "coder",
-                        "objective": "Feature",
-                        "done_when": "Works",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        # Workspace tests start at an existing trusted job. Command/plan creation
+        # is exercised through normal MCP in test_commands and test_coordination.
+        xo = API(self.state, "xo")
+        order = xo.control.snapshot()["work_order"]
+        job = xo.work.job_create(title="Feature", objective="Feature", done_when="Works", constraints="Product only",
+                                 work_order=order)["job"]["id"]
+        xo.control.bind("coder", "coder", order, job, "xo")
         self.api = API(self.state, "coder")
         self.store = Store(self.state)
 
     def prepared(self):
         self.api.call("work_inspect", {})
         return Path(self.api.workspaces.ensure()["root"])
+
+    def test_co_conversation_uses_the_stable_checkout_without_creating_an_order_worktree(self):
+        co = API(self.state, "co")
+        workspace = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), workspace["root"])
+        with self.store.connect() as db:
+            self.assertIsNone(db.execute("SELECT 1 FROM order_workspaces").fetchone())
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET status='done' WHERE id=?", (co.control.snapshot()["work_order"],))
+        self.assertEqual(str(self.checkout), co.workspaces.ensure()["root"])
+        git(self.checkout, "checkout", "--detach", "HEAD")
+        detached = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), detached["root"])
+        self.assertIsNone(detached["branch"])
 
     def test_job_prepares_owned_worktree_and_normal_mcp_checkpoint(self):
         client = Client(self.state, "coder")

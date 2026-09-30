@@ -1,8 +1,10 @@
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import test_workspaces
+from support import fixture_work
 
 from devtools.api import API
 from devtools.github import GitHub, short_pr
@@ -209,38 +211,28 @@ class DeliveryTests(unittest.TestCase):
             ],
         )
         self.assertEqual(1, len(self.provider.merges))
-        self.xo.call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Follow-up",
-                        "role": "coder",
-                        "objective": "Continue",
-                        "done_when": "Result",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        fixture_work(self.xo, [{"name": "Follow-up", "role": "coder", "objective": "Continue", "done_when": "Done", "constraints": "Product only"}])
         new_root = Path(self.api.workspaces.ensure()["root"])
         self.assertNotEqual(self.workspace, new_root)
         self.assertEqual("Delivered implementation\n", (new_root / "src/Example.php").read_text())
         self.assertEqual(self.head, git(new_root, "rev-parse", "HEAD").stdout.decode().strip())
         self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_usage"])
 
-    def test_co_concludes_only_finished_work_and_next_direct_creates_new_order(self):
+    def test_xo_concludes_finished_work_and_co_stays_available_for_next_order(self):
         co = API(self.state, "co")
         with self.assertRaisesRegex(ValueError, "unfinished"):
-            co.call("conclude", {"assessment": "Not yet"})
+            self.xo.call("conclude", {"assessment": "Not yet"})
         self.xo.call(
             "steer", {"action": "cancel", "work": "Feature", "direction": "This approach is no longer required"}
         )
         self.assertTrue((self.workspace / "src/Example.php").exists())
-        co.call(
+        self.xo.call(
             "conclude", {"assessment": "The investigation is complete; the implementation was intentionally cancelled"}
         )
-        self.assertIsNone(co.control.snapshot())
+        self.assertEqual(self.order, co.control.snapshot()["work_order"])
+        self.assertEqual("done", co.call("work_context", {})["work"]["status"])
+        self.assertIn("The investigation is complete", json.dumps(co.call("work_context", {"section": "messages"})))
+        self.assertIsNone(self.xo.control.snapshot())
         co.call(
             "direct",
             {"title": "Next effort", "objective": "New goal", "done_when": "Outcome", "constraints": "Keep history"},
