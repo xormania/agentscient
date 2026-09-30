@@ -47,6 +47,15 @@ number come from the registry. Coordinators receive their available names and
 responsibilities in `onboard.assignable_roles`; use those names in tool calls.
 
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
+When a call fails, read its original diagnostic and structured `failure` category
+and reason. Enabled diagnostic guidance may include concrete `actions` with tool
+arguments, retained evidence references and a `when` condition. Follow that
+condition before attempting the action. Suggestions apply to the supplied current
+context and configuration; they confer no authority. Refresh the brief after a
+binding change and use your reporting relationship for decisions outside your role.
+A queued or completed operation receipt does not by itself establish that its
+checks passed; inspect the measured result. Provider unavailability and an invalid
+provider response both mean no valid judgment was obtained.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
 When the operator enables `features.advice` in the resolved configuration, bound roles other than CO get **`work_assess`**

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .artifacts import Artifacts
 from .control import Control, binding
+from .failures import Failure
 from .role_packages import adapter, require_capability
 from .role_views import RolePaths, RoleSet
 from .store import UNSET, stamp
@@ -67,21 +68,28 @@ class Workspaces:
                 from .planning import execution_current
 
                 execution_current(db, current)
-        if (
-            not current
-            or (not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner"})
-            or not expected
-            or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
-        ):
-            raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
+        if not current or not expected:
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_permitted", reason="work_binding_required")
+        if not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner"}:
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_permitted", reason="job_binding_required")
+        if any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to")):
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_ready", reason="binding_changed")
         writable = current["role"] in EDITORS if current["job"] else adapter(current["role"]) == "xo"
-        if write and (not writable or current["paused"]):
-            raise ValueError("Your current role cannot change this work, or the work is paused.")
+        if write and not writable:
+            raise Failure("Your current role cannot change this work, or the work is paused.",
+                          category="not_permitted", reason="role_cannot_write")
+        if write and current["paused"]:
+            raise Failure("Your current role cannot change this work, or the work is paused.",
+                          category="not_ready", reason="work_paused")
         if write:
             with self.store.connect() as db:
                 table, ident = ("jobs", current["job"]) if current["job"] else ("work_orders", current["work_order"])
                 if record(db, table, ident)["status"] in {"done", "cancelled"}:
-                    raise ValueError("This work is finished; new changes belong to a new responsibility.")
+                    raise Failure("This work is finished; new changes belong to a new responsibility.",
+                                  category="not_ready", reason="work_finished")
         return current
 
     @contextmanager

@@ -17,7 +17,7 @@ from test_commands import responsibility
 
 from devtools.api import API
 from devtools.configuration import defaults as load_policy
-from devtools.jev import MAX_RESPONSE, MODEL, Jev, TypeSafeAdapter, checked_response
+from devtools.jev import MAX_RESPONSE, MODEL, Jev, JevUnavailable, TypeSafeAdapter, checked_response
 from devtools.runtime import defaults
 from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 from devtools.workspaces import Workspaces
@@ -255,7 +255,7 @@ class AdviceTests(unittest.TestCase):
             self.assess()
 
     def test_provider_failure_retains_no_fake_assessment_and_normal_work_still_works(self):
-        self.provider.side_effect = ValueError("Jev is unavailable")
+        self.provider.side_effect = JevUnavailable("Jev is unavailable")
         with self.assertRaisesRegex(ValueError, "unavailable"):
             self.assess()
         self.assertEqual("prepared", self.api.call("work_inspect", {})["workspace"])

@@ -14,7 +14,9 @@ from .advice import Advice, digest
 from .configuration import resolve
 from .control import Control, binding
 from .development import configured as development_configured
+from .failures import failure_info
 from .onboarding import document
+from .recovery_actions import placeholders, substitute
 from .role_packages import adapter
 from .role_packages import role as role_package
 from .work import record
@@ -36,9 +38,10 @@ def project_context(store, member, context):
         return context
 
 
-def deliver_guidance(store, member, action, result=None, error=None):
+def deliver_guidance(store, member, action, result=None, error=None, *, failure=None, operation=None, arguments=None):
     try:
-        return Diagnostics(store, member).guidance(action, result, error)
+        return Diagnostics(store, member).guidance(action, result, error, failure=failure,
+                                                 operation=operation, arguments=arguments)
     except Exception as cause:
         unavailable(store, member, "diagnostic_guidance_unavailable", cause, trigger=action)
         return {}
@@ -57,6 +60,34 @@ def failed(value):
     return any(failed(value.get(key)) for key in ("result", "validation")) or (
         isinstance(checks, list) and any(failed(check) for check in checks)
     )
+
+
+def result_failure(result):
+    """Describe failed measured results independently of optional skill delivery."""
+    if not failed(result):
+        return None
+    checks, references, revision = [], [], None
+
+    def visit(value):
+        nonlocal revision
+        if not isinstance(value, dict):
+            return
+        if isinstance(value.get("revision"), str):
+            revision = value["revision"]
+        for check in value.get("checks", []) if isinstance(value.get("checks"), list) else []:
+            if isinstance(check, dict) and type(check.get("exit_code")) is int and check["exit_code"] != 0:
+                if isinstance(check.get("check"), str):
+                    checks.append(check["check"])
+                if isinstance(check.get("evidence"), str):
+                    references.append(check["evidence"])
+        for key in ("result", "validation"):
+            visit(value.get(key))
+
+    visit(result)
+    return {"category": "not_ready" if checks else "operation_failed",
+            "reason": "check_failed" if checks else "result_failed",
+            "details": {"checks": list(dict.fromkeys(checks)),
+                        "references": list(dict.fromkeys(references)), "revision": revision}}
 
 
 def byte_excerpt(text, limit):
@@ -240,7 +271,70 @@ class Diagnostics:
                 names += package["skills"]["framework"]
         return names
 
-    def guidance(self, action, result=None, error=None):
+    def recovery_actions(self, scope, settings, failure, operation):
+        """Bind templates to current tools, configured checks and readable references."""
+        from .api import API, validate
+        from .development import DEFAULT_CHECKS, Development
+
+        tools = {row["name"]: row for row in API(self.store.directory, self.member)._tools(scope)}
+        details = failure.get("details", {})
+        references = list(details.get("references", []))
+        if isinstance(operation, str) and operation.startswith("operation:"):
+            references.insert(0, operation)
+        readable = []
+        with self.store.connect() as db:
+            for reference in dict.fromkeys(references):
+                if not isinstance(reference, str) or not re.fullmatch(r"(?:artifact|operation|update|message):[1-9][0-9]*", reference):
+                    continue
+                try:
+                    self.control._reference(db, scope, reference)
+                except (KeyError, ValueError):
+                    continue
+                readable.append(reference)
+        configured_checks = Development(self.store, self.member).config.get("checks", DEFAULT_CHECKS)
+        checks = [name for name in details.get("checks", []) if name in configured_checks]
+        if details.get("job", scope["job"]) != scope["job"]:
+            checks = []
+        if details.get("assignment") is not None and details["assignment"] != scope.get("assignment_id"):
+            checks = []
+        actions = []
+        for entry in settings["guidance"]["recovery_actions"]:
+            if (entry["tool"] not in tools or
+                    entry["categories"] and failure["category"] not in entry["categories"] or
+                    entry["reasons"] and failure["reason"] not in entry["reasons"]):
+                continue
+            required = placeholders(entry["arguments"])
+            # Each variant binds one concrete source fact. Missing facts omit the
+            # suggestion instead of inventing IDs, names or a combined operation.
+            facts = [{}]
+            for placeholder, values in (("$reference", readable), ("$check", checks)):
+                if placeholder in required:
+                    facts = [{**value, placeholder: item} for value in facts for item in values]
+            for values in facts:
+                arguments = substitute(entry["arguments"], values)
+                try:
+                    validate(arguments, tools[entry["tool"]]["inputSchema"])
+                except ValueError:
+                    continue  # A reference kind may not fit this particular tool.
+                # Constant references and check names configured by an operator
+                # still need the same current-context validation as substitutions.
+                if "reference" in arguments and arguments["reference"] not in readable:
+                    continue
+                if entry["tool"] == "work_check" and (
+                        arguments.get("check") not in checks or not development_configured(self.store)):
+                    continue
+                condition = {"reason": failure["reason"]}
+                if "$check" in values:
+                    condition.update(check=values["$check"], revision=details.get("revision"))
+                item = {"tool": entry["tool"], "arguments": arguments,
+                        "when": entry["when"], "condition": condition}
+                if not any(row["tool"] == item["tool"] and row["arguments"] == arguments for row in actions):
+                    actions.append(item)
+                if len(actions) >= settings["guidance"]["max_recovery_actions"]:
+                    return actions
+        return actions
+
+    def guidance(self, action, result=None, error=None, *, failure=None, operation=None, arguments=None):
         """Deliver a configured permitted method without changing the tool outcome."""
         scope = self.current()
         if not scope or not (error or failed(result)):
@@ -253,6 +347,8 @@ class Diagnostics:
         identity = self.identity(scope)
         if identity is None:
             return {}
+        failure = failure or (failure_info(error) if error else result_failure(result))
+        actions = self.recovery_actions(scope, settings, failure, operation)
         allowed = self.allowed_skills(scope)
         fallback = policy["fallback"]
         name = fallback["skill"]
@@ -284,12 +380,15 @@ class Diagnostics:
         if not self.unchanged(scope, identity, settings):
             return {}
         content = byte_excerpt(skill["content"], policy["delivery_excerpt_bytes"])
-        self.store.event(
+        event = self.store.event(
             self.member, "skill_guidance_delivered", role=scope["role"], context_identity=identity,
             trigger=action, name=name, source=skill["source"], sha256=skill["sha256"],
             configuration_revision=settings["revision"],
+            failure=failure, actions=actions, operation=operation,
+            failed_call={"tool": action, "arguments": arguments} if arguments is not None else None,
         )
-        return {"next_action": next_action, "skill": {
+        return {"next_action": next_action, "actions": actions, "reference": "event:" + str(event),
+                "context_identity": identity, "configuration_revision": settings["revision"], "skill": {
             "name": name, "content": content, "truncated": content != skill["content"],
         }}
 

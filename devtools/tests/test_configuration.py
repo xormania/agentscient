@@ -224,6 +224,32 @@ class ConfigurationTests(unittest.TestCase):
             self.configure({"version": 1, "project": {"guidance": {"routes": []}}})
             self.assertEqual([], configuration.resolve(self.store)["guidance"]["routes"])
 
+    def test_recovery_templates_close_over_managed_tools_schemas_and_placeholders(self):
+        action = {"categories": ["not_ready"], "reasons": ["check_failed"], "tool": "work_check",
+                  "arguments": {"check": "$check"}, "when": "After saving the corrected source."}
+        for changed in (
+            {"tool": "invented_tool"}, {"tool": "capability_invoke"},
+            {"arguments": {"check": "$invented"}}, {"arguments": {"check": 42}},
+            {"arguments": {"command": "unsafe"}}, {"categories": ["invented_category"]},
+        ):
+            with self.subTest(changed=changed):
+                self.configure({"version": 1, "roles": {"research": {
+                    "guidance": {"recovery_actions": [{**action, **changed}]}}}})
+                with self.assertRaises(ValueError):
+                    configuration.resolve(self.store, "coder")
+        self.configure({"version": 1, "project": {"guidance": {"recovery_actions": [action]}}})
+        self.assertEqual([action], configuration.resolve(self.store)["guidance"]["recovery_actions"])
+
+    def test_recovery_templates_use_effective_advice_schema(self):
+        action = {"categories": ["invalid_request"], "reasons": [], "tool": "work_assess",
+                  "arguments": {"sources": [{"path": "src/Example.php"}] * 16,
+                                "questions": [{"name": "scope", "instructions": "Inspect these sources."}]},
+                  "when": "After selecting sources within the current assignment."}
+        self.configure({"version": 1, "project": {
+            "assessment": {"max_sources": 16, "max_questions": 2},
+            "guidance": {"recovery_actions": [action]}}})
+        self.assertEqual([action], configuration.resolve(self.store)["guidance"]["recovery_actions"])
+
     def test_adapter_registration_changes_revision_and_can_be_selected_without_loading(self):
         from devtools import adapters
 

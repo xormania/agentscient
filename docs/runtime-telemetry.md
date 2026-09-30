@@ -48,6 +48,25 @@ The response retains the original evaluation's usage. Advice is recorded
 separately from subsequent agent decisions and measured outcomes; a recommendation
 does not establish that the agent followed it or that it improved the result.
 
+Known failures also carry service-owned `failure.category`, `reason`, and trusted
+`details` through MCP, retained operations, and events. Provider outcomes distinguish
+unavailability, invalid responses, invalid requests, and unclassified failures.
+They must not be counted as substantive judgments that work failed its objective.
+
+`skill_guidance_delivered` retains the triggering call, failure, concrete suggested
+actions, originating operation, context identity and configuration revision.
+`recovery_action_observed` correlates a later exact call under that same context and
+policy using `guidance_event`, `originating_operation`, and `subsequent_operation`.
+`matches` distinguishes suggested actions from original-call retries. An original
+retry with an observed successful outcome sets `condition_resolved: true`; a
+failed retry sets false, and pending or unknown outcomes remain null. A suggested
+check instead records its named measurement, evidence, observed and expected
+revision, and workspace cleanliness. A worker's `completed` state does not
+override a nested failed check. The correlation captures sequence and outcomes;
+it does not establish that guidance caused a recovery. Old context/configuration
+suggestions are not correlated with replacement work, and telemetry faults cannot
+replace the tool outcome.
+
 Inspect operator `telemetry_events` / `telemetry_usage`, the JSONL traces, or run:
 
 ```sh

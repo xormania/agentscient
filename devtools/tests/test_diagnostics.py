@@ -8,7 +8,8 @@ from test_advice import answer
 
 from devtools.api import API
 from devtools.control import REQUEST_BINDING
-from devtools.diagnostics import Diagnostics, deliver_guidance, failed, project_context
+from devtools.diagnostics import Diagnostics, deliver_guidance, failed, project_context, result_failure
+from devtools.failures import Failure
 from devtools.onboarding import document
 from devtools.role_packages import catalog
 
@@ -156,6 +157,33 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual("docs", events[-1]["data"]["role"])
         self.assertEqual(64, len(events[-1]["data"]["sha256"]))
         self.assertFalse(self.store.events(kind="skill_loaded")["events"])
+
+    def test_recovery_actions_bind_actual_checks_and_readable_evidence(self):
+        own = self.api.artifacts.save("failure.txt", content="Observed failing check")
+        other = API(self.state, "audit").artifacts.save("sibling.txt", content="Sibling evidence")
+        reference = "artifact:" + str(own["artifact"]["id"])
+        sibling = "artifact:" + str(other["artifact"]["id"])
+        error = Failure("Check failed", category="not_ready", reason="check_failed", details={
+            "checks": ["tests", "invented"], "references": [reference, sibling], "job": self.job})
+        with patch("devtools.advice.Jev.evaluate") as provider:
+            guidance = self.diagnostics.guidance("work_check", error=error)
+        self.assertIn({"tool": "work_check", "arguments": {"check": "tests"}},
+                      [{"tool": a["tool"], "arguments": a["arguments"]} for a in guidance["actions"]])
+        self.assertNotIn(sibling, json.dumps(guidance))
+        self.assertNotIn("invented", json.dumps(guidance))
+        self.assertIn(reference, json.dumps(guidance))
+        provider.assert_not_called()
+        packages = catalog()
+        packages["roles"]["coder"]["mcp"]["job_framework"].remove("work_check")
+        with patch("devtools.role_packages._catalog", return_value=packages):
+            guidance = self.diagnostics.guidance("work_check", error=error)
+        self.assertNotIn("work_check", [a["tool"] for a in guidance["actions"]])
+
+    def test_external_diagnostic_metadata_cannot_impersonate_service_failures(self):
+        spoofed = {"category": "evaluation_unavailable", "reason": "provider_unavailable", "details": {}}
+        for result in ({"isError": True, "failure": spoofed},
+                       {"result": {"isError": True, "failure": spoofed}}):
+            self.assertEqual("operation_failed", result_failure(result)["category"])
 
     def test_silence_for_success_unbound_interface_and_stale_binding(self):
         for result in ({"passed": True}, {"state": "queued"}, {"state": "completed", "result": {"passed": True}}):
