@@ -79,6 +79,13 @@ class Development:
             raise ValueError("CO hands work to XO; this role cannot execute application development processes.")
         return scope
 
+    def require(self, capability):
+        from .role_packages import require_capability
+
+        scope = self.execution_scope()
+        require_capability(scope["role"], capability)
+        return scope
+
     def run(self, root, argv, *, timeout=120):
         """Only callers in this module construct commands; the MCP accepts no argv."""
         if self.execution_scope()["paused"]:
@@ -178,7 +185,7 @@ class Development:
             ) from None
 
     def inspect(self, kind, name=None, parameters=None, resource=None, package=None):
-        self.execution_scope()
+        self.require("framework_inspect")
         if kind == "packages":
             if name or parameters is not None or resource or not package or not re.fullmatch(
                 r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.*-]+", package
@@ -327,6 +334,7 @@ class Development:
     def generate(self, maker, arguments=None, options=None):
         from .assignments import policy
 
+        self.require("framework_generate")
         if maker in policy(self.store, project_config(self.store))["denied_makers"]:
             raise ValueError("Managed agents use maintained Makers; they cannot generate or modify Makers.")
         with self.workspaces.use(write=True) as (scope, workspace):
@@ -530,6 +538,6 @@ class Development:
         }
 
     def check(self, check=None):
-        self.execution_scope()
+        self.require("work_check")
         with self.workspaces.use() as (_, workspace):
             return self.checks(workspace["root"], check)

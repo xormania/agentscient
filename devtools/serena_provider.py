@@ -17,13 +17,14 @@ from pathlib import Path
 
 from .control import REQUEST_BINDING, Control
 from .retirement import key, lease
+from .role_packages import catalog
 from .sessions import Lease
 from .store import Store
 from .telemetry import Trace, context
 from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "serena"
-ROLES = {"coder", "audit", "docs", "research", "test_writer", "architect", "planner"}
+ROLES = {name for name, package in catalog()["roles"].items() if package["workspace"]["serena"]}
 TOOL = {
     "name": "serena_repl",
     "description": "Use Serena v2's persistent Python REPL for your current job. The service supplies the session and workspace. Start with s.info() or s.info('lsp', 'edit') for current facade documentation. Variables persist between calls. Source writes are limited to your role's mounted paths; Git, checks, Maker and delivery belong to the control-plane tools.",

@@ -100,7 +100,9 @@ def configuration(directory, member):
 
         row = store.member(member)
         selected = {"name": member, "workspace": row["workspace"], **resolve(directory, scope["role"])}
-    selected = dict(selected)
+    from .role_packages import runtime_profile
+
+    selected = runtime_profile(scope["role"], selected)
     from .workspaces import Workspaces, project_config
 
     if project_config(store):
@@ -274,7 +276,7 @@ def agent(directory, member, binding_revision=None, launch_fd=None):
             config = configuration(directory, member)
         generation = store.begin_session(
             member, os.getpid(), binding_revision=binding_revision,
-            settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider")},
+            settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider", "role_package")},
         )
         register(store, member, generation, os.getpid())
         if handoff:
@@ -288,7 +290,7 @@ def agent(directory, member, binding_revision=None, launch_fd=None):
         db.execute("UPDATE members SET harness=? WHERE name=?", (config["harness"], member))
     if config.get("selection"):
         store.event(member, "runtime_selected", **config["selection"],
-                    settings={k: config.get(k) for k in ("harness", "vendor", "model", "reasoning", "provider")})
+                    settings={k: config.get(k) for k in ("harness", "vendor", "model", "reasoning", "provider", "role_package")})
 
     def stop(_signal, _frame):
         store.session(member, generation=generation, desired="stopped")

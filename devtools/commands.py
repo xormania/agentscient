@@ -8,12 +8,12 @@ from contextlib import ExitStack
 
 from . import launch
 from .control import BRIEF_FIELDS, ROLES, Control, binding
+from .role_packages import catalog, require_capability
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLE_TOOLS = {"co": {"direct", "monitor"},
-              "xo": {"plan_adopt", "orchestrate", "monitor", "steer", "conclude"},
-              "nco": {"orchestrate", "monitor", "steer"}}
+ROLE_TOOLS = {name: set(package["mcp"]["command"]) for name, package in catalog()["roles"].items()
+              if package["mcp"]["command"]}
 
 
 def capabilities(spec):
@@ -128,6 +128,9 @@ class Commands:
     def role(self, scope):
         return scope["role"] if scope else "co" if self.appointed_co() else None
 
+    def _capability(self, capability):
+        require_capability(self.role(self.control.current()), capability)
+
     def _config(self):
         config = launch.team_config(self.store.directory)
         self.store.initialize(config["members"], runtime=config.get("runtime", False))
@@ -234,6 +237,7 @@ class Commands:
             )
 
     def direct(self, title, objective, done_when, constraints, context=None):
+        self._capability("direct")
         config = self._config()
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -284,6 +288,7 @@ class Commands:
     def orchestrate(self, work):
         from .workspaces import Workspaces
 
+        self._capability("orchestrate")
         scope = self.control.current()
         spaces = Workspaces(self.store, self.member)
         with spaces.lock("order-" + str(scope["work_order"]), timeout=1), ExitStack() as locks:
@@ -301,11 +306,13 @@ class Commands:
     def plan_adopt(self, plan, jobs):
         from .planning import Planning
 
+        self._capability("plan_adopt")
         return Planning(self).adopt(plan, jobs)
 
     def _orchestrate(self, work):
         from .planning import Planning
 
+        self._capability("orchestrate")
         return Planning(self).assign(work)
 
     def restart_xo(self, reason):
@@ -314,6 +321,7 @@ class Commands:
     def steer(self, action, work=None, direction=None, role=None, assignment=None, **fields):
         from .planning import Planning, execution_current, writer_available
 
+        self._capability("steer")
         if action == "complete" or action == "cancel" and assignment:
             if not assignment or not direction or fields:
                 raise ValueError("Name the role assignment and supply its completion assessment or cancellation reason.")
@@ -528,6 +536,7 @@ class Commands:
         from .orders import Orders
         from .workspaces import Workspaces
 
+        self._capability("conclude")
         with self.store.connect() as db:
             scope = self._scope(db, {"xo"})
         with Workspaces(self.store, self.member).lock("order-" + str(scope["work_order"])):
@@ -538,6 +547,8 @@ class Commands:
         from .delivery import Delivery
         from .orders import Orders
         from .retirement import queue
+
+        self._capability("conclude")
 
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -572,6 +583,7 @@ class Commands:
         }
 
     def monitor(self, offset=None, work=None, path=None, page=1, section="overview"):
+        self._capability("monitor")
         scope = self.control.current()
         if self.role(scope) == "co" and (work or section != "overview" or path is not None or page != 1):
             raise ValueError("CO relays overview status; delivery inspection belongs to XO and job coordinators.")

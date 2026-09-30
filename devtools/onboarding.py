@@ -5,58 +5,15 @@ import json
 import re
 from pathlib import Path
 
+from .role_packages import catalog, descriptor
+from .role_packages import role as role_package
+
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".agents/skills"
-ROLES = {
-    "co": (
-        "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work.",
-        "agentscient-co",
-    ),
-    "xo": (
-        "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor.",
-        "agentscient-xo",
-    ),
-    "coder": (
-        "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence.",
-        "agentscient-coder",
-    ),
-    "nco": (
-        "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs.",
-        "agentscient-nco",
-    ),
-    "planner": (
-        "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution.",
-        "agentscient-planner",
-    ),
-    "audit": (
-        "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source.",
-        "agentscient-audit",
-    ),
-    "docs": (
-        "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations.",
-        "agentscient-docs",
-    ),
-    "research": (
-        "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits.",
-        "agentscient-research",
-    ),
-    "test_writer": (
-        "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths.",
-        "agentscient-test-writer",
-    ),
-    "architect": (
-        "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope.",
-        "agentscient-architect",
-    ),
-}
-MATE = (
-    "mate-system-information",
-    "mate-php-environment-check",
-    "mate-symfony-service-inspection",
-    "mate-symfony-request-triage",
-    "mate-symfony-profiler-debugging",
-    "mate-symfony-dotenv-diagnostics",
-)
+ROLES = {name: (package["responsibility"], package["skills"]["role"])
+         for name, package in catalog()["roles"].items()}
+MATE = tuple(catalog()["framework_skills"])
+
 
 
 def document(name):
@@ -99,10 +56,11 @@ class Onboarding:
         role = self.role()
         if role not in ROLES:
             return []
-        names = ["agentscient-context", ROLES[role][1]]
+        skills = role_package(role)["skills"]
+        names = [skills["shared"], skills["role"]]
         tools = {row["name"] for row in self.api.tools()}
         if "framework_inspect" in tools:
-            names += list(MATE) if role not in {"docs", "architect"} else [MATE[0], MATE[2]]
+            names += skills["framework"]
         catalog = []
         for name in names:
             skill = document(name)
@@ -130,10 +88,12 @@ class Onboarding:
         if not catalog:
             raise ValueError("Await an authorized role binding")
         tools = [row["name"] for row in self.api.tools()]
-        revision = hashlib.sha256(json.dumps([(r["name"], r["guidance_sha256"]) for r in catalog]).encode()).hexdigest()
+        package = descriptor(role)
+        revision = hashlib.sha256(json.dumps([package, [(r["name"], r["guidance_sha256"]) for r in catalog]]).encode()).hexdigest()
         value = {
             "role": role,
             "responsibility": ROLES[role][0],
+            "package": package,
             "revision": revision,
             "shared": catalog[0]["content"],
             "role_instructions": catalog[1]["content"],
@@ -149,6 +109,7 @@ class Onboarding:
             "onboarding_delivered",
             role=role,
             revision=revision,
+            package=package,
             skills=[row["name"] for row in catalog],
         )
         return value

@@ -8,6 +8,7 @@ import io
 from .artifacts import Artifacts
 from .codex_reviews import CodexReviews
 from .github import GitHub
+from .role_packages import require_capability
 from .store import canonical, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
@@ -97,7 +98,7 @@ class Orders:
     def submit(self, scope, workspace, summary):
         from .development import Development, configured
 
-        self.scope("xo")
+        require_capability(self.scope("xo")["role"], "work_submit")
         with self.store.connect() as db:
             self.settled(db, scope["work_order"])
         revision = self.sync(workspace)["revision"]
@@ -165,6 +166,7 @@ class Orders:
 
     def inspect(self, section="review", path=None, offset=None, page=1):
         scope = self.scope()
+        require_capability(scope["role"], "work_inspect")
         with self.spaces.lock(self.spaces.scope_lock(scope)):
             with self.store.connect() as db:
                 work = record(db, "work_orders", scope["work_order"])
@@ -201,6 +203,7 @@ class Orders:
 
     def respond(self, text, review=None, resolve=False):
         scope = self.scope("xo")
+        require_capability(scope["role"], "review_respond")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         if not review or not review.startswith("thread:"):
@@ -237,7 +240,7 @@ class Orders:
 
     def finish(self, scope):
         """Called under the work-order lock by XO's conclude outcome."""
-        self.scope("xo")
+        require_capability(self.scope("xo")["role"], "conclude")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.store.connect() as db:

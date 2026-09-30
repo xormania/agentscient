@@ -92,6 +92,7 @@ class Planning:
         self.work = commands.work
 
     def adopt(self, plan, jobs):
+        self.commands._capability("plan_adopt")
         scope = self.control.current()
         spaces = Workspaces(self.store, self.member)
         with spaces.lock("order-" + str(scope["work_order"]), timeout=1), ExitStack() as locks:
@@ -220,6 +221,7 @@ class Planning:
                 "jobs": [{"name": item["name"], "dependencies": item["dependencies"]} for item in definitions]}
 
     def assign(self, work):
+        self.commands._capability("orchestrate")
         config = self.commands._config()
         names = [(item.get("job", "").casefold(), item["name"].strip().casefold(), item["role"]) for item in work]
         if not work or any(not name for _, name, _ in names) or len(set(names)) != len(names):
@@ -367,6 +369,7 @@ class Planning:
         Delivery.release(db, target["member"])
 
     def complete(self, work, assignment, role, assessment, cancel=False):
+        self.commands._capability("steer")
         scope = self.control.current()
         spaces = Workspaces(self.store, self.member)
         with spaces.lock("order-" + str(scope["work_order"]), timeout=1), ExitStack() as locks:

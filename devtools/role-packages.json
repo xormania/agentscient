@@ -1,0 +1,775 @@
+{
+  "source_sha256": "45da04b99d88bd4e7229189777364af760b840446b8a94c52c65a5999c801b81",
+  "catalog": {
+    "version": 1,
+    "framework_skills": [
+      "mate-system-information",
+      "mate-php-environment-check",
+      "mate-symfony-service-inspection",
+      "mate-symfony-request-triage",
+      "mate-symfony-profiler-debugging",
+      "mate-symfony-dotenv-diagnostics"
+    ],
+    "roles": {
+      "co": {
+        "version": 1,
+        "responsibility": "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-co",
+          "framework": []
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [
+            "direct",
+            "monitor"
+          ],
+          "advice": [],
+          "job": [],
+          "job_framework": [],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": false
+        }
+      },
+      "xo": {
+        "version": 1,
+        "responsibility": "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-xo",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [
+            "conclude",
+            "monitor",
+            "orchestrate",
+            "plan_adopt",
+            "steer"
+          ],
+          "advice": [
+            "work_assess",
+            "assignment_advise"
+          ],
+          "job": [
+            "work_inspect"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [
+            "work_inspect",
+            "work_refresh",
+            "work_submit",
+            "review_respond"
+          ],
+          "work_order_framework": [
+            "work_check"
+          ]
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": false
+        }
+      },
+      "coder": {
+        "version": 1,
+        "responsibility": "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-coder",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "work_save",
+            "work_refresh",
+            "work_recover",
+            "work_submit",
+            "review_respond"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check",
+            "framework_generate"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": true,
+          "paths": [
+            "src/",
+            "config/",
+            "packages/",
+            "tests/",
+            "templates/",
+            "assets/",
+            "translations/",
+            "public/",
+            "migrations/",
+            "composer.json",
+            "composer.lock",
+            "symfony.lock",
+            "phpunit.dist.xml"
+          ],
+          "serena": true
+        }
+      },
+      "audit": {
+        "version": 1,
+        "responsibility": "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-audit",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "review_record"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "docs": {
+        "version": 1,
+        "responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-docs",
+          "framework": [
+            "mate-system-information",
+            "mate-symfony-service-inspection"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "work_save",
+            "work_refresh",
+            "work_recover",
+            "work_submit",
+            "review_respond"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": true,
+          "paths": [
+            "docs/",
+            "README.md"
+          ],
+          "serena": true
+        }
+      },
+      "research": {
+        "version": 1,
+        "responsibility": "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-research",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "test_writer": {
+        "version": 1,
+        "responsibility": "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-test-writer",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "work_save",
+            "work_refresh",
+            "work_recover",
+            "work_submit",
+            "review_respond"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check",
+            "framework_generate"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": true,
+          "paths": [
+            "tests/",
+            "phpunit.dist.xml"
+          ],
+          "serena": true
+        }
+      },
+      "architect": {
+        "version": 1,
+        "responsibility": "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-architect",
+          "framework": [
+            "mate-system-information",
+            "mate-symfony-service-inspection"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "work_save",
+            "work_refresh",
+            "work_recover",
+            "work_submit",
+            "review_respond"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": true,
+          "paths": [
+            "docs/"
+          ],
+          "serena": true
+        }
+      },
+      "nco": {
+        "version": 1,
+        "responsibility": "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-nco",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [
+            "monitor",
+            "orchestrate",
+            "steer"
+          ],
+          "advice": [
+            "work_assess",
+            "assignment_advise"
+          ],
+          "job": [
+            "work_inspect"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [
+            "work_inspect"
+          ],
+          "work_order_framework": [
+            "work_check"
+          ]
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": false
+        }
+      },
+      "planner": {
+        "version": 1,
+        "responsibility": "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-planner",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      }
+    }
+  }
+}

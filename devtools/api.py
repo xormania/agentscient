@@ -19,9 +19,11 @@ from .development import configured as development_configured
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .operations import ACTIONS, Operations
+from .role_packages import role as role_package
+from .role_packages import validate_tools
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
-from .workspaces import EDITORS, Workspaces, project_config
+from .workspaces import Workspaces, project_config
 
 SERVER = "agentscient_dev"
 OPERATOR_INSTRUCTIONS = (
@@ -347,6 +349,7 @@ WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", 
 TOOLS += development_capabilities(spec)
 TOOLS += delivery_capabilities(spec)
 TOOLS += advice_capabilities(spec)
+validate_tools(row["name"] for row in TOOLS)
 
 
 def validate(value, schema, path="arguments"):
@@ -412,31 +415,21 @@ class API:
 
     def _tools(self, scope):
         role = self.commands.role(scope)
-        common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        package = role_package(role) if role else None
+        groups = package["mcp"] if package else {}
+        allowed = set(groups.get("bound", [])) if scope else {"work_context"}
         if role:
-            common |= {"onboard", "skill_read"}
+            allowed |= set(groups["session"]) | set(groups["command"])
         if scope and role != "co" and advice_configured(self.store):
-            common.add("work_assess")
-            if role in {"xo", "nco"}:
-                common.add("assignment_advise")
+            allowed |= set(groups["advice"])
         if scope and role != "co" and (scope["job"] or role == "planner") and project_config(self.store):
-            common.add("work_inspect")
-            if role in EDITORS:
-                common |= WORKSPACE_TOOLS
-                common.add("review_respond")
-            if role == "audit":
-                common.add("review_record")
+            allowed |= set(groups["job"])
             if development_configured(self.store):
-                common |= {"framework_inspect", "work_check"}
-                if role in {"coder", "test_writer"}:
-                    common.add("framework_generate")
+                allowed |= set(groups["job_framework"])
         if scope and not scope["job"] and role in {"xo", "nco"} and project_config(self.store):
-            common.add("work_inspect")
-            if role == "xo":
-                common |= {"work_refresh", "work_submit", "review_respond"}
+            allowed |= set(groups["work_order"])
             if development_configured(self.store):
-                common.add("work_check")
-        allowed = common | ROLE_TOOLS.get(role, set())
+                allowed |= set(groups["work_order_framework"])
         if scope is None:
             allowed -= {"conclude", "restart_xo"}
         return [row for row in TOOLS if row["name"] in allowed]

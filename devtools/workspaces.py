@@ -15,30 +15,13 @@ from pathlib import Path
 
 from .artifacts import Artifacts
 from .control import Control, binding
+from .role_packages import catalog, require_capability
 from .store import UNSET, stamp
 from .work import Work, record
 
-EDITORS = {"coder", "docs", "test_writer", "architect"}
-DEFAULT_PATHS = {
-    "coder": [
-        "src/",
-        "config/",
-        "packages/",
-        "tests/",
-        "templates/",
-        "assets/",
-        "translations/",
-        "public/",
-        "migrations/",
-        "composer.json",
-        "composer.lock",
-        "symfony.lock",
-        "phpunit.dist.xml",
-    ],
-    "test_writer": ["tests/", "phpunit.dist.xml"],
-    "docs": ["docs/", "README.md"],
-    "architect": ["docs/"],
-}
+EDITORS = {name for name, package in catalog()["roles"].items() if package["workspace"]["editor"]}
+DEFAULT_PATHS = {name: package["workspace"]["paths"] for name, package in catalog()["roles"].items()
+                 if package["workspace"]["editor"]}
 
 
 def project_config(store):
@@ -270,6 +253,8 @@ class Workspaces:
         allowed = self.config.get("paths", {}).get(role, DEFAULT_PATHS.get(role, [])) if role in EDITORS else []
         if not isinstance(allowed, list) or any(not isinstance(p, str) or not valid_path(p) for p in allowed):
             raise ValueError("Configure relative editable role paths.")
+        if any(not any(covers(boundary, path) for boundary in DEFAULT_PATHS[role]) for path in allowed):
+            raise ValueError("Configured editable paths exceed the role package ceiling.")
         rules = policy(self.store, self.config)
         assignment = current(self.store, self.control.current()) if assignment is None else assignment
         requested = assignment.get("editable_paths", allowed)
@@ -357,6 +342,7 @@ class Workspaces:
             yield scope, workspace
 
     def inspect(self, section="overview", path=None, offset=0):
+        require_capability(self.scope()["role"], "work_inspect")
         with self.use() as (scope, workspace):
             root = workspace["root"]
             head = git(root, "rev-parse", "HEAD").stdout.decode().strip()
@@ -447,10 +433,12 @@ class Workspaces:
         }
 
     def save(self, note):
+        require_capability(self.scope(write=True)["role"], "work_save")
         with self.use(write=True) as (scope, workspace):
             return self._save(scope, workspace, note)
 
     def refresh(self):
+        require_capability(self.scope(write=True)["role"], "work_refresh")
         with self.use(write=True) as (scope, workspace):
             if not scope["job"]:
                 from .orders import Orders
@@ -519,6 +507,7 @@ class Workspaces:
             }
 
     def recover(self, checkpoint, reason):
+        require_capability(self.scope(write=True)["role"], "work_recover")
         revision = checkpoint.removeprefix("checkpoint:")
         with self.use(write=True) as (scope, workspace):
             with self.store.connect() as db:
@@ -563,6 +552,7 @@ class Workspaces:
     def submit(self, summary):
         from .github import GitHub
 
+        require_capability(self.scope(write=True)["role"], "work_submit")
         with self.use(write=True) as (scope, workspace):
             if not scope["job"]:
                 from .orders import Orders

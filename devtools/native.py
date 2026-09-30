@@ -13,7 +13,7 @@ import uuid
 
 from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
-from .profiles import CODEX_FEATURES, permitted, prepare, toml
+from .profiles import CODEX_FEATURES, permitted, prepare, toml, tool_catalogue
 from .rpc import RPC
 from .serena_provider import SERVER as SERENA_SERVER
 from .serena_provider import TOOL as SERENA_TOOL
@@ -195,7 +195,7 @@ class Native:
         self.verify_identity(params)
         if self.harness == "codex" and method == "item/tool/call":
             name, args = params.get("tool"), params.get("arguments")
-            if not permitted("codex", name, args) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
+            if not permitted("codex", name, args, catalogue=tool_catalogue(self.store.directory, self.member)) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
                 self.event("native_tool_denied", tool=name)
                 raise ValueError("Use this team's MCP tools")
             provider = self.serena if name == SERENA_TOOL["name"] else self.mcp
@@ -215,7 +215,8 @@ class Native:
             call = params.get("toolCall", {})
             metadata = call.get("_meta", {}).get("x.ai/tool", {})
             allowed = metadata.get("namespace") == "grok_build" and permitted(
-                "grok", metadata.get("name"), call.get("rawInput", {})
+                "grok", metadata.get("name"), call.get("rawInput", {}),
+                catalogue=tool_catalogue(self.store.directory, self.member),
             )
             option = next(
                 (
