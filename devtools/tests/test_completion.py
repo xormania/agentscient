@@ -9,6 +9,7 @@ import test_workspaces
 from devtools.api import API
 from devtools.completion import Completion
 from devtools.configuration import defaults, resolve, validate
+from devtools.failures import Failure, failure_info
 from devtools.jev import JevUnavailable
 from devtools.store import canonical, stamp
 from devtools.workspaces import git
@@ -88,10 +89,14 @@ class CompletionTests(unittest.TestCase):
 
     def test_result_claim_without_retained_proof_does_not_call_jev(self):
         self.api.call("work_report", {"kind": "result", "text": "All done"})
-        with self.assertRaisesRegex(ValueError, "claim alone"):
+        with self.assertRaisesRegex(Failure, "claim alone") as blocked:
             self.gate.require("job", job=self.job)
+        self.assertEqual("not_ready", failure_info(blocked.exception)["category"])
+        self.assertEqual("proof_missing", failure_info(blocked.exception)["reason"])
         self.assertEqual([], self.requests)
-        self.assertEqual(1, len(self.store.events(kind="completion_blocked")["events"]))
+        event = self.store.events(kind="completion_blocked")["events"][0]["data"]
+        self.assertEqual(str(blocked.exception), event["reason"])
+        self.assertEqual(failure_info(blocked.exception), event["failure"])
 
     def test_assignment_uses_its_original_brief_and_full_owner_boundaries(self):
         assignment = self.assignment()
@@ -104,6 +109,31 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual("Feature", state["job"]["objective"])
         self.assertIn("specialist need not", state["boundary_rule"])
 
+    def test_assignment_recovery_metadata_keeps_its_proof_binding(self):
+        assignment = self.assignment()
+        with self.assertRaises(Failure) as blocked:
+            self.gate.require("assignment", assignment=assignment)
+        self.assertEqual(assignment, failure_info(blocked.exception)["details"]["assignment"])
+        cases = (
+            ({"state": "running"}, "a" * 40, "measurement_active"),
+            ({"state": "uncertain"}, "a" * 40, "measurement_incomplete"),
+            ({"passed": False}, "a" * 40, "check_failed"),
+            ({"revision": "a" * 40}, "b" * 40, "proof_stale"),
+        )
+        for arguments, revision, reason in cases:
+            with self.subTest(reason=reason):
+                with self.store.connect() as db:
+                    db.execute("DELETE FROM operations")
+                operation = self.operation(**arguments)
+                with self.assertRaises(Failure) as blocked:
+                    self.gate.require("assignment", assignment=assignment, revision=revision)
+                failure = failure_info(blocked.exception)
+                self.assertEqual(reason, failure["reason"])
+                self.assertEqual(assignment, failure["details"]["assignment"])
+                self.assertEqual(self.job, failure["details"]["job"])
+                self.assertIn("operation:" + str(operation), failure["details"]["references"])
+        self.assertEqual([], self.requests)
+
     def test_each_required_condition_must_pass_no_average_or_done_plan_substitution(self):
         self.report("Only the happy path was measured; recovery remains untested.")
 
@@ -113,8 +143,9 @@ class CompletionTests(unittest.TestCase):
             return result
 
         self.provider.side_effect = incomplete
-        with self.assertRaisesRegex(ValueError, "done_when"):
+        with self.assertRaisesRegex(Failure, "done_when") as blocked:
             self.gate.require("job", job=self.job)
+        self.assertEqual("proof_insufficient", failure_info(blocked.exception)["reason"])
         event = self.store.events(kind="completion_assessed")["events"][0]
         self.assertEqual(["done_when"], event["data"]["unresolved"])
         self.assertTrue(event["data"]["evidence"].startswith("artifact:"))
@@ -132,9 +163,14 @@ class CompletionTests(unittest.TestCase):
 
     def test_mechanical_failure_cannot_be_overridden_by_high_jev_probability(self):
         self.report()
-        self.operation(passed=False)
-        with self.assertRaisesRegex(ValueError, "behavior"):
+        operation = self.operation(passed=False)
+        with self.assertRaisesRegex(Failure, "behavior") as blocked:
             self.gate.require("job", job=self.job, revision="a" * 40)
+        failure = failure_info(blocked.exception)
+        self.assertEqual("check_failed", failure["reason"])
+        self.assertEqual(["behavior"], failure["details"]["checks"])
+        self.assertIn("operation:" + str(operation), failure["details"]["references"])
+        self.assertEqual(self.job, failure["details"]["job"])
         self.assertEqual([], self.requests)
         with self.assertRaisesRegex(ValueError, "ci check to pass"):
             self.gate.require("job", job=self.job, mechanical={"ci": {"passed": False}})
@@ -142,11 +178,23 @@ class CompletionTests(unittest.TestCase):
     def test_failed_or_uncertain_operation_without_named_checks_blocks(self):
         self.report()
         self.operation(passed=False, checks=False)
-        with self.assertRaisesRegex(ValueError, "measurement to pass"):
+        with self.assertRaisesRegex(Failure, "measurement to pass") as blocked:
             self.gate.require("job", job=self.job)
-        self.operation(state="uncertain")
-        with self.assertRaisesRegex(ValueError, "completed current measurement"):
+        self.assertEqual("check_failed", failure_info(blocked.exception)["reason"])
+        operation = self.operation(state="uncertain")
+        with self.assertRaisesRegex(Failure, "completed current measurement") as blocked:
             self.gate.require("job", job=self.job)
+        self.assertEqual("measurement_incomplete", failure_info(blocked.exception)["reason"])
+        self.assertIn("operation:" + str(operation), failure_info(blocked.exception)["details"]["references"])
+        self.assertEqual([], self.requests)
+
+    def test_active_measurement_reports_the_operation_to_wait_for(self):
+        operation = self.operation(state="running")
+        with self.assertRaisesRegex(Failure, "active measurement") as blocked:
+            self.gate.require("job", job=self.job)
+        failure = failure_info(blocked.exception)
+        self.assertEqual("measurement_active", failure["reason"])
+        self.assertIn("operation:" + str(operation), failure["details"]["references"])
         self.assertEqual([], self.requests)
 
     def test_current_measurement_supersedes_failure_and_identical_proof_cache_reuses_request(self):
@@ -175,10 +223,30 @@ class CompletionTests(unittest.TestCase):
             self.gate.require("job", job=self.job, revision="a" * 40)
 
     def test_old_check_and_current_claim_cannot_prove_current_code(self):
-        self.report()
-        self.operation(revision="a" * 40)
-        with self.assertRaisesRegex(ValueError, "current source revision"):
+        report = self.report()
+        operation = self.operation(revision="a" * 40)
+        for _ in range(2):
+            with self.assertRaisesRegex(Failure, "current source revision") as blocked:
+                self.gate.require("job", job=self.job, revision="b" * 40)
+            failure = failure_info(blocked.exception)
+            self.assertEqual("not_ready", failure["category"])
+            self.assertEqual("proof_stale", failure["reason"])
+            self.assertEqual(["behavior"], failure["details"]["checks"])
+            self.assertEqual("b" * 40, failure["details"]["revision"])
+            self.assertIn("operation:" + str(operation), failure["details"]["references"])
+            self.assertIn(report["evidence"], failure["details"]["references"])
+        self.assertEqual([], self.requests)
+        self.operation(revision="b" * 40)
+        self.assertEqual("ready", self.gate.require("job", job=self.job, revision="b" * 40)["state"])
+
+    def test_stale_measurement_without_current_report_keeps_its_recovery_reference(self):
+        operation = self.operation(revision="a" * 40)
+        with self.assertRaises(Failure) as blocked:
             self.gate.require("job", job=self.job, revision="b" * 40)
+        failure = failure_info(blocked.exception)
+        self.assertEqual("proof_stale", failure["reason"])
+        self.assertEqual(["behavior"], failure["details"]["checks"])
+        self.assertIn("operation:" + str(operation), failure["details"]["references"])
         self.assertEqual([], self.requests)
 
     def test_report_capture_is_current_document_provenance_not_executed_measurement(self):
@@ -236,20 +304,26 @@ class CompletionTests(unittest.TestCase):
     def test_dirty_measurement_and_mismatched_ci_revision_block(self):
         self.report()
         self.operation(uncommitted=["src/Example.php"])
-        with self.assertRaisesRegex(ValueError, "saved source"):
+        with self.assertRaisesRegex(Failure, "saved source") as blocked:
             self.gate.require("job", job=self.job)
+        self.assertEqual("source_unsaved", failure_info(blocked.exception)["reason"])
         with self.store.connect() as db:
             db.execute("DELETE FROM operations")
-        with self.assertRaisesRegex(ValueError, "ci evidence for the current"):
+        with self.assertRaisesRegex(Failure, "ci evidence for the current") as blocked:
             self.gate.require("job", job=self.job, revision="a" * 40, mechanical={"ci": {"passed": True, "revision": "b" * 40}})
+        self.assertEqual("proof_stale", failure_info(blocked.exception)["reason"])
 
     def test_same_named_checks_in_two_owned_jobs_remain_independent(self):
         self.report()
         self.operation(passed=False)
         other = self.xo.work.job_create(title="Other", objective="Other", done_when="Works", constraints="Product", work_order=self.order)["job"]["id"]
         self.operation(passed=True, job=other)
-        with self.assertRaisesRegex(ValueError, "job " + str(self.job)):
+        with self.assertRaisesRegex(Failure, "job " + str(self.job)) as blocked:
             self.gate.require("work_order")
+        details = failure_info(blocked.exception)["details"]
+        self.assertIsNone(details["job"])
+        self.assertEqual([], details["checks"])
+        self.assertTrue(any(ref.startswith("operation:") for ref in details["references"]))
 
     def test_job_and_assignment_secrets_from_independent_xo_are_never_sent(self):
         self.report()
@@ -257,8 +331,11 @@ class CompletionTests(unittest.TestCase):
         other = API(self.state, "docs").work.job_create(title="Sibling secret", objective="Private objective", done_when="Private criterion", work_order=self.order)["job"]["id"]
         # A foreign job's operator override cannot grant the caller authority.
         self.configure({}, jobs={str(other): {"features": {"completion": False}}})
-        with self.assertRaisesRegex(ValueError, "outside current work"):
+        with self.assertRaisesRegex(Failure, "outside current work") as blocked:
             self.gate.require("job", job=other)
+        self.assertEqual("not_permitted", failure_info(blocked.exception)["category"])
+        self.assertEqual("scope_not_permitted", failure_info(blocked.exception)["reason"])
+        self.assertEqual({}, failure_info(blocked.exception)["details"])
         with self.assertRaisesRegex(ValueError, "independent command teams"):
             self.gate.require("work_order")
         self.assertEqual([], self.requests)
@@ -278,8 +355,9 @@ class CompletionTests(unittest.TestCase):
             result = answer({}, {name: {} for name in ("objective", "done_when", "constraints")}, "jev-1.13.0")
             result.update(evidence="artifact:1", cache_hit=False)
             result["answers"]["objective"]["noul"] = probability
-            with self.subTest(probability=probability), patch("devtools.completion.Advice.evaluate", return_value=result), self.assertRaisesRegex(ValueError, "invalid.*probability"):
+            with self.subTest(probability=probability), patch("devtools.completion.Advice.evaluate", return_value=result), self.assertRaisesRegex(Failure, "invalid.*probability") as blocked:
                 self.gate.require("job", job=self.job)
+            self.assertEqual("evaluation_invalid", failure_info(blocked.exception)["category"])
         with patch("devtools.completion.Advice.evaluate", return_value={"evidence": "artifact:1", "answers": {}, "cache_hit": False}), self.assertRaisesRegex(ValueError, "incomplete"):
             self.gate.require("job", job=self.job)
 

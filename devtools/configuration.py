@@ -24,7 +24,9 @@ from urllib.parse import urlsplit
 
 from .adapters import names as adapter_names
 from .adapters import registry as adapter_registry
+from .failures import CATEGORIES
 from .jev_config import validate_entry, validate_question, validate_questions
+from .recovery_actions import PLACEHOLDERS, substitute, validate_templates
 from .role_packages import behavior, behavior_ids, catalog
 
 SOURCE = Path(__file__).with_name("configuration.cue")
@@ -185,7 +187,22 @@ def _validate(value, *, references=True):
     validate_question(filtering["question"])
     if filtering["question"]["type"] != "noul":
         raise ValueError("Filtering requires a Noul relevance question")
-    guidance = _object(value["guidance"], {"failure_mode", "excluded_roles", "excluded_adapters", "diagnostic_field_bytes", "diagnostic_bytes", "delivery_excerpt_bytes", "routes", "actions", "fallback"}, "guidance")
+    guidance = _object(value["guidance"], {"failure_mode", "excluded_roles", "excluded_adapters", "diagnostic_field_bytes", "diagnostic_bytes", "delivery_excerpt_bytes", "routes", "actions", "fallback", "recovery_actions", "max_recovery_actions"}, "guidance")
+    _number(guidance["max_recovery_actions"], "guidance.max_recovery_actions", 1, 16, True)
+    if not isinstance(guidance["recovery_actions"], list) or len(guidance["recovery_actions"]) > 32:
+        raise ValueError("Recovery actions must be a bounded list")
+    tools = {tool for package in roles.values() for group in package["mcp"].values() for tool in group}
+    for entry in guidance["recovery_actions"]:
+        _object(entry, {"categories", "reasons", "tool", "arguments", "when"}, "recovery action")
+        _strings(entry["categories"], "recovery categories", CATEGORIES)
+        _strings(entry["reasons"], "recovery reasons")
+        _text(entry["tool"], "recovery tool", 100)
+        if references and entry["tool"] not in tools:
+            raise ValueError("Recovery references an unknown managed tool")
+        _text(entry["when"], "recovery condition", 2000)
+        if not isinstance(entry["arguments"], dict) or len(_canonical(entry["arguments"]).encode()) > 4000:
+            raise ValueError("Recovery arguments must be a bounded object")
+        substitute(entry["arguments"], PLACEHOLDERS)
     if guidance["failure_mode"] not in {"omit", "fallback"}:
         raise ValueError("Guidance failure_mode must be omit or fallback")
     _strings(guidance["excluded_roles"], "guidance.excluded_roles", roles if references else None)
@@ -330,6 +347,16 @@ def resolve(store, role=None, job=None):
     def validate_variant(value):
         nonlocal profile_names
         validate(value)
+        # Resolve is called after module initialization; defaults/generation stay
+        # independent of API imports and their generated-configuration reads.
+        from .advice import capabilities as advice_capabilities
+        from .api import TOOLS, spec
+        from .api import validate as validate_arguments
+        from .commands import capabilities as command_capabilities
+
+        effective = {row["name"]: row for row in command_capabilities(spec) + advice_capabilities(spec, value)}
+        validate_templates(value["guidance"]["recovery_actions"],
+                           [effective.get(row["name"], row) for row in TOOLS], validate_arguments)
         referenced = set(value["assignment"]["profile_evidence"])
         if referenced:
             if profile_names is None:

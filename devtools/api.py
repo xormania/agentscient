@@ -16,6 +16,7 @@ from .delivery import Delivery
 from .delivery import capabilities as delivery_capabilities
 from .development import capabilities as development_capabilities
 from .development import configured as development_configured
+from .failures import Failure, failure_info
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .operations import ACTIONS, Operations
@@ -358,21 +359,24 @@ validate_tools(row["name"] for row in TOOLS)
 def validate(value, schema, path="arguments"):
     import re
 
+    def invalid(message):
+        return Failure(message, category="invalid_request", reason="invalid_arguments", details={"path": path})
+
     types = {"object": dict, "string": str, "integer": int, "boolean": bool, "array": list}
     kind = schema.get("type")
     if kind in types and type(value) is not types[kind]:
-        raise ValueError(f"{path} must be {kind}")
+        raise invalid(f"{path} must be {kind}")
     if "enum" in schema and value not in schema["enum"]:
-        raise ValueError(f"{path} is not an allowed value")
+        raise invalid(f"{path} is not an allowed value")
     if kind == "object":
         if len(value) > schema.get("maxProperties", 100):
-            raise ValueError(f"{path} contains too many fields")
+            raise invalid(f"{path} contains too many fields")
         properties = schema.get("properties")
         if properties is not None:
             if set(schema.get("required", ())) - value.keys():
-                raise ValueError(f"{path} is missing required fields")
+                raise invalid(f"{path} is missing required fields")
             if schema.get("additionalProperties") is False and value.keys() - properties.keys():
-                raise ValueError(f"{path} contains unknown fields")
+                raise invalid(f"{path} contains unknown fields")
             for key, item in value.items():
                 if key in properties:
                     validate(item, properties[key], path + "." + key)
@@ -382,17 +386,17 @@ def validate(value, schema, path="arguments"):
                 validate(item, schema["additionalProperties"], path + "." + key)
     elif kind == "array":
         if not schema.get("minItems", 0) <= len(value) <= schema.get("maxItems", 100):
-            raise ValueError(f"{path} is outside its item bounds")
+            raise invalid(f"{path} is outside its item bounds")
         for item in value:
             validate(item, schema.get("items", {}), path + "[]")
     elif kind == "string":
         if "\0" in value or not schema.get("minLength", 0) <= len(value) <= schema.get("maxLength", 65536):
-            raise ValueError(f"{path} is outside its text bounds")
+            raise invalid(f"{path} is outside its text bounds")
         if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
-            raise ValueError(f"{path} has an invalid format")
+            raise invalid(f"{path} has an invalid format")
     elif kind == "integer":
         if not schema.get("minimum", -(2**53)) <= value <= schema.get("maximum", 2**53):
-            raise ValueError(f"{path} is outside its numeric bounds")
+            raise invalid(f"{path} is outside its numeric bounds")
 
 
 class API:
@@ -455,12 +459,6 @@ class API:
         if self.operator:
             return self._operator_call(name, arguments, on_context=on_context)
         scope = self.control.snapshot()
-        allowed = self._tools(scope)
-        schema = next((row for row in allowed if row["name"] == name), None)
-        if schema is None:
-            self.store.event(self.member, "tool_denied", tool=str(name)[:80])
-            raise ValueError("Tool is not available in your current role and work context")
-        validate(arguments, schema["inputSchema"])
         token = REQUEST_BINDING.set((self.member, scope))
         try:
             with self.store.work_context(
@@ -468,14 +466,30 @@ class API:
             ):
                 if on_context:
                     on_context()
-                return self.run(name, arguments)
+                try:
+                    schema = next((row for row in self._tools(scope) if row["name"] == name), None)
+                    if schema is None:
+                        error = Failure("Tool is not available in your current role and work context",
+                                        category="not_permitted", reason="tool_not_permitted")
+                        event = self.store.event(self.member, "tool_denied", tool=str(name)[:80],
+                                                 failure=failure_info(error))
+                        self._diagnose(error, name, arguments=arguments, operation=f"event:{event}")
+                        raise error
+                    validate(arguments, schema["inputSchema"])
+                    return self.run(name, arguments)
+                except Exception as error:
+                    if not hasattr(error, "diagnostic_failure"):
+                        event = self.store.event(self.member, "tool_rejected", tool=str(name)[:80],
+                                                 failure=failure_info(error))
+                        self._diagnose(error, name, arguments=arguments, operation=f"event:{event}")
+                    raise
         finally:
             REQUEST_BINDING.reset(token)
 
     def _operator_call(self, name, arguments, *, on_context=None):
         outer = next((row for row in OPERATOR_TOOLS if row["name"] == name), None)
         if outer is None:
-            raise ValueError("Unknown MCP tool")
+            raise Failure("Unknown MCP tool", category="invalid_request", reason="unknown_tool")
         validate(arguments, outer["inputSchema"])
         if name != "capability_invoke" and on_context:
             on_context()
@@ -493,7 +507,7 @@ class API:
             }
         capability = arguments["capability"]
         if capability not in BY_NAME:
-            raise ValueError("Unknown capability; use capability_search")
+            raise Failure("Unknown capability; use capability_search", category="invalid_request", reason="unknown_capability")
         definition = BY_NAME[capability]
         if capability == "member_bind":
             definition = {**definition, "inputSchema": {**definition["inputSchema"], "properties": {
@@ -511,31 +525,52 @@ class API:
                 on_context()
             return self.run(capability, args)
 
+    def _diagnose(self, error, capability, *, arguments=None, operation=None):
+        error.diagnostic_failure = failure_info(error)
+        if not self.operator:
+            from .diagnostics import deliver_guidance
+
+            error.diagnostic_guidance = deliver_guidance(
+                self.store, self.member, capability, error=error,
+                failure=error.diagnostic_failure, operation=operation, arguments=arguments,
+            )
+
     def run(self, capability, args):
+        from .diagnostics import result_failure
+        from .recovery import capture_recovery, record_recovery
+
         started = time.monotonic()
         event = self.store.event(self.member, "operation_started", capability=capability)
+        candidates = capture_recovery(self.store, self.member, capability, args) if not self.operator and capability not in ACTIONS else []
         try:
             result = self.invoke(capability, args)
         except Exception as error:
+            record_recovery(self.store, self.member, candidates, operation=f"event:{event}", error=error)
+            self._diagnose(error, capability, arguments=args, operation=f"event:{event}")
             self.store.event(
                 self.member,
                 "operation_failed",
                 capability=capability,
                 operation=event,
                 error=str(error)[:1000],
+                failure=error.diagnostic_failure,
                 seconds=round(time.monotonic() - started, 6),
             )
-            if not self.operator:
-                from .diagnostics import deliver_guidance
-
-                error.diagnostic_guidance = deliver_guidance(self.store, self.member, capability, error=error)
             raise
+        # Worker receipts carry service-owned metadata from Operations.public;
+        # provider payloads elsewhere are data, not authoritative failure facts.
+        failure = result.get("failure") if capability in ACTIONS and isinstance(result, dict) else None
+        failure = failure or result_failure(result)
+        if failure and isinstance(result, dict):
+            result = {**result, "failure": failure}
+        record_recovery(self.store, self.member, candidates, operation=f"event:{event}", result=result)
         self.store.event(
             self.member,
             "operation_finished",
             capability=capability,
             operation=event,
             seconds=round(time.monotonic() - started, 6),
+            **({"failure": failure} if failure else {}),
             **(
                 {"work_order": result["work_order"]["id"], "job": result.get("job", {}).get("id")}
                 if capability in {"job_create", "work_order_create"}
@@ -547,7 +582,8 @@ class API:
         if not self.operator and capability not in ACTIONS:
             from .diagnostics import deliver_guidance
 
-            guidance = deliver_guidance(self.store, self.member, capability, result=result)
+            guidance = deliver_guidance(self.store, self.member, capability, result=result,
+                                        operation=f"event:{event}", arguments=args)
             if guidance and isinstance(result, dict):
                 result = {**result, "diagnostic_guidance": guidance}
         return result

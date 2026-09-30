@@ -197,7 +197,7 @@ exports are rejected. Empty `roles` and `jobs` sections may be omitted.
 | `scope`, `assessment` | Mission/scope rubric, source/question counts, source excerpt limits and assessment rules. |
 | `assignment` | Role/runtime advice rubrics, eligible role names, candidate and evidence limits, performance evidence and uncertainty wording. |
 | `filtering` | Noul threshold, eligible report kinds, protected text pattern, excluded role/adapter sets, fact/state budgets, relevance question, failure mode/message. |
-| `guidance` | Excluded role/adapter sets, diagnostic limits, ordered regex/role/adapter/action routes, action instructions, fallback skill/action, delivery excerpt size and failure mode. |
+| `guidance` | Excluded role/adapter sets, diagnostic limits, ordered regex/role/adapter/action routes, action instructions, recovery templates and count limit, fallback skill/action, delivery excerpt size and failure mode. |
 | `completion` | Three boundary rules, independent proof questions, minimum probability, evidence budgets and assessment failure mode. |
 
 `assignment.profile_evidence` maps configured runtime profile names (fixed teams:
@@ -262,6 +262,12 @@ questions and effective configuration. Existing service locks share identical
 concurrent requests. `jev_evaluation` events retain elapsed time, model, fingerprint,
 evidence and usage; cache-hit events have `usage: null` because no provider request
 occurred. Do not count the original evaluation's usage again on a cache hit.
+Failed evaluations retain the original redacted diagnostic and a structured
+`failure` with `category`, `reason`, and trusted `details`. Event outcomes distinguish
+`unavailable`, `invalid_response`, `invalid_request`, and unclassified `failed`.
+Missing credentials require operator correction; transport/HTTP failure details
+identify retryability separately. A malformed response supplies no judgment and
+never qualifies for unavailable-provider completion fallback.
 
 `work_assess(proposal=..., sources=...)` uses the configured mission rubric without
 creating work or changing authority. `work_report.evaluation` links decisions and
@@ -284,6 +290,33 @@ truncated excerpt is marked. Successful calls remain quiet. `failure_mode: "omit
 omits unavailable guidance; `"fallback"` returns the configured fallback action
 when the skill cannot be loaded. Neither changes the original operation result.
 
+Known service failures expose `failure.category` and `failure.reason` independently
+of the guidance switch. Categories are `not_permitted`, `not_ready`,
+`invalid_request`, `evaluation_unavailable`, `evaluation_invalid`, and
+`operation_failed`. Unknown exceptions remain `operation_failed/unclassified`;
+diagnostic wording is not used to invent a category. MCP errors retain their
+original text plus structured metadata; background operation reads and compact
+notices retain the same cause. A completed worker can still contain a failed check.
+
+`guidance.recovery_actions` is an ordered list of templates, each with `categories`
+and `reasons` selectors (empty lists match any), an existing managed `tool`,
+`arguments`, and a `when` instruction. Exact argument values `$reference` and
+`$check` bind readable retained references and actual configured check names;
+unknown placeholders or tools and invalid argument schemas fail validation.
+Tool schemas use the effective policy, including role/job advice limits.
+`max_recovery_actions` bounds delivery (default six). Templates can reference only
+the current tool surface at delivery. Check suggestions also require the same job
+and, for assignment proof, the same assignment. An officer reading a specialist's
+proof is not offered a check which cannot supply that specialist's measurement.
+Missing facts omit an action rather than fabricating an argument.
+
+Delivered guidance includes concrete `actions`, its telemetry `reference`
+(`event:<id>`, an opaque correlation reference rather than a `work_context` resource),
+`context_identity`, and `configuration_revision`. Its `when` text describes the
+precondition for a suggested call. The agent chooses its next step; normal service
+checks reauthorize every call against current work. A suggestion neither grants
+permission nor changes completion policy. Producing it makes no additional Jev call.
+
 With filtering enabled, the default policy omits background reports below relevance
 Noul 0.2. Thresholds, eligible kinds, protected text and role/job overrides are
 configurable. Core context, incoming messages and evidence-bearing reports remain
@@ -305,8 +338,14 @@ unavailable; it does not turn a negative assessment into a pass.
 
 Existing events distinguish guidance delivery, skill reads, context projection,
 completion assessment and refusal, and retain effective configuration revisions.
-Delivery or reading does not establish that an agent used a method or succeeded;
-subsequent decisions and outcomes use the existing feedback path. Tests use isolated
+`recovery_action_observed` links a guidance event and its originating operation to
+a later exact call under the same context and configuration. It distinguishes a
+suggested action from a retry of the original blocked call. Only an observed
+successful original retry marks that condition resolved; pending, uncertain,
+empty and failed outcomes do not. Suggested check observations retain the named
+measurement, source revision, cleanliness and evidence separately. These links
+establish sequence and observed outcomes, not that guidance caused recovery.
+Jev decisions and outcomes continue to use the existing feedback path. Tests use isolated
 temporary state. Result reports capture an existing managed workspace revision
 internally; this identifies capture context rather than proving a measurement.
 Configured check artifacts retain the command definition with observed output.

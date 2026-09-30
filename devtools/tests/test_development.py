@@ -73,8 +73,12 @@ class DevelopmentTests(unittest.TestCase):
                 ident = int(receipt["reference"].split(":")[1])
                 execute(self.state, "coder", ident)
             retained = self.api.operations.get(ident)["result"]
-            self.assertEqual(result, {key: value for key, value in retained.items() if key != "diagnostic_guidance"})
+            self.assertEqual(result, {key: value for key, value in retained.items()
+                                      if key not in {"diagnostic_guidance", "failure"}})
             self.assertEqual(failed, "diagnostic_guidance" in retained)
+            self.assertEqual(failed, "failure" in retained)
+            if failed:
+                self.assertEqual("check_failed", retained["failure"]["reason"])
             for member in ("coder", "xo"):
                 notice = json.loads(self.store.inbox(member)["messages"][-1]["body"])
                 self.assertEqual(receipt["reference"], notice["reference"])

@@ -19,6 +19,7 @@ package configuration
 }
 #Route: {diagnostic_pattern: #Text, action_pattern: #Text, roles: [...#Text], adapters: [...#Text], skill: #Text, next_action: null | #Text}
 #Action: {action_pattern: #Text, roles: [...#Text], adapters: [...#Text], next_action: #Text}
+#RecoveryAction: {categories: [...#Text], reasons: [...#Text], tool: #Text, arguments: {[string]: _}, when: #Text}
 #CompletionQuestion: {
  type: "noul"
  instructions: {requirement: "objective" | "done_when" | "constraints", task: #Text, rules: [#Text, ...#Text]}
@@ -79,6 +80,8 @@ package configuration
   delivery_excerpt_bytes: int & >=1 & <=64000
   routes: [...#Route]
   actions: [...#Action]
+  recovery_actions: [...#RecoveryAction]
+  max_recovery_actions: int & >=1 & <=16
   fallback: {skill: #Text, next_action: #Text}
  }
  completion: {
@@ -211,6 +214,30 @@ settings: #Settings & {
     ]
   },
   "guidance": {
+    "max_recovery_actions": 6,
+    "recovery_actions": [
+      {
+        "categories": [], "reasons": [], "tool": "work_context",
+        "arguments": {"reference": "$reference"},
+        "when": "Read the retained evidence for this failure; follow next_offset when present."
+      },
+      {
+        "categories": ["not_ready"], "reasons": ["check_failed", "proof_stale", "measurement_incomplete"],
+        "tool": "work_check", "arguments": {"check": "$check"},
+        "when": "After correcting the cause and saving current source, rerun this configured check. Inspect its finished result before retrying completion."
+      },
+      {
+        "categories": ["not_permitted", "not_ready", "invalid_request"], "reasons": [],
+        "tool": "work_context", "arguments": {"section": "brief"},
+        "when": "Refresh the current brief and reporting relationship before choosing the next operation."
+      },
+      {
+        "categories": ["not_permitted", "evaluation_unavailable", "evaluation_invalid"], "reasons": [],
+        "tool": "guidance_request",
+        "arguments": {"text": "The attempted operation is blocked. Please inspect the retained failure and advise the permitted next step within my current assignment."},
+        "when": "When progress needs a permission, configuration or provider decision, route the blocker through the existing reporting relationship."
+      }
+    ],
     "failure_mode": "omit",
     "excluded_roles": [],
     "diagnostic_field_bytes": 2000,

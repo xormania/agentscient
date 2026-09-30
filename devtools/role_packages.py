@@ -12,6 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from . import adapters
+from .failures import Failure
 from .role_behaviors import RoleBehavior
 
 SOURCE = Path(__file__).with_name("role-packages.cue")
@@ -197,7 +198,8 @@ def require_capability(name, capability):
     """
     package = role(name)
     if not any(capability in tools for tools in package["mcp"].values()):
-        raise ValueError(f"{name} role package does not permit {capability}")
+        raise Failure(f"{name} role package does not permit {capability}",
+                      category="not_permitted", reason="capability_not_permitted")
 
 
 def validate_tools(names):

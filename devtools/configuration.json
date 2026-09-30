@@ -1,5 +1,5 @@
 {
-  "source_sha256": "216c65393ae3bf07af290498acae8425b0232c8fd38ebced9945aa560c0f4059",
+  "source_sha256": "784a8cbdc58b12b587f517735eb1a1ffa6bb6746d395a906ef5a8f139ab0b470",
   "settings": {
     "version": 1,
     "features": {
@@ -197,6 +197,59 @@
           "next_action": "Inspect the provider error and current source context. Retry only the relevant supported operation within your role's paths."
         }
       ],
+      "recovery_actions": [
+        {
+          "categories": [],
+          "reasons": [],
+          "tool": "work_context",
+          "arguments": {
+            "reference": "$reference"
+          },
+          "when": "Read the retained evidence for this failure; follow next_offset when present."
+        },
+        {
+          "categories": [
+            "not_ready"
+          ],
+          "reasons": [
+            "check_failed",
+            "proof_stale",
+            "measurement_incomplete"
+          ],
+          "tool": "work_check",
+          "arguments": {
+            "check": "$check"
+          },
+          "when": "After correcting the cause and saving current source, rerun this configured check. Inspect its finished result before retrying completion."
+        },
+        {
+          "categories": [
+            "not_permitted",
+            "not_ready",
+            "invalid_request"
+          ],
+          "reasons": [],
+          "tool": "work_context",
+          "arguments": {
+            "section": "brief"
+          },
+          "when": "Refresh the current brief and reporting relationship before choosing the next operation."
+        },
+        {
+          "categories": [
+            "not_permitted",
+            "evaluation_unavailable",
+            "evaluation_invalid"
+          ],
+          "reasons": [],
+          "tool": "guidance_request",
+          "arguments": {
+            "text": "The attempted operation is blocked. Please inspect the retained failure and advise the permitted next step within my current assignment."
+          },
+          "when": "When progress needs a permission, configuration or provider decision, route the blocker through the existing reporting relationship."
+        }
+      ],
+      "max_recovery_actions": 6,
       "fallback": {
         "skill": "role",
         "next_action": "Inspect the returned diagnostic and current brief. Use the permitted inspection or reporting tools to resolve the specific cause."

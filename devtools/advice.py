@@ -15,8 +15,9 @@ from .artifacts import Artifacts
 from .commands import Commands
 from .configuration import defaults, resolve
 from .control import Control, binding
-from .jev import Jev
-from .jev_config import clean_questions, validate_question, validate_questions
+from .failures import Failure, failure_info
+from .jev import Jev, checked_questions
+from .jev_config import clean_questions, validate_question
 from .role_packages import adapter, catalog, require_capability
 from .store import canonical, stamp
 from .telemetry import clean
@@ -105,7 +106,12 @@ class Advice:
 
     def settings(self, scope=None):
         scope = scope or self.control.current()
-        return resolve(self.store, role=scope["role"] if scope else None, job=scope["job"] if scope else None)
+        try:
+            return resolve(self.store, role=scope["role"] if scope else None, job=scope["job"] if scope else None)
+        except Failure:
+            raise
+        except ValueError as error:
+            raise Failure(str(error), category="invalid_request", reason="invalid_configuration") from None
 
     def scope(self, xo=False, feature="advice"):
         scope = self.control.current()
@@ -194,19 +200,26 @@ class Advice:
         self.check_policy(scope, policy)
         model = policy["model"]
         # Reuse the common credential filter before any third-party request or retained result.
-        validate_questions(questions)
+        checked_questions(questions)
         from .credentials import credential_values
 
-        secrets = credential_values(policy["connection"])
-        state, questions = clean(state, secrets=secrets), clean_questions(questions, secrets=secrets)
-        validate_questions(questions)
+        try:
+            secrets = credential_values(policy["connection"])
+        except ValueError as error:
+            raise Failure(str(error), category="invalid_request", reason="invalid_credential_configuration") from None
+        state = clean(state, secrets=secrets)
+        try:
+            questions = clean_questions(questions, secrets=secrets)
+        except ValueError as error:
+            raise Failure(str(error), category="invalid_request", reason="invalid_question_identifiers") from None
+        checked_questions(questions)
         fingerprint = digest([VERSION, scope, model, purpose, state, questions, sources, policy])
         transport = policy["transport"]
         # Cover every allowed attempt/backoff, plus one timeout for retaining the result.
         wait = transport["timeout"] * (transport["max_attempts"] + 1)
         wait += transport["max_retry_delay"] * (transport["max_attempts"] - 1)
         with Workspaces(self.store, self.member).lock("jev-" + fingerprint, timeout=wait):
-            return self.retained(purpose, scope, model, state, questions, sources, fingerprint, policy)
+            return self.retained(purpose, scope, model, state, questions, sources, fingerprint, policy, secrets=secrets)
 
     def check_policy(self, scope, policy):
         selection = policy["selection"]
@@ -220,7 +233,7 @@ class Advice:
         if selection["role"] != scope["role"] or resolve(self.store, **selection)["revision"] != policy["revision"]:
             raise ValueError("Assessment configuration changed; retry using current policy.")
 
-    def retained(self, purpose, scope, model, state, questions, sources, fingerprint, policy):
+    def retained(self, purpose, scope, model, state, questions, sources, fingerprint, policy, *, secrets=()):
         if self.scope(purpose == "assignment", feature=None) != scope:
             raise ValueError("Assessment work binding changed; retry current work.")
         self.check_policy(scope, policy)
@@ -238,9 +251,14 @@ class Advice:
         else:
             try:
                 response = Jev(policy["transport"], policy["connection"]).evaluate(state, questions, model)
-            except ValueError:
+            except ValueError as error:
+                failure = failure_info(error)
+                outcome = {"evaluation_unavailable": "unavailable", "evaluation_invalid": "invalid_response",
+                           "invalid_request": "invalid_request"}.get(failure["category"], "failed")
                 self.store.event(self.member, "jev_evaluation", purpose=purpose, fingerprint=fingerprint,
-                                 model=model, configuration_revision=policy["revision"], outcome="unavailable", seconds=round(time.monotonic() - started, 6))
+                                 model=model, configuration_revision=policy["revision"], outcome=outcome,
+                                 failure=clean(failure, secrets=secrets), error=clean(str(error), secrets=secrets),
+                                 seconds=round(time.monotonic() - started, 6))
                 raise
             self.check_policy(scope, policy)
             from .credentials import credential_values
@@ -272,10 +290,12 @@ class Advice:
         settings = policy["assessment"]
         sources, questions = sources or [], questions or []
         if len(sources) > settings["max_sources"] or len(questions) > settings["max_questions"]:
-            raise ValueError("Assessment exceeds the configured source/question limits.")
+            raise Failure("Assessment exceeds the configured source/question limits.", category="invalid_request",
+                          reason="assessment_budget_exceeded")
         sources = [dict(source, limit=source.get("limit", settings["source_bytes"])) for source in sources]
         if any(type(source["limit"]) is not int or not 4 <= source["limit"] <= settings["max_source_bytes"] for source in sources):
-            raise ValueError("Assessment source range exceeds configured limits.")
+            raise Failure("Assessment source range exceeds configured limits.", category="invalid_request",
+                          reason="source_budget_exceeded")
         if proposal is not None and questions or proposal is None and (not sources or not questions):
             raise ValueError("Supply either a proposal for the configured scope rubric, or sources and questions.")
         if len({q["name"] for q in questions}) != len(questions):
@@ -354,7 +374,8 @@ class Advice:
                     profiles[name] = {k: row.get(k) for k in ("harness", "model", "reasoning", "provider")}
                     profiles[name]["evidence"] = evidence.get(name, settings["missing_profile_evidence"])
                 if len(profiles) > settings["max_profiles"]:
-                    raise ValueError("Configured runtime profiles exceed the assessment candidate budget.")
+                    raise Failure("Configured runtime profiles exceed the assessment candidate budget.",
+                                  category="invalid_request", reason="candidate_budget_exceeded")
                 result[role] = {"profiles": profiles, "policy_revision": revision,
                                 "configured_default": next(iter(profiles), None)}
         else:
@@ -369,7 +390,8 @@ class Advice:
                 profiles[member["name"]] = {k: member.get(k) for k in ("harness", "model", "reasoning")}
                 profiles[member["name"]]["evidence"] = evidence.get(member["name"], settings["missing_profile_evidence"])
             if len(profiles) > settings["max_profiles"]:
-                raise ValueError("Available collaborators exceed the configured assessment candidate budget.")
+                raise Failure("Available collaborators exceed the configured assessment candidate budget.",
+                              category="invalid_request", reason="candidate_budget_exceeded")
             result = {role: {"profiles": profiles, "configured_default": next(iter(profiles), None)} for role in roles}
         return result
 
@@ -378,7 +400,8 @@ class Advice:
         policy = self.settings(scope)
         settings = policy["assignment"]
         if not 1 <= len(work) <= settings["max_work"] or len(evidence or []) > settings["max_evidence"]:
-            raise ValueError("Assignment advice exceeds configured work/evidence limits.")
+            raise Failure("Assignment advice exceeds configured work/evidence limits.", category="invalid_request",
+                          reason="assignment_budget_exceeded")
         if len({(w["name"].strip().casefold(), w["role"]) for w in work}) != len(work):
             raise ValueError("Supply distinct work name/role pairs, as for orchestrate.")
         with self.store.connect() as db:
@@ -387,10 +410,12 @@ class Advice:
                 (scope["work_order"], settings["max_jobs"] + 1),
             )]
         if len(jobs) > settings["max_jobs"]:
-            raise ValueError("Assignment advice exceeds the configured job context budget.")
+            raise Failure("Assignment advice exceeds the configured job context budget.", category="invalid_request",
+                          reason="job_context_budget_exceeded")
         candidates = settings["roles"] or specialists()
         if len(candidates) > 32:
-            raise ValueError("Role advice exceeds the evaluator choice budget; configure assignment.roles for this role or job.")
+            raise Failure("Role advice exceeds the evaluator choice budget; configure assignment.roles for this role or job.",
+                          category="invalid_request", reason="role_budget_exceeded")
         if any(w["role"] not in specialists() for w in work):
             raise ValueError("Assignment advice requires configured assignable roles.")
         runtimes = self.runtimes({w["role"] for w in work}, settings)

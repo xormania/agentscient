@@ -21,6 +21,10 @@ def _tools():
         if len(set(names)) != len(names):
             raise ValueError("Duplicate MCP tool names in the " + namespace + " namespace")
     role_packages.validate_tools(row["name"] for row in TOOLS)
+    from .api import validate
+    from .recovery_actions import validate_templates
+
+    validate_templates(configuration.defaults()["guidance"]["recovery_actions"], TOOLS, validate)
     return {name: len(rows) for name, rows in namespaces.items()}
 
 
