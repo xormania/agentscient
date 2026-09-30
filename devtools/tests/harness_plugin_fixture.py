@@ -12,7 +12,7 @@ class FixtureHarness:
     vendor = "fixture-vendor"
     supports_provider = True
 
-    def prepare(self, directory, member):
+    def prepare(self, directory, member, config=None):
         store = Store(directory)
         private = Path(directory) / "profiles" / member / store.member(member)["generation"]
         private.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -44,7 +44,7 @@ class FixtureHarness:
     def channel(self, private):
         return None
 
-    def readiness(self, binary, probe):
+    def readiness(self, binary, probe, config=None):
         return {"protocol": "fixture", "binary": binary}
 
     def retain_login(self, directory, member, generation):
@@ -54,7 +54,7 @@ class FixtureHarness:
         from devtools.console import command
         from devtools.profiles import _hook, prepare
 
-        private, env, server = prepare(directory, member, self.name)
+        private, env, server = prepare(directory, member, self.name, config=config)
         argv, session = command(directory, member, config, private, server)
         result = _hook(directory, member, self.name, {"tool": "fixture::work_context", "arguments": {}})
         store = Store(directory)

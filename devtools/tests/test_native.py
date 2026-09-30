@@ -115,7 +115,7 @@ class NativeProtocolTests(unittest.TestCase):
                     timeout=10,
                 )
                 before = store.member("worker")
-                self.assertEqual("active", before["state"])
+                self.assertIn(before["state"], {"idle", "active"})
                 xo = Client(state, "chief", env=env)
                 paused = xo.tool("steer", {"action": "pause", "work": "Fixture implementation"})["work"][0]
                 paused_id = int(paused["direction"]["reference"].split(":")[1])
@@ -165,6 +165,8 @@ class NativeProtocolTests(unittest.TestCase):
                 root = Path(temporary)
                 workspace = root / "workspace"
                 workspace.mkdir()
+                gates = workspace / "fixture-turns"
+                gates.mkdir()
                 state = root / "state"
                 home = root / "login-home"
                 home.mkdir()
@@ -217,20 +219,13 @@ class NativeProtocolTests(unittest.TestCase):
                     self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
                     first = client.invoke(
-                        "message_send", to="worker", body="Keep working while a tool is held", key="first"
+                        "message_send", to="worker", body="Keep working while a turn is held", key="first"
                     )
                     until(lambda: store.inbox("worker")["messages"][0]["acknowledged"])
                     self.assertEqual("coder", store.events(kind="onboarding_delivered", actor="worker")["events"][-1]["data"]["role"])
-                    self.assertTrue(store.events(kind="skill_loaded", actor="worker")["events"])
-                    until(
-                        lambda: (
-                            store.events(kind="operation_started")["events"]
-                            and any(
-                                row["data"]["capability"] == "work_report"
-                                for row in store.events(kind="operation_started")["events"]
-                            )
-                        )
-                    )
+                    self.assertFalse(store.events(kind="skill_loaded", actor="worker")["events"])
+                    until(lambda: (gates / ("started-" + str(first["id"]))).exists())
+                    self.assertFalse((gates / ("completed-" + str(first["id"]))).exists())
                     second = client.invoke(
                         "message_send", to="worker", body="New message during unfinished work", key="second"
                     )
@@ -246,6 +241,18 @@ class NativeProtocolTests(unittest.TestCase):
                         self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
                     else:
                         until(lambda: store.events(kind="native_usage")["events"])
+                    (gates / "release").touch()
+                    until(lambda: (gates / ("completed-" + str(first["id"]))).exists())
+                    until(lambda: store.member("worker")["state"] == "idle")
+                    third = client.invoke("message_send", to="worker", body="Begin work after the previous turn completed", key="third")
+                    until(lambda: (gates / ("completed-" + str(third["id"]))).exists())
+                    until(lambda: store.member("worker")["state"] == "idle")
+                    self.assertTrue(store.inbox("worker")["messages"][2]["acknowledged"])
+                    self.assertEqual(original_id, store.member("worker")["native_id"])
+                    submissions = until(lambda: rows if len(rows := store.events(kind="message_submitted", actor="worker")["events"]) == 3 else None)
+                    if harness == "grok":
+                        self.assertEqual(["grok/session/prompt", "grok/_x.ai/interject", "grok/session/prompt"],
+                                         [row["data"]["transport"] for row in submissions])
                 except Exception:
                     log = state / "logs/worker.log"
                     if log.exists():

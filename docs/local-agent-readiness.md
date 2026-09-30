@@ -12,7 +12,7 @@ team. For normal agent usage, see the [roles and tools](control-plane-roles-and-
 | Stage | Requirements | Done means |
 | --- | --- | --- |
 | Foundation | Use the committed Composer lock: PHP `^8.5.11`, Symfony `8.1.*`, Maker, Mate and MCP Bundle. Keep service attributes, autowiring and autoconfiguration. | Installed Makers generate the native implementation; generated attribute commands register and execute. CI verifies this. |
-| Operator setup | Linux/macOS or WSL, Python 3.11+, Git identity and remote access, locked PHP platform, Composer, Docker, selected authenticated harness binaries. All managed harness sessions need tmux. | Team configuration, private state, project binding and pinned Serena image exist. `doctor --online` passes its available checks. |
+| Operator setup | Linux or WSL2, Python 3.11+, Git identity and remote access, locked PHP platform, Composer, Docker, selected authenticated harness binaries. All managed harness sessions need tmux. | Team configuration, private state, project binding and pinned Serena image exist. `doctor --online` passes its available checks. |
 | Command and context | External CO plus available XO/planner/specialist slots; add an NCO per job for a multi-job plan. Normal MCP connections only. | CO relays xor's instructions; XO plans, organizes and steers; each collaborator receives its brief and role tools. Unbound members cannot act on arbitrary work. |
 | Source work | Job worktree supplied automatically; Serena is separate and restricted to the role's paths. Makers/Mate run through control-plane tools. | Navigation, a persistent REPL value, an allowed edit, installed generation and validation are observed in the bound worktree. Protected paths remain protected. |
 | Live coordination | Native conversations stay alive while work proceeds. Reports, evidence and guidance retain their job association. | A live clarification and response are observed with the same native conversation ID; queued messages alone do not establish receipt. |
@@ -27,7 +27,7 @@ with an up-to-date local `dev` checkout and these prerequisites:
 
 | Prerequisite | Used by |
 | --- | --- |
-| Linux/macOS or WSL; Python 3.11+ | Control plane and native harness adapters; SQLite is in the standard library. |
+| Linux or WSL2; Python 3.11+ with pidfd support and readable `/proc` | Managed launch and process recovery require Linux process identities, abstract Unix sockets and peer credentials. SQLite is in the standard library. |
 | Git with commit identity and authenticated remote access | Managed worktrees, checkpoints and delivery. |
 | GitHub API access | PRs, CI and feedback; configure it as described below. |
 | PHP matching the committed Composer platform and Composer | Installed Symfony Makers, Mate and checks. |
@@ -50,6 +50,9 @@ Create the team with shared role policy. The service allocates instances as XO
 requests roles; multiple jobs can use the same role. Enable your logged-in vendors
 and edit ordered harness/model/reasoning preferences in the generated private
 `roles.json` and `vendors.json` files. See [runtime policy](shared-runtime-config.md).
+The dynamic team needs only the external CO member in `team.json`. Set
+`roles.json`'s `max_sessions` to at least two for XO plus a planner or specialist;
+allow more slots for concurrent jobs and audits.
 
 ```sh
 python3 devtools/run.py init \
@@ -109,7 +112,13 @@ visible to the service.
 `doctor` returns exit code 2 for a failed prerequisite. Its probes inspect the
 configured checkout, remote identity, Git identity, private state, effective
 configuration, required local Jev credential sources, locked real PHP platform,
-Docker image source label, selected binaries and installed Codex protocol schema. `--online` additionally reads the remote target and GitHub access. It does
+Docker image source label, selected binaries and installed Codex protocol schema.
+For dynamic teams it checks configured role availability, the CO/XO/planner
+workflow roles and `max_sessions`; fixed teams retain their collaborator-slot
+check. Harness probes use the profiles selected by the current fallback policy.
+Managed teams also check the current Linux process identity, pidfd access,
+abstract Unix sockets and peer credentials. Run the control plane on Linux or WSL2; native
+macOS managed launch is not supported. `--online` additionally reads the remote target and GitHub access. It does
 not push, merge, install dependencies, start models, contact Jev, or establish
 provider authentication. A readable local key is not an authenticated request.
 Claude channel registration and Grok ACP authentication are checked on native

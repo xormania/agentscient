@@ -1,14 +1,17 @@
 # Native CO and role replacement
 
-Initialize the [shared runtime](shared-runtime-config.md), log in to the chosen
-native binaries, and enable their vendors. From WSL/Linux/macOS, start the CO:
+Initialize the [shared runtime](shared-runtime-config.md), configure the chosen
+harnesses' [native login storage](../devtools/OPERATIONS.md#native-login-storage),
+and enable their vendors. From Linux or WSL2, start the CO:
 
 ```sh
 python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
-This selects the configured default role for CO behavior, then uses the first
-available profile in that role's preference list. An operator can
+For an existing work binding, this uses its configured CO role identity. Without
+a work binding, it uses the catalog's default role for CO behavior. A binding
+with another behavior is rejected. The launcher uses the first available profile
+in the selected role's preference list. An operator can
 choose a configured CO profile and override model or reasoning for this launch:
 
 ```sh
@@ -20,17 +23,24 @@ Profile names come from `roles.json`; the defaults are `codex`, `claude` and `gr
 An explicit profile must belong to CO's preference list and have an available
 vendor and executable. A disabled explicit choice fails instead of silently
 launching a different vendor. Model and effort values must be supported by the
-installed harness and selected model. Omit them to use the configured values or
-native defaults. Ordinary agent MCP tools do not accept these runtime choices.
+installed harness and selected model, and must satisfy that role package's
+model/reasoning allowlists. Overrides are checked before a new session is registered;
+they do not edit the configured profile. Omit them to use the configured values,
+package defaults or permitted native defaults. Ordinary agent MCP tools do not
+accept these runtime choices.
 
 The launcher opens the native interactive terminal with a private profile and
 the common MCP server. Project files are accessed through role tools. The CO calls
-`onboard` and `skill_read`, then relays xor's instructions to XO; XO creates managed tmux sessions for
-the specialist roles. Claude may show its native development-channel consent.
+`onboard`, which includes its shared and role instructions. Use `skill_read` only
+for relevant skills not already marked `loaded`. CO then relays xor's instructions
+to XO; XO creates managed tmux sessions for the specialist roles. Claude may show
+its native development-channel consent.
 Normal native authentication and consent remain in force.
-Refreshed Codex/Grok login data is retained privately for the same member and
-harness across launches. A changed operator login takes precedence; the runtime
-does not write back to the operator's global credential file.
+Supported Codex/Grok file-based login data is retained privately for the same
+member and harness across launches. A changed operator login takes precedence;
+the runtime does not write back to the operator's global credential file. Codex
+keyring accounts need the dedicated file-login setup described in the operator
+reference before a private profile can reuse them.
 
 ## Swap CO
 

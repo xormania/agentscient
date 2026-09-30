@@ -17,7 +17,7 @@ import uuid
 from .api import API, SERVER, TOOLS
 from .launch import team_config
 from .profiles import prepare, retain_login, toml
-from .runtime import resolve
+from .runtime import co_role, resolve
 from .store import Store
 from .telemetry import Trace, Transcript, context, requested
 
@@ -241,20 +241,24 @@ def run(directory, profile=None, model=None, reasoning=None):
     member = team.get("co")
     if not member or not team.get("runtime"):
         raise ValueError("The CO launcher requires an appointed external CO and shared runtime policy (--runtime).")
-    from .role_packages import default_role
+    from .control import Control
+    from .role_packages import runtime_profile
 
-    config = resolve(store.directory, default_role("co"), profile=profile)
+    scope = Control(store, member).snapshot()
+    role = co_role(scope)
+    config = resolve(store.directory, role, profile=profile)
     for key, value in (("model", model), ("reasoning", reasoning)):
         if value is not None:
-            if not value or "\0" in value:
+            if not isinstance(value, str) or not value or "\0" in value:
                 raise ValueError(key + " must be nonempty text")
             config[key] = value
+    config = runtime_profile(role, config)
     config["binary"] = shutil.which(config["binary"])
-    generation = store.begin_session(member, os.getpid(), settings=config)
+    generation = store.begin_session(member, os.getpid(), expected_binding=scope, settings=config)
     trace = Trace(directory, member, component="co-console", context=lambda: context(store, member))
     error, exit_code = None, None
     try:
-        private, env, server = prepare(directory, member, config["harness"])
+        private, env, server = prepare(directory, member, config["harness"], config=config)
         workspace = private / "console"
         workspace.mkdir(mode=0o700, exist_ok=True)
         argv, native_id = command(directory, member, config, private, server)

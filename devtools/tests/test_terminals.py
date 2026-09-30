@@ -10,13 +10,34 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from support import require_tmux
-
 from devtools import terminals
 from devtools.bootstrap import send
 
 
+def require_abstract_sockets():
+    """Probe the bootstrap transport itself; CI must exercise the real handoff."""
+    try:
+        if not sys.platform.startswith("linux") or not hasattr(socket, "AF_UNIX"):
+            raise OSError("Linux abstract Unix sockets are unavailable")
+        with socket.socket(socket.AF_UNIX) as listener:
+            listener.bind("\0agentscient-prerequisite-" + uuid.uuid4().hex)
+            listener.listen(1)
+    except OSError as error:
+        if os.environ.get("AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS") == "1":
+            raise RuntimeError("Bootstrap socket acceptance required: " + str(error)) from error
+        raise unittest.SkipTest("Bootstrap socket unavailable: " + str(error)) from error
+
+
 class TerminalTests(unittest.TestCase):
+    def test_socket_prerequisite_skips_locally_but_is_required_in_ci(self):
+        with patch("socket.socket", side_effect=PermissionError("socket access denied")):
+            with patch.dict(os.environ, {"AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS": ""}):
+                with self.assertRaisesRegex(unittest.SkipTest, "Bootstrap socket unavailable"):
+                    require_abstract_sockets()
+            with patch.dict(os.environ, {"AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS": "1"}):
+                with self.assertRaisesRegex(RuntimeError, "Bootstrap socket acceptance required"):
+                    require_abstract_sockets()
+
     def test_owned_server_and_session_are_isolated_and_argv_is_literal(self):
         store = Mock(directory="/private/team one")
         absent = subprocess.CompletedProcess([], 1, "", "no server running")
@@ -51,7 +72,7 @@ class TerminalTests(unittest.TestCase):
                 terminals.start(store, "coder", ["/python"], "/work")
 
     def test_socket_environment_is_applied_before_application_imports_without_a_secret_file(self):
-        require_tmux()
+        require_abstract_sockets()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             stale, wanted = root / "stale", root / "wanted"

@@ -1,19 +1,27 @@
+import copy
 import json
 import os
+import struct
 import subprocess
 import sys
 import unittest
-from unittest.mock import patch
+from contextlib import nullcontext
+from unittest.mock import MagicMock, patch
 
 import test_workspaces
 
-from devtools import readiness
+from devtools import readiness, role_packages
+from devtools.api import API
 from devtools.store import Store
 from devtools.workspaces import git
 
 
 class ReadinessTests(unittest.TestCase):
-    setUp = test_workspaces.WorkspaceTests.setUp
+    def setUp(self):
+        test_workspaces.WorkspaceTests.setUp(self)
+        home = patch.dict(os.environ, {"CODEX_HOME": str(self.root / "codex-home")})
+        home.start()
+        self.addCleanup(home.stop)
 
     def test_operator_bootstrap_exports_exact_normal_co_connection(self):
         state = self.root / "fresh-state"
@@ -64,6 +72,131 @@ class ReadinessTests(unittest.TestCase):
         (self.state / "team.json").write_text(json.dumps(config))
         git(self.checkout, "remote", "set-url", "origin", "https://github.com/example/project.git")
 
+    def preflight(self, *, supported_host=True):
+        def probe(argv, **kwargs):
+            if argv[1:3] == ["image", "inspect"]:
+                return json.dumps({"org.opencontainers.image.revision": "b79e2a55f9d4072084977dd35bd07d31146d88b9"})
+            return "Fixture 1.2.3"
+
+        with (
+            patch("devtools.readiness.probe", side_effect=probe),
+            patch("devtools.readiness.platform", return_value="Locked platform satisfied"),
+            patch("devtools.readiness.shutil.which", side_effect=lambda binary: None if binary == "missing-codex" else "/fixture/" + binary),
+            patch("devtools.compat.codex_capability", return_value={"status": "supported"}),
+            patch("devtools.readiness.managed_platform", return_value="Supported host") if supported_host else nullcontext(),
+        ):
+            return readiness.doctor(self.state)
+
+    def dynamic_team(self):
+        self.state = self.root / "runtime-state"
+        result = subprocess.run(
+            [sys.executable, str(readiness.ENTRY), "init", "--state", str(self.state),
+             "--workspace", str(self.checkout), "--repository", "example/project", "--target", "dev",
+             "--serena-image", "agentscient-serena:v2-beta", "--co", "owner", "--member", "owner:external", "--runtime"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        git(self.checkout, "remote", "set-url", "origin", "https://github.com/example/project.git")
+        availability = json.loads((self.state / "vendors.json").read_text())
+        availability["vendors"]["openai"]["available"] = True
+        availability["vendors"]["anthropic"]["available"] = True
+        (self.state / "vendors.json").write_text(json.dumps(availability))
+        return json.loads((self.state / "roles.json").read_text())
+
+    def test_documented_dynamic_setup_checks_real_capacity_and_selected_fallback_readonly(self):
+        policy = self.dynamic_team()
+        policy["max_sessions"] = 2
+        policy["profiles"]["codex"]["binary"] = "missing-codex"
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        before = {name: (self.state / name).read_bytes() for name in ("team.json", "roles.json", "vendors.json", "live.sqlite3")}
+        with patch("devtools.store.Store.upgrade", side_effect=AssertionError("Doctor must not upgrade state")):
+            result = self.preflight()
+        self.assertEqual("preflight_passed", result["status"], result)
+        self.assertEqual(1, len(json.loads(before["team.json"])["members"]))
+        checks = {item["name"]: item for item in result["checks"]}
+        self.assertEqual("passed", checks["collaborator capacity"]["status"])
+        self.assertEqual("claude", checks["Runtime role xo"]["detail"]["harness"])
+        self.assertEqual("passed", checks["claude binary"]["status"])
+        self.assertNotIn("codex binary", checks)
+        self.assertEqual(before, {name: (self.state / name).read_bytes() for name in before})
+
+    def test_dynamic_capacity_and_unavailable_or_omitted_workflow_role_are_actionable(self):
+        policy = self.dynamic_team()
+        policy["max_sessions"] = 1
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        capacity = next(item for item in self.preflight()["checks"] if item["name"] == "collaborator capacity")
+        self.assertEqual("failed", capacity["status"])
+        self.assertIn("roles.json max_sessions", capacity["detail"])
+        policy["max_sessions"] = 2
+        del policy["roles"]["planner"]
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        missing = next(item for item in self.preflight()["checks"] if item["name"] == "Runtime role planner")
+        self.assertEqual("failed", missing["status"])
+        self.assertIn("Configure planner preferences", missing["detail"])
+        policy["roles"]["planner"] = ["grok"]
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        unavailable = next(item for item in self.preflight()["checks"] if item["name"] == "Runtime role planner")
+        self.assertEqual("failed", unavailable["status"])
+        self.assertIn("No runtime available for planner", unavailable["detail"])
+
+    def test_runtime_preflight_uses_bound_co_identity_instead_of_an_unconfigured_default(self):
+        policy = self.dynamic_team()
+        del policy["roles"]["co"]
+        policy["roles"]["interface-v2"] = ["claude"]
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        catalog = role_packages.catalog()
+        catalog["roles"]["interface-v2"] = copy.deepcopy(catalog["roles"]["co"])
+        catalog["roles"]["interface-v2"]["runtime"]["harnesses"] = ["claude"]
+        with patch("devtools.role_packages._catalog", return_value=catalog):
+            operator = API(self.state, "owner", operator=True)
+            order = operator.work.work_order_create(title="Bound CO", objective="Resume current role", done_when="Profile matches")
+            operator.control.bind("owner", "interface-v2", order["work_order"]["id"])
+            database = (self.state / "live.sqlite3").read_bytes()
+            result = self.preflight()
+        self.assertEqual("preflight_passed", result["status"], result)
+        checks = {item["name"]: item for item in result["checks"]}
+        self.assertEqual("claude", checks["Runtime role interface-v2"]["detail"]["harness"])
+        self.assertNotIn("Runtime role co", checks)
+        self.assertEqual(database, (self.state / "live.sqlite3").read_bytes())
+
+    def test_each_selected_provider_gets_its_own_native_login_readiness_check(self):
+        policy = self.dynamic_team()
+        policy["profiles"]["independent"] = {**policy["profiles"]["codex"], "provider": "independent"}
+        policy["roles"]["architect"] = ["independent"]
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        home = self.root / "codex-home"
+        home.mkdir()
+        (home / "config.toml").write_text(
+            'cli_auth_credentials_store = "keyring"\n'
+            '[model_providers.independent]\nname = "Independent"\nenv_key = "MODEL_KEY"\n'
+        )
+        result = self.preflight()
+        self.assertEqual("blocked", result["status"])
+        checks = {item["name"]: item for item in result["checks"]}
+        self.assertEqual("passed", checks["codex binary (independent)"]["status"])
+        self.assertEqual("ephemeral", checks["codex binary (independent)"]["detail"]["login_storage"])
+        self.assertEqual("failed", checks["codex binary"]["status"])
+        self.assertIn("dedicated CODEX_HOME", checks["codex binary"]["detail"])
+
+    def test_fixed_team_still_requires_collaborator_slots(self):
+        self.configured()
+        team = json.loads((self.state / "team.json").read_text())
+        team["members"] = team["members"][:1]
+        (self.state / "team.json").write_text(json.dumps(team))
+        capacity = next(item for item in self.preflight()["checks"] if item["name"] == "collaborator capacity")
+        self.assertEqual("failed", capacity["status"])
+        self.assertIn("collaborator slots", capacity["detail"])
+
+    def test_managed_platform_failure_blocks_preflight_before_any_launch(self):
+        self.configured()
+        with patch("devtools.readiness.sys.platform", "darwin"):
+            result = self.preflight(supported_host=False)
+        self.assertEqual("blocked", result["status"])
+        platform = next(item for item in result["checks"] if item["name"] == "managed process platform")
+        self.assertEqual("failed", platform["status"])
+        self.assertIn("Linux or WSL2", platform["detail"])
+        self.assertFalse(self.store.events(kind="launch_requested")["events"])
+
     def test_readonly_preflight_checks_protocol_without_claiming_authenticated_acceptance(self):
         self.configured()
         old_config = (self.state / "team.json").read_bytes()
@@ -79,6 +212,7 @@ class ReadinessTests(unittest.TestCase):
             patch("devtools.readiness.platform", return_value="Locked platform satisfied"),
             patch("devtools.readiness.shutil.which", return_value="/fixture/codex"),
             patch("devtools.compat.codex_capability", return_value={"status": "supported"}),
+            patch("devtools.readiness.managed_platform", return_value="Supported host"),
         ):
             result = readiness.doctor(self.state)
             self.assertEqual("preflight_passed", result["status"], result)
@@ -236,6 +370,48 @@ class ReadinessTests(unittest.TestCase):
         self.assertTrue(all(row["acknowledged"] == 0 for row in report["messages"]))
         with self.assertRaisesRegex(ValueError, "No recorded work order"):
             readiness.evidence(self.state, order + 99)
+
+
+class ManagedPlatformTests(unittest.TestCase):
+    def sockets(self):
+        peer, listener = MagicMock(), MagicMock()
+        peer.__enter__.return_value = peer
+        peer.getsockopt.return_value = struct.pack("3i", os.getpid(), os.getuid(), 0)
+        listener.__enter__.return_value = listener
+        return peer, listener
+
+    def test_missing_namespace_identity_and_kernel_pidfd_support_are_reported(self):
+        with patch("devtools.readiness.sys.platform", "linux"), patch("devtools.processes.identity", return_value=None):
+            with self.assertRaisesRegex(ValueError, "readable /proc"):
+                readiness.managed_platform()
+        with (patch("devtools.processes.identity", return_value={"pid": os.getpid(), "boot": "fixture"}),
+              patch("devtools.readiness.os.pidfd_open", side_effect=PermissionError("blocked"))):
+            with self.assertRaisesRegex(ValueError, "enable pidfd access"):
+                readiness.managed_platform()
+
+    def test_missing_python_process_api_is_actionable(self):
+        with patch("devtools.readiness.os.pidfd_open", None):
+            with self.assertRaisesRegex(ValueError, "Linux Python build"):
+                readiness.managed_platform()
+
+    def test_abstract_unix_socket_restriction_is_reported(self):
+        peer, listener = self.sockets()
+        listener.bind.side_effect = PermissionError("blocked")
+        with (patch("devtools.processes.identity", return_value={"pid": os.getpid(), "boot": "fixture"}),
+              patch("devtools.readiness.socket.socketpair", return_value=(peer, MagicMock())),
+              patch("devtools.readiness.socket.socket", return_value=listener)):
+            with self.assertRaisesRegex(ValueError, "allow AF_UNIX abstract bind"):
+                readiness.managed_platform()
+        listener.bind.assert_called_once()
+
+    def test_supported_platform_probe_never_signals_a_process(self):
+        peer, listener = self.sockets()
+        with (patch("devtools.processes.identity", return_value={"pid": os.getpid(), "boot": "fixture"}),
+              patch("devtools.readiness.socket.socketpair", return_value=(peer, MagicMock())),
+              patch("devtools.readiness.socket.socket", return_value=listener),
+              patch("devtools.readiness.signal.pidfd_send_signal", side_effect=AssertionError("No process signals"))):
+            self.assertIn("are available", readiness.managed_platform())
+        self.assertTrue(listener.bind.call_args.args[0].startswith("\0"))
 
 
 if __name__ == "__main__":

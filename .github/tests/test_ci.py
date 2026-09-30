@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -67,6 +68,35 @@ class RoutingTests(unittest.TestCase):
         for event in ("pull_request", "push"):
             self.assertNotIn("paths", workflow["on"][event])
             self.assertNotIn("paths-ignore", workflow["on"][event])
+
+    def test_changes_requires_both_cue_rejection_cases_without_repeating_role_suite(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["changes"]["steps"]
+        setup = next(step for step in steps if step.get("uses", "").startswith("cue-lang/setup-cue@"))
+        validation = next(step for step in steps if "python3 -m devtools.consistency" in step.get("run", ""))
+        self.assertLess(steps.index(setup), steps.index(validation))
+        self.assertEqual("v0.17.1", setup["with"]["version"])
+        self.assertEqual("${{ steps.select.outputs['live-mcp'] == 'true' }}", setup["if"])
+        self.assertEqual(setup["if"], validation["if"])
+        # An explicit binary makes missing/broken CUE fail, rather than skip either test.
+        self.assertEqual("cue", validation["env"]["AGENTSCIENT_CUE"])
+        lines = validation["run"].splitlines()
+        self.assertIn("python3 -m devtools.role_packages --check", lines)
+        self.assertIn("python3 -m devtools.configuration --check", lines)
+        tests = [shlex.split(line) for line in lines if "-m unittest" in line]
+        self.assertEqual(1, len(tests))
+        self.assertEqual("PYTHONPATH=devtools/tests:.", tests[0][0])
+        self.assertEqual([
+            "devtools.tests.test_role_packages.PackageCatalogTests.test_cue_source_and_export_agree_and_invalid_definitions_are_rejected",
+            "devtools.tests.test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields",
+            "-v",
+        ], tests[0][tests[0].index("unittest") + 1:])
+
+    def test_live_suite_requires_its_real_socket_and_terminal_prerequisites(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        verify = next(step for step in workflow["jobs"]["live-mcp"]["steps"] if step.get("id") == "verify")
+        self.assertEqual("1", verify["env"]["AGENTSCIENT_REQUIRE_TMUX"])
+        self.assertEqual("1", verify["env"]["AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS"])
 
     def test_lane_accepts_only_deliberate_skips_and_successful_selected_jobs(self):
         for selected in ("true", "false"):

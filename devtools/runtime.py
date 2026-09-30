@@ -8,8 +8,16 @@ from pathlib import Path
 from .adapters import names as adapter_names
 from .adapters import registry as adapter_registry
 from .harnesses import get as harness_adapter
-from .role_packages import catalog, names_for_adapter, runtime_profile
+from .role_packages import adapter, catalog, default_role, names_for_adapter, runtime_profile
 from .store import canonical, stamp
+
+
+def co_role(scope=None):
+    """Use the appointed interface's bound identity, or its initial catalog default."""
+    role = scope["role"] if scope else default_role("co")
+    if adapter(role) != "co":
+        raise ValueError("The appointed CO's current binding must use the CO behavior.")
+    return role
 
 
 def defaults(directory):

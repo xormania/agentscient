@@ -206,7 +206,9 @@ class SessionTests(unittest.TestCase):
             self.assertIn("new-operator-login", (current / "auth.json").read_text())
 
     def test_native_co_launch_and_cross_harness_handover_recover_context_and_trace_output(self):
-        self.bind()
+        xo = self.bind()
+        generation = self.store.begin_session(xo.member, os.getpid(), settings=configuration(self.state, xo.member))
+        self.store.session(xo.member, generation=generation, state="idle")
         self.co.call("work_report", {"text": "Preserve this decision", "kind": "progress"})
         fixture = Path(__file__).with_name("co_fixture.py")
         fixture.chmod(0o755)
@@ -225,16 +227,40 @@ class SessionTests(unittest.TestCase):
             "TEST_API_KEY": "test-secret-split-value",
         }
         generations = []
+        predecessor = "Preserve this decision"
         for harness in ("codex", "claude", "grok"):
-            result = subprocess.run(
+            exchange = self.root / (harness + "-exchange.json")
+            goal = GOAL | {"objective": "Owner direction through " + harness}
+            incoming = "XO measured result for " + harness
+            exchange.write_text(json.dumps({"role": self.co.control.snapshot()["role"], "goal": goal,
+                                            "predecessor": predecessor, "incoming": incoming}))
+            process = subprocess.Popen(
                 [sys.executable, str(ENTRY), "co", "--state", str(self.state), "--profile", harness],
-                env=env,
-                capture_output=True,
+                env=env | {"AGENTSCIENT_CO_FIXTURE": str(exchange)},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=20,
             )
-            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertIn("Live CO response " + harness, result.stdout)
+            try:
+                until(lambda: exchange.with_suffix(".directed").exists() or process.poll() is not None)
+                self.assertIsNone(process.poll(), "CO exited before relaying the owner direction")
+                context = xo.call("work_context", {})
+                self.assertEqual(goal["objective"], context["work"]["objective"])
+                xo.call("work_report", {"text": incoming, "kind": "result"})
+                stdout, stderr = process.communicate(timeout=15)
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    process.communicate(timeout=5)
+                else:
+                    process.stdout.close()
+                    process.stderr.close()
+            self.assertEqual(0, process.returncode, stdout + stderr)
+            self.assertIn("Live CO response " + harness, stdout)
+            message = next(row for row in self.store.inbox("owner")["messages"] if incoming in row["body"])
+            self.assertIsNotNone(message["acknowledged"])
+            self.assertEqual("submitted" if harness == "claude" else "queued", message["delivery"])
+            predecessor = "CO recovered using " + harness
             generations.append(self.store.member("owner")["generation"])
             self.assertEqual("stopped", self.store.member("owner")["state"])
             self.assertEqual("external", self.store.member("owner")["harness"])
@@ -245,4 +271,5 @@ class SessionTests(unittest.TestCase):
         self.assertNotIn(env["TEST_API_KEY"], json.dumps(rows))
         self.assertIn("[REDACTED]", json.dumps(output))
         self.assertIn("CO recovered using grok", json.dumps(self.co.call("work_context", {})))
+        self.assertFalse(self.store.events(actor="owner", kind="skill_loaded")["events"])
         retain_native(self.state, "co-handover")

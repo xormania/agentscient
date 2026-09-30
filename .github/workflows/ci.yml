@@ -81,7 +81,7 @@
           "env": {
             "AGENTSCIENT_CUE": "cue"
           },
-          "run": "python3 -m devtools.role_packages --check\npython3 -m devtools.configuration --check\npython3 -m devtools.consistency\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages -v"
+          "run": "python3 -m devtools.role_packages --check\npython3 -m devtools.configuration --check\npython3 -m devtools.consistency\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages.PackageCatalogTests.test_cue_source_and_export_agree_and_invalid_definitions_are_rejected devtools.tests.test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields -v"
         }
       ]
     },
@@ -112,6 +112,7 @@
           "name": "Verify live MCP and transport protocols",
           "env": {
             "AGENTSCIENT_REQUIRE_TMUX": "1",
+            "AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS": "1",
             "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence",
             "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
           },

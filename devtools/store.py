@@ -390,7 +390,7 @@ class Store:
             )
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
-    def begin_session(self, name, pid, *, binding_revision=None, settings=None):
+    def begin_session(self, name, pid, *, binding_revision=None, expected_binding=UNSET, settings=None):
         from .sessions import lock
 
         generation = uuid.uuid4().hex
@@ -408,6 +408,11 @@ class Store:
                     pass
                 else:
                     raise ValueError("This member already has a running session.")
+            if expected_binding is not UNSET:
+                scope = db.execute("SELECT * FROM member_bindings WHERE member=?", (name,)).fetchone()
+                current_binding = dict(scope) if scope else None
+                if current_binding != expected_binding:
+                    raise ValueError("Work binding changed before the session started.")
             if binding_revision is not None:
                 scope = db.execute("SELECT * FROM member_bindings WHERE member=?", (name,)).fetchone()
                 if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
