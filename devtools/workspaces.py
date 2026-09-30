@@ -15,13 +15,13 @@ from pathlib import Path
 
 from .artifacts import Artifacts
 from .control import Control, binding
-from .role_packages import catalog, require_capability
+from .role_packages import adapter, require_capability
+from .role_views import RolePaths, RoleSet
 from .store import UNSET, stamp
 from .work import Work, record
 
-EDITORS = {name for name, package in catalog()["roles"].items() if package["workspace"]["editor"]}
-DEFAULT_PATHS = {name: package["workspace"]["paths"] for name, package in catalog()["roles"].items()
-                 if package["workspace"]["editor"]}
+EDITORS = RoleSet("workspace", "editor")
+DEFAULT_PATHS = RolePaths()
 
 
 def project_config(store):
@@ -69,12 +69,12 @@ class Workspaces:
                 execution_current(db, current)
         if (
             not current
-            or (not current["job"] and current["role"] not in {"co", "xo", "nco", "planner"})
+            or (not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner"})
             or not expected
             or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
         ):
             raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
-        writable = current["role"] in EDITORS if current["job"] else current["role"] == "xo"
+        writable = current["role"] in EDITORS if current["job"] else adapter(current["role"]) == "xo"
         if write and (not writable or current["paused"]):
             raise ValueError("Your current role cannot change this work, or the work is paused.")
         if write:
@@ -156,14 +156,14 @@ class Workspaces:
         scope = self.scope()
         # The planner inspects the current integrated result. Keep its refresh
         # serialized with XO's integration operations, without moving job views.
-        with self.lock(self.scope_lock(scope)) if scope["role"] == "planner" else nullcontext():
+        with self.lock(self.scope_lock(scope)) if adapter(scope["role"]) == "planner" else nullcontext():
             self.scope()
             return self._prepare(scope)
 
     def _prepare(self, scope):
         with self.lock("repository"):
             workspace = self._ensure(scope)
-            if scope["role"] == "audit":
+            if adapter(scope["role"]) == "audit":
                 from .delivery import review_snapshot
 
                 workspace = review_snapshot(self.store, self.member, workspace)
@@ -173,7 +173,7 @@ class Workspaces:
         from .orders import Orders
         from .retirement import register
 
-        if scope["role"] == "co":
+        if adapter(scope["role"]) == "co":
             # The CO's persistent conversation outlives an integrated order.
             # Its native cwd must not keep a disposable worktree in use.
             checkout = self.checkout()
@@ -182,7 +182,7 @@ class Workspaces:
                         .stdout.decode().strip() or None,
                         base_revision=git(checkout, "rev-parse", "HEAD").stdout.decode().strip())
         if not scope["job"]:
-            return Orders(self.store, self.member).ensure_in(scope["work_order"], refresh=scope["role"] == "planner")
+            return Orders(self.store, self.member).ensure_in(scope["work_order"], refresh=adapter(scope["role"]) == "planner")
         checkout = self.checkout()
         with self.store.connect() as db:
             old = db.execute("SELECT * FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
@@ -328,7 +328,7 @@ class Workspaces:
     @contextmanager
     def use(self, write=False):
         scope = self.scope(write)
-        if scope["role"] == "planner":
+        if adapter(scope["role"]) == "planner":
             with self.lock(self.scope_lock(scope)):
                 self.scope(write)
                 workspace = self._prepare(scope)
@@ -620,6 +620,6 @@ def current_workspace(store, member, job=UNSET):
         row = db.execute("SELECT root FROM job_workspaces WHERE job=?", (job,)).fetchone() if job else None
         if order and not job:
             row = db.execute("SELECT root FROM order_workspaces WHERE work_order=?", (order,)).fetchone()
-        if job and scope and scope["role"] == "audit":
+        if job and scope and adapter(scope["role"]) == "audit":
             row = db.execute("SELECT root FROM review_views WHERE member=? AND job=?", (member, job)).fetchone() or row
     return Path(row["root"] if row else store.member(member)["workspace"])

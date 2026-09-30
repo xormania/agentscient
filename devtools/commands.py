@@ -7,13 +7,15 @@ import json
 from contextlib import ExitStack
 
 from . import launch
-from .control import BRIEF_FIELDS, ROLES, Control, binding
-from .role_packages import catalog, require_capability
+from .control import BRIEF_FIELDS, Control, binding
+from .role_packages import adapter, catalog, default_role, names_for_adapter, require_capability
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLE_TOOLS = {name: set(package["mcp"]["command"]) for name, package in catalog()["roles"].items()
-              if package["mcp"]["command"]}
+
+def role_tools():
+    return {name: set(package["mcp"]["command"]) for name, package in catalog()["roles"].items()
+            if package["mcp"]["command"]}
 
 
 def capabilities(spec):
@@ -44,7 +46,7 @@ def capabilities(spec):
                         "properties": {
                             "name": name,
                             "job": {**name, "description": "Job name from the adopted plan. Omit for the XO's planner."},
-                            "role": {"type": "string", "enum": [r for r in ROLES if r not in {"co", "xo"}]},
+                            "role": {"type": "string", "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo"}]},
                             "plan": {"type": "string", "pattern": "^update:[1-9][0-9]*$", "maxLength": 80},
                             "editable_paths": {"type": "array", "maxItems": 30, "items": {**name, "maxLength": 300},
                                                "description": "Assigned files or directories within role paths. Missing paths are files; end a new directory path with '/'. List new files explicitly when their parent contains protected paths."},
@@ -87,7 +89,7 @@ def capabilities(spec):
                 "assignment": {**name, "description": "A named role assignment within the job; complete releases its session and retains its result."},
                 "role": {
                     "type": "string",
-                    "enum": [r for r in ROLES if r not in {"co", "xo"}],
+                    "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo"}],
                     "description": "Optional collaborator role when a job has both a producer and auditor.",
                 },
                 "direction": text,
@@ -126,7 +128,7 @@ class Commands:
         return path.is_file() and launch.team_config(self.store.directory).get("co") == self.member
 
     def role(self, scope):
-        return scope["role"] if scope else "co" if self.appointed_co() else None
+        return scope["role"] if scope else default_role("co") if self.appointed_co() else None
 
     def _capability(self, capability):
         require_capability(self.role(self.control.current()), capability)
@@ -145,7 +147,7 @@ class Commands:
             raise ValueError("Your role or work changed during this call; read your current context and retry.")
         if current is None and bootstrap and self.appointed_co():
             return None
-        if not current or current["role"] not in roles or (current["job"] is not None and current["role"] != "nco"):
+        if not current or adapter(current["role"]) not in roles or (current["job"] is not None and adapter(current["role"]) != "nco"):
             raise ValueError("This command requires the corresponding work-order command role.")
         return current
 
@@ -261,18 +263,19 @@ class Commands:
                 self.work.update_in(db, "work_orders", scope["work_order"], None, **fields)
             else:
                 order = self.work.create_in(db, "work_orders", **fields, select=False)["work_order"]["id"]
-                scope = self.control.bind_in(db, self.member, "co", order)
+                scope = self.control.bind_in(db, self.member, default_role("co"), order)
             if context is not None:
                 db.execute("UPDATE work_orders SET context=? WHERE id=?", (context, scope["work_order"]))
             team = self._descendants(db, scope)
-            candidates = [row for row in team if row["role"] == "xo" and row["reports_to"] == self.member]
+            candidates = [row for row in team if adapter(row["role"]) == "xo" and row["reports_to"] == self.member]
             if len(candidates) > 1:
                 raise ValueError("More than one XO is bound to CO; resolve the trusted setup before directing work.")
-            slot = self._slot(db, config, existing=candidates[0] if candidates else None, role="xo")
+            xo_role = candidates[0]["role"] if candidates else default_role("xo")
+            slot = self._slot(db, config, existing=candidates[0] if candidates else None, role=xo_role)
             xo = self.control.bind_in(
                 db,
                 slot["name"],
-                "xo",
+                xo_role,
                 scope["work_order"],
                 reports_to=self.member,
                 brief=candidates[0]["brief"] if candidates else "",
@@ -294,7 +297,7 @@ class Commands:
         with spaces.lock("order-" + str(scope["work_order"]), timeout=1), ExitStack() as locks:
             # Match the workspace lock order used by delivery: order, then jobs,
             # then the database transaction. Never revoke mounts during an edit.
-            names = {item.get("job", item["name"]).strip().casefold() for item in work if item["role"] != "planner"}
+            names = {item.get("job", item["name"]).strip().casefold() for item in work if adapter(item["role"]) != "planner"}
             with self.store.connect() as db:
                 jobs = [row["id"] for row in db.execute(
                     "SELECT id,title FROM jobs WHERE work_order=? ORDER BY id", (scope["work_order"],))
@@ -326,7 +329,7 @@ class Commands:
             if not assignment or not direction or fields:
                 raise ValueError("Name the role assignment and supply its completion assessment or cancellation reason.")
             return Planning(self).complete(work, assignment, role, direction, cancel=action == "cancel")
-        if role == "audit" and fields:
+        if role and adapter(role) == "audit" and fields:
             raise ValueError(
                 "Guide the audit with direction or revise its responsibility through orchestrate; job criteria apply to the whole job."
             )
@@ -366,7 +369,7 @@ class Commands:
                     for row in targets
                     if (record(db, "jobs", row["job"])["title"] if row["job"] else
                         record(db, "role_assignments", row["assignment_id"])["name"] if row.get("assignment_id") else
-                        coordination_brief(row).get("name", "") if row["role"] == "nco" else "").casefold() == work.strip().casefold()
+                        coordination_brief(row).get("name", "") if adapter(row["role"]) == "nco" else "").casefold() == work.strip().casefold()
                 ]
                 if not targets:
                     raise ValueError("Name a responsibility in your current team.")
@@ -374,13 +377,13 @@ class Commands:
                 # An explicit NCO resume lets the coordinator refresh its paused
                 # specialists before restarting them under the revised plan.
                 for target in list(targets):
-                    if target["role"] == "nco" and (fields or action in {"pause", "stop"} or action == "resume" and not role):
+                    if adapter(target["role"]) == "nco" and (fields or action in {"pause", "stop"} or action == "resume" and not role):
                         targets.extend(row for row in self._descendants(db, target) if row not in targets)
             if not targets:
                 raise ValueError("No collaborators are bound to this responsibility yet.")
             changed_jobs = set()
-            delegated_fields = bool(fields and any(row["role"] == "nco" for row in targets))
-            delegated_change = bool(fields and any(row["role"] == "nco" and any(
+            delegated_fields = bool(fields and any(adapter(row["role"]) == "nco" for row in targets))
+            delegated_change = bool(fields and any(adapter(row["role"]) == "nco" and any(
                 coordination_brief(row).get(key) != value for key, value in fields.items()
             ) for row in targets))
             for target in targets:
@@ -394,7 +397,7 @@ class Commands:
                                    (canonical(updated), stamp(), previous["id"]))
                 elif fields and target["job"] and record(db, "work_orders", scope["work_order"])["plan_revision"]:
                     raise ValueError("Job scope changes belong to XO's revised plan; use plan_adopt.")
-                elif fields and target["role"] == "nco":
+                elif fields and adapter(target["role"]) == "nco":
                     previous = coordination_brief(target)
                     changed = any(previous.get(key) != value for key, value in fields.items())
                     previous.update(fields)
@@ -408,7 +411,7 @@ class Commands:
                         changed_jobs.add(target["job"])
                 changed = changed or target["job"] in changed_jobs or delegated_change
                 paused = 1 if action in {"pause", "stop"} else 0 if action in {"resume", "replace"} else target["paused"]
-                if target["role"] == "nco":
+                if adapter(target["role"]) == "nco":
                     value = coordination_brief(target)
                     if direction is not None:
                         value["direction"] = direction
@@ -428,7 +431,7 @@ class Commands:
                 if action in {"resume", "replace"}:
                     execution_current(db, target)
                     writer_available(db, target, target["role"], target["member"])
-                    if target["job"] and target["role"] != "nco":
+                    if target["job"] and adapter(target["role"]) != "nco":
                         Planning.dependencies(db, record(db, "jobs", target["job"]))
                     slot = self._slot(db, config, existing=target)
                     if action == "replace" and slot["harness"] == "external":
@@ -505,12 +508,12 @@ class Commands:
     def _owns_job(db, scope, job):
         if scope["work_order"] != job["work_order"]:
             return False
-        if scope["role"] == "nco":
+        if adapter(scope["role"]) == "nco":
             return scope["job"] == job["id"]
         owners = {scope["member"]}
-        if scope["role"] == "xo":
-            owners.update(row["member"] for row in Commands._descendants(db, scope) if row["role"] == "nco")
-            # Keep adopted history visible after a legacy NCO is released, without
+        if adapter(scope["role"]) == "xo":
+            owners.update(row["member"] for row in Commands._descendants(db, scope) if adapter(row["role"]) == "nco")
+            # Keep adopted history visible after a coordinator is released, without
             # exposing jobs belonging to an independent command team.
             adopted = db.execute("SELECT 1 FROM work_plans p,json_each(p.jobs) j "
                                  "WHERE p.work_order=? AND p.adopted_by=? "
@@ -518,7 +521,7 @@ class Commands:
                                  (scope["work_order"], scope["member"], job["title"])).fetchone()
             if adopted:
                 return True
-        return scope["role"] == "co" or job["created_by"] in owners
+        return adapter(scope["role"]) == "co" or job["created_by"] in owners
 
     @staticmethod
     def _named_job(db, scope, name):
@@ -568,7 +571,7 @@ class Commands:
             if delivery.get("merge_commit"):
                 queue(db, scope["work_order"], None, delivery["revision"])
             recipient = binding(db, scope["reports_to"])
-            if recipient and recipient["role"] == "co" and recipient["work_order"] == scope["work_order"]:
+            if recipient and adapter(recipient["role"]) == "co" and recipient["work_order"] == scope["work_order"]:
                 self.store._send(
                     db, self.member, recipient["member"], "Work-order outcome: done\n" + assessment,
                     key="order-concluded:" + str(scope["work_order"]),
@@ -589,14 +592,14 @@ class Commands:
     def monitor(self, offset=None, work=None, path=None, page=1, section="overview"):
         self._capability("monitor")
         scope = self.control.current()
-        if self.role(scope) == "co" and (work or section != "overview" or path is not None or page != 1):
+        if adapter(self.role(scope)) == "co" and (work or section != "overview" or path is not None or page != 1):
             raise ValueError("CO relays overview status; delivery inspection belongs to XO and job coordinators.")
-        if not work and section != "overview" and scope and scope["role"] == "nco" and scope["job"]:
+        if not work and section != "overview" and scope and adapter(scope["role"]) == "nco" and scope["job"]:
             with self.store.connect() as db:
                 work = record(db, "jobs", scope["job"])["title"]
         if work:
             with self.store.connect() as db:
-                scope = self._scope(db, ROLE_TOOLS)
+                scope = self._scope(db, {adapter(name) for name in role_tools()})
                 job = self._named_job(db, scope, work)
             from .delivery import Delivery
 
@@ -624,7 +627,7 @@ class Commands:
         config = self._config()
         with self.store.connect() as db:
             db.execute("BEGIN")
-            scope = self._scope(db, ROLE_TOOLS, bootstrap=True)
+            scope = self._scope(db, {adapter(name) for name in role_tools()}, bootstrap=True)
             team = self._descendants(db, scope) if scope else []
             jobs = (
                 [
@@ -651,10 +654,10 @@ class Commands:
                 from .runtime import load, resolve
 
                 policy, _, _ = load(self.store.directory)
-                used = db.execute("SELECT count(*) FROM member_bindings WHERE role!='co'").fetchone()[0]
+                used = db.execute("SELECT count(*) FROM member_bindings WHERE role NOT IN (SELECT value FROM json_each(?))", (canonical(names_for_adapter("co")),)).fetchone()[0]
                 ready = []
-                for role in ROLES:
-                    if role == "co":
+                for role in catalog()["roles"]:
+                    if adapter(role) == "co":
                         continue
                     try:
                         resolve(self.store.directory, role)

@@ -18,13 +18,15 @@ ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 def adopt_plan(xo, jobs):
     """Exercise the actual planner handoff while arranging a command fixture."""
     from devtools.api import API
+    from devtools.role_packages import default_role
 
     revision = xo.call("work_context", {})["plan_revision"]
-    assignment = {"name": f"Planning {revision + 1}", "role": "planner", "objective": "Inspect and plan the requested jobs",
+    selected = default_role("planner")
+    assignment = {"name": f"Planning {revision + 1}", "role": selected, "objective": "Inspect and plan the requested jobs",
                   "done_when": "Job requirements and verification are defined", "constraints": "Planning only"}
     xo.call("orchestrate", {"work": [assignment]})
     with xo.store.connect() as db:
-        member = db.execute("SELECT member FROM member_bindings WHERE role='planner' AND reports_to=?", (xo.member,)).fetchone()[0]
+        member = db.execute("SELECT member FROM member_bindings WHERE role=? AND reports_to=?", (selected, xo.member)).fetchone()[0]
     planner = API(xo.store.directory, member)
     report = planner.call("work_report", {"kind": "result", "text": "Proposed job breakdown", "evidence": {
         "name": "plan.md", "content": json.dumps(jobs)}})

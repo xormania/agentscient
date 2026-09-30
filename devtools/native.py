@@ -31,6 +31,11 @@ class Native:
         self.config, self.generation = config, generation
         self.workspace = config["workspace"]
         self.harness = config["harness"]
+        from .harnesses import get
+
+        self.protocol = get(self.harness).protocol
+        if self.protocol not in {"codex", "grok"}:
+            raise ValueError("This native backend does not implement the selected harness protocol.")
         self.private, self.env, self.server = prepare(directory, member, self.harness)
         self.trace = Trace(directory, member, context=lambda: context(self.store, member))
         requested(self.store, member, config, self.private)
@@ -85,7 +90,7 @@ class Native:
 
     async def start(self):
         binary = self.config["binary"]
-        if self.harness == "codex":
+        if self.protocol == "codex":
             capability = await asyncio.to_thread(codex_capability, binary)
             self.event("protocol_capability", **capability)
             if capability["status"] != "supported":
@@ -193,9 +198,9 @@ class Native:
 
     async def request(self, method, params):
         self.verify_identity(params)
-        if self.harness == "codex" and method == "item/tool/call":
+        if self.protocol == "codex" and method == "item/tool/call":
             name, args = params.get("tool"), params.get("arguments")
-            if not permitted("codex", name, args, catalogue=tool_catalogue(self.store.directory, self.member)) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
+            if not permitted(self.harness, name, args, catalogue=tool_catalogue(self.store.directory, self.member)) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
                 self.event("native_tool_denied", tool=name)
                 raise ValueError("Use this team's MCP tools")
             provider = self.serena if name == SERENA_TOOL["name"] else self.mcp
@@ -211,11 +216,11 @@ class Native:
                 ],
                 "success": not result.get("isError", False),
             }
-        if self.harness == "grok" and method == "session/request_permission":
+        if self.protocol == "grok" and method == "session/request_permission":
             call = params.get("toolCall", {})
             metadata = call.get("_meta", {}).get("x.ai/tool", {})
             allowed = metadata.get("namespace") == "grok_build" and permitted(
-                "grok", metadata.get("name"), call.get("rawInput", {}),
+                self.harness, metadata.get("name"), call.get("rawInput", {}),
                 catalogue=tool_catalogue(self.store.directory, self.member),
             )
             option = next(
@@ -255,7 +260,7 @@ class Native:
                 native_id=self.session,
                 observation=params.get("tokenUsage", update.get("usage", params)),
             )
-        if self.harness == "codex":
+        if self.protocol == "codex":
             if method in {"turn/started", "turn/completed"}:
                 self.busy = method == "turn/started"
                 self.state("active" if self.busy else "idle")
@@ -327,7 +332,7 @@ class Native:
 
     async def deliver(self, message):
         try:
-            if self.harness == "codex":
+            if self.protocol == "codex":
                 await self.rpc.request(
                     "turn/start",
                     {
@@ -367,7 +372,7 @@ class Native:
         try:
             await self.start()
             while not self.rpc.dead.is_set() and self.store.member(self.member)["desired"] == "running":
-                if self.harness == "grok":
+                if self.protocol == "grok":
                     self.grok_activity()
                 message = self.store.take_delivery(self.member, scoped=True, generation=self.generation)
                 if message:
@@ -392,7 +397,7 @@ class Native:
 
 def claude(directory, member, config, generation):
     store = Store(directory)
-    private, env, _ = prepare(directory, member, "claude")
+    private, env, _ = prepare(directory, member, config["harness"])
     native_id = str(uuid.uuid4())
     debug = private / "native-debug.log"
     debug.write_text("")

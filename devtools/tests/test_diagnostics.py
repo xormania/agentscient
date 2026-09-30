@@ -10,6 +10,7 @@ from devtools.api import API
 from devtools.control import REQUEST_BINDING
 from devtools.diagnostics import Diagnostics, deliver_guidance, failed, project_context
 from devtools.onboarding import document
+from devtools.role_packages import catalog
 
 
 class DiagnosticTests(unittest.TestCase):
@@ -20,10 +21,15 @@ class DiagnosticTests(unittest.TestCase):
         self.setUp_base()
         self.api = API(self.state, "coder")
         config = json.loads((self.state / "team.json").read_text())
-        config.setdefault("project", {})["jev"] = {}
+        config.setdefault("project", {})["configuration_file"] = "configuration.json"
         config["project"]["development"] = {}
         (self.state / "team.json").write_text(json.dumps(config))
+        self.configure(project={"features": {"advice": True, "filtering": True, "guidance": True, "completion": True}})
         self.diagnostics = Diagnostics(self.store, "coder")
+
+    def configure(self, **overrides):
+        value = {"version": 1, **overrides}
+        (self.state / "configuration.json").write_text(json.dumps(value))
 
     def report(self, text, kind="finding", evidence=None, member="coder"):
         args = {"text": text, "kind": kind}
@@ -183,6 +189,152 @@ class DiagnosticTests(unittest.TestCase):
                 self.assertEqual({}, deliver_guidance(self.store, "coder", "work_check", error="Original failure"))
         self.assertEqual(1, len(self.store.events(kind="context_projection_unavailable")["events"]))
         self.assertEqual(1, len(self.store.events(kind="diagnostic_guidance_unavailable")["events"]))
+
+    def test_filtering_and_guidance_enable_independently(self):
+        self.report("Unrelated color preference")
+        context = self.context()
+        self.configure(project={"features": {"filtering": True, "guidance": False}})
+        with patch("devtools.advice.Jev.evaluate", side_effect=self.relevance):
+            self.assertEqual([], self.diagnostics.project(context)["recent_activity"])
+        self.assertEqual({}, self.diagnostics.guidance("work_check", error="Missing PHP extension"))
+        self.configure(project={"features": {"filtering": False, "guidance": True}})
+        with patch("devtools.advice.Jev.evaluate") as provider:
+            self.assertEqual(context, self.diagnostics.project(context))
+        provider.assert_not_called()
+        self.assertEqual("mate-php-environment-check",
+                         self.diagnostics.guidance("work_check", error="Missing PHP extension")["skill"]["name"])
+
+    def test_role_then_bound_job_override_threshold_and_revision(self):
+        self.report("Unrelated color preference")
+        context = self.context()
+        self.configure(project={"features": {"filtering": True}, "filtering": {"threshold": 0.1}},
+                       roles={"coder": {"filtering": {"threshold": 0.8}}},
+                       jobs={str(self.job): {"filtering": {"threshold": 0.6}}})
+        def probability(state, questions, model):
+            response = answer(state, questions, model)
+            response["answers"]["fact_0"]["noul"] = 0.7
+            return response
+        with patch("devtools.advice.Jev.evaluate", side_effect=probability):
+            self.assertEqual(context, self.diagnostics.project(context))
+            self.configure(project={"features": {"filtering": True}, "filtering": {"threshold": 0.1}},
+                           roles={"coder": {"filtering": {"threshold": 0.8}}})
+            self.assertEqual([], self.diagnostics.project(context)["recent_activity"])
+        events = self.store.events(kind="context_projected")["events"]
+        self.assertEqual([0.6, 0.8], [item["data"]["threshold"] for item in events])
+        self.assertNotEqual(events[0]["data"]["configuration_revision"], events[1]["data"]["configuration_revision"])
+
+    def test_config_change_during_assessment_discards_old_projection(self):
+        self.report("Unrelated color preference")
+        context = self.context()
+        def change_policy(state, questions, model):
+            self.configure(project={"features": {"filtering": False}})
+            return self.relevance(state, questions, model)
+        with patch("devtools.advice.Jev.evaluate", side_effect=change_policy):
+            self.assertEqual(context, self.diagnostics.project(context))
+        self.assertFalse(self.store.events(kind="context_projected")["events"])
+
+    def test_candidate_rules_question_and_fact_budget_come_from_files(self):
+        self.report("Earlier background preference")
+        retained = self.report("Keep this background")
+        newest = self.report("Unrelated color preference")
+        context = self.context()
+        self.configure(project={"features": {"filtering": True}, "filtering": {
+            "max_facts": 1, "protected_pattern": "^Keep", "candidate_kinds": ["finding"],
+            "question": {"instructions": {"question": "Check fact {index}; keep literal {braces}."}},
+        }})
+        with patch("devtools.advice.Jev.evaluate", side_effect=self.relevance) as provider:
+            projected = self.diagnostics.project(context)
+        references = [item["reference"] for item in projected["recent_activity"]]
+        self.assertIn(retained["reference"], references)
+        self.assertNotIn(newest["reference"], references)
+        self.assertEqual(2, len(references))
+        question = provider.call_args.args[1]["fact_0"]
+        self.assertEqual("Check fact 0; keep literal {braces}.", question["instructions"]["question"])
+        self.assertEqual(1, len(provider.call_args.args[0]["facts"]))
+
+    def test_notice_failure_preserves_facts_and_uses_operator_message(self):
+        self.report("Unrelated color preference")
+        context = self.context()
+        self.configure(project={"features": {"filtering": True}, "filtering": {
+            "failure_mode": "notice", "failure_message": "Keep all context while relevance is unavailable.",
+        }})
+        with patch("devtools.advice.Jev.evaluate", side_effect=ValueError("Provider detail")):
+            projected = self.diagnostics.project(context)
+        self.assertEqual(context, {key: value for key, value in projected.items() if key != "context_projection"})
+        self.assertEqual("Keep all context while relevance is unavailable.", projected["context_projection"]["message"])
+        self.assertNotIn("Provider detail", json.dumps(projected))
+
+    def test_state_budget_preserves_context_without_provider_request(self):
+        self.report("Unrelated color preference")
+        context = self.context()
+        self.configure(project={"features": {"filtering": True}, "filtering": {
+            "state_bytes": 100, "failure_mode": "notice", "failure_message": "Context exceeds the relevance budget.",
+        }})
+        with patch("devtools.advice.Jev.evaluate") as provider:
+            projected = self.diagnostics.project(context)
+        provider.assert_not_called()
+        self.assertEqual(context["recent_activity"], projected["recent_activity"])
+        self.assertEqual("Context exceeds the relevance budget.", projected["context_projection"]["message"])
+
+    def test_guidance_routing_and_actions_are_file_configured_and_capability_bounded(self):
+        self.configure(project={"guidance": {
+            "routes": [
+                {"diagnostic_pattern": "banana", "action_pattern": "serena_repl", "roles": ["coder"], "adapters": [],
+                 "skill": "agentscient-research", "next_action": "Wrong-role method"},
+                {"diagnostic_pattern": "banana", "action_pattern": "serena_repl", "roles": ["coder"], "adapters": [],
+                 "skill": "mate-php-environment-check", "next_action": "Inspect the configured runtime."},
+            ],
+            "actions": [{"action_pattern": "work_check", "roles": ["coder"], "adapters": [], "next_action": "Inspect proof first."}],
+            "fallback": {"skill": "agentscient-research", "next_action": "Review the current role brief."},
+        }})
+        guidance = self.diagnostics.guidance("serena_repl", error="banana")
+        self.assertEqual("mate-php-environment-check", guidance["skill"]["name"])
+        self.assertEqual("Inspect the configured runtime.", guidance["next_action"])
+        guidance = self.diagnostics.guidance("work_check", error="banana")
+        self.assertEqual("agentscient-coder", guidance["skill"]["name"])
+        self.assertEqual("Inspect proof first.", guidance["next_action"])
+        self.api.control.bind("coder", "docs", self.order, self.job, "xo")
+        guidance = self.diagnostics.guidance("serena_repl", error="banana")
+        self.assertEqual("agentscient-docs", guidance["skill"]["name"])
+        self.assertEqual("Review the current role brief.", guidance["next_action"])
+
+    def test_guidance_excerpt_and_fallback_are_configured(self):
+        self.configure(project={"guidance": {"delivery_excerpt_bytes": 5, "failure_mode": "fallback",
+                                            "fallback": {"next_action": "Inspect the retained failure."}}})
+        skill = {**document("agentscient-coder"), "content": "😀x😀y"}
+        with patch("devtools.diagnostics.document", return_value=skill):
+            guidance = self.diagnostics.guidance("work_check", error="Failure")
+        self.assertEqual("😀x", guidance["skill"]["content"])
+        self.assertTrue(guidance["skill"]["truncated"])
+        with patch("devtools.diagnostics.document", side_effect=OSError("Missing file")):
+            self.assertEqual({"next_action": "Inspect the retained failure."},
+                             self.diagnostics.guidance("work_check", error="Failure"))
+        self.configure(project={"guidance": {"failure_mode": "omit"}})
+        with patch("devtools.diagnostics.document", side_effect=OSError("Missing file")):
+            self.assertEqual({}, self.diagnostics.guidance("work_check", error="Failure"))
+
+    def test_renamed_role_keeps_adapter_policy_and_actual_skill_capabilities(self):
+        packages = catalog()
+        packages["roles"]["builder"] = packages["roles"].pop("coder")
+        packages["defaults"]["coder"] = "builder"
+        with patch("devtools.role_packages._catalog", return_value=packages):
+            self.api.control.bind("coder", "builder", self.order, self.job, "xo")
+            guidance = self.diagnostics.guidance("work_check", error="Missing PHP extension")
+            self.assertEqual("mate-php-environment-check", guidance["skill"]["name"])
+            self.report("Unrelated color preference")
+            context = self.context()
+            with patch("devtools.advice.Jev.evaluate", side_effect=self.relevance) as provider:
+                self.assertEqual([], self.diagnostics.project(context)["recent_activity"])
+            self.assertEqual("builder", provider.call_args.args[0]["brief"]["role"])
+
+    def test_policy_change_while_reading_guidance_discards_it(self):
+        skill = document("agentscient-coder")
+        def change_policy(name):
+            self.configure(project={"features": {"guidance": False}})
+            return skill
+        with patch("devtools.diagnostics.document", side_effect=change_policy):
+            self.assertEqual({}, self.diagnostics.guidance("work_check", error="Failure"))
+        self.assertFalse(self.store.events(kind="skill_guidance_delivered")["events"])
 
 
 if __name__ == "__main__":

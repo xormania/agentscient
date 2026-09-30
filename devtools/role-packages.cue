@@ -5,7 +5,7 @@ import "list"
 
 #Text: string & !="" & !~"\\x00"
 #Strings: [...#Text] & list.UniqueItems()
-#Harness: "codex" | "claude" | "grok"
+#Harness: #Text
 #Option: {
 	default: *null | #Text
 	allowed: *null | ([#Text, ...#Text] & list.UniqueItems())
@@ -33,7 +33,8 @@ import "list"
 	work_order_framework: *[] | #Strings
 }
 #Role: {
-	version:        1
+	version:        2
+	behavior:       #Text
 	responsibility: #Text
 	skills: {
 		shared: *"agentscient-context" | #Text
@@ -52,42 +53,31 @@ import "list"
 	}
 }
 
-// Role identity also constrains capability configuration.
-#ReadRole: #Role & {workspace: editor: false}
-#InterfaceRole: #ReadRole & {
-	skills: framework: []
-	workspace: serena: false
-	mcp: {
-		command: ["direct", "monitor"]
-		advice: []
-		job: []
-		job_framework: []
-		work_order: []
-		work_order_framework: []
-	}
-}
 #Catalog: {
-	version:          1
+	version:          2
 	framework_skills: #Strings
-	roles: {
-		co:          #InterfaceRole
-		xo:          #ReadRole
-		coder:       #Role
-		audit:       #ReadRole
-		docs:        #Role
-		research:    #ReadRole
-		test_writer: #Role
-		architect:   #Role
-		nco:         #ReadRole
-		planner:     #ReadRole
-	}
+	defaults: {[string]: #Text}
+	roles: {[string]: #Role}
 }
 
 packages: #Catalog & {
-	version: 1
+	version: 2
+	defaults: {
+		co:          "co"
+		xo:          "xo"
+		nco:         "nco"
+		planner:     "planner"
+		coder:       "coder"
+		audit:       "audit"
+		docs:        "docs"
+		research:    "research"
+		test_writer: "test_writer"
+		architect:   "architect"
+	}
 	framework_skills: ["mate-system-information", "mate-php-environment-check", "mate-symfony-service-inspection", "mate-symfony-request-triage", "mate-symfony-profiler-debugging", "mate-symfony-dotenv-diagnostics"]
 	roles: {
 		co: {
+			behavior:         "co"
 			"responsibility": "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work."
 			"skills": {
 				"role": "agentscient-co"
@@ -100,6 +90,7 @@ packages: #Catalog & {
 			}
 		}
 		xo: {
+			behavior:         "xo"
 			"responsibility": "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor."
 			"skills": {
 				"role": "agentscient-xo"
@@ -143,6 +134,7 @@ packages: #Catalog & {
 			}
 		}
 		coder: {
+			behavior:         "coder"
 			"responsibility": "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence."
 			"skills": {
 				"role": "agentscient-coder"
@@ -194,6 +186,7 @@ packages: #Catalog & {
 			}
 		}
 		audit: {
+			behavior:         "audit"
 			"responsibility": "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source."
 			"skills": {
 				"role": "agentscient-audit"
@@ -224,6 +217,7 @@ packages: #Catalog & {
 			}
 		}
 		docs: {
+			behavior:         "docs"
 			"responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations."
 			"skills": {
 				"role": "agentscient-docs"
@@ -259,6 +253,7 @@ packages: #Catalog & {
 			}
 		}
 		research: {
+			behavior:         "research"
 			"responsibility": "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits."
 			"skills": {
 				"role": "agentscient-research"
@@ -288,6 +283,7 @@ packages: #Catalog & {
 			}
 		}
 		test_writer: {
+			behavior:         "test_writer"
 			"responsibility": "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths."
 			"skills": {
 				"role": "agentscient-test-writer"
@@ -328,6 +324,7 @@ packages: #Catalog & {
 			}
 		}
 		architect: {
+			behavior:         "architect"
 			"responsibility": "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope."
 			"skills": {
 				"role": "agentscient-architect"
@@ -362,6 +359,7 @@ packages: #Catalog & {
 			}
 		}
 		nco: {
+			behavior:         "nco"
 			"responsibility": "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs."
 			"skills": {
 				"role": "agentscient-nco"
@@ -400,6 +398,7 @@ packages: #Catalog & {
 			}
 		}
 		planner: {
+			behavior:         "planner"
 			"responsibility": "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution."
 			"skills": {
 				"role": "agentscient-planner"

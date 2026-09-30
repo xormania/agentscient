@@ -1,13 +1,12 @@
 # Continuous integration
 
-[ci.yml](workflows/ci.yml) runs on pull requests into `dev`, `master` and
-`work-order/*`, pushes to `dev` and `master`, merge groups, and manual invocation.
+[ci.yml](workflows/ci.yml) runs on pull requests targeting any branch, pushes to `dev` and `master`, merge groups, and manual invocation.
 The workflow always starts so its required `lane` check can report a result.
 The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
-| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; runs Ruff before selected dev-lane jobs can start. |
+| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
 | `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
@@ -106,7 +105,7 @@ an unavailable assessment. Successful checks make no Jev calls.
 
 [jev-ci.json](jev-ci.json) owns enablement, the failure categories and questions,
 confidence threshold, log matching and bounded evidence selection. It references
-[the shared Jev policy](../devtools/jev.json) for the pinned model and transport
+[the shared service configuration](../devtools/configuration.cue) for the pinned model and transport
 settings, using the same client and credential filter as the MCP advice tools.
 The initial confidence threshold is a configurable presentation threshold, not
 a measured accuracy guarantee. Low confidence becomes `unknown` or no selected

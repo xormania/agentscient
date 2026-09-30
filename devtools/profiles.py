@@ -63,6 +63,12 @@ def restore_login(private, original, harness):
 
 
 def retain_login(directory, member, harness, generation):
+    from .harnesses import get
+
+    return get(harness).retain_login(directory, member, generation)
+
+
+def _retain_login_builtin(directory, member, harness, generation):
     if harness not in {"codex", "grok"}:
         return
     private = Path(directory) / "profiles" / member / generation
@@ -73,6 +79,16 @@ def retain_login(directory, member, harness, generation):
 
 
 def permitted(harness, tool, arguments, *, catalogue=None):
+    from .harnesses import get
+
+    try:
+        adapter = get(harness)
+    except ValueError:
+        return False
+    return adapter.permitted(tool, arguments, catalogue=catalogue)
+
+
+def _permitted_builtin(harness, tool, arguments, *, catalogue=None):
     if (not isinstance(harness, str) or harness not in {"codex", "claude", "grok"}
             or not isinstance(tool, str) or not isinstance(arguments, dict)):
         return False
@@ -113,6 +129,16 @@ def tool_catalogue(directory, member):
 
 
 def prepare(directory, member, harness):
+    from .harnesses import get
+
+    api = API(directory, member)
+    scope = api.control.snapshot()
+    if scope and harness not in role_package(scope["role"])["runtime"]["harnesses"]:
+        raise ValueError("This role package does not permit the selected harness")
+    return get(harness).prepare(directory, member)
+
+
+def _prepare_builtin(directory, member, harness, *, adapter_name=None):
     """Keep global settings untouched; reuse only the selected native login files."""
     directory = Path(directory).resolve()
     from .store import Store
@@ -121,7 +147,7 @@ def prepare(directory, member, harness):
     api = API(directory, member)
     scope = api.control.snapshot()
     package = role_package(scope["role"]) if scope else None
-    if package and harness not in package["runtime"]["harnesses"]:
+    if package and (adapter_name or harness) not in package["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
     generation = store.member(member)["generation"]
     private = directory / "profiles" / member
@@ -145,7 +171,7 @@ def prepare(directory, member, harness):
         env.pop(key, None)
     lease_args = ["--generation", generation] if generation else []
     hook = shlex.join(
-        [sys.executable, str(ENTRY), "hook", "--state", str(directory), "--member", member, "--harness", harness,
+        [sys.executable, str(ENTRY), "hook", "--state", str(directory), "--member", member, "--harness", adapter_name or harness,
          *lease_args]
     )
     groups = {
@@ -214,6 +240,12 @@ def hook(directory, member, harness, payload, generation=None):
 
 
 def _hook(directory, member, harness, payload):
+    from .harnesses import get
+
+    return get(harness).hook(directory, member, payload)
+
+
+def _hook_builtin(directory, member, harness, payload, *, protocol):
     from .store import Store
     from .telemetry import Trace, context, observed
 
@@ -224,7 +256,7 @@ def _hook(directory, member, harness, payload):
     finally:
         trace.close()
     observed(store, member, harness + "/hook", payload)
-    if harness == "claude" and payload.get("transcript_path"):
+    if protocol == "claude" and payload.get("transcript_path"):
         path = Path(payload["transcript_path"]).expanduser().resolve()
         root = Path(os.environ.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude"))).resolve() / "projects"
         native_id = payload.get("session_id")
@@ -247,12 +279,12 @@ def _hook(directory, member, harness, payload):
     arguments = payload.get("tool_input", payload.get("toolInput", {}))
     if event == "PreToolUse":
         allowed = permitted(harness, tool, arguments, catalogue=tool_catalogue(directory, member))
-        if harness == "claude":
+        if protocol == "claude":
             current = store.member(member)
             if current["desired"] == "running" and current["state"] == "idle":
                 store.session(member, generation=current["generation"], state="active")
         store.event(member, "native_tool_allowed" if allowed else "native_tool_denied", tool=tool, harness=harness)
-        if harness == "grok":
+        if protocol == "grok":
             return {"decision": "allow" if allowed else "deny", "reason": "Use this team's MCP tools."}
         return {
             "hookSpecificOutput": {
@@ -262,7 +294,7 @@ def _hook(directory, member, harness, payload):
             }
         }
     store.event(member, "native_hook", event=event, native_id=payload.get("session_id"), tool=tool)
-    if harness == "claude" and event == "Stop":
+    if protocol == "claude" and event == "Stop":
         current = store.member(member)
         if current["desired"] == "running" and current["state"] == "active":
             store.session(member, generation=current["generation"], state="idle")

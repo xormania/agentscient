@@ -11,12 +11,26 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
+from . import adapters
+from .role_behaviors import RoleBehavior
+
 SOURCE = Path(__file__).with_name("role-packages.cue")
 GENERATED = SOURCE.with_suffix(".json")
-HARNESSES = {"codex", "claude", "grok"}
 GROUPS = {"bound", "session", "command", "advice", "job", "job_framework", "work_order", "work_order_framework"}
 HOOK_EVENTS = ("PreToolUse", "PostToolUse", "SessionStart", "Stop")
-READ_ONLY_ROLES = {"co", "xo", "nco", "planner", "audit", "research"}
+
+
+def behavior(name):
+    value = adapters.factory("role", name)()
+    if (not isinstance(value, RoleBehavior) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", value.id)
+            or type(value.editor) is not bool or type(value.interface) is not bool
+            or value.interface and value.editor):
+        raise ValueError("Role adapters must return a valid RoleBehavior contract")
+    return value
+
+
+def behavior_ids():
+    return tuple(sorted({behavior(name).id for name in adapters.names("role")}))
 
 
 def canonical(value):
@@ -52,18 +66,20 @@ def validate(value, source_sha256):
     _object(value, {"source_sha256", "catalog"}, "role export")
     if value["source_sha256"] != source_sha256:
         raise ValueError("Role export is stale; regenerate devtools/role-packages.json from role-packages.cue")
-    catalog = _object(value["catalog"], {"version", "framework_skills", "roles"}, "role catalog")
-    if type(catalog["version"]) is not int or catalog["version"] != 1:
+    catalog = _object(value["catalog"], {"version", "framework_skills", "roles", "defaults"}, "role catalog")
+    if type(catalog["version"]) is not int or catalog["version"] != 2:
         raise ValueError("Unsupported role catalog version")
     _strings(catalog["framework_skills"], "framework skills")
     if not isinstance(catalog["roles"], dict) or not catalog["roles"]:
         raise ValueError("Role catalog needs role definitions")
     for name, package in catalog["roles"].items():
-        if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z_]{0,31}", name):
+        if not isinstance(name, str) or not adapters.NAME.fullmatch(name):
             raise ValueError("Invalid role name")
-        _object(package, {"version", "responsibility", "skills", "runtime", "hooks", "mcp", "workspace"}, name)
-        if type(package["version"]) is not int or package["version"] != 1:
+        _object(package, {"version", "behavior", "responsibility", "skills", "runtime", "hooks", "mcp", "workspace"}, name)
+        if type(package["version"]) is not int or package["version"] != 2:
             raise ValueError("Unsupported role package version")
+        _text(package["behavior"], name + ".behavior")
+        semantics = behavior(package["behavior"])
         _text(package["responsibility"], name + ".responsibility")
         skills = _object(package["skills"], {"shared", "role", "framework"}, name + ".skills")
         _strings(skills["framework"], name + ".skills.framework")
@@ -74,7 +90,7 @@ def validate(value, source_sha256):
                 raise ValueError("Role package references a missing installed skill")
         runtime = _object(package["runtime"], {"harnesses", "model", "reasoning", "profiles"}, name + ".runtime")
         _strings(runtime["harnesses"], name + ".runtime.harnesses", nonempty=True)
-        if set(runtime["harnesses"]) - HARNESSES or runtime["profiles"] != "operator":
+        if set(runtime["harnesses"]) - set(adapters.names("harness")) or runtime["profiles"] != "operator":
             raise ValueError("Role runtime needs supported harnesses and operator profiles")
         for key in ("model", "reasoning"):
             option = _object(runtime[key], {"default", "allowed"}, name + ".runtime." + key)
@@ -92,15 +108,15 @@ def validate(value, source_sha256):
             _strings(names, name + ".mcp." + group)
             if any(not re.fullmatch(r"[a-z][a-z_]{0,63}", tool) for tool in names):
                 raise ValueError("Invalid role MCP tool reference")
-        if name == "co" and (mcp["command"] != ["direct", "monitor"] or
+        if semantics.interface and (mcp["command"] != ["direct", "monitor"] or
                              any(mcp[group] for group in GROUPS - {"bound", "session", "command"})):
             raise ValueError("CO package must remain an interface")
         workspace = _object(package["workspace"], {"editor", "paths", "serena"}, name + ".workspace")
         if type(workspace["editor"]) is not bool or type(workspace["serena"]) is not bool:
             raise ValueError("Role workspace permissions need booleans")
-        if name in READ_ONLY_ROLES and workspace["editor"]:
+        if not semantics.editor and workspace["editor"]:
             raise ValueError("Command and read-only roles cannot become job editors")
-        if name == "co" and (workspace["serena"] or skills["framework"]):
+        if semantics.interface and (workspace["serena"] or skills["framework"]):
             raise ValueError("CO package cannot enable execution providers or skills")
         _strings(workspace["paths"], name + ".workspace.paths", nonempty=workspace["editor"])
         if not workspace["editor"] and workspace["paths"]:
@@ -108,16 +124,30 @@ def validate(value, source_sha256):
         for path in workspace["paths"]:
             if path.startswith(("/", "\\")) or "\\" in path or ":" in path or any(p in {"", ".", ".."} for p in path.rstrip("/").split("/")):
                 raise ValueError("Role paths must stay relative to the project")
+    defaults = catalog["defaults"]
+    if not isinstance(defaults, dict):
+        raise ValueError("Role defaults must map behavior IDs to configured roles")
+    for selected, name in defaults.items():
+        if (not isinstance(selected, str) or not isinstance(name, str) or name not in catalog["roles"]
+                or behavior(catalog["roles"][name]["behavior"]).id != selected):
+            raise ValueError("Role defaults must select a matching configured behavior")
     return catalog
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=4)
+def _validated_catalog(source_sha256, export, implementations):
+    # The implementation manifest is a cache key even though validate obtains
+    # the factories through the shared registry.
+    return validate(json.loads(export), source_sha256)
+
+
 def _catalog():
     try:
-        value = json.loads(GENERATED.read_text())
+        export = GENERATED.read_text()
+        source_sha256 = hashlib.sha256(SOURCE.read_bytes()).hexdigest()
     except (OSError, ValueError) as error:
         raise ValueError("Read a valid generated devtools/role-packages.json before starting services") from error
-    return validate(value, hashlib.sha256(SOURCE.read_bytes()).hexdigest())
+    return _validated_catalog(source_sha256, export, canonical(adapters.registry()))
 
 
 def catalog():
@@ -131,9 +161,32 @@ def role(name):
         raise ValueError("Unknown role package") from error
 
 
+def adapter(name):
+    return behavior(role(name)["behavior"]).id
+
+
+def names_for_adapter(selected):
+    return tuple(sorted(name for name, package in _catalog()["roles"].items()
+                        if behavior(package["behavior"]).id == selected))
+
+
+def default_role(selected):
+    configured = _catalog()["defaults"].get(selected)
+    if configured is not None:
+        return configured
+    matches = names_for_adapter(selected)
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise ValueError(f"Configure a role for the {selected} behavior before requesting it")
+    raise ValueError(f"Configure an explicit default role for the {selected} behavior")
+
+
 def descriptor(name):
     package = role(name)
-    return {"role": name, "version": package["version"], "revision": digest([name, package])}
+    implementation = adapters.implementation("role", package["behavior"])
+    return {"role": name, "behavior": adapter(name), "version": package["version"],
+            "revision": digest([name, package, implementation])}
 
 
 def require_capability(name, capability):

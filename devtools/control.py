@@ -8,11 +8,12 @@ import threading
 from contextvars import ContextVar
 
 from .artifacts import Artifacts
-from .role_packages import catalog
+from .role_packages import adapter, catalog, names_for_adapter
+from .role_views import RoleSet
 from .store import canonical, stamp
 from .work import Work, record
 
-ROLES = tuple(catalog()["roles"])
+ROLES = RoleSet()
 REQUEST_BINDING = ContextVar("control_binding", default=None)
 BRIEF_FIELDS = ("title", "objective", "done_when", "constraints", "status", "next_action", "blocker")
 INSTRUCTIONS = (
@@ -84,22 +85,22 @@ def binding(db, member):
     return dict(row) if row else None
 
 
+def checked_scope(scope):
+    if scope and adapter(scope["role"]) == "nco" and scope["job"] is None:
+        raise ValueError("A job coordinator binding needs a job; the operator must rebind or retire this invalid binding.")
+    return scope
+
+
 def includes(scope, work_order, job):
+    scope = checked_scope(scope)
     return bool(scope and scope["work_order"] == work_order and (scope["job"] is None or job in (None, scope["job"])))
 
 
 def scope_sql(scope, alias=""):
+    scope = checked_scope(scope)
     prefix = alias + "." if alias else ""
     if not scope:
         return "0", ()
-    if scope["role"] == "nco" and scope["job"] is None:
-        # Reuse command ownership for reports, artifact links and live delivery.
-        # Work-order conversations still require participant authorization in update_sql.
-        return (
-            f"{prefix}work_order=? AND ({prefix}job IS NULL OR "
-            f"{prefix}job IN (SELECT id FROM jobs WHERE created_by=?))",
-            (scope["work_order"], scope["member"]),
-        )
     return (
         f"{prefix}work_order=?" + (f" AND ({prefix}job IS NULL OR {prefix}job=?)" if scope["job"] else ""),
         (scope["work_order"], *((scope["job"],) if scope["job"] else ())),
@@ -109,7 +110,7 @@ def scope_sql(scope, alias=""):
 def update_sql(scope, member, alias=""):
     clause, args = scope_sql(scope, alias)
     prefix = alias + "." if alias else ""
-    if scope and scope["role"] not in {"co", "xo"}:
+    if scope and adapter(scope["role"]) not in {"co", "xo"}:
         # Job reports inform collaborators on that job. Command conversations
         # at work-order level are for their participants, not every specialist.
         clause += (
@@ -144,18 +145,18 @@ class Control:
 
     def current(self):
         request = REQUEST_BINDING.get()
-        return request[1] if request and request[0] == self.member else self.snapshot()
+        return checked_scope(request[1] if request and request[0] == self.member else self.snapshot())
 
     def bind(self, member, role, work_order=None, job=None, reports_to=None, brief=""):
         """Operator/bootstrap entry point; commands reuse bind_in in their transactions."""
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             raise ValueError("Unknown role profile")
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             return self.bind_in(db, member, role, work_order, job, reports_to, brief)
 
     def bind_in(self, db, member, role, work_order=None, job=None, reports_to=None, brief=""):
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             raise ValueError("Unknown role profile")
         if not db.execute("SELECT 1 FROM members WHERE name=?", (member,)).fetchone():
             raise ValueError("Unknown member")
@@ -165,18 +166,24 @@ class Control:
                 raise ValueError("That job belongs to a different work order")
             work_order = parent
         record(db, "work_orders", work_order)
-        if role == "co" and (reports_to is not None or job is not None):
+        if adapter(role) == "co" and (reports_to is not None or job is not None):
             raise ValueError("CO interfaces with the owner at work-order scope; omit reports_to and job")
-        if role != "co":
+        if adapter(role) != "co":
             superior = binding(db, reports_to)
             if not includes(superior, work_order, job) or (superior["job"] and job is None):
                 raise ValueError("Bind the reporting member to a covering work scope first")
-            if role == "xo" and superior["role"] != "co":
+            if adapter(role) == "xo" and adapter(superior["role"]) != "co":
                 raise ValueError("XO reports to CO")
-            if role == "nco" and (superior["role"] != "xo" or job is None):
+            if adapter(role) == "nco" and (adapter(superior["role"]) != "xo" or job is None):
                 raise ValueError("NCO coordinates one job and reports to XO")
-            if role == "planner" and (superior["role"] != "xo" or job is not None):
+            if adapter(role) == "planner" and (adapter(superior["role"]) != "xo" or job is not None):
                 raise ValueError("Planner works at work-order scope and reports only to XO")
+        if adapter(role) == "nco" and db.execute(
+            "SELECT 1 FROM member_bindings WHERE job=? AND member!=? "
+            "AND role IN (SELECT value FROM json_each(?)) LIMIT 1",
+            (job, member, canonical(names_for_adapter("nco"))),
+        ).fetchone():
+            raise ValueError("This job already has a coordinator; replace its existing binding before appointing another.")
         ancestor, seen = reports_to, {member}
         while ancestor is not None:
             if ancestor in seen:
@@ -245,13 +252,9 @@ class Control:
             # Parent briefs are shared by includes(); operation diagnostics are not.
             allowed = bool(scope and scope["work_order"] == row["work_order"] and (
                 (scope["job"] is not None and scope["job"] == row["job"])
-                or (scope["job"] is None and scope["role"] in {"co", "xo"})
-                or (scope["job"] is None and scope["role"] == "planner"
+                or (scope["job"] is None and adapter(scope["role"]) in {"co", "xo"})
+                or (scope["job"] is None and adapter(scope["role"]) == "planner"
                     and row["job"] is None and row["member"] == self.member)
-                or (scope["job"] is None and scope["role"] == "nco" and (
-                    row["member"] == self.member or row["job"] is not None and
-                    record(db, "jobs", row["job"])["created_by"] == self.member
-                ))
             ))
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
@@ -352,8 +355,8 @@ class Control:
                             "serena_repl": serena_enabled(self.store, scope),
                         }
                 parent = binding(db, scope["reports_to"])
-                if parent and parent["role"] == "nco":
-                    result["delegation"] = {"role": "nco", "responsibility": parent["brief"], "revision": parent["revision"]}
+                if parent and adapter(parent["role"]) == "nco":
+                    result["delegation"] = {"role": parent["role"], "responsibility": parent["brief"], "revision": parent["revision"]}
                 result["guidance"] = "routed to " + parent["role"] if parent else "discuss with the user"
                 sql, args = update_sql(scope, self.member)
                 rows = db.execute("SELECT * FROM work_updates WHERE " + sql + " ORDER BY id DESC LIMIT 5", args)
@@ -429,7 +432,7 @@ class Control:
 
     def _destination(self, db, scope, responding_to):
         reply = None
-        if scope["role"] in {"co", "planner"}:
+        if adapter(scope["role"]) in {"co", "planner"}:
             # A context reference does not grant a new reporting relationship.
             # CO relays owner input to XO; the planner reports its investigation
             # to XO. Neither directs a specialist by replying to its evidence.
@@ -437,10 +440,10 @@ class Control:
                 kind, original = self._reference(db, scope, responding_to)
             else:
                 kind, original = None, None
-            if scope["role"] == "co":
+            if adapter(scope["role"]) == "co":
                 targets = list(db.execute(
-                    "SELECT * FROM member_bindings WHERE reports_to=? AND work_order=? AND role='xo'",
-                    (self.member, scope["work_order"]),
+                    "SELECT * FROM member_bindings WHERE reports_to=? AND work_order=? AND role IN (SELECT value FROM json_each(?))",
+                    (self.member, scope["work_order"], canonical(names_for_adapter("xo"))),
                 ))
                 if len(targets) != 1:
                     if not targets and record(db, "work_orders", scope["work_order"])["status"] in {"done", "cancelled"}:
@@ -450,7 +453,7 @@ class Control:
             else:
                 recipient = scope["reports_to"]
                 target = binding(db, recipient)
-                if not target or target["role"] != "xo" or target["work_order"] != scope["work_order"]:
+                if not target or adapter(target["role"]) != "xo" or target["work_order"] != scope["work_order"]:
                     raise ValueError("The planner reports to its bound XO.")
             if kind == "message" and original["recipient"] == self.member and original["sender"] == recipient:
                 reply = original["id"]
@@ -492,7 +495,7 @@ class Control:
     def _evaluation(self, db, scope, evaluation):
         if not evaluation:
             return
-        if scope["role"] == "co":
+        if adapter(scope["role"]) == "co":
             raise ValueError("CO relays owner context and outcomes; it does not evaluate work or record execution decisions.")
 
         reference = evaluation["reference"]
@@ -501,7 +504,7 @@ class Control:
                           "AND json_extract(data,'$.evidence')=?", (scope["work_order"], reference)).fetchone():
             raise ValueError("Reference is not a recorded Jev evaluation.")
         if evaluation["stage"] == "decision":
-            if scope["role"] not in {"xo", "nco"} or evaluation.get("decision"):
+            if adapter(scope["role"]) not in {"xo", "nco"} or evaluation.get("decision"):
                 raise ValueError("Command roles record decisions; outcome reports link an existing decision.")
             if binding(db, self.member) != scope or scope["paused"]:
                 raise ValueError("Your assignment changed or is paused; refresh before recording a decision.")
@@ -542,10 +545,10 @@ class Control:
         scope = self.current()
         if not scope:
             raise ValueError("No active role and work binding")
-        if scope["role"] == "planner" and kind == "result" and not evidence:
+        if adapter(scope["role"]) == "planner" and kind == "result" and not evidence:
             raise ValueError("A planner result needs retained plan evidence.")
         payload = [scope, kind, text, responding_to, evidence]
-        captured = self._proof_capture(scope) if kind == "result" and evidence and scope["role"] != "audit" else None
+        captured = self._proof_capture(scope) if kind == "result" and evidence and adapter(scope["role"]) != "audit" else None
         if captured:
             payload.append(captured)
         if evaluation:
@@ -581,7 +584,7 @@ class Control:
 
             mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints", "context")}
             parent = binding(db, scope["reports_to"])
-            if parent and parent["role"] == "nco":
+            if parent and adapter(parent["role"]) == "nco":
                 mission["delegation"] = {"member": parent["member"], "brief": parent["brief"]}
             ident = db.execute(
                 "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation,binding,mission) "
@@ -597,7 +600,7 @@ class Control:
                                (saved, provenance["provider"], provenance["reference"], canonical(provenance)))
             if recipient:
                 body = f"{kind}: {text}\nReference: update:{ident}"
-                if responding_to and scope["role"] in {"co", "planner"}:
+                if responding_to and adapter(scope["role"]) in {"co", "planner"}:
                     body += "\nContext: " + responding_to
                 if saved:
                     body += f"\nEvidence: artifact:{saved}"

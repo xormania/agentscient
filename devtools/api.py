@@ -8,9 +8,9 @@ from .advice import Advice
 from .advice import capabilities as advice_capabilities
 from .advice import configured as advice_configured
 from .artifacts import Artifacts
-from .commands import ROLE_TOOLS, Commands
+from .commands import Commands, role_tools
 from .commands import capabilities as command_capabilities
-from .control import REQUEST_BINDING, ROLES, Control
+from .control import REQUEST_BINDING, Control
 from .control import capabilities as control_capabilities
 from .delivery import Delivery
 from .delivery import capabilities as delivery_capabilities
@@ -19,8 +19,9 @@ from .development import configured as development_configured
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .operations import ACTIONS, Operations
+from .role_packages import adapter, validate_tools
 from .role_packages import role as role_package
-from .role_packages import validate_tools
+from .role_views import RoleSet
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
 from .workspaces import Workspaces, project_config
@@ -78,6 +79,8 @@ CAPABILITIES = [
     spec("terminal_status", "Inspect an owned tmux session and its attach command.", {"member": NAME}, ("member",), readonly=True),
     spec("terminal_read", "Read recent output from an owned tmux terminal.",
          {"member": NAME, "lines": {"type": "integer", "minimum": 1, "maximum": 500}}, ("member",), readonly=True),
+    spec("config_status", "Inspect resolved operator configuration without loading credential values.",
+         {"role": NAME, "job": POSITIVE}, readonly=True),
     spec("runtime_status", "Inspect operator role policy, vendor availability and runtime choices.", readonly=True),
     spec("peers", "List configured live members, native session identities and current observed state.", readonly=True),
     spec(
@@ -265,7 +268,7 @@ CAPABILITIES.append(
         "Operator setup: bind a member's role, work scope, reporting relationship and brief.",
         {
             "member": NAME,
-            "role": {"type": "string", "enum": list(ROLES)},
+            "role": {"type": "string", "enum": list(RoleSet())},
             "work_order": POSITIVE,
             "job": POSITIVE,
             "reports_to": NAME,
@@ -420,19 +423,26 @@ class API:
         allowed = set(groups.get("bound", [])) if scope else {"work_context"}
         if role:
             allowed |= set(groups["session"]) | set(groups["command"])
-        if scope and role != "co" and advice_configured(self.store):
+        if scope and adapter(role) != "co" and advice_configured(self.store, role=role, job=scope["job"]):
             allowed |= set(groups["advice"])
-        if scope and role != "co" and (scope["job"] or role == "planner") and project_config(self.store):
+        if scope and adapter(role) != "co" and (scope["job"] or adapter(role) == "planner") and project_config(self.store):
             allowed |= set(groups["job"])
             if development_configured(self.store):
                 allowed |= set(groups["job_framework"])
-        if scope and not scope["job"] and role in {"xo", "nco"} and project_config(self.store):
+        if scope and not scope["job"] and adapter(role) in {"xo", "nco"} and project_config(self.store):
             allowed |= set(groups["work_order"])
             if development_configured(self.store):
                 allowed |= set(groups["work_order_framework"])
         if scope is None:
             allowed -= {"conclude", "restart_xo"}
-        return [row for row in TOOLS if row["name"] in allowed]
+        current = {row["name"]: row for row in command_capabilities(spec)}
+        rows = [current.get(row["name"], row) for row in TOOLS if row["name"] in allowed]
+        if allowed & {"assignment_advise", "work_assess"}:
+            from .configuration import resolve
+
+            configured = {row["name"]: row for row in advice_capabilities(spec, resolve(self.store, role, scope["job"]))}
+            rows = [configured.get(row["name"], row) for row in rows]
+        return rows
 
     def instructions(self):
         if self.operator:
@@ -484,10 +494,14 @@ class API:
         capability = arguments["capability"]
         if capability not in BY_NAME:
             raise ValueError("Unknown capability; use capability_search")
+        definition = BY_NAME[capability]
+        if capability == "member_bind":
+            definition = {**definition, "inputSchema": {**definition["inputSchema"], "properties": {
+                **definition["inputSchema"]["properties"], "role": {"type": "string", "enum": list(RoleSet())}}}}
         if name == "capability_describe":
-            return BY_NAME[capability]
+            return definition
         args = arguments["arguments"]
-        validate(args, BY_NAME[capability]["inputSchema"])
+        validate(args, definition["inputSchema"])
         default_order = None if capability in {"work_order_create", "work_order_select"} else UNSET
         default_job = (
             None if capability.startswith("work_order_") or capability in {"job_create", "job_select"} else UNSET
@@ -550,6 +564,10 @@ class API:
             from . import terminals
 
             return getattr(terminals, name.removeprefix("terminal_"))(self.store, **args)
+        if name == "config_status":
+            from .readiness import config
+
+            return config(self.store.directory, **args)
         if name == "runtime_status":
             from .runtime import status
 
@@ -576,7 +594,7 @@ class API:
             return self.operations.inspect(offset=args.get("offset", 0))
         if name in WORKSPACE_TOOLS:
             return getattr(self.workspaces, name.removeprefix("work_"))(**args)
-        if name in {tool for names in ROLE_TOOLS.values() for tool in names}:
+        if name in {tool for names in role_tools().values() for tool in names}:
             return getattr(self.commands, name)(**args)
         if name == "work_context":
             if not self.control.current() and self.commands.appointed_co():

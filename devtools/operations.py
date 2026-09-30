@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from .control import REQUEST_BINDING, Control, binding
-from .role_packages import require_capability
+from .role_packages import adapter, require_capability
 from .store import Store, canonical, stamp
 
 ACTIONS = {"framework_inspect", "framework_generate", "work_check", "work_submit"}
@@ -25,12 +25,12 @@ class Operations:
         if (
             action not in ACTIONS
             or not scope
-            or scope["role"] == "co"
+            or adapter(scope["role"]) == "co"
             or scope["paused"]
             or (not scope["job"] and not (
-                scope["role"] == "xo" and action in {"work_check", "work_submit"}
-                or scope["role"] == "planner" and action in {"framework_inspect", "work_check"}))
-            or (scope["role"] in {"nco", "planner", "research", "audit"} and action in {"framework_generate", "work_submit"})
+                adapter(scope["role"]) == "xo" and action in {"work_check", "work_submit"}
+                or adapter(scope["role"]) == "planner" and action in {"framework_inspect", "work_check"}))
+            or (adapter(scope["role"]) in {"nco", "planner", "research", "audit"} and action in {"framework_generate", "work_submit"})
         ):
             raise ValueError("This operation requires active work in the corresponding role.")
         require_capability(scope["role"], action)

@@ -911,6 +911,7 @@ class GitHub:
             }
         result = self.http.clean(result)
         from .control import binding, includes
+        from .role_packages import names_for_adapter
 
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -919,8 +920,8 @@ class GitHub:
                 return
             if watch["reviews"]:
                 recipients = {r[0] for r in db.execute(
-                    "SELECT member FROM member_bindings WHERE work_order=? AND job IS NULL AND role IN ('co','xo')",
-                    (watch["work_order"],),
+                    "SELECT member FROM member_bindings WHERE work_order=? AND job IS NULL AND role IN (SELECT value FROM json_each(?))",
+                    (watch["work_order"], canonical([*names_for_adapter("co"), *names_for_adapter("xo")])),
                 )}
             else:
                 recipients = {self.member}

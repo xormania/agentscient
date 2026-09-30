@@ -10,8 +10,10 @@ from unittest.mock import patch
 import test_advice
 
 from devtools.advice import clean_questions
+from devtools.configuration import defaults as load
+from devtools.configuration import validate
 from devtools.jev import MODEL, Jev, checked_response
-from devtools.jev_config import load, validate_entry, validate_question, validate_questions
+from devtools.jev_config import validate_entry, validate_question, validate_questions
 
 
 def rubric():
@@ -36,7 +38,7 @@ class StructuredQuestionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "rubric.json"
             path.write_text(json.dumps(policy))
-            loaded = load(config={"policy_file": str(path)})
+            loaded = validate(json.loads(path.read_text()))
         self.assertEqual(questions, loaded["scope"]["questions"])
         response = test_advice.answer({}, questions)
         self.assertEqual(response, checked_response(response, questions, MODEL))
@@ -120,8 +122,7 @@ class StructuredAdviceTests(unittest.TestCase):
     def test_structured_scope_policy_and_legacy_level_alias_work_together(self):
         policy = load()
         policy["scope"]["questions"] = rubric()
-        (self.state / "rubric.json").write_text(json.dumps(policy))
-        self.configure({"policy_file": "rubric.json"})
+        self.configure({"scope": policy["scope"]})
         self.api.call("work_assess", {"proposal": "Prove receipt recovery"})
         self.assertEqual(rubric(), self.requests[-1][1])
         levels = [None, {"covers": ["recovery", "normal receipt"]}]

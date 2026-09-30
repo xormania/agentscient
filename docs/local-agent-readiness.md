@@ -71,12 +71,26 @@ Existing fixed-member teams remain supported. Shared runtime teams set optional
 For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
 
-For optional XO assignment advice and source/diagnostic assessment, configure
-`project.jev` and `TYPESAFE_API_KEY` as described in
-[Jev setup](../devtools/OPERATIONS.md#optional-jev-setup). This is separate from
-native harness authentication. The tools make no Jev requests until an agent
-explicitly calls them; normal development does not require this integration.
+Configure Jev through the private `project.configuration_file` entry and its JSON
+overlay. Obtain a key from your [TypeSafe account](https://console.typesafe.ai/keys)
+and save it in a private local file; the service loads that file directly. CI's
+GitHub secret does not supply local credentials. The overlay selects the key-file
+reference, endpoint/model and independent advice, filtering, guidance and completion
+switches. See [configuration and local Jev credentials](../devtools/OPERATIONS.md#configuration-and-local-jev-credentials)
+for a complete example and environment-variable alternative. Defaults enable local
+skill guidance only; no Jev request occurs unless a Jev feature is enabled.
 
+Inspect the effective project settings, or add `--role` and an existing `--job`
+number to see their overrides:
+
+```sh
+python3 devtools/run.py config --state "$HOME/.local/state/agentscient-live"
+```
+
+Inspection never opens the key file. Policy changes apply on the next operation;
+key-file replacement applies on the next credential read. Existing process
+environments and native startup settings require restarting the affected service
+or conversation to change.
 Check the setup and launch the native CO using current role/vendor policy:
 
 ```sh
@@ -93,10 +107,11 @@ configuration without `--operator`; only MCP communications from that client are
 visible to the service.
 
 `doctor` returns exit code 2 for a failed prerequisite. Its probes inspect the
-configured checkout, remote identity, Git identity, private state, locked real PHP
-platform, Docker image source label, selected binaries and installed Codex protocol
-schema. `--online` additionally reads the remote target and GitHub access. It does
-not push, merge, install dependencies, start models, or validate model credentials.
+configured checkout, remote identity, Git identity, private state, effective
+configuration, required local Jev credential sources, locked real PHP platform,
+Docker image source label, selected binaries and installed Codex protocol schema. `--online` additionally reads the remote target and GitHub access. It does
+not push, merge, install dependencies, start models, contact Jev, or establish
+provider authentication. A readable local key is not an authenticated request.
 Claude channel registration and Grok ACP authentication are checked on native
 startup. A `preflight_passed` result still requires the authenticated acceptance
 stage. Image labels identify the configured build; runtime boundary checks are the

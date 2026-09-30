@@ -20,9 +20,9 @@ and `packages/` is the prod-lane.
 | --- | --- |
 | **Control-plane MCP** (`agentscient_dev`) | Role/work binding, brief delivery, live reporting and guidance, work orders/jobs, artifacts, telemetry, workspace/Git/GitHub outcomes, installed Maker/Mate calls and configured checks. |
 | **Serena MCP** (`serena`) | Source navigation and edits through the v2 REPL, bound automatically to the current specialist's workspace and paths. |
-| **Native harness adapters** | Keep Codex, Claude and Grok conversations alive and carry live messages through their native protocols. |
+| **Native harness adapters** | Keep configured conversations alive and carry live messages through their native protocols; the shipped adapters support Codex, Claude and Grok. |
 | **SQLite and managed storage** | Retain work, state, messages, observations and artifact associations; store artifact payloads separately. |
-| **Jev assessment** | When configured, role/job relevance filtering and proof-backed completion assessment, plus on-demand assignment and source advice, using the existing artifacts and telemetry. |
+| **Jev assessment** | Independently enabled role/job relevance filtering, proof-backed completion and on-demand advice, using configured provider credentials and existing artifacts/telemetry. |
 
 CO is xor's interface: it relays xor's instructions and prepared context to XO,
 and system messages back to xor. XO owns planning, execution, coordination and
@@ -59,18 +59,21 @@ explains REPL lifetime and workspace isolation.
 | Files | Responsibility |
 | --- | --- |
 | `api.py`, `mcp.py`, `control.py`, `commands.py` | MCP surface, role/context enforcement and CO/XO outcomes |
-| `role_packages.py`, `role-packages.cue`, `role-packages.json` | Validated role definitions and runtime projections |
+| `role_packages.py`, `role-packages.cue`, `role-packages.json` | Validated role identities, behavior mappings and runtime projections |
+| `adapters.py`, `adapters.json`, `role_behaviors.py`, `harnesses.py` | Installed evaluation, role and harness implementations selected by configuration |
 | `launch.py`, `native.py`, `profiles.py`, `compat.py` | Persistent native sessions, private profiles and protocol checks |
 | `work.py`, `store.py`, `artifacts.py`, `telemetry.py` | Work records, SQLite state, artifacts and measured observations |
 | `workspaces.py`, `orders.py`, `retirement.py`, `github.py`, `delivery.py`, `feedback.py` | Job/work-order integration, worktree retirement, PR/CI, review, acceptance and diagnostics |
 | `development.py`, `operations.py`, `serena_provider.py` | Installed framework tools, retained long operations and the separate REPL gateway |
-| `advice.py`, `jev.py` | Optional work-scoped assessment and the bounded TypeSafe HTTP client |
-| `diagnostics.py`, `completion.py`, `completion-policy.cue` | Inline permitted skill guidance, scoped context projection and validated proof boundaries |
+| `configuration.py`, `configuration.cue`, `configuration.json` | Validated defaults and private project → role → job policy resolution |
+| `advice.py`, `jev.py`, `credentials.py` | Work-scoped assessment, configured TypeSafe transport and private credential sources |
+| `diagnostics.py`, `completion.py` | Configured permitted skill guidance, scoped context projection and proof boundaries |
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |
 
 Source and license details are in the
 [operator reference](OPERATIONS.md#source-attribution).
 
-An older development system is preserved on the
-[`shit` branch](https://github.com/uscient/agentscient/tree/shit).
+Runtime setup is self-contained in this branch. Configure the private overlay and
+key source using the [operator reference](OPERATIONS.md#configuration-and-local-jev-credentials);
+historical branches are not runtime dependencies.

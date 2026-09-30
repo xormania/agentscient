@@ -2,77 +2,23 @@
 
 from __future__ import annotations
 
-import argparse
-import hashlib
 import json
 import math
-import subprocess
-from pathlib import Path
 
 from .advice import Advice, digest
 from .artifacts import Artifacts
 from .assignments import snapshot
 from .commands import Commands
+from .configuration import resolve
 from .control import Control, binding, includes
+from .jev import JevUnavailable
+from .role_packages import adapter, names_for_adapter
 from .store import canonical
 from .telemetry import clean
 from .work import record
-from .workspaces import project_config
 
-SOURCE = Path(__file__).with_name("completion-policy.cue")
-GENERATED = SOURCE.with_suffix(".json")
 FIELDS = ("objective", "done_when", "constraints")
 BOUNDARIES = {"assignment", "job", "work_order"}
-
-
-def validate(value, source_sha256):
-    if not isinstance(value, dict) or set(value) != {"source_sha256", "policy"} or value["source_sha256"] != source_sha256:
-        raise ValueError("Completion policy export is stale; regenerate it from the CUE source.")
-    policy = value["policy"]
-    if not isinstance(policy, dict) or set(policy) != {"version", "minimum_probability", "artifact_bytes", "state_bytes", "boundaries", "questions"} or policy["version"] != 1:
-        raise ValueError("Unsupported completion policy format.")
-    probability = policy["minimum_probability"]
-    if type(probability) not in {int, float} or not math.isfinite(probability) or not 0.5 <= probability <= 1:
-        raise ValueError("Completion probability must be between 0.5 and 1.")
-    for key, low, high in (("artifact_bytes", 512, 8000), ("state_bytes", 4000, 20000)):
-        if type(policy[key]) is not int or not low <= policy[key] <= high:
-            raise ValueError("Invalid completion evidence limit: " + key)
-    boundaries = policy["boundaries"]
-    if not isinstance(boundaries, dict) or set(boundaries) != BOUNDARIES or any(not isinstance(v, str) or not v.strip() for v in boundaries.values()):
-        raise ValueError("Completion policy must preserve assignment, job and owner boundaries.")
-    questions = policy["questions"]
-    if not isinstance(questions, dict) or set(questions) != set(FIELDS):
-        raise ValueError("Completion needs objective, done_when and constraints judgments.")
-    for field, question in questions.items():
-        if not isinstance(question, dict) or set(question) != {"type", "instructions", "criteria"} or question["type"] != "noul":
-            raise ValueError("Completion criteria need independent Noul judgments.")
-        instructions = question["instructions"]
-        if (not isinstance(instructions, dict) or set(instructions) != {"requirement", "task", "rules"}
-                or instructions["requirement"] != field or not isinstance(instructions["task"], str)
-                or not instructions["task"].strip() or not isinstance(instructions["rules"], list)
-                or not instructions["rules"] or any(not isinstance(v, str) or not v.strip() for v in instructions["rules"])):
-            raise ValueError("Completion instructions must identify the whole required boundary field.")
-        if not isinstance(question["criteria"], dict) or set(question["criteria"]) != {"true", "false"} or any(not isinstance(v, str) or not v.strip() for v in question["criteria"].values()):
-            raise ValueError("Completion criteria need explicit true and false conditions.")
-    return policy
-
-
-def load(store, config):
-    path = Path(config.get("completion_policy_file", GENERATED))
-    if not path.is_absolute():
-        path = store.directory / path
-    try:
-        return validate(json.loads(path.read_text()), hashlib.sha256(path.with_suffix(".cue").read_bytes()).hexdigest())
-    except (OSError, ValueError) as error:
-        raise ValueError("Read a current operator-owned completion policy CUE/JSON pair: " + str(error)) from error
-
-
-def generate(cue):
-    subprocess.run([cue, "vet", "-c", str(SOURCE)], check=True, capture_output=True, text=True, timeout=30)
-    result = subprocess.run([cue, "export", str(SOURCE), "-e", "policy"], check=True, capture_output=True, text=True, timeout=30)
-    value = {"source_sha256": hashlib.sha256(SOURCE.read_bytes()).hexdigest(), "policy": json.loads(result.stdout)}
-    validate(value, value["source_sha256"])
-    return value
 
 
 def requirements(row):
@@ -85,23 +31,37 @@ class Completion:
         self.control = Control(store, member)
         self.artifacts = Artifacts(store, member)
 
-    def enabled(self):
-        config = project_config(self.store).get("jev")
-        if not isinstance(config, dict):
-            return False, {}
-        enabled = config.get("completion", True)
-        if type(enabled) is not bool:
-            raise ValueError("The operator's Jev completion setting must be a boolean.")
-        return enabled, config
+    def settings(self, boundary, job=None, assignment=None):
+        """Resolve only trusted role/job identities, including disabled gate receipts."""
+        scope = self.control.current()
+        with self.store.connect() as db:
+            if not scope or scope != binding(db, self.member) or scope["paused"] or adapter(scope["role"]) not in {"xo", "nco"}:
+                raise ValueError("Completion requires the current active execution officer.")
+            if boundary == "assignment":
+                ident = assignment["id"] if isinstance(assignment, dict) else assignment
+                assigned = record(db, "role_assignments", ident)
+                if assigned["work_order"] != scope["work_order"]:
+                    raise ValueError("The completion assignment is outside current work.")
+                team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
+                if assigned["job"] is None and assigned["created_by"] not in team:
+                    raise ValueError("The completion assignment is outside the current command team.")
+                job = assigned["job"]
+            if job is not None:
+                work = record(db, "jobs", job)
+                if not includes(scope, work["work_order"], job) or not Commands._owns_job(db, scope, work):
+                    raise ValueError("The completion job is outside current work.")
+            if boundary == "job" and job is None or boundary == "work_order" and (job is not None or adapter(scope["role"]) != "xo"):
+                raise ValueError("Select the existing job or XO work-order boundary.")
+        return resolve(self.store, role=scope["role"], job=job), digest(scope)
 
     def collect(self, boundary, job, assignment, revision, mechanical):
         scope = self.control.current()
         with self.store.connect() as db:
-            if not scope or scope != binding(db, self.member) or scope["paused"] or scope["role"] not in {"xo", "nco"}:
+            if not scope or scope != binding(db, self.member) or scope["paused"] or adapter(scope["role"]) not in {"xo", "nco"}:
                 raise ValueError("Completion requires the current active execution officer.")
             order = record(db, "work_orders", scope["work_order"])
             team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
-            if boundary == "work_order" and db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role='xo' AND member!=?", (order["id"], self.member)).fetchone():
+            if boundary == "work_order" and db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND member!=?", (order["id"], canonical(names_for_adapter("xo")), self.member)).fetchone():
                 raise ValueError("Completion requires owner-level coordination across independent command teams.")
             if boundary == "assignment":
                 ident = assignment["id"] if isinstance(assignment, dict) else assignment
@@ -114,7 +74,7 @@ class Completion:
             work = record(db, "jobs", job) if job is not None else None
             if work and (not includes(scope, work["work_order"], job) or not Commands._owns_job(db, scope, work)):
                 raise ValueError("The completion job is outside current work.")
-            if boundary == "job" and not work or boundary == "work_order" and (job is not None or scope["role"] != "xo"):
+            if boundary == "job" and not work or boundary == "work_order" and (job is not None or adapter(scope["role"]) != "xo"):
                 raise ValueError("Select the existing job or XO work-order boundary.")
             target = json.loads(assigned["brief"]) if assigned else work if work else order
             target = requirements(target)
@@ -201,12 +161,15 @@ class Completion:
     def require(self, boundary, *, job=None, assignment=None, revision=None, mechanical=None):
         if boundary not in BOUNDARIES:
             raise ValueError("Unknown completion boundary.")
-        enabled, config = self.enabled()
-        if not enabled:
-            return {"state": "disabled", "boundary": boundary}
+        parameters = {"boundary": boundary, "job": job, "assignment": assignment["id"] if isinstance(assignment, dict) else assignment,
+                      "revision": revision, "mechanical": mechanical}
+        config, scope_identity = self.settings(boundary, job, assignment)
+        receipt = {"boundary": boundary, "_configuration": config["revision"], "_scope": scope_identity, "_parameters": parameters}
+        if not config["features"]["completion"]:
+            return {**receipt, "state": "disabled"}
         evidence, target = None, {}
         try:
-            policy = load(self.store, config)
+            policy = config["completion"]
             state, artifacts, checks, identity, measured = self.collect(boundary, job, assignment, revision, mechanical)
             target = state["target"]
             state["boundary_rule"] = policy["boundaries"][boundary]
@@ -256,7 +219,21 @@ class Completion:
                 raise ValueError("Completion needs retained proof measured or captured against the current source revision.")
             if len(canonical(clean(state)).encode()) > policy["state_bytes"]:
                 raise ValueError("Completion proof exceeds the bounded assessment; retain a concise measurement that covers all requirements.")
-            result = Advice(self.store, self.member).evaluate("completion", state, policy["questions"], sources)
+            try:
+                result = Advice(self.store, self.member).evaluate("completion", state, policy["questions"], sources, policy=config)
+            except JevUnavailable:
+                if policy["failure_mode"] != "mechanical_only":
+                    raise
+                # The explicit operator fallback skips only unavailable semantic assessment.
+                # Current proof and mechanical checks above remain mandatory.
+                self._unchanged(receipt, during=True)
+                if self.collect(boundary, job, assignment, revision, mechanical)[3] != identity:
+                    raise ValueError("Completion requirements or proof changed during assessment; inspect the current work before retrying.")
+                self.store.event(self.member, "completion_assessed", **target, boundary=boundary,
+                                 outcome="skipped_unavailable", policy=config["revision"],
+                                 failure_mode=policy["failure_mode"], required=list(FIELDS))
+                return {**receipt, "state": "skipped_unavailable", "_identity": identity}
+            self._unchanged(receipt, during=True)
             if not isinstance(result, dict) or not isinstance(result.get("evidence"), str) or not result["evidence"].startswith("artifact:"):
                 raise ValueError("Completion assessment is incomplete; retain a valid assessment before accepting work.")
             evidence = result["evidence"]
@@ -273,49 +250,26 @@ class Completion:
                     raise ValueError("Completion assessment has an invalid required-criterion probability.")
                 if probability < policy["minimum_probability"]:
                     missing.append(name)
-            self.store.event(self.member, "completion_assessed", **target, boundary=boundary, outcome="blocked" if missing else "ready", evidence=evidence, required=list(FIELDS), unresolved=missing, policy=digest(policy))
+            self.store.event(self.member, "completion_assessed", **target, boundary=boundary, outcome="blocked" if missing else "ready", evidence=evidence, required=list(FIELDS), unresolved=missing, policy=config["revision"])
             if missing:
                 raise ValueError("Completion needs stronger current proof for " + ", ".join(missing) + ". Inspect " + evidence + " and measure the unmet requirement.")
-            return {"state": "ready", "boundary": boundary, "evidence": evidence, "cache_hit": result["cache_hit"],
-                    "_identity": identity, "_policy": digest(policy), "_jev_config": digest(config),
-                    "_parameters": {"boundary": boundary, "job": job, "assignment": assignment["id"] if isinstance(assignment, dict) else assignment, "revision": revision, "mechanical": mechanical}}
+            return {**receipt, "state": "ready", "evidence": evidence, "cache_hit": result["cache_hit"], "_identity": identity}
         except ValueError as error:
             self.store.event(self.member, "completion_blocked", **target, boundary=boundary, evidence=evidence, reason=str(error))
             raise
 
+    def _unchanged(self, receipt, *, during=False):
+        params = receipt["_parameters"]
+        config, scope_identity = self.settings(params["boundary"], params["job"], params["assignment"])
+        when = "during" if during else "after"
+        if config["revision"] != receipt["_configuration"] or scope_identity != receipt["_scope"]:
+            raise ValueError("Completion policy changed " + when + " assessment; obtain a current assessment.")
+
     def verify(self, receipt):
         """Recheck an internal receipt immediately before a service commits acceptance."""
+        self._unchanged(receipt)
         if receipt["state"] == "disabled":
             return
-        _, config = self.enabled()
-        if digest(config) != receipt["_jev_config"] or digest(load(self.store, config)) != receipt["_policy"]:
-            raise ValueError("Completion policy changed after assessment; obtain a current assessment.")
         params = receipt["_parameters"]
         if self.collect(params["boundary"], params["job"], params["assignment"], params["revision"], params["mechanical"])[3] != receipt["_identity"]:
             raise ValueError("Completion requirements or proof changed after assessment; inspect current work before acceptance.")
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--check", action="store_true")
-    mode.add_argument("--write", action="store_true")
-    parser.add_argument("--cue", default="cue")
-    args = parser.parse_args()
-    try:
-        value = generate(args.cue)
-        if args.write:
-            GENERATED.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
-            print("Regenerated devtools/completion-policy.json")
-        elif json.loads(GENERATED.read_text()) != value:
-            raise ValueError("Completion policy differs from CUE source; regenerate its JSON export.")
-        else:
-            print("Completion CUE source and generated export agree")
-    except subprocess.CalledProcessError as error:
-        parser.exit(1, error.stderr or str(error))
-    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
-        parser.exit(1, str(error) + "\n")
-
-
-if __name__ == "__main__":
-    main()

@@ -8,7 +8,7 @@ import io
 from .artifacts import Artifacts
 from .codex_reviews import CodexReviews
 from .github import GitHub
-from .role_packages import require_capability
+from .role_packages import adapter, require_capability
 from .store import canonical, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
@@ -67,7 +67,7 @@ class Orders:
 
     def scope(self, role=None):
         scope = self.spaces.scope()
-        if scope["job"] or scope["role"] not in {"xo", "planner"} or role and scope["role"] != role:
+        if scope["job"] or adapter(scope["role"]) not in {"xo", "planner"} or role and adapter(scope["role"]) != role:
             raise ValueError("This outcome requires the current work-order command role.")
         return scope
 

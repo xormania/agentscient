@@ -1,7 +1,19 @@
 {
-  "source_sha256": "45da04b99d88bd4e7229189777364af760b840446b8a94c52c65a5999c801b81",
+  "source_sha256": "c9909f3f40743c0b7d9d35d3e97ac2d8718ec74129c8e73fe7bc9783d0631951",
   "catalog": {
-    "version": 1,
+    "version": 2,
+    "defaults": {
+      "co": "co",
+      "xo": "xo",
+      "nco": "nco",
+      "planner": "planner",
+      "coder": "coder",
+      "audit": "audit",
+      "docs": "docs",
+      "research": "research",
+      "test_writer": "test_writer",
+      "architect": "architect"
+    },
     "framework_skills": [
       "mate-system-information",
       "mate-php-environment-check",
@@ -12,7 +24,8 @@
     ],
     "roles": {
       "co": {
-        "version": 1,
+        "version": 2,
+        "behavior": "co",
         "responsibility": "Act only as xor's interface: relay xor's instructions, scope/specification and context to XO, and relay system messages back to xor. Do not assess, coordinate, execute or accept work.",
         "skills": {
           "shared": "agentscient-context",
@@ -72,7 +85,8 @@
         }
       },
       "xo": {
-        "version": 1,
+        "version": 2,
+        "behavior": "xo",
         "responsibility": "Commission the work-order planner and adopt its jobs. Coordinate one job directly, or appoint one NCO per job for a multi-job plan. Own cross-job coordination, superior steering, job acceptance and final work-order delivery; report the outcome through CO to xor.",
         "skills": {
           "shared": "agentscient-context",
@@ -157,7 +171,8 @@
         }
       },
       "coder": {
-        "version": 1,
+        "version": 2,
+        "behavior": "coder",
         "responsibility": "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence.",
         "skills": {
           "shared": "agentscient-context",
@@ -248,7 +263,8 @@
         }
       },
       "audit": {
-        "version": 1,
+        "version": 2,
+        "behavior": "audit",
         "responsibility": "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source.",
         "skills": {
           "shared": "agentscient-context",
@@ -320,7 +336,8 @@
         }
       },
       "docs": {
-        "version": 1,
+        "version": 2,
+        "behavior": "docs",
         "responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations.",
         "skills": {
           "shared": "agentscient-context",
@@ -395,7 +412,8 @@
         }
       },
       "research": {
-        "version": 1,
+        "version": 2,
+        "behavior": "research",
         "responsibility": "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits.",
         "skills": {
           "shared": "agentscient-context",
@@ -466,7 +484,8 @@
         }
       },
       "test_writer": {
-        "version": 1,
+        "version": 2,
+        "behavior": "test_writer",
         "responsibility": "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths.",
         "skills": {
           "shared": "agentscient-context",
@@ -546,7 +565,8 @@
         }
       },
       "architect": {
-        "version": 1,
+        "version": 2,
+        "behavior": "architect",
         "responsibility": "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope.",
         "skills": {
           "shared": "agentscient-context",
@@ -620,7 +640,8 @@
         }
       },
       "nco": {
-        "version": 1,
+        "version": 2,
+        "behavior": "nco",
         "responsibility": "Coordinate specialist role assignments within your one assigned job; inspect their evidence and report the checked job ready for XO acceptance. Request planning and scope changes through XO; do not commission planners or NCOs.",
         "skills": {
           "shared": "agentscient-context",
@@ -700,7 +721,8 @@
         }
       },
       "planner": {
-        "version": 1,
+        "version": 2,
+        "behavior": "planner",
         "responsibility": "Inspect XO's work-order context and existing capabilities, then propose jobs with scope, requirements, dependencies and completion criteria. Report the retained plan to XO without editing source or coordinating execution.",
         "skills": {
           "shared": "agentscient-context",

@@ -17,6 +17,7 @@ from support import Client, adopt_plan, until  # noqa: E402
 from devtools.api import API  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
 from devtools.retirement import key, lease  # noqa: E402
+from devtools.role_packages import default_role  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -77,7 +78,7 @@ def main(curated=False):
                 "work": [
                     {
                         "name": "Serena example",
-                        "role": "coder",
+                        "role": default_role("coder"),
                         "objective": "Inspect and edit",
                         "done_when": "Evidence",
                         "constraints": "Source only",

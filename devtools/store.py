@@ -14,7 +14,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 
 def stamp():
@@ -244,7 +244,24 @@ class Store:
                 created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL)""")
             db.execute("CREATE UNIQUE INDEX IF NOT EXISTS assignment_identity "
                        "ON role_assignments(work_order,coalesce(job,0),name COLLATE NOCASE,role)")
-            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS job_nco ON member_bindings(job) WHERE role='nco' AND job IS NOT NULL")
+            from .role_packages import names_for_adapter
+
+            invalid = db.execute(
+                "SELECT member FROM member_bindings WHERE job IS NULL AND role IN "
+                "(SELECT value FROM json_each(?)) LIMIT 1", (canonical(names_for_adapter("nco")),),
+            ).fetchone()
+            if invalid:
+                raise ValueError("Rebind or retire the job coordinator without a job before upgrading this team: " + invalid["member"])
+            duplicate = db.execute(
+                "SELECT job FROM member_bindings WHERE job IS NOT NULL AND role IN "
+                "(SELECT value FROM json_each(?)) GROUP BY job HAVING count(*)>1 LIMIT 1",
+                (canonical(names_for_adapter("nco")),),
+            ).fetchone()
+            if duplicate:
+                raise ValueError("Resolve multiple coordinator bindings for job " + str(duplicate["job"]) + " before upgrading this team.")
+            # Coordinator membership comes from the role registry. Bindings are
+            # checked in the same immediate transaction as their insertion.
+            db.execute("DROP INDEX IF EXISTS job_nco")
             db.execute("""CREATE TABLE IF NOT EXISTS work_plans (
                 work_order INTEGER NOT NULL REFERENCES work_orders(id), revision INTEGER NOT NULL,
                 result_update INTEGER NOT NULL REFERENCES work_updates(id), jobs TEXT NOT NULL,

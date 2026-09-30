@@ -3,9 +3,6 @@
 import json
 import math
 import re
-from pathlib import Path
-
-DEFAULT = Path(__file__).with_name("jev.json")
 
 
 def _bounded_json(value, max_bytes):
@@ -99,40 +96,21 @@ def validate_questions(value, max_questions=32):
     return value
 
 
-def load(directory=None, config=None):
-    config = config or {}
-    path = Path(config.get("policy_file", DEFAULT))
-    if not path.is_absolute():
-        path = Path(directory) / path
-    try:
-        value = json.loads(path.read_text())
-    except (OSError, ValueError):
-        raise ValueError("The operator must supply a readable Jev policy JSON file.") from None
-    if not isinstance(value, dict) or set(value) != {"version", "model", "transport", "scope"} or value["version"] != 1:
-        raise ValueError("Unsupported Jev policy format; start from devtools/jev.json.")
-    value["model"] = config.get("model", value["model"])
-    if not isinstance(value["model"], str) or not re.fullmatch(r"jev-[0-9]+\.[0-9]+\.[0-9]+", value["model"]):
-        raise ValueError("Configure a pinned Jev model version, for example jev-1.13.0.")
-    transport = value["transport"]
-    bounds = {"timeout": (0.1, 60), "max_attempts": (1, 3), "retry_delay": (0, 5),
-              "max_retry_delay": (0, 5), "max_request_bytes": (1000, 48000),
-              "max_response_bytes": (1000, 131072)}
-    if not isinstance(transport, dict) or transport.keys() != bounds.keys():
-        raise ValueError("Jev transport settings do not match the policy format.")
-    for key, (low, high) in bounds.items():
-        number = transport[key]
-        if type(number) not in {int, float} or not math.isfinite(number) or not low <= number <= high:
-            raise ValueError("Invalid Jev transport setting: " + key)
-        if key in {"max_attempts", "max_request_bytes", "max_response_bytes"} and type(number) is not int:
-            raise ValueError("Jev counts and byte limits must be integers.")
-    rubric = value["scope"]
-    if not isinstance(rubric, dict) or set(rubric) != {"version", "questions"} or type(rubric["version"]) is not int or rubric["version"] < 1:
-        raise ValueError("Scope rubric needs a positive version and questions.")
-    questions = rubric["questions"]
-    if not isinstance(questions, dict) or not 1 <= len(questions) <= 4:
-        raise ValueError("Scope rubric needs one to four questions.")
-    validate_questions(questions, max_questions=4)
-    for question in questions.values():
-        if question["type"] == "choice" and not 2 <= len(question["criteria"]) <= 16:
-            raise ValueError("Configured choice criteria need two to sixteen options.")
-    return value
+def clean_questions(value, *, secrets=()):
+    """Keep question and choice identifiers while redacting structured rubric data."""
+    from .telemetry import clean
+
+    result = {}
+    for name, question in value.items():
+        identifiers = [name]
+        if isinstance(question.get("criteria"), dict):
+            identifiers.extend(question["criteria"])
+        if any(secret and secret in identifier for secret in secrets for identifier in identifiers):
+            raise ValueError("Credential material cannot be used as evaluation identifiers.")
+        item = {"type": question["type"], "instructions": clean(question["instructions"], secrets=secrets)}
+        if "criteria" in question:
+            criteria = question["criteria"]
+            item["criteria"] = ({key: clean(entry, secrets=secrets) for key, entry in criteria.items()}
+                                if isinstance(criteria, dict) else clean(criteria, secrets=secrets))
+        result[name] = item
+    return result

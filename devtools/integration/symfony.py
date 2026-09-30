@@ -20,6 +20,8 @@ from devtools.api import API  # noqa: E402
 from devtools.development import DEFAULT_CHECKS, Development  # noqa: E402
 from devtools.launch import initialize  # noqa: E402
 from devtools.readiness import platform  # noqa: E402
+from devtools.role_packages import default_role  # noqa: E402
+from devtools.role_packages import role as role_package  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -77,6 +79,7 @@ def main():
         }
         (state / "team.json").write_text(json.dumps(config))
         co, xo, coder = [Client(state, member) for member in ("owner", "xo", "coder")]
+        coder_role = default_role("coder")
         report = {"platform": platform_result, "full_checks": args.full_checks}
         try:
             co.tool(
@@ -96,7 +99,7 @@ def main():
                     "work": [
                         {
                             "name": "Exercise Symfony",
-                            "role": "coder",
+                            "role": coder_role,
                             "objective": "Generate with native Makers",
                             "done_when": "Attributes and autoconfiguration work",
                             "constraints": "No handwritten replacement generator",
@@ -135,7 +138,10 @@ def main():
             mate = completed(coder, "framework_inspect", {"kind": "mate", "name": "server-info", "parameters": {}})
             assert mate["result"], mate
             onboarding = coder.tool("onboard", {})
-            assert onboarding["role"] == "coder" and len(onboarding["skills"]) == 8, onboarding
+            skills = role_package(coder_role)["skills"]
+            expected_skills = [skills["shared"], skills["role"], *skills["framework"]]
+            assert onboarding["role"] == coder_role, onboarding
+            assert [entry["name"] for entry in onboarding["skills"]] == expected_skills, onboarding
             coder.tool("skill_read", {"name": "mate-system-information"})
             package = completed(coder, "framework_inspect", {"kind": "packages", "package": "symfony/console"})
             assert package["result"]["name"] == "symfony/console", package

@@ -11,12 +11,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .compat import codex_capability
+from .configuration import ConfigurationState, selections
+from .configuration import resolve as resolve_settings
+from .credentials import read_credential
 from .github_http import GitHubHTTP
+from .harnesses import get as harness_adapter
 from .launch import team_config
+from .telemetry import clean
 from .workspaces import git
 
 ENTRY = Path(__file__).with_name("run.py")
+
+
+def config(directory, role=None, job=None):
+    """Inspect effective settings without opening the configured credential source."""
+    state = ConfigurationState(directory)
+    team_config(state.directory)
+    settings = resolve_settings(state, role=role, job=job)
+    result = clean(settings)
+    # The validated selector contains a location, never credential contents.
+    result["connection"]["credential"] = clean(settings["connection"]["credential"])
+    return result
 
 
 def project(workspace, repository, target="dev", remote="origin", serena_image=None):
@@ -150,6 +165,27 @@ def doctor(directory, online=False):
             "State must be private (mode 700) and outside every source workspace.",
         ),
     )
+    settings_state = ConfigurationState(directory)
+    settings = check("assessment configuration", lambda: [
+        resolve_settings(settings_state, **selection) for selection in selections(settings_state)
+    ])
+    if settings is not None:
+        checks[-1]["detail"] = [{"revision": item["revision"], "selection": item["selection"],
+                                 "features": item["features"]} for item in settings]
+        references = {json.dumps(item["connection"]["credential"], sort_keys=True)
+                      for item in settings
+                      if any(item["features"][name] for name in ("advice", "filtering", "completion"))}
+        if references:
+            def credential_ready():
+                for reference in sorted(references):
+                    read_credential(json.loads(reference))
+                return {"sources_checked": len(references),
+                        "authentication": "Provider authentication was not contacted."}
+
+            check("Jev credential", credential_ready)
+        else:
+            checks.append({"name": "Jev credential", "status": "not_checked",
+                           "detail": "Jev features are disabled; no credential is required."})
     configured = config.get("project", {})
     validated = check(
         "project",
@@ -264,17 +300,7 @@ def doctor(directory, online=False):
             require(bool(executable), f"Install the configured {harness} binary and authenticate it locally.")
             version = re.search(r"\b\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?", probe([executable, "--version"]))
             detail = {"version": version[0] if version else "unreported", "authentication": "requires live acceptance"}
-            if harness == "codex":
-                capability = codex_capability(executable)
-                require(
-                    capability["status"] == "supported",
-                    "Installed Codex must support TurnStartParams.toolOutput; update before launch.",
-                )
-                detail["protocol"] = capability
-            elif harness == "claude":
-                detail["protocol"] = "Channel registration is checked on actual startup."
-            else:
-                detail["protocol"] = "ACP authentication and session creation are checked on actual startup."
+            detail.update(harness_adapter(harness).readiness(executable, probe))
             return detail
 
         check(harness + " binary", native)

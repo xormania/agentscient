@@ -42,16 +42,21 @@ service-enforced role or work boundary.
 
 ## Role catalog
 
+The table describes the shipped behavior packages. Configured role names and their
+number come from the registry. Coordinators receive their available names and
+responsibilities in `onboard.assignable_roles`; use those names in tool calls.
+
 Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
-When the operator configures `project.jev`, bound roles other than CO get **`work_assess`**
+When the operator enables `features.advice` in the resolved configuration, bound roles other than CO get **`work_assess`**
 and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
 inspection, coordination and reporting remain available if Jev is unavailable.
-Configured Jev also filters clearly irrelevant background reports from routine
-briefs and assesses retained completion proof. The enabled proof gate blocks
-completion when assessment is uncertain or unavailable; it does not block repair
-or reporting. See [scoped guidance and proof boundaries](../devtools/OPERATIONS.md#scoped-guidance-and-proof-boundaries).
+Filtering and completion assessment have independent feature switches and role/job
+policies. Filtering can omit clearly irrelevant background from routine briefs.
+Enabled completion assessment checks retained proof and blocks uncertain results.
+Its default unavailable-provider policy blocks completion; the operator may explicitly
+select mechanical-only fallback, which is retained as skipped assessment. Repair and reporting remain available. See [scoped guidance and proof boundaries](../devtools/OPERATIONS.md#scoped-guidance-and-proof-boundaries).
 With a project configured, specialists also get **`work_inspect`**. Enabling
 `project.development` adds **`framework_inspect` and `work_check`** for specialists.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
@@ -125,7 +130,7 @@ brief, or alter runtime policy. `orchestrate` still selects from the operator's
 ordered preferences. A different runtime recommendation can inform a policy-change
 request through the existing `guidance_request` reporting path.
 
-`work_assess` answers up to four typed questions over up to eight candidate sources
+`work_assess` answers typed questions over candidate sources within the configured role/job budgets
 in one evaluation. Each source names exactly one relative workspace `path` or an
 accessible `artifact:`/`operation:` reference. The service reads it; the agent
 receives answers and source locations without the raw source text. Use Serena to

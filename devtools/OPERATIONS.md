@@ -60,10 +60,7 @@ harness or starting workspace in place; use a new member name for that change.
 | `development.check_timeout` | Timeout in seconds for each check; default 600. |
 | `serena.image` | Locally built separate Serena provider image. |
 | `serena.docker`, `serena.memory` | Optional Docker binary and container memory limit; default memory is `2g`. |
-| `jev` | Optional `{}` enables the two on-demand Jev advice tools; absent by default. |
-| `jev.model` | Pinned TypeSafe model version; defaults to `jev-1.13.0`. Moving aliases are rejected. |
-| `jev.policy_file` | Operator-owned JSON policy, absolute or relative to the team state directory; defaults to the shipped `devtools/jev.json`. |
-| `jev.profile_evidence` | Optional map from configured runtime profile names (fixed teams: member names) to dated performance evidence. Include task family, harness/model/reasoning, result and source references. |
+| `configuration_file` | One private JSON overlay for provider connection, independent feature switches, assessment rubrics, filtering, guidance and completion. Absolute or relative to team state; omitted means maintained defaults. |
 
 Each work order and job owns its worktree and Composer install. Managed startup
 selects it automatically. Dependency installation refreshes when Composer metadata
@@ -79,13 +76,12 @@ not hardcoded. Maintain the CUE definition and checked-in JSON export together.
 
 ### Planning and NCO setup
 
-Existing teams and eight-role runtime policies keep working. To enable the new
-roles with runtime allocation, add `nco` and `planner` preference arrays to the
-existing `roles` object in `roles.json`, using profile names already configured in
-that file. Choose their model/reasoning through those profiles and vendor
-availability through `vendors.json`. New initialization includes both roles;
-upgrading an existing file does not choose their profiles implicitly. Fixed teams
-reuse idle configured slots as before.
+Runtime policy names must match the maintained role catalog. Configure ordered
+profile preferences for the planner, command and specialist roles in `roles.json`,
+and vendor availability in `vendors.json`. Profile names select the installed
+harness, model and reasoning settings. Fixed teams reuse their configured idle
+slots. Role definitions and the catalog determine available roles; there is no
+separate accepted legacy role set.
 
 XO commissions the work-order planner and adopts its job list. One job is
 coordinated directly by XO; multiple jobs each have a job-bound NCO. Each active
@@ -127,135 +123,199 @@ Console and validation services. This is a curated editing view and a path-level
 write boundary. It does not enforce individual generated method bodies or freeze
 PHP signatures within an editable file. Plans and review carry those obligations.
 
-SQLite upgrades add plan history, shared context and role assignments while
-preserving existing jobs, bindings, reports and delivery history. Existing bound
-jobs remain recoverable; new jobs require an adopted plan. Adoption can bring
-existing jobs into the new structure, materialize their role assignments and pause
-their sessions for a deliberate handoff. XO reuses an old work-order NCO for a
-specific job or takes over a single-job team. The exact adopted result is retained;
-legacy or superseded reports do not silently become approved plans. See the
+The adopted plan records its exact work-order objective, jobs and role assignments.
+Changing it preserves plan history and requires a deliberate handoff for affected
+sessions. Reports do not become approved plans merely because they exist. See the
 [handoff example](../docs/control-plane-roles-and-tools.md#planning-and-bounded-handoffs).
 
-### Optional Jev setup
+### Configuration and local Jev credentials
 
-Add `"jev": {"model": "jev-1.13.0"}` inside the existing `project` object in the
-private `team.json`. Set `TYPESAFE_API_KEY` in the environment of the process
-launching the dev-lane services, then reconnect/restart those services so they
-inherit it. Keep the key out of repository files, tool arguments and team JSON.
-No new Python package, PHP dependency or Serena network access is required.
+The maintained defaults have one editable source, `configuration.cue`, and one
+checked-in runtime export, `configuration.json`. Runtime needs only Python and the
+export; CUE is a maintainer generation and CI check dependency. The private
+`team.json` selects one operator overlay through `project.configuration_file`:
 
-Enabling this integration permits the host service to send the selected task
-context, source ranges, diagnostics and configured profile evidence to
-`https://api.typesafe.ai/v1/systemone`. The shared credential filter runs before
-transmission, but does not detect every secret in arbitrary source text. In addition
-to explicit advice calls, routine brief reads can assess scoped background reports,
-and completion attempts assess retained proof. There is no background repository scan.
+```json
+{"configuration_file": "configuration.json"}
+```
 
-`assignment_advise` uses configured roles and available installed profiles. Fixed
-teams use their idle configured members. Unknown model/reasoning settings and
-missing performance evidence are reported as unknown; public benchmarks are not
-downloaded or invented. `profile_evidence` can contain brief descriptions or
-structured records with provenance and dates. Agents can additionally select
-retained evidence through their normal work scope. Profile recommendations do not
-change `roles.json`, `vendors.json`, or allocation order. Use the existing runtime
-policy controls when acting on a recommendation that requires a different profile.
+Create that file in the team state directory. This example enables the Jev features
+independently and loads a local key file:
 
-Copy `devtools/jev.json` to an operator-owned file and set `jev.policy_file` to tune
-the model, bounded transport settings and versioned scope rubric. The existing
-`jev.model` setting overrides the policy model. Increment the rubric version when
-changing its criteria. Both content and version invalidate cached evaluations.
-Agent arguments cannot replace this rubric or select transport settings.
+```json
+{
+  "version": 1,
+  "project": {
+    "features": {
+      "advice": true,
+      "filtering": true,
+      "guidance": true,
+      "completion": true
+    },
+    "connection": {
+      "credential": {"file": "~/.config/agentscient/secrets/typesafe.key"}
+    }
+  },
+  "roles": {
+    "research": {"filtering": {"threshold": 0.1}}
+  },
+  "jobs": {}
+}
+```
 
-Requests default to a 28,000-byte serialized input budget. Narrow oversized batches;
-the service never silently drops requested sources. The transport uses an
-eight-second socket timeout, disallows redirects, and makes at most one short
-retry for HTTP 429/529. Longer backoff is left to a later explicit call. Response
-models, answer types, options, distributions and usage are checked before use.
-Provider errors return a sanitized failure. Relevance filtering preserves the full
-brief when assessment is unavailable; enabled completion assessment blocks completion
-until proof can be evaluated. Inspection, reporting and correction remain available.
+Obtain a key from your [TypeSafe account](https://console.typesafe.ai/keys). Use a
+separate local key if you want independent rotation from CI. Save only the key,
+optionally followed by a newline, in the referenced file outside source worktrees.
+On Linux/macOS/WSL give the directory mode `0700` and the key file `0600` or `0400`.
+The key never belongs in the overlay, `team.json`, agent arguments or repository.
+The service reads it directly when needed, without exporting it to child processes.
+File replacement takes effect on the next credential read; it needs no service
+restart. Symlink key files, nonregular files and group/world-readable files are
+rejected. `.env` files are not loaded implicitly.
 
-The existing artifact catalogue retains each successful evaluation's exact
-sanitized request, response, binding and policy snapshot. Source ranges, including
-uncommitted text, remain replayable after edits or worktree retirement. Routine
-MCP replies omit that input text; read the evidence reference to inspect it.
-The cache key covers the caller's work binding, input content, source identities,
-questions, rubric version and pinned model. Identical concurrent requests share
-the evaluation using the existing service-lock mechanism. There is no separate
-result database, queue or cache service. `jev_evaluation` events record elapsed
-time, model, fingerprint, evidence and provider usage; cache-hit events have
-`usage: null` because they made no provider call. The response's usage describes
-the original evaluation and must not be added again on cache hits.
+Alternatively select `{"env":"TYPESAFE_API_KEY"}` as the entire credential
+reference. Supply that variable to the process launching the services and restart
+existing processes after changing it. Exactly one `env` or `file` selector is
+accepted. GitHub Actions secrets supply CI only; local services require a local
+source. A relative key path resolves from the overlay's directory; `~` expands to
+the service user's home. The shipped provider adapter is `typesafe`; its HTTPS
+endpoint and pinned model version are configurable. Another wire protocol needs
+an installed adapter implementation.
 
-Use `work_assess(proposal=..., sources=...)` for a joint mission assessment. The
-default rubric distinguishes required work, separate improvements and unclear
-scope, and assesses coordination needs. It does not create work or change authority.
-Command roles link a decision through `work_report.evaluation`; later outcome
-reports reference that decision. These use existing reports/artifacts and emit
-`jev_feedback`, with operator-defined labels for later analysis. A decision using
-an evaluation from a changed binding is rejected; historical outcomes remain
-linkable. Existing team databases upgrade in place without discarding reports.
+The overlay uses **defaults → project → role → job** precedence. Role selectors
+must exist in the role catalog; job selectors are string forms of actual retained
+job IDs, such as `"12"`. Services select them from the authoritative binding.
+Objects merge recursively; lists, the scope question map and credential selectors
+replace as complete values. Every declared override is validated, including inactive combinations;
+unknown fields, unknown role/job/skill references, conflicting bounds and stale
+exports are rejected. Empty `roles` and `jobs` sections may be omitted.
 
-Use [normal MCP examples](../docs/control-plane-roles-and-tools.md#jev-advice) to
-try a representative assignment and source/diagnostic assessment. Compare useful
-file discovery, missed relevant sources, assignment corrections, agent consumption
-and completion time against the existing workflow. Fixture tests verify the
-integration; actual Jev accuracy and savings require this authenticated evaluation.
+| Section | Configurable behavior |
+| --- | --- |
+| `features` | Independent `advice`, `filtering`, `guidance`, `completion` booleans. Defaults enable guidance only; possessing a key does not enable Jev requests. |
+| `connection`, `model`, `transport` | Installed adapter, HTTPS endpoint, credential reference, model, timeouts, attempts, retry statuses/delays and payload limits. |
+| `scope`, `assessment` | Mission/scope rubric, source/question counts, source excerpt limits and assessment rules. |
+| `assignment` | Role/runtime advice rubrics, eligible role names, candidate and evidence limits, performance evidence and uncertainty wording. |
+| `filtering` | Noul threshold, eligible report kinds, protected text pattern, excluded role/adapter sets, fact/state budgets, relevance question, failure mode/message. |
+| `guidance` | Excluded role/adapter sets, diagnostic limits, ordered regex/role/adapter/action routes, action instructions, fallback skill/action, delivery excerpt size and failure mode. |
+| `completion` | Three boundary rules, independent proof questions, minimum probability, evidence budgets and assessment failure mode. |
+
+`assignment.profile_evidence` maps configured runtime profile names (fixed teams:
+member names) to dated evidence text. Include task family, harness/model/reasoning,
+result and source references. Missing evidence remains unknown; benchmarks are not
+invented. Recommendations do not change runtime allocation policy.
+
+Inspect resolved settings without reading a key or contacting TypeSafe:
+
+```sh
+python3 devtools/run.py config --state "$HOME/.local/state/agentscient-live"
+python3 devtools/run.py config --state "$HOME/.local/state/agentscient-live" --role research
+# Add --job with an existing job number to inspect its final override.
+python3 devtools/run.py doctor --state "$HOME/.local/state/agentscient-live"
+```
+
+The config output includes the selection and effective revision, with credential
+contents excluded and the source reference visible. `doctor` validates configuration
+and checks required credential sources locally. It does not send a Jev request or
+establish provider authentication. The operator-only `config_status` MCP capability
+provides the same effective-settings inspection; agents do not select policies.
+
+Policy files are resolved at each operation. Effective revisions identify cached
+evaluations and existing telemetry; a policy change during an assessment prevents
+using its obsolete result for filtering or completion. Native session model and
+harness settings still apply at session startup. To edit maintained defaults:
+
+```sh
+python3 -m devtools.configuration --write
+python3 -m devtools.configuration --check
+python3 -m devtools.consistency
+```
+
+Run the consistency check with `--state /private/team` to include operator files;
+it validates references and installed adapter interfaces without reading credentials
+or contacting providers. CI runs the repository check alongside both CUE exports.
+
+Edit the CUE source and regenerate its JSON; never manually synchronize two copies
+of the same policy. Private JSON overlays need no CUE binary. Migration is explicit:
+move `project.jev.model` to the overlay's `project.model`, `profile_evidence` to
+`project.assignment.profile_evidence`, and old policy overrides into the matching
+sections. Set the feature switches deliberately, then remove `project.jev` and its
+retired policy-file selectors. The old `jev.json` and `completion-policy.cue/json`
+formats are no longer runtime inputs.
+
+Enabling Jev advice, filtering or completion permits the service to send the scoped
+context and selected evidence to the configured TypeSafe endpoint. The common
+credential filter runs before transmission. Filtering runs on routine brief reads;
+completion runs at its configured boundaries; advice runs on explicit advice calls.
+There is no background repository scan or Jev request from native hooks.
+
+Requests default to a 28,000-byte serialized budget, an eight-second socket timeout
+and at most one short retry for HTTP 429/529. Redirects are disallowed. Oversized
+explicit assessments fail instead of silently dropping requested sources. Responses
+are checked for the pinned model, answer shapes, distributions and usage. These
+transport settings are policy fields, not agent arguments.
+
+Existing artifacts retain each successful evaluation's sanitized request, response,
+binding and effective policy. Source ranges remain replayable after edits or
+worktree retirement. Cache keys cover work binding, inputs, source identities,
+questions and effective configuration. Existing service locks share identical
+concurrent requests. `jev_evaluation` events retain elapsed time, model, fingerprint,
+evidence and usage; cache-hit events have `usage: null` because no provider request
+occurred. Do not count the original evaluation's usage again on a cache hit.
+
+`work_assess(proposal=..., sources=...)` uses the configured mission rubric without
+creating work or changing authority. `work_report.evaluation` links decisions and
+later outcomes to retained assessments through `jev_feedback`. Historical results
+remain available, but a changed binding cannot reuse an old assessment as current
+advice. Fixture tests establish integration behavior; authenticated evaluations
+are needed to measure judgment quality and savings.
 
 ### Scoped guidance and proof boundaries
 
-Failed control-plane calls, failed retained development checks and Serena errors
-carry a relevant permitted skill body and next action. The service supplies this
-guidance directly; agents do not need a separate skill-read call to receive it.
-Successful calls remain quiet. Native hooks keep their existing role/tool checks
-and telemetry; they do not make network calls or decide completion.
+With guidance enabled, failed control-plane calls, failed retained checks and Serena
+errors carry a permitted skill excerpt and a configured next action. Routes are
+ordered, match diagnostic text by case-insensitive search and action names by full
+regex match, and can select role identities or behavior adapters. Empty selector
+lists match every role/adapter. Built-in policy selects adapter behavior so renaming
+a role does not change its routing semantics.
+A route cannot deliver a skill outside the current role's available skill catalog;
+an unavailable configured fallback skill resolves to that role's own skill. A
+truncated excerpt is marked. Successful calls remain quiet. `failure_mode: "omit"`
+omits unavailable guidance; `"fallback"` returns the configured fallback action
+when the skill cannot be loaded. Neither changes the original operation result.
 
-With Jev configured, brief reads can omit clearly unrelated background reports
-whose role/job relevance Noul is below 0.2. Owner objectives, constraints, current
-assignments, incoming messages, failures, blockers and evidence-bearing reports
-remain present. Raw reports stay in the existing store and authorized reference
-reads return them in full. Completion uses its own unfiltered proof collection.
+With filtering enabled, the default policy omits background reports below relevance
+Noul 0.2. Thresholds, eligible kinds, protected text and role/job overrides are
+configurable. Core context, incoming messages and evidence-bearing reports remain
+outside filtering; raw reports and authorized reference reads remain intact.
+Facts beyond the candidate budget are preserved. Oversized or unavailable relevance
+assessment preserves context; `failure_mode: "notice"` additionally returns the
+configured advisory message, while `"preserve"` remains silent.
 
-Completion assessment is enabled by default for projects with `project.jev`.
-`"completion": false` inside that object explicitly preserves the earlier
-mechanical completion behavior. Projects without Jev retain that behavior too.
-The additional gate runs before planner adoption, specialist completion, job
-acceptance and XO work-order conclusion. Cancellation releases a contribution;
-it does not certify that the owner's goal has been achieved.
+With completion enabled, proof is checked before planner adoption, specialist
+completion, job acceptance and work-order conclusion. Cancellation releases a
+contribution; it does not prove the owner's goal. The configured objective,
+completion-condition and constraint questions each must meet the threshold;
+scores are never averaged. Failed measurements, missing proof and stale revisions
+remain mechanical barriers. Jev assesses adequacy within the configured boundary;
+it cannot override CI, permissions, review or workspace requirements. The default
+`failure_mode: "block"` blocks unavailable assessment. The explicit
+`"mechanical_only"` mode permits fallback to mechanical checks when assessment is
+unavailable; it does not turn a negative assessment into a pass.
 
-`completion-policy.cue` defines the three boundary rules and independent required
-judgments for the objective, completion conditions and constraints. Each judgment
-must reach the configured threshold; scores are never averaged. The service
-rejects failed measurements, missing proof and stale revisions before allowing
-Jev to assess adequacy. Producer reports are claims; their retained artifacts or
-measurement output provide the material to inspect. Uncertain or unavailable
-assessment blocks completion and identifies what needs verification. Jev cannot
-override CI, permissions, review requirements or workspace checks.
-
-The runtime reads the generated `completion-policy.json`; no CUE binary is needed
-in an agent session. CI validates the CUE source and export. To change the policy,
-copy the CUE/JSON pair into operator-owned storage and set
-`jev.completion_policy_file` to the JSON path. The adjacent `.cue` file must match
-the export's recorded source hash. For the repository policy, use
-`python3 -m devtools.completion --write` and verify with `--check`.
-
-Existing events distinguish inline guidance delivery, explicit skill reads,
-context projection, completion assessment and completion refusal. Exact sanitized
-Jev inputs, outputs, scope, policy, usage and timing remain existing artifacts and
-`jev_evaluation` events. Delivery or reading does not establish that an agent used
-the method or that its work succeeded; later decisions and outcomes use the
-existing `work_report.evaluation` feedback path. Tests use isolated temporary state.
-
-Result reports capture an existing managed workspace's source revision internally;
-this labels the report's context and does not certify its measurement. Configured
-check artifacts retain the command definition with observed output. Agents supply
-proof through their ordinary report/check tools, without entering source hashes.
+Existing events distinguish guidance delivery, skill reads, context projection,
+completion assessment and refusal, and retain effective configuration revisions.
+Delivery or reading does not establish that an agent used a method or succeeded;
+subsequent decisions and outcomes use the existing feedback path. Tests use isolated
+temporary state. Result reports capture an existing managed workspace revision
+internally; this identifies capture context rather than proving a measurement.
+Configured check artifacts retain the command definition with observed output.
+Agents supply proof through ordinary report/check tools without entering hashes.
 
 References: [TypeSafe API](https://docs.typesafe.ai/api),
 [model versions and limits](https://docs.typesafe.ai/models).
-Wire fixtures were checked against these sources on 2026-09-29, including Score
-`legend`, probability maps, fractional scores and usage fields. No fixture result
-is an authenticated judgment-quality measurement.
+Wire fixtures cover the supported response format; no fixture result is an
+authenticated judgment-quality measurement.
 
 ### Branches and worktree lifetime
 
@@ -330,6 +390,9 @@ All commands run from the repository root and take `--state`:
 | --- | --- |
 | `init` | Create team configuration and state; refuses to replace an existing team. |
 | `connection` | Print the normal CO MCP connection with absolute local paths. |
+| `config [--role ROLE] [--job N]` | Print redacted effective settings and their revision without opening the credential source. |
+| `co [--profile PROFILE]` | Launch the configured CO role through its selected native harness adapter. |
+| `watch [--action start\|stop\|status]` | Manage the existing GitHub observation process. |
 | `doctor` | Inspect local prerequisites; `--online` also reads Git/GitHub access. |
 | `evidence --work-order N` | Summarize existing run observations without certifying success. |
 | `status` | Read configured members and observed session state. |
@@ -421,6 +484,7 @@ Managed agents use the outcome tools in the [role/tool reference](../docs/contro
 
 | Capability | Purpose |
 | --- | --- |
+| `config_status` | Inspect validated effective settings and their revision without reading credentials |
 | `member_bind`, `member_unbind` | Configure or remove a trusted role/work/reporting binding |
 | `peers` | Configured members, observed state, and actual native conversation IDs |
 | `session_start`, `session_stop` | Start a configured member or stop it with bounded escalation and owned-terminal recovery |
@@ -688,6 +752,10 @@ together while the team is stopped. Missing or damaged payloads produce explicit
 read errors.
 
 ## Native conversations
+
+The installed harness adapters are selected through `adapters.json`. The following
+behaviors describe the shipped adapters; another installed adapter owns its native
+protocol, readiness checks and session transport.
 
 Codex keeps one app-server thread and receives peer messages through
 `turn/start.toolOutput`. Its dynamic tools proxy the actual stdio MCP server.

@@ -80,6 +80,72 @@ class PackageCatalogTests(unittest.TestCase):
         package["mcp"]["command"].append("conclude")
         self.assertNotIn("conclude", role_packages.role("co")["mcp"]["command"])
 
+    def test_role_names_and_count_are_configuration_with_explicit_behavior_defaults(self):
+        value = self.exported()
+        original = value["catalog"]["roles"]
+        value["catalog"]["roles"] = {"interface": original["co"], "lead": original["xo"],
+                                     "implementer-one": original["coder"], "implementer-two": copy.deepcopy(original["coder"])}
+        value["catalog"]["defaults"] = {"co": "interface", "xo": "lead", "coder": "implementer-two"}
+        configured = self.validate(value)
+        with patch("devtools.role_packages._catalog", return_value=configured):
+            self.assertEqual("co", role_packages.adapter("interface"))
+            self.assertEqual(("implementer-one", "implementer-two"), role_packages.names_for_adapter("coder"))
+            self.assertEqual("implementer-two", role_packages.default_role("coder"))
+            self.assertEqual("lead", role_packages.default_role("xo"))
+            with self.assertRaisesRegex(ValueError, "Configure a role for the planner behavior"):
+                role_packages.default_role("planner")
+            del configured["defaults"]["coder"]
+            with self.assertRaisesRegex(ValueError, "explicit default"):
+                role_packages.default_role("coder")
+            del configured["defaults"]["xo"]
+            self.assertEqual("lead", role_packages.default_role("xo"))
+
+    def test_registered_behavior_plugin_preserves_semantics_and_permission_ceiling(self):
+        value = self.exported()
+        registry = role_packages.adapters.registry()
+        registry["role"]["review-plugin"] = "devtools.role_behaviors:audit_behavior"
+        value["catalog"]["roles"] = {"inspector": value["catalog"]["roles"]["audit"]}
+        value["catalog"]["roles"]["inspector"]["behavior"] = "review-plugin"
+        value["catalog"]["defaults"] = {"audit": "inspector"}
+        with patch("devtools.adapters.registry", return_value=registry):
+            configured = self.validate(value)
+            with patch("devtools.role_packages._catalog", return_value=configured):
+                self.assertEqual("audit", role_packages.adapter("inspector"))
+                self.assertEqual(("inspector",), role_packages.names_for_adapter("audit"))
+            value["catalog"]["roles"]["inspector"]["workspace"].update(editor=True, paths=["src/"])
+            with self.assertRaisesRegex(ValueError, "cannot become job editors"):
+                self.validate(value)
+
+    def test_unknown_behavior_and_invalid_default_do_not_infer_legacy_roles(self):
+        cases = (
+            lambda value: value["catalog"]["roles"]["coder"].update(behavior="unregistered"),
+            lambda value: value["catalog"]["defaults"].update(coder="missing"),
+            lambda value: value["catalog"]["defaults"].update(coder="co"),
+            lambda value: value["catalog"]["roles"]["coder"].pop("behavior"),
+        )
+        for mutate in cases:
+            value = self.exported()
+            mutate(value)
+            with self.subTest(mutate=mutate), self.assertRaises(ValueError):
+                self.validate(value)
+
+    def test_changed_catalog_contents_revalidate_instead_of_retaining_a_stale_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "role-packages.json"
+            value = self.exported()
+            path.write_text(json.dumps(value))
+            with patch("devtools.role_packages.GENERATED", path):
+                self.assertIn("co", role_packages.catalog()["roles"])
+                package = value["catalog"]["roles"]["co"]
+                value["catalog"]["roles"] = {"interface": package}
+                value["catalog"]["defaults"] = {"co": "interface"}
+                path.write_text(json.dumps(value))
+                self.assertEqual({"interface"}, set(role_packages.catalog()["roles"]))
+                value["source_sha256"] = "stale"
+                path.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, "stale"):
+                    role_packages.catalog()
+
     def test_cue_source_and_export_agree_and_invalid_definitions_are_rejected(self):
         cue = os.environ.get("AGENTSCIENT_CUE") or shutil.which("cue")
         if not cue:
@@ -91,7 +157,7 @@ class PackageCatalogTests(unittest.TestCase):
             "auditor writes": 'packages: roles: audit: workspace: {editor: true, paths: ["src/"]}',
             "native children": 'packages: roles: co: hooks: native_delegation: true',
             "duplicate harness": 'bad: #Runtime & {harnesses: ["codex", "codex"]}',
-            "unknown harness": 'bad: #Runtime & {harnesses: ["unknown"]}',
+            "unknown harness": 'packages: roles: coder: runtime: harnesses: ["unknown"]',
             "outside default": 'bad: #Option & {default: "outside", allowed: ["inside"]}',
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -100,8 +166,16 @@ class PackageCatalogTests(unittest.TestCase):
                 path.write_text(role_packages.SOURCE.read_text() + "\n" + source + "\n")
                 result = subprocess.run([cue, "vet", "-c", str(path)], capture_output=True, text=True, timeout=30)
                 with self.subTest(name=name):
-                    self.assertNotEqual(0, result.returncode)
-                    self.assertTrue(result.stderr)
+                    if result.returncode:
+                        self.assertTrue(result.stderr)
+                    else:
+                        # CUE owns structural rules. Installed adapter metadata
+                        # supplies behavior/harness ceilings during generation.
+                        exported = subprocess.run([cue, "export", str(path), "-e", "packages"],
+                                                  capture_output=True, text=True, check=True, timeout=30)
+                        invalid = {"source_sha256": self.exported()["source_sha256"], "catalog": json.loads(exported.stdout)}
+                        with self.assertRaises(ValueError):
+                            self.validate(invalid)
 
 
 class PackageBoundaryTests(unittest.TestCase):

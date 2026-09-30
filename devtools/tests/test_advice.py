@@ -1,3 +1,4 @@
+import copy
 import io
 import json
 import os
@@ -15,8 +16,8 @@ from support import Client, adopt_plan, fixture_work
 from test_commands import responsibility
 
 from devtools.api import API
-from devtools.jev import MAX_RESPONSE, MODEL, Jev, checked_response
-from devtools.jev_config import load as load_policy
+from devtools.configuration import defaults as load_policy
+from devtools.jev import MAX_RESPONSE, MODEL, Jev, TypeSafeAdapter, checked_response
 from devtools.runtime import defaults
 from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 from devtools.workspaces import Workspaces
@@ -57,9 +58,11 @@ class AdviceTests(unittest.TestCase):
     def configure(self, value):
         config = json.loads((self.state / "team.json").read_text())
         if value is None:
-            config["project"].pop("jev", None)
+            config["project"].pop("configuration_file", None)
         else:
-            config["project"]["jev"] = value
+            config["project"]["configuration_file"] = "configuration.json"
+            settings = {**value, "features": {"advice": True, **value.get("features", {})}}
+            (self.state / "configuration.json").write_text(json.dumps({"version": 1, "project": settings}))
         (self.state / "team.json").write_text(json.dumps(config))
 
     def assess(self, sources=None, questions=None, api=None):
@@ -111,7 +114,7 @@ class AdviceTests(unittest.TestCase):
 
     def test_planned_role_scope_and_shared_context_are_supplied_to_jev(self):
         # This fixture isolates on-demand advice; completion is tested separately.
-        self.configure({"completion": False})
+        self.configure({"features": {"completion": False}})
         co = API(self.state, "co")
         document = co.call("work_report", {"text": "Prepared specification", "evidence": {
             "name": "scope.md", "content": "Preserve the existing endpoint behavior"}})
@@ -161,8 +164,7 @@ class AdviceTests(unittest.TestCase):
     def test_concurrent_cache_wait_covers_configured_retries(self):
         policy = load_policy()
         policy["transport"].update(timeout=60, max_attempts=3, max_retry_delay=5)
-        (self.state / "slow-jev.json").write_text(json.dumps(policy))
-        self.configure({"policy_file": "slow-jev.json"})
+        self.configure({"transport": policy["transport"]})
         evaluating, waiting = Event(), Event()
         original_lock = Workspaces.lock
 
@@ -268,9 +270,9 @@ class AdviceTests(unittest.TestCase):
         sent = json.dumps(self.requests)
         self.assertNotIn("abcdefghi", sent)
         self.assertNotIn("private-demo-key-12345", sent)
-        self.configure({"model": "jev-latest"})
+        policy = load_policy()
         with self.assertRaisesRegex(ValueError, "pinned"):
-            self.assess()
+            TypeSafeAdapter(policy["transport"], policy["connection"]).evaluate({}, {}, "jev-latest")
 
     def test_invalid_questions_and_sources_do_not_call_provider(self):
         bad = [
@@ -299,7 +301,7 @@ class AdviceTests(unittest.TestCase):
         vendors = json.loads((self.state / "vendors.json").read_text())
         vendors["vendors"]["openai"]["available"] = True
         (self.state / "vendors.json").write_text(json.dumps(vendors))
-        self.configure({"profile_evidence": {"codex": "2026-09-28 fixture: passed representative PHP task"}})
+        self.configure({"assignment": {"profile_evidence": {"codex": "2026-09-28 fixture: passed representative PHP task"}}})
         before = self.store.members()
         result = self.xo.call("assignment_advise", {"work": [responsibility("Feature"), responsibility("Review", "audit")]})
         self.assertEqual(before, self.store.members())
@@ -353,8 +355,7 @@ class AdviceTests(unittest.TestCase):
         policy = load_policy()
         policy["scope"]["version"] += 1
         policy["scope"]["questions"]["scope"]["instructions"] += " Logging may be a separate proposal."
-        (self.state / "custom-jev.json").write_text(json.dumps(policy))
-        self.configure({"policy_file": "custom-jev.json"})
+        self.configure({"scope": policy["scope"]})
         changed = self.api.call("work_assess", args)
         self.assertNotEqual(first["fingerprint"], changed["fingerprint"])
         self.assertEqual(2, self.retained(changed)["policy"]["scope"]["version"])
@@ -372,8 +373,7 @@ class AdviceTests(unittest.TestCase):
             "access_token": {"type": "score", "instructions": "Assess handling",
                              "criteria": ["Absent", "Includes " + secret]},
         }
-        (self.state / "rubric.json").write_text(json.dumps(policy))
-        self.configure({"policy_file": "rubric.json"})
+        self.configure({"scope": policy["scope"]})
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": secret}):
             result = self.api.call("work_assess", {"proposal": "Check credential handling"})
             cached = self.api.call("work_assess", {"proposal": "Check credential handling"})
@@ -437,11 +437,35 @@ class AdviceTests(unittest.TestCase):
         self.assertEqual(report["reference"], retry["reference"])
         self.assertTrue(retry["reused"])
 
+    def test_effective_configuration_is_inspectable_only_through_operator_surface(self):
+        operator = API(self.state, "co", operator=True)
+        with patch("devtools.credentials.read_credential", side_effect=AssertionError("Inspection must not load a key")):
+            result = operator.call("capability_invoke", {"capability": "config_status", "arguments": {"role": "coder"}})
+        self.assertTrue(result["features"]["advice"])
+        self.assertEqual({"role": "coder", "job": None}, result["selection"])
+        self.assertEqual({"env": "TYPESAFE_API_KEY"}, result["connection"]["credential"])
+        with self.assertRaisesRegex(ValueError, "not available"):
+            self.api.call("config_status", {})
+
+    def test_service_assessments_are_independent_of_agent_advice_tools(self):
+        from devtools.advice import Advice
+        from devtools.role_packages import catalog
+
+        self.configure({"features": {"advice": False, "filtering": True}})
+        packages = copy.deepcopy(catalog())
+        packages["roles"]["coder"]["mcp"]["advice"] = []
+        with patch("devtools.role_packages._catalog", return_value=packages):
+            self.assertNotIn("work_assess", {row["name"] for row in self.api.tools()})
+            with self.assertRaisesRegex(ValueError, "not available"):
+                self.assess()
+            result = Advice(self.store, "coder").evaluate("context_relevance", {"facts": ["Background"]},
+                {"relevant": {"type": "noul", "instructions": "Is the fact relevant?"}}, [])
+            self.assertIn("relevant", result["answers"])
+
     def test_invalid_operator_policy_fails_before_provider(self):
         policy = load_policy()
-        policy["transport"]["timeout"] = float("nan")
-        (self.state / "bad.json").write_text(json.dumps(policy))
-        self.configure({"policy_file": "bad.json"})
+        policy["transport"]["timeout"] = 100
+        self.configure({"transport": policy["transport"]})
         with self.assertRaisesRegex(ValueError, "transport"):
             self.api.call("work_assess", {"proposal": "Add logging"})
         self.assertFalse(self.requests)

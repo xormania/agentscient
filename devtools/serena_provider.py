@@ -17,14 +17,15 @@ from pathlib import Path
 
 from .control import REQUEST_BINDING, Control
 from .retirement import key, lease
-from .role_packages import catalog
+from .role_packages import adapter, descriptor
+from .role_views import RoleSet
 from .sessions import Lease
 from .store import Store
 from .telemetry import Trace, context
 from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "serena"
-ROLES = {name for name, package in catalog()["roles"].items() if package["workspace"]["serena"]}
+ROLES = RoleSet("workspace", "serena")
 TOOL = {
     "name": "serena_repl",
     "description": "Use Serena v2's persistent Python REPL for your current job. The service supplies the session and workspace. Start with s.info() or s.info('lsp', 'edit') for current facade documentation. Variables persist between calls. Source writes are limited to your role's mounted paths; Git, checks, Maker and delivery belong to the control-plane tools.",
@@ -39,7 +40,7 @@ TOOL = {
 
 def enabled(store, scope):
     return bool(
-        scope and (scope["job"] or scope["role"] == "planner") and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
+        scope and (scope["job"] or adapter(scope["role"]) == "planner") and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
     )
 
 
@@ -121,7 +122,8 @@ class Serena:
         config = project_config(self.store)
         assignment = assignment_for(self.store, current)
         signature = (identity, json.dumps({"config": {key: config.get(key) for key in ("serena", "paths")},
-                                         "assignment": assignment, "policy": policy(self.store, config)}, sort_keys=True))
+                                         "assignment": assignment, "policy": policy(self.store, config),
+                                         "role_package": descriptor(current["role"])}, sort_keys=True))
         if self.signature is not None and self.signature != signature:
             self.close()
             raise ValueError("The role or workspace changed. Reconnect Serena for the current responsibility.")

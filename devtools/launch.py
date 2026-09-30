@@ -1,6 +1,5 @@
 """Start and stop configured persistent sessions. There is no job dispatcher."""
 
-import asyncio
 import fcntl
 import json
 import os
@@ -13,9 +12,9 @@ import time
 import uuid
 from pathlib import Path
 
+from .adapters import names as adapter_names
 from .store import Store, identifier
 
-HARNESSES = {"codex", "claude", "grok", "external"}
 STARTUP_TIMEOUT = 10
 STOP_GRACE = 5
 
@@ -31,8 +30,8 @@ def initialize(directory, workspace, members, co=None, project=None, runtime=Fal
     for item in members:
         name, harness = item.split(":", 1)
         identifier(name)
-        if harness not in HARNESSES or name in {row["name"] for row in rows}:
-            raise ValueError("Use unique names and codex, claude, grok or external harnesses.")
+        if harness not in {*adapter_names("harness"), "external"} or name in {row["name"] for row in rows}:
+            raise ValueError("Use unique names and a registered harness or an external connection.")
         rows.append(
             {
                 "name": name,
@@ -65,7 +64,7 @@ def team_config(directory):
     names = set()
     for row in rows:
         identifier(row["name"])
-        if row["name"] in names or row["harness"] not in HARNESSES:
+        if row["name"] in names or row["harness"] not in {*adapter_names("harness"), "external"}:
             raise ValueError("Invalid or duplicate team member")
         names.add(row["name"])
         if set(row) - {"name", "harness", "workspace", "binary", "model", "reasoning"}:
@@ -299,14 +298,11 @@ def agent(directory, member, binding_revision=None, launch_fd=None):
         signal.signal(sig, stop)
     error = None
     try:
-        from .native import Native, claude
+        from .harnesses import get
         from .retirement import lease
 
         with lease(store, config["workspace"]):
-            if config["harness"] == "claude":
-                claude(directory, member, config, generation)
-            else:
-                asyncio.run(Native(directory, member, config, generation).run())
+            get(config["harness"]).run(directory, member, config, generation)
     except Exception as exc:
         error = str(exc)[:1000]
         store.event(member, "session_failed", error=error)

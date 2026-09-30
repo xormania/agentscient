@@ -13,6 +13,8 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from devtools.role_packages import adapter, default_role
+from devtools.role_packages import role as role_package
 from devtools.rpc import RPC
 
 
@@ -70,10 +72,10 @@ class Fixture:
             onboard = await self.tool("onboard", {})
             self.role = onboard["role"]
             self.planned = bool(onboard["context"]["plan_revision"])
-            await self.tool("skill_read", {"name": "agentscient-" + self.role.replace("_", "-")})
+            await self.tool("skill_read", {"name": role_package(self.role)["skills"]["role"]})
             self.onboarded = True
         ident = int(re.search(r"Live message #(\d+)", text)[1])
-        if self.role == "planner":
+        if adapter(self.role) == "planner":
             await self.tool("work_report", {"kind": "result", "text": "Fixture plan ready", "evidence": {
                 "name": "fixture-plan.md", "content": "One job: demonstrate the live command path using a coder."}})
             return
@@ -86,7 +88,7 @@ class Fixture:
             # fixed slot can be reused by the implementation role.
             for attempt in range(100):
                 try:
-                    await self.tool("orchestrate", {"work": [{"name": "Fixture implementation", "role": "coder"}]})
+                    await self.tool("orchestrate", {"work": [{"name": "Fixture implementation", "role": default_role("coder")}]})
                     return
                 except ValueError as error:
                     if "No available" not in str(error):
@@ -126,7 +128,7 @@ class Fixture:
                     "work": [
                         {
                             "name": "Fixture implementation" if self.planned else "Fixture planning",
-                            "role": "coder" if self.planned else "planner",
+                            "role": default_role("coder" if self.planned else "planner"),
                             "objective": "Demonstrate the live command path",
                             "done_when": "Direction received",
                             "constraints": "Protocol fixture only",
@@ -152,8 +154,8 @@ class Fixture:
                 assert params["sandbox"] == "read-only"
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
-                expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
-                assert names == expected | ({"plan_adopt", "orchestrate", "monitor", "steer", "conclude"} if self.command else set())
+                onboard = await self.tool("onboard", {})
+                assert names == set(onboard["tools"]), "Native tools differ from the current MCP surface"
                 result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]

@@ -15,7 +15,6 @@ import tty
 import uuid
 
 from .api import API, SERVER, TOOLS
-from .compat import ClaudeChannelLog
 from .launch import team_config
 from .profiles import prepare, retain_login, toml
 from .runtime import resolve
@@ -24,13 +23,19 @@ from .telemetry import Trace, Transcript, context, requested
 
 
 def command(directory, member, config, private, server):
+    from .harnesses import get
+
+    return get(config["harness"]).command(directory, member, config, private, server)
+
+
+def _command_builtin(directory, member, config, private, server, *, protocol):
     """Build native CLI arguments without accepting arbitrary command fragments."""
     instructions = API(directory, member).instructions()
     prompt = (
         "Call onboard; it supplies the shared and role instructions. Read only relevant skills not marked loaded. "
         "Recover current work and reports before asking the user what is next."
     )
-    harness = config["harness"]
+    harness = protocol
     argv, native_id = [config["binary"]], None
     if harness == "codex":
         options = {
@@ -80,7 +85,7 @@ def command(directory, member, config, private, server):
             if config.get(source):
                 argv += [flag, config[source]]
         argv += ["--", prompt]
-    else:
+    elif harness == "grok":
         native_id = str(uuid.uuid4())
         # Isolated HOME and cwd prevent project/user MCP and plugin discovery.
         compatibility = {
@@ -105,6 +110,8 @@ def command(directory, member, config, private, server):
         for source, flag in (("model", "--model"), ("reasoning", "--effort")):
             if config.get(source):
                 argv += [flag, config[source]]
+    else:
+        raise ValueError("This builtin console does not implement the selected harness protocol.")
     return argv, native_id
 
 
@@ -234,7 +241,9 @@ def run(directory, profile=None, model=None, reasoning=None):
     member = team.get("co")
     if not member or not team.get("runtime"):
         raise ValueError("The CO launcher requires an appointed external CO and shared runtime policy (--runtime).")
-    config = resolve(store.directory, "co", profile=profile)
+    from .role_packages import default_role
+
+    config = resolve(store.directory, default_role("co"), profile=profile)
     for key, value in (("model", model), ("reasoning", reasoning)):
         if value is not None:
             if not value or "\0" in value:
@@ -263,7 +272,9 @@ def run(directory, profile=None, model=None, reasoning=None):
         )
         requested(store, member, config, private)
         transcript = Transcript(store, member, trace)
-        channel = ClaudeChannelLog(private / "native-debug.log") if config["harness"] == "claude" else None
+        from .harnesses import get
+
+        channel = get(config["harness"]).channel(private)
         ready = False
 
         def poll():
