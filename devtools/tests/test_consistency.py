@@ -56,7 +56,7 @@ class ConsistencyTests(unittest.TestCase):
                 patch("devtools.jev.urllib.request.build_opener", side_effect=AssertionError("Network call")):
             result = consistency.check()
         self.assertEqual("passed", result["status"], result)
-        self.assertEqual({"adapter_manifest", "adapter_interfaces", "role_catalog", "skills", "configuration_defaults", "mcp_tools"},
+        self.assertEqual({"adapter_manifest", "adapter_interfaces", "role_catalog", "skills", "runtime_defaults", "configuration_defaults", "mcp_tools"},
                          {row["name"] for row in result["checks"]})
 
     def test_unselected_plugin_with_missing_implementation_is_not_silently_ignored(self):

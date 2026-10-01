@@ -44,13 +44,13 @@ def initialize(directory, workspace, members, co=None, project=None, runtime=Fal
         raise ValueError("Configure at least one member.")
     if co is not None and not any(row["name"] == co and row["harness"] == "external" for row in rows):
         raise ValueError("CO must name the external user-facing session.")
-    Store(directory).initialize(rows)
-    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {}),
-                        **({"runtime": True} if runtime else {})})
     if runtime:
         from .runtime import defaults
 
         defaults(directory)
+    Store(directory).initialize(rows)
+    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {}),
+                        **({"runtime": True} if runtime else {})})
     return {"state": str(directory), "members": rows}
 
 

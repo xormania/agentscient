@@ -70,6 +70,13 @@ def _team(directory):
             "fixed_members": len(team["members"]) if profiles is None else None}
 
 
+def _runtime_defaults():
+    from .runtime import default_policy
+
+    policy = default_policy()
+    return {"roles": len(policy["roles"]), "profiles": len(policy["profiles"])}
+
+
 def check(directory=None):
     """Return an inspectable result; fail closed on any dangling or invalid reference."""
     checks = []
@@ -92,6 +99,7 @@ def check(directory=None):
     if catalog is not None:
         checks[-1]["detail"] = {"roles": len(catalog["roles"]), "defaults": len(catalog["defaults"])}
         inspect("skills", lambda: _skills(catalog))
+    inspect("runtime_defaults", _runtime_defaults)
     policy = inspect("configuration_defaults", lambda: configuration.validate(configuration.defaults()))
     if policy is not None:
         checks[-1]["detail"] = {"version": policy["version"], "features": policy["features"]}

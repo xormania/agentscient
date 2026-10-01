@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import test_delivery
 import test_workspaces
-from support import Client, adopt_plan, fixture_work
+from support import Client, adopt_plan, fixture_work, runtime_policy
 from test_commands import responsibility
 
 from devtools.api import API
@@ -294,7 +294,7 @@ class AdviceTests(unittest.TestCase):
         team = json.loads((self.state / "team.json").read_text())
         team["runtime"] = True
         (self.state / "team.json").write_text(json.dumps(team))
-        policy = json.loads((self.state / "roles.json").read_text())
+        policy = runtime_policy()
         for profile in policy["profiles"].values():
             profile.update(binary="/bin/true", model="fixture-model", reasoning="high")
         (self.state / "roles.json").write_text(json.dumps(policy))

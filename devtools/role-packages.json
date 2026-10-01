@@ -1,5 +1,5 @@
 {
-  "source_sha256": "c9909f3f40743c0b7d9d35d3e97ac2d8718ec74129c8e73fe7bc9783d0631951",
+  "source_sha256": "c7b23081987b7367043952cb350dc238989ecb10776cdf64504084e1c1b87ec7",
   "catalog": {
     "version": 2,
     "defaults": {
@@ -269,6 +269,79 @@
         "skills": {
           "shared": "agentscient-context",
           "role": "agentscient-audit",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "review_record"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "security_auditor": {
+        "version": 2,
+        "behavior": "audit",
+        "responsibility": "Independently inspect the submitted immutable revision for security defects within the assigned scope; report reproducible findings with impact and evidence without editing the producer's source.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-security-auditor",
           "framework": [
             "mate-system-information",
             "mate-php-environment-check",

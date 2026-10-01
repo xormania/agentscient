@@ -9,6 +9,7 @@ from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
 import test_workspaces
+from support import runtime_policy
 
 from devtools import readiness, role_packages
 from devtools.api import API
@@ -101,7 +102,7 @@ class ReadinessTests(unittest.TestCase):
         availability["vendors"]["openai"]["available"] = True
         availability["vendors"]["anthropic"]["available"] = True
         (self.state / "vendors.json").write_text(json.dumps(availability))
-        return json.loads((self.state / "roles.json").read_text())
+        return runtime_policy()
 
     def test_documented_dynamic_setup_checks_real_capacity_and_selected_fallback_readonly(self):
         policy = self.dynamic_team()

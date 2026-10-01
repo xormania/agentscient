@@ -216,6 +216,16 @@ packages: #Catalog & {
 				"serena": true
 			}
 		}
+		security_auditor: {
+			behavior:       "audit"
+			responsibility: "Independently inspect the submitted immutable revision for security defects within the assigned scope; report reproducible findings with impact and evidence without editing the producer's source."
+			skills: {
+				role:      "agentscient-security-auditor"
+				framework: audit.skills.framework
+			}
+			mcp:       audit.mcp
+			workspace: audit.workspace
+		}
 		docs: {
 			behavior:         "docs"
 			"responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations."

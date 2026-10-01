@@ -11,6 +11,8 @@ from .harnesses import get as harness_adapter
 from .role_packages import adapter, catalog, default_role, names_for_adapter, runtime_profile
 from .store import canonical, stamp
 
+DEFAULTS = Path(__file__).with_name("runtime-defaults.json")
+
 
 def co_role(scope=None):
     """Use the appointed interface's bound identity, or its initial catalog default."""
@@ -20,35 +22,43 @@ def co_role(scope=None):
     return role
 
 
+def vendor_defaults(policy):
+    """Availability is local consent, never enabled by a repository model choice."""
+    profiles = policy.get("profiles", {}) if isinstance(policy, dict) else {}
+    rows = profiles.values() if isinstance(profiles, dict) else ()
+    vendors = {row["vendor"] for row in rows
+               if isinstance(row, dict) and isinstance(row.get("vendor"), str)}
+    return {"version": 1, "vendors": {vendor: {"available": False, "reason": "Enable after login"}
+                                     for vendor in sorted(vendors)}}
+
+
+def default_policy():
+    """Load maintained initial choices through the same validator as private policy."""
+    policy = json.loads(DEFAULTS.read_text())
+    validate(policy, vendor_defaults(policy))
+    return policy
+
+
 def defaults(directory):
     from .profiles import write_json
 
+    policy = default_policy()
     directory = Path(directory)
-    choices = list(adapter_names("harness"))
-    vendors = {name: harness_adapter(name).vendor for name in choices}
-    write_json(
-        directory / "roles.json",
-        {
-            "version": 1,
-            "max_sessions": 12,
-            "profiles": {h: {"harness": h, "vendor": v, "model": None, "reasoning": None} for h, v in vendors.items()},
-            "roles": {role: list(package["runtime"]["harnesses"])
-                      for role, package in catalog()["roles"].items()},
-        },
-    )
-    write_json(
-        directory / "vendors.json",
-        {
-            "version": 1,
-            "vendors": {v: {"available": False, "reason": "Enable after login"} for v in vendors.values()},
-        },
-    )
+    if any((directory / name).exists() for name in ("roles.json", "vendors.json")):
+        raise ValueError("Runtime policy already exists; edit its roles.json and vendors.json to change configuration.")
+    write_json(directory / "roles.json", policy)
+    write_json(directory / "vendors.json", vendor_defaults(policy))
 
 
 def load(directory):
     directory = Path(directory)
     policy = json.loads((directory / "roles.json").read_text())
     availability = json.loads((directory / "vendors.json").read_text())
+    return validate(policy, availability)
+
+
+def validate(policy, availability):
+    """Validate maintained and operator policy without starting a harness."""
     if not isinstance(policy, dict) or set(policy) != {"version", "max_sessions", "profiles", "roles"}:
         raise ValueError("roles.json needs version, max_sessions, profiles and roles")
     if not isinstance(availability, dict) or set(availability) != {"version", "vendors"}:

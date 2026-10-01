@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import adopt_plan
+from support import adopt_plan, runtime_policy
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -26,7 +26,7 @@ class RuntimeTests(unittest.TestCase):
         initialize(self.state, self.workspace, ["owner:external"], co="owner", runtime=True)
         self.store = Store(self.state)
         self.co = API(self.state, "owner")
-        policy = json.loads((self.state / "roles.json").read_text())
+        policy = runtime_policy()
         for row in policy["profiles"].values():
             row.update(binary="/bin/true", model="configured-model", reasoning="high")
         self.write("roles", policy)

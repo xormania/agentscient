@@ -4,7 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 
-from support import Client, require_tmux, retain_native, terminal_team, until
+from support import Client, require_tmux, retain_native, runtime_policy, terminal_team, until
 
 from devtools.control import Control
 from devtools.launch import initialize
@@ -25,7 +25,7 @@ class NativeProtocolTests(unittest.TestCase):
             initialize(state, workspace, ["owner:external"], co="owner", runtime=True)
             fixture = Path(__file__).with_name("native_fixture.py")
             fixture.chmod(0o755)
-            policy = json.loads((state / "roles.json").read_text())
+            policy = runtime_policy()
             for row in policy["profiles"].values():
                 row["binary"] = str(fixture)
             (state / "roles.json").write_text(json.dumps(policy))

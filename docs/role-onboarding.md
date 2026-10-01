@@ -25,6 +25,7 @@ the table is not a required role list.
 | Planner | Work-order discovery and an evidence-backed job breakdown for XO | `agentscient-planner` |
 | Coder | Scoped source changes, installed framework capabilities, validation | `agentscient-coder` |
 | Audit | Immutable revision review, reproducible findings, independent assessment | `agentscient-audit` |
+| Security Auditor | Immutable revision security review, attack prerequisites, impact and reproducible evidence | `agentscient-security-auditor` |
 | Docs | Accurate documentation, examples, reader needs and limits | `agentscient-docs` |
 | Research | Source provenance, facts versus inference, supported recommendations | `agentscient-research` |
 | Test Writer | Behavior tests, regressions, useful boundaries and measured evidence | `agentscient-test-writer` |
@@ -39,7 +40,7 @@ An in-flight response keeps its captured role binding for its context, tools and
 catalog, so a concurrent rebind takes effect on the next request.
 
 When installed development tools are enabled for the bound job, the catalog also
-includes the package's relevant configured Mate skills. Shipped Coder, Audit,
+includes the package's relevant configured Mate skills. Shipped Coder, Audit, Security Auditor,
 Research, Planner and Test Writer packages declare all six; Docs and Architect
 declare system information and service inspection. XO/NCO declare all six for
 eligible job contexts, while available framework tools still depend on the binding

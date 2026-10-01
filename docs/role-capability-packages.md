@@ -50,8 +50,11 @@ availability, custom model/reasoning strings, binary paths and providers support
 by the selected harness adapter. Runtime preferences may cover a nonempty subset
 of catalog roles; a missing requested role has no implicit preferences.
 
-Package model/reasoning defaults and allowlists are initially `null`: configured
-operator choices and native inherited defaults retain their existing behavior.
+Package model/reasoning defaults and allowlists remain `null`: they do not lock
+roles to a vendor or model. The maintained [initial runtime policy](../devtools/runtime-defaults.json)
+supplies explicit role/profile choices for fresh shared teams; private operator
+choices take over after initialization. Setting a private profile's model or
+reasoning to `null` restores native inheritance.
 An explicit package allowlist requires an explicitly permitted configured value
 or a permitted package default. An unknown inherited value cannot satisfy it.
 Invalid profiles are rejected before workspace preparation or new seat allocation.

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, fixture_work, retain_native, until
+from support import ENTRY, Client, fixture_work, retain_native, runtime_policy, until
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
@@ -27,7 +27,7 @@ class SessionTests(unittest.TestCase):
         self.state, self.workspace = self.root / "state", self.root / "workspace"
         self.workspace.mkdir()
         initialize(self.state, self.workspace, ["owner:external"], co="owner", runtime=True)
-        policy = json.loads((self.state / "roles.json").read_text())
+        policy = runtime_policy()
         for row in policy["profiles"].values():
             row.update(binary="/bin/true", model="selected-model", reasoning="high")
         (self.state / "roles.json").write_text(json.dumps(policy))

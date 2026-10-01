@@ -47,8 +47,9 @@ in `team.json`'s `github` section, or `AGENTSCIENT_GITHUB_TOKEN`. Credentials ne
 appear in agent tool inputs. Git push authentication is separate from API access.
 
 Create the team with shared role policy. The service allocates instances as XO
-requests roles; multiple jobs can use the same role. Enable your logged-in vendors
-and edit ordered harness/model/reasoning preferences in the generated private
+requests roles; multiple jobs can use the same role. Initialization copies the
+maintained role/model/effort lineup into private policy. Enable your logged-in vendors
+and review ordered harness/model/reasoning preferences in the generated private
 `roles.json` and `vendors.json` files. See [runtime policy](shared-runtime-config.md).
 The dynamic team needs only the external CO member in `team.json`. Set
 `roles.json`'s `max_sessions` to at least two for XO plus a planner or specialist;
@@ -70,7 +71,8 @@ separate Serena image. It does not start models. It refuses to replace an existi
 team. For an existing team, edit its private `team.json`; see
 [team and project configuration](../devtools/OPERATIONS.md#team-and-project-configuration).
 Existing fixed-member teams remain supported. Shared runtime teams set optional
-`binary`, `model` and `reasoning` in role profiles. No model is forced by the repository.
+`binary`, `model` and `reasoning` in role profiles. Maintained defaults select explicit
+models; operator policy can change them without modifying capability packages.
 For a PHP binary outside PATH, set `project.development.php` to
 its absolute path; `project.development.composer` can select Composer as well.
 

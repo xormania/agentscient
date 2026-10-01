@@ -79,6 +79,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Planner (`planner`) | Shared and specialist inspection/reporting tools at work-order scope; retained plan required for a result to XO | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
+| Security Auditor (`security_auditor`) | `review_record` with a security review focus | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
 | Research (`research`) | Shared and specialist inspection/reporting tools | Read-only source |
 | Test Writer (`test_writer`) | Editing tools; `framework_generate` for `make:test` | `tests/` and PHPUnit configuration |
@@ -456,7 +457,7 @@ The beta source revision and PHPactor dependency are pinned in the
 The REPL executes unrestricted Python inside its container. The container has no
 runtime network, host home/credentials, control-plane database or Docker socket.
 Source is mounted read-only with only the editing role's assigned paths writable;
-audit, research and planner source stay read-only. Explicit job context paths curate
+source for auditors, researchers and planners stays read-only. Explicit job context paths curate
 the visible project. Protected Maker directories stay read-only beneath broader
 editing paths. Provider configuration/cache/memories have a separate
 private mount. Writable aliases/symlinks are rejected.
@@ -470,8 +471,10 @@ Force-killed providers can require operator cleanup of a leftover container.
 
 ## Review, CI and external feedback
 
-The job's coordinator can add `role="audit"` to the producer's named job. Audit uses a detached snapshot
-of the submitted revision, or the current checkpoint before submission. Producer
+The job's coordinator can add `role="audit"` or `role="security_auditor"` to the
+producer's named job. Both reuse the audit behavior; `audit` remains its default
+role, and the security specialization adds no acceptance gate. Each uses a detached
+snapshot of the submitted revision, or the current checkpoint before submission. Producer
 edits cannot silently change that view. `work_inspect(section="review")` refreshes
 the snapshot and returns the PR, CI, findings and changed files.
 
@@ -489,7 +492,7 @@ before acceptance. CI changes are delivered to the worker and its current superv
 
 | Tool | Outcome |
 | --- | --- |
-| `review_record` | Audit records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
+| `review_record` | An auditor records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
 | `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. XO supplies a work-order thread reference from `monitor(section="feedback")` and can set `resolve:true` after addressing the finding. |
 
 The service retains and routes findings/responses to the job participants and XO.
