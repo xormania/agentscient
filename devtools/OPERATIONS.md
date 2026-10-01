@@ -173,14 +173,15 @@ export; CUE is a maintainer generation and CI check dependency. The private
 {"configuration_file": "configuration.json"}
 ```
 
-Create that file in the team state directory. This example enables the Jev features
-independently and loads a local key file:
+Create that file in the team state directory. This example selects a local key
+file, keeps the maintained decision features enabled, and enables direct assessment tools:
 
 ```json
 {
   "version": 1,
   "project": {
     "features": {
+      "selection": true,
       "advice": true,
       "filtering": true,
       "guidance": true,
@@ -191,7 +192,7 @@ independently and loads a local key file:
     }
   },
   "roles": {
-    "research": {"filtering": {"threshold": 0.1}}
+    "research": {"decisions": {"rules": {"context_relevance": {"noul": {"reject_below": 0.1}}}}}
   },
   "jobs": {}
 }
@@ -226,18 +227,20 @@ exports are rejected. Empty `roles` and `jobs` sections may be omitted.
 
 | Section | Configurable behavior |
 | --- | --- |
-| `features` | Independent `advice`, `filtering`, `guidance`, `completion` booleans. Defaults enable guidance only; possessing a key does not enable Jev requests. |
+| `features` | Independent `selection`, `advice`, `filtering`, `guidance`, `completion` booleans. Defaults enable selection, filtering, guidance and completion; `advice` controls optional direct assessment tools and remains disabled. |
+| `decisions` | Configured Arbitrator role, reserved sessions, provider failure handling, unresolved Choice labels, Noul/Choice/Score thresholds and per-purpose overrides. |
 | `connection`, `model`, `transport` | Installed adapter, HTTPS endpoint, credential reference, model, timeouts, attempts, retry statuses/delays and payload limits. |
 | `scope`, `assessment` | Mission/scope rubric, source/question counts, source excerpt limits and assessment rules. |
-| `assignment` | Role/runtime advice rubrics, eligible role names, candidate and evidence limits, performance evidence and uncertainty wording. |
-| `filtering` | Noul threshold, eligible report kinds, protected text pattern, excluded role/adapter sets, fact/state budgets, relevance question, failure mode/message. |
+| `assignment` | Role/runtime selection rubrics, eligible role names, candidate limits and configured performance evidence. |
+| `filtering` | Eligible report kinds, protected text pattern, excluded role/adapter sets, fact/state budgets, relevance question and context-preservation behavior. Decision thresholds live under `decisions.rules.context_relevance`. |
 | `guidance` | Excluded role/adapter sets, diagnostic limits, ordered regex/role/adapter/action routes, action instructions, recovery templates and count limit, fallback skill/action, delivery excerpt size and failure mode. |
-| `completion` | Three boundary rules, independent proof questions, minimum probability, evidence budgets and assessment failure mode. |
+| `completion` | Three boundary rules, independent proof questions and evidence budgets. Decision thresholds live under `decisions.rules.completion`. |
 
 `assignment.profile_evidence` maps configured runtime profile names (fixed teams:
 member names) to dated evidence text. Include task family, harness/model/reasoning,
 result and source references. Missing evidence remains unknown; benchmarks are not
-invented. Recommendations do not change runtime allocation policy.
+invented. Selection may choose only an eligible available profile from the current
+runtime policy; it does not edit that policy.
 
 Inspect resolved settings without reading a key or contacting TypeSafe:
 
@@ -277,10 +280,11 @@ sections. Set the feature switches deliberately, then remove `project.jev` and i
 retired policy-file selectors. The old `jev.json` and `completion-policy.cue/json`
 formats are no longer runtime inputs.
 
-Enabling Jev advice, filtering or completion permits the service to send the scoped
+Enabling Jev selection, advice, filtering or completion permits the service to send the scoped
 context and selected evidence to the configured TypeSafe endpoint. The common
 credential filter runs before transmission. Filtering runs on routine brief reads;
-completion runs at its configured boundaries; advice runs on explicit advice calls.
+completion runs at its configured boundaries; selection runs before assignment;
+direct assessment runs on explicit `work_assess` calls.
 There is no background repository scan or Jev request from native hooks.
 
 Requests default to a 28,000-byte serialized budget, an eight-second socket timeout
@@ -300,15 +304,54 @@ Failed evaluations retain the original redacted diagnostic and a structured
 `failure` with `category`, `reason`, and trusted `details`. Event outcomes distinguish
 `unavailable`, `invalid_response`, `invalid_request`, and unclassified `failed`.
 Missing credentials require operator correction; transport/HTTP failure details
-identify retryability separately. A malformed response supplies no judgment and
-never qualifies for unavailable-provider completion fallback.
+identify retryability separately. A malformed response supplies no judgment.
+The decision policy can assign unresolved provider failures to Arbitrator or block
+them; neither result converts an outage or invalid response into approval.
 
 `work_assess(proposal=..., sources=...)` uses the configured mission rubric without
 creating work or changing authority. `work_report.evaluation` links decisions and
 later outcomes to retained assessments through `jev_feedback`. Historical results
-remain available, but a changed binding cannot reuse an old assessment as current
-advice. Fixture tests establish integration behavior; authenticated evaluations
+remain available, but a changed binding cannot reuse an old assessment as a current
+decision. Fixture tests establish integration behavior; authenticated evaluations
 are needed to measure judgment quality and savings.
+
+### Service decisions and arbitration
+
+The service retains each semantic decision with its authoritative work binding,
+input identity, evaluation evidence and effective policy. Noul answers become true
+at or above `accept_at`, false below `reject_below`, and otherwise remain unresolved.
+Choice requires its selected option to meet the configured probability/confidence
+and runner-up margin; configured unknown labels remain unresolved. Score requires
+the configured confidence and distribution margin before its measured value is used.
+
+The default Noul thresholds are 0.35/0.65. Completion overrides them to 0.65/0.85;
+context relevance uses 0.15/0.35. Choice requires 0.65 probability/confidence and a
+0.15 margin; Score requires 0.65 confidence and a 0.15 margin. These are configurable
+decision rules, not agent interpretation of prose or a shared meaning of model effort.
+
+Unresolved decisions are assigned to the configured `decisions.arbitrator_role`.
+The default `decisions.failure_mode: "arbitrate"` also assigns provider-unavailable
+and invalid-response cases; `"block"` preserves those failures without assignment.
+The service creates the Arbitrator's work binding and supplies `work_context.decision`;
+coordinators do not appoint this role through `orchestrate`. Arbitrator investigates
+within its read-only scope and uses `decision_resolve(decisions, reason, evidence)`
+for exactly the supplied unresolved questions. It cannot replace prior decisive
+answers, rewrite requirements or bypass mechanical checks.
+
+`decisions.reserved_sessions` defaults to one (range 1–10). Ordinary allocations
+leave that capacity available for Arbitrator, including eligible members of a fixed
+team. Shared-runtime `max_sessions` counts the reserve, so 12 permits 11 ordinary
+collaborators plus one Arbitrator. Readiness checks require enough capacity for XO,
+a producer and the reserve. Existing saturated teams must release capacity or raise
+the limit when enabling decisions; the service does not evict existing assignments.
+Pending investigations retry when eligible capacity becomes available.
+
+A resolution is bound to current context and policy. Changed source/evidence,
+assignment, requirements or configuration requires a fresh applicable decision.
+The service releases the resolved arbitration assignment and resumes a retained
+initiating operation through its normal checks. It never accepts replacement tool
+arguments from the Arbitrator. A blocked continuation retains its actual failure;
+another unresolved question may need a separate investigation.
 
 ### Scoped guidance and proof boundaries
 
@@ -337,7 +380,7 @@ and `reasons` selectors (empty lists match any), an existing managed `tool`,
 `arguments`, and a `when` instruction. Exact argument values `$reference` and
 `$check` bind readable retained references and actual configured check names;
 unknown placeholders or tools and invalid argument schemas fail validation.
-Tool schemas use the effective policy, including role/job advice limits.
+Tool schemas use the effective policy, including role/job assessment limits.
 `max_recovery_actions` bounds delivery (default six). Templates can reference only
 the current tool surface at delivery. Check suggestions also require the same job
 and, for assignment proof, the same assignment. An officer reading a specialist's
@@ -351,24 +394,24 @@ precondition for a suggested call. The agent chooses its next step; normal servi
 checks reauthorize every call against current work. A suggestion neither grants
 permission nor changes completion policy. Producing it makes no additional Jev call.
 
-With filtering enabled, the default policy omits background reports below relevance
-Noul 0.2. Thresholds, eligible kinds, protected text and role/job overrides are
+With filtering enabled, the service omits background reports only after their
+relevance decision is false. Thresholds, eligible kinds, protected text and role/job overrides are
 configurable. Core context, incoming messages and evidence-bearing reports remain
 outside filtering; raw reports and authorized reference reads remain intact.
-Facts beyond the candidate budget are preserved. Oversized or unavailable relevance
-assessment preserves context; `failure_mode: "notice"` additionally returns the
-configured advisory message, while `"preserve"` remains silent.
+Facts beyond the candidate budget are preserved. Oversized, failed or pending
+relevance decisions preserve context; `filtering.failure_mode: "notice"` additionally
+returns the configured message, while `"preserve"` remains silent. Arbitrator's
+own context is excluded from filtering to avoid recursive investigation.
 
 With completion enabled, proof is checked before planner adoption, specialist
 completion, job acceptance and work-order conclusion. Cancellation releases a
 contribution; it does not prove the owner's goal. The configured objective,
-completion-condition and constraint questions each must meet the threshold;
+completion-condition and constraint questions each must resolve true;
 scores are never averaged. Failed measurements, missing proof and stale revisions
-remain mechanical barriers. Jev assesses adequacy within the configured boundary;
-it cannot override CI, permissions, review or workspace requirements. The default
-`failure_mode: "block"` blocks unavailable assessment. The explicit
-`"mechanical_only"` mode permits fallback to mechanical checks when assessment is
-unavailable; it does not turn a negative assessment into a pass.
+remain mechanical barriers. Jev supplies the semantic evaluation within the
+configured boundary and Arbitrator resolves ambiguous questions. Neither can
+override CI, permissions, review or workspace requirements. Pending arbitration
+keeps completion waiting; a false decision reports the unmet requirement.
 
 Existing events distinguish guidance delivery, skill reads, context projection,
 completion assessment and refusal, and retain effective configuration revisions.
@@ -379,7 +422,8 @@ successful original retry marks that condition resolved; pending, uncertain,
 empty and failed outcomes do not. Suggested check observations retain the named
 measurement, source revision, cleanliness and evidence separately. These links
 establish sequence and observed outcomes, not that guidance caused recovery.
-Jev decisions and outcomes continue to use the existing feedback path. Tests use isolated
+Evaluation feedback and observed outcomes retain their existing report links;
+service decision selection, arbitration and application have separate events. Tests use isolated
 temporary state. Result reports capture an existing managed workspace revision
 internally; this identifies capture context rather than proving a measurement.
 Configured check artifacts retain the command definition with observed output.

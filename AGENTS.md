@@ -32,6 +32,11 @@ Each agent runs in a standalone managed native conversation. Agentscient owns
 session creation, assignments and coordination; agents do not use harness-native
 subagents. Role and work authority come from the service binding and are enforced
 by MCP tools, independently of model, harness, reasoning settings or skills.
+With semantic decisions enabled, the service applies Jev's selections among
+configured eligible roles and runtimes. Unresolved questions go to a service-bound
+Arbitrator; its evidenced resolution resumes the waiting operation through the
+ordinary checks. Adversarial Review is an independent audit role, not a substitute
+for those checks.
 Local agents invoke maintained Makers through MCP; they never author or modify
 Makers. Extra improvements can be reported without becoming assignments.
 Command services bind work and configured collaborators, supply current briefs,

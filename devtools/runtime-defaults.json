@@ -18,7 +18,15 @@
       "harness": "codex",
       "vendor": "openai",
       "model": "gpt-6.1-sol",
-      "reasoning": "xhigh"
+      "reasoning": "xhigh",
+      "provider": "openai"
+    },
+    "codex_sol6_high": {
+      "harness": "codex",
+      "vendor": "openai",
+      "model": "gpt-6-sol",
+      "reasoning": "high",
+      "provider": "openai"
     },
     "claude_opus_xhigh": {
       "harness": "claude",
@@ -30,7 +38,15 @@
       "harness": "codex",
       "vendor": "openai",
       "model": "gpt-6-astra",
-      "reasoning": "max"
+      "reasoning": "max",
+      "provider": "openai"
+    },
+    "codex_astra_xhigh": {
+      "harness": "codex",
+      "vendor": "openai",
+      "model": "gpt-6-astra",
+      "reasoning": "xhigh",
+      "provider": "openai"
     },
     "grok_high": {
       "harness": "grok",
@@ -42,7 +58,8 @@
       "harness": "codex",
       "vendor": "openai",
       "model": "gpt-daybreak-blue-latest",
-      "reasoning": "xhigh"
+      "reasoning": "xhigh",
+      "provider": "openai"
     },
     "claude_sonnet_high": {
       "harness": "claude",
@@ -72,6 +89,9 @@
     "research": [
       "codex_astra_max"
     ],
+    "arbitrator": [
+      "codex_astra_xhigh"
+    ],
     "coder": [
       "claude_opus_xhigh"
     ],
@@ -83,6 +103,9 @@
     ],
     "security_auditor": [
       "codex_daybreak_blue_xhigh"
+    ],
+    "adversarial_review": [
+      "codex_sol6_high"
     ],
     "docs": [
       "claude_sonnet_high"

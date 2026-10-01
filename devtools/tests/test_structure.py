@@ -4,11 +4,10 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from support import Client, adopt_plan, fixture_work
+from support import Client, adopt_plan, fixture_work, initialize
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
-from devtools.launch import initialize
 from devtools.store import Store
 
 

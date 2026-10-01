@@ -56,9 +56,10 @@ class RenamedWorkflowTests(unittest.TestCase):
         import tempfile
         from pathlib import Path
 
+        from support import initialize
+
         from devtools.api import API
         from devtools.configuration import defaults
-        from devtools.launch import initialize
 
         settings = defaults()
         catalog = role_packages.catalog()
@@ -84,7 +85,8 @@ class RenamedWorkflowTests(unittest.TestCase):
             team["project"] = {"configuration_file": "configuration.json"}
             (state / "team.json").write_text(json.dumps(team))
             (state / "configuration.json").write_text(json.dumps({"version": 1, "project": {
-                "features": {"completion": True}, "guidance": settings["guidance"]}}))
+                "features": {"completion": True, "selection": False, "filtering": False}, "guidance": settings["guidance"],
+                "decisions": {"arbitrator_role": names["arbitrator"]}}}))
             co, xo = API(state, "owner"), API(state, "leader")
             co.call("direct", {"title": "Research", "objective": "Deliver Alpha and Beta", "done_when": "Both results demonstrated", "constraints": "Research only"})
             self.assertEqual(names["co"], co.control.snapshot()["role"])

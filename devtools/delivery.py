@@ -454,3 +454,4 @@ class Delivery:
             "UPDATE members SET desired='stopped',selected_work_order=NULL,selected_job=NULL WHERE name=?", (member,)
         )
         db.execute("DELETE FROM member_bindings WHERE member=?", (member,))
+        db.execute("DELETE FROM runtime_selections WHERE member=?", (member,))

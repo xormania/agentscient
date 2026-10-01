@@ -26,8 +26,10 @@ the table is not a required role list.
 | Coder | Scoped source changes, installed framework capabilities, validation | `agentscient-coder` |
 | Audit | Immutable revision review, reproducible findings, independent assessment | `agentscient-audit` |
 | Security Auditor | Immutable revision security review, attack prerequisites, impact and reproducible evidence | `agentscient-security-auditor` |
+| Adversarial Review | Immutable revision review of assumptions, counterexamples, boundary behavior and completion claims | `agentscient-adversarial-review` |
 | Docs | Accurate documentation, examples, reader needs and limits | `agentscient-docs` |
 | Research | Source provenance, facts versus inference, supported recommendations | `agentscient-research` |
+| Arbitrator | Evidence-backed resolution of an assigned pending decision, without source edits or execution coordination | `agentscient-arbitrator` |
 | Test Writer | Behavior tests, regressions, useful boundaries and measured evidence | `agentscient-test-writer` |
 | Architect | Existing capabilities, interfaces, design tradeoffs and migration | `agentscient-architect` |
 
@@ -41,10 +43,12 @@ catalog, so a concurrent rebind takes effect on the next request.
 
 When installed development tools are enabled for the bound job, the catalog also
 includes the package's relevant configured Mate skills. Shipped Coder, Audit, Security Auditor,
-Research, Planner and Test Writer packages declare all six; Docs and Architect
+Adversarial Review, Research, Planner and Test Writer packages declare all six; Docs and Architect
 declare system information and service inspection. XO/NCO declare all six for
 eligible job contexts, while available framework tools still depend on the binding
 and provider prerequisites. CO declares interface guidance without framework skills.
+Arbitrator declares decision guidance and read-only source inspection without
+framework execution skills or direct Jev assessment.
 Repository Mate skill guidance uses `framework_inspect` directly, with focused
 parameters and diagnostic interpretation. It does not append a second CLI adapter.
 When refreshing upstream Mate exports, retain the managed MCP examples before committing. The profiler resource path is available as `kind="mate_resource"`

@@ -8,12 +8,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import runtime_policy
+from support import initialize, runtime_policy
 
 from devtools import console, role_packages
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize
 from devtools.store import Store
 
 

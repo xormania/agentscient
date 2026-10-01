@@ -1,4 +1,4 @@
-"""Two on-demand Jev capabilities, using existing work scopes, artifacts and telemetry."""
+"""Retained Jev evaluations and scoped classification over existing work evidence."""
 
 from __future__ import annotations
 
@@ -18,16 +18,13 @@ from .control import Control, binding
 from .failures import Failure, failure_info
 from .jev import Jev, checked_questions
 from .jev_config import clean_questions, validate_question
-from .role_packages import adapter, catalog, require_capability
+from .role_packages import adapter, require_capability
 from .store import canonical, stamp
 from .telemetry import clean
 from .workspaces import Workspaces, git
 
-
-def specialists():
-    return [name for name in catalog()["roles"] if adapter(name) not in {"co", "xo"}]
 VERSION = 4
-NOTE = "Advisory assessment of the supplied evidence; inspect uncertainty and source ranges before acting."
+NOTE = "Retained evaluation of the supplied evidence; service decisions apply configured uncertainty rules."
 
 
 def configured(store, role=None, job=None):
@@ -36,7 +33,7 @@ def configured(store, role=None, job=None):
 
 def capabilities(spec, settings=None):
     settings = settings or defaults()
-    assessment, assignment = settings["assessment"], settings["assignment"]
+    assessment = settings["assessment"]
     text = {"type": "string", "minLength": 1, "maxLength": 1000}
     name = {"type": "string", "minLength": 1, "maxLength": 80}
     reference = {"type": "string", "pattern": "^(artifact|operation):[1-9][0-9]*$", "maxLength": 80}
@@ -59,18 +56,9 @@ def capabilities(spec, settings=None):
                                             "anyOf": [{"type": "object", "maxProperties": 16},
                                                       {"type": "array", "minItems": 2, "maxItems": 10},
                                                       {"type": "null"}]}}}
-    work = {"type": "object", "additionalProperties": False,
-            "required": ["name", "role", "objective", "done_when", "constraints"], "properties": {
-                "name": name, "role": {"type": "string", "enum": specialists()},
-                "objective": text, "done_when": text, "constraints": text}}
     return [
-        spec("assignment_advise",
-             "Assess proposed responsibilities before orchestrate. Compare overlap, parallelism and configured runtime fit. Returns advice and evidence; does not allocate or change runtime policy.",
-             {"work": {"type": "array", "minItems": 1, "maxItems": assignment["max_work"], "items": work},
-              "priorities": text,
-              "evidence": {"type": "array", "maxItems": assignment["max_evidence"], "items": reference}}, ("work",), readonly=True),
         spec("work_assess",
-             "Assess source ranges with your questions, or supply a proposal for the operator's consistent mission/scope rubric against the brief and all evidence together. Advice never creates an assignment. Source budgets follow the active role/job configuration.",
+             "Classify source ranges or a proposal using typed questions and the current rubric. Ambiguous results are assigned to Arbitrator; returned decisions are resolved values. Work assignment gates run independently inside orchestrate.",
              {"sources": {"type": "array", "maxItems": assessment["max_sources"], "items": source},
               "questions": {"type": "array", "minItems": 1, "maxItems": assessment["max_questions"], "items": question},
               "proposal": {**text, "maxLength": 2000}}, readonly=True),
@@ -124,9 +112,9 @@ class Advice:
         if adapter(scope["role"]) == "co":
             raise ValueError("CO relays owner context and system outcomes; work assessment belongs to the execution roles.")
         if xo and adapter(scope["role"]) not in {"xo", "nco"}:
-            raise ValueError("Assignment advice is available to XO and NCO.")
+            raise ValueError("Assignment selection is available to XO and NCO.")
         if feature == "advice":
-            require_capability(scope["role"], "assignment_advise" if xo else "work_assess")
+            require_capability(scope["role"], "work_assess")
         return scope
 
     def brief(self):
@@ -191,8 +179,8 @@ class Advice:
                 "next_offset": next_offset, "partial": bool(offset or next_offset is not None),
                 "range_sha256": hashlib.sha256(content.encode()).hexdigest(), "content": content}
 
-    def evaluate(self, purpose, state, questions, sources, policy=None):
-        feature = {"completion": "completion", "context_relevance": "filtering", "relevance": "filtering"}.get(purpose, "advice")
+    def evaluate(self, purpose, state, questions, sources, policy=None, feature=None):
+        feature = feature or {"completion": "completion", "context_relevance": "filtering", "relevance": "filtering"}.get(purpose, "advice")
         scope = self.scope(purpose == "assignment", feature="advice" if feature == "advice" else None)
         policy = policy or self.settings(scope)
         if not policy["features"][feature]:
@@ -208,6 +196,7 @@ class Advice:
         except ValueError as error:
             raise Failure(str(error), category="invalid_request", reason="invalid_credential_configuration") from None
         state = clean(state, secrets=secrets)
+        sources = clean(sources, secrets=secrets)
         try:
             questions = clean_questions(questions, secrets=secrets)
         except ValueError as error:
@@ -343,15 +332,18 @@ class Advice:
                           {"question": instructions, "evaluate_only": f"sources[{i}].content", "rules": rules})
                 prompts[f"s{i}_q{j}"] = {**template, "instructions": scoped}
         metadata = [{k: v for k, v in item.items() if k != "content"} for item in material]
+        from .decisions import Decisions
+
         if proposal is not None:
-            return self.evaluate("scope", {"brief": self.brief(), "proposal": proposal, "sources": material},
-                                 policy["scope"]["questions"], metadata, policy)
-        result = self.evaluate("assessment", {"brief": self.brief(), "sources": material}, prompts, metadata, policy)
+            return Decisions(self.store, self.member).select("scope", {"brief": self.brief(), "proposal": proposal, "sources": material},
+                                 policy["scope"]["questions"], metadata, policy=policy)
+        result = Decisions(self.store, self.member).select("assessment", {"brief": self.brief(), "sources": material}, prompts, metadata, policy=policy)
         answers = result.pop("answers")
         result["results"] = [{"source": meta, "answers": {
-            q["name"]: answers[f"s{i}_q{j}"] for j, q in enumerate(questions)
-        }} for i, meta in enumerate(metadata)]
-        result.pop("sources")
+            q["name"]: answers[f"s{i}_q{j}"] for j, q in enumerate(questions) if f"s{i}_q{j}" in answers
+        }, "decisions": {q["name"]: result["decisions"][f"s{i}_q{j}"] for j, q in enumerate(questions)}}
+            for i, meta in enumerate(metadata)]
+        result.pop("sources", None)
         return result
 
     def runtimes(self, roles, settings=None):
@@ -393,62 +385,4 @@ class Advice:
                 raise Failure("Available collaborators exceed the configured assessment candidate budget.",
                               category="invalid_request", reason="candidate_budget_exceeded")
             result = {role: {"profiles": profiles, "configured_default": next(iter(profiles), None)} for role in roles}
-        return result
-
-    def assignment(self, work, priorities="", evidence=None):
-        scope = self.scope(xo=True)
-        policy = self.settings(scope)
-        settings = policy["assignment"]
-        if not 1 <= len(work) <= settings["max_work"] or len(evidence or []) > settings["max_evidence"]:
-            raise Failure("Assignment advice exceeds configured work/evidence limits.", category="invalid_request",
-                          reason="assignment_budget_exceeded")
-        if len({(w["name"].strip().casefold(), w["role"]) for w in work}) != len(work):
-            raise ValueError("Supply distinct work name/role pairs, as for orchestrate.")
-        with self.store.connect() as db:
-            jobs = [dict(row) for row in db.execute(
-                "SELECT id,title,status,objective,done_when,constraints FROM jobs WHERE work_order=? AND status NOT IN ('done','cancelled') ORDER BY id LIMIT ?",
-                (scope["work_order"], settings["max_jobs"] + 1),
-            )]
-        if len(jobs) > settings["max_jobs"]:
-            raise Failure("Assignment advice exceeds the configured job context budget.", category="invalid_request",
-                          reason="job_context_budget_exceeded")
-        candidates = settings["roles"] or specialists()
-        if len(candidates) > 32:
-            raise Failure("Role advice exceeds the evaluator choice budget; configure assignment.roles for this role or job.",
-                          category="invalid_request", reason="role_budget_exceeded")
-        if any(w["role"] not in specialists() for w in work):
-            raise ValueError("Assignment advice requires configured assignable roles.")
-        runtimes = self.runtimes({w["role"] for w in work}, settings)
-        material = [self.evidence(reference, limit=settings["evidence_bytes"]) for reference in evidence or []]
-        state = {"brief": self.brief(), "proposed_jobs": work, "current_jobs": jobs, "priorities": priorities,
-                 "runtimes": runtimes, "evidence": material,
-                 "capacity": Commands(self.store, self.member, self.control).monitor()["capacity"]}
-        questions = {}
-        for i, job in enumerate(work):
-            prefix = settings["prefix"].format(index=i)
-            for name in ("overlap", "parallel", "role", "runtime"):
-                template = settings["questions"][name]
-                question = {**template, "instructions": {"context": prefix, "question": template["instructions"]}}
-                if name == "role":
-                    question["criteria"] = {r: catalog()["roles"][r]["responsibility"] for r in candidates}
-                questions[f"j{i}_{name}"] = question
-            profiles = runtimes[job["role"]]["profiles"]
-            # Opaque option IDs avoid collisions with real profile names and the unknown option.
-            options = {f"p{n}": {"name": name, **profile} for n, (name, profile) in enumerate(profiles.items())}
-            questions[f"j{i}_runtime"]["criteria"] = {**options, "unknown": settings["unknown_profile"]}
-        metadata = [{k: v for k, v in item.items() if k != "content"} for item in material]
-        result = self.evaluate("assignment", state, questions, metadata, policy)
-        answers = result.pop("answers")
-        result["recommendations"] = []
-        for i, job in enumerate(work):
-            runtime = answers[f"j{i}_runtime"]
-            choices = {f"p{n}": name for n, name in enumerate(runtimes[job["role"]]["profiles"])}
-            result["recommendations"].append({
-                "name": job["name"], "proposed_role": job["role"],
-                "role": answers[f"j{i}_role"], "overlap": answers[f"j{i}_overlap"],
-                "parallel_ready": answers[f"j{i}_parallel"],
-                "runtime": {**runtime, "profile": choices.get(runtime["choice"]), "candidates": choices,
-                            "configured_default": runtimes[job["role"]]["configured_default"]},
-            })
-        result["next"] = settings["next_action"]
         return result

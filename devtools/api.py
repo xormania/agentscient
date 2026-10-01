@@ -12,6 +12,7 @@ from .commands import Commands, role_tools
 from .commands import capabilities as command_capabilities
 from .control import REQUEST_BINDING, Control
 from .control import capabilities as control_capabilities
+from .decisions import capabilities as decision_capabilities
 from .delivery import Delivery
 from .delivery import capabilities as delivery_capabilities
 from .development import capabilities as development_capabilities
@@ -353,6 +354,7 @@ WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", 
 TOOLS += development_capabilities(spec)
 TOOLS += delivery_capabilities(spec)
 TOOLS += advice_capabilities(spec)
+TOOLS += decision_capabilities(spec)
 validate_tools(row["name"] for row in TOOLS)
 
 
@@ -429,7 +431,7 @@ class API:
             allowed |= set(groups["session"]) | set(groups["command"])
         if scope and adapter(role) != "co" and advice_configured(self.store, role=role, job=scope["job"]):
             allowed |= set(groups["advice"])
-        if scope and adapter(role) != "co" and (scope["job"] or adapter(role) == "planner") and project_config(self.store):
+        if scope and adapter(role) != "co" and (scope["job"] or adapter(role) in {"planner", "arbitrator"}) and project_config(self.store):
             allowed |= set(groups["job"])
             if development_configured(self.store):
                 allowed |= set(groups["job_framework"])
@@ -441,7 +443,7 @@ class API:
             allowed -= {"conclude", "restart_xo"}
         current = {row["name"]: row for row in command_capabilities(spec)}
         rows = [current.get(row["name"], row) for row in TOOLS if row["name"] in allowed]
-        if allowed & {"assignment_advise", "work_assess"}:
+        if "work_assess" in allowed:
             from .configuration import resolve
 
             configured = {row["name"]: row for row in advice_capabilities(spec, resolve(self.store, role, scope["job"]))}
@@ -543,7 +545,9 @@ class API:
         event = self.store.event(self.member, "operation_started", capability=capability)
         candidates = capture_recovery(self.store, self.member, capability, args) if not self.operator and capability not in ACTIONS else []
         try:
-            result = self.invoke(capability, args)
+            from .decisions import request
+            with request(self.member, capability, args):
+                result = self.invoke(capability, args)
         except Exception as error:
             record_recovery(self.store, self.member, candidates, operation=f"event:{event}", error=error)
             self._diagnose(error, capability, arguments=args, operation=f"event:{event}")
@@ -589,9 +593,12 @@ class API:
         return result
 
     def invoke(self, name, args):
-        if name in {"assignment_advise", "work_assess"}:
-            advice = Advice(self.store, self.member)
-            return advice.assignment(**args) if name == "assignment_advise" else advice.assess(**args)
+        if name == "decision_resolve":
+            from .decisions import Decisions
+
+            return Decisions(self.store, self.member).resolve(**args)
+        if name == "work_assess":
+            return Advice(self.store, self.member).assess(**args)
         if name in {"onboard", "skill_read"}:
             from .onboarding import Onboarding
 

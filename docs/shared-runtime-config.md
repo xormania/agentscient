@@ -51,19 +51,36 @@ The maintained initial choices are:
 | Planner, Test Writer | `codex_sol_xhigh` | `gpt-6.1-sol` | `xhigh` |
 | Architect, Coder | `claude_opus_xhigh` | `claude-opus-5-5` | `xhigh` |
 | Research | `codex_astra_max` | `gpt-6-astra` | `max` |
+| Arbitrator | `codex_astra_xhigh` | `gpt-6-astra` | `xhigh` |
 | Audit | `grok_high` | `grok-4.7` | `high` |
 | Security Auditor | `codex_daybreak_blue_xhigh` | `gpt-daybreak-blue-latest` | `xhigh` |
+| Adversarial Review | `codex_sol6_high` | `gpt-6-sol` | `high` |
 | Docs | `claude_sonnet_high` | `claude-sonnet-5-5` | `high` |
 
 CO keeps ordered alternatives `codex_sol_xhigh` and `grok_high` after its preferred
 Claude profile, so all three native interfaces remain selectable through the same
 launcher, for example `co --profile codex_sol_xhigh`. Specialists initially have
 one selected profile each; add explicit alternatives to private policy when needed.
+With selection enabled, Jev selects among eligible alternatives for the actual
+assignment. XO receives the same selection before launch once its work order is
+bound. CO remains the operator-selected interface because it starts before a work
+binding exists. Selected profiles are retained for retries; changed work or policy
+requires a current selection.
 Shared profiles intentionally couple settings for roles that reference them. Copy
 a profile under a new name and change the role's preference to tune it independently.
 
+`max_sessions` includes Arbitrator capacity. When semantic decisions are enabled,
+`decisions.reserved_sessions` defaults to one: a limit of 12 permits 11 ordinary
+collaborators and leaves one session for investigation. Readiness requires at least
+three sessions for XO, a producer and the default reserve. Fixed teams must also
+have a free eligible Arbitrator member. Enabling decisions or increasing the reserve
+on an already saturated team requires releasing capacity or increasing the limit;
+the setting does not evict existing bindings.
+
 Codex receives `model` and `model_reasoning_effort` through its CLI or app-server;
-Claude Code and Grok Build receive `--model` and `--effort`. Use Claude Code
+maintained Codex profiles also set `provider: "openai"` so an inherited alternate
+provider cannot redirect the selected OpenAI model. Claude Code and Grok Build
+receive `--model` and `--effort`. Use Claude Code
 v2.1.284 or newer for this lineup. Fable on Claude Pro consumes usage credits;
 check your plan's access and limits. Daybreak Blue is a moving alias requiring
 approved access on the selected account/surface. Verify its available effort and
@@ -83,8 +100,8 @@ defaults in an existing team, merge the desired profiles and role preferences fr
 the maintained file into its private `roles.json`, preserving local binary/provider
 overrides. Validate with `python3 -m devtools.consistency --state /private/team`,
 then stop and relaunch affected sessions. The runtime and role catalog must come
-from the same revision; an older runtime cannot load the new `security_auditor`
-identity. An acceptance fixture that pins an older toolchain must update that pin
+from the same revision; an older runtime cannot load role identities absent from
+its catalog. An acceptance fixture that pins an older toolchain must update that pin
 before importing this policy.
 
 `vendors.json` has `version: 1` and a `vendors` mapping. For example:

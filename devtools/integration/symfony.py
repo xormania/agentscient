@@ -14,11 +14,10 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client, adopt_plan  # noqa: E402
+from support import Client, adopt_plan, initialize  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.development import DEFAULT_CHECKS, Development  # noqa: E402
-from devtools.launch import initialize  # noqa: E402
 from devtools.readiness import platform  # noqa: E402
 from devtools.role_packages import default_role  # noqa: E402
 from devtools.role_packages import role as role_package  # noqa: E402
@@ -68,7 +67,7 @@ def main():
         checks["tests" if args.full_checks else "generated-test"].extend(["--log-events-text", str(events)])
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
-        config["project"] = {
+        config["project"].update({
             "checkout": str(checkout),
             "target": "fixture-base",
             "repository": "example/fixture",
@@ -76,7 +75,7 @@ def main():
             "development": {
                 "checks": checks,
             },
-        }
+        })
         (state / "team.json").write_text(json.dumps(config))
         co, xo, coder = [Client(state, member) for member in ("owner", "xo", "coder")]
         coder_role = default_role("coder")

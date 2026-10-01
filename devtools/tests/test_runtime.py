@@ -5,12 +5,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import adopt_plan, runtime_policy
+from support import adopt_plan, initialize, runtime_policy
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
 from devtools.control import ROLES
-from devtools.launch import agent, configuration, initialize, start
+from devtools.launch import agent, configuration, start
 from devtools.runtime import load, resolve
 from devtools.store import Store
 
@@ -137,6 +137,10 @@ class RuntimeTests(unittest.TestCase):
     def test_migrated_fixed_members_keep_their_work_after_a_harness_change(self):
         state = self.root / "fixed-state"
         initialize(state, self.workspace, ["owner:external", "chief:codex", "worker:claude"], co="owner")
+        team = json.loads((state / "team.json").read_text())
+        for member in team["members"][1:]:
+            member["binary"] = "/bin/true"
+        (state / "team.json").write_text(json.dumps(team))
         co, xo = API(state, "owner"), API(state, "chief")
         co.call("direct", GOAL)
         adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])

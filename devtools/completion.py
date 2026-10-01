@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import json
-import math
 
-from .advice import Advice, digest
+from .advice import digest
 from .artifacts import Artifacts
 from .assignments import snapshot
 from .commands import Commands
 from .configuration import resolve
 from .control import Control, binding, includes
+from .decisions import Decisions
 from .failures import Failure, failure_info
-from .jev import JevUnavailable
 from .role_packages import adapter, names_for_adapter
 from .store import canonical
 from .telemetry import clean
@@ -91,10 +90,17 @@ class Completion:
                 args.append(job)
             assignments = [dict(r) for r in db.execute("SELECT * FROM role_assignments WHERE " + clause + " ORDER BY id", args)]
             assignments = [r for r in assignments if r["job"] is not None or r["created_by"] in team]
+            arbitration = {r[0] for r in db.execute(
+                "SELECT assignment FROM decisions WHERE work_order=? AND assignment IS NOT NULL", (order["id"],),
+            )}
+            # Resolving this decision must not invalidate its own proof identity.
+            # Only service-owned arbitration assignments are excluded; ordinary
+            # role work and every measured check remain part of the boundary.
+            assignments = [r for r in assignments if r["id"] not in arbitration]
             if assigned:
                 assignments = [assigned]
             scopes = [dict(r) for r in db.execute("SELECT * FROM member_bindings WHERE " + clause + " ORDER BY member", args)]
-            scopes = [r for r in scopes if r["member"] in team]
+            scopes = [r for r in scopes if r["member"] in team and r.get("assignment_id") not in arbitration]
             if assigned:
                 scopes = [r for r in scopes if r.get("assignment_id") == assigned["id"]]
                 if assigned["status"] == "active" and not scopes or assigned["job"] is None and assigned["created_by"] not in team:
@@ -110,6 +116,8 @@ class Completion:
                     row = record(db, "work_updates", item["result_update"])
                     reports[row["id"]] = row
             rows = [dict(r) for r in db.execute("SELECT * FROM operations WHERE " + clause + " ORDER BY id DESC", args)]
+            rows = [r for r in rows if r["action"] in {"work_check", "work_submit"}
+                    or json.loads(r["binding"]).get("assignment_id") not in arbitration]
             retained_members = {r["actor"] for r in reports.values()}
             rows = [r for r in rows if r["job"] is not None or r["member"] in team or r["member"] in retained_members]
             if assigned:
@@ -247,42 +255,29 @@ class Completion:
                               details={**details, "checks": stale["checks"], "references": list(dict.fromkeys(details["references"] + stale["references"]))})
             if len(canonical(clean(state)).encode()) > policy["state_bytes"]:
                 raise Failure("Completion proof exceeds the bounded assessment; retain a concise measurement that covers all requirements.", category="not_ready", reason="proof_oversize", details=details)
-            try:
-                result = Advice(self.store, self.member).evaluate("completion", state, policy["questions"], sources, policy=config)
-            except JevUnavailable:
-                if policy["failure_mode"] != "mechanical_only":
-                    raise
-                # The explicit operator fallback skips only unavailable semantic assessment.
-                # Current proof and mechanical checks above remain mandatory.
-                self._unchanged(receipt, during=True)
-                if self.collect(boundary, job, assignment, revision, mechanical)[3] != identity:
-                    raise Failure("Completion requirements or proof changed during assessment; inspect the current work before retrying.", category="not_ready", reason="requirements_changed")
-                self.store.event(self.member, "completion_assessed", **target, boundary=boundary,
-                                 outcome="skipped_unavailable", policy=config["revision"],
-                                 failure_mode=policy["failure_mode"], required=list(FIELDS))
-                return {**receipt, "state": "skipped_unavailable", "_identity": identity}
+            result = Decisions(self.store, self.member).select(
+                "completion", state, policy["questions"], sources, policy=config,
+                target_job=target["job"], identity=identity,
+            )
             self._unchanged(receipt, during=True)
             if not isinstance(result, dict) or not isinstance(result.get("evidence"), str) or not result["evidence"].startswith("artifact:"):
                 raise Failure("Completion assessment is incomplete; retain a valid assessment before accepting work.", category="evaluation_invalid", reason="invalid_response")
             evidence = result["evidence"]
             if self.collect(boundary, job, assignment, revision, mechanical)[3] != identity:
                 raise Failure("Completion requirements or proof changed during assessment; inspect the current work before retrying.", category="not_ready", reason="requirements_changed")
-            answers = result.get("answers")
-            if not isinstance(answers, dict) or set(answers) != set(FIELDS):
+            decisions = result.get("decisions")
+            if not isinstance(decisions, dict) or set(decisions) != set(FIELDS):
                 raise Failure("Completion assessment is incomplete; obtain a valid judgment for every required criterion.", category="evaluation_invalid", reason="invalid_response")
-            missing = []
-            for name in FIELDS:
-                answer = answers[name]
-                probability = answer.get("noul") if isinstance(answer, dict) else None
-                if type(probability) not in {int, float} or not math.isfinite(probability) or not 0 <= probability <= 1:
-                    raise Failure("Completion assessment has an invalid required-criterion probability.", category="evaluation_invalid", reason="invalid_response")
-                if probability < policy["minimum_probability"]:
-                    missing.append(name)
-            self.store.event(self.member, "completion_assessed", **target, boundary=boundary, outcome="blocked" if missing else "ready", evidence=evidence, required=list(FIELDS), unresolved=missing, policy=config["revision"])
+            if any(type(value) is not bool for value in decisions.values()):
+                raise Failure("Completion assessment has an invalid required-criterion decision.", category="evaluation_invalid", reason="invalid_response")
+            Decisions(self.store, self.member).verify(result, identity=identity)
+            missing = [name for name in FIELDS if not decisions[name]]
+            self.store.event(self.member, "completion_assessed", **target, boundary=boundary, outcome="blocked" if missing else "ready", evidence=evidence, decision=result["id"], required=list(FIELDS), unresolved=missing, policy=config["revision"])
             if missing:
                 raise Failure("Completion needs stronger current proof for " + ", ".join(missing) + ". Inspect " + evidence + " and measure the unmet requirement.", category="not_ready", reason="proof_insufficient",
                               details={**details, "references": [evidence], "criteria": missing})
-            return {**receipt, "state": "ready", "evidence": evidence, "cache_hit": result["cache_hit"], "_identity": identity}
+            return {**receipt, "state": "ready", "evidence": evidence, "decision": result["id"],
+                    "cache_hit": result.get("cache_hit", False), "_identity": identity, "_decision": result}
         except ValueError as error:
             self.store.event(self.member, "completion_blocked", **target, boundary=boundary, evidence=evidence, reason=str(error), failure=failure_info(error))
             raise
@@ -302,3 +297,5 @@ class Completion:
         params = receipt["_parameters"]
         if self.collect(params["boundary"], params["job"], params["assignment"], params["revision"], params["mechanical"])[3] != receipt["_identity"]:
             raise Failure("Completion requirements or proof changed after assessment; inspect current work before acceptance.", category="not_ready", reason="requirements_changed")
+        if receipt.get("_decision"):
+            Decisions(self.store, self.member).verify(receipt["_decision"], identity=receipt["_identity"])

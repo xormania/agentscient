@@ -95,10 +95,17 @@ def configuration(directory, member):
             "Bind this member's role and work through the operator member_bind capability before starting it."
         )
     if team.get("runtime"):
-        from .runtime import resolve
+        from .role_packages import adapter as role_adapter
+        from .runtime import selected as selected_runtime
 
+        if role_adapter(scope["role"]) == "xo":
+            from .assignment_decisions import select_bound_runtime
+
+            choice = select_bound_runtime(store, scope)
+        else:
+            choice = selected_runtime(store, scope)
         row = store.member(member)
-        selected = {"name": member, "workspace": row["workspace"], **resolve(directory, scope["role"])}
+        selected = {"name": member, "workspace": row["workspace"], **choice}
     from .role_packages import runtime_profile
 
     selected = runtime_profile(scope["role"], selected)

@@ -13,6 +13,10 @@ cross-job coordination and superior steering over NCOs and their specialists.
 Choose configured role names from `onboard.assignable_roles` for the work; the service allocates instances and resolves runtimes.
 Several jobs may use the same role. Several role assignments can contribute to
 one job. Repeat an active assignment's job/name/role to revise its brief.
+With selection enabled, the service decides among eligible roles and runtimes for
+the proposed responsibility and applies that selection through `orchestrate`.
+Ambiguous questions go to the service-assigned Arbitrator. Do not appoint Arbitrator
+manually, reinterpret scores to bypass a pending decision, or change operator policy.
 
 Monitor progress and blockers. Use `steer` for guidance, pause, resume and stop.
 Pause keeps the conversation available; resume after stop creates a new session.
@@ -37,6 +41,7 @@ Before completing a specialist, accepting a job or concluding the order, inspect
 proof against the current required outcomes. When semantic completion assessment is enabled, the service evaluates the
 retained evidence and reports unmet criteria before delivery. Resolve those specific gaps
 through the existing roles and tools. Plan completion or cancelling a job does not
-remove an owner requirement. Jev can assess evidence adequacy; mechanical failures
-and role boundaries remain enforced independently. Report uncertainty when proof
-is unavailable instead of treating an assessment outage as successful completion.
+remove an owner requirement. The service applies decisive Jev evaluations and
+assigns unresolved questions to Arbitrator. Mechanical failures and role boundaries
+remain enforced independently. Report missing proof and await the supplied
+resolution path instead of treating an evaluation outage as successful completion.

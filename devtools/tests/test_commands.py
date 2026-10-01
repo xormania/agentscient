@@ -7,11 +7,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, adopt_plan, until
+from support import Client, adopt_plan, initialize, until
 
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize, start
+from devtools.launch import start
 from devtools.store import SCHEMA_VERSION, Store
 from devtools.work import Work
 
@@ -266,7 +266,7 @@ class CommandTests(unittest.TestCase):
                 "name": "managed",
                 "harness": "codex",
                 "workspace": str(self.workspace),
-                "binary": "not-installed-fixture",
+                "binary": "/bin/true",
                 "model": "configured-model",
                 "reasoning": "high",
             }
@@ -275,6 +275,10 @@ class CommandTests(unittest.TestCase):
         (self.state / "team.json").write_text(json.dumps(config))
         result = self.co.call("direct", GOAL)
         self.assertTrue(result["xo"]["session"]["launch_pending"])
+        # Availability can change after allocation but before its persisted
+        # launch intent is resumed by another MCP server.
+        config["members"][-1]["binary"] = "not-installed-fixture"
+        (self.state / "team.json").write_text(json.dumps(config))
         restarted = API(self.state, "owner")
         restarted.commands.tick()
         observed = restarted.call("monitor", {})["collaborators"][0]

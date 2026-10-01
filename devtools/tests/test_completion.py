@@ -1,6 +1,5 @@
 import io
 import json
-import math
 import unittest
 from unittest.mock import patch
 
@@ -13,6 +12,10 @@ from devtools.failures import Failure, failure_info
 from devtools.jev import JevUnavailable
 from devtools.store import canonical, stamp
 from devtools.workspaces import git
+
+
+def completion_rule(reject_below, accept_at):
+    return {"decisions": {"rules": {"completion": {"noul": {"reject_below": reject_below, "accept_at": accept_at}}}}}
 
 
 def answer(state, questions, model):
@@ -79,9 +82,12 @@ class CompletionTests(unittest.TestCase):
                 int(report["evidence"].split(":")[1]), "work_report", report["reference"], canonical(provenance)))
 
     def test_independent_completion_enable_is_operator_owned(self):
-        for config in (None, {"features": {"completion": False}}):
-            self.configure(config)
-            self.assertEqual("disabled", self.gate.require("job", job=self.job)["state"])
+        self.configure(None)
+        with self.assertRaises(Failure) as blocked:
+            self.gate.require("job", job=self.job)
+        self.assertEqual("proof_missing", failure_info(blocked.exception)["reason"])
+        self.configure({"features": {"completion": False}})
+        self.assertEqual("disabled", self.gate.require("job", job=self.job)["state"])
         self.assertEqual([], self.requests)
         self.configure({"features": {"completion": "false"}})
         with self.assertRaisesRegex(ValueError, "boolean"):
@@ -383,22 +389,22 @@ class CompletionTests(unittest.TestCase):
 
     def test_jev_unavailable_keeps_boundary_closed_and_retains_failure_event(self):
         self.report()
+        self.configure({"decisions": {"failure_mode": "block"}})
         self.provider.side_effect = JevUnavailable("Jev temporarily unavailable")
         with self.assertRaisesRegex(ValueError, "unavailable"):
             self.gate.require("job", job=self.job)
         self.assertEqual("unavailable", self.store.events(kind="jev_evaluation")["events"][0]["data"]["outcome"])
         self.assertEqual(1, len(self.store.events(kind="completion_blocked")["events"]))
 
-    def test_malformed_required_probabilities_never_accept(self):
-        self.report()
-        for probability in (math.nan, True, -0.1, 1.1, "1"):
-            result = answer({}, {name: {} for name in ("objective", "done_when", "constraints")}, "jev-1.13.0")
-            result.update(evidence="artifact:1", cache_hit=False)
-            result["answers"]["objective"]["noul"] = probability
-            with self.subTest(probability=probability), patch("devtools.completion.Advice.evaluate", return_value=result), self.assertRaisesRegex(Failure, "invalid.*probability") as blocked:
+    def test_invalid_resolved_decisions_never_accept(self):
+        proof = self.report()
+        for decision in (None, 1, 0, "true", {}, []):
+            result = {"id": 1, "evidence": proof["evidence"], "decisions": dict.fromkeys(("objective", "done_when", "constraints"), True)}
+            result["decisions"]["objective"] = decision
+            with self.subTest(decision=decision), patch("devtools.completion.Decisions.select", return_value=result), self.assertRaisesRegex(Failure, "invalid.*decision") as blocked:
                 self.gate.require("job", job=self.job)
             self.assertEqual("evaluation_invalid", failure_info(blocked.exception)["category"])
-        with patch("devtools.completion.Advice.evaluate", return_value={"evidence": "artifact:1", "answers": {}, "cache_hit": False}), self.assertRaisesRegex(ValueError, "incomplete"):
+        with patch("devtools.completion.Decisions.select", return_value={"evidence": proof["evidence"], "decisions": {}}), self.assertRaisesRegex(ValueError, "incomplete"):
             self.gate.require("job", job=self.job)
 
     def test_owner_change_during_jev_cannot_accept_stale_proof(self):
@@ -410,8 +416,9 @@ class CompletionTests(unittest.TestCase):
             return answer(state, questions, model)
 
         self.provider.side_effect = changed
-        with self.assertRaisesRegex(ValueError, "changed during assessment"):
+        with self.assertRaises(Failure) as blocked:
             self.gate.require("job", job=self.job)
+        self.assertEqual("decision_stale", failure_info(blocked.exception)["reason"])
 
     def test_acceptance_receipt_rechecks_owner_goal_and_operator_policy(self):
         self.report()
@@ -422,7 +429,7 @@ class CompletionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "changed after assessment"):
             self.gate.verify(receipt)
         receipt = self.gate.require("job", job=self.job)
-        self.configure({"completion": {"minimum_probability": 0.9}})
+        self.configure(completion_rule(0.8, 0.9))
         with self.assertRaisesRegex(ValueError, "policy changed"):
             self.gate.verify(receipt)
 
@@ -442,44 +449,6 @@ class CompletionTests(unittest.TestCase):
         self.assertIn("questions", retained["request"])
         self.assertEqual(2, len(self.requests))
 
-    def test_mechanical_only_skips_unavailable_assessment_but_revalidates_receipt(self):
-        self.configure({"completion": {"failure_mode": "mechanical_only"}})
-        self.report()
-        self.operation()
-        self.provider.side_effect = JevUnavailable("Service unavailable")
-        receipt = self.gate.require("job", job=self.job, revision="a" * 40)
-        self.assertEqual("skipped_unavailable", receipt["state"])
-        self.gate.verify(receipt)
-        event = self.store.events(kind="completion_assessed")["events"][0]["data"]
-        self.assertEqual("skipped_unavailable", event["outcome"])
-        self.assertEqual(receipt["_configuration"], event["policy"])
-        self.configure({"completion": {"failure_mode": "block"}})
-        with self.assertRaisesRegex(ValueError, "policy changed"):
-            self.gate.verify(receipt)
-
-    def test_mechanical_only_never_bypasses_known_failures_or_missing_proof(self):
-        self.configure({"completion": {"failure_mode": "mechanical_only"}})
-        self.provider.side_effect = JevUnavailable("Service unavailable")
-        with self.assertRaisesRegex(ValueError, "retained proof"):
-            self.gate.require("job", job=self.job)
-        self.report()
-        self.operation(passed=False)
-        with self.assertRaisesRegex(ValueError, "passing measurements"):
-            self.gate.require("job", job=self.job)
-        self.assertEqual([], self.requests)
-        with self.store.connect() as db:
-            db.execute("DELETE FROM operations")
-        self.provider.side_effect = ValueError("Malformed assessment")
-        with self.assertRaisesRegex(ValueError, "Malformed"):
-            self.gate.require("job", job=self.job)
-        self.provider.side_effect = lambda state, questions, model: {
-            **answer(state, questions, model),
-            "answers": {name: {"type": "noul", "noul": 0.1} for name in questions},
-        }
-        with self.assertRaisesRegex(ValueError, "stronger current proof"):
-            self.gate.require("job", job=self.job)
-        self.assertFalse(any(e["data"]["outcome"] == "skipped_unavailable" for e in self.store.events(kind="completion_assessed")["events"]))
-
     def test_disabled_receipt_detects_enablement_before_acceptance(self):
         self.configure({"features": {"completion": False}})
         receipt = self.gate.require("job", job=self.job)
@@ -489,24 +458,24 @@ class CompletionTests(unittest.TestCase):
             self.gate.verify(receipt)
 
     def test_target_job_override_wins_and_invalidates_receipt_after_change(self):
-        self.configure({"completion": {"minimum_probability": 0.6}},
-                       roles={"xo": {"completion": {"minimum_probability": 0.8}}},
-                       jobs={str(self.job): {"completion": {"minimum_probability": 0.99}}})
+        self.configure(completion_rule(0.5, 0.6),
+                       roles={"xo": completion_rule(0.7, 0.8)},
+                       jobs={str(self.job): completion_rule(0.98, 0.99)})
         self.report()
         with self.assertRaisesRegex(ValueError, "stronger current proof"):
             self.gate.require("job", job=self.job)
-        self.configure({"completion": {"minimum_probability": 0.6}},
-                       jobs={str(self.job): {"completion": {"minimum_probability": 0.9}}})
+        self.configure(completion_rule(0.5, 0.6),
+                       jobs={str(self.job): completion_rule(0.8, 0.9)})
         receipt = self.gate.require("job", job=self.job)
         self.assertEqual(resolve(self.store, role="xo", job=self.job)["revision"], receipt["_configuration"])
-        self.configure({"completion": {"minimum_probability": 0.6}},
-                       jobs={str(self.job): {"completion": {"minimum_probability": 0.99}}})
+        self.configure(completion_rule(0.5, 0.6),
+                       jobs={str(self.job): completion_rule(0.98, 0.99)})
         with self.assertRaisesRegex(ValueError, "policy changed"):
             self.gate.verify(receipt)
 
     def test_assignment_policy_uses_trusted_assignment_job(self):
         assignment = self.assignment()
-        self.configure({}, jobs={str(self.job): {"completion": {"minimum_probability": 0.99}}})
+        self.configure({}, jobs={str(self.job): completion_rule(0.98, 0.99)})
         self.report()
         with self.assertRaisesRegex(ValueError, "stronger current proof"):
             self.gate.require("assignment", assignment=assignment)
@@ -515,7 +484,7 @@ class CompletionTests(unittest.TestCase):
         self.report()
 
         def changed(state, questions, model):
-            self.configure({}, jobs={str(self.job): {"completion": {"minimum_probability": 0.99}}})
+            self.configure({}, jobs={str(self.job): completion_rule(0.98, 0.99)})
             return answer(state, questions, model)
 
         self.provider.side_effect = changed

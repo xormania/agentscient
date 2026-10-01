@@ -15,7 +15,7 @@ import sys
 import uuid
 from pathlib import Path
 
-from .configuration import ConfigurationState, selections
+from .configuration import ConfigurationState, decision_reservations, selections
 from .configuration import resolve as resolve_settings
 from .credentials import read_credential
 from .github_http import GitHubHTTP
@@ -189,14 +189,6 @@ def doctor(directory, online=False):
         return {"status": "blocked", "checks": checks, "authenticated_acceptance": "not established by preflight"}
     checks[-1]["detail"] = "Team configuration is readable."
     check("CO connection", lambda: require(bool(config.get("co")), "An external user-facing CO must be appointed."))
-    if not config.get("runtime"):
-        check(
-            "collaborator capacity",
-            lambda: require(
-                len([m for m in config["members"] if m["name"] != config.get("co")]) >= 2,
-                "At least two collaborator slots are needed for XO and a producer; add a third for concurrent audit.",
-            ),
-        )
     check(
         "private state",
         lambda: require(
@@ -211,12 +203,18 @@ def doctor(directory, online=False):
     settings = check("assessment configuration", lambda: [
         resolve_settings(settings_state, **selection) for selection in selections(settings_state)
     ])
+    reserved = max(decision_reservations(settings or []).values(), default=0)
+    if not config.get("runtime"):
+        check("collaborator capacity", lambda: require(
+            len([m for m in config["members"] if m["name"] != config.get("co")]) >= 2 + reserved,
+            f"At least {2 + reserved} collaborator slots are needed for XO, a producer and {reserved} reserved Arbitrator sessions.",
+        ))
     if settings is not None:
-        checks[-1]["detail"] = [{"revision": item["revision"], "selection": item["selection"],
-                                 "features": item["features"]} for item in settings]
+        next(item for item in checks if item["name"] == "assessment configuration")["detail"] = [
+            {"revision": item["revision"], "selection": item["selection"], "features": item["features"]} for item in settings]
         references = {json.dumps(item["connection"]["credential"], sort_keys=True)
                       for item in settings
-                      if any(item["features"][name] for name in ("advice", "filtering", "completion"))}
+                      if any(item["features"][name] for name in ("selection", "advice", "filtering", "completion"))}
         if references:
             def credential_ready():
                 for reference in sorted(references):
@@ -330,14 +328,18 @@ def doctor(directory, online=False):
             policy, _, revision = loaded
             checks[-1]["detail"] = {"revision": revision, "roles": list(policy["roles"])}
             check("collaborator capacity", lambda: require(
-                policy["max_sessions"] >= 2,
-                "Set roles.json max_sessions to at least 2 for XO and one planner or specialist; increase it for concurrent jobs.",
+                policy["max_sessions"] >= 2 + reserved,
+                f"Set roles.json max_sessions to at least {2 + reserved} for XO, one planner or specialist and {reserved} reserved Arbitrator sessions.",
             ))
 
             def required_roles():
                 with settings_state.connect() as db:
                     row = db.execute("SELECT role FROM member_bindings WHERE member=?", (config.get("co"),)).fetchone()
-                return {co_role({"role": row[0]} if row else None), default_role("xo"), default_role("planner")}
+                required = {co_role({"role": row[0]} if row else None), default_role("xo"), default_role("planner")}
+                for item in settings or []:
+                    if any(item["features"][name] for name in ("selection", "advice", "filtering", "completion")):
+                        required.add(item["decisions"]["arbitrator_role"])
+                return required
 
             required = check("Workflow role identities", required_roles)
             if required is not None:
@@ -349,6 +351,17 @@ def doctor(directory, online=False):
                         checks[-1]["detail"] = {"profile": selected["selection"]["profile"],
                                                  "harness": selected["harness"],
                                                  "skipped": selected["selection"]["skipped"]}
+                        # Selection may choose any available permitted profile,
+                        # including one with distinct native credential settings.
+                        if any(item["features"]["selection"] for item in settings or []):
+                            for profile in policy["roles"][role]:
+                                if profile == selected["selection"]["profile"]:
+                                    continue
+                                try:
+                                    alternative = resolve(directory, role, profile=profile)
+                                except ValueError:
+                                    continue  # Disabled or absent candidates cannot be selected.
+                                members.append(alternative)
     if any(row["harness"] != "external" for row in members) or config.get("runtime"):
         check("managed process platform", managed_platform)
         check("tmux", lambda: require(bool(shutil.which("tmux")), "Managed harness sessions require tmux."))

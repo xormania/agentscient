@@ -46,7 +46,7 @@ def capabilities(spec):
                         "properties": {
                             "name": name,
                             "job": {**name, "description": "Job name from the adopted plan. Omit for the XO's planner."},
-                            "role": {"type": "string", "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo"}]},
+                            "role": {"type": "string", "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo", "arbitrator"}]},
                             "plan": {"type": "string", "pattern": "^update:[1-9][0-9]*$", "maxLength": 80},
                             "editable_paths": {"type": "array", "maxItems": 30, "items": {**name, "maxLength": 300},
                                                "description": "Assigned files or directories within role paths. Missing paths are files; end a new directory path with '/'. List new files explicitly when their parent contains protected paths."},
@@ -89,7 +89,7 @@ def capabilities(spec):
                 "assignment": {**name, "description": "A named role assignment within the job; complete releases its session and retains its result."},
                 "role": {
                     "type": "string",
-                    "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo"}],
+                    "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo", "arbitrator"}],
                     "description": "Optional collaborator role when a job has both a producer and auditor.",
                 },
                 "direction": text,
@@ -163,22 +163,75 @@ class Commands:
             )
         ]
 
-    def _slot(self, db, config, existing=None, role=None):
+    def _slot(self, db, config, existing=None, role=None, selected=None):
         if config.get("runtime"):
             from .runtime import allocate
 
-            return allocate(self.store, db, config, role or existing["role"], existing)
+            return allocate(self.store, db, config, role or existing["role"], existing, selected=selected)
+        import shutil
+
+        from .configuration import arbitration_reservations
+        from .role_packages import runtime_profile
+
+        reservations = (arbitration_reservations(self.store)
+                        if not existing and (role is None or adapter(role) != "arbitrator") else {})
+
+        def available(row, wanted=None):
+            if row["name"] in {config.get("co"), self.member} or binding(db, row["name"]):
+                return False
+            session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
+            if not session or session["state"] not in {"stopped", "failed"} or session["pid"]:
+                return False
+            if row["harness"] != "external":
+                if not shutil.which(row.get("binary", row["harness"])):
+                    return False
+                if wanted:
+                    try:
+                        runtime_profile(wanted, row)
+                    except ValueError:
+                        return False
+            return True
+
+        def preserves_reservation(candidate):
+            for arbitrator, required in reservations.items():
+                occupied = db.execute("SELECT count(*) FROM member_bindings WHERE role=?", (arbitrator,)).fetchone()[0]
+                free = sum(row["name"] != candidate["name"] and available(row, arbitrator)
+                           for row in config["members"])
+                if free < max(0, required - occupied):
+                    return False
+            return True
+
+        if selected is not None:
+            if not isinstance(selected, dict):
+                raise ValueError("A selected configured collaborator is required")
+            row = next((r for r in config["members"] if r["name"] == selected.get("name")), None)
+            if not row or any(selected.get(key) != value for key, value in row.items()):
+                raise ValueError("Configured collaborator changed; select its current settings")
+            if row["name"] in {config.get("co"), self.member}:
+                raise ValueError("Select a configured subordinate collaborator")
+            if existing:
+                if row["name"] != existing["member"]:
+                    raise ValueError("An existing assignment must retain its configured collaborator")
+            else:
+                session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
+                if binding(db, row["name"]) or session["state"] not in {"stopped", "failed"} or session["pid"]:
+                    raise ValueError("Selected configured collaborator is no longer available")
+            if row["harness"] != "external":
+                if not shutil.which(row.get("binary", row["harness"])):
+                    raise ValueError("Selected configured collaborator executable is unavailable")
+            if not preserves_reservation(row):
+                raise ValueError("No ordinary collaborator capacity remains; reserved eligible sessions are required for Arbitrator decisions.")
+            return row
         if existing:
             row = next((r for r in config["members"] if r["name"] == existing["member"]), None)
             if not row:
                 raise ValueError("This collaborator is no longer configured; request operator assistance.")
             return row
         for row in config["members"]:
-            if row["name"] == config.get("co") or row["name"] == self.member:
-                continue
-            session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
-            if not binding(db, row["name"]) and session["state"] in {"stopped", "failed"} and not session["pid"]:
+            if available(row, role) and preserves_reservation(row):
                 return row
+        if reservations:
+            raise ValueError("No ordinary collaborator capacity remains; reserved eligible sessions are required for Arbitrator decisions.")
         raise ValueError("No available configured collaborator matches this work. Monitor capacity or ask CO for help.")
 
     @staticmethod
@@ -325,6 +378,8 @@ class Commands:
         from .planning import Planning, execution_current, writer_available
 
         self._capability("steer")
+        if role and adapter(role) == "arbitrator":
+            raise ValueError("Arbitration assignments are managed by the decision service")
         if action == "complete" or action == "cancel" and assignment:
             if not assignment or not direction or fields:
                 raise ValueError("Name the role assignment and supply its completion assessment or cancellation reason.")
@@ -350,6 +405,12 @@ class Commands:
             raise ValueError("Supply direction or a revised job brief.")
         if action == "replace" and not direction:
             raise ValueError("Supply the reason for replacing the conversation as direction.")
+        if fields:
+            from .assignment_decisions import steer_assignment
+
+            selected = steer_assignment(self, action, work, direction, role, assignment, fields)
+            if selected is not None:
+                return selected
         config = self._config()
         results = []
         with self.store.connect() as db:
@@ -379,6 +440,10 @@ class Commands:
                 for target in list(targets):
                     if adapter(target["role"]) == "nco" and (fields or action in {"pause", "stop"} or action == "resume" and not role):
                         targets.extend(row for row in self._descendants(db, target) if row not in targets)
+            arbitrators = [row for row in targets if adapter(row["role"]) == "arbitrator"]
+            if arbitrators and (assignment or len(arbitrators) == len(targets)):
+                raise ValueError("Arbitration assignments are managed by the decision service")
+            targets = [row for row in targets if adapter(row["role"]) != "arbitrator"]
             if not targets:
                 raise ValueError("No collaborators are bound to this responsibility yet.")
             changed_jobs = set()
@@ -705,6 +770,9 @@ class Commands:
                     launch.stop(self.store.directory, row["name"], expected_generation=row["generation"])
                 except BlockingIOError:
                     pass
+        from .decisions import Decisions
+
+        Decisions(self.store, self.member).tick()
         with self.store.connect() as db:
             pending = list(
                 db.execute("SELECT member,revision FROM member_bindings WHERE launch_pending=1 AND paused=0")

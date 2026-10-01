@@ -24,9 +24,11 @@ EXPECTED = {
     "architect": ("claude", "claude-opus-5-5", "xhigh"),
     "coder": ("claude", "claude-opus-5-5", "xhigh"),
     "research": ("codex", "gpt-6-astra", "max"),
+    "arbitrator": ("codex", "gpt-6-astra", "xhigh"),
     "test_writer": ("codex", "gpt-6.1-sol", "xhigh"),
     "audit": ("grok", "grok-4.7", "high"),
     "security_auditor": ("codex", "gpt-daybreak-blue-latest", "xhigh"),
+    "adversarial_review": ("codex", "gpt-6-sol", "high"),
     "docs": ("claude", "claude-sonnet-5-5", "high"),
 }
 
@@ -112,6 +114,7 @@ class RuntimeDefaultTests(unittest.TestCase):
                 if harness == "codex":
                     self.assertIn('model="' + model + '"', argv)
                     self.assertIn('model_reasoning_effort="' + effort + '"', argv)
+                    self.assertIn('model_provider="openai"', argv)
                 else:
                     self.assertEqual(model, argv[argv.index("--model") + 1])
                     self.assertEqual(effort, argv[argv.index("--effort") + 1])
@@ -154,6 +157,7 @@ class RuntimeDefaultTests(unittest.TestCase):
                             method, request = rpc.request.await_args.args
                             self.assertEqual("thread/start", method)
                             self.assertEqual(model, request["model"])
+                            self.assertEqual("openai", request["modelProvider"])
                             self.assertEqual(effort, request["config"]["model_reasoning_effort"])
                         else:
                             rpc = Mock(request=AsyncMock(side_effect=[{"authMethods": []}, {"sessionId": "fixture-session"}]))

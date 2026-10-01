@@ -65,12 +65,15 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual([str(readiness.ENTRY), "mcp", "--state", str(state), "--member", "owner"], server["args"])
         self.assertNotIn("--operator", server["args"])
         self.assertEqual([], Store(state).events(kind="launch_requested")["events"])
+        self.assertEqual({"selection": True, "advice": False, "filtering": True,
+                          "completion": True, "guidance": True}, readiness.config(state)["features"])
 
     def configured(self):
         config = json.loads((self.state / "team.json").read_text())
         config["project"].update(development={}, serena={"image": "agentscient-serena:v2-beta"})
         config["members"][1].update(harness="codex", binary="codex")
         (self.state / "team.json").write_text(json.dumps(config))
+        self.assessment_configuration({})
         git(self.checkout, "remote", "set-url", "origin", "https://github.com/example/project.git")
 
     def preflight(self, *, supported_host=True):
@@ -102,6 +105,7 @@ class ReadinessTests(unittest.TestCase):
         availability["vendors"]["openai"]["available"] = True
         availability["vendors"]["anthropic"]["available"] = True
         (self.state / "vendors.json").write_text(json.dumps(availability))
+        self.assessment_configuration({})
         return runtime_policy()
 
     def test_documented_dynamic_setup_checks_real_capacity_and_selected_fallback_readonly(self):
@@ -244,6 +248,12 @@ class ReadinessTests(unittest.TestCase):
             self.assertEqual("blocked", readiness.doctor(self.state)["status"])
 
     def assessment_configuration(self, overlay):
+        # Native readiness fixtures do not need a live evaluation credential.
+        # Individual decision tests opt into their actual feature explicitly.
+        overlay = copy.deepcopy(overlay)
+        project = overlay.setdefault("project", {})
+        project["features"] = {"selection": False, "advice": False, "filtering": False,
+                               "completion": False, **project.get("features", {})}
         team = json.loads((self.state / "team.json").read_text())
         team["project"]["configuration_file"] = "configuration.json"
         (self.state / "team.json").write_text(json.dumps(team))
@@ -261,9 +271,9 @@ class ReadinessTests(unittest.TestCase):
         job = self.api.control.snapshot()["job"]
         self.assessment_configuration({
             "project": {"connection": {"credential": {"file": "unread-key"}},
-                        "filtering": {"threshold": 0.1}},
-            "roles": {"coder": {"filtering": {"threshold": 0.4}}},
-            "jobs": {str(job): {"filtering": {"threshold": 0.7}}},
+                        "decisions": {"rules": {"scope": {"choice": {"minimum_probability": 0.6}}}}},
+            "roles": {"coder": {"decisions": {"rules": {"scope": {"choice": {"minimum_probability": 0.7}}}}}},
+            "jobs": {str(job): {"decisions": {"rules": {"scope": {"choice": {"minimum_probability": 0.8}}}}}},
         })
         database = (self.state / "live.sqlite3").read_bytes()
         with (
@@ -271,7 +281,7 @@ class ReadinessTests(unittest.TestCase):
             patch("devtools.store.Store.upgrade", side_effect=AssertionError("Must not upgrade state")),
         ):
             settings = readiness.config(self.state, role="coder", job=job)
-        self.assertEqual(0.7, settings["filtering"]["threshold"])
+        self.assertEqual(0.8, settings["decisions"]["rules"]["scope"]["choice"]["minimum_probability"])
         self.assertEqual({"role": "coder", "job": job}, settings["selection"])
         self.assertEqual({"file": str(self.state / "unread-key")}, settings["connection"]["credential"])
         self.assertEqual(64, len(settings["revision"]))
@@ -316,6 +326,39 @@ class ReadinessTests(unittest.TestCase):
         missing = self.quiet_doctor()
         self.assertEqual("failed", next(item for item in missing["checks"] if item["name"] == "Jev credential")["status"])
         self.assertEqual("blocked", missing["status"])
+
+    def test_selection_alone_requires_a_credential_without_contacting_provider(self):
+        self.assessment_configuration({"project": {
+            "features": {"selection": True}, "connection": {"credential": {"file": "absent-key"}},
+        }})
+        with patch("devtools.advice.Jev.evaluate") as provider:
+            result = self.quiet_doctor()
+        provider.assert_not_called()
+        self.assertEqual("failed", next(item for item in result["checks"] if item["name"] == "Jev credential")["status"])
+        self.assertEqual("blocked", result["status"])
+
+    def test_selection_preflight_requires_arbitrator_and_inspects_alternative_provider(self):
+        policy = self.dynamic_team()
+        policy["max_sessions"] = 2
+        policy["profiles"]["independent"] = {**policy["profiles"]["codex"], "provider": "independent"}
+        policy["roles"]["architect"].append("independent")
+        del policy["roles"]["arbitrator"]
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        home = self.root / "codex-home"
+        home.mkdir()
+        (home / "config.toml").write_text(
+            '[model_providers.independent]\nname = "Independent"\nenv_key = "MODEL_KEY"\n'
+        )
+        self.assessment_configuration({"project": {"features": {"selection": True}}})
+        with patch("devtools.readiness.read_credential", return_value="fixture-key"):
+            result = self.preflight()
+        checks = {item["name"]: item for item in result["checks"]}
+        self.assertEqual("failed", checks["collaborator capacity"]["status"])
+        self.assertIn("reserved Arbitrator", checks["collaborator capacity"]["detail"])
+        self.assertEqual("failed", checks["Runtime role arbitrator"]["status"])
+        self.assertIn("Configure arbitrator preferences", checks["Runtime role arbitrator"]["detail"])
+        self.assertEqual("passed", checks["codex binary (independent)"]["status"])
+        self.assertEqual("blocked", result["status"])
 
     def test_doctor_disabled_features_do_not_require_or_read_a_key(self):
         self.assessment_configuration({"project": {"connection": {"credential": {"file": "absent-key"}}}})

@@ -27,7 +27,10 @@ DEFAULT_PATHS = RolePaths()
 
 def project_config(store):
     path = store.directory / "team.json"
-    return json.loads(path.read_text()).get("project", {}) if path.is_file() else {}
+    value = json.loads(path.read_text()).get("project", {}) if path.is_file() else {}
+    # Evaluation policy may be configured for a native team without a managed
+    # source checkout. It must not implicitly enable workspace/provider tools.
+    return {} if isinstance(value, dict) and set(value) <= {"configuration_file"} else value
 
 
 def git(root, *args, check=True, timeout=60, env=None, input=None):
@@ -71,7 +74,7 @@ class Workspaces:
         if not current or not expected:
             raise Failure("This capability needs your current work binding; it may have changed or been paused.",
                           category="not_permitted", reason="work_binding_required")
-        if not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner"}:
+        if not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner", "arbitrator"}:
             raise Failure("This capability needs your current work binding; it may have changed or been paused.",
                           category="not_permitted", reason="job_binding_required")
         if any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to")):

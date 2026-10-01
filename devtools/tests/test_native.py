@@ -4,10 +4,9 @@ import sys
 import unittest
 from pathlib import Path
 
-from support import Client, require_tmux, retain_native, runtime_policy, terminal_team, until
+from support import Client, initialize, require_tmux, retain_native, runtime_policy, terminal_team, until
 
 from devtools.control import Control
-from devtools.launch import initialize
 from devtools.store import Store
 
 

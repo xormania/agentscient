@@ -4,7 +4,7 @@ description: Establish shared work context in an Agentscient managed session; us
 ---
 
 Follow the user's authorized objective and current service-supplied role and scope.
-CO, XO, NCO and planner describe responsibilities, not fixed role identifiers.
+Role identities and their behaviors come from the current catalog.
 When assigning work, use `onboard.assignable_roles` and the current tool schema
 to select configured names. Do not infer a role identifier from a skill name.
 Use MCP tools for actions. Native shell, filesystem tools, terminal keystrokes and
@@ -48,7 +48,10 @@ which tests it, and the measured result. Retain supporting evidence through
 claims and state missing verification. Finishing plan steps, saving code or a
 successful tool call alone does not establish that the owner's goal is met.
 When semantic completion assessment is enabled, the service checks current evidence
-against all required criteria. Address the specific unmet requirement; a model assessment cannot override a failed check.
+against all required criteria and applies decisive results. Unresolved decisions
+are assigned to Arbitrator for investigation; do not replace a pending decision
+with your own interpretation of its scores. Address the specific unmet requirement;
+neither an evaluation nor an arbitration resolution overrides a failed check.
 
 Execution roles can report an additional improvement without creating an
 assignment. Keep findings distinct from the current completion criteria. Use

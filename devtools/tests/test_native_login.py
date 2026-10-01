@@ -6,8 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from support import initialize
+
 from devtools.harnesses import get
-from devtools.launch import initialize
 from devtools.profiles import prepare, retain_login
 from devtools.store import Store
 

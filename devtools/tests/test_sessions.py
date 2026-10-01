@@ -7,13 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, fixture_work, retain_native, runtime_policy, until
+from support import ENTRY, Client, fixture_work, initialize, retain_native, runtime_policy, until
 from test_commands import GOAL, responsibility
 
 from devtools.api import API
 from devtools.control import ROLES, Control
-from devtools.launch import configuration, initialize
+from devtools.launch import configuration
 from devtools.profiles import hook, prepare, retain_login
+from devtools.role_packages import adapter
 from devtools.runtime import resolve
 from devtools.sessions import Lease
 from devtools.store import Store
@@ -85,7 +86,7 @@ class SessionTests(unittest.TestCase):
 
     def test_subordinates_keep_bindings_on_replacement_and_use_current_vendor_policy(self):
         xo = self.bind()
-        roles = [role for role in ROLES if role not in {"co", "xo"}]
+        roles = [role for role in ROLES if adapter(role) not in {"co", "xo", "arbitrator"}]
         for role in roles:
             if role == "planner":
                 xo.call("orchestrate", {"work": [responsibility("planner work", role)]})

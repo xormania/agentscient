@@ -8,10 +8,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, until
+from support import ENTRY, Client, initialize, until
 
 from devtools.api import API
-from devtools.launch import initialize
 from devtools.profiles import permitted
 from devtools.store import Store
 from devtools.telemetry import Trace

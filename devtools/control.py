@@ -218,6 +218,7 @@ class Control:
             db.execute("BEGIN IMMEDIATE")
             old = binding(db, member)
             db.execute("DELETE FROM member_bindings WHERE member=?", (member,))
+            db.execute("DELETE FROM runtime_selections WHERE member=?", (member,))
             db.execute("UPDATE members SET selected_work_order=NULL,selected_job=NULL WHERE name=?", (member,))
             if old:
                 self.store._event(
@@ -262,6 +263,36 @@ class Control:
                 allowed = allowed and self.member in (row["sender"], row["recipient"])
         else:
             allowed = False
+        if row and not allowed and scope and adapter(scope["role"]) == "arbitrator" and scope.get("assignment_id"):
+            from .assignments import snapshot
+            from .decisions import Decisions
+
+            current = binding(db, self.member)
+            decision = db.execute(
+                "SELECT * FROM decisions WHERE assignment=? AND arbitrator=? AND state='pending'",
+                (scope["assignment_id"], self.member),
+            ).fetchone()
+            if (decision and current and not current["paused"] and snapshot(current) == snapshot(scope)
+                    and decision["member"] != self.member):
+                def references(value):
+                    if isinstance(value, dict):
+                        return {ref for item in value.values() for ref in references(item)}
+                    if isinstance(value, list):
+                        return {ref for item in value for ref in references(item)}
+                    return {value} if isinstance(value, str) else set()
+
+                packet_refs = references(json.loads(decision["request"]))
+                packet_refs.update(references(json.loads(decision["answers"])))
+                packet_refs.add(decision["evidence"])
+                if decision["resolution"]:
+                    packet_refs.update(references(json.loads(decision["resolution"])))
+                if reference in packet_refs:
+                    owner = Decisions(self.store, decision["member"])
+                    owner._fresh(db, decision)
+                    # The packet delegates only its named evidence, within the
+                    # original caller's still-current authorization.
+                    owner.control._reference(db, json.loads(decision["binding"]), reference)
+                    allowed = True
         if not row or not allowed:
             raise ValueError("Reference is not available in your current work context")
         return kind, dict(row)
@@ -371,6 +402,10 @@ class Control:
                         (self.member, *args),
                     )
                 ]
+                if adapter(scope["role"]) == "arbitrator":
+                    from .decisions import Decisions
+
+                    result["decision"] = Decisions(self.store, self.member).packet(scope, db)
                 if project:
                     from .diagnostics import project_context
 
@@ -555,6 +590,8 @@ class Control:
             payload.append(evaluation)
         fingerprint = hashlib.sha256(canonical(payload).encode()).hexdigest()
         with self.store.connect() as db:
+            if binding(db, self.member) != scope:
+                raise ValueError("Your role or work changed during this report; read your current context and retry.")
             old = db.execute(
                 "SELECT * FROM work_updates WHERE actor=? AND request_key=?", (self.member, fingerprint)
             ).fetchone()
@@ -572,6 +609,8 @@ class Control:
                 raise ValueError("The source changed while retaining proof; report the current result again.")
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if binding(db, self.member) != scope:
+                raise ValueError("Your role or work changed during this report; read your current context and retry.")
             old = db.execute(
                 "SELECT * FROM work_updates WHERE actor=? AND request_key=?", (self.member, fingerprint)
             ).fetchone()

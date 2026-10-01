@@ -42,6 +42,7 @@ class PackageCatalogTests(unittest.TestCase):
             lambda value: value["catalog"]["roles"]["co"]["hooks"].update(native_delegation=True),
             lambda value: value["catalog"]["roles"]["co"]["mcp"]["command"].append("conclude"),
             lambda value: value["catalog"]["roles"]["audit"]["workspace"].update(editor=True, paths=["src/"]),
+            lambda value: value["catalog"]["roles"]["arbitrator"]["workspace"].update(editor=True, paths=["src/"]),
             lambda value: value["catalog"]["roles"]["research"]["workspace"].update(paths=["src/"]),
             lambda value: value["catalog"]["roles"]["coder"]["workspace"].update(paths=["../outside"]),
             lambda value: value["catalog"]["roles"]["coder"]["skills"].update(role="missing-installed-skill"),
@@ -181,6 +182,30 @@ class PackageCatalogTests(unittest.TestCase):
 class PackageBoundaryTests(unittest.TestCase):
     setUp = test_control.ControlTests.setUp
     client = test_control.ControlTests.client
+
+    def test_arbitrator_loads_without_project_and_has_only_bounded_decision_authority(self):
+        api = API(self.state, "coder")
+        api.control.bind("coder", "arbitrator", self.order, reports_to="xo")
+        with patch("devtools.api.advice_configured", return_value=True):
+            onboarding = api.call("onboard", {})
+        self.assertEqual("arbitrator", onboarding["package"]["behavior"])
+        self.assertEqual("arbitrator", role_packages.default_role("arbitrator"))
+        self.assertIn("agentscient-arbitrator", {row["name"] for row in onboarding["skills"] if row["loaded"]})
+        self.assertIn("decision_resolve", onboarding["tools"])
+        for forbidden in ("work_assess", "work_save", "work_check", "framework_generate", "review_record",
+                          "orchestrate", "steer", "conclude"):
+            with self.subTest(tool=forbidden):
+                self.assertNotIn(forbidden, onboarding["tools"])
+                with self.assertRaisesRegex(ValueError, "not available"):
+                    api.call(forbidden, {})
+        for harness in ("codex", "claude", "grok"):
+            with self.subTest(harness=harness):
+                profile = role_packages.runtime_profile("arbitrator", {"harness": harness})
+                self.assertEqual("arbitrator", profile["role_package"]["behavior"])
+        api.control.bind("coder", "research", self.order, self.job, "xo")
+        self.assertNotIn("decision_resolve", {row["name"] for row in api.tools()})
+        with self.assertRaisesRegex(ValueError, "not available"):
+            api.call("decision_resolve", {})
 
     def test_role_bound_catalog_keeps_co_interface_and_bootstrap_surface(self):
         api = API(self.state, "owner")

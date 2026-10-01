@@ -12,10 +12,9 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client, adopt_plan, until  # noqa: E402
+from support import Client, adopt_plan, initialize, until  # noqa: E402
 
 from devtools.api import API  # noqa: E402
-from devtools.launch import initialize  # noqa: E402
 from devtools.retirement import key, lease  # noqa: E402
 from devtools.role_packages import default_role  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
@@ -50,13 +49,13 @@ def main(curated=False):
         state = root / "state"
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
-        config["project"] = {
+        config["project"].update({
             "checkout": str(checkout),
             "target": "dev",
             "repository": "example/fixture",
             "serena": {"image": image},
             "assignment_policy": "assignment-policy.json",
-        }
+        })
         policy = json.loads((REPO / "devtools/assignment-policy.json").read_text())
         policy["protected_paths"] += ["src/Maker/PlannedMaker.php", "src/Reserved.php", "src/FutureMaker/"]
         (state / "assignment-policy.json").write_text(json.dumps(policy))

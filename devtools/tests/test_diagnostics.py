@@ -95,7 +95,7 @@ class DiagnosticTests(unittest.TestCase):
         with patch("devtools.advice.Jev.evaluate", side_effect=uncertain):
             self.assertEqual(context, self.diagnostics.project(context))
         for response in (ValueError("Unavailable"), {"answers": {}}, {"answers": {"fact_0": {"noul": float("nan")}}}):
-            with patch("devtools.diagnostics.Advice.evaluate", side_effect=response if isinstance(response, Exception) else None,
+            with patch("devtools.diagnostics.Decisions.select", side_effect=response if isinstance(response, Exception) else None,
                        return_value=response):
                 self.assertEqual(context, self.diagnostics.project(context))
 
@@ -232,23 +232,25 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual("mate-php-environment-check",
                          self.diagnostics.guidance("work_check", error="Missing PHP extension")["skill"]["name"])
 
-    def test_role_then_bound_job_override_threshold_and_revision(self):
+    def test_role_then_bound_job_override_decision_rule_and_revision(self):
         self.report("Unrelated color preference")
         context = self.context()
-        self.configure(project={"features": {"filtering": True}, "filtering": {"threshold": 0.1}},
-                       roles={"coder": {"filtering": {"threshold": 0.8}}},
-                       jobs={str(self.job): {"filtering": {"threshold": 0.6}}})
+        def rule(reject, accept):
+            return {"decisions": {"rules": {"context_relevance": {"noul": {"reject_below": reject, "accept_at": accept}}}}}
+        self.configure(project={"features": {"filtering": True}, **rule(0.1, 0.2)},
+                       roles={"coder": rule(0.8, 0.9)},
+                       jobs={str(self.job): rule(0.5, 0.6)})
         def probability(state, questions, model):
             response = answer(state, questions, model)
             response["answers"]["fact_0"]["noul"] = 0.7
             return response
         with patch("devtools.advice.Jev.evaluate", side_effect=probability):
             self.assertEqual(context, self.diagnostics.project(context))
-            self.configure(project={"features": {"filtering": True}, "filtering": {"threshold": 0.1}},
-                           roles={"coder": {"filtering": {"threshold": 0.8}}})
+            self.configure(project={"features": {"filtering": True}, **rule(0.1, 0.2)},
+                           roles={"coder": rule(0.8, 0.9)})
             self.assertEqual([], self.diagnostics.project(context)["recent_activity"])
         events = self.store.events(kind="context_projected")["events"]
-        self.assertEqual([0.6, 0.8], [item["data"]["threshold"] for item in events])
+        self.assertEqual([0.5, 0.8], [item["data"]["rule"]["noul"]["reject_below"] for item in events])
         self.assertNotEqual(events[0]["data"]["configuration_revision"], events[1]["data"]["configuration_revision"])
 
     def test_config_change_during_assessment_discards_old_projection(self):

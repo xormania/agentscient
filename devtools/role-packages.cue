@@ -23,7 +23,7 @@ import "list"
 	native_delegation: false
 }
 #Capabilities: {
-	bound: ["work_context", "work_report", "guidance_request"]
+	bound: *["work_context", "work_report", "guidance_request"] | #Strings
 	session: ["onboard", "skill_read"]
 	command: *[] | #Strings
 	advice: *[] | #Strings
@@ -71,6 +71,7 @@ packages: #Catalog & {
 		audit:       "audit"
 		docs:        "docs"
 		research:    "research"
+		arbitrator:  "arbitrator"
 		test_writer: "test_writer"
 		architect:   "architect"
 	}
@@ -113,7 +114,6 @@ packages: #Catalog & {
 				]
 				"advice": [
 					"work_assess",
-					"assignment_advise",
 				]
 				"job": [
 					"work_inspect"
@@ -226,6 +226,16 @@ packages: #Catalog & {
 			mcp:       audit.mcp
 			workspace: audit.workspace
 		}
+		adversarial_review: {
+			behavior:       "audit"
+			responsibility: "Independently challenge the submitted immutable revision's assumptions and completion claims with counterexamples and boundary cases; report reproducible defects and evidence without editing the producer's source."
+			skills: {
+				role:      "agentscient-adversarial-review"
+				framework: audit.skills.framework
+			}
+			mcp:       audit.mcp
+			workspace: audit.workspace
+		}
 		docs: {
 			behavior:         "docs"
 			"responsibility": "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations."
@@ -291,6 +301,16 @@ packages: #Catalog & {
 			"workspace": {
 				"serena": true
 			}
+		}
+		arbitrator: {
+			behavior:       "arbitrator"
+			responsibility: "Investigate the assigned pending decision using its current context and evidence, then resolve it with a supported rationale within the owner's scope. Do not edit source or coordinate execution."
+			skills: role: "agentscient-arbitrator"
+			mcp: {
+				bound: ["work_context", "work_report", "guidance_request", "decision_resolve"]
+				job: ["work_inspect"]
+			}
+			workspace: serena: true
 		}
 		test_writer: {
 			behavior:         "test_writer"
@@ -390,7 +410,6 @@ packages: #Catalog & {
 				]
 				"advice": [
 					"work_assess",
-					"assignment_advise",
 				]
 				"job": [
 					"work_inspect"

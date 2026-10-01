@@ -80,10 +80,12 @@ Configure Jev through the private `project.configuration_file` entry and its JSO
 overlay. Obtain a key from your [TypeSafe account](https://console.typesafe.ai/keys)
 and save it in a private local file; the service loads that file directly. CI's
 GitHub secret does not supply local credentials. The overlay selects the key-file
-reference, endpoint/model and independent advice, filtering, guidance and completion
+reference, endpoint/model and independent selection, advice, filtering, guidance and completion
 switches. See [configuration and local Jev credentials](../devtools/OPERATIONS.md#configuration-and-local-jev-credentials)
-for a complete example and environment-variable alternative. Defaults enable local
-skill guidance only; no Jev request occurs unless a Jev feature is enabled.
+for a complete example and environment-variable alternative. Defaults enable
+assignment selection, context filtering and completion decisions, plus local skill
+guidance. Configure the local Jev credential and an available Arbitrator runtime
+before the authenticated acceptance run.
 
 Inspect the effective project settings, or add `--role` and an existing `--job`
 number to see their overrides:

@@ -32,26 +32,83 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_independent_features_and_project_role_job_precedence(self):
         self.configure({"version": 1,
-                        "project": {"features": {"advice": True}, "filtering": {"threshold": 0.3}},
-                        "roles": {"research": {"features": {"filtering": True}, "filtering": {"threshold": 0.4}}},
-                        "jobs": {"1": {"filtering": {"threshold": 0.7}}}})
+                        "project": {"features": {"advice": True}, "filtering": {"max_facts": 3}},
+                        "roles": {"research": {"features": {"filtering": False}, "filtering": {"max_facts": 4}}},
+                        "jobs": {"1": {"filtering": {"max_facts": 7}}}})
         general = configuration.resolve(self.store)
         researcher = configuration.resolve(self.store, "research")
         job = configuration.resolve(self.store, "research", 1)
-        self.assertEqual(0.3, general["filtering"]["threshold"])
-        self.assertEqual(0.4, researcher["filtering"]["threshold"])
-        self.assertEqual(0.7, job["filtering"]["threshold"])
-        self.assertEqual({"advice": True, "filtering": True, "guidance": True, "completion": False}, job["features"])
+        self.assertEqual(3, general["filtering"]["max_facts"])
+        self.assertEqual(4, researcher["filtering"]["max_facts"])
+        self.assertEqual(7, job["filtering"]["max_facts"])
+        self.assertEqual({"selection": True, "advice": True, "filtering": False, "guidance": True, "completion": True}, job["features"])
         self.assertEqual({"role": "research", "job": 1}, job["selection"])
         self.assertNotEqual(researcher["revision"], job["revision"])
         self.assertEqual(job, configuration.resolve(self.store, "research", 1))
 
-    def test_absent_config_keeps_guidance_and_explicit_features_are_optional(self):
+    def test_absent_config_enables_automatic_decisions_and_guidance(self):
         value = configuration.resolve(self.store)
-        self.assertEqual({"advice": False, "filtering": False, "guidance": True, "completion": False}, value["features"])
+        self.assertEqual({"selection": True, "advice": False, "filtering": True, "guidance": True, "completion": True}, value["features"])
         self.assertNotIn("revision", configuration.defaults())
         value["scope"]["questions"].clear()
         self.assertTrue(configuration.resolve(self.store)["scope"]["questions"])
+
+    def test_decision_rules_resolve_partial_overrides_without_changing_defaults(self):
+        self.configure({"version": 1, "project": {"decisions": {
+            "choice": {"minimum_probability": 0.7},
+            "rules": {"runtime_fit": {"choice": {"minimum_margin": 0.2}}},
+        }}, "roles": {"research": {"decisions": {
+            "rules": {"runtime_fit": {"choice": {"minimum_probability": 0.8}}},
+        }}}, "jobs": {"1": {"decisions": {
+            "rules": {"runtime_fit": {"choice": {"minimum_probability": 0.9}}},
+        }}}})
+        settings = configuration.resolve(self.store, "research", 1)
+        self.assertEqual({"minimum_probability": 0.9, "minimum_margin": 0.2},
+                         configuration.decision_rule(settings, "runtime_fit")["choice"])
+        self.assertEqual({"minimum_probability": 0.7, "minimum_margin": 0.15},
+                         configuration.decision_rule(settings, "scope")["choice"])
+        self.assertEqual({"reject_below": 0.65, "accept_at": 0.85},
+                         configuration.decision_rule(settings, "completion")["noul"])
+        self.assertEqual({"reject_below": 0.15, "accept_at": 0.35},
+                         configuration.decision_rule(settings, "context_relevance")["noul"])
+        changed = configuration.decision_rule(settings, "scope")
+        changed["choice"]["minimum_probability"] = 0
+        self.assertEqual(0.7, configuration.decision_rule(settings, "scope")["choice"]["minimum_probability"])
+        self.assertEqual(0.65, configuration.defaults()["decisions"]["choice"]["minimum_probability"])
+
+    def test_decision_invalid_band_in_inactive_combination_is_rejected(self):
+        self.configure({"version": 1, "roles": {"research": {"decisions": {
+            "rules": {"scope": {"noul": {"reject_below": 0.5}}},
+        }}}, "jobs": {"2": {"decisions": {
+            "rules": {"scope": {"noul": {"accept_at": 0.4}}},
+        }}}})
+        with self.assertRaisesRegex(ValueError, "reject_below must be less"):
+            configuration.resolve(self.store, "coder", 1)
+
+    def test_decision_schema_rejects_invalid_thresholds_and_unqualified_arbitrators(self):
+        for changes in (
+            {"arbitrator_role": "research"}, {"arbitrator_role": "unregistered"},
+            {"reserved_sessions": 0}, {"reserved_sessions": 11}, {"reserved_sessions": True},
+            {"noul": {"reject_below": 0.65}}, {"noul": {"accept_at": 0.3}},
+            {"choice": {"minimum_probability": True}}, {"choice": {"minimum_margin": -0.1}},
+            {"score": {"minimum_confidence": 1.1}}, {"score": {"minimum_margin": float("inf")}},
+            {"unknown_choices": ["unknown", "unknown"]}, {"failure_mode": "continue"},
+            {"rules": {"unknown-field": {}}}, {"rules": {"scope": {"invented": {}}}},
+            {"rules": {"scope": {"score": {"probability": 0.2}}}},
+        ):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                configuration.validate(configuration._merge(configuration.defaults(), {"decisions": changes}))
+        for purpose in (None, True, "", "../scope"):
+            with self.subTest(purpose=purpose), self.assertRaises(ValueError):
+                configuration.decision_rule(configuration.defaults(), purpose)
+
+    def test_legacy_gate_thresholds_cannot_silently_override_decision_rules(self):
+        for old_setting in ({"completion": {"minimum_probability": 0.9}},
+                            {"completion": {"failure_mode": "mechanical_only"}},
+                            {"filtering": {"threshold": 0.2}}):
+            self.configure({"version": 1, "project": old_setting})
+            with self.subTest(old_setting=old_setting), self.assertRaisesRegex(ValueError, "Unknown configuration field"):
+                configuration.resolve(self.store)
 
     def test_lists_replace_and_credential_switch_does_not_retain_environment(self):
         self.configure({"version": 1, "project": {
@@ -88,7 +145,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_all_overrides_validate_even_when_unselected(self):
         for changes in (
-            {"roles": {"research": {"filtering": {"threshold": 2}}}},
+            {"roles": {"research": {"decisions": {"noul": {"accept_at": 2}}}}},
             {"roles": {"unregistered": {}}},
             {"jobs": {"9": {}}},
             {"jobs": {"01": {}}},
@@ -131,13 +188,13 @@ class ConfigurationTests(unittest.TestCase):
             configuration.resolve(self.store, "unregistered")
 
     def test_revision_changes_on_effective_policy_not_unrelated_overrides(self):
-        path = self.configure({"version": 1, "roles": {"research": {"filtering": {"threshold": 0.4}}}})
+        path = self.configure({"version": 1, "roles": {"research": {"filtering": {"max_facts": 4}}}})
         before = configuration.resolve(self.store, "coder")
         value = json.loads(path.read_text())
-        value["roles"]["research"]["filtering"]["threshold"] = 0.5
+        value["roles"]["research"]["filtering"]["max_facts"] = 5
         path.write_text(json.dumps(value))
         self.assertEqual(before["revision"], configuration.resolve(self.store, "coder")["revision"])
-        value["project"] = {"features": {"completion": True}}
+        value["project"] = {"features": {"completion": False}}
         path.write_text(json.dumps(value))
         self.assertNotEqual(before["revision"], configuration.resolve(self.store, "coder")["revision"])
 
@@ -166,7 +223,7 @@ class ConfigurationTests(unittest.TestCase):
                 configuration.defaults()
 
     def test_wrong_value_types_raise_configuration_errors(self):
-        for path, malformed in ((["guidance", "failure_mode"], []), (["completion", "minimum_probability"], True),
+        for path, malformed in ((["guidance", "failure_mode"], []), (["decisions", "noul", "accept_at"], True),
                                 (["model"], None), (["features", "advice"], 1), (["transport", "retry_statuses"], [True])):
             value = configuration.defaults()
             target = value
@@ -205,13 +262,17 @@ class ConfigurationTests(unittest.TestCase):
     def test_role_cardinality_and_names_follow_registry_and_semantic_defaults(self):
         registered = configuration.catalog()
         coder = registered["roles"]["coder"]
+        arbitrator = registered["roles"]["arbitrator"]
         registered["roles"] = {"role" + str(index): copy.deepcopy(coder) for index in range(40)}
-        self.configure({"version": 1, "roles": {"role39": {"features": {"advice": True}}}})
+        registered["roles"]["decision_specialist"] = arbitrator
+        self.configure({"version": 1, "project": {"decisions": {"arbitrator_role": "decision_specialist"}},
+                        "roles": {"role39": {"features": {"advice": True}}}})
         with patch.object(configuration, "catalog", return_value=registered):
             value = configuration.resolve(self.store, "role39")
         self.assertTrue(value["features"]["advice"])
         self.assertEqual([], value["guidance"]["excluded_roles"])
         self.assertEqual(["co"], value["guidance"]["excluded_adapters"])
+        self.assertEqual("decision_specialist", value["decisions"]["arbitrator_role"])
 
     def test_explicit_overlay_can_repair_removed_default_skill_references(self):
         registered = configuration.catalog()
@@ -280,11 +341,19 @@ class ConfigurationTests(unittest.TestCase):
             self.skipTest("CUE is a maintainer dependency")
         self.assertEqual(json.loads(configuration.GENERATED.read_text()), configuration.generate(cue))
         source = self.root / "invalid.cue"
-        for extra in ('bad: #Settings & {features: {legacy: true}}',
-                      'bad: #Connection & {adapter:"typesafe", endpoint:"https://host", credential:{env:"KEY",file:"key"}}',
-                      'bad: #Transport & {max_attempts: 0}',
-                      'bad: #Settings & {completion: {minimum_probability: 2}}'):
-            source.write_text(configuration.SOURCE.read_text() + "\n" + extra + "\n")
+        for path, changed in ((None, None), (["features", "legacy"], True),
+                              (["connection", "credential"], {"env": "KEY", "file": "key"}),
+                              (["transport", "max_attempts"], 0),
+                              (["decisions", "noul"], {"reject_below": 0.9, "accept_at": 0.2}),
+                              (["decisions", "choice", "minimum_probability"], 2),
+                              (["decisions", "rules", "scope"], {"score": {"invented": 1}})):
+            value = configuration.defaults()
+            if path is not None:
+                target = value
+                for part in path[:-1]:
+                    target = target[part]
+                target[path[-1]] = changed
+            source.write_text(configuration.SOURCE.read_text() + "\nbad: #Settings & " + json.dumps(value) + "\n")
             checked = subprocess.run([cue, "vet", "-c", str(source)], capture_output=True, timeout=30)
-            with self.subTest(extra=extra):
-                self.assertNotEqual(0, checked.returncode)
+            with self.subTest(path=path):
+                self.assertEqual(path is None, checked.returncode == 0, checked.stderr.decode())
