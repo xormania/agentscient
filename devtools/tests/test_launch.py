@@ -60,6 +60,7 @@ class LaunchTests(unittest.TestCase):
                 self.assertNotIn(b'launch-secret-sentinel', path.read_bytes(), str(path))
         self.assertFalse((self.state / 'launches').exists())
         owner = API(self.state, 'owner', operator=True)
+        (self.workspace / 'fixture-turns').mkdir()
         owner.store.send('owner', 'worker', 'Hold the prompt', key='held')
         until(lambda: self.store.member('worker')['state'] == 'active')
         began = time.monotonic()

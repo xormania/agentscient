@@ -6,9 +6,13 @@ import json
 import os
 import re
 import shutil
+import signal
+import socket
 import sqlite3
+import struct
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 from .configuration import ConfigurationState, selections
@@ -125,6 +129,43 @@ def platform(checkout, development):
     return "Locked PHP and extension requirements, including development packages, are satisfied."
 
 
+def managed_platform():
+    """Inspect the running host without launching or signalling any process."""
+    from .processes import identity
+
+    if sys.platform != "linux":
+        raise ValueError("Managed sessions require Linux or WSL2; run this control plane on a Linux host.")
+    if not callable(getattr(os, "pidfd_open", None)) or not callable(getattr(signal, "pidfd_send_signal", None)):
+        raise ValueError("Use a Linux Python build with os.pidfd_open and signal.pidfd_send_signal for managed process recovery.")
+    if not hasattr(socket, "SO_PEERCRED"):
+        raise ValueError("Managed launch requires Linux Unix-socket peer credentials (SO_PEERCRED).")
+    try:
+        current = identity(os.getpid())
+        if not current or current["pid"] != os.getpid() or not current["boot"]:
+            raise ValueError("Current process identity is unavailable")
+    except (OSError, RuntimeError, ValueError, KeyError) as error:
+        raise ValueError("Mount readable /proc for this PID namespace, including its boot identity, before managed launch.") from error
+    try:
+        descriptor = os.pidfd_open(os.getpid())
+        os.close(descriptor)
+    except OSError as error:
+        raise ValueError("The Linux kernel or sandbox blocks pidfd_open; enable pidfd access for managed process recovery.") from error
+    try:
+        left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        with left, right:
+            pid, uid, _ = struct.unpack("3i", left.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+            if pid != os.getpid() or uid != os.getuid():
+                raise ValueError("Peer identity does not match this process")
+    except (OSError, ValueError) as error:
+        raise ValueError("Linux Unix-socket peer credentials must be available in this namespace for managed launch.") from error
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as listener:
+            listener.bind("\0agentscient-doctor-" + uuid.uuid4().hex)
+    except OSError as error:
+        raise ValueError("Managed launch requires abstract Unix sockets; allow AF_UNIX abstract bind in this Linux sandbox.") from error
+    return "Linux process identity, pidfd access, abstract Unix sockets and peer credentials are available."
+
+
 def doctor(directory, online=False):
     directory = Path(directory).expanduser().resolve()
     checks = []
@@ -148,13 +189,14 @@ def doctor(directory, online=False):
         return {"status": "blocked", "checks": checks, "authenticated_acceptance": "not established by preflight"}
     checks[-1]["detail"] = "Team configuration is readable."
     check("CO connection", lambda: require(bool(config.get("co")), "An external user-facing CO must be appointed."))
-    check(
-        "collaborator capacity",
-        lambda: require(
-            len([m for m in config["members"] if m["name"] != config.get("co")]) >= 2,
-            "At least two collaborator slots are needed for XO and a producer; add a third for concurrent audit.",
-        ),
-    )
+    if not config.get("runtime"):
+        check(
+            "collaborator capacity",
+            lambda: require(
+                len([m for m in config["members"] if m["name"] != config.get("co")]) >= 2,
+                "At least two collaborator slots are needed for XO and a producer; add a third for concurrent audit.",
+            ),
+        )
     check(
         "private state",
         lambda: require(
@@ -275,35 +317,59 @@ def doctor(directory, online=False):
                 }
             )
     seen = set()
-    members = list(config["members"])
+    # Runtime profiles replace fixed managed-member settings at launch. Probe
+    # resolved profiles, so a missing executable that has a valid fallback does
+    # not incorrectly fail readiness.
+    members = [] if config.get("runtime") else list(config["members"])
     if config.get("runtime"):
-        from .runtime import load
+        from .role_packages import default_role
+        from .runtime import co_role, load, resolve
 
-        def runtime_policy():
-            policy, availability, revision = load(directory)
-            members.extend(row for row in policy["profiles"].values()
-                           if availability["vendors"][row["vendor"]]["available"])
-            return {"revision": revision, "roles": list(policy["roles"])}
+        loaded = check("Runtime policy", lambda: load(directory))
+        if loaded is not None:
+            policy, _, revision = loaded
+            checks[-1]["detail"] = {"revision": revision, "roles": list(policy["roles"])}
+            check("collaborator capacity", lambda: require(
+                policy["max_sessions"] >= 2,
+                "Set roles.json max_sessions to at least 2 for XO and one planner or specialist; increase it for concurrent jobs.",
+            ))
 
-        check("Runtime policy", runtime_policy)
+            def required_roles():
+                with settings_state.connect() as db:
+                    row = db.execute("SELECT role FROM member_bindings WHERE member=?", (config.get("co"),)).fetchone()
+                return {co_role({"role": row[0]} if row else None), default_role("xo"), default_role("planner")}
+
+            required = check("Workflow role identities", required_roles)
+            if required is not None:
+                checks[-1]["detail"] = sorted(required)
+                for role in sorted(required | set(policy["roles"])):
+                    selected = check("Runtime role " + role, lambda role=role: resolve(directory, role))
+                    if selected is not None:
+                        members.append(selected)
+                        checks[-1]["detail"] = {"profile": selected["selection"]["profile"],
+                                                 "harness": selected["harness"],
+                                                 "skipped": selected["selection"]["skipped"]}
     if any(row["harness"] != "external" for row in members) or config.get("runtime"):
+        check("managed process platform", managed_platform)
         check("tmux", lambda: require(bool(shutil.which("tmux")), "Managed harness sessions require tmux."))
     for member in members:
         harness = member["harness"]
         binary = member.get("binary") or harness
-        if harness == "external" or (harness, binary) in seen:
+        profile = (harness, binary, member.get("provider"))
+        if harness == "external" or profile in seen:
             continue
-        seen.add((harness, binary))
+        seen.add(profile)
 
-        def native(harness=harness, binary=binary):
+        def native(harness=harness, binary=binary, member=member):
             executable = shutil.which(binary)
             require(bool(executable), f"Install the configured {harness} binary and authenticate it locally.")
             version = re.search(r"\b\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?", probe([executable, "--version"]))
             detail = {"version": version[0] if version else "unreported", "authentication": "requires live acceptance"}
-            detail.update(harness_adapter(harness).readiness(executable, probe))
+            detail.update(harness_adapter(harness).readiness(executable, probe, config=member))
             return detail
 
-        check(harness + " binary", native)
+        label = harness + " binary" + (" (" + member["provider"] + ")" if member.get("provider") else "")
+        check(label, native)
     return {
         "status": "blocked" if any(c["status"] == "failed" for c in checks) else "preflight_passed",
         "checks": checks,

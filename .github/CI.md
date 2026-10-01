@@ -6,7 +6,7 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
-| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
+| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
 | `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
@@ -65,6 +65,13 @@ other. An updated PR cancels its obsolete run. Pushes, merge groups and manual
 runs keep separate concurrency groups: push filters cover only that event's
 delta, so cancelling an earlier push could discard its selected coverage.
 
+When `live-mcp` is selected, `changes` installs pinned CUE v0.17.1 and runs the
+role-package and shared-configuration CUE rejection tests explicitly, alongside
+export and consistency checks. `AGENTSCIENT_CUE=cue` makes a missing compiler fail
+these checks. The remaining role-package tests run with the full Python suite in
+`live-mcp`; that job may skip the two CUE cases when CUE is unavailable because
+`changes` has already required them.
+
 | Cache | Local runners | Hosted runners |
 | --- | --- | --- |
 | Ruff downloads | pip's existing local cache | `setup-python` pip cache, keyed by [requirements-ci.txt](requirements-ci.txt). |
@@ -87,6 +94,12 @@ work that must remain running through an MCP disconnect. Assertions wait for the
 state they need; CI does not retry failed tests to obtain a green result. If a
 runner loses Docker or PHP crashes, inspect the failing step and retained evidence
 as an environment/runtime failure before labelling it a test flake.
+
+The bootstrap environment handoff test requires Linux abstract Unix sockets,
+independently of tmux. Constrained local environments may skip this test after a
+socket capability probe; `AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS=1` makes an unavailable
+socket fail `live-mcp`. Real terminal tests separately require tmux through
+`AGENTSCIENT_REQUIRE_TMUX=1`.
 
 ## Optional Jev failure diagnosis
 

@@ -41,10 +41,12 @@ async def main():
         raise ValueError("No client capability")
 
     tasks = set()
+    active = set()
 
     async def receive(params):
         text = params["content"]
         ident = int(re.search(r"Live message #(\d+)", text)[1])
+        active.add(ident)
         with transcript.open("a") as stream:
             stream.write(json.dumps({"type": "user", "message": {"content": text}}) + "\n")
             stream.write(
@@ -64,7 +66,19 @@ async def main():
         arguments = {"text": f"Received message {ident}", "responding_to": f"message:{ident}"}
         hook("PreToolUse", tool_name="mcp__agentscient_dev__work_report", tool_input=arguments)
         result = await rpc.request("tools/call", {"name": "work_report", "arguments": arguments})
+        assert not result.get("isError"), result
         hook("PostToolUse", tool_name="mcp__agentscient_dev__work_report", tool_response=result)
+        gates = Path.cwd() / "fixture-turns"
+        if gates.is_dir():
+            (gates / ("started-" + str(ident))).touch()
+            async with asyncio.timeout(20):
+                while not (gates / "release").exists():
+                    await asyncio.sleep(0.01)
+        active.discard(ident)
+        if not active:
+            hook("Stop")
+        if gates.is_dir():
+            (gates / ("completed-" + str(ident))).touch()
 
     async def notification(method, params):
         if method == "notifications/claude/channel":
@@ -80,7 +94,7 @@ async def main():
     await rpc.notify("notifications/initialized")
     result = await rpc.request("tools/call", {"name": "onboard", "arguments": {}})
     onboard = json.loads(result["content"][0]["text"])
-    await rpc.request("tools/call", {"name": "skill_read", "arguments": {"name": onboard["skills"][1]["name"]}})
+    assert all(skill["loaded"] for skill in onboard["skills"])
     Path(option("--debug-file")).write_text(
         '2026-09-28T00:00:00.000Z [DEBUG] MCP server "agentscient_dev": Channel notifications registered\n'
     )

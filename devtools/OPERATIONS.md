@@ -35,8 +35,9 @@ an existing team. A complete project setup has this shape (replace local paths):
 
 Member names identify reusable slots. CO is the configured external user-facing
 interface: it relays xor's instructions/context to XO and system messages back to
-xor. XO owns planning, execution, coordination and acceptance. At least two other
-slots support XO and a producer. A third allows concurrent audit. Multiple slots
+xor. XO owns planning, execution, coordination and acceptance. For fixed-member
+teams, at least two other slots support XO and a producer. A third allows concurrent
+audit. Shared runtime teams allocate seats from `roles.json` capacity. Multiple slots
 can use the same installed harness. External slots connect their own MCP clients.
 Each collaborator is a standalone managed native session. Agentscient owns its
 creation and coordination; harness-native subagents are not used.
@@ -73,6 +74,39 @@ skill references, private hooks, workspace eligibility and execution options.
 Operator `roles.json`/`vendors.json` and fixed-team settings retain their current
 format. Configured profiles must fit the package; models and reasoning levels are
 not hardcoded. Maintain the CUE definition and checked-in JSON export together.
+
+### Native login storage
+
+Native profiles isolate harness settings from the operator's configuration. Codex
+and Grok reuse file-based `auth.json` login data and retain private refreshes across
+generations for the same source home; changing that home or replacing the source
+login takes precedence. Codex also preserves its
+native login-method and workspace constraints. Native authentication and provider
+consent still apply; a copied file does not prove that the account is authenticated.
+
+Codex `keyring` and `auto` storage cannot be copied into a different `CODEX_HOME`:
+the native keyring identity depends on that path, and an existing `auth.json` may
+belong to a stale account. Readiness and profile creation report this explicitly.
+Keep a global keyring login if desired and create a separate file-backed login home
+for Agentscient using Codex's native login command. For a new directory:
+
+```sh
+codex_login_home="$HOME/.local/state/agentscient-codex-login"
+mkdir -m 700 "$codex_login_home"
+printf '%s\n' 'cli_auth_credentials_store = "file"' > "$codex_login_home/config.toml"
+chmod 600 "$codex_login_home/config.toml"
+CODEX_HOME="$codex_login_home" codex login
+CODEX_HOME="$codex_login_home" python3 devtools/run.py doctor --state "$HOME/.local/state/agentscient-live"
+CODEX_HOME="$codex_login_home" python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
+```
+
+Use that source home in the environment of the service launching managed Codex
+sessions too. The launcher does not modify the original login or configuration.
+Codex `ephemeral` mode stays ephemeral: file credentials are neither imported nor
+retained. The operator must supply the native session's authentication in that mode.
+Independent model providers use their configured native credentials instead of an
+OpenAI account. Their profiles skip account-file reuse; the effective runtime
+provider override is honored during both readiness and profile creation.
 
 ### Planning and NCO setup
 
@@ -166,7 +200,7 @@ independently and loads a local key file:
 Obtain a key from your [TypeSafe account](https://console.typesafe.ai/keys). Use a
 separate local key if you want independent rotation from CI. Save only the key,
 optionally followed by a newline, in the referenced file outside source worktrees.
-On Linux/macOS/WSL give the directory mode `0700` and the key file `0600` or `0400`.
+Give the directory mode `0700` and the key file `0600` or `0400`.
 The key never belongs in the overlay, `team.json`, agent arguments or repository.
 The service reads it directly when needed, without exporting it to child processes.
 File replacement takes effect on the next credential read; it needs no service

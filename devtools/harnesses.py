@@ -1,11 +1,12 @@
 """Installed native harness adapters selected through the shared operator manifest.
 
 Manifest harness entries name zero-argument factories. Instances declare vendor
-and supports_provider and implement prepare(directory, member), permitted(tool,
+and supports_provider and implement prepare(directory, member, config=None), permitted(tool,
 arguments, catalogue=...), hook(directory, member, payload), run(directory,
 member, config, generation), command(directory, member, config, private, server),
 channel(private), retain_login(directory, member, generation), and
-readiness(binary, probe). prepare returns (private_path, environment, MCP_config);
+readiness(binary, probe, config=None). config supplies the selected runtime snapshot.
+prepare returns (private_path, environment, MCP_config);
 command returns (argv, native_session_id). run owns one persistent session;
 the common launcher retains generation, work binding and cleanup ownership.
 """
@@ -33,10 +34,10 @@ class BuiltinHarness:
     protocol = None
     supports_provider = False
 
-    def prepare(self, directory, member):
+    def prepare(self, directory, member, config=None):
         from .profiles import _prepare_builtin
 
-        return _prepare_builtin(directory, member, self.protocol, adapter_name=self.name)
+        return _prepare_builtin(directory, member, self.protocol, adapter_name=self.name, config=config)
 
     def permitted(self, tool, arguments, *, catalogue=None):
         from .profiles import _permitted_builtin
@@ -61,7 +62,7 @@ class BuiltinHarness:
     def channel(self, private):
         return None
 
-    def readiness(self, binary, probe):
+    def readiness(self, binary, probe, config=None):
         return {"protocol": self.readiness_message}
 
     def run(self, directory, member, config, generation):
@@ -75,13 +76,18 @@ class CodexHarness(BuiltinHarness):
     vendor = "openai"
     supports_provider = True
 
-    def readiness(self, binary, probe):
-        from .compat import codex_capability
+    def readiness(self, binary, probe, config=None):
+        import os
+        from pathlib import Path
 
+        from .compat import codex_capability
+        from .profiles import codex_settings
+
+        settings = codex_settings(Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))), config)
         capability = codex_capability(binary)
         if capability["status"] != "supported":
             raise ValueError("Installed Codex must support TurnStartParams.toolOutput; update before launch.")
-        return {"protocol": capability}
+        return {"protocol": capability, "login_storage": settings["cli_auth_credentials_store"]}
 
 
 class GrokHarness(BuiltinHarness):

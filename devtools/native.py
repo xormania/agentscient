@@ -10,6 +10,7 @@ import signal
 import subprocess
 import time
 import uuid
+from collections import deque
 
 from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
@@ -36,13 +37,17 @@ class Native:
         self.protocol = get(self.harness).protocol
         if self.protocol not in {"codex", "grok"}:
             raise ValueError("This native backend does not implement the selected harness protocol.")
-        self.private, self.env, self.server = prepare(directory, member, self.harness)
+        self.private, self.env, self.server = prepare(directory, member, self.harness, config=config)
         self.trace = Trace(directory, member, context=lambda: context(self.store, member))
         requested(self.store, member, config, self.private)
         self.session = None
         self.busy = False
         self.prompts_in_flight = 0
         self.native_busy = False
+        self.grok_turn = 0
+        self.grok_prompt_id = None
+        self.grok_seen_ids = deque(maxlen=128)
+        self.grok_completed_ids = deque(maxlen=128)
         self.pending_interjections = set()
         self.rpc = self.mcp = None
         self.serena = None
@@ -274,15 +279,14 @@ class Native:
                     raise ValueError("Native non-MCP tool activity observed: " + kind)
         else:
             kind = update.get("sessionUpdate")
+            prompt_id = params.get("promptId", update.get("prompt_id", params.get("_meta", {}).get("promptId")))
             if method == "_x.ai/session/prompt_complete" or kind == "turn_completed":
-                self.native_busy = False
-                self.grok_activity()
+                self.grok_complete(prompt_id)
                 self.event(
-                    "turn_completed", native_id=self.session, turn=params.get("promptId", update.get("prompt_id"))
+                    "turn_completed", native_id=self.session, turn=prompt_id
                 )
             elif kind in {"agent_message_chunk", "agent_thought_chunk", "tool_call", "tool_call_update"}:
-                self.native_busy = True
-                self.grok_activity()
+                self.grok_started(prompt_id)
         if method == "item/agentMessage/delta":
             print(params.get("delta", ""), end="", flush=True)
         elif update.get("sessionUpdate") == "agent_message_chunk":
@@ -291,7 +295,7 @@ class Native:
     def delivered(self, message, error=None, transport=None):
         self.store.delivered(self.member, message["id"], message["attempt"], error=error, transport=transport)
 
-    async def grok_prompt(self, message):
+    async def grok_prompt(self, message, prompt_id, turn):
         submitted = False
 
         async def sent():
@@ -300,12 +304,21 @@ class Native:
             submitted = True
 
         try:
-            await self.rpc.request(
+            result = await self.rpc.request(
                 "session/prompt",
-                {"sessionId": self.session, "prompt": [{"type": "text", "text": self.control.render(message)}]},
+                {
+                    "sessionId": self.session,
+                    "prompt": [{"type": "text", "text": self.control.render(message)}],
+                    "_meta": {"promptId": prompt_id},
+                },
                 timeout=3600,
                 on_sent=sent,
             )
+            if not isinstance(result, dict) or not isinstance(result.get("stopReason"), str) or not result["stopReason"]:
+                raise ValueError("Grok session/prompt response is missing its stopReason")
+            # ACP's response completes this prompt even without an extension notification.
+            # An interjected turn may have started before this coroutine resumes.
+            self.grok_complete(prompt_id, turn=turn)
         except Exception as error:
             # A written prompt may already have executed; do not automatically replay it.
             self.event("native_prompt_error", message=message["id"], error=str(error)[:1000])
@@ -314,6 +327,34 @@ class Native:
         finally:
             self.prompts_in_flight -= 1
             self.grok_activity()
+
+    def grok_started(self, prompt_id=None):
+        if prompt_id is not None:
+            # Late chunks from a previously observed turn cannot replace newer activity.
+            # Its outstanding request still counts as live until its own response arrives.
+            if prompt_id in self.grok_completed_ids or (
+                prompt_id != self.grok_prompt_id and prompt_id in self.grok_seen_ids
+            ):
+                return self.grok_turn
+            if prompt_id not in self.grok_seen_ids:
+                self.grok_seen_ids.append(prompt_id)
+        # Without a provider ID, a completion followed by activity starts a new epoch.
+        if not self.native_busy or (prompt_id is not None and prompt_id != self.grok_prompt_id):
+            self.grok_turn += 1
+            self.grok_prompt_id = prompt_id
+        self.native_busy = True
+        self.grok_activity()
+        return self.grok_turn
+
+    def grok_complete(self, prompt_id=None, *, turn=None):
+        completed_id = self.grok_prompt_id if prompt_id is None else prompt_id
+        if completed_id is not None and completed_id not in self.grok_completed_ids:
+            self.grok_completed_ids.append(completed_id)
+        if (turn is None or turn == self.grok_turn) and (
+            prompt_id is None or prompt_id == self.grok_prompt_id
+        ):
+            self.native_busy = False
+        self.grok_activity()
 
     def grok_activity(self):
         if self.pending_interjections:
@@ -359,9 +400,9 @@ class Native:
                 self.delivered(message, transport="grok/_x.ai/interject")
             else:
                 self.prompts_in_flight += 1
-                self.native_busy = True
-                self.grok_activity()
-                task = asyncio.create_task(self.grok_prompt(message))
+                prompt_id = str(uuid.uuid4())
+                turn = self.grok_started(prompt_id)
+                task = asyncio.create_task(self.grok_prompt(message, prompt_id, turn))
                 self.tasks.add(task)
                 task.add_done_callback(self.tasks.discard)
         except Exception as error:
@@ -397,7 +438,7 @@ class Native:
 
 def claude(directory, member, config, generation):
     store = Store(directory)
-    private, env, _ = prepare(directory, member, config["harness"])
+    private, env, _ = prepare(directory, member, config["harness"], config=config)
     native_id = str(uuid.uuid4())
     debug = private / "native-debug.log"
     debug.write_text("")

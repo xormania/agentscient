@@ -49,17 +49,52 @@ def toml(value):
 def restore_login(private, original, harness):
     """Carry refreshed private credentials forward; a changed operator login wins."""
     source = original / "auth.json"
+    identity = str(source.resolve())
     digest = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
     cache = private.parent / (harness + "-login.json")
     previous = json.loads(cache.read_text()) if cache.is_file() else {}
     destination = private / "auth.json"
-    if previous.get("source_sha256") == digest and "auth" in previous:
+    destination.unlink(missing_ok=True)
+    if previous.get("source_path") == identity and previous.get("source_sha256") == digest and "auth" in previous:
         destination.write_text(previous["auth"])
     elif source.is_file():
         shutil.copyfile(source, destination)
     if destination.exists():
         destination.chmod(0o600)
-    write_json(private / "login-origin.json", {"source_sha256": digest, "harness": harness})
+    write_json(private / "login-origin.json", {"source_path": identity, "source_sha256": digest, "harness": harness})
+
+
+def codex_settings(original, config=None):
+    """Select reusable native settings without treating a stale auth file as login.
+
+    Codex keyring identities depend on CODEX_HOME. Its login CLI has no export
+    operation, so a private generation cannot inherit that credential store.
+    An operator can keep global keyring login and use a separate file-login home.
+    """
+    path = original / "config.toml"
+    previous = tomllib.loads(path.read_text()) if path.is_file() else {}
+    provider = (config or {}).get("provider") or previous.get("model_provider", "openai")
+    provider_settings = previous.get("model_providers", {}).get(provider, {})
+    requires_login = provider_settings.get("requires_openai_auth", provider == "openai")
+    mode = previous.get("cli_auth_credentials_store", "file")
+    if not isinstance(mode, str):
+        raise ValueError("Codex cli_auth_credentials_store must name a native storage mode.")
+    if not requires_login:
+        # Independent providers supply their own native env/command credentials.
+        # Never import an unrelated OpenAI account into that provider's session.
+        mode = "ephemeral"
+    elif mode in {"keyring", "auto"}:
+        raise ValueError(
+            "Private Codex profiles cannot reuse keyring/auto login storage. "
+            "Use a dedicated CODEX_HOME with cli_auth_credentials_store=\"file\", "
+            "run native codex login there, and launch with that CODEX_HOME. "
+            "See devtools/OPERATIONS.md#native-login-storage."
+        )
+    if mode not in {"file", "ephemeral"}:
+        raise ValueError("Unsupported Codex cli_auth_credentials_store setting.")
+    keys = ("model", "model_provider", "model_providers", "model_reasoning_effort", "service_tier",
+            "forced_login_method", "forced_chatgpt_workspace_id")
+    return {**{key: previous[key] for key in keys if key in previous}, "cli_auth_credentials_store": mode}
 
 
 def retain_login(directory, member, harness, generation):
@@ -74,8 +109,10 @@ def _retain_login_builtin(directory, member, harness, generation):
     private = Path(directory) / "profiles" / member / generation
     if (private / "auth.json").is_file() and (private / "login-origin.json").is_file():
         origin = json.loads((private / "login-origin.json").read_text())
-        write_json(private.parent / (harness + "-login.json"),
-                   {"source_sha256": origin["source_sha256"], "auth": (private / "auth.json").read_text()})
+        if "source_path" in origin:
+            write_json(private.parent / (harness + "-login.json"),
+                       {"source_path": origin["source_path"], "source_sha256": origin["source_sha256"],
+                        "auth": (private / "auth.json").read_text()})
 
 
 def permitted(harness, tool, arguments, *, catalogue=None):
@@ -128,17 +165,17 @@ def tool_catalogue(directory, member):
     return result
 
 
-def prepare(directory, member, harness):
+def prepare(directory, member, harness, config=None):
     from .harnesses import get
 
     api = API(directory, member)
     scope = api.control.snapshot()
     if scope and harness not in role_package(scope["role"])["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
-    return get(harness).prepare(directory, member)
+    return get(harness).prepare(directory, member, config=config)
 
 
-def _prepare_builtin(directory, member, harness, *, adapter_name=None):
+def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=None):
     """Keep global settings untouched; reuse only the selected native login files."""
     directory = Path(directory).resolve()
     from .store import Store
@@ -198,14 +235,13 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None):
         write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
-        restore_login(private, original, harness)
-        settings = {}
-        config = original / "config.toml"
-        if config.is_file():
-            previous = tomllib.loads(config.read_text())
-            for key in ("model", "model_provider", "model_providers", "model_reasoning_effort", "service_tier"):
-                if key in previous:
-                    settings[key] = previous[key]
+        settings = codex_settings(original, config)
+        if settings["cli_auth_credentials_store"] == "file":
+            restore_login(private, original, harness)
+        else:
+            # Ephemeral native authentication must not restore or retain a file login.
+            for name in ("auth.json", "login-origin.json"):
+                (private / name).unlink(missing_ok=True)
         settings.update(features=CODEX_FEATURES, mcp_servers={}, web_search="disabled")
         (private / "config.toml").write_text(
             "\n".join(f"{key} = {toml(value)}" for key, value in settings.items()) + "\n"

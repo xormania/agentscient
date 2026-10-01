@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import tomllib
 from pathlib import Path
 
@@ -40,6 +41,7 @@ process = subprocess.Popen(
     [server["command"], *server["args"]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
 )
 ident = 0
+notifications = []
 
 
 def call(method, params=None):
@@ -52,6 +54,8 @@ def call(method, params=None):
         if packet.get("id") == ident:
             assert "error" not in packet, packet
             return packet["result"]
+        if "method" in packet:
+            notifications.append(packet)
 
 
 def tool(name, arguments):
@@ -65,11 +69,28 @@ try:
     process.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
     process.stdin.flush()
     onboard = tool("onboard", {})
-    assert onboard["role"] == "co"
-    tool("skill_read", {"name": "agentscient-co"})
+    exchange = Path(os.environ["AGENTSCIENT_CO_FIXTURE"])
+    expected = json.loads(exchange.read_text())
+    assert onboard["role"] == expected["role"]
+    assert onboard["package"]["behavior"] == "co"
+    assert all(skill["loaded"] for skill in onboard["skills"])
     context = tool("work_context", {})
-    assert "Preserve this decision" in json.dumps(context)
-    tool("work_report", {"text": "CO recovered using " + harness, "kind": "progress"})
+    assert expected["predecessor"] in json.dumps(context)
+    tool("direct", expected["goal"])
+    exchange.with_suffix(".directed").touch()
+    deadline = time.monotonic() + 10
+    while True:
+        context = tool("work_context", {})
+        report = next((row for row in context["incoming"] if expected["incoming"] in row["text"]), None)
+        pushed = any(row["method"] == "notifications/claude/channel" and
+                     expected["incoming"] in row["params"]["content"] for row in notifications)
+        if report and (harness != "claude" or pushed):
+            break
+        assert time.monotonic() < deadline, "Current XO report did not reach the CO through its configured transport"
+        time.sleep(0.02)
+    tool("work_report", {"text": "CO recovered using " + harness, "kind": "progress",
+                         "responding_to": report["reference"]})
+    assert (harness == "claude") == pushed
     # Separate PTY writes deliberately split a credential before one complete line.
     secret = os.environ["TEST_API_KEY"]
     os.write(1, ("Live CO response " + harness + " " + secret[:7]).encode())
