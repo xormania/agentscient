@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import re
 import shlex
 import subprocess
 import tempfile
@@ -97,6 +98,11 @@ class RoutingTests(unittest.TestCase):
         verify = next(step for step in workflow["jobs"]["live-mcp"]["steps"] if step.get("id") == "verify")
         self.assertEqual("1", verify["env"]["AGENTSCIENT_REQUIRE_TMUX"])
         self.assertEqual("1", verify["env"]["AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS"])
+        self.assertIn("python3 -m devtools.tests.run --strict ", verify["run"])
+        self.assertEqual([
+            "test_role_packages.PackageCatalogTests.test_cue_source_and_export_agree_and_invalid_definitions_are_rejected",
+            "test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields",
+        ], re.findall(r"--allow-skip (\S+)", verify["run"]))
 
     def test_lane_accepts_only_deliberate_skips_and_successful_selected_jobs(self):
         for selected in ("true", "false"):

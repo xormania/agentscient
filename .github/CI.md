@@ -70,7 +70,11 @@ role-package and shared-configuration CUE rejection tests explicitly, alongside
 export and consistency checks. `AGENTSCIENT_CUE=cue` makes a missing compiler fail
 these checks. The remaining role-package tests run with the full Python suite in
 `live-mcp`; that job may skip the two CUE cases when CUE is unavailable because
-`changes` has already required them.
+`changes` has already required them. The full suite uses strict execution with
+only those two exact test IDs permitted to skip. Unexpected skips, skipped
+subtests, expected failures, incomplete execution and an empty run fail the job;
+the retained census still records every permitted skip. Local runs remain
+permissive unless `--strict` is requested.
 
 | Cache | Local runners | Hosted runners |
 | --- | --- | --- |

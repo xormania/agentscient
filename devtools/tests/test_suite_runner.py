@@ -1,5 +1,6 @@
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,59 @@ from devtools.tests import run
 
 
 class SuiteRunnerTests(unittest.TestCase):
+    def cli(self, source, *arguments):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "test_required.py").write_text("import unittest\n" + source)
+            report = root / "report.json"
+            report.write_text('{"state":"passed","collected":999,"executed":999}')
+            completed = subprocess.run(
+                [sys.executable, "-m", "devtools.tests.run", "--strict", "-s", temporary, "--report", str(report), *arguments],
+                cwd=Path(__file__).resolve().parents[2], capture_output=True, text=True, timeout=10, check=False,
+            )
+            return completed, json.loads(report.read_text())
+
+    def test_strict_cli_requires_complete_execution_and_retains_failed_census(self):
+        examples = {
+            "passing": ("class Example(unittest.TestCase):\n def test_one(self): self.assertEqual(1, 1)\n", 0, 1, 1),
+            "method_skip": ("class Example(unittest.TestCase):\n @unittest.skip('omitted')\n def test_one(self): pass\n", 1, 1, 0),
+            "class_skip": ("@unittest.skip('omitted')\nclass Example(unittest.TestCase):\n def test_one(self): pass\n", 1, 1, 0),
+            "module_skip": ("def setUpModule(): raise unittest.SkipTest('omitted')\nclass Example(unittest.TestCase):\n def test_one(self): pass\n", 1, 1, 0),
+            "subtest_skip": ("class Example(unittest.TestCase):\n def test_one(self):\n  with self.subTest(input=1): self.skipTest('omitted')\n", 1, 1, 1),
+            "expected_failure": ("class Example(unittest.TestCase):\n @unittest.expectedFailure\n def test_one(self): self.fail('known defect')\n", 1, 1, 1),
+            "stopped": ("class Example(unittest.TestCase):\n def test_a_stop(self): self._outcome.result.stop()\n def test_b_unreached(self): self.fail('must execute')\n", 1, 2, 1),
+            "empty": ("", 2, None, None),
+        }
+        for label, (source, status, collected, executed) in examples.items():
+            with self.subTest(case=label):
+                completed, census = self.cli(source)
+                self.assertEqual(status, completed.returncode, completed.stderr)
+                self.assertEqual("passed" if status == 0 else "collection_failed" if status == 2 else "failed", census["state"])
+                if collected is not None:
+                    self.assertEqual((collected, executed), (census["collected"], census["executed"]))
+
+    def test_strict_skip_allowance_is_exact_and_cannot_hide_unexecuted_tests(self):
+        allowed = "test_required.Example.test_b"
+        examples = {
+            "allowed_skip": (" def test_a(self): pass\n @unittest.skip('required elsewhere')\n def test_b(self): pass\n", allowed, 0, 1, 1, 0),
+            "allowed_but_executed": (" def test_a(self): pass\n def test_b(self): pass\n", allowed, 0, 2, 0, 0),
+            "allowed_but_failed": (" def test_a(self): pass\n def test_b(self): self.fail('real defect')\n", allowed, 1, 2, 0, 0),
+            "allowed_expected_failure": (" def test_a(self): pass\n @unittest.expectedFailure\n def test_b(self): self.fail('known defect')\n", allowed, 1, 2, 0, 0),
+            "allowed_subtest_skip": (" def test_a(self): pass\n def test_b(self):\n  with self.subTest(input=1): self.skipTest('omitted')\n", allowed, 1, 2, 0, 0),
+            "wrong_case": (" @unittest.skip('unapproved')\n def test_a(self): pass\n def test_b(self): pass\n", allowed, 1, 1, 1, 0),
+            "allowed_but_unreached": (" def test_a(self): self._outcome.result.stop()\n def test_b(self): pass\n", allowed, 1, 1, 0, 1),
+            "allowed_only": (" @unittest.skip('required elsewhere')\n def test_b(self): pass\n", allowed, 1, 0, 1, 0),
+            "stale_allowance": (" def test_a(self): pass\n", allowed, 2, None, None, None),
+            "wildcard_allowance": (" def test_b(self): pass\n", "test_required.*", 2, None, None, None),
+        }
+        for label, (source, ident, status, executed, skipped, not_run) in examples.items():
+            with self.subTest(case=label):
+                completed, census = self.cli("class Example(unittest.TestCase):\n" + source, "--allow-skip", ident)
+                self.assertEqual(status, completed.returncode, completed.stderr)
+                self.assertEqual("passed" if status == 0 else "collection_failed" if status == 2 else "failed", census["state"])
+                if executed is not None:
+                    self.assertEqual((executed, skipped, not_run), tuple(census[key] for key in ("executed", "skipped", "not_run")))
+
     def test_empty_or_duplicate_collection_fails_before_running(self):
         calls = []
 

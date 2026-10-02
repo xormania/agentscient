@@ -84,7 +84,13 @@ def main(argv=None):
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--durations", type=int)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--strict", action="store_true",
+                        help="Require every collected test to execute successfully, with no skips or expected failures")
+    parser.add_argument("--allow-skip", action="append", default=[], metavar="TEST_ID",
+                        help="In strict mode, permit this exact collected test ID to skip because another gate requires it")
     args = parser.parse_args(argv)
+    if args.allow_skip and not args.strict:
+        parser.error("--allow-skip requires --strict")
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps({"state": "collecting"}) + "\n")
@@ -93,15 +99,27 @@ def main(argv=None):
         suite = loader.discover(args.start_directory, pattern=args.pattern)
         if loader.errors:
             raise ValueError("Test discovery failed:\n" + "\n".join(loader.errors))
+        allowed = set(args.allow_skip)
+        if allowed and (unknown := allowed - {test.id() for test in collect(suite)}):
+            raise ValueError("Allowed skip IDs were not collected: " + ", ".join(sorted(unknown)))
         result = run(suite, verbosity=2 if args.verbose else 1, durations=args.durations)
     except (ImportError, ValueError) as error:
         if args.report:
             args.report.write_text(json.dumps({"state": "collection_failed", "error": str(error)}, indent=2) + "\n")
         print(str(error), file=sys.stderr)
         return 2
+    census = result.census()
+    omitted = {key: census[key] for key in ("not_run", "skipped_subtests", "expected_failures") if census[key]}
+    if unexpected := set(result.skipped_cases) - allowed:
+        omitted["unexpected_skips"] = len(unexpected)
+    if not census["executed"]:
+        omitted["no_executed_tests"] = 1
+    passed = result.wasSuccessful() and not (args.strict and omitted)
+    if args.strict and omitted:
+        print("Strict test execution failed: " + ", ".join(f"{key}={value}" for key, value in omitted.items()), file=sys.stderr)
     if args.report:
-        args.report.write_text(json.dumps({"state": "passed" if result.wasSuccessful() else "failed", **result.census()}, indent=2) + "\n")
-    return 0 if result.wasSuccessful() else 1
+        args.report.write_text(json.dumps({"state": "passed" if passed else "failed", **census}, indent=2) + "\n")
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
