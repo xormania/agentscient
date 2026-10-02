@@ -58,16 +58,21 @@ checks passed; inspect the measured result. Provider unavailability and an inval
 provider response both mean no valid judgment was obtained.
 Read the [role onboarding reference](role-onboarding.md) for customized responsibilities
 and skill catalogs shared across all supported harnesses.
-When the operator enables `features.advice` in the resolved configuration, bound roles other than CO get **`work_assess`**
-and XO/NCO get **`assignment_advise`**. These are optional, on-demand advice tools;
-inspection, coordination and reporting remain available if Jev is unavailable.
+When the operator enables `features.advice` in the resolved configuration, eligible
+bound roles get **`work_assess`**; CO and Arbitrator do not receive it.
+This exposes optional investigative assessments. Assignment, runtime, relevance and
+completion decisions run in the service at their configured boundaries without
+requiring an agent to call `work_assess` first.
 Filtering and completion assessment have independent feature switches and role/job
 policies. Filtering can omit clearly irrelevant background from routine briefs.
-Enabled completion assessment checks retained proof and blocks uncertain results.
-Its default unavailable-provider policy blocks completion; the operator may explicitly
-select mechanical-only fallback, which is retained as skipped assessment. Repair and reporting remain available. See [scoped guidance and proof boundaries](../devtools/OPERATIONS.md#scoped-guidance-and-proof-boundaries).
+Enabled completion assessment checks retained proof. Decisive results are applied
+through normal service checks; ambiguous decisions are assigned to Arbitrator.
+Pending arbitration keeps completion waiting. Provider failure handling is configured
+under `decisions`, with arbitration as the default. Repair and reporting remain available.
+See [service decisions and arbitration](../devtools/OPERATIONS.md#service-decisions-and-arbitration).
 With a project configured, specialists also get **`work_inspect`**. Enabling
-`project.development` adds **`framework_inspect` and `work_check`** for specialists.
+`project.development` adds configured **`framework_inspect` and `work_check`** tools;
+Arbitrator has source inspection without framework execution capabilities.
 The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 `work_submit` and `review_respond`.
 
@@ -79,8 +84,11 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 | Planner (`planner`) | Shared and specialist inspection/reporting tools at work-order scope; retained plan required for a result to XO | Read-only source |
 | Coder (`coder`) | Editing tools; `framework_generate` | Product paths |
 | Audit (`audit`) | `review_record` | Read-only review snapshot |
+| Security Auditor (`security_auditor`) | `review_record` with a security review focus | Read-only review snapshot |
+| Adversarial Review (`adversarial_review`) | `review_record` focused on counterexamples and completion claims | Read-only review snapshot |
 | Docs (`docs`) | Editing tools | `docs/` and `README.md`; other source read-only |
 | Research (`research`) | Shared and specialist inspection/reporting tools | Read-only source |
+| Arbitrator (`arbitrator`) | `decision_resolve` for its assigned pending decision; `work_inspect` when source is configured | Read-only source |
 | Test Writer (`test_writer`) | Editing tools; `framework_generate` for `make:test` | `tests/` and PHPUnit configuration |
 | Architect (`architect`) | Editing tools | `docs/`; other source read-only |
 
@@ -96,7 +104,24 @@ catalog, even by guessing a backing capability's name.
 
 ## Shared context, reports and guidance
 
-### Jev advice
+### Service decisions and investigation
+
+With selection enabled, `orchestrate` evaluates proposed responsibilities against
+the current objective, existing assignments, permitted roles and available runtime
+profiles. The service applies decisive selections within those boundaries; it
+does not ask the coordinator to reinterpret the provider's scores. Selection does
+not change the owner's objective or the operator's runtime policy.
+
+When a typed result is ambiguous, the service assigns the configured Arbitrator
+and returns a pending decision. Its `work_context.decision` contains the unresolved
+questions, prior evaluation, current context and retained evidence. The Arbitrator
+investigates through read-only tools and submits `decision_resolve` with exactly
+those answers, reasoning and evidence. It cannot change already-selected answers,
+appoint collaborators or bypass a failed check. Once resolved, the service resumes
+the retained initiating operation through its normal gates. Coordinators do not
+appoint Arbitrator through `orchestrate` or substitute a different decision.
+
+### Investigative assessments
 
 For a consistent mission assessment, supply a proposal and optional evidence:
 
@@ -108,7 +133,7 @@ This uses the operator's versioned rubric and considers the brief, proposal and
 all sources together. Source-by-source questions remain available with `sources`
 and `questions`; do not combine custom questions with `proposal`.
 
-XO/NCO record their chosen action and rationale using ordinary reports:
+Agents retain their interpretation and observed outcome using ordinary reports:
 
 ```json
 {"name":"work_report","arguments":{"kind":"recommendation","text":"Keep caching as a separate finding; finish the current JSON behavior.","evaluation":{"reference":"artifact:12","stage":"decision","label":"deferred"}}}
@@ -116,36 +141,18 @@ XO/NCO record their chosen action and rationale using ordinary reports:
 ```
 
 Use the actual returned references. Decision/outcome links are retained and
-validated against the current work scope. Reports record choices; `orchestrate`
-and `steer` enact assignment changes. A finding does not become an assignment by
+validated against the current work scope. Reports retain context; `orchestrate`
+and `steer` enact authorized assignment changes. A finding does not become an assignment by
 being reported or assessed. Your current brief still determines completion.
 
-
-XO can use `assignment_advise` before `orchestrate` to compare up to four proposed
-jobs against the current objective, active jobs, capacity and available configured
-runtimes. Supply the same job fields used by `orchestrate`, optional priorities,
-and optional retained `artifact:`/`operation:` evidence references. The service
-supplies current context; do not paste the work-order history into the request.
-
-```json
-{"name":"assignment_advise","arguments":{"work":[{"name":"Recovery","role":"coder","objective":"Repair recovery using the existing session service","done_when":"The recovery regression passes","constraints":"Preserve unrelated sessions"}],"priorities":"Avoid duplicating existing work; prefer demonstrated recovery experience"}}
-```
-
-Each recommendation contains a role choice, overlap and parallel-readiness
-probabilities, and a runtime-profile choice with an explicit unknown option.
-Runtime advice concerns the **proposed** role. Missing performance evidence stays
-unknown. XO decides how to act; the call does not allocate a collaborator, change a
-brief, or alter runtime policy. `orchestrate` still selects from the operator's
-ordered preferences. A different runtime recommendation can inform a policy-change
-request through the existing `guidance_request` reporting path.
 
 `work_assess` answers typed questions over candidate sources within the configured role/job budgets
 in one evaluation. Each source names exactly one relative workspace `path` or an
 accessible `artifact:`/`operation:` reference. The service reads it; the agent
 receives answers and source locations without the raw source text. Use Serena to
 find candidate paths and inspect or edit the relevant source afterward. Auditors
-use their submitted review snapshot. CO has no assessment tool; assessment is
-available to XO, NCO and specialists within their current scope.
+use their submitted review snapshot. CO and Arbitrator have no assessment tool;
+eligible roles assess only their current scope.
 
 ```json
 {"name":"work_assess","arguments":{"sources":[{"path":"src/SessionService.php"},{"reference":"artifact:12"}],"questions":[{"name":"recovery","instructions":"Does this describe recovery after a supervisor crash?"}]}}
@@ -153,8 +160,9 @@ available to XO, NCO and specialists within their current scope.
 
 Questions default to `noul` (a yes probability). Set `type` to `choice` and supply
 2–16 distinct `options`, or to `score` and supply 2–10 ordered descriptive `levels`.
-Choice and Score include the distribution and confidence. A high score is advice,
-not proof of correctness or completeness.
+Choice and Score include the distribution and confidence. Configured thresholds
+produce a decisive value or send the unresolved question to Arbitrator. A high
+score alone is not proof of correctness or completeness.
 Instructions and explicit `criteria` can also contain structured JSON; Noul
 criteria use `true` and `false`, Choice uses named options, and Score uses ordered
 levels. Existing `options` and `levels` aliases remain supported.
@@ -170,9 +178,10 @@ Serena state, and `.env*` paths are excluded from hosted source assessment.
 Identical requests over the same scoped inputs reuse the retained assessment.
 Changed source ranges, questions, work context, model or runtime evidence cause a
 new evaluation. The returned `evidence` can be read through `work_context` for the
-full rubric and typed results. Recommendations do not trigger extra agent messages.
+full rubric and typed results. Unresolved questions retain an arbitration assignment.
 An input-budget error means the request needs fewer sources or smaller ranges.
-On provider failure, continue with normal inspection or retry explicitly later.
+On provider failure, follow the configured pending-decision or blocked result;
+inspection and reporting remain available.
 
 ### Reports and routed guidance
 
@@ -456,7 +465,7 @@ The beta source revision and PHPactor dependency are pinned in the
 The REPL executes unrestricted Python inside its container. The container has no
 runtime network, host home/credentials, control-plane database or Docker socket.
 Source is mounted read-only with only the editing role's assigned paths writable;
-audit, research and planner source stay read-only. Explicit job context paths curate
+source for auditors, researchers, planners and arbitrators stays read-only. Explicit job context paths curate
 the visible project. Protected Maker directories stay read-only beneath broader
 editing paths. Provider configuration/cache/memories have a separate
 private mount. Writable aliases/symlinks are rejected.
@@ -470,8 +479,11 @@ Force-killed providers can require operator cleanup of a leftover container.
 
 ## Review, CI and external feedback
 
-The job's coordinator can add `role="audit"` to the producer's named job. Audit uses a detached snapshot
-of the submitted revision, or the current checkpoint before submission. Producer
+The job's coordinator can add `role="audit"`, `role="security_auditor"` or
+`role="adversarial_review"` to the producer's named job. They reuse the audit
+behavior; `audit` remains its default role, and the specializations add no
+acceptance gate. Each uses a detached
+snapshot of the submitted revision, or the current checkpoint before submission. Producer
 edits cannot silently change that view. `work_inspect(section="review")` refreshes
 the snapshot and returns the PR, CI, findings and changed files.
 
@@ -489,7 +501,7 @@ before acceptance. CI changes are delivered to the worker and its current superv
 
 | Tool | Outcome |
 | --- | --- |
-| `review_record` | Audit records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
+| `review_record` | An auditor records `ready`, `changes_requested` or `comment` with a `summary`, against its inspected revision. |
 | `review_respond` | Producer responds with `text`; optional `review` selects a returned review reference. XO supplies a work-order thread reference from `monitor(section="feedback")` and can set `resolve:true` after addressing the finding. |
 
 The service retains and routes findings/responses to the job participants and XO.

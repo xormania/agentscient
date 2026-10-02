@@ -8,10 +8,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from support import Client, until
+from support import Client, initialize, until
 
 from devtools.api import API
-from devtools.launch import initialize
 from devtools.mcp import serve
 from devtools.profiles import hook, prepare
 from devtools.store import Store

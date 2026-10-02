@@ -10,6 +10,7 @@ from test_commands import responsibility
 from devtools.api import API
 from devtools.assignments import covers, policy, valid_path
 from devtools.development import Development
+from devtools.role_packages import catalog
 from devtools.runtime import defaults, load, resolve
 from devtools.serena_provider import Serena
 from devtools.store import SCHEMA_VERSION, Store
@@ -200,7 +201,7 @@ class AssignmentBoundaryTests(unittest.TestCase):
         for role in ("nco", "planner"):
             del value["roles"][role]
         path.write_text(json.dumps(value))
-        self.assertEqual(8, len(load(self.state)[0]["roles"]))
+        self.assertEqual(set(catalog()["roles"]) - {"nco", "planner"}, set(load(self.state)[0]["roles"]))
         with self.assertRaisesRegex(ValueError, "roles.json"):
             resolve(self.state, "planner")
 

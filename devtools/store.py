@@ -14,7 +14,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 
 def stamp():
@@ -244,6 +244,20 @@ class Store:
                 created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL)""")
             db.execute("CREATE UNIQUE INDEX IF NOT EXISTS assignment_identity "
                        "ON role_assignments(work_order,coalesce(job,0),name COLLATE NOCASE,role)")
+            db.execute("""CREATE TABLE IF NOT EXISTS runtime_selections (
+                member TEXT PRIMARY KEY REFERENCES members(name), binding TEXT NOT NULL,
+                profile TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS decisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL,
+                member TEXT NOT NULL REFERENCES members(name), work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), purpose TEXT NOT NULL, binding TEXT NOT NULL,
+                context TEXT NOT NULL, identity TEXT, policy TEXT NOT NULL, request TEXT NOT NULL,
+                answers TEXT NOT NULL DEFAULT '{}', result TEXT NOT NULL DEFAULT '{}',
+                unresolved TEXT NOT NULL DEFAULT '[]', evidence TEXT, failure TEXT,
+                state TEXT NOT NULL, assignment INTEGER REFERENCES role_assignments(id),
+                arbitrator TEXT REFERENCES members(name), resolution TEXT, continuation TEXT,
+                resumed TEXT, created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS current_decision ON decisions(fingerprint) WHERE state!='stale'")
             from .role_packages import names_for_adapter
 
             invalid = db.execute(

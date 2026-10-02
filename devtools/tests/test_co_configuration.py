@@ -8,10 +8,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from support import initialize, runtime_policy
+
 from devtools import console, role_packages
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize
 from devtools.store import Store
 
 
@@ -29,7 +30,7 @@ class COConfigurationTests(unittest.TestCase):
         configured = patch.object(role_packages, "_catalog", return_value=self.packages)
         configured.start()
         self.addCleanup(configured.stop)
-        self.policy = json.loads((self.state / "roles.json").read_text())
+        self.policy = runtime_policy()
         for profile in self.policy["profiles"].values():
             profile.update(binary=sys.executable, model="approved", reasoning="low")
         self.write_policy()

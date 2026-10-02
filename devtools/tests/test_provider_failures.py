@@ -96,6 +96,7 @@ class AdviceFailureTests(unittest.TestCase):
     assess = test_advice.AdviceTests.assess
 
     def test_retained_failures_preserve_causes_without_fabricating_assessments(self):
+        self.configure({"decisions": {"failure_mode": "block"}})
         cases = ((JevUnavailable("Credentials absent", reason="credentials_unavailable"), "unavailable"),
                  (Failure("Provider returned invalid data", category="evaluation_invalid", reason="invalid_response"), "invalid_response"),
                  (Failure("Input budget exceeded", category="invalid_request", reason="request_budget_exceeded"), "invalid_request"),
@@ -118,6 +119,7 @@ class AdviceFailureTests(unittest.TestCase):
         self.assertEqual("prepared", self.api.call("work_inspect", {})["workspace"])
 
     def test_original_provider_error_is_preserved_but_retained_credentials_are_redacted(self):
+        self.configure({"decisions": {"failure_mode": "block"}})
         error = ValueError("Adapter failed with test-secret-value-12345")
         self.provider.side_effect = error
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": "test-secret-value-12345"}), self.assertRaises(ValueError) as caught:

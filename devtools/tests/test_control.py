@@ -6,11 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, until
+from support import Client, initialize, until
 
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize
 from devtools.store import Store
 
 
@@ -240,7 +239,7 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(saved["reference"], retried["reference"])
         self.assertEqual(1, len(self.store.inbox("xo")["messages"]))
 
-    def test_inflight_report_keeps_binding_while_next_call_uses_new_scope(self):
+    def test_inflight_report_rejects_revoked_binding_and_next_call_uses_new_scope(self):
         api = API(self.state, "coder")
         entered, resume = threading.Event(), threading.Event()
         original = api.control.report
@@ -258,11 +257,10 @@ class ControlTests(unittest.TestCase):
                 self.operator.invoke("member_bind", member="coder", role="research", job=self.other, reports_to="xo")
             finally:
                 resume.set()
-            result = pending.result()
-        self.assertEqual(self.job, self.store.inbox("xo")["messages"][0]["job"])
+            with self.assertRaisesRegex(ValueError, "changed during this report"):
+                pending.result()
+        self.assertEqual([], self.store.inbox("xo")["messages"])
         self.assertEqual("research", api.call("work_context", {})["role"])
-        with self.assertRaises(ValueError):
-            api.call("work_context", {"reference": result["reference"]})
 
     def test_binding_validation_and_noop_rebind(self):
         before = Control(self.store, "coder").snapshot()

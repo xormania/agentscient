@@ -13,11 +13,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, require_process_identity, until
+from support import Client, initialize, require_process_identity, until
 
 from devtools.github import GitHub
 from devtools.github_http import GitHubError, GitHubHTTP
-from devtools.launch import initialize
 from devtools.store import SCHEMA_VERSION, Store
 
 HEAD, MERGE = "a" * 40, "b" * 40

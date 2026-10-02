@@ -1,5 +1,5 @@
 {
-  "source_sha256": "c9909f3f40743c0b7d9d35d3e97ac2d8718ec74129c8e73fe7bc9783d0631951",
+  "source_sha256": "61cbdaa9d4885330c7eeee2fd7a60ba9c9cd856840e529e0fddb9b95d2f7aaca",
   "catalog": {
     "version": 2,
     "defaults": {
@@ -11,6 +11,7 @@
       "audit": "audit",
       "docs": "docs",
       "research": "research",
+      "arbitrator": "arbitrator",
       "test_writer": "test_writer",
       "architect": "architect"
     },
@@ -144,8 +145,7 @@
             "steer"
           ],
           "advice": [
-            "work_assess",
-            "assignment_advise"
+            "work_assess"
           ],
           "job": [
             "work_inspect"
@@ -269,6 +269,152 @@
         "skills": {
           "shared": "agentscient-context",
           "role": "agentscient-audit",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "review_record"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "security_auditor": {
+        "version": 2,
+        "behavior": "audit",
+        "responsibility": "Independently inspect the submitted immutable revision for security defects within the assigned scope; report reproducible findings with impact and evidence without editing the producer's source.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-security-auditor",
+          "framework": [
+            "mate-system-information",
+            "mate-php-environment-check",
+            "mate-symfony-service-inspection",
+            "mate-symfony-request-triage",
+            "mate-symfony-profiler-debugging",
+            "mate-symfony-dotenv-diagnostics"
+          ]
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [
+            "work_assess"
+          ],
+          "job": [
+            "work_inspect",
+            "review_record"
+          ],
+          "job_framework": [
+            "framework_inspect",
+            "work_check"
+          ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "adversarial_review": {
+        "version": 2,
+        "behavior": "audit",
+        "responsibility": "Independently challenge the submitted immutable revision's assumptions and completion claims with counterexamples and boundary cases; report reproducible defects and evidence without editing the producer's source.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-adversarial-review",
           "framework": [
             "mate-system-information",
             "mate-php-environment-check",
@@ -474,6 +620,67 @@
             "framework_inspect",
             "work_check"
           ],
+          "work_order": [],
+          "work_order_framework": []
+        },
+        "workspace": {
+          "editor": false,
+          "paths": [],
+          "serena": true
+        }
+      },
+      "arbitrator": {
+        "version": 2,
+        "behavior": "arbitrator",
+        "responsibility": "Investigate the assigned pending decision using its current context and evidence, then resolve it with a supported rationale within the owner's scope. Do not edit source or coordinate execution.",
+        "skills": {
+          "shared": "agentscient-context",
+          "role": "agentscient-arbitrator",
+          "framework": []
+        },
+        "runtime": {
+          "harnesses": [
+            "codex",
+            "claude",
+            "grok"
+          ],
+          "model": {
+            "default": null,
+            "allowed": null
+          },
+          "reasoning": {
+            "default": null,
+            "allowed": null
+          },
+          "profiles": "operator"
+        },
+        "hooks": {
+          "events": [
+            "PreToolUse",
+            "PostToolUse",
+            "SessionStart",
+            "Stop"
+          ],
+          "policy": "mcp_only",
+          "native_delegation": false
+        },
+        "mcp": {
+          "bound": [
+            "work_context",
+            "work_report",
+            "guidance_request",
+            "decision_resolve"
+          ],
+          "session": [
+            "onboard",
+            "skill_read"
+          ],
+          "command": [],
+          "advice": [],
+          "job": [
+            "work_inspect"
+          ],
+          "job_framework": [],
           "work_order": [],
           "work_order_framework": []
         },
@@ -697,8 +904,7 @@
             "steer"
           ],
           "advice": [
-            "work_assess",
-            "assignment_advise"
+            "work_assess"
           ],
           "job": [
             "work_inspect"

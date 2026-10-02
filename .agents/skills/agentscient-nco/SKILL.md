@@ -22,8 +22,10 @@ Use the existing `steer` pause/resume/replace and reporting capabilities for
 recovery. A changed mission or assignment requires current results and context.
 
 Keep additional improvements as findings until a separate assignment is warranted.
-Use optional Jev scope advice and record the decision/outcome references through
-`work_report`; assessments do not authorize work. Stop adding work when the stated
+The service applies configured scope, overlap, role and runtime decisions through
+`orchestrate`. Unresolved questions receive a service-assigned Arbitrator; do not
+manually appoint one or substitute your interpretation of the scores. Retain observed
+results through `work_report`. Stop adding work when the stated
 completion criteria are met. Report the checked job ready with
 `work_report(kind="result")`. XO accepts the job and owns final work-order
 delivery; do not accept jobs or submit the integrated work-order result yourself.
@@ -32,5 +34,5 @@ Inspect each specialist's proof against its current responsibility before releas
 Gather the job's required observations and supporting evidence for XO. Completion
 checks are specific to the current goal and contribution; completed activity alone
 is insufficient. Use the supplied recovery guidance for an unmet criterion and
-request a decision when proof or the requirement is unclear. An assessment does
-not override a failed check or authorize a change to the job's scope.
+follow the assigned arbitration path when proof or the requirement is unclear.
+Neither evaluation nor arbitration overrides a failed check or changes the job's scope.

@@ -44,6 +44,10 @@ def research_behavior():
     return RoleBehavior("research")
 
 
+def arbitrator_behavior():
+    return RoleBehavior("arbitrator")
+
+
 def test_writer_behavior():
     return RoleBehavior("test_writer", editor=True)
 

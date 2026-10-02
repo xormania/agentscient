@@ -35,7 +35,7 @@ separately and are not used to guess a model. Session, usage, failure and delive
 events link to the same generation. Queued, delivering, submitted and acknowledged
 messages remain distinct; delivery events retain their attempt ID and safe content.
 
-Optional Jev calls emit `jev_evaluation` events in the same work scope. These
+Enabled Jev evaluations emit `jev_evaluation` events in the same work scope. These
 record the purpose, input fingerprint, model, elapsed time, cache reuse and
 retained evidence. Provider usage appears on fresh successful evaluations;
 cache hits have `usage: null` and should not be counted as fresh consumption.
@@ -43,10 +43,18 @@ The referenced artifact includes the exact sanitized TypeSafe request, response,
 binding and operator policy. `jev_feedback` connects an evaluation to a decision
 update, and an outcome update to that decision. Feedback labels and report text
 record the officer's assessment separately from Jev's probabilities. Recording a
-decision does not allocate, revise or accept work; normal command tools do that.
+feedback report does not allocate, revise or accept work; normal command tools do that.
 The response retains the original evaluation's usage. Advice is recorded
 separately from subsequent agent decisions and measured outcomes; a recommendation
 does not establish that the agent followed it or that it improved the result.
+
+Service decisions additionally retain `decision_selected`, `decision_escalated`,
+`decision_resolved` and `decision_applied` events. These distinguish a decisive
+evaluation from an unresolved question, its assigned Arbitrator's evidenced
+resolution, and the observed continuation outcome. Original answers and policy
+remain separate from an Arbitrator's resolution. Resolution does not
+by itself prove that the resumed operation succeeded or that the choice improved
+the final product. Current work, evidence and policy are rechecked before use.
 
 Known failures also carry service-owned `failure.category`, `reason`, and trusted
 `details` through MCP, retained operations, and events. Provider outcomes distinguish

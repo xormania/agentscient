@@ -17,8 +17,8 @@ from test_commands import responsibility
 
 from devtools.api import API
 from devtools.configuration import defaults as load_policy
+from devtools.failures import failure_info
 from devtools.jev import MAX_RESPONSE, MODEL, Jev, JevUnavailable, TypeSafeAdapter, checked_response
-from devtools.runtime import defaults
 from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 from devtools.workspaces import Workspaces
 
@@ -61,7 +61,9 @@ class AdviceTests(unittest.TestCase):
             config["project"].pop("configuration_file", None)
         else:
             config["project"]["configuration_file"] = "configuration.json"
-            settings = {**value, "features": {"advice": True, **value.get("features", {})}}
+            settings = {**value, "features": {"advice": True, "selection": False,
+                                              "filtering": False, "completion": False,
+                                              **value.get("features", {})}}
             (self.state / "configuration.json").write_text(json.dumps({"version": 1, "project": settings}))
         (self.state / "team.json").write_text(json.dumps(config))
 
@@ -77,7 +79,7 @@ class AdviceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not available"):
             self.assess()
         self.configure({})
-        self.assertIn("assignment_advise", {r["name"] for r in self.xo.tools()})
+        self.assertNotIn("assignment_advise", {r["name"] for r in self.xo.tools()})
         self.assertNotIn("assignment_advise", {r["name"] for r in self.api.tools()})
         self.assertNotIn("work_assess", {r["name"] for r in API(self.state, "docs").tools()})
         first = self.assess()
@@ -107,14 +109,16 @@ class AdviceTests(unittest.TestCase):
         self.assertEqual(3, source["next_offset"])
         self.assertEqual("aé", self.requests[0][0]["sources"][0]["content"])
         self.assertEqual({"relevant", "layer", "fit"}, result["results"][0]["answers"].keys())
+        self.assertEqual({"relevant": True, "layer": "domain", "fit": 0},
+                         result["results"][0]["decisions"])
         self.assertIn("partial range", self.requests[0][1]["s0_q0"]["instructions"])
         self.assess(sources=[{"path": "src/Example.php", "offset": 3}])
         with self.assertRaisesRegex(ValueError, "character boundary"):
             self.assess(sources=[{"path": "src/Example.php", "offset": 2}])
 
     def test_planned_role_scope_and_shared_context_are_supplied_to_jev(self):
-        # This fixture isolates on-demand advice; completion is tested separately.
-        self.configure({"features": {"completion": False}})
+        # This fixture isolates requested decisions; completion is tested separately.
+        self.configure({"features": {"advice": False}})
         co = API(self.state, "co")
         document = co.call("work_report", {"text": "Prepared specification", "evidence": {
             "name": "scope.md", "content": "Preserve the existing endpoint behavior"}})
@@ -128,6 +132,7 @@ class AdviceTests(unittest.TestCase):
                       "constraints": "Do not modify other endpoints"}
         self.xo.call("orchestrate", {"work": [assignment]})
         self.xo.call("steer", {"action": "resume", "work": "Feature", "assignment": "Feature"})
+        self.configure({})
         self.api.call("work_assess", {"proposal": "Add signed receipts"})
         brief = self.requests[-1][0]["brief"]
         self.assertEqual({key: assignment[key] for key in ("name", "role", "objective", "done_when", "constraints")},
@@ -150,7 +155,7 @@ class AdviceTests(unittest.TestCase):
         root = test_workspaces.WorkspaceTests.prepared(self)
         (root / "src/Example.php").write_text("new implementation\n")
         changed = self.assess()
-        self.assertNotEqual(first["fingerprint"], changed["fingerprint"])
+        self.assertNotEqual(first["id"], changed["id"])
         self.assess(questions=[{"name": "relevant", "instructions": "Does it handle recovery?"}])
         self.configure({"model": "jev-1.14.0"})
         self.assess()
@@ -158,8 +163,8 @@ class AdviceTests(unittest.TestCase):
         self.assess()
         self.assertEqual(5, len(self.requests))
         events = self.store.events(kind="jev_evaluation")["events"]
-        self.assertEqual(1, sum(r["data"].get("cache_hit", False) for r in events))
-        self.assertIsNone(events[1]["data"]["usage"])
+        self.assertEqual(5, len(events))
+        self.assertTrue(all(row["data"]["outcome"] == "completed" for row in events))
 
     def test_concurrent_cache_wait_covers_configured_retries(self):
         policy = load_policy()
@@ -170,7 +175,7 @@ class AdviceTests(unittest.TestCase):
 
         @contextmanager
         def checked_lock(spaces, name, timeout=0):
-            if name.startswith("jev-"):
+            if name.startswith("decision-"):
                 self.assertGreaterEqual(timeout, 190)  # Three 60s attempts and two 5s backoffs.
                 if evaluating.is_set():
                     waiting.set()
@@ -209,7 +214,9 @@ class AdviceTests(unittest.TestCase):
         own = self.api.artifacts.save("diagnostic.txt", content="retained diagnostic")
         ref = "artifact:" + str(own["artifact"]["id"])
         self.assess(sources=[{"reference": ref}])
+        self.configure({"features": {"advice": False}})
         fixture_work(self.xo, [responsibility("Other", "docs")])
+        self.configure({})
         foreign = API(self.state, "docs").artifacts.save("private.txt", content="other job evidence")
         with self.assertRaisesRegex(ValueError, "not available"):
             self.assess(sources=[{"reference": "artifact:" + str(foreign["artifact"]["id"])}])
@@ -240,7 +247,7 @@ class AdviceTests(unittest.TestCase):
         self.assertEqual(400, source["next_offset"])
         self.assertTrue(source["partial"])
 
-    def test_paused_and_rebound_work_rejects_advice(self):
+    def test_paused_and_rebound_work_rejects_decisions(self):
         self.xo.call("steer", {"action": "pause", "work": "Feature"})
         with self.assertRaisesRegex(ValueError, "active current work"):
             self.assess()
@@ -254,13 +261,38 @@ class AdviceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "active current work"):
             self.assess()
 
-    def test_provider_failure_retains_no_fake_assessment_and_normal_work_still_works(self):
+    def test_provider_failure_assigns_arbitrator_without_fabricating_an_assessment(self):
         self.provider.side_effect = JevUnavailable("Jev is unavailable")
-        with self.assertRaisesRegex(ValueError, "unavailable"):
+        with self.assertRaises(ValueError) as caught:
             self.assess()
+        self.assertEqual("decision_pending", failure_info(caught.exception)["reason"])
         self.assertEqual("prepared", self.api.call("work_inspect", {})["workspace"])
         self.assertEqual([], self.api.artifacts.list(query="jev-")["artifacts"])
         self.assertEqual("unavailable", self.store.events(kind="jev_evaluation")["events"][0]["data"]["outcome"])
+        with self.store.connect() as db:
+            row = db.execute("SELECT * FROM decisions WHERE member='coder'").fetchone()
+            self.assertEqual("pending", row["state"])
+            self.assertEqual({}, json.loads(row["answers"]))
+            self.assertEqual({}, json.loads(row["result"]))
+            arbitrator = row["arbitrator"]
+        investigator = API(self.state, arbitrator)
+        packet = investigator.call("work_context", {})["decision"]
+        self.assertEqual({}, packet["evaluation"])
+        self.assertEqual("evaluation_unavailable", packet["failure"]["category"])
+        with self.assertRaises(ValueError) as retry:
+            self.assess()
+        self.assertEqual("decision_pending", failure_info(retry.exception)["reason"])
+        self.assertEqual(1, self.provider.call_count)
+        evidence = investigator.artifacts.save("source-investigation.md", content="Inspected the current source against the question.")
+        resolved = investigator.call("decision_resolve", {
+            "decisions": {"s0_q0": True}, "reason": "The source inspection establishes the required behavior.",
+            "evidence": ["artifact:" + str(evidence["artifact"]["id"])],
+        })
+        self.assertEqual("completed", resolved["continuation"]["state"], resolved)
+        result = resolved["continuation"]["result"]["results"][0]
+        self.assertEqual({}, result["answers"])
+        self.assertEqual({"relevant": True}, result["decisions"])
+        self.assertEqual(1, self.provider.call_count)
 
     def test_secrets_are_filtered_before_provider_and_unknown_model_is_rejected(self):
         root = test_workspaces.WorkspaceTests.prepared(self)
@@ -288,41 +320,6 @@ class AdviceTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 self.assess(**value)
         self.assertFalse(self.requests)
-
-    def test_assignment_uses_current_jobs_runtime_evidence_and_does_not_allocate(self):
-        defaults(self.state)
-        team = json.loads((self.state / "team.json").read_text())
-        team["runtime"] = True
-        (self.state / "team.json").write_text(json.dumps(team))
-        policy = json.loads((self.state / "roles.json").read_text())
-        for profile in policy["profiles"].values():
-            profile.update(binary="/bin/true", model="fixture-model", reasoning="high")
-        (self.state / "roles.json").write_text(json.dumps(policy))
-        vendors = json.loads((self.state / "vendors.json").read_text())
-        vendors["vendors"]["openai"]["available"] = True
-        (self.state / "vendors.json").write_text(json.dumps(vendors))
-        self.configure({"assignment": {"profile_evidence": {"codex": "2026-09-28 fixture: passed representative PHP task"}}})
-        before = self.store.members()
-        result = self.xo.call("assignment_advise", {"work": [responsibility("Feature"), responsibility("Review", "audit")]})
-        self.assertEqual(before, self.store.members())
-        self.assertEqual(1, len(self.requests))
-        state = self.requests[0][0]
-        self.assertEqual("Feature", state["current_jobs"][0]["title"])
-        self.assertEqual({"codex"}, state["runtimes"]["coder"]["profiles"].keys())
-        self.assertIn("representative", state["runtimes"]["coder"]["profiles"]["codex"]["evidence"])
-        self.assertIsNone(result["recommendations"][0]["runtime"]["profile"])
-        self.assertEqual("codex", result["recommendations"][0]["runtime"]["configured_default"])
-        self.assertIn("operator policy", result["next"])
-        with self.assertRaisesRegex(ValueError, "not available"):
-            self.api.call("assignment_advise", {"work": [responsibility()]})
-
-    def test_assignment_handles_fixed_team_and_reports_missing_performance_evidence(self):
-        result = self.xo.call("assignment_advise", {"work": [responsibility()]})
-        profiles = self.requests[0][0]["runtimes"]["coder"]["profiles"]
-        self.assertEqual({"docs"}, profiles.keys())
-        self.assertIn("No performance evidence", profiles["docs"]["evidence"])
-        self.assertTrue(self.xo.call("assignment_advise", {"work": [responsibility()]})["cache_hit"])
-        self.assertIsNone(result["recommendations"][0]["runtime"]["profile"])
 
     def retained(self, result):
         return json.loads(self.api.artifacts.read(int(result["evidence"].split(":")[1]), limit=256 * 1024)["content"])
@@ -357,7 +354,7 @@ class AdviceTests(unittest.TestCase):
         policy["scope"]["questions"]["scope"]["instructions"] += " Logging may be a separate proposal."
         self.configure({"scope": policy["scope"]})
         changed = self.api.call("work_assess", args)
-        self.assertNotEqual(first["fingerprint"], changed["fingerprint"])
+        self.assertNotEqual(first["id"], changed["id"])
         self.assertEqual(2, self.retained(changed)["policy"]["scope"]["version"])
         for bad in ({}, {"proposal": "x", "questions": [{"name": "x", "instructions": "x"}]}):
             with self.assertRaises(ValueError):
@@ -479,8 +476,9 @@ class AdviceReviewTests(unittest.TestCase):
     configure = AdviceTests.configure
 
     def test_auditor_assesses_submitted_snapshot_not_producers_unsubmitted_source(self):
-        self.configure({})
+        self.configure({"features": {"advice": False}})
         audit = self.auditor()
+        self.configure({})
         (self.workspace / "src/Example.php").write_text("Unsubmitted changes\n")
         with patch("devtools.advice.Jev.evaluate", side_effect=answer) as provider:
             result = audit.call("work_assess", {

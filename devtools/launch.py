@@ -44,13 +44,13 @@ def initialize(directory, workspace, members, co=None, project=None, runtime=Fal
         raise ValueError("Configure at least one member.")
     if co is not None and not any(row["name"] == co and row["harness"] == "external" for row in rows):
         raise ValueError("CO must name the external user-facing session.")
-    Store(directory).initialize(rows)
-    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {}),
-                        **({"runtime": True} if runtime else {})})
     if runtime:
         from .runtime import defaults
 
         defaults(directory)
+    Store(directory).initialize(rows)
+    write_json(config, {"members": rows, **({"co": co} if co else {}), **({"project": project} if project else {}),
+                        **({"runtime": True} if runtime else {})})
     return {"state": str(directory), "members": rows}
 
 
@@ -95,10 +95,17 @@ def configuration(directory, member):
             "Bind this member's role and work through the operator member_bind capability before starting it."
         )
     if team.get("runtime"):
-        from .runtime import resolve
+        from .role_packages import adapter as role_adapter
+        from .runtime import selected as selected_runtime
 
+        if role_adapter(scope["role"]) == "xo":
+            from .assignment_decisions import select_bound_runtime
+
+            choice = select_bound_runtime(store, scope)
+        else:
+            choice = selected_runtime(store, scope)
         row = store.member(member)
-        selected = {"name": member, "workspace": row["workspace"], **resolve(directory, scope["role"])}
+        selected = {"name": member, "workspace": row["workspace"], **choice}
     from .role_packages import runtime_profile
 
     selected = runtime_profile(scope["role"], selected)

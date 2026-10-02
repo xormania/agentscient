@@ -7,12 +7,12 @@ backing services keep those responsibilities. Native hooks do not call Jev.
 from __future__ import annotations
 
 import json
-import math
 import re
 
-from .advice import Advice, digest
-from .configuration import resolve
+from .advice import digest
+from .configuration import decision_rule, resolve
 from .control import Control, binding
+from .decisions import Decisions
 from .development import configured as development_configured
 from .failures import failure_info
 from .onboarding import document
@@ -239,26 +239,31 @@ class Diagnostics:
             return self.projection_failure(context, settings, ValueError("Relevance state exceeds configured byte budget"))
         sources = [{"reference": item["reference"], "source_sha256": source_hash}
                    for _, item, source_hash in candidates]
+        selection_identity = digest([identity, sources])
         try:
-            assessment = Advice(self.store, self.member).evaluate(
+            assessment = Decisions(self.store, self.member).select(
                 "context_relevance", state, questions, sources, policy=settings,
+                target_job=scope["job"], identity=selection_identity,
             )
-            values = [assessment["answers"][name]["noul"] for name in questions]
-            if any(type(value) not in {int, float} or not math.isfinite(value) or not 0 <= value <= 1 for value in values):
+            values = [assessment["decisions"][name] for name in questions]
+            if any(type(value) is not bool for value in values):
                 raise ValueError("Invalid relevance assessment")
+            Decisions(self.store, self.member).verify(assessment, identity=selection_identity)
         except Exception as error:
             # Relevance failure does not hide facts or replace the original context.
             return self.projection_failure(context, settings, error)
         if not self.unchanged(scope, identity, settings):
             return context
-        omitted = {candidates[index][0] for index, value in enumerate(values) if value < policy["threshold"]}
+        omitted = {candidates[index][0] for index, value in enumerate(values) if not value}
         projected = {**context, "recent_activity": [item for index, item in enumerate(activity) if index not in omitted]}
         self.store.event(
             self.member, "context_projected", role=scope["role"], context_identity=identity,
-            threshold=policy["threshold"], evaluation=assessment["evidence"],
+            rule=decision_rule(settings, "context_relevance"), evaluation=assessment["evidence"],
+            decision=assessment["id"],
             configuration_revision=settings["revision"],
             facts=[{"reference": item["reference"], "source_sha256": source_hash,
-                    "noul": values[index], "delivered": candidate_index not in omitted}
+                    "noul": assessment.get("answers", {}).get(f"fact_{index}", {}).get("noul"),
+                    "relevant": values[index], "delivered": candidate_index not in omitted}
                    for index, (candidate_index, item, source_hash) in enumerate(candidates)],
         )
         return projected

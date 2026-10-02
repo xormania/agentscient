@@ -13,6 +13,7 @@
       "audit": "devtools.role_behaviors:audit_behavior",
       "docs": "devtools.role_behaviors:docs_behavior",
       "research": "devtools.role_behaviors:research_behavior",
+      "arbitrator": "devtools.role_behaviors:arbitrator_behavior",
       "test_writer": "devtools.role_behaviors:test_writer_behavior",
       "architect": "devtools.role_behaviors:architect_behavior"
     },

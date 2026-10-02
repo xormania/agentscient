@@ -90,10 +90,10 @@ class DeliveryTests(unittest.TestCase):
         self.api = API(self.state, "coder")
         self.xo = API(self.state, "xo")
 
-    def auditor(self):
+    def auditor(self, role="audit"):
         item = {
             "name": "Feature",
-            "role": "audit",
+            "role": role,
             "objective": "Review the implementation",
             "done_when": "Findings are supported",
             "constraints": "Read-only source",
@@ -103,7 +103,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(first, second)
         with self.store.connect() as db:
             member = db.execute(
-                "SELECT member FROM member_bindings WHERE job=? AND role='audit'", (self.job,)
+                "SELECT member FROM member_bindings WHERE job=? AND role=?", (self.job, role)
             ).fetchone()["member"]
         return API(self.state, member)
 
@@ -119,6 +119,46 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual("Delivered implementation\n", (view / "src/Example.php").read_text())
         self.assertNotIn("work_save", {row["name"] for row in audit.tools()})
         self.assertIn("review_record", {row["name"] for row in audit.tools()})
+
+    def test_specialized_auditors_load_and_review_alongside_default_auditor(self):
+        from devtools.role_packages import default_role
+
+        specializations = {
+            "security_auditor": ("agentscient-security-auditor", "attacker prerequisites"),
+            "adversarial_review": ("agentscient-adversarial-review", "counterexamples"),
+        }
+        config_path = self.state / "team.json"
+        config = json.loads(config_path.read_text())
+        for role in specializations:
+            config["members"].append({**config["members"][-1], "name": role})
+        config_path.write_text(json.dumps(config))
+        general = self.auditor()
+        self.assertEqual("audit", default_role("audit"))
+        members = {general.member}
+        for role, (skill, focus) in specializations.items():
+            with self.subTest(role=role):
+                reviewer = self.auditor(role)
+                self.assertNotIn(reviewer.member, members)
+                members.add(reviewer.member)
+                onboarding = reviewer.call("onboard", {})
+                self.assertEqual(role, onboarding["package"]["role"])
+                self.assertEqual("audit", onboarding["package"]["behavior"])
+                self.assertIn(focus, onboarding["role_instructions"])
+                self.assertIn(skill, {row["name"] for row in onboarding["skills"] if row["loaded"]})
+                self.assertIn(role, {row["name"] for row in self.xo.call("onboard", {})["assignable_roles"]})
+
+                inspected = reviewer.call("work_inspect", {"section": "review"})
+                self.assertEqual(self.head, inspected["pr"]["revision"])
+                view = Path(reviewer.workspaces.ensure()["root"])
+                (self.workspace / "src/Example.php").write_text("Unsubmitted changes\n")
+                self.assertEqual("Delivered implementation\n", (view / "src/Example.php").read_text())
+                with patch.object(reviewer.workspaces, "save") as save:
+                    with self.assertRaisesRegex(ValueError, "not available"):
+                        reviewer.call("work_save", {"note": "Cannot edit producer source"})
+                    save.assert_not_called()
+                recorded = reviewer.call("review_record", {"conclusion": "comment", "summary": role + " evidence for the submitted revision."})
+                self.assertEqual("published", recorded["state"])
+        self.assertEqual(len(specializations), len(self.provider.reviews))
 
     def test_review_retry_reconciles_remote_success_and_routes_findings_and_response(self):
         audit = self.auditor()

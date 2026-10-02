@@ -240,14 +240,22 @@ class Planning:
         names = [(item.get("job", "").casefold(), item["name"].strip().casefold(), item["role"]) for item in work]
         if not work or any(not name for _, name, _ in names) or len(set(names)) != len(names):
             raise ValueError("Supply distinct, nonempty assignment names and roles within each job.")
+        if any(adapter(item["role"]) == "arbitrator" for item in work):
+            raise ValueError("Arbitrator assignments are created by the service for unresolved decisions.")
+        from .assignment_decisions import AssignmentDecisions
+
+        decisions = AssignmentDecisions(self)
+        selection = decisions.prepare(work, config)
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             scope = self.commands._scope(db, {"xo", "nco"})
             if scope["paused"]:
                 raise ValueError("Your work is paused. Request guidance before expanding it.")
-            return {"work": [self._assign(db, scope, config, item) for item in work]}
+            decisions.verify(db, scope, selection)
+            return {"work": [self._assign(db, scope, config, row["item"], selected=row["runtime"],
+                                         decision=row["marker"]) for row in selection["rows"]]}
 
-    def _assign(self, db, scope, config, item):
+    def _assign(self, db, scope, config, item, *, selected=None, decision=None):
         role = item["role"]
         job = None
         if adapter(role) == "planner":
@@ -276,7 +284,7 @@ class Planning:
                     raise ValueError("XO appoints NCOs; NCO cannot appoint another coordinator.")
                 if not multi:
                     raise ValueError("XO coordinates the single job directly.")
-                return self._appoint(db, scope, config, job, role)
+                return self._appoint(db, scope, config, job, role, selected=selected, decision=decision)
             if multi and adapter(scope["role"]) != "nco":
                 raise ValueError("Each job in a multi-job plan is coordinated by its NCO.")
             if not multi and adapter(scope["role"]) != "xo":
@@ -321,6 +329,8 @@ class Planning:
             if any(not valid_path(p) for p in item["context_paths"]):
                 raise ValueError("Context paths must be relative project paths.")
             details["context_paths"] = item["context_paths"]
+        if decision is not None:
+            details["selection_decision"] = decision
         brief, details_text = canonical(fields), canonical(details)
         changed = prior_assignment and (prior_assignment["brief"] != brief or prior_assignment["details"] != details_text)
         if prior_assignment:
@@ -331,7 +341,7 @@ class Planning:
         else:
             ident = db.execute("INSERT INTO role_assignments(work_order,job,name,role,brief,details,created_by,created,updated) VALUES (?,?,?,?,?,?,?,?,?)",
                                (scope["work_order"], job["id"] if job else None, item["name"].strip(), role, brief, details_text, self.member, stamp(), stamp())).lastrowid
-        slot = self.commands._slot(db, config, existing=prior, role=role)
+        slot = self.commands._slot(db, config, existing=prior, role=role, selected=selected)
         target = self.control.bind_in(db, slot["name"], role, scope["work_order"], job["id"] if job else None, self.member,
                                      prior["brief"] if prior else "")
         db.execute("UPDATE member_bindings SET assignment_id=? WHERE member=?", (ident, target["member"]))
@@ -340,23 +350,45 @@ class Planning:
         if adapter(scope["role"]) == "nco" and (changed or not prior_assignment):
             self.commands._touch(db, scope["member"])
         target = binding(db, target["member"])
+        if selected is not None and config.get("runtime"):
+            from .runtime import retain
+
+            retain(self.store, db, target, selected)
+            # A newly selected profile is applied by the normal stop/start path;
+            # a live native conversation must never claim another model's work.
+            if prior:
+                db.execute("UPDATE members SET desired='stopped' WHERE name=? AND pid IS NOT NULL", (target["member"],))
         self.commands._start_intent(db, target, slot)
         direction = self.commands._direction(db, target, "Carry out your role assignment within the supplied context and job boundaries.")
         return {**self.commands._participant(db, target, config), "assignment": item["name"].strip(), "direction": direction}
 
-    def _appoint(self, db, scope, config, job, role):
+    def _appoint(self, db, scope, config, job, role, *, selected=None, decision=None):
         prior = db.execute("SELECT * FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND job=?",
                            (scope["work_order"], canonical(names_for_adapter("nco")), job["id"])).fetchone()
         prior = dict(prior) if prior else None
-        slot = self.commands._slot(db, config, existing=prior, role=role)
+        slot = self.commands._slot(db, config, existing=prior, role=role, selected=selected)
         target = self.control.bind_in(db, slot["name"], role, scope["work_order"], job["id"], self.member,
                                      prior["brief"] if prior else "")
+        if decision is not None:
+            from .commands import coordination_brief
+
+            brief = canonical({**coordination_brief(target), "selection_decision": decision})
+            if brief != target["brief"]:
+                db.execute("UPDATE member_bindings SET brief=? WHERE member=?", (brief, target["member"]))
+                self.commands._touch(db, target["member"])
+                target = binding(db, target["member"])
         # Transfer an existing single-job team without changing assignments or evidence.
         for child in list(db.execute("SELECT * FROM member_bindings WHERE job=? AND role NOT IN (SELECT value FROM json_each(?))", (job["id"], canonical(names_for_adapter("nco"))))):
             if child["reports_to"] != target["member"]:
                 db.execute("UPDATE member_bindings SET reports_to=? WHERE member=?", (target["member"], child["member"]))
                 self.commands._touch(db, child["member"])
                 self.commands._direction(db, binding(db, child["member"]), "Your job is now coordinated by NCO. Refresh context; retained work and evidence remain available.")
+        if selected is not None and config.get("runtime"):
+            from .runtime import retain
+
+            retain(self.store, db, target, selected)
+            if prior:
+                db.execute("UPDATE members SET desired='stopped' WHERE name=? AND pid IS NOT NULL", (target["member"],))
         self.commands._start_intent(db, target, slot)
         sent = self.commands._direction(db, target, "Coordinate this job's specialist assignments. Request planning changes through XO; report the checked job ready for XO acceptance.")
         return {**self.commands._participant(db, target, config), "direction": sent}
@@ -404,6 +436,8 @@ class Planning:
                         return {"assignment": rows[0]["name"], "outcome": rows[0]["status"], "retained": True}
                     raise ValueError("Name one role assignment in your team.")
                 target = targets[0]
+                if adapter(target["role"]) == "arbitrator":
+                    raise ValueError("Arbitrator completes its service-owned decision through decision_resolve.")
                 if adapter(scope["role"]) == "xo" and target["job"] and target["reports_to"] != self.member:
                     raise ValueError("The job's NCO completes its specialist assignments; XO accepts the job.")
                 result = current_result(db, target)

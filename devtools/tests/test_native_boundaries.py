@@ -7,8 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
+from support import initialize
+
 from devtools.api import API
-from devtools.launch import initialize
 from devtools.native import Native, claude
 from devtools.profiles import permitted, prepare
 from devtools.store import Store

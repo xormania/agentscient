@@ -15,6 +15,43 @@ from pathlib import Path
 ENTRY = Path(__file__).resolve().parents[1] / "run.py"
 
 
+def initialize(*args, **kwargs):
+    """Create isolated fixtures with explicit offline decision configuration.
+
+    Tests of semantic decisions opt their intended features back in and supply
+    deterministic evaluator responses. Production initialization keeps its defaults.
+    """
+    from devtools.launch import initialize as create
+
+    result = create(*args, **kwargs)
+    directory = Path(result["state"])
+    path = directory / "team.json"
+    team = json.loads(path.read_text())
+    project = team.setdefault("project", {})
+    if not project.get("configuration_file"):
+        project["configuration_file"] = "fixture-configuration.json"
+        (directory / project["configuration_file"]).write_text(json.dumps({"version": 1, "project": {
+            "features": {"selection": False, "filtering": False, "completion": False}}}))
+        path.write_text(json.dumps(team))
+    return result
+
+
+def runtime_policy():
+    """Generic fallback fixture, independent of the maintained operator defaults."""
+    from devtools.adapters import names
+    from devtools.harnesses import get
+    from devtools.role_packages import catalog
+
+    return {
+        "version": 1,
+        "max_sessions": 12,
+        "profiles": {name: {"harness": name, "vendor": get(name).vendor,
+                            "model": None, "reasoning": None} for name in names("harness")},
+        "roles": {role: list(package["runtime"]["harnesses"])
+                  for role, package in catalog()["roles"].items()},
+    }
+
+
 def adopt_plan(xo, jobs):
     """Exercise the actual planner handoff while arranging a command fixture."""
     from devtools.api import API

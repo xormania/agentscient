@@ -15,7 +15,6 @@ import math
 import os
 import re
 import sqlite3
-import string
 import subprocess
 from contextlib import contextmanager
 from functools import lru_cache
@@ -32,7 +31,10 @@ from .role_packages import behavior, behavior_ids, catalog
 SOURCE = Path(__file__).with_name("configuration.cue")
 GENERATED = SOURCE.with_suffix(".json")
 FIELDS = {"version", "features", "connection", "model", "transport", "scope", "assessment",
-          "assignment", "filtering", "guidance", "completion"}
+          "assignment", "filtering", "guidance", "completion", "decisions"}
+DECISION_FIELDS = {"noul": {"reject_below", "accept_at"},
+                   "choice": {"minimum_probability", "minimum_margin"},
+                   "score": {"minimum_confidence", "minimum_margin"}}
 REQUIREMENTS = {"objective", "done_when", "constraints"}
 BOUNDARIES = {"assignment", "job", "work_order"}
 UPDATE_KINDS = {"finding", "progress", "recommendation", "result", "blocker"}
@@ -77,6 +79,49 @@ def _pattern(value, where):
         raise ValueError(f"Invalid regular expression in {where}") from None
 
 
+def decision_rule(settings, purpose):
+    """Return isolated thresholds for a service decision's named purpose."""
+    if not isinstance(purpose, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", purpose):
+        raise ValueError("Decision purpose must be a bounded identifier")
+    policy = settings["decisions"]
+    override = policy["rules"].get(purpose, {})
+    return {kind: {**policy[kind], **override.get(kind, {})} for kind in DECISION_FIELDS}
+
+
+def _decision_thresholds(rule, where):
+    _object(rule, DECISION_FIELDS, where)
+    for kind, fields in DECISION_FIELDS.items():
+        for name, value in _object(rule[kind], fields, where + "." + kind).items():
+            _number(value, where + "." + kind + "." + name, 0, 1)
+    if rule["noul"]["reject_below"] >= rule["noul"]["accept_at"]:
+        raise ValueError(where + ".noul.reject_below must be less than accept_at")
+
+
+def _decisions(settings, roles, *, references):
+    policy = _object(settings["decisions"], {*DECISION_FIELDS, "arbitrator_role", "failure_mode",
+                                            "unknown_choices", "rules", "reserved_sessions"}, "decisions")
+    _number(policy["reserved_sessions"], "decisions.reserved_sessions", 1, 10, True)
+    _text(policy["arbitrator_role"], "decisions.arbitrator_role", 80)
+    if references and (policy["arbitrator_role"] not in roles or
+                       behavior(roles[policy["arbitrator_role"]]["behavior"]).id != "arbitrator"):
+        raise ValueError("Decision arbitrator_role must reference a registered Arbitrator role")
+    if policy["failure_mode"] not in {"arbitrate", "block"}:
+        raise ValueError("Decision failure_mode must be arbitrate or block")
+    _strings(policy["unknown_choices"], "decisions.unknown_choices")
+    if len(policy["unknown_choices"]) > 32:
+        raise ValueError("Decision unknown_choices exceeds its 32-choice budget")
+    _decision_thresholds({kind: policy[kind] for kind in DECISION_FIELDS}, "decisions")
+    if not isinstance(policy["rules"], dict) or len(policy["rules"]) > 32:
+        raise ValueError("Decision rules must be a bounded mapping of purposes to thresholds")
+    for purpose, override in policy["rules"].items():
+        if not isinstance(override, dict) or set(override) - DECISION_FIELDS.keys():
+            raise ValueError("Decision rules may override only Noul, Choice and Score thresholds")
+        for kind, thresholds in override.items():
+            if not isinstance(thresholds, dict) or set(thresholds) - DECISION_FIELDS[kind]:
+                raise ValueError("Decision rules contain unknown threshold fields")
+        _decision_thresholds(decision_rule(settings, purpose), "decisions.rules." + purpose)
+
+
 def validate_connection(value, *, references=True):
     """Validate a provider reference without reading or displaying its credential."""
     _object(value, {"adapter", "endpoint", "credential"}, "connection")
@@ -113,9 +158,10 @@ def _validate(value, *, references=True):
     role_adapters = behavior_ids() if references else None
     skills = {skill for package in roles.values()
               for skill in [package["skills"]["shared"], package["skills"]["role"], *package["skills"]["framework"]]}
-    features = _object(value["features"], {"advice", "filtering", "guidance", "completion"}, "features")
+    features = _object(value["features"], {"advice", "filtering", "guidance", "completion", "selection"}, "features")
     if any(type(enabled) is not bool for enabled in features.values()):
         raise ValueError("Feature switches must be booleans")
+    _decisions(value, roles, references=references)
     validate_connection(value["connection"], references=references)
     _text(value["model"], "model", 200)
     bounds = {"timeout": (0.1, 60), "max_attempts": (1, 3), "retry_delay": (0, 5),
@@ -142,24 +188,18 @@ def _validate(value, *, references=True):
     if assessment["source_bytes"] > assessment["max_source_bytes"]:
         raise ValueError("Default assessment source_bytes exceeds max_source_bytes")
     _text(assessment["rules"], "assessment.rules")
-    assignment = _object(value["assignment"], {"version", "max_work", "max_jobs", "max_profiles", "max_evidence", "evidence_bytes", "profile_evidence", "roles", "prefix", "questions", "unknown_profile", "missing_profile_evidence", "next_action"}, "assignment")
+    assignment = _object(value["assignment"], {"version", "max_work", "max_jobs", "max_profiles", "profile_evidence", "roles", "questions", "unknown_profile", "missing_profile_evidence"}, "assignment")
     if type(assignment["version"]) is not int or assignment["version"] != 1:
         raise ValueError("Unsupported assignment rubric version")
-    for name, low, high in (("max_work", 1, 8), ("max_jobs", 1, 1000), ("max_profiles", 1, 31), ("max_evidence", 0, 32), ("evidence_bytes", 4, 8000)):
+    for name, low, high in (("max_work", 1, 8), ("max_jobs", 1, 1000), ("max_profiles", 1, 31)):
         _number(assignment[name], "assignment." + name, low, high, True)
     if not isinstance(assignment["profile_evidence"], dict):
         raise ValueError("assignment.profile_evidence must map configured profile names to evidence")
     for name, evidence in assignment["profile_evidence"].items():
         _text(name, "assignment profile name", 100)
         _text(evidence, "assignment profile evidence")
-    for name in ("prefix", "unknown_profile", "missing_profile_evidence", "next_action"):
+    for name in ("unknown_profile", "missing_profile_evidence"):
         _text(assignment[name], "assignment." + name)
-    try:
-        for _, field, spec, conversion in string.Formatter().parse(assignment["prefix"]):
-            if field is not None and (field != "index" or spec or conversion):
-                raise ValueError("Assignment prefix supports only the {index} placeholder")
-    except ValueError:
-        raise ValueError("Assignment prefix supports only a valid {index} placeholder") from None
     assignable = {name for name, package in roles.items() if behavior(package["behavior"]).id not in {"co", "xo"}}
     _strings(assignment["roles"], "assignment.roles", assignable if references else None)
     questions = _object(assignment["questions"], {"overlap", "parallel", "role", "runtime"}, "assignment.questions")
@@ -173,11 +213,10 @@ def _validate(value, *, references=True):
             validate_question(question)
             if question["type"] != "noul":
                 raise ValueError("Overlap and parallel assignment questions require Noul")
-    filtering = _object(value["filtering"], {"failure_mode", "failure_message", "threshold", "candidate_kinds", "protected_pattern", "excluded_roles", "excluded_adapters", "max_facts", "state_bytes", "question"}, "filtering")
+    filtering = _object(value["filtering"], {"failure_mode", "failure_message", "candidate_kinds", "protected_pattern", "excluded_roles", "excluded_adapters", "max_facts", "state_bytes", "question"}, "filtering")
     if filtering["failure_mode"] not in {"preserve", "notice"}:
         raise ValueError("Filtering failure_mode must be preserve or notice")
     _text(filtering["failure_message"], "filtering.failure_message")
-    _number(filtering["threshold"], "filtering.threshold", 0, 1)
     _strings(filtering["candidate_kinds"], "filtering.candidate_kinds", UPDATE_KINDS)
     _strings(filtering["excluded_roles"], "filtering.excluded_roles", roles if references else None)
     _strings(filtering["excluded_adapters"], "filtering.excluded_adapters", role_adapters)
@@ -232,12 +271,9 @@ def _validate(value, *, references=True):
     if references and fallback["skill"] != "role" and fallback["skill"] not in skills:
         raise ValueError("Guidance fallback references an unknown installed role skill")
     _text(fallback["next_action"], "guidance fallback next action")
-    completion = _object(value["completion"], {"version", "failure_mode", "minimum_probability", "artifact_bytes", "state_bytes", "boundaries", "questions"}, "completion")
+    completion = _object(value["completion"], {"version", "artifact_bytes", "state_bytes", "boundaries", "questions"}, "completion")
     if type(completion["version"]) is not int or completion["version"] != 1:
         raise ValueError("Unsupported completion rubric version")
-    if completion["failure_mode"] not in {"block", "mechanical_only"}:
-        raise ValueError("Completion failure_mode must be block or mechanical_only")
-    _number(completion["minimum_probability"], "completion.minimum_probability", 0, 1)
     _number(completion["artifact_bytes"], "completion.artifact_bytes", 512, 8000, True)
     _number(completion["state_bytes"], "completion.state_bytes", 4000, 20000, True)
     for text in _object(completion["boundaries"], BOUNDARIES, "completion.boundaries").values():
@@ -311,6 +347,8 @@ def _merge(base, overlay, where="configuration"):
     result = copy.deepcopy(base)
     for name, value in overlay.items():
         if name not in result and not (where.endswith(".profile_evidence") or ".instructions" in where
+                                       or where == "configuration.decisions.rules"
+                                       or where.startswith("configuration.decisions.rules.")
                                        or where.endswith(".criteria") or where.endswith("scope.questions")):
             raise ValueError("Unknown configuration field: " + where + "." + name)
         if name == "credential" or name == "questions" and where.endswith(".scope"):
@@ -454,6 +492,21 @@ def selections(store):
     roles = [None, *sorted(overlay.get("roles", {}))]
     jobs = [None, *sorted(int(job) for job in overlay.get("jobs", {}))]
     return [{"role": role, "job": job} for role in roles for job in jobs]
+
+
+def decision_reservations(settings):
+    """Capacity required by every enabled operator role/job decision policy."""
+    reserved = {}
+    for item in settings:
+        if any(item["features"][name] for name in ("selection", "advice", "filtering", "completion")):
+            policy = item["decisions"]
+            role = policy["arbitrator_role"]
+            reserved[role] = max(reserved.get(role, 0), policy["reserved_sessions"])
+    return reserved
+
+
+def arbitration_reservations(store):
+    return decision_reservations(resolve(store, **selection) for selection in selections(store))
 
 
 def generate(cue):

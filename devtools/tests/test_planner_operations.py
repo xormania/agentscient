@@ -16,7 +16,7 @@ class PlannerOperationTests(unittest.TestCase):
 
     def test_planner_reads_own_complete_diagnostics_but_not_command_operations(self):
         config = json.loads((self.state / "team.json").read_text())
-        config["project"] = {"development": {"checks": {
+        config["project"] = {**config.get("project", {}), "development": {"checks": {
             "fixture": [sys.executable, "-c", "print('fixture')"]}}}
         (self.state / "team.json").write_text(json.dumps(config))
         self.co.call("direct", GOAL)

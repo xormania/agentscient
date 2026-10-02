@@ -8,10 +8,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from support import initialize
+
 from devtools import adapters, role_packages
 from devtools.api import API
 from devtools.harnesses import get
-from devtools.launch import agent, configuration, initialize, team_config
+from devtools.launch import agent, configuration, team_config
 from devtools.profiles import permitted
 from devtools.store import Store
 

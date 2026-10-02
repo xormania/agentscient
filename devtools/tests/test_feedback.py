@@ -24,7 +24,7 @@ class FeedbackTests(unittest.TestCase):
                 {"name": "other", "harness": "external", "workspace": str(self.workspace)},
             ]
         )
-        config["project"] = {"checkout": str(self.workspace), "repository": "example/project"}
+        config["project"].update(checkout=str(self.workspace), repository="example/project")
         (self.directory / "team.json").write_text(json.dumps(config))
         API(self.directory, "alpha").call(
             "direct",

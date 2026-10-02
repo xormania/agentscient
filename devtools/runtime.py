@@ -11,6 +11,8 @@ from .harnesses import get as harness_adapter
 from .role_packages import adapter, catalog, default_role, names_for_adapter, runtime_profile
 from .store import canonical, stamp
 
+DEFAULTS = Path(__file__).with_name("runtime-defaults.json")
+
 
 def co_role(scope=None):
     """Use the appointed interface's bound identity, or its initial catalog default."""
@@ -20,35 +22,43 @@ def co_role(scope=None):
     return role
 
 
+def vendor_defaults(policy):
+    """Availability is local consent, never enabled by a repository model choice."""
+    profiles = policy.get("profiles", {}) if isinstance(policy, dict) else {}
+    rows = profiles.values() if isinstance(profiles, dict) else ()
+    vendors = {row["vendor"] for row in rows
+               if isinstance(row, dict) and isinstance(row.get("vendor"), str)}
+    return {"version": 1, "vendors": {vendor: {"available": False, "reason": "Enable after login"}
+                                     for vendor in sorted(vendors)}}
+
+
+def default_policy():
+    """Load maintained initial choices through the same validator as private policy."""
+    policy = json.loads(DEFAULTS.read_text())
+    validate(policy, vendor_defaults(policy))
+    return policy
+
+
 def defaults(directory):
     from .profiles import write_json
 
+    policy = default_policy()
     directory = Path(directory)
-    choices = list(adapter_names("harness"))
-    vendors = {name: harness_adapter(name).vendor for name in choices}
-    write_json(
-        directory / "roles.json",
-        {
-            "version": 1,
-            "max_sessions": 12,
-            "profiles": {h: {"harness": h, "vendor": v, "model": None, "reasoning": None} for h, v in vendors.items()},
-            "roles": {role: list(package["runtime"]["harnesses"])
-                      for role, package in catalog()["roles"].items()},
-        },
-    )
-    write_json(
-        directory / "vendors.json",
-        {
-            "version": 1,
-            "vendors": {v: {"available": False, "reason": "Enable after login"} for v in vendors.values()},
-        },
-    )
+    if any((directory / name).exists() for name in ("roles.json", "vendors.json")):
+        raise ValueError("Runtime policy already exists; edit its roles.json and vendors.json to change configuration.")
+    write_json(directory / "roles.json", policy)
+    write_json(directory / "vendors.json", vendor_defaults(policy))
 
 
 def load(directory):
     directory = Path(directory)
     policy = json.loads((directory / "roles.json").read_text())
     availability = json.loads((directory / "vendors.json").read_text())
+    return validate(policy, availability)
+
+
+def validate(policy, availability):
+    """Validate maintained and operator policy without starting a harness."""
     if not isinstance(policy, dict) or set(policy) != {"version", "max_sessions", "profiles", "roles"}:
         raise ValueError("roles.json needs version, max_sessions, profiles and roles")
     if not isinstance(availability, dict) or set(availability) != {"version", "vendors"}:
@@ -129,10 +139,102 @@ def resolve(directory, role, *, installed=True, profile=None):
     raise ValueError(f"No runtime available for {role}; inspect operator runtime_status and vendor availability.")
 
 
-def allocate(store, db, config, role, existing=None):
+
+def _binding(scope):
+    """Selection follows the assignment, not its transient coordination state."""
+    if not isinstance(scope, dict) or not scope.get("member") or not scope.get("role"):
+        raise ValueError("A current work binding is required for runtime selection")
+    return {key: scope.get(key) for key in
+            ("member", "role", "work_order", "job", "assignment_id")}
+
+
+def _source(db, scope):
+    """Fence actual scope changes while allowing pause, guidance and NCO transfer."""
+    def record(table, identity, fields):
+        if identity is None:
+            return None
+        row = db.execute("SELECT " + ",".join(fields) + " FROM " + table + " WHERE id=?", (identity,)).fetchone()
+        if row is None:
+            raise ValueError("Runtime selection source is no longer available")
+        return dict(row)
+
+    return {
+        "binding": _binding(scope),
+        "work": record("work_orders", scope["work_order"], ("title", "objective", "done_when", "constraints", "context")),
+        "job": record("jobs", scope.get("job"), ("title", "objective", "done_when", "constraints", "assignment", "dependencies")),
+        "assignment": record("role_assignments", scope.get("assignment_id"), ("revision", "brief", "details")),
+    }
+
+
+def _validated(directory, role, choice):
+    """An earlier decision never authorizes changed settings or an unavailable vendor."""
+    selection = choice.get("selection") if isinstance(choice, dict) else None
+    if not isinstance(selection, dict) or selection.get("role") != role or not isinstance(selection.get("profile"), str):
+        raise ValueError("Runtime selection must name the configured profile for this role")
+    current = resolve(directory, role, profile=selection["profile"])
+    if selection.get("revision") != current["selection"]["revision"]:
+        raise ValueError("Runtime policy changed; select a current profile before launching this assignment")
+    fields = set(current) - {"selection"}
+    if any(choice.get(key) != current[key] for key in fields):
+        raise ValueError("Runtime profile changed; select its current settings before launching this assignment")
+    return {**current, "selection": dict(selection)}
+
+
+def retain(store, db, scope, choice):
+    """Bind a trusted resolved choice atomically with its assignment."""
+    from .control import binding
+
+    identity = _binding(scope)
+    current = binding(db, scope["member"])
+    if not current or _binding(current) != identity:
+        raise ValueError("Work binding changed before runtime selection could be retained")
+    choice = _validated(store.directory, scope["role"], choice)
+    db.execute(
+        "INSERT INTO runtime_selections(member,binding,profile) VALUES (?,?,?) "
+        "ON CONFLICT(member) DO UPDATE SET binding=excluded.binding,profile=excluded.profile",
+        (scope["member"], canonical(_source(db, current)), canonical(choice)),
+    )
+    return choice
+
+
+def selected(store, scope, *, required=False):
+    """Reuse this assignment's decision; never replace it with the first preference."""
+    from .control import binding
+
+    identity = _binding(scope)
+    with store.connect() as db:
+        current = binding(db, scope["member"])
+        if not current or _binding(current) != identity:
+            raise ValueError("Work binding changed before its runtime selection could be loaded")
+        row = db.execute("SELECT binding,profile FROM runtime_selections WHERE member=?", (scope["member"],)).fetchone()
+        source = _source(db, current)
+    if not row:
+        details = json.loads(source["assignment"]["details"]) if source["assignment"] else {}
+        coordination = {}
+        if adapter(current["role"]) == "nco":
+            try:
+                coordination = json.loads(current.get("brief", ""))
+            except (TypeError, ValueError):
+                pass
+        marked = ("selection_decision" in details or "decision" in details or
+                  isinstance(coordination, dict) and "selection_decision" in coordination)
+        if required or marked:
+            raise ValueError("This assignment needs a retained runtime selection before launching")
+        # Existing operator bindings predate per-assignment decisions. Their
+        # explicit role policy remains usable until a decision is retained.
+        return resolve(store.directory, scope["role"])
+    if row["binding"] != canonical(source):
+        raise ValueError("Work binding changed; select a current runtime profile for this assignment")
+    return _validated(store.directory, scope["role"], json.loads(row["profile"]))
+
+
+def allocate(store, db, config, role, existing=None, selected=None):
     """Called inside the work allocation transaction; failed batches leave no seats."""
+    if selected is not None:
+        selected = _validated(store.directory, role, selected)
     if existing:
-        return dict(db.execute("SELECT * FROM members WHERE name=?", (existing["member"],)).fetchone())
+        row = dict(db.execute("SELECT * FROM members WHERE name=?", (existing["member"],)).fetchone())
+        return {**row, **selected} if selected is not None else row
     policy, _, _ = load(store.directory)
     interfaces = names_for_adapter("co")
     query = "SELECT count(*) FROM member_bindings"
@@ -141,7 +243,16 @@ def allocate(store, db, config, role, existing=None):
     count = db.execute(query, interfaces).fetchone()[0]
     if count >= policy["max_sessions"]:
         raise ValueError("No available collaborator capacity; stop/release finished work or ask the operator.")
-    selected = resolve(store.directory, role)
+    if adapter(role) != "arbitrator":
+        from .configuration import arbitration_reservations
+
+        reserved = max(arbitration_reservations(store).values(), default=0)
+        arbitrators = names_for_adapter("arbitrator")
+        occupied = db.execute("SELECT count(*) FROM member_bindings WHERE role IN (" +
+                              ",".join("?" for _ in arbitrators) + ")", arbitrators).fetchone()[0] if arbitrators else 0
+        if count - occupied >= policy["max_sessions"] - reserved:
+            raise ValueError("No ordinary collaborator capacity remains; reserved sessions are required for Arbitrator decisions.")
+    selected = selected if selected is not None else resolve(store.directory, role)
     workspace = config["members"][0]["workspace"]
     # Reuse an unbound, stopped dynamic seat. Roles are not fixed seat names.
     row = db.execute(

@@ -22,7 +22,7 @@ and `packages/` is the prod-lane.
 | **Serena MCP** (`serena`) | Source navigation and edits through the v2 REPL, bound automatically to the current specialist's workspace and paths. |
 | **Native harness adapters** | Keep configured conversations alive and carry live messages through their native protocols; the shipped adapters support Codex, Claude and Grok. |
 | **SQLite and managed storage** | Retain work, state, messages, observations and artifact associations; store artifact payloads separately. |
-| **Jev assessment** | Independently enabled role/job relevance filtering, proof-backed completion and on-demand advice, using configured provider credentials and existing artifacts/telemetry. |
+| **Semantic decisions** | Configured Jev evaluation for assignment/runtime selection, relevance filtering and proof-backed completion; unresolved questions go to a work-bound Arbitrator with retained evidence. |
 
 CO is xor's interface: it relays xor's instructions and prepared context to XO,
 and system messages back to xor. XO owns planning, execution, coordination and
@@ -68,6 +68,7 @@ explains REPL lifetime and workspace isolation.
 | `development.py`, `operations.py`, `serena_provider.py` | Installed framework tools, retained long operations and the separate REPL gateway |
 | `configuration.py`, `configuration.cue`, `configuration.json` | Validated defaults and private project → role → job policy resolution |
 | `advice.py`, `jev.py`, `credentials.py` | Work-scoped assessment, configured TypeSafe transport and private credential sources |
+| `decisions.py`, `assignment_decisions.py` | Typed decision thresholds, Arbitrator assignment/resolution and application of eligible role/runtime selections |
 | `diagnostics.py`, `completion.py` | Configured permitted skill guidance, scoped context projection and proof boundaries |
 | `readiness.py`, `run.py` | Operator setup, preflight, evidence index and entry points |
 | `tests/`, `integration/` | Protocol/service tests and real Symfony/Serena integrations |

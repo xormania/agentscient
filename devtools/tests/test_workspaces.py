@@ -6,10 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client
+from support import Client, initialize
 
 from devtools.api import API
-from devtools.launch import initialize
 from devtools.store import Store
 from devtools.workspaces import git
 
@@ -40,7 +39,7 @@ class WorkspaceTests(unittest.TestCase):
             self.state, self.checkout, ["co:external", "xo:external", "coder:external", "docs:external"], co="co"
         )
         config = json.loads((self.state / "team.json").read_text())
-        config["project"] = {"checkout": str(self.checkout), "repository": "example/project", "target": "dev"}
+        config["project"] = {**config.get("project", {}), "checkout": str(self.checkout), "repository": "example/project", "target": "dev"}
         (self.state / "team.json").write_text(json.dumps(config))
         API(self.state, "co").call(
             "direct",
